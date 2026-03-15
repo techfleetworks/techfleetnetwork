@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 
 interface Task {
