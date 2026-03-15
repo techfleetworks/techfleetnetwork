@@ -14,62 +14,38 @@ interface NotifyPayload {
     | "phase_completed"
     | "class_registered";
   display_name?: string;
+  discord_username?: string;
   task_name?: string;
   phase_name?: string;
   class_name?: string;
   country?: string;
 }
 
-const EVENT_EMOJIS: Record<string, string> = {
-  user_signed_up: "🎉",
-  profile_completed: "✅",
-  task_completed: "📋",
-  phase_completed: "🏆",
-  class_registered: "📚",
-};
-
-function buildEmbed(payload: NotifyPayload) {
-  const name = payload.display_name || "A member";
-  const emoji = EVENT_EMOJIS[payload.event] || "📢";
-
+function buildActionText(payload: NotifyPayload): string {
   switch (payload.event) {
     case "user_signed_up":
-      return {
-        title: `${emoji} New Member Joined!`,
-        description: `**${name}** just signed up to Tech Fleet Network.`,
-        color: 0x22c55e, // green
-      };
+      return "Signed up to Tech Fleet Network 🎉";
     case "profile_completed":
-      return {
-        title: `${emoji} Profile Completed`,
-        description: `**${name}** finished setting up their profile.${payload.country ? `\n🌍 Based in **${payload.country}**` : ""}`,
-        color: 0x3b82f6, // blue
-      };
+      return `Completed their profile setup${payload.country ? ` (🌍 ${payload.country})` : ""} ✅`;
     case "task_completed":
-      return {
-        title: `${emoji} Task Completed`,
-        description: `**${name}** completed: **${payload.task_name || "a task"}**`,
-        color: 0xf59e0b, // amber
-      };
+      return `Completed task: ${payload.task_name || "a task"} 📋`;
     case "phase_completed":
-      return {
-        title: `${emoji} Phase Completed!`,
-        description: `**${name}** completed all tasks in **${payload.phase_name || "a phase"}**! 🚀`,
-        color: 0xa855f7, // purple
-      };
+      return `Completed all tasks in ${payload.phase_name || "a phase"} 🏆🚀`;
     case "class_registered":
-      return {
-        title: `${emoji} Class Registration`,
-        description: `**${name}** registered for **${payload.class_name || "a class"}**.`,
-        color: 0x06b6d4, // cyan
-      };
+      return `Registered for ${payload.class_name || "a class"} 📚`;
     default:
-      return {
-        title: `${emoji} Activity`,
-        description: `**${name}** performed an action on the platform.`,
-        color: 0x6b7280,
-      };
+      return "Performed an action on the platform 📢";
   }
+}
+
+function buildMessage(payload: NotifyPayload): string {
+  const discordTag = payload.discord_username
+    ? `@${payload.discord_username.replace(/^@/, "")}`
+    : payload.display_name || "A member";
+
+  const action = buildActionText(payload);
+
+  return `**${discordTag}** just did the following in Tech Fleet Network: **${action}**`;
 }
 
 serve(async (req) => {
@@ -89,12 +65,9 @@ serve(async (req) => {
   try {
     const payload: NotifyPayload = await req.json();
 
-    const embed = buildEmbed(payload);
-    embed["timestamp"] = new Date().toISOString();
-    embed["footer"] = { text: "Tech Fleet Network" };
-
     const discordBody = {
-      embeds: [embed],
+      content: buildMessage(payload),
+      allowed_mentions: { parse: [] }, // Don't ping @everyone/@here
     };
 
     const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
@@ -112,7 +85,7 @@ serve(async (req) => {
       );
     }
 
-    await discordRes.text(); // consume body
+    await discordRes.text();
 
     return new Response(
       JSON.stringify({ success: true }),

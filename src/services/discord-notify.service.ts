@@ -8,6 +8,7 @@ interface NotifyPayload {
     | "phase_completed"
     | "class_registered";
   display_name?: string;
+  discord_username?: string;
   task_name?: string;
   phase_name?: string;
   class_name?: string;
@@ -41,35 +42,38 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export const DiscordNotifyService = {
-  userSignedUp(displayName: string) {
-    notify({ event: "user_signed_up", display_name: displayName });
+  userSignedUp(displayName: string, discordUsername?: string) {
+    notify({ event: "user_signed_up", display_name: displayName, discord_username: discordUsername });
   },
 
-  profileCompleted(displayName: string, country?: string) {
-    notify({ event: "profile_completed", display_name: displayName, country });
+  profileCompleted(displayName: string, country?: string, discordUsername?: string) {
+    notify({ event: "profile_completed", display_name: displayName, country, discord_username: discordUsername });
   },
 
-  taskCompleted(displayName: string, taskId: string) {
+  taskCompleted(displayName: string, taskId: string, discordUsername?: string) {
     notify({
       event: "task_completed",
       display_name: displayName,
       task_name: TASK_LABELS[taskId] || taskId,
+      discord_username: discordUsername,
     });
   },
 
-  phaseCompleted(displayName: string, phase: string) {
+  phaseCompleted(displayName: string, phase: string, discordUsername?: string) {
     notify({
       event: "phase_completed",
       display_name: displayName,
       phase_name: PHASE_LABELS[phase] || phase,
+      discord_username: discordUsername,
     });
   },
 
-  classRegistered(displayName: string, className: string) {
+  classRegistered(displayName: string, className: string, discordUsername?: string) {
     notify({
       event: "class_registered",
       display_name: displayName,
       class_name: className,
+      discord_username: discordUsername,
     });
   },
 };
