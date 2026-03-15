@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, FileText, ScrollText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
+import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 
 interface Task {
   id: string;
@@ -12,19 +13,66 @@ interface Task {
   completed: boolean;
   icon: React.ElementType;
   action: string;
+  external?: boolean;
+  panelAction?: boolean;
 }
 
 const defaultTasks: Omit<Task, "completed">[] = [
-  { id: "profile", title: "Set Up Profile", description: "Fill in your name, bio, and professional background.", icon: User, action: "/profile-setup" },
-  { id: "onboarding-class", title: "Complete Onboarding Class", description: "Watch the onboarding video and complete the intro module.", icon: Play, action: "#" },
-  { id: "service-leadership", title: "Sign Up for Service Leadership Class", description: "Register for the next available service leadership session.", icon: Users, action: "#" },
-  { id: "user-guide", title: "Read or Watch the User Guide", description: "Review the getting started guide (minimum engagement required).", icon: BookOpen, action: "#" },
+  {
+    id: "profile",
+    title: "Set Up Profile",
+    description: "Fill in your name, country, and Discord username.",
+    icon: User,
+    action: "/profile-setup",
+  },
+  {
+    id: "onboarding-class",
+    title: "Complete Onboarding Class",
+    description: "Register for and attend the Tech Fleet onboarding session.",
+    icon: Play,
+    action: "https://techfleet.org/onboarding",
+    external: true,
+  },
+  {
+    id: "service-leadership",
+    title: "Sign Up for Service Leadership Class",
+    description: "Register for the next available service leadership session.",
+    icon: Users,
+    action: "https://techfleet.org/overview/current-classes",
+    external: true,
+  },
+  {
+    id: "user-guide",
+    title: "Complete the Discord Tutorial Series in the User Guide",
+    description: "Work through the Discord migration video tutorial series.",
+    icon: BookOpen,
+    action: "https://guide.techfleet.org/resources/the-great-tech-fleet-discord-migration-video-tutorials",
+    external: true,
+  },
+  {
+    id: "figma-account",
+    title: "Register for Figma Educational Account",
+    description: "Join the Tech Fleet Figma educational workspace.",
+    icon: Figma,
+    action: "https://guide.techfleet.org/resources/join-the-tech-fleet-figma-educational-space",
+    external: true,
+  },
+  {
+    id: "community-agreement",
+    title: "Agree to the Community Member Agreement",
+    description: "Read and accept the Tech Fleet Community Collective Agreement.",
+    icon: ScrollText,
+    action: "#",
+    panelAction: true,
+  },
 ];
 
 export default function FirstStepsPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
+  const [agreementOpen, setAgreementOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -34,10 +82,18 @@ export default function FirstStepsPage() {
     });
   }, [user]);
 
+  const handleExternalVisit = (id: string, url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+    setVisitedExternal((prev) => new Set(prev).add(id));
+  };
+
   const toggleTask = async (id: string) => {
     if (!user) return;
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
+
+    // For external tasks, require visiting the link first before marking complete
+    if (task.external && !task.completed && !visitedExternal.has(id)) return;
 
     const newCompleted = !task.completed;
     setLoadingId(id);
@@ -47,6 +103,20 @@ export default function FirstStepsPage() {
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
     } finally {
       setLoadingId(null);
+    }
+  };
+
+  const handleAgreementAccepted = async () => {
+    if (!user) return;
+    setLoadingId("community-agreement");
+    try {
+      await JourneyService.upsertTask(user.id, "first_steps", "community-agreement", true);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
+      );
+    } finally {
+      setLoadingId(null);
+      setAgreementOpen(false);
     }
   };
 
@@ -63,7 +133,7 @@ export default function FirstStepsPage() {
 
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">First Steps</h1>
-        <p className="text-muted-foreground mt-1">Complete all four tasks below to unlock Second Steps. You can do them in any order.</p>
+        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock Second Steps. You can do them in any order.</p>
       </div>
 
       <div className="mb-8">
@@ -79,20 +149,70 @@ export default function FirstStepsPage() {
       <div className="space-y-3">
         {tasks.map((task) => {
           const Icon = task.icon;
+          const isExternalNotVisited = task.external && !task.completed && !visitedExternal.has(task.id);
+
           return (
             <div key={task.id} className={`card-elevated p-5 transition-all duration-200 ${task.completed ? "border-success/30 bg-success/5" : ""}`}>
               <div className="flex items-start gap-4">
-                <button onClick={() => toggleTask(task.id)} className="flex-shrink-0 mt-0.5" disabled={loadingId === task.id} aria-label={`Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`}>
-                  {task.completed ? <CheckCircle2 className="h-6 w-6 text-success" /> : <Circle className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />}
+                {/* Completion toggle */}
+                <button
+                  onClick={() => toggleTask(task.id)}
+                  className="flex-shrink-0 mt-0.5"
+                  disabled={loadingId === task.id || task.panelAction || isExternalNotVisited}
+                  title={
+                    task.panelAction
+                      ? "Use the agreement panel to complete this"
+                      : isExternalNotVisited
+                      ? "Visit the link first, then mark complete"
+                      : `Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`
+                  }
+                  aria-label={`Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`}
+                >
+                  {task.completed ? (
+                    <CheckCircle2 className="h-6 w-6 text-success" />
+                  ) : (
+                    <Circle className={`h-6 w-6 ${isExternalNotVisited || task.panelAction ? "text-muted-foreground/40" : "text-muted-foreground hover:text-primary"} transition-colors`} />
+                  )}
                 </button>
+
                 <div className="flex-1 min-w-0">
-                  <h3 className={`font-semibold ${task.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>{task.title}</h3>
+                  <h3 className={`font-semibold ${task.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {task.title}
+                  </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
+                  {task.external && visitedExternal.has(task.id) && !task.completed && (
+                    <p className="text-xs text-primary mt-1">✓ Link visited — you can now mark this as complete</p>
+                  )}
                 </div>
-                {task.action !== "#" ? (
-                  <Link to={task.action}><Button variant="outline" size="sm" disabled={task.completed}><Icon className="h-4 w-4 mr-1" />Start</Button></Link>
+
+                {/* Action button */}
+                {task.panelAction ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={task.completed}
+                    onClick={() => setAgreementOpen(true)}
+                  >
+                    <Icon className="h-4 w-4 mr-1" />
+                    Review
+                  </Button>
+                ) : task.external ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={task.completed}
+                    onClick={() => handleExternalVisit(task.id, task.action)}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Open
+                  </Button>
                 ) : (
-                  <Button variant="outline" size="sm" disabled={task.completed}><Icon className="h-4 w-4 mr-1" />Start</Button>
+                  <Link to={task.action}>
+                    <Button variant="outline" size="sm" disabled={task.completed}>
+                      <Icon className="h-4 w-4 mr-1" />
+                      Start
+                    </Button>
+                  </Link>
                 )}
               </div>
             </div>
@@ -108,6 +228,13 @@ export default function FirstStepsPage() {
           <Link to="/journey/second-steps"><Button>Continue to Second Steps</Button></Link>
         </div>
       )}
+
+      <CommunityAgreementPanel
+        open={agreementOpen}
+        onOpenChange={setAgreementOpen}
+        onAccepted={handleAgreementAccepted}
+        loading={loadingId === "community-agreement"}
+      />
     </div>
   );
 }
