@@ -3,6 +3,7 @@ import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard"
 import { BarChart3, Clock, Trophy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
+import { NetworkActivity } from "@/components/NetworkActivity";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
@@ -60,6 +61,10 @@ export default function DashboardPage() {
             <JourneyStepCard key={step.id} step={step} index={index} />
           ))}
         </div>
+      </section>
+
+      <section className="mt-10 border-t pt-8">
+        <NetworkActivity />
       </section>
     </div>
   );

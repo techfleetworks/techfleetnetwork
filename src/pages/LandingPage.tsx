@@ -1,6 +1,7 @@
 import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { NetworkActivity } from "@/components/NetworkActivity";
 import heroImage from "@/assets/hero-space.png";
 
 export default function LandingPage() {
@@ -43,6 +44,11 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Network Activity Section */}
+      <section className="border-t bg-muted/30">
+        <NetworkActivity />
       </section>
 
       {/* Features Section */}
