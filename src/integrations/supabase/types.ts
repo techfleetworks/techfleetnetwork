@@ -81,9 +81,13 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string
+          country: string
           created_at: string
+          discord_username: string
           display_name: string
+          first_name: string
           id: string
+          last_name: string
           professional_background: string
           profile_completed: boolean
           updated_at: string
@@ -92,9 +96,13 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string
+          country?: string
           created_at?: string
+          discord_username?: string
           display_name?: string
+          first_name?: string
           id?: string
+          last_name?: string
           professional_background?: string
           profile_completed?: boolean
           updated_at?: string
@@ -103,9 +111,13 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string
+          country?: string
           created_at?: string
+          discord_username?: string
           display_name?: string
+          first_name?: string
           id?: string
+          last_name?: string
           professional_background?: string
           profile_completed?: boolean
           updated_at?: string

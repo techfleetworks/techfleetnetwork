@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 export const profileSchema = z.object({
-  displayName: z.string().trim().min(1, "Display name is required").max(100),
-  bio: z.string().trim().min(1, "Bio is required").max(1000),
-  background: z.string().trim().min(1, "Professional background is required").max(2000),
+  firstName: z.string().trim().min(1, "First name is required").max(100),
+  lastName: z.string().trim().min(1, "Last name is required").max(100),
+  country: z.string().trim().min(1, "Country is required").max(100),
+  discordUsername: z.string().trim().min(1, "Discord username is required").max(100),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

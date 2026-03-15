@@ -1,13 +1,13 @@
-import { useState, useEffect, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
-import { InvitationService } from "@/services/invitation.service";
 import { registerSchema } from "@/lib/validators/auth";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const passwordRequirements = [
@@ -19,12 +19,6 @@ const passwordRequirements = [
 ];
 
 export default function RegisterPage() {
-  const [searchParams] = useSearchParams();
-  const inviteToken = searchParams.get("invite");
-  const [inviteValid, setInviteValid] = useState<boolean | null>(null);
-  const [inviteEmail, setInviteEmail] = useState("");
-
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,23 +28,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  useEffect(() => {
-    if (!inviteToken) {
-      setInviteValid(false);
-      return;
-    }
-    InvitationService.validate(inviteToken).then((result) => {
-      setInviteValid(result.valid);
-      if (result.valid) {
-        setInviteEmail(result.email);
-        setEmail(result.email);
-      }
-    });
-  }, [inviteToken]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = registerSchema.safeParse({ name, email, password, agreedToTerms });
+    const result = registerSchema.safeParse({ email, password, agreedToTerms });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
@@ -69,10 +49,9 @@ export default function RegisterPage() {
       await AuthService.signUp(
         result.data.email,
         result.data.password,
-        result.data.name,
-        window.location.origin + "/dashboard"
+        "",
+        window.location.origin + "/profile-setup"
       );
-      if (inviteToken) await InvitationService.markUsed(inviteToken);
       setSubmitted(true);
     } catch (err: any) {
       setAuthError(err.message);
@@ -80,40 +59,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  const handleGoogleSignUp = () => {
-    AuthService.signInWithGoogle(window.location.origin + "/dashboard");
-  };
-
-  if (inviteValid === false) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
-          <ShieldAlert className="h-16 w-16 text-warning mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Invitation Required</h1>
-          <p className="text-muted-foreground mb-2">
-            Tech Fleet uses invitation-only registration. You need a valid invitation link to create an account.
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            {inviteToken
-              ? "This invitation link has expired or has already been used."
-              : "Please check your email for an invitation link, or attend a community call to receive one."}
-          </p>
-          <Link to="/"><Button variant="outline">Back to Home</Button></Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (inviteValid === null) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" role="status">
-          <span className="sr-only">Validating invitation…</span>
-        </div>
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
@@ -146,19 +91,10 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="name" type="text" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} className="pl-10" autoComplete="name" required aria-required="true" aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} />
-              </div>
-              {errors.name && <p id="name-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="reg-email">Email address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} readOnly={!!inviteEmail} />
+                <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} />
               </div>
               {errors.email && <p id="email-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.email}</p>}
             </div>
@@ -205,15 +141,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full mt-4" onClick={handleGoogleSignUp}>
-            <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-            </svg>
-            Sign up with Google
-          </Button>
+          <GoogleSignInButton className="mt-4" label="Sign up with Google" />
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
