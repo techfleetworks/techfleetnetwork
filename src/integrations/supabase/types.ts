@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          changed_fields: string[] | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          changed_fields?: string[] | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          changed_fields?: string[] | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -131,6 +164,10 @@ export type Database = {
     }
     Functions: {
       get_network_stats: { Args: never; Returns: Json }
+      purge_old_audit_logs: {
+        Args: { retention_days?: number }
+        Returns: number
+      }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
         Args: { p_token: string }
@@ -139,6 +176,16 @@ export type Database = {
           expires_at: string
           used_at: string
         }[]
+      }
+      write_audit_log: {
+        Args: {
+          p_changed_fields?: string[]
+          p_event_type: string
+          p_record_id: string
+          p_table_name: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
