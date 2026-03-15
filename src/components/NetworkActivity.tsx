@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, UserCheck, Activity } from "lucide-react";
+import { Users, UserCheck, Activity, CalendarDays, UserPlus } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
 
 const defaultStats: NetworkStats = {
@@ -10,6 +10,13 @@ const defaultStats: NetworkStats = {
   second_steps_completed: 0,
   third_steps_active: 0,
   third_steps_completed: 0,
+  new_members_7d: 0,
+  first_steps_active_7d: 0,
+  first_steps_completed_7d: 0,
+  second_steps_active_7d: 0,
+  second_steps_completed_7d: 0,
+  third_steps_active_7d: 0,
+  third_steps_completed_7d: 0,
 };
 
 interface StepGroupProps {
@@ -85,7 +92,7 @@ export function NetworkActivity() {
         </div>
 
         {/* Total members highlight */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-8">
           <div className="card-elevated px-6 py-4 inline-flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Users className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -97,23 +104,38 @@ export function NetworkActivity() {
           </div>
         </div>
 
-        {/* Step groups */}
-        <div className="grid sm:grid-cols-3 gap-4">
-          <StepGroup
-            title="Step 1 — First Steps"
-            active={stats.first_steps_active}
-            completed={stats.first_steps_completed}
-          />
-          <StepGroup
-            title="Step 2 — Agile Handbook"
-            active={stats.second_steps_active}
-            completed={stats.second_steps_completed}
-          />
-          <StepGroup
-            title="Step 3 — Teammate Handbook"
-            active={stats.third_steps_active}
-            completed={stats.third_steps_completed}
-          />
+        {/* All-time step groups */}
+        <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
+        <div className="grid sm:grid-cols-3 gap-4 mb-10">
+          <StepGroup title="Step 1 — First Steps" active={stats.first_steps_active} completed={stats.first_steps_completed} />
+          <StepGroup title="Step 2 — Agile Handbook" active={stats.second_steps_active} completed={stats.second_steps_completed} />
+          <StepGroup title="Step 3 — Teammate Handbook" active={stats.third_steps_active} completed={stats.third_steps_completed} />
+        </div>
+
+        {/* Last 7 days */}
+        <div className="border-t pt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
+            <h3 className="text-lg font-semibold text-foreground">Last 7 Days</h3>
+          </div>
+
+          <div className="flex justify-start mb-4">
+            <div className="card-elevated px-5 py-3 inline-flex items-center gap-2">
+              <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <UserPlus className="h-4 w-4 text-primary" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground leading-tight">{stats.new_members_7d}</p>
+                <p className="text-xs text-muted-foreground">New sign-ups</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <StepGroup title="Step 1 — First Steps" active={stats.first_steps_active_7d} completed={stats.first_steps_completed_7d} />
+            <StepGroup title="Step 2 — Agile Handbook" active={stats.second_steps_active_7d} completed={stats.second_steps_completed_7d} />
+            <StepGroup title="Step 3 — Teammate Handbook" active={stats.third_steps_active_7d} completed={stats.third_steps_completed_7d} />
+          </div>
         </div>
       </div>
     </section>

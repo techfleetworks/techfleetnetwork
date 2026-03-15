@@ -8,6 +8,13 @@ export interface NetworkStats {
   second_steps_completed: number;
   third_steps_active: number;
   third_steps_completed: number;
+  new_members_7d: number;
+  first_steps_active_7d: number;
+  first_steps_completed_7d: number;
+  second_steps_active_7d: number;
+  second_steps_completed_7d: number;
+  third_steps_active_7d: number;
+  third_steps_completed_7d: number;
 }
 
 export const StatsService = {
