@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Users, UserCheck, Activity, CalendarDays, UserPlus } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
+import { MemberWorldMap } from "@/components/MemberWorldMap";
 
 const defaultStats: NetworkStats = {
   total_members: 0,
