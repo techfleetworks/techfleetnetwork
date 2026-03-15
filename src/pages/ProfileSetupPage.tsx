@@ -32,7 +32,7 @@ export default function ProfileSetupPage() {
     const result = profileSchema.safeParse(form);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
