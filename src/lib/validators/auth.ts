@@ -18,7 +18,7 @@ export const registerSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255),
   password: passwordSchema,
   agreedToTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the terms and community guidelines." }),
+    message: "You must agree to the terms and community guidelines.",
   }),
 });
 
