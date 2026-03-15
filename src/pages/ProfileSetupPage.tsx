@@ -54,8 +54,11 @@ export default function ProfileSetupPage() {
       await JourneyService.upsertTask(user!.id, "first_steps", "profile", true);
       const displayName = `${result.data.firstName} ${result.data.lastName}`.trim();
       const discordUser = result.data.discordUsername || undefined;
-      DiscordNotifyService.profileCompleted(displayName, result.data.country, discordUser);
-      DiscordNotifyService.taskCompleted(displayName, "profile", discordUser);
+      // Fetch the resolved discord_user_id from the just-updated profile
+      const updatedProfile = await ProfileService.fetch(user!.id);
+      const discordId = updatedProfile?.discord_user_id || undefined;
+      DiscordNotifyService.profileCompleted(displayName, result.data.country, discordUser, discordId);
+      DiscordNotifyService.taskCompleted(displayName, "profile", discordUser, discordId);
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       setErrors({ general: err.message });
