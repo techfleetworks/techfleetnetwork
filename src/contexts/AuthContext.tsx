@@ -23,6 +23,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const data = await ProfileService.fetch(userId);
     setProfile(data);
+    return data;
+  };
+
+  /** For Google OAuth users, sync their Google metadata to the profile if names are empty */
+  const syncOAuthProfile = async (currentUser: User, currentProfile: Profile | null) => {
+    if (!currentProfile) return;
+    const meta = currentUser.user_metadata;
+    if (!meta) return;
+    // Only sync if profile names are empty (first login via OAuth)
+    if (currentProfile.first_name || currentProfile.last_name) return;
+
+    const firstName = meta.given_name || meta.first_name || "";
+    const lastName = meta.family_name || meta.last_name || "";
+    if (!firstName && !lastName) return;
+
+    try {
+      await ProfileService.updateNames(currentUser.id, firstName, lastName);
+      await fetchProfile(currentUser.id);
+    } catch {
+      // Non-critical, profile setup will catch missing data
+    }
   };
 
   const refreshProfile = async () => {
@@ -35,7 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          setTimeout(async () => {
+            const p = await fetchProfile(session.user.id);
+            if (_event === "SIGNED_IN") {
+              await syncOAuthProfile(session.user, p);
+            }
+          }, 0);
         } else {
           setProfile(null);
         }

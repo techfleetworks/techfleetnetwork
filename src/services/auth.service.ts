@@ -4,23 +4,25 @@ export const AuthService = {
   async signInWithPassword(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      // A07: Generic error message to prevent user enumeration
       throw new Error("Invalid email or password. Please try again.");
     }
     return data;
   },
 
-  async signUp(email: string, password: string, fullName: string, redirectTo: string) {
+  async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: {
+          full_name: `${firstName} ${lastName}`.trim(),
+          first_name: firstName,
+          last_name: lastName,
+        },
         emailRedirectTo: redirectTo,
       },
     });
     if (error) {
-      // A07: Generic error message to prevent user enumeration
       throw new Error("Unable to create account. Please try again or use a different email.");
     }
     return data;

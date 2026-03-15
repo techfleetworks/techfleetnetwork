@@ -23,7 +23,6 @@ export const ProfileService = {
   },
 
   async update(userId: string, input: ProfileInput) {
-    // Server-side the RLS policy ensures user can only update their own profile
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -36,5 +35,18 @@ export const ProfileService = {
       } as any)
       .eq("user_id", userId);
     if (error) throw new Error("Failed to save profile. Please try again.");
+  },
+
+  /** Sync OAuth names to profile (used for Google sign-in) */
+  async updateNames(userId: string, firstName: string, lastName: string) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        display_name: `${firstName} ${lastName}`.trim(),
+      } as any)
+      .eq("user_id", userId);
+    if (error) throw new Error("Failed to sync profile names.");
   },
 };

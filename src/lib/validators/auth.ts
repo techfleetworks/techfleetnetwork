@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const safeText = (label: string, max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .max(max, `${label} must be under ${max} characters`)
+    .refine((val) => !/<script/i.test(val), `${label} contains invalid content`);
+
 export const passwordSchema = z
   .string()
   .min(8, "At least 8 characters")
@@ -15,6 +23,8 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
+  firstName: safeText("First name", 100),
+  lastName: safeText("Last name", 100),
   email: z.string().trim().email("Invalid email address").max(255),
   password: passwordSchema,
   agreedToTerms: z.literal(true, {
