@@ -73,7 +73,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Link to="/login" className="hidden md:inline-flex">
                   <Button variant="outline" size="sm">
                     <LogIn className="h-4 w-4 mr-1" />
-                    Sign In
+                    Connect
                   </Button>
                 </Link>
               </>
