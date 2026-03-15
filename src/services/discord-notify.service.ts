@@ -9,6 +9,7 @@ interface NotifyPayload {
     | "class_registered";
   display_name?: string;
   discord_username?: string;
+  discord_user_id?: string;
   task_name?: string;
   phase_name?: string;
   class_name?: string;
@@ -42,38 +43,53 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export const DiscordNotifyService = {
-  userSignedUp(displayName: string, discordUsername?: string) {
-    notify({ event: "user_signed_up", display_name: displayName, discord_username: discordUsername });
+  userSignedUp(displayName: string, discordUsername?: string, discordUserId?: string) {
+    notify({ event: "user_signed_up", display_name: displayName, discord_username: discordUsername, discord_user_id: discordUserId });
   },
 
-  profileCompleted(displayName: string, country?: string, discordUsername?: string) {
-    notify({ event: "profile_completed", display_name: displayName, country, discord_username: discordUsername });
+  profileCompleted(displayName: string, country?: string, discordUsername?: string, discordUserId?: string) {
+    notify({ event: "profile_completed", display_name: displayName, country, discord_username: discordUsername, discord_user_id: discordUserId });
   },
 
-  taskCompleted(displayName: string, taskId: string, discordUsername?: string) {
+  taskCompleted(displayName: string, taskId: string, discordUsername?: string, discordUserId?: string) {
     notify({
       event: "task_completed",
       display_name: displayName,
       task_name: TASK_LABELS[taskId] || taskId,
       discord_username: discordUsername,
+      discord_user_id: discordUserId,
     });
   },
 
-  phaseCompleted(displayName: string, phase: string, discordUsername?: string) {
+  phaseCompleted(displayName: string, phase: string, discordUsername?: string, discordUserId?: string) {
     notify({
       event: "phase_completed",
       display_name: displayName,
       phase_name: PHASE_LABELS[phase] || phase,
       discord_username: discordUsername,
+      discord_user_id: discordUserId,
     });
   },
 
-  classRegistered(displayName: string, className: string, discordUsername?: string) {
+  classRegistered(displayName: string, className: string, discordUsername?: string, discordUserId?: string) {
     notify({
       event: "class_registered",
       display_name: displayName,
       class_name: className,
       discord_username: discordUsername,
+      discord_user_id: discordUserId,
     });
+  },
+
+  /** Resolve a Discord username to a numeric user ID via the bot */
+  async resolveDiscordId(discordUsername: string): Promise<string | null> {
+    try {
+      const { data } = await supabase.functions.invoke("resolve-discord-id", {
+        body: { discord_username: discordUsername },
+      });
+      return data?.discord_user_id || null;
+    } catch {
+      return null;
+    }
   },
 };
