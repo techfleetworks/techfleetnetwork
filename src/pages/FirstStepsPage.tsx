@@ -69,7 +69,7 @@ const defaultTasks: Omit<Task, "completed">[] = [
 ];
 
 export default function FirstStepsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
