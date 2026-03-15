@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2, User } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
+import { RateLimitService } from "@/services/rate-limit.service";
 import { registerSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
@@ -48,6 +49,15 @@ export default function RegisterPage() {
     setAuthError("");
 
     try {
+      // Rate limit check before signup attempt
+      const rateCheck = await RateLimitService.check(result.data.email, "signup_attempt");
+      if (!rateCheck.allowed) {
+        const minutes = Math.ceil(rateCheck.retry_after / 60);
+        setAuthError(`Too many signup attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        setLoading(false);
+        return;
+      }
+
       await AuthService.signUp(
         result.data.email,
         result.data.password,

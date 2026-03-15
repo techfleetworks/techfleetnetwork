@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
+import { RateLimitService } from "@/services/rate-limit.service";
 import { loginSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
@@ -31,6 +32,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Rate limit check before auth attempt
+      const rateCheck = await RateLimitService.check(result.data.email, "login_attempt");
+      if (!rateCheck.allowed) {
+        const minutes = Math.ceil(rateCheck.retry_after / 60);
+        setError(`Too many login attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        setLoading(false);
+        return;
+      }
+
       await AuthService.signInWithPassword(result.data.email, result.data.password);
       navigate(from, { replace: true });
     } catch (err: any) {

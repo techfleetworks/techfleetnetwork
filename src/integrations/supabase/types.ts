@@ -158,15 +158,60 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          attempt_count: number
+          blocked_until: string | null
+          created_at: string
+          id: string
+          identifier: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier: string
+          window_start?: string
+        }
+        Update: {
+          action?: string
+          attempt_count?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_action: string
+          p_block_minutes?: number
+          p_identifier: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      cleanup_rate_limits: { Args: never; Returns: number }
       get_network_stats: { Args: never; Returns: Json }
       purge_old_audit_logs: {
         Args: { retention_days?: number }
         Returns: number
+      }
+      reset_rate_limit: {
+        Args: { p_action: string; p_identifier: string }
+        Returns: undefined
       }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
