@@ -21,12 +21,16 @@ export function MemberWorldMap() {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .rpc("get_member_country_distribution")
-      .then(({ data: result }) => {
+    const fetchData = async () => {
+      try {
+        const { data: result } = await supabase.rpc("get_member_country_distribution");
         if (result) setData(result as unknown as CountryCount[]);
-      })
-      .finally(() => setLoading(false));
+      } catch {
+        // ignore
+      }
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   const countryMap = useMemo(() => {
