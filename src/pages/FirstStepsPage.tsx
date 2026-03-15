@@ -95,10 +95,11 @@ export default function FirstStepsPage() {
     // Notify Discord for class registration actions
     const name = getDisplayName();
     const discord = getDiscordUsername();
+    const discordId = getDiscordUserId();
     if (id === "onboarding-class") {
-      DiscordNotifyService.classRegistered(name, "Onboarding Class", discord);
+      DiscordNotifyService.classRegistered(name, "Onboarding Class", discord, discordId);
     } else if (id === "service-leadership") {
-      DiscordNotifyService.classRegistered(name, "Service Leadership Class", discord);
+      DiscordNotifyService.classRegistered(name, "Service Leadership Class", discord, discordId);
     }
   };
 
