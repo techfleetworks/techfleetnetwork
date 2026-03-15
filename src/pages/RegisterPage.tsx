@@ -1,11 +1,13 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { AuthService } from "@/services/auth.service";
+import { InvitationService } from "@/services/invitation.service";
+import { registerSchema } from "@/lib/validators/auth";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const passwordRequirements = [
@@ -31,94 +33,58 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
-  const navigate = useNavigate();
 
-  // Validate invitation token
   useEffect(() => {
     if (!inviteToken) {
       setInviteValid(false);
       return;
     }
-    (async () => {
-      const { data } = await supabase
-        .from("invitations")
-        .select("email, expires_at, used_at")
-        .eq("token", inviteToken)
-        .single();
-
-      if (!data) {
-        setInviteValid(false);
-        return;
+    InvitationService.validate(inviteToken).then((result) => {
+      setInviteValid(result.valid);
+      if (result.valid) {
+        setInviteEmail(result.email);
+        setEmail(result.email);
       }
-      if (data.used_at) {
-        setInviteValid(false);
-        return;
-      }
-      if (new Date(data.expires_at) < new Date()) {
-        setInviteValid(false);
-        return;
-      }
-      setInviteValid(true);
-      setInviteEmail(data.email);
-      setEmail(data.email);
-    })();
+    });
   }, [inviteToken]);
-
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    if (!name.trim()) newErrors.name = "Full name is required.";
-    if (!email.trim()) newErrors.email = "Email is required.";
-    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email address.";
-    if (!password) newErrors.password = "Password is required.";
-    else if (passwordRequirements.some((r) => !r.test(password)))
-      newErrors.password = "Password does not meet all requirements.";
-    if (!agreedToTerms) newErrors.terms = "You must agree to the terms and community guidelines.";
-
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
-
-    setLoading(true);
-    setAuthError("");
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: window.location.origin + "/dashboard",
-      },
-    });
-
-    if (error) {
-      setAuthError(error.message);
-      setLoading(false);
+    const result = registerSchema.safeParse({ name, email, password, agreedToTerms });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
       return;
     }
 
-    // Mark invitation as used
-    if (inviteToken) {
-      await supabase
-        .from("invitations")
-        .update({ used_at: new Date().toISOString() })
-        .eq("token", inviteToken);
+    setErrors({});
+    setLoading(true);
+    setAuthError("");
+
+    try {
+      await AuthService.signUp(
+        result.data.email,
+        result.data.password,
+        result.data.name,
+        window.location.origin + "/dashboard"
+      );
+      if (inviteToken) await InvitationService.markUsed(inviteToken);
+      setSubmitted(true);
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    setSubmitted(true);
-    setLoading(false);
   };
 
-  const handleGoogleSignUp = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
-    });
+  const handleGoogleSignUp = () => {
+    AuthService.signInWithGoogle(window.location.origin + "/dashboard");
   };
 
-  // No invite token or invalid invite
   if (inviteValid === false) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
@@ -133,15 +99,12 @@ export default function RegisterPage() {
               ? "This invitation link has expired or has already been used."
               : "Please check your email for an invitation link, or attend a community call to receive one."}
           </p>
-          <Link to="/">
-            <Button variant="outline">Back to Home</Button>
-          </Link>
+          <Link to="/"><Button variant="outline">Back to Home</Button></Link>
         </div>
       </div>
     );
   }
 
-  // Still checking invitation
   if (inviteValid === null) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -161,9 +124,7 @@ export default function RegisterPage() {
           <p className="text-muted-foreground">
             We've sent a verification link to <strong className="text-foreground">{email}</strong>. Click the link to verify your account and get started.
           </p>
-          <Link to="/login" className="inline-block mt-6">
-            <Button variant="outline">Go to Sign In</Button>
-          </Link>
+          <Link to="/login" className="inline-block mt-6"><Button variant="outline">Go to Sign In</Button></Link>
         </div>
       </div>
     );
@@ -180,9 +141,7 @@ export default function RegisterPage() {
 
         <div className="card-elevated p-6 sm:p-8">
           {authError && (
-            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
-              {authError}
-            </div>
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -190,76 +149,26 @@ export default function RegisterPage() {
               <Label htmlFor="name">Full name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Jane Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="pl-10"
-                  autoComplete="name"
-                  required
-                  aria-required="true"
-                  aria-invalid={!!errors.name}
-                  aria-describedby={errors.name ? "name-error" : undefined}
-                />
+                <Input id="name" type="text" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} className="pl-10" autoComplete="name" required aria-required="true" aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} />
               </div>
-              {errors.name && (
-                <p id="name-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
-                  <AlertCircle className="h-3 w-3" /> {errors.name}
-                </p>
-              )}
+              {errors.name && <p id="name-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.name}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="reg-email">Email address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="reg-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  autoComplete="email"
-                  required
-                  aria-required="true"
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "email-error" : undefined}
-                  readOnly={!!inviteEmail}
-                />
+                <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} readOnly={!!inviteEmail} />
               </div>
-              {errors.email && (
-                <p id="email-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
-                  <AlertCircle className="h-3 w-3" /> {errors.email}
-                </p>
-              )}
+              {errors.email && <p id="email-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.email}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="reg-password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="reg-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  autoComplete="new-password"
-                  required
-                  aria-required="true"
-                  aria-invalid={!!errors.password}
-                  aria-describedby="password-requirements"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
+                <Input id="reg-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.password} aria-describedby="password-requirements" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -277,25 +186,12 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex items-start gap-2">
-              <Checkbox
-                id="terms"
-                checked={agreedToTerms}
-                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                aria-required="true"
-                aria-invalid={!!errors.terms}
-              />
+              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked === true)} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
-                I agree to the{" "}
-                <a href="#" className="text-primary hover:underline">Terms of Service</a>
-                {" "}and{" "}
-                <a href="#" className="text-primary hover:underline">Community Guidelines</a>
+                I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Community Guidelines</a>
               </Label>
             </div>
-            {errors.terms && (
-              <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                <AlertCircle className="h-3 w-3" /> {errors.terms}
-              </p>
-            )}
+            {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.agreedToTerms}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account…" : "Create Account"}
@@ -303,9 +199,7 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-4 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
-            </div>
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
@@ -324,9 +218,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">
-            Sign in
-          </Link>
+          <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
         </p>
       </div>
     </div>
