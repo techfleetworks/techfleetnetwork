@@ -83,9 +83,20 @@ export default function FirstStepsPage() {
     });
   }, [user]);
 
+  const getDisplayName = () =>
+    profile?.display_name || profile?.first_name || user?.user_metadata?.full_name || "A member";
+
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
     setVisitedExternal((prev) => new Set(prev).add(id));
+
+    // Notify Discord for class registration actions
+    const name = getDisplayName();
+    if (id === "onboarding-class") {
+      DiscordNotifyService.classRegistered(name, "Onboarding Class");
+    } else if (id === "service-leadership") {
+      DiscordNotifyService.classRegistered(name, "Service Leadership Class");
+    }
   };
 
   const toggleTask = async (id: string) => {
@@ -102,6 +113,17 @@ export default function FirstStepsPage() {
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+
+      if (newCompleted) {
+        const name = getDisplayName();
+        DiscordNotifyService.taskCompleted(name, id);
+
+        // Check if all tasks are now complete
+        const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
+        if (newCompletedCount === tasks.length) {
+          DiscordNotifyService.phaseCompleted(name, "first_steps");
+        }
+      }
     } finally {
       setLoadingId(null);
     }
