@@ -85,6 +85,7 @@ export default function FirstStepsPage() {
 
   const getDisplayName = () =>
     profile?.display_name || profile?.first_name || user?.user_metadata?.full_name || "A member";
+  const getDiscordUsername = () => profile?.discord_username || undefined;
 
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
