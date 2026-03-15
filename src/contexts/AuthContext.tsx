@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
