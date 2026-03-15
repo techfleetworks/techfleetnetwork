@@ -15,6 +15,7 @@ interface NotifyPayload {
     | "class_registered";
   display_name?: string;
   discord_username?: string;
+  discord_user_id?: string;
   task_name?: string;
   phase_name?: string;
   class_name?: string;
@@ -39,13 +40,18 @@ function buildActionText(payload: NotifyPayload): string {
 }
 
 function buildMessage(payload: NotifyPayload): string {
-  const discordTag = payload.discord_username
-    ? `@${payload.discord_username.replace(/^@/, "")}`
-    : payload.display_name || "A member";
+  // Use real <@id> mention if we have the Discord user ID, otherwise bold the username
+  let userTag: string;
+  if (payload.discord_user_id) {
+    userTag = `<@${payload.discord_user_id}>`;
+  } else if (payload.discord_username) {
+    userTag = `**@${payload.discord_username.replace(/^@/, "")}**`;
+  } else {
+    userTag = `**${payload.display_name || "A member"}**`;
+  }
 
   const action = buildActionText(payload);
-
-  return `**${discordTag}** just did the following in Tech Fleet Network: **${action}**`;
+  return `${userTag} just did the following in Tech Fleet Network: **${action}**`;
 }
 
 serve(async (req) => {
@@ -67,7 +73,7 @@ serve(async (req) => {
 
     const discordBody = {
       content: buildMessage(payload),
-      allowed_mentions: { parse: [] }, // Don't ping @everyone/@here
+      allowed_mentions: { users: payload.discord_user_id ? [payload.discord_user_id] : [] },
     };
 
     const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
