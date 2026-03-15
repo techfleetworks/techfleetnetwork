@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Task {
   id: string;
@@ -12,51 +14,62 @@ interface Task {
   action: string;
 }
 
+const defaultTasks: Omit<Task, "completed">[] = [
+  { id: "profile", title: "Set Up Profile", description: "Fill in your name, bio, and professional background.", icon: User, action: "/profile-setup" },
+  { id: "onboarding-class", title: "Complete Onboarding Class", description: "Watch the onboarding video and complete the intro module.", icon: Play, action: "#" },
+  { id: "service-leadership", title: "Sign Up for Service Leadership Class", description: "Register for the next available service leadership session.", icon: Users, action: "#" },
+  { id: "user-guide", title: "Read or Watch the User Guide", description: "Review the getting started guide (minimum engagement required).", icon: BookOpen, action: "#" },
+];
+
 export default function FirstStepsPage() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "profile",
-      title: "Set Up Profile",
-      description: "Fill in your name, bio, and professional background.",
-      completed: false,
-      icon: User,
-      action: "/profile-setup",
-    },
-    {
-      id: "onboarding-class",
-      title: "Complete Onboarding Class",
-      description: "Watch the onboarding video and complete the intro module.",
-      completed: false,
-      icon: Play,
-      action: "#",
-    },
-    {
-      id: "service-leadership",
-      title: "Sign Up for Service Leadership Class",
-      description: "Register for the next available service leadership session.",
-      completed: false,
-      icon: Users,
-      action: "#",
-    },
-    {
-      id: "user-guide",
-      title: "Read or Watch the User Guide",
-      description: "Review the getting started guide (minimum engagement required).",
-      completed: false,
-      icon: BookOpen,
-      action: "#",
-    },
-  ]);
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  // Load progress from DB
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("journey_progress")
+        .select("task_id, completed")
+        .eq("user_id", user.id)
+        .eq("phase", "first_steps");
+
+      if (data) {
+        const completedMap = new Map(data.map((d) => [d.task_id, d.completed]));
+        setTasks((prev) =>
+          prev.map((t) => ({ ...t, completed: completedMap.get(t.id) || false }))
+        );
+      }
+    })();
+  }, [user]);
+
+  const toggleTask = async (id: string) => {
+    if (!user) return;
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const newCompleted = !task.completed;
+    setLoadingId(id);
+
+    await supabase.from("journey_progress").upsert({
+      user_id: user.id,
+      phase: "first_steps" as const,
+      task_id: id,
+      completed: newCompleted,
+      completed_at: newCompleted ? new Date().toISOString() : null,
+    }, { onConflict: "user_id,phase,task_id" });
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t))
+    );
+    setLoadingId(null);
+  };
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const allComplete = completedCount === tasks.length;
   const progress = (completedCount / tasks.length) * 100;
-
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
-  };
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
@@ -79,10 +92,7 @@ export default function FirstStepsPage() {
           <span className="font-medium text-foreground">{Math.round(progress)}%</span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="First Steps progress">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -93,14 +103,13 @@ export default function FirstStepsPage() {
           return (
             <div
               key={task.id}
-              className={`card-elevated p-5 transition-all duration-200 ${
-                task.completed ? "border-success/30 bg-success/5" : ""
-              }`}
+              className={`card-elevated p-5 transition-all duration-200 ${task.completed ? "border-success/30 bg-success/5" : ""}`}
             >
               <div className="flex items-start gap-4">
                 <button
                   onClick={() => toggleTask(task.id)}
                   className="flex-shrink-0 mt-0.5"
+                  disabled={loadingId === task.id}
                   aria-label={`Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`}
                 >
                   {task.completed ? (
