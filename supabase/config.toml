@@ -2,3 +2,6 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
 
 [functions.discord-notify]
 verify_jwt = false
+
+[functions.resolve-discord-id]
+verify_jwt = false

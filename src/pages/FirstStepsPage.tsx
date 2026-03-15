@@ -86,6 +86,7 @@ export default function FirstStepsPage() {
   const getDisplayName = () =>
     profile?.display_name || profile?.first_name || user?.user_metadata?.full_name || "A member";
   const getDiscordUsername = () => profile?.discord_username || undefined;
+  const getDiscordUserId = () => profile?.discord_user_id || undefined;
 
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
@@ -94,10 +95,11 @@ export default function FirstStepsPage() {
     // Notify Discord for class registration actions
     const name = getDisplayName();
     const discord = getDiscordUsername();
+    const discordId = getDiscordUserId();
     if (id === "onboarding-class") {
-      DiscordNotifyService.classRegistered(name, "Onboarding Class", discord);
+      DiscordNotifyService.classRegistered(name, "Onboarding Class", discord, discordId);
     } else if (id === "service-leadership") {
-      DiscordNotifyService.classRegistered(name, "Service Leadership Class", discord);
+      DiscordNotifyService.classRegistered(name, "Service Leadership Class", discord, discordId);
     }
   };
 
@@ -119,12 +121,13 @@ export default function FirstStepsPage() {
       if (newCompleted) {
         const name = getDisplayName();
         const discord = getDiscordUsername();
-        DiscordNotifyService.taskCompleted(name, id, discord);
+        const discordId = getDiscordUserId();
+        DiscordNotifyService.taskCompleted(name, id, discord, discordId);
 
         // Check if all tasks are now complete
         const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
         if (newCompletedCount === tasks.length) {
-          DiscordNotifyService.phaseCompleted(name, "first_steps", discord);
+          DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
         }
       }
     } finally {
@@ -143,12 +146,13 @@ export default function FirstStepsPage() {
 
       const name = getDisplayName();
       const discord = getDiscordUsername();
-      DiscordNotifyService.taskCompleted(name, "community-agreement", discord);
+      const discordId = getDiscordUserId();
+      DiscordNotifyService.taskCompleted(name, "community-agreement", discord, discordId);
 
       // Check if all tasks are now complete
       const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
-        DiscordNotifyService.phaseCompleted(name, "first_steps", discord);
+        DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
       }
     } finally {
       setLoadingId(null);

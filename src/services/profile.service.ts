@@ -1,11 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileInput } from "@/lib/validators/profile";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 
 export interface Profile {
   first_name: string;
   last_name: string;
   country: string;
   discord_username: string;
+  discord_user_id: string;
   display_name: string;
   avatar_url: string | null;
   profile_completed: boolean;
@@ -15,7 +17,7 @@ export const ProfileService = {
   async fetch(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
-      .select("first_name, last_name, country, discord_username, display_name, avatar_url, profile_completed")
+      .select("first_name, last_name, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
       .eq("user_id", userId)
       .single();
     if (error) return null;
@@ -23,6 +25,13 @@ export const ProfileService = {
   },
 
   async update(userId: string, input: ProfileInput) {
+    // Resolve Discord user ID if username provided
+    let discordUserId = "";
+    if (input.discordUsername) {
+      const resolved = await DiscordNotifyService.resolveDiscordId(input.discordUsername);
+      if (resolved) discordUserId = resolved;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -30,6 +39,7 @@ export const ProfileService = {
         last_name: input.lastName,
         country: input.country,
         discord_username: input.discordUsername,
+        discord_user_id: discordUserId,
         display_name: `${input.firstName} ${input.lastName}`.trim(),
         profile_completed: true,
       } as any)
