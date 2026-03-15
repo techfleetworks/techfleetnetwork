@@ -34,6 +34,7 @@ serve(async (req) => {
     const cleanUsername = discord_username.replace(/^@/, "").toLowerCase();
 
     // Search guild members by username
+    console.log(`Using GUILD_ID: "${GUILD_ID}" (length: ${GUILD_ID.length})`);
     const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(cleanUsername)}&limit=10`;
     const res = await fetch(searchUrl, {
       headers: { Authorization: `Bot ${BOT_TOKEN}` },
