@@ -18,6 +18,7 @@ import ProfileSetupPage from "./pages/ProfileSetupPage";
 import FirstStepsPage from "./pages/FirstStepsPage";
 import NotFound from "./pages/NotFound";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
