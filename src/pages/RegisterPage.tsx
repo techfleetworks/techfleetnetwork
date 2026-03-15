@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const passwordRequirements = [
@@ -16,6 +17,11 @@ const passwordRequirements = [
 ];
 
 export default function RegisterPage() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  const [inviteValid, setInviteValid] = useState<boolean | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,10 +29,44 @@ export default function RegisterPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const navigate = useNavigate();
+
+  // Validate invitation token
+  useEffect(() => {
+    if (!inviteToken) {
+      setInviteValid(false);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("invitations")
+        .select("email, expires_at, used_at")
+        .eq("token", inviteToken)
+        .single();
+
+      if (!data) {
+        setInviteValid(false);
+        return;
+      }
+      if (data.used_at) {
+        setInviteValid(false);
+        return;
+      }
+      if (new Date(data.expires_at) < new Date()) {
+        setInviteValid(false);
+        return;
+      }
+      setInviteValid(true);
+      setInviteEmail(data.email);
+      setEmail(data.email);
+    })();
+  }, [inviteToken]);
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -39,10 +79,78 @@ export default function RegisterPage() {
     if (!agreedToTerms) newErrors.terms = "You must agree to the terms and community guidelines.";
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      setSubmitted(true);
+    if (Object.keys(newErrors).length > 0) return;
+
+    setLoading(true);
+    setAuthError("");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin + "/dashboard",
+      },
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      setLoading(false);
+      return;
     }
+
+    // Mark invitation as used
+    if (inviteToken) {
+      await supabase
+        .from("invitations")
+        .update({ used_at: new Date().toISOString() })
+        .eq("token", inviteToken);
+    }
+
+    setSubmitted(true);
+    setLoading(false);
   };
+
+  const handleGoogleSignUp = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/dashboard" },
+    });
+  };
+
+  // No invite token or invalid invite
+  if (inviteValid === false) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
+          <ShieldAlert className="h-16 w-16 text-warning mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Invitation Required</h1>
+          <p className="text-muted-foreground mb-2">
+            Tech Fleet uses invitation-only registration. You need a valid invitation link to create an account.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            {inviteToken
+              ? "This invitation link has expired or has already been used."
+              : "Please check your email for an invitation link, or attend a community call to receive one."}
+          </p>
+          <Link to="/">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Still checking invitation
+  if (inviteValid === null) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" role="status">
+          <span className="sr-only">Validating invitation…</span>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -71,8 +179,13 @@ export default function RegisterPage() {
         </div>
 
         <div className="card-elevated p-6 sm:p-8">
+          {authError && (
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
+              {authError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Full name</Label>
               <div className="relative">
@@ -98,7 +211,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="reg-email">Email address</Label>
               <div className="relative">
@@ -115,6 +227,7 @@ export default function RegisterPage() {
                   aria-required="true"
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? "email-error" : undefined}
+                  readOnly={!!inviteEmail}
                 />
               </div>
               {errors.email && (
@@ -124,7 +237,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="reg-password">Password</Label>
               <div className="relative">
@@ -151,7 +263,6 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {/* Password strength */}
               <ul id="password-requirements" className="space-y-1 text-xs" aria-label="Password requirements">
                 {passwordRequirements.map(({ label, test }) => {
                   const met = password.length > 0 && test(password);
@@ -165,7 +276,6 @@ export default function RegisterPage() {
               </ul>
             </div>
 
-            {/* Terms */}
             <div className="flex items-start gap-2">
               <Checkbox
                 id="terms"
@@ -187,8 +297,8 @@ export default function RegisterPage() {
               </p>
             )}
 
-            <Button type="submit" className="w-full">
-              Create Account
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Creating account…" : "Create Account"}
             </Button>
           </form>
 
@@ -201,7 +311,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full mt-4">
+          <Button variant="outline" className="w-full mt-4" onClick={handleGoogleSignUp}>
             <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />

@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 export default function LoginPage() {
@@ -11,15 +12,38 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (e: FormEvent) => {
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Please enter both email and password.");
       return;
     }
     setError("");
-    // Auth will be connected later
+    setLoading(true);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) {
+      setError(authError.message === "Invalid login credentials"
+        ? "Invalid email or password. Please try again."
+        : authError.message);
+      setLoading(false);
+      return;
+    }
+
+    navigate(from, { replace: true });
+  };
+
+  const handleGoogleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/dashboard" },
+    });
   };
 
   return (
@@ -88,8 +112,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in…" : "Sign In"}
             </Button>
           </form>
 
@@ -102,7 +126,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full mt-4">
+          <Button variant="outline" className="w-full mt-4" onClick={handleGoogleSignIn}>
             <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />

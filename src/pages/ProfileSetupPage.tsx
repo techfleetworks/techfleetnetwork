@@ -1,26 +1,71 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, CheckCircle2, User, Briefcase } from "lucide-react";
-
-const mandatoryFields = ["displayName", "bio", "background"] as const;
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProfileSetupPage() {
+  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ displayName: "", bio: "", background: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  // Pre-fill from existing profile
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        displayName: profile.display_name || "",
+        bio: profile.bio || "",
+        background: profile.professional_background || "",
+      });
+    }
+  }, [profile]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     if (!form.displayName.trim()) newErrors.displayName = "Display name is required.";
     if (!form.bio.trim()) newErrors.bio = "Bio is required.";
     if (!form.background.trim()) newErrors.background = "Professional background is required.";
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) setSaved(true);
+    if (Object.keys(newErrors).length > 0) return;
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        display_name: form.displayName.trim(),
+        bio: form.bio.trim(),
+        professional_background: form.background.trim(),
+        profile_completed: true,
+      })
+      .eq("user_id", user!.id);
+
+    if (error) {
+      setErrors({ general: "Failed to save profile. Please try again." });
+      setSaving(false);
+      return;
+    }
+
+    await refreshProfile();
+
+    // Also mark profile task as completed in journey_progress
+    await supabase.from("journey_progress").upsert({
+      user_id: user!.id,
+      phase: "first_steps" as const,
+      task_id: "profile",
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: "user_id,phase,task_id" });
+
+    setSaving(false);
+    setSaved(true);
   };
 
   if (saved) {
@@ -46,6 +91,11 @@ export default function ProfileSetupPage() {
       </div>
 
       <div className="card-elevated p-6 sm:p-8">
+        {errors.general && (
+          <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
+            {errors.general}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div className="space-y-2">
             <Label htmlFor="displayName">Display name</Label>
@@ -114,7 +164,9 @@ export default function ProfileSetupPage() {
             )}
           </div>
 
-          <Button type="submit" className="w-full">Save Profile</Button>
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Saving…" : "Save Profile"}
+          </Button>
         </form>
       </div>
     </div>
