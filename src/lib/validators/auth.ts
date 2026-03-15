@@ -14,7 +14,6 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(1, "Full name is required").max(100),
   email: z.string().trim().email("Invalid email address").max(255),
   password: passwordSchema,
   agreedToTerms: z.literal(true, {

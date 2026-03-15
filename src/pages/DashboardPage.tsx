@@ -24,7 +24,7 @@ export default function DashboardPage() {
     { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
   ];
 
-  const displayName = profile?.display_name || user?.user_metadata?.full_name || "there";
+  const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
   return (
     <div className="container-app py-8 sm:py-12">
