@@ -17,10 +17,11 @@ export function GoogleSignInButton({ label = "Sign in with Google", className }:
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        console.error("Google sign-in error:", result.error);
+        // Log generic message only — no PII or tokens
+        console.error("OAuth provider error occurred");
       }
-    } catch (err) {
-      console.error("Google sign-in error:", err);
+    } catch {
+      console.error("OAuth sign-in failed");
     } finally {
       setLoading(false);
     }
