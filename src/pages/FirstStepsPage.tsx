@@ -137,6 +137,15 @@ export default function FirstStepsPage() {
       setTasks((prev) =>
         prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
       );
+
+      const name = getDisplayName();
+      DiscordNotifyService.taskCompleted(name, "community-agreement");
+
+      // Check if all tasks are now complete
+      const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
+      if (newCompletedCount === tasks.length) {
+        DiscordNotifyService.phaseCompleted(name, "first_steps");
+      }
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);
