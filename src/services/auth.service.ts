@@ -28,6 +28,21 @@ export const AuthService = {
     return data;
   },
 
+  async resetPassword(email: string, redirectTo: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) {
+      // Generic message to prevent email enumeration
+      throw new Error("If an account exists with that email, a reset link has been sent.");
+    }
+  },
+
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error("Failed to update password. Please try again.");
+  },
+
   async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw new Error("Sign out failed. Please try again.");
