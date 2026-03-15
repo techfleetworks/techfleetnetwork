@@ -7,6 +7,7 @@ import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown } from "
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema } from "@/lib/validators/profile";
 import { COUNTRIES } from "@/lib/countries";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
