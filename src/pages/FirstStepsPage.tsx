@@ -121,12 +121,13 @@ export default function FirstStepsPage() {
       if (newCompleted) {
         const name = getDisplayName();
         const discord = getDiscordUsername();
-        DiscordNotifyService.taskCompleted(name, id, discord);
+        const discordId = getDiscordUserId();
+        DiscordNotifyService.taskCompleted(name, id, discord, discordId);
 
         // Check if all tasks are now complete
         const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
         if (newCompletedCount === tasks.length) {
-          DiscordNotifyService.phaseCompleted(name, "first_steps", discord);
+          DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
         }
       }
     } finally {
