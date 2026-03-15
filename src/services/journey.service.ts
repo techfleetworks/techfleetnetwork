@@ -8,8 +8,26 @@ export interface TaskProgress {
   completed: boolean;
 }
 
+// A03: Whitelist valid task IDs to prevent injection
+const VALID_TASK_IDS = new Set([
+  "profile",
+  "onboarding-class",
+  "service-leadership",
+  "user-guide",
+]);
+
+const VALID_PHASES: Set<string> = new Set([
+  "first_steps",
+  "second_steps",
+  "third_steps",
+  "observer",
+  "projects",
+]);
+
 export const JourneyService = {
   async getProgress(userId: string, phase: JourneyPhase): Promise<TaskProgress[]> {
+    if (!VALID_PHASES.has(phase)) throw new Error("Invalid phase");
+
     const { data, error } = await supabase
       .from("journey_progress")
       .select("task_id, completed")
@@ -20,6 +38,8 @@ export const JourneyService = {
   },
 
   async getCompletedCount(userId: string, phase: JourneyPhase): Promise<number> {
+    if (!VALID_PHASES.has(phase)) throw new Error("Invalid phase");
+
     const { data } = await supabase
       .from("journey_progress")
       .select("task_id")
@@ -30,6 +50,10 @@ export const JourneyService = {
   },
 
   async upsertTask(userId: string, phase: JourneyPhase, taskId: string, completed: boolean) {
+    // A03: Validate inputs against whitelists
+    if (!VALID_PHASES.has(phase)) throw new Error("Invalid phase");
+    if (!VALID_TASK_IDS.has(taskId)) throw new Error("Invalid task ID");
+
     const { error } = await supabase.from("journey_progress").upsert(
       {
         user_id: userId,

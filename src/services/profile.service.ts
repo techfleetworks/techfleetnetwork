@@ -23,6 +23,7 @@ export const ProfileService = {
   },
 
   async update(userId: string, input: ProfileInput) {
+    // Server-side the RLS policy ensures user can only update their own profile
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -30,7 +31,7 @@ export const ProfileService = {
         last_name: input.lastName,
         country: input.country,
         discord_username: input.discordUsername,
-        display_name: `${input.firstName} ${input.lastName}`,
+        display_name: `${input.firstName} ${input.lastName}`.trim(),
         profile_completed: true,
       } as any)
       .eq("user_id", userId);

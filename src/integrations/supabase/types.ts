@@ -130,7 +130,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      use_invitation: { Args: { p_token: string }; Returns: boolean }
+      validate_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          used_at: string
+        }[]
+      }
     }
     Enums: {
       journey_phase:

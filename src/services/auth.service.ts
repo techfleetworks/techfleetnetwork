@@ -4,11 +4,8 @@ export const AuthService = {
   async signInWithPassword(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      throw new Error(
-        error.message === "Invalid login credentials"
-          ? "Invalid email or password. Please try again."
-          : error.message
-      );
+      // A07: Generic error message to prevent user enumeration
+      throw new Error("Invalid email or password. Please try again.");
     }
     return data;
   },
@@ -22,21 +19,16 @@ export const AuthService = {
         emailRedirectTo: redirectTo,
       },
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // A07: Generic error message to prevent user enumeration
+      throw new Error("Unable to create account. Please try again or use a different email.");
+    }
     return data;
-  },
-
-  async signInWithGoogle(redirectTo: string) {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-    if (error) throw new Error(error.message);
   },
 
   async signOut() {
     const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("Sign out failed. Please try again.");
   },
 
   async getSession() {
