@@ -138,6 +138,11 @@ export function NetworkActivity() {
             <StepGroup title="Step 3 — Teammate Handbook" active={stats.third_steps_active_7d} completed={stats.third_steps_completed_7d} />
           </div>
         </div>
+
+        {/* World map */}
+        <div className="border-t pt-8 mt-8">
+          <MemberWorldMap />
+        </div>
       </div>
     </section>
   );
