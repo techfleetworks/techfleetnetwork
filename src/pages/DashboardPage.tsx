@@ -62,6 +62,10 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+
+      <section className="mt-10 border-t pt-8">
+        <NetworkActivity />
+      </section>
     </div>
   );
 }

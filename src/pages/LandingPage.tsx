@@ -46,6 +46,11 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Network Activity Section */}
+      <section className="border-t bg-muted/30">
+        <NetworkActivity />
+      </section>
+
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
