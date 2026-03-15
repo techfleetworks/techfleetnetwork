@@ -14,6 +14,8 @@ const VALID_TASK_IDS = new Set([
   "onboarding-class",
   "service-leadership",
   "user-guide",
+  "figma-account",
+  "community-agreement",
 ]);
 
 const VALID_PHASES: Set<string> = new Set([

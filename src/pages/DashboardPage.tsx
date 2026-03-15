@@ -8,7 +8,7 @@ import { NetworkActivity } from "@/components/NetworkActivity";
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
-  const totalFirstSteps = 4;
+  const totalFirstSteps = 6;
 
   useEffect(() => {
     if (!user) return;
