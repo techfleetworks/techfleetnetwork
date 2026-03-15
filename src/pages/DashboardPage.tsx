@@ -1,0 +1,89 @@
+import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
+import { BarChart3, Clock, Trophy } from "lucide-react";
+
+const journeySteps: JourneyStep[] = [
+  {
+    id: "first-steps",
+    title: "First Steps",
+    description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
+    status: "current",
+    href: "/journey/first-steps",
+  },
+  {
+    id: "second-steps",
+    title: "Second Steps — Agile Handbook",
+    description: "Read the Agile Handbook and pass the comprehension quiz.",
+    status: "locked",
+    href: "/journey/second-steps",
+  },
+  {
+    id: "third-steps",
+    title: "Third Steps — Teammate Handbook",
+    description: "Read the Teammate Handbook and pass the comprehension quiz.",
+    status: "locked",
+    href: "/journey/third-steps",
+  },
+  {
+    id: "observer",
+    title: "Observer Phase",
+    description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.",
+    status: "locked",
+    href: "/journey/observer",
+  },
+  {
+    id: "projects",
+    title: "Apply for Projects",
+    description: "Join real teams and contribute to community projects.",
+    status: "locked",
+    href: "/projects",
+  },
+];
+
+export default function DashboardPage() {
+  return (
+    <div className="container-app py-8 sm:py-12">
+      {/* Welcome */}
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+          Welcome back 👋
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Continue your journey through the Tech Fleet training platform.
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {[
+          { label: "Current Phase", value: "First Steps", icon: Clock, color: "text-primary" },
+          { label: "Tasks Completed", value: "0 / 4", icon: BarChart3, color: "text-warning" },
+          { label: "Badges Earned", value: "0", icon: Trophy, color: "text-success" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="card-elevated p-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-lg font-semibold text-foreground">{value}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Journey */}
+      <section aria-labelledby="journey-heading">
+        <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">
+          Your Member Journey
+        </h2>
+        <div className="space-y-3">
+          {journeySteps.map((step, index) => (
+            <JourneyStepCard key={step.id} step={step} index={index} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
