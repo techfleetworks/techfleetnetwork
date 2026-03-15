@@ -1,0 +1,151 @@
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, User, LogIn } from "lucide-react";
+import { Button } from "./ui/button";
+import { ThemeToggle } from "./ThemeToggle";
+import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+
+interface AppLayoutProps {
+  children: React.ReactNode;
+}
+
+const navLinks = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "My Journey", href: "/journey", icon: Rocket },
+  { label: "Training", href: "/training", icon: GraduationCap },
+  { label: "Resources", href: "/resources", icon: BookOpen },
+];
+
+export function AppLayout({ children }: AppLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  const isActive = (href: string) => location.pathname === href;
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      {/* Skip Link for WCAG keyboard nav */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" role="banner">
+        <nav className="container-app flex h-16 items-center justify-between" aria-label="Main navigation">
+          <Link to="/" className="flex items-center gap-2 font-bold text-lg" aria-label="Tech Fleet Home">
+            <img src={techFleetLogo} alt="Tech Fleet" className="h-8 w-8 dark:invert" />
+            <span className="hidden sm:inline">Tech Fleet</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-1" role="menubar">
+            {navLinks.map(({ label, href, icon: Icon }) => (
+              <Link
+                key={href}
+                to={href}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive(href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                aria-current={isActive(href) ? "page" : undefined}
+                role="menuitem"
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link to="/login" className="hidden md:inline-flex">
+              <Button variant="outline" size="sm">
+                <LogIn className="h-4 w-4 mr-1" />
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/register" className="hidden md:inline-flex">
+              <Button size="sm">Join Onboarding</Button>
+            </Link>
+
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+        </nav>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div id="mobile-menu" className="md:hidden border-t animate-fade-in" role="menu">
+            <div className="container-app py-4 space-y-1">
+              {navLinks.map(({ label, href, icon: Icon }) => (
+                <Link
+                  key={href}
+                  to={href}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                    isActive(href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={isActive(href) ? "page" : undefined}
+                  role="menuitem"
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              ))}
+              <div className="pt-3 border-t space-y-2">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full">Join Onboarding</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card" role="contentinfo">
+        <div className="container-app py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img src={techFleetLogo} alt="" className="h-6 w-6 dark:invert" aria-hidden="true" />
+              <span className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} Tech Fleet. All rights reserved.
+              </span>
+            </div>
+            <nav aria-label="Footer navigation" className="flex gap-4 text-sm text-muted-foreground">
+              <a href="https://techfleet.org" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+                Website
+              </a>
+              <Link to="/resources" className="hover:text-foreground transition-colors">Resources</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+            </nav>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
