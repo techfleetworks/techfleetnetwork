@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import Index from "./pages/Index";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -27,6 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <IdleTimeoutGuard />
             <AppLayout>
               <Routes>
                 <Route path="/" element={<Index />} />
