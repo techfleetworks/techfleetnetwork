@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 
 interface Task {
@@ -68,7 +69,7 @@ const defaultTasks: Omit<Task, "completed">[] = [
 ];
 
 export default function FirstStepsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
@@ -82,9 +83,20 @@ export default function FirstStepsPage() {
     });
   }, [user]);
 
+  const getDisplayName = () =>
+    profile?.display_name || profile?.first_name || user?.user_metadata?.full_name || "A member";
+
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
     setVisitedExternal((prev) => new Set(prev).add(id));
+
+    // Notify Discord for class registration actions
+    const name = getDisplayName();
+    if (id === "onboarding-class") {
+      DiscordNotifyService.classRegistered(name, "Onboarding Class");
+    } else if (id === "service-leadership") {
+      DiscordNotifyService.classRegistered(name, "Service Leadership Class");
+    }
   };
 
   const toggleTask = async (id: string) => {
@@ -101,6 +113,17 @@ export default function FirstStepsPage() {
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+
+      if (newCompleted) {
+        const name = getDisplayName();
+        DiscordNotifyService.taskCompleted(name, id);
+
+        // Check if all tasks are now complete
+        const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
+        if (newCompletedCount === tasks.length) {
+          DiscordNotifyService.phaseCompleted(name, "first_steps");
+        }
+      }
     } finally {
       setLoadingId(null);
     }
@@ -114,6 +137,15 @@ export default function FirstStepsPage() {
       setTasks((prev) =>
         prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
       );
+
+      const name = getDisplayName();
+      DiscordNotifyService.taskCompleted(name, "community-agreement");
+
+      // Check if all tasks are now complete
+      const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
+      if (newCompletedCount === tasks.length) {
+        DiscordNotifyService.phaseCompleted(name, "first_steps");
+      }
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);

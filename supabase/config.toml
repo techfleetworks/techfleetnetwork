@@ -1,1 +1,4 @@
 project_id = "iqsjhrhsjlgjiaedzmtz"
+
+[functions.discord-notify]
+verify_jwt = false

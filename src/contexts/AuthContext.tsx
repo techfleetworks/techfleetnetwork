@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -60,6 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (_event === "SIGNED_IN") {
             if (!sessionStorage.getItem("session_started_at")) {
               sessionStorage.setItem("session_started_at", Date.now().toString());
+              // Notify Discord on first sign-in of this session
+              const meta = session.user.user_metadata;
+              const name = meta?.full_name || meta?.first_name || session.user.email || "Someone";
+              DiscordNotifyService.userSignedUp(name);
             }
           }
           setTimeout(async () => {
