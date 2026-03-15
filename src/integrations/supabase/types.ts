@@ -130,6 +130,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_network_stats: { Args: never; Returns: Json }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
         Args: { p_token: string }
