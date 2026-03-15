@@ -23,15 +23,15 @@ export default function LandingPage() {
                 <Link to="/register">
                   <Button variant="hero" size="xl">
                     <Rocket className="h-5 w-5 mr-2" />
-                    Join Onboarding
+                    Get Started
                   </Button>
                 </Link>
-                <Link to="/training">
+                <a href="https://techfleet.org/overview" target="_blank" rel="noopener noreferrer">
                   <Button variant="hero-outline" size="xl">
                     Training Overview
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
-                </Link>
+                </a>
               </div>
             </div>
             <div className="hidden lg:flex justify-center">
