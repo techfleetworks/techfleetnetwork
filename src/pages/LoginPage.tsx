@@ -44,8 +44,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="text-center">
           <img src={techFleetLogo} alt="" className="h-12 w-12 mx-auto mb-4 dark:invert" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-foreground">Sign in to your account</h1>
-          <p className="text-muted-foreground mt-1">Welcome back to Tech Fleet</p>
+          <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+          <p className="text-muted-foreground mt-1">Sign in to your Tech Fleet account</p>
         </div>
 
         <div className="card-elevated p-6 sm:p-8">
@@ -94,8 +94,8 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">Join onboarding</Link>
+          New member?{" "}
+          <Link to="/register" className="text-primary font-medium hover:underline">Sign up</Link>
         </p>
       </div>
     </div>

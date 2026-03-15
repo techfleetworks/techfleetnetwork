@@ -124,7 +124,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full justify-start">
                       <LogIn className="h-4 w-4 mr-2" />
-                      Sign In
+                      Connect
                     </Button>
                   </Link>
                 ) : (

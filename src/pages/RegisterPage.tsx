@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2, User } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { registerSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
@@ -19,6 +19,8 @@ const passwordRequirements = [
 ];
 
 export default function RegisterPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +32,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = registerSchema.safeParse({ email, password, agreedToTerms });
+    const result = registerSchema.safeParse({ firstName, lastName, email, password, agreedToTerms });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
@@ -49,7 +51,8 @@ export default function RegisterPage() {
       await AuthService.signUp(
         result.data.email,
         result.data.password,
-        "",
+        result.data.firstName,
+        result.data.lastName,
         window.location.origin + "/profile-setup"
       );
       setSubmitted(true);
@@ -90,6 +93,26 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reg-firstName">First name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Input id="reg-firstName" type="text" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="pl-10" autoComplete="given-name" required aria-required="true" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "fn-error" : undefined} />
+                </div>
+                {errors.firstName && <p id="fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reg-lastName">Last name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Input id="reg-lastName" type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} className="pl-10" autoComplete="family-name" required aria-required="true" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "ln-error" : undefined} />
+                </div>
+                {errors.lastName && <p id="ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="reg-email">Email address</Label>
               <div className="relative">
