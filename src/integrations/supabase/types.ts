@@ -204,6 +204,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_rate_limits: { Args: never; Returns: number }
+      get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
       purge_old_audit_logs: {
         Args: { retention_days?: number }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Users, UserCheck, Activity, CalendarDays, UserPlus } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
+import { MemberWorldMap } from "@/components/MemberWorldMap";
 
 const defaultStats: NetworkStats = {
   total_members: 0,
@@ -136,6 +137,11 @@ export function NetworkActivity() {
             <StepGroup title="Step 2 — Agile Handbook" active={stats.second_steps_active_7d} completed={stats.second_steps_completed_7d} />
             <StepGroup title="Step 3 — Teammate Handbook" active={stats.third_steps_active_7d} completed={stats.third_steps_completed_7d} />
           </div>
+        </div>
+
+        {/* World map */}
+        <div className="border-t pt-8 mt-8">
+          <MemberWorldMap />
         </div>
       </div>
     </section>

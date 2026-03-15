@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, User, Globe, MessageCircle } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { profileSchema } from "@/lib/validators/profile";
+import { COUNTRIES } from "@/lib/countries";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export default function ProfileSetupPage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -88,11 +92,42 @@ export default function ProfileSetupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="country">Country</Label>
-            <div className="relative">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <Input id="country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="United States" className="pl-10" required aria-required="true" aria-invalid={!!errors.country} aria-describedby={errors.country ? "co-error" : undefined} />
-            </div>
+            <Label>Country</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")}
+                  aria-invalid={!!errors.country}
+                  aria-describedby={errors.country ? "co-error" : undefined}
+                >
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  {form.country || "Select a country"}
+                  <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search countries..." />
+                  <CommandList>
+                    <CommandEmpty>No country found.</CommandEmpty>
+                    <CommandGroup>
+                      {COUNTRIES.map((c) => (
+                        <CommandItem
+                          key={c.code}
+                          value={c.name}
+                          onSelect={() => setForm({ ...form, country: c.name })}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
+                          {c.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {errors.country && <p id="co-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
           </div>
 
