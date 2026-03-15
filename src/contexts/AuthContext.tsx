@@ -9,6 +9,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signOutAllDevices: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -31,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!currentProfile) return;
     const meta = currentUser.user_metadata;
     if (!meta) return;
-    // Only sync if profile names are empty (first login via OAuth)
     if (currentProfile.first_name || currentProfile.last_name) return;
 
     const firstName = meta.given_name || meta.first_name || "";
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await ProfileService.updateNames(currentUser.id, firstName, lastName);
       await fetchProfile(currentUser.id);
     } catch {
-      // Non-critical, profile setup will catch missing data
+      // Non-critical
     }
   };
 
@@ -56,6 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
+          // Track session start on sign-in
+          if (_event === "SIGNED_IN") {
+            if (!sessionStorage.getItem("session_started_at")) {
+              sessionStorage.setItem("session_started_at", Date.now().toString());
+            }
+          }
           setTimeout(async () => {
             const p = await fetchProfile(session.user.id);
             if (_event === "SIGNED_IN") {
@@ -88,8 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const signOutAllDevices = async () => {
+    await AuthService.signOutAllDevices();
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signOut, signOutAllDevices, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
