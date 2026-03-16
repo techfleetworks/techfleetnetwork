@@ -155,3 +155,107 @@
     @apply bg-card text-card-foreground border rounded-md;
   }
 }
+
+/* Fleety chat prose — scannable, well-spaced formatting */
+.fleety-prose {
+  @apply text-sm text-foreground leading-relaxed;
+}
+
+.fleety-prose > *:first-child {
+  margin-top: 0;
+}
+
+.fleety-prose > *:last-child {
+  margin-bottom: 0;
+}
+
+.fleety-prose h1,
+.fleety-prose h2,
+.fleety-prose h3 {
+  @apply font-semibold text-foreground;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.fleety-prose h1 { @apply text-lg; }
+.fleety-prose h2 { @apply text-base; }
+.fleety-prose h3 { @apply text-sm font-semibold; }
+
+.fleety-prose p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.fleety-prose ul,
+.fleety-prose ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.fleety-prose ul {
+  list-style-type: disc;
+}
+
+.fleety-prose ol {
+  list-style-type: decimal;
+}
+
+.fleety-prose li {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+  padding-left: 0.25rem;
+  line-height: 1.6;
+}
+
+.fleety-prose li > ul,
+.fleety-prose li > ol {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.fleety-prose strong {
+  @apply font-semibold text-foreground;
+}
+
+.fleety-prose a {
+  @apply text-primary underline underline-offset-2;
+}
+
+.fleety-prose a:hover {
+  @apply text-primary/80;
+}
+
+.fleety-prose code {
+  @apply bg-muted px-1.5 py-0.5 rounded text-xs font-mono;
+}
+
+.fleety-prose pre {
+  @apply bg-muted p-3 rounded-md overflow-x-auto my-3;
+}
+
+.fleety-prose pre code {
+  @apply bg-transparent p-0;
+}
+
+.fleety-prose blockquote {
+  @apply border-l-2 border-primary/30 pl-3 my-3 italic text-muted-foreground;
+}
+
+.fleety-prose hr {
+  @apply my-4 border-border;
+}
+
+.fleety-prose table {
+  @apply w-full border-collapse my-3 text-xs;
+}
+
+.fleety-prose th,
+.fleety-prose td {
+  @apply border border-border px-2 py-1.5 text-left;
+}
+
+.fleety-prose th {
+  @apply bg-muted font-semibold;
+}
