@@ -12,13 +12,14 @@ export interface Profile {
   display_name: string;
   avatar_url: string | null;
   profile_completed: boolean;
+  interests: string[];
 }
 
 export const ProfileService = {
   async fetch(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
-      .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
+      .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
       .eq("user_id", userId)
       .single();
     if (error) return null;
@@ -39,9 +40,10 @@ export const ProfileService = {
         first_name: input.firstName,
         last_name: input.lastName,
         country: input.country,
-        discord_username: input.discordUsername,
+        discord_username: input.discordUsername || "",
         discord_user_id: discordUserId,
         display_name: `${input.firstName} ${input.lastName}`.trim(),
+        interests: input.interests || [],
         profile_completed: true,
       } as any)
       .eq("user_id", userId);
