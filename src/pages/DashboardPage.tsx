@@ -10,6 +10,7 @@ import { ProfileEditPanel } from "@/components/ProfileEditPanel";
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const totalFirstSteps = 6;
 
   useEffect(() => {
