@@ -15,6 +15,13 @@ const CSV_DATASETS = [
   { file: "/data/deliverables-2.csv", name: "Deliverables (Extended)" },
   { file: "/data/skills-framework.csv", name: "Skills Framework Data Types" },
   { file: "/data/tech-job-categories.csv", name: "Tech Job Categories" },
+  { file: "/data/team-functions.csv", name: "Team Functions" },
+  { file: "/data/duties.csv", name: "Duties" },
+  { file: "/data/activities.csv", name: "Activities" },
+  { file: "/data/practices.csv", name: "Practices" },
+  { file: "/data/skills.csv", name: "Skills" },
+  { file: "/data/workshops-detailed.csv", name: "Workshops (Detailed)" },
+  { file: "/data/handbooks-detailed.csv", name: "Handbooks (Detailed)" },
 ];
 
 type Status = "idle" | "loading" | "done" | "error";
