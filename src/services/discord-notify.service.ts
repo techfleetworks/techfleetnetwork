@@ -27,7 +27,23 @@ async function notify(payload: NotifyPayload) {
       displayName: payload.display_name,
       discordUsername: payload.discord_username,
     });
-    await supabase.functions.invoke("discord-notify", { body: payload });
+
+    const { data, error } = await supabase.functions.invoke("discord-notify", { body: payload });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data?.success === false) {
+      log.warn("notify", `Discord notification skipped for event "${payload.event}" — non-critical`, {
+        event: payload.event,
+        displayName: payload.display_name,
+        reason: data?.reason,
+        status: data?.status,
+      });
+      return;
+    }
+
     log.info("notify", `Discord notification sent successfully: ${payload.event}`, { event: payload.event });
   } catch (err) {
     log.warn("notify", `Failed to send Discord notification for event "${payload.event}" — non-critical, continuing`, {
