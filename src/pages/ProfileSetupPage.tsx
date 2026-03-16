@@ -89,16 +89,7 @@ export default function ProfileSetupPage() {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    // Guard: if not on the final step, advance instead of submitting.
-    // This prevents Enter-key in earlier inputs from bypassing later wizard steps.
-    if (step < TOTAL_STEPS) {
-      handleNext();
-      return;
-    }
-
+  const handleComplete = async () => {
     if (!validateStep()) return;
 
     const result = profileSchema.safeParse({
@@ -137,6 +128,17 @@ export default function ProfileSetupPage() {
       setErrors({ general: err.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  /** Intercept native form submission (e.g. Enter key) — always prevent it.
+   *  Navigation between steps and final save are handled by explicit button clicks only. */
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // On intermediate steps, advance. On final step, do nothing —
+    // the user must explicitly click "Complete Setup".
+    if (step < TOTAL_STEPS) {
+      handleNext();
     }
   };
 
