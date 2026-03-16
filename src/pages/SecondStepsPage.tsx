@@ -29,8 +29,9 @@ export default function SecondStepsPage() {
   const { user } = useAuth();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<AgileLesson | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]));
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [toggling, setToggling] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   // Load progress
   useEffect(() => {
@@ -46,8 +47,18 @@ export default function SecondStepsPage() {
             new Set(data.filter((r) => r.completed).map((r) => r.task_id))
           );
         }
+        setProgressLoaded(true);
       });
   }, [user]);
+
+  // Auto-expand the first section with incomplete lessons
+  useEffect(() => {
+    if (!progressLoaded) return;
+    const currentSectionIdx = AGILE_COURSE_SECTIONS.findIndex((section) =>
+      section.lessons.some((l) => !completedSet.has(l.id))
+    );
+    setExpandedSections(new Set(currentSectionIdx >= 0 ? [currentSectionIdx] : []));
+  }, [progressLoaded]);
 
   const completedCount = useMemo(
     () => ALL_AGILE_LESSON_IDS.filter((id) => completedSet.has(id)).length,
