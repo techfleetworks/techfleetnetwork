@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
-import { BarChart3, Clock, Trophy } from "lucide-react";
+import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState(0);
+  const [showAllSteps, setShowAllSteps] = useState(false);
   const totalFirstSteps = 6;
+  const currentStepRef = useRef<HTMLDivElement>(null);
+  const hasScrolled = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -25,6 +29,9 @@ export default function DashboardPage() {
 
   const allFirstStepsDone = firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+
+  // Determine current phase index (0-based)
+  const currentPhaseIndex = allSecondStepsDone ? 2 : allFirstStepsDone ? 1 : 0;
 
   const currentPhase = allSecondStepsDone
     ? "Third Steps"
@@ -43,6 +50,18 @@ export default function DashboardPage() {
     { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
     { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
   ];
+
+  const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
+
+  // Auto-scroll to the current active step after data loads
+  useEffect(() => {
+    if (!hasScrolled.current && currentStepRef.current && (firstStepsCompleted > 0 || secondStepsCompleted > 0)) {
+      hasScrolled.current = true;
+      setTimeout(() => {
+        currentStepRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [firstStepsCompleted, secondStepsCompleted]);
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
@@ -75,11 +94,58 @@ export default function DashboardPage() {
 
       <section aria-labelledby="journey-heading">
         <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">Your Member Journey</h2>
-        <div className="space-y-3">
-          {journeySteps.map((step, index) => (
-            <JourneyStepCard key={step.id} step={step} index={index} />
-          ))}
-        </div>
+
+        {allStepsCompleted ? (
+          /* ── Compact completed view ── */
+          <div className="space-y-3">
+            <div className="card-elevated border-success/50 bg-success/5 p-5">
+              <div className="flex items-center gap-3 mb-2">
+                <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">🎉 All Steps Complete!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You've completed every phase of the onboarding journey. Congratulations!
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowAllSteps(!showAllSteps)}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+              >
+                {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {showAllSteps ? "Hide completed steps" : "Show completed steps"}
+              </button>
+            </div>
+
+            {showAllSteps && (
+              <div className="space-y-2 animate-fade-in">
+                {journeySteps.map((step) => (
+                  <Link
+                    key={step.id}
+                    to={step.href}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
+                  >
+                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                    <span className="text-sm font-medium text-foreground">{step.title}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── Normal journey view with auto-scroll to current ── */
+          <div className="space-y-3">
+            {journeySteps.map((step, index) => (
+              <div
+                key={step.id}
+                ref={step.status === "current" ? currentStepRef : undefined}
+              >
+                <JourneyStepCard step={step} index={index} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-10 border-t pt-8">
