@@ -91,6 +91,14 @@ export default function ProfileSetupPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // Guard: if not on the final step, advance instead of submitting.
+    // This prevents Enter-key in earlier inputs from bypassing later wizard steps.
+    if (step < TOTAL_STEPS) {
+      handleNext();
+      return;
+    }
+
     if (!validateStep()) return;
 
     const result = profileSchema.safeParse({
