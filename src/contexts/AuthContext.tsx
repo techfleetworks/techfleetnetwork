@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoaded: boolean;
   signOut: () => Promise<void>;
   signOutAllDevices: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -21,10 +22,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const data = await ProfileService.fetch(userId);
-    setProfile(data);
+    // Only update profile if we got data — never null-out an existing profile during re-fetches
+    if (data) {
+      setProfile(data);
+    }
+    setProfileLoaded(true);
     return data;
   };
 
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setProfileLoaded(false);
         }
         setLoading(false);
       }
@@ -111,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setProfileLoaded(false);
   };
 
   const signOutAllDevices = async () => {
@@ -118,10 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setProfileLoaded(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut, signOutAllDevices, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
