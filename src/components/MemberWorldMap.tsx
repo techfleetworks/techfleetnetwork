@@ -61,8 +61,7 @@ export function MemberWorldMap() {
   }, []);
 
   // Map country name → count AND numeric id → count
-  const { countByName, countById, maxCount, totalMembers, countriesRepresented } = useMemo(() => {
-    const byName = new Map<string, number>();
+  const { countById, maxCount, totalMembers, countriesRepresented } = useMemo(() => {
     const byId = new Map<string, number>();
     let max = 1;
     let total = 0;
