@@ -252,12 +252,57 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
           </form>
         </ScrollArea>
 
-        <div className="border-t px-6 py-4">
+        <div className="border-t px-6 py-4 space-y-3">
           <Button form="profile-edit-form" type="submit" className="w-full" disabled={saving}>
             {saving ? "Saving…" : "Save Changes"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => { setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Account
+          </Button>
         </div>
       </SheetContent>
+
+      {/* Delete account confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+            <DialogDescription>
+              This action is permanent and cannot be undone. All of your data — including your profile, progress, and activity — will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="delete-confirm">
+              Type <strong className="text-foreground">Delete</strong> to confirm
+            </Label>
+            <Input
+              id="delete-confirm"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Delete"
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "Delete" || deleting}
+            >
+              {deleting ? "Deleting…" : "Permanently Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
