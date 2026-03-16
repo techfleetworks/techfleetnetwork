@@ -21,8 +21,8 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
   it("18.1: renders first name, last name, email, password fields", () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
   });
 
   it("18.1: renders terms checkbox", () => {
@@ -34,7 +34,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
   });
 
   it("18.2: password requirements checklist shows 5 items", () => {
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     fireEvent.change(passwordInput, { target: { value: "a" } });
 
     expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();

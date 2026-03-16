@@ -3,6 +3,7 @@ import { screen } from "@testing-library/react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Mock auth context to logged-out state
 vi.mock("@/contexts/AuthContext", () => ({
@@ -17,11 +18,13 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 function renderLayout() {
   return render(
-    <MemoryRouter>
-      <AppLayout>
-        <div data-testid="child">Content</div>
-      </AppLayout>
-    </MemoryRouter>
+    <ThemeProvider defaultTheme="dark">
+      <MemoryRouter>
+        <AppLayout>
+          <div data-testid="child">Content</div>
+        </AppLayout>
+      </MemoryRouter>
+    </ThemeProvider>
   );
 }
 
