@@ -193,9 +193,15 @@ export default function SecondStepsPage() {
                           isDone ? "bg-success/5" : ""
                         }`}
                       >
-                        {/* Completion checkbox */}
+                        {/* Completion checkbox — opens panel on first interaction */}
                         <button
-                          onClick={() => toggleLesson(lesson.id)}
+                          onClick={() => {
+                            if (!isDone) {
+                              // First time: open the lesson panel to encourage engagement
+                              setSelectedLesson(lesson);
+                            }
+                            toggleLesson(lesson.id);
+                          }}
                           disabled={toggling}
                           className="flex-shrink-0"
                           aria-label={`Mark "${lesson.title}" as ${isDone ? "incomplete" : "complete"}`}
@@ -219,17 +225,23 @@ export default function SecondStepsPage() {
                           {lesson.title}
                         </span>
 
-                        {/* Open button */}
+                        {/* Open button — prominent play icon for video lessons */}
                         <Button
-                          variant="ghost"
+                          variant={lesson.youtubeId ? "default" : "ghost"}
                           size="sm"
-                          className="flex-shrink-0 h-8 px-2"
+                          className={`flex-shrink-0 h-8 ${lesson.youtubeId ? "px-3 gap-1.5" : "px-2"}`}
                           onClick={() => setSelectedLesson(lesson)}
                         >
                           {lesson.youtubeId ? (
-                            <Play className="h-3.5 w-3.5" />
+                            <>
+                              <Play className="h-3.5 w-3.5" />
+                              <span className="text-xs">Watch</span>
+                            </>
                           ) : (
-                            <BookOpen className="h-3.5 w-3.5" />
+                            <>
+                              <BookOpen className="h-3.5 w-3.5" />
+                              <span className="text-xs">Read</span>
+                            </>
                           )}
                         </Button>
                       </div>

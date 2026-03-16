@@ -102,7 +102,16 @@ export default function RegisterPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <GoogleSignInButton label="Sign up with Google" />
+
+          <div className="mt-4 relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4" noValidate>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="reg-firstName">First name</Label>
@@ -166,15 +175,6 @@ export default function RegisterPage() {
               {loading ? "Creating account…" : "Create Account"}
             </Button>
           </form>
-
-          <div className="mt-4 relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <GoogleSignInButton className="mt-4" label="Sign up with Google" />
         </div>
 
         <p className="text-center text-sm text-muted-foreground">

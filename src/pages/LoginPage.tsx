@@ -65,7 +65,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <GoogleSignInButton />
+
+          <div className="mt-4 relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4" noValidate>
             <div className="space-y-2">
               <Label htmlFor="email">Email address</Label>
               <div className="relative">
@@ -92,15 +101,6 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign In"}
             </Button>
           </form>
-
-          <div className="mt-4 relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <GoogleSignInButton className="mt-4" />
         </div>
 
         <p className="text-center text-sm text-muted-foreground">

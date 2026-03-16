@@ -30,15 +30,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Redirect to profile setup if profile isn't complete (unless already on that page)
-  if (profile && !profile.profile_completed && location.pathname !== "/profile-setup") {
-    return <Navigate to="/profile-setup" replace />;
-  }
-
-  // If no profile exists at all, also send to setup
-  if (!profile && location.pathname !== "/profile-setup") {
-    return <Navigate to="/profile-setup" replace />;
-  }
+  // Profile setup is no longer forced — users can explore freely.
+  // Profile completion is tracked as a First Steps task instead.
 
   return <>{children}</>;
 }
