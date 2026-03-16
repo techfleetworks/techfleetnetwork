@@ -89,16 +89,7 @@ export default function ProfileSetupPage() {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    // Guard: if not on the final step, advance instead of submitting.
-    // This prevents Enter-key in earlier inputs from bypassing later wizard steps.
-    if (step < TOTAL_STEPS) {
-      handleNext();
-      return;
-    }
-
+  const handleComplete = async () => {
     if (!validateStep()) return;
 
     const result = profileSchema.safeParse({
@@ -140,6 +131,17 @@ export default function ProfileSetupPage() {
     }
   };
 
+  /** Intercept native form submission (e.g. Enter key) — always prevent it.
+   *  Navigation between steps and final save are handled by explicit button clicks only. */
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // On intermediate steps, advance. On final step, do nothing —
+    // the user must explicitly click "Complete Setup".
+    if (step < TOTAL_STEPS) {
+      handleNext();
+    }
+  };
+
   return (
     <div className="container-app py-8 sm:py-12 max-w-2xl animate-fade-in">
       <div className="mb-6 flex items-start justify-between">
@@ -171,7 +173,7 @@ export default function ProfileSetupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
           {/* STEP 1: Name & Country */}
           {step === 1 && (
             <>
@@ -441,7 +443,7 @@ export default function ProfileSetupPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" className="flex-1" disabled={saving}>
+              <Button type="button" className="flex-1" disabled={saving} onClick={handleComplete}>
                 {saving ? "Saving…" : "Complete Setup"}
               </Button>
             )}
