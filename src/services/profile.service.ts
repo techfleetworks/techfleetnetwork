@@ -18,7 +18,7 @@ export const ProfileService = {
   async fetch(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
-      .select("first_name, last_name, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
+      .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
       .eq("user_id", userId)
       .single();
     if (error) return null;
