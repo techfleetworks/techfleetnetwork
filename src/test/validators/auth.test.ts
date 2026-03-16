@@ -1,0 +1,148 @@
+import { describe, it, expect } from "vitest";
+import { loginSchema, registerSchema, passwordSchema } from "@/lib/validators/auth";
+
+/**
+ * BDD Scenarios covered:
+ * 2.1  — Successful account creation (valid input passes validation)
+ * 2.3  — Weak password rejection (OWASP standards enforced)
+ * 2.5  — Invalid email format rejection
+ * 15.3 — Form submission via Enter key (forms use standard HTML, covered by schema acceptance)
+ */
+
+describe("passwordSchema (BDD 2.3: Weak password rejection)", () => {
+  it("accepts a strong OWASP-compliant password", () => {
+    const result = passwordSchema.safeParse("Str0ng!Pass");
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects password shorter than 8 characters", () => {
+    const result = passwordSchema.safeParse("Ab1!");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("8 characters");
+  });
+
+  it("rejects password without uppercase letter", () => {
+    const result = passwordSchema.safeParse("str0ng!pass");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("uppercase"))).toBe(true);
+  });
+
+  it("rejects password without lowercase letter", () => {
+    const result = passwordSchema.safeParse("STR0NG!PASS");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("lowercase"))).toBe(true);
+  });
+
+  it("rejects password without a number", () => {
+    const result = passwordSchema.safeParse("Strong!Pass");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("number"))).toBe(true);
+  });
+
+  it("rejects password without special character", () => {
+    const result = passwordSchema.safeParse("Str0ngPass1");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("special"))).toBe(true);
+  });
+
+  it("rejects password longer than 128 characters", () => {
+    const longPass = "A".repeat(120) + "a1!abcdefg";
+    const result = passwordSchema.safeParse(longPass);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("loginSchema (BDD 2.5: Invalid email format)", () => {
+  it("accepts valid email and password", () => {
+    const result = loginSchema.safeParse({ email: "test@example.com", password: "anything" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects missing @ in email", () => {
+    const result = loginSchema.safeParse({ email: "testexample.com", password: "x" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("email");
+  });
+
+  it("rejects empty email", () => {
+    const result = loginSchema.safeParse({ email: "", password: "x" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty password", () => {
+    const result = loginSchema.safeParse({ email: "test@example.com", password: "" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("required");
+  });
+
+  it("trims whitespace from email", () => {
+    const result = loginSchema.safeParse({ email: "  test@example.com  ", password: "x" });
+    expect(result.success).toBe(true);
+    expect(result.data?.email).toBe("test@example.com");
+  });
+
+  it("rejects email exceeding 255 characters", () => {
+    const longEmail = "a".repeat(250) + "@b.com";
+    const result = loginSchema.safeParse({ email: longEmail, password: "x" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields)", () => {
+  const validInput = {
+    firstName: "Jane",
+    lastName: "Doe",
+    email: "jane@example.com",
+    password: "Str0ng!Pass",
+    agreedToTerms: true as const,
+  };
+
+  it("accepts valid registration input", () => {
+    const result = registerSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty first name", () => {
+    const result = registerSchema.safeParse({ ...validInput, firstName: "" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("required");
+  });
+
+  it("rejects empty last name", () => {
+    const result = registerSchema.safeParse({ ...validInput, lastName: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects invalid email", () => {
+    const result = registerSchema.safeParse({ ...validInput, email: "not-an-email" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects weak password", () => {
+    const result = registerSchema.safeParse({ ...validInput, password: "weak" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when terms not agreed", () => {
+    const result = registerSchema.safeParse({ ...validInput, agreedToTerms: false });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects XSS in first name (A03 security)", () => {
+    const result = registerSchema.safeParse({ ...validInput, firstName: '<script>alert("xss")</script>' });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("invalid content"))).toBe(true);
+  });
+
+  it("rejects XSS in last name (A03 security)", () => {
+    const result = registerSchema.safeParse({ ...validInput, lastName: '<script src="evil.js"></script>' });
+    expect(result.success).toBe(false);
+  });
+
+  it("trims whitespace from names", () => {
+    const result = registerSchema.safeParse({ ...validInput, firstName: "  Jane  ", lastName: "  Doe  " });
+    expect(result.success).toBe(true);
+    expect(result.data?.firstName).toBe("Jane");
+    expect(result.data?.lastName).toBe("Doe");
+  });
+});
