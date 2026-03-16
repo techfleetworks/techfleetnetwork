@@ -303,7 +303,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
           </form>
         </ScrollArea>
 
-        <div className="border-t px-6 py-4 space-y-3">
+        <div className="border-t px-6 py-4 space-y-3 shrink-0 relative z-10">
           <Button form="profile-edit-form" type="submit" className="w-full" disabled={saving}>
             {saving ? "Saving…" : "Save Changes"}
           </Button>
