@@ -22,7 +22,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
   const badges: Badge[] = [
     {
       id: "first-steps",
-      name: "First Steps",
+      name: "Onboarding",
       description: "Completed onboarding checklist",
       image: badgeFirstSteps,
       earned: allFirstStepsDone,
@@ -44,7 +44,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
     {
       id: "observer",
       name: "Observer",
-      description: "Completed the Observer phase",
+      description: "Completed Observe Project Teams",
       image: badgeObserver,
       earned: false,
     },

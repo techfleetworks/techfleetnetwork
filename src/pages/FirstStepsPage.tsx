@@ -201,8 +201,8 @@ export default function FirstStepsPage() {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">First Steps</h1>
-        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock Second Steps. You can do them in any order.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Onboarding Steps</h1>
+        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
       </div>
 
       <div className="mb-8">
@@ -210,7 +210,7 @@ export default function FirstStepsPage() {
           <span className="text-muted-foreground">{completedCount} of {tasks.length} tasks completed</span>
           <span className="font-medium text-foreground">{Math.round(progress)}%</span>
         </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="First Steps progress">
+        <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Onboarding Steps progress">
           <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
@@ -292,9 +292,9 @@ export default function FirstStepsPage() {
       {allComplete && (
         <div className="mt-8 card-elevated border-success/50 bg-success/5 p-6 text-center animate-fade-in">
           <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-foreground mb-2">🎉 First Steps Complete!</h2>
-          <p className="text-muted-foreground mb-4">You've unlocked the Second Steps phase.</p>
-          <Link to="/journey/second-steps"><Button>Continue to Second Steps</Button></Link>
+          <h2 className="text-xl font-bold text-foreground mb-2">🎉 Onboarding Complete!</h2>
+          <p className="text-muted-foreground mb-4">You've unlocked Build an Agile Mindset.</p>
+          <Link to="/journey/second-steps"><Button>Continue to Build an Agile Mindset</Button></Link>
         </div>
       )}
 

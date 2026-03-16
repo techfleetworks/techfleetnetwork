@@ -39,20 +39,20 @@ export default function DashboardPage() {
   // No auto-redirect — always show the dashboard overview on login
 
   const currentPhase = allSecondStepsDone
-    ? "Third Steps"
+    ? "Learn About Agile Teamwork"
     : allFirstStepsDone
-    ? "Second Steps"
-    : "First Steps";
+    ? "Build an Agile Mindset"
+    : "Onboarding Steps";
 
   const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0);
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
   const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
 
   const journeySteps: JourneyStep[] = [
-    { id: "first-steps", title: "First Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
-    { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
-    { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
+    { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
+    { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
+    { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+    { id: "observer", title: "Observe Project Teams", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
     { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
   ];
 

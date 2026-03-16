@@ -372,7 +372,7 @@ export default function ProfileSetupPage() {
                   <p className="text-sm text-muted-foreground">
                     Discord is where our community connects, collaborates, and supports each other. 
                     We recommend joining and completing the Discord Tutorial Series in the User Guide 
-                    as part of your First Steps.
+                    as part of your Onboarding Steps.
                   </p>
                   <a
                     href="https://techfleet.org/join"
@@ -385,7 +385,7 @@ export default function ProfileSetupPage() {
                   </a>
                   <p className="text-xs text-muted-foreground">
                     You can add your Discord username later from your profile. A "Join Tech Fleet Discord" 
-                    step will appear in your First Steps checklist.
+                    step will appear in your Onboarding Steps checklist.
                   </p>
                 </div>
               )}
