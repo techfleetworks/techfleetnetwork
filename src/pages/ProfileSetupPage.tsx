@@ -415,12 +415,19 @@ export default function ProfileSetupPage() {
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <Checkbox
-                      checked={form.interests.includes(option)}
-                      tabIndex={-1}
-                      className="pointer-events-none"
+                    <div
+                      className={cn(
+                        "h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background",
+                        form.interests.includes(option)
+                          ? "bg-primary text-primary-foreground flex items-center justify-center"
+                          : "bg-transparent"
+                      )}
                       aria-hidden="true"
-                    />
+                    >
+                      {form.interests.includes(option) && (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </div>
                     <span className="text-sm font-medium text-foreground">{option}</span>
                   </button>
                 ))}
