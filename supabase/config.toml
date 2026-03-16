@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.techfleet-chat]
 verify_jwt = false
+
+[functions.ingest-csv-knowledge]
+verify_jwt = false
