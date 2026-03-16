@@ -143,12 +143,22 @@ export default function FirstStepsPage() {
   };
 
   const toggleTask = async (id: string) => {
-    if (!user) return;
+    console.log("[FirstSteps] toggleTask called", { id, user: !!user, tasksLength: tasks.length });
+    if (!user) {
+      console.log("[FirstSteps] No user, aborting");
+      return;
+    }
     const task = tasks.find((t) => t.id === id);
-    if (!task) return;
+    if (!task) {
+      console.log("[FirstSteps] Task not found:", id);
+      return;
+    }
+
+    console.log("[FirstSteps] Task found", { id, external: task.external, completed: task.completed, visitedExternal: [...visitedExternal] });
 
     // For external tasks, prompt user to visit link first (soft gate with toast)
     if (task.external && !task.completed && !visitedExternal.has(id)) {
+      console.log("[FirstSteps] External not visited, showing toast");
       toast.info("Open the link first", {
         description: "Click the \"Open\" button to visit the resource, then check it off.",
       });
