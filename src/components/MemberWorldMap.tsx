@@ -67,7 +67,6 @@ export function MemberWorldMap() {
     let total = 0;
 
     data.forEach((d) => {
-      byName.set(d.country, d.count);
       const id = COUNTRY_NAME_TO_ID[d.country];
       if (id) byId.set(id, d.count);
       if (d.count > max) max = d.count;
@@ -75,7 +74,6 @@ export function MemberWorldMap() {
     });
 
     return {
-      countByName: byName,
       countById: byId,
       maxCount: max,
       totalMembers: total,
