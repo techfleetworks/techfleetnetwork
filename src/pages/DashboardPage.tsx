@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
   const journeySteps: JourneyStep[] = [
     { id: "first-steps", title: "First Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Second Steps — Agile Handbook", description: "Read the Agile Handbook and pass the comprehension quiz.", status: allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
+    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: "Complete the Agile Handbook course: 25 video and text lessons covering agile philosophies, teamwork, and methods.", status: allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
     { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: "locked", href: "/journey/third-steps" },
     { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
     { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
