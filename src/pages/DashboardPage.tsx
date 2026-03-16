@@ -5,6 +5,7 @@ import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } fro
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { Link } from "react-router-dom";
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
+  const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
   const totalFirstSteps = 6;
 
 
@@ -21,9 +23,13 @@ export default function DashboardPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
-    ]).then(([first, second]) => {
+      StatsService.getNetworkStats(),
+    ]).then(([first, second, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
+      setCommunityBadgeCount(
+        (stats.first_steps_completed ?? 0) + (stats.second_steps_completed ?? 0)
+      );
     });
   }, [user]);
 
@@ -60,6 +66,11 @@ export default function DashboardPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
+
+      {/* Badges at the top */}
+      <section className="mb-8">
+        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
+      </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
@@ -134,9 +145,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="mt-8">
-        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} />
-      </section>
 
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
