@@ -33,14 +33,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!currentProfile) return;
     const meta = currentUser.user_metadata;
     if (!meta) return;
-    if (currentProfile.first_name || currentProfile.last_name) return;
+
+    const needsNameSync = !currentProfile.first_name && !currentProfile.last_name;
+    const needsEmailSync = !currentProfile.email && currentUser.email;
+
+    if (!needsNameSync && !needsEmailSync) return;
 
     const firstName = meta.given_name || meta.first_name || "";
     const lastName = meta.family_name || meta.last_name || "";
-    if (!firstName && !lastName) return;
+
+    if (!needsNameSync && needsEmailSync) {
+      // Only sync email
+      try {
+        await ProfileService.updateNames(currentUser.id, currentProfile.first_name, currentProfile.last_name, currentUser.email);
+        await fetchProfile(currentUser.id);
+      } catch { /* Non-critical */ }
+      return;
+    }
+
+    if (!firstName && !lastName && !needsEmailSync) return;
 
     try {
-      await ProfileService.updateNames(currentUser.id, firstName, lastName);
+      await ProfileService.updateNames(currentUser.id, firstName, lastName, currentUser.email || undefined);
       await fetchProfile(currentUser.id);
     } catch {
       // Non-critical
