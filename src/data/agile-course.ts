@@ -203,5 +203,8 @@ export const ALL_AGILE_LESSON_IDS = AGILE_COURSE_SECTIONS.flatMap((s) =>
   s.lessons.map((l) => l.id)
 );
 
+/** Flat list of all lessons in order */
+export const ALL_AGILE_LESSONS = AGILE_COURSE_SECTIONS.flatMap((s) => s.lessons);
+
 /** Total lesson count */
 export const TOTAL_AGILE_LESSONS = ALL_AGILE_LESSON_IDS.length;
