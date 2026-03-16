@@ -85,7 +85,6 @@ export default function FirstStepsPage() {
   const taskDefs = (() => {
     const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
     if (hasDiscord) return baseTasks;
-    // Insert join-discord after profile task
     const idx = baseTasks.findIndex((t) => t.id === "profile");
     const copy = [...baseTasks];
     copy.splice(idx + 1, 0, joinDiscordTask);
@@ -94,12 +93,6 @@ export default function FirstStepsPage() {
 
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [visitedExternal, setVisitedExternal] = useState<Set<string>>(() => {
-    try {
-      const saved = sessionStorage.getItem("first_steps_visited");
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch { return new Set(); }
-  });
   const [agreementOpen, setAgreementOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added)
@@ -108,7 +101,8 @@ export default function FirstStepsPage() {
       const prevMap = new Map(prev.map((t) => [t.id, t.completed]));
       return taskDefs.map((t) => ({ ...t, completed: prevMap.get(t.id) || false }));
     });
-  }, [profile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.discord_username]);
 
   useEffect(() => {
     if (!user) return;
@@ -125,11 +119,6 @@ export default function FirstStepsPage() {
 
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
-    setVisitedExternal((prev) => {
-      const next = new Set(prev).add(id);
-      try { sessionStorage.setItem("first_steps_visited", JSON.stringify([...next])); } catch {}
-      return next;
-    });
 
     // Notify Discord for class registration actions
     const name = getDisplayName();
@@ -143,35 +132,15 @@ export default function FirstStepsPage() {
   };
 
   const toggleTask = async (id: string) => {
-    console.log("[FirstSteps] toggleTask called", { id, user: !!user, tasksLength: tasks.length });
-    if (!user) {
-      console.log("[FirstSteps] No user, aborting");
-      return;
-    }
+    if (!user) return;
     const task = tasks.find((t) => t.id === id);
-    if (!task) {
-      console.log("[FirstSteps] Task not found:", id);
-      return;
-    }
-
-    console.log("[FirstSteps] Task found", { id, external: task.external, completed: task.completed, visitedExternal: [...visitedExternal] });
-
-    // For external tasks, prompt user to visit link first (soft gate with toast)
-    if (task.external && !task.completed && !visitedExternal.has(id)) {
-      console.log("[FirstSteps] External not visited, showing toast");
-      toast.info("Open the link first", {
-        description: "Click the \"Open\" button to visit the resource, then check it off.",
-      });
-      return;
-    }
+    if (!task) return;
 
     const newCompleted = !task.completed;
     setLoadingId(id);
 
-    console.log("[FirstSteps] Attempting upsert", { id, newCompleted });
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
-      console.log("[FirstSteps] Upsert succeeded", { id, newCompleted });
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
 
       if (newCompleted) {
@@ -187,6 +156,7 @@ export default function FirstStepsPage() {
         }
       }
     } catch (err: any) {
+      console.error("[FirstSteps] toggleTask failed:", err);
       toast.error("Failed to update task", {
         description: err?.message || "Please try again.",
       });
@@ -209,7 +179,6 @@ export default function FirstStepsPage() {
       const discordId = getDiscordUserId();
       DiscordNotifyService.taskCompleted(name, "community-agreement", discord, discordId);
 
-      // Check if all tasks are now complete
       const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
@@ -255,11 +224,18 @@ export default function FirstStepsPage() {
               <div className="flex items-start gap-4">
                 {/* Completion toggle */}
                 <button
-                  onClick={() => task.panelAction ? setAgreementOpen(true) : toggleTask(task.id)}
+                  type="button"
+                  onClick={() => {
+                    if (task.panelAction && !task.completed) {
+                      setAgreementOpen(true);
+                    } else {
+                      toggleTask(task.id);
+                    }
+                  }}
                   className="flex-shrink-0 mt-0.5"
                   disabled={loadingId === task.id}
                   title={
-                    task.panelAction
+                    task.panelAction && !task.completed
                       ? "Use the agreement panel to complete this"
                       : `Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`
                   }
@@ -277,9 +253,6 @@ export default function FirstStepsPage() {
                     {task.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
-                  {task.external && visitedExternal.has(task.id) && !task.completed && (
-                    <p className="text-xs text-primary mt-1">✓ Link visited — you can now mark this as complete</p>
-                  )}
                 </div>
 
                 {/* Action button */}
@@ -297,7 +270,6 @@ export default function FirstStepsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={task.completed}
                     onClick={() => handleExternalVisit(task.id, task.action)}
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
