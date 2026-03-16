@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
@@ -6,22 +6,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const totalFirstSteps = 6;
-  const hasRedirected = useRef(false);
 
-  // Reset redirect flag on mount (handles re-navigation to /dashboard)
-  useEffect(() => {
-    hasRedirected.current = false;
-  }, []);
 
   useEffect(() => {
     if (!user) return;
