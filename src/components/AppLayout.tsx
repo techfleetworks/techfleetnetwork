@@ -28,9 +28,10 @@ const navLinks = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
 
@@ -39,6 +40,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate("/");
     setMobileMenuOpen(false);
   };
+
+  const avatarInitials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
+    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
