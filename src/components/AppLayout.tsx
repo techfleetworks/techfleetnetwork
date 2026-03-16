@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut, UserPen } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { ProfileEditPanel } from "./ProfileEditPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
@@ -19,9 +28,10 @@ const navLinks = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
 
@@ -30,6 +40,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate("/");
     setMobileMenuOpen(false);
   };
+
+  const avatarInitials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
+    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -69,20 +83,35 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             {!loading && !user && (
-              <>
-                <Link to="/login" className="hidden md:inline-flex">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="h-4 w-4 mr-1" />
-                    Connect
-                  </Button>
-                </Link>
-              </>
+              <Link to="/login" className="hidden md:inline-flex">
+                <Button variant="outline" size="sm">
+                  <LogIn className="h-4 w-4 mr-1" />
+                  Connect
+                </Button>
+              </Link>
             )}
             {!loading && user && (
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex">
-                <LogOut className="h-4 w-4 mr-1" />
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:inline-flex rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
+                      <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => setProfileEditOpen(true)}>
+                    <UserPen className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             <Button
@@ -128,10 +157,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                     </Button>
                   </Link>
                 ) : (
-                  <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
+                  <>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => { setProfileEditOpen(true); setMobileMenuOpen(false); }}>
+                      <UserPen className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -142,6 +177,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
         {children}
       </main>
+
+      <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
 
       <footer className="border-t bg-card" role="contentinfo">
         <div className="container-app py-8">
