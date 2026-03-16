@@ -35,6 +35,7 @@ export default function DashboardPage() {
   // Auto-redirect to the user's current step page on load
   useEffect(() => {
     if (hasRedirected.current || firstStepsCompleted === null || secondStepsCompleted === null) return;
+    if (searchParams.get("view") === "overview") return;
     hasRedirected.current = true;
 
     if (!allFirstStepsDone) {
