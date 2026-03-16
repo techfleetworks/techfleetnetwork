@@ -372,7 +372,7 @@ export default function ProfileSetupPage() {
                   <p className="text-sm text-muted-foreground">
                     Discord is where our community connects, collaborates, and supports each other. 
                     We recommend joining and completing the Discord Tutorial Series in the User Guide 
-                    as part of your First Steps.
+                    as part of your Onboarding Steps.
                   </p>
                   <a
                     href="https://techfleet.org/join"
