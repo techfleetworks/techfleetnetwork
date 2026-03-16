@@ -124,7 +124,11 @@ export default function FirstStepsPage() {
 
   const handleExternalVisit = (id: string, url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
-    setVisitedExternal((prev) => new Set(prev).add(id));
+    setVisitedExternal((prev) => {
+      const next = new Set(prev).add(id);
+      try { sessionStorage.setItem("first_steps_visited", JSON.stringify([...next])); } catch {}
+      return next;
+    });
 
     // Notify Discord for class registration actions
     const name = getDisplayName();
