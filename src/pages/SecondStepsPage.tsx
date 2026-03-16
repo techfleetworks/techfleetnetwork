@@ -251,6 +251,11 @@ export default function SecondStepsPage() {
       >
         <SheetContent className="w-full sm:max-w-xl overflow-hidden flex flex-col">
           <SheetHeader className="pb-4 border-b border-border">
+            {selectedLesson && (
+              <p className="text-xs text-muted-foreground">
+                Lesson {ALL_AGILE_LESSONS.findIndex((l) => l.id === selectedLesson.id) + 1} of {TOTAL_AGILE_LESSONS}
+              </p>
+            )}
             <SheetTitle className="text-base leading-snug pr-6">
               {selectedLesson?.title}
             </SheetTitle>
@@ -310,31 +315,56 @@ export default function SecondStepsPage() {
             </div>
           </ScrollArea>
 
-          {/* Mark complete footer */}
-          {selectedLesson && (
-            <div className="pt-4 border-t border-border">
-              <Button
-                className="w-full"
-                variant={
-                  completedSet.has(selectedLesson.id) ? "outline" : "default"
-                }
-                onClick={() => toggleLesson(selectedLesson.id)}
-                disabled={toggling}
-              >
-                {completedSet.has(selectedLesson.id) ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                    Completed — Mark Incomplete
-                  </>
-                ) : (
-                  <>
-                    <Circle className="h-4 w-4 mr-1.5" />
-                    Mark as Complete
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          {/* Sticky footer: Mark complete + Back/Next */}
+          {selectedLesson && (() => {
+            const currentIndex = ALL_AGILE_LESSONS.findIndex((l) => l.id === selectedLesson.id);
+            const prevLesson = currentIndex > 0 ? ALL_AGILE_LESSONS[currentIndex - 1] : null;
+            const nextLesson = currentIndex < ALL_AGILE_LESSONS.length - 1 ? ALL_AGILE_LESSONS[currentIndex + 1] : null;
+
+            return (
+              <div className="pt-4 border-t border-border space-y-3">
+                <Button
+                  className="w-full"
+                  variant={completedSet.has(selectedLesson.id) ? "outline" : "default"}
+                  onClick={() => toggleLesson(selectedLesson.id)}
+                  disabled={toggling}
+                >
+                  {completedSet.has(selectedLesson.id) ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                      Completed — Mark Incomplete
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="h-4 w-4 mr-1.5" />
+                      Mark as Complete
+                    </>
+                  )}
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={!prevLesson}
+                    onClick={() => prevLesson && setSelectedLesson(prevLesson)}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={!nextLesson}
+                    onClick={() => nextLesson && setSelectedLesson(nextLesson)}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
         </SheetContent>
       </Sheet>
     </div>
