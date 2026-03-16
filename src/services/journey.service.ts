@@ -16,6 +16,7 @@ import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
 
 const VALID_TASK_IDS = new Set([
   "profile",
+  "join-discord",
   "onboarding-class",
   "service-leadership",
   "user-guide",

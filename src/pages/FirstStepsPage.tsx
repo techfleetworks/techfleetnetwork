@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
+import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 
 interface Task {
@@ -146,8 +147,13 @@ export default function FirstStepsPage() {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    // For external tasks, require visiting the link first before marking complete
-    if (task.external && !task.completed && !visitedExternal.has(id)) return;
+    // For external tasks, prompt user to visit link first (soft gate with toast)
+    if (task.external && !task.completed && !visitedExternal.has(id)) {
+      toast.info("Open the link first", {
+        description: "Click the \"Open\" button to visit the resource, then check it off.",
+      });
+      return;
+    }
 
     const newCompleted = !task.completed;
     setLoadingId(id);
@@ -168,6 +174,10 @@ export default function FirstStepsPage() {
           DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
         }
       }
+    } catch (err: any) {
+      toast.error("Failed to update task", {
+        description: err?.message || "Please try again.",
+      });
     } finally {
       setLoadingId(null);
     }
@@ -227,21 +237,18 @@ export default function FirstStepsPage() {
       <div className="space-y-3">
         {tasks.map((task) => {
           const Icon = task.icon;
-          const isExternalNotVisited = task.external && !task.completed && !visitedExternal.has(task.id);
 
           return (
             <div key={task.id} className={`card-elevated p-5 transition-all duration-200 ${task.completed ? "border-success/30 bg-success/5" : ""}`}>
               <div className="flex items-start gap-4">
                 {/* Completion toggle */}
                 <button
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() => task.panelAction ? setAgreementOpen(true) : toggleTask(task.id)}
                   className="flex-shrink-0 mt-0.5"
-                  disabled={loadingId === task.id || task.panelAction || isExternalNotVisited}
+                  disabled={loadingId === task.id}
                   title={
                     task.panelAction
                       ? "Use the agreement panel to complete this"
-                      : isExternalNotVisited
-                      ? "Visit the link first, then mark complete"
                       : `Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`
                   }
                   aria-label={`Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`}
@@ -249,7 +256,7 @@ export default function FirstStepsPage() {
                   {task.completed ? (
                     <CheckCircle2 className="h-6 w-6 text-success" />
                   ) : (
-                    <Circle className={`h-6 w-6 ${isExternalNotVisited || task.panelAction ? "text-muted-foreground/40" : "text-muted-foreground hover:text-primary"} transition-colors`} />
+                    <Circle className={`h-6 w-6 ${task.panelAction ? "text-muted-foreground/40" : "text-muted-foreground hover:text-primary cursor-pointer"} transition-colors`} />
                   )}
                 </button>
 
