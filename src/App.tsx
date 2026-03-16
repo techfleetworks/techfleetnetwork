@@ -20,6 +20,7 @@ import SecondStepsPage from "./pages/SecondStepsPage";
 import TrainingPage from "./pages/TrainingPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import ChatPage from "./pages/ChatPage";
+import AdminIngestPage from "./pages/AdminIngestPage";
 import NotFound from "./pages/NotFound";
 
 
