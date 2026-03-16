@@ -4,12 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { profileSchema } from "@/lib/validators/profile";
+import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
 import { COUNTRIES } from "@/lib/countries";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +26,7 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", country: "", discordUsername: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", country: "", discordUsername: "", interests: [] as string[] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
@@ -33,7 +34,6 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // Sync form state when panel opens or profile changes
   useEffect(() => {
     if (open && profile) {
       setForm({
@@ -41,10 +41,20 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         lastName: profile.last_name || "",
         country: profile.country || "",
         discordUsername: profile.discord_username || "",
+        interests: profile.interests || [],
       });
       setErrors({});
     }
   }, [open, profile]);
+
+  const toggleInterest = (interest: string) => {
+    setForm((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter((i) => i !== interest)
+        : [...prev.interests, interest],
+    }));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -144,13 +154,11 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                   placeholder="Jane"
                   className="pl-10"
                   required
-                  aria-required="true"
                   aria-invalid={!!errors.firstName}
-                  aria-describedby={errors.firstName ? "edit-fn-error" : undefined}
                 />
               </div>
               {errors.firstName && (
-                <p id="edit-fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                   <AlertCircle className="h-3 w-3" /> {errors.firstName}
                 </p>
               )}
@@ -167,13 +175,11 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                   placeholder="Doe"
                   className="pl-10"
                   required
-                  aria-required="true"
                   aria-invalid={!!errors.lastName}
-                  aria-describedby={errors.lastName ? "edit-ln-error" : undefined}
                 />
               </div>
               {errors.lastName && (
-                <p id="edit-ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                   <AlertCircle className="h-3 w-3" /> {errors.lastName}
                 </p>
               )}
@@ -189,7 +195,6 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                     aria-expanded={countryOpen}
                     className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")}
                     aria-invalid={!!errors.country}
-                    aria-describedby={errors.country ? "edit-co-error" : undefined}
                   >
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     {form.country || "Select a country"}
@@ -221,7 +226,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                 </PopoverContent>
               </Popover>
               {errors.country && (
-                <p id="edit-co-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                   <AlertCircle className="h-3 w-3" /> {errors.country}
                 </p>
               )}
@@ -237,17 +242,40 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                   onChange={(e) => setForm({ ...form, discordUsername: e.target.value })}
                   placeholder="username"
                   className="pl-10"
-                  required
-                  aria-required="true"
                   aria-invalid={!!errors.discordUsername}
-                  aria-describedby={errors.discordUsername ? "edit-dc-error" : undefined}
                 />
               </div>
               {errors.discordUsername && (
-                <p id="edit-dc-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                   <AlertCircle className="h-3 w-3" /> {errors.discordUsername}
                 </p>
               )}
+            </div>
+
+            {/* Activity Interests */}
+            <div className="space-y-3">
+              <Label>Activity interests</Label>
+              <p className="text-xs text-muted-foreground">What kinds of activities do you want to do in Tech Fleet?</p>
+              {ACTIVITY_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => toggleInterest(option)}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3",
+                    form.interests.includes(option)
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <Checkbox
+                    checked={form.interests.includes(option)}
+                    onCheckedChange={() => toggleInterest(option)}
+                    className="pointer-events-none"
+                  />
+                  <span className="text-sm text-foreground">{option}</span>
+                </button>
+              ))}
             </div>
           </form>
         </ScrollArea>

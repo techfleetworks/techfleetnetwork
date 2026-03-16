@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, FileText, ScrollText } from "lucide-react";
+import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,11 +18,11 @@ interface Task {
   panelAction?: boolean;
 }
 
-const defaultTasks: Omit<Task, "completed">[] = [
+const baseTasks: Omit<Task, "completed">[] = [
   {
     id: "profile",
     title: "Set Up Profile",
-    description: "Fill in your name, country, and Discord username.",
+    description: "Fill in your name, country, and activity interests.",
     icon: User,
     action: "/profile-setup",
   },
@@ -68,12 +68,41 @@ const defaultTasks: Omit<Task, "completed">[] = [
   },
 ];
 
+const joinDiscordTask: Omit<Task, "completed"> = {
+  id: "join-discord",
+  title: "Join Tech Fleet Discord",
+  description: "Sign up for the Tech Fleet Discord community at techfleet.org/join.",
+  icon: MessageSquare,
+  action: "https://techfleet.org/join",
+  external: true,
+};
+
 export default function FirstStepsPage() {
   const { user, profile } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
+
+  // Build task list: include "join-discord" only if user has no discord username
+  const taskDefs = (() => {
+    const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
+    if (hasDiscord) return baseTasks;
+    // Insert join-discord after profile task
+    const idx = baseTasks.findIndex((t) => t.id === "profile");
+    const copy = [...baseTasks];
+    copy.splice(idx + 1, 0, joinDiscordTask);
+    return copy;
+  })();
+
+  const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
   const [agreementOpen, setAgreementOpen] = useState(false);
+
+  // Re-build tasks when profile changes (e.g. discord added)
+  useEffect(() => {
+    setTasks((prev) => {
+      const prevMap = new Map(prev.map((t) => [t.id, t.completed]));
+      return taskDefs.map((t) => ({ ...t, completed: prevMap.get(t.id) || false }));
+    });
+  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
