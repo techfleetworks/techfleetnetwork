@@ -27,11 +27,21 @@ export default function DashboardPage() {
     });
   }, [user]);
 
-  const allFirstStepsDone = firstStepsCompleted >= totalFirstSteps;
-  const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
+  const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
 
-  // Determine current phase index (0-based)
-  const currentPhaseIndex = allSecondStepsDone ? 2 : allFirstStepsDone ? 1 : 0;
+  // Auto-redirect to the user's current step page on load
+  useEffect(() => {
+    if (hasRedirected.current || firstStepsCompleted === null || secondStepsCompleted === null) return;
+    hasRedirected.current = true;
+
+    if (!allFirstStepsDone) {
+      navigate("/journey/first-steps", { replace: true });
+    } else if (!allSecondStepsDone) {
+      navigate("/journey/second-steps", { replace: true });
+    }
+    // If all done, stay on dashboard
+  }, [firstStepsCompleted, secondStepsCompleted, allFirstStepsDone, allSecondStepsDone, navigate]);
 
   const currentPhase = allSecondStepsDone
     ? "Third Steps"
@@ -39,29 +49,9 @@ export default function DashboardPage() {
     ? "Second Steps"
     : "First Steps";
 
-  const totalCompleted = firstStepsCompleted + secondStepsCompleted;
+  const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0);
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
   const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
-
-  const journeySteps: JourneyStep[] = [
-    { id: "first-steps", title: "First Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
-    { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
-    { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
-    { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
-  ];
-
-  const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
-
-  // Auto-scroll to the current active step after data loads
-  useEffect(() => {
-    if (!hasScrolled.current && currentStepRef.current && (firstStepsCompleted > 0 || secondStepsCompleted > 0)) {
-      hasScrolled.current = true;
-      setTimeout(() => {
-        currentStepRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 300);
-    }
-  }, [firstStepsCompleted, secondStepsCompleted]);
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
