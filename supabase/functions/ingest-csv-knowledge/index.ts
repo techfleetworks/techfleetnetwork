@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const log = createEdgeLogger("ingest-csv-knowledge");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +11,6 @@ const corsHeaders = {
 };
 
 function parseCsvToMarkdown(csvText: string, datasetName: string): { url: string; title: string; content: string }[] {
-  // Split into lines, handling multiline quoted fields
   const rows: string[][] = [];
   let current: string[] = [];
   let inQuotes = false;
@@ -39,7 +41,6 @@ function parseCsvToMarkdown(csvText: string, datasetName: string): { url: string
       field += ch;
     }
   }
-  // Last field/row
   if (field || current.length > 0) {
     current.push(field.trim());
     if (current.some(f => f !== "")) {
@@ -51,8 +52,6 @@ function parseCsvToMarkdown(csvText: string, datasetName: string): { url: string
 
   const headers = rows[0];
   const entries: { url: string; title: string; content: string }[] = [];
-
-  // Find the name/title column (first column)
   const nameCol = 0;
 
   for (let r = 1; r < rows.length; r++) {
@@ -60,15 +59,13 @@ function parseCsvToMarkdown(csvText: string, datasetName: string): { url: string
     const name = row[nameCol] || "";
     if (!name || name === "﻿") continue;
 
-    // Build markdown content from all non-empty fields
     let md = `# ${name}\n\n`;
     md += `**Category:** ${datasetName}\n\n`;
 
     for (let c = 1; c < headers.length && c < row.length; c++) {
       const val = row[c];
-      if (!val || val.includes("airtableusercontent.com")) continue; // Skip image URLs
+      if (!val || val.includes("airtableusercontent.com")) continue;
       const header = headers[c] || `Field ${c}`;
-      // Skip redundant copy columns
       if (header.endsWith(" copy")) continue;
       md += `## ${header}\n\n${val}\n\n`;
     }
@@ -88,22 +85,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID().substring(0, 8);
+  log.info("handler", `CSV ingest request received [${requestId}]`, { requestId });
+
   try {
     const { csv_text, dataset_name } = await req.json();
 
     if (!csv_text || !dataset_name) {
+      log.warn("validate", `Missing required fields [${requestId}]: csv_text=${!!csv_text}, dataset_name=${!!dataset_name}`, { requestId });
       return new Response(
         JSON.stringify({ success: false, error: "csv_text and dataset_name are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    log.info("parse", `Parsing CSV for dataset "${dataset_name}" [${requestId}]: ${csv_text.length} chars`, {
+      requestId,
+      datasetName: dataset_name,
+      csvLength: csv_text.length,
+    });
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const entries = parseCsvToMarkdown(csv_text, dataset_name);
-    console.log(`Parsed ${entries.length} entries from ${dataset_name}`);
+    log.info("parse", `Parsed ${entries.length} entries from "${dataset_name}" [${requestId}]`, {
+      requestId,
+      datasetName: dataset_name,
+      entryCount: entries.length,
+    });
 
     let inserted = 0;
     let errors = 0;
@@ -119,21 +130,34 @@ serve(async (req) => {
         { onConflict: "url" }
       );
       if (error) {
-        console.error(`Error inserting ${entry.title}:`, error);
+        log.error("upsert", `Failed to upsert "${entry.title}" [${requestId}]: ${error.message}`, {
+          requestId,
+          entryTitle: entry.title,
+          entryUrl: entry.url,
+          errorCode: error.code,
+        }, error);
         errors++;
       } else {
         inserted++;
       }
     }
 
+    log.info("handler", `CSV ingest completed [${requestId}]: ${inserted} inserted, ${errors} errors out of ${entries.length} entries`, {
+      requestId,
+      datasetName: dataset_name,
+      parsed: entries.length,
+      inserted,
+      errors,
+    });
+
     return new Response(
       JSON.stringify({ success: true, dataset_name, parsed: entries.length, inserted, errors }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Ingest error:", error);
+  } catch (err) {
+    log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ success: false, error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

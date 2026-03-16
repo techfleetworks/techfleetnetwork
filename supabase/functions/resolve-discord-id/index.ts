@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const log = createEdgeLogger("resolve-discord-id");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,10 +14,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID().substring(0, 8);
+  log.info("handler", `Request received [${requestId}]`, { requestId });
+
   const BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN");
   const GUILD_ID = Deno.env.get("DISCORD_GUILD_ID");
 
   if (!BOT_TOKEN || !GUILD_ID) {
+    log.error("config", `Discord bot not configured [${requestId}]: BOT_TOKEN=${!!BOT_TOKEN}, GUILD_ID=${!!GUILD_ID}`, { requestId });
     return new Response(
       JSON.stringify({ error: "Discord bot not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -24,17 +31,20 @@ serve(async (req) => {
   try {
     const { discord_username } = await req.json();
     if (!discord_username) {
+      log.warn("validate", `Missing discord_username in request body [${requestId}]`, { requestId });
       return new Response(
         JSON.stringify({ error: "discord_username is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Clean up the username (remove @ prefix if present)
     const cleanUsername = discord_username.replace(/^@/, "").toLowerCase();
+    log.info("resolve", `Searching Discord guild for username "${cleanUsername}" [${requestId}]`, {
+      requestId,
+      username: cleanUsername,
+      guildId: GUILD_ID,
+    });
 
-    // Search guild members by username
-    console.log(`Using GUILD_ID: "${GUILD_ID}" (length: ${GUILD_ID.length})`);
     const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(cleanUsername)}&limit=10`;
     const res = await fetch(searchUrl, {
       headers: { Authorization: `Bot ${BOT_TOKEN}` },
@@ -42,7 +52,12 @@ serve(async (req) => {
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error(`Discord API error [${res.status}]: ${errorText}`);
+      log.error("resolve", `Discord API error [${requestId}]: HTTP ${res.status} — ${errorText}`, {
+        requestId,
+        httpStatus: res.status,
+        username: cleanUsername,
+        responseBody: errorText.substring(0, 500),
+      });
       return new Response(
         JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -50,26 +65,40 @@ serve(async (req) => {
     }
 
     const members = await res.json();
+    log.info("resolve", `Discord returned ${members.length} members for query "${cleanUsername}" [${requestId}]`, {
+      requestId,
+      username: cleanUsername,
+      resultCount: members.length,
+    });
 
-    // Find exact match by username
     const match = members.find(
       (m: any) => m.user?.username?.toLowerCase() === cleanUsername
     );
 
     if (match) {
+      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${match.user.id} [${requestId}]`, {
+        requestId,
+        username: cleanUsername,
+        discordUserId: match.user.id,
+      });
       return new Response(
         JSON.stringify({ discord_user_id: match.user.id }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    log.warn("resolve", `No exact match for "${cleanUsername}" in guild [${requestId}]`, {
+      requestId,
+      username: cleanUsername,
+      candidateUsernames: members.map((m: any) => m.user?.username).filter(Boolean),
+    });
     return new Response(
       JSON.stringify({ discord_user_id: null, message: "User not found in server" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Resolve Discord ID error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+  } catch (err) {
+    log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
+    const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
