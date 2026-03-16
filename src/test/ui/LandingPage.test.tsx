@@ -49,7 +49,7 @@ describe("LandingPage UI (BDD 16.1–16.4)", () => {
   });
 
   it("16.4: hero image has descriptive alt text", () => {
-    const img = screen.getByAlt(/astronaut/i);
+    const img = screen.getByRole("img", { name: /astronaut/i });
     expect(img).toBeInTheDocument();
     expect(img.getAttribute("alt")!.length).toBeGreaterThan(20);
   });
