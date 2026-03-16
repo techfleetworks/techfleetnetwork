@@ -53,6 +53,16 @@ export default function DashboardPage() {
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
   const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
 
+  const journeySteps: JourneyStep[] = [
+    { id: "first-steps", title: "First Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
+    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
+    { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+    { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
+    { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
+  ];
+
+  const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
+
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
   return (
@@ -124,13 +134,10 @@ export default function DashboardPage() {
             )}
           </div>
         ) : (
-          /* ── Normal journey view with auto-scroll to current ── */
+          /* ── Normal journey view ── */
           <div className="space-y-3">
             {journeySteps.map((step, index) => (
-              <div
-                key={step.id}
-                ref={step.status === "current" ? currentStepRef : undefined}
-              >
+              <div key={step.id}>
                 <JourneyStepCard step={step} index={index} />
               </div>
             ))}
