@@ -62,6 +62,67 @@ export default function DashboardPage() {
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
+  const journeyHeading = allFirstStepsDone ? "Recommended Courses" : "Get Started in Tech Fleet";
+
+  const journeySection = (
+    <section aria-labelledby="journey-heading">
+      <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">{journeyHeading}</h2>
+
+      {allStepsCompleted ? (
+        <div className="space-y-3">
+          <div className="card-elevated border-success/50 bg-success/5 p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-bold text-foreground">🎉 All Courses Complete!</h3>
+                <p className="text-sm text-muted-foreground">
+                  You've completed every recommended course. Congratulations!
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowAllSteps(!showAllSteps)}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+            >
+              {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {showAllSteps ? "Hide completed courses" : "Show completed courses"}
+            </button>
+          </div>
+
+          {showAllSteps && (
+            <div className="space-y-2 animate-fade-in">
+              {journeySteps.map((step) => (
+                <Link
+                  key={step.id}
+                  to={step.href}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
+                >
+                  <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground">{step.title}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {journeySteps.map((step, index) => (
+            <div key={step.id}>
+              <JourneyStepCard step={step} index={index} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  const badgesSection = (
+    <section className="mb-8">
+      <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
+    </section>
+  );
+
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
@@ -69,84 +130,59 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
 
-      {/* Badges at the top */}
-      <section className="mb-8">
-        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
-      </section>
+      {allFirstStepsDone ? (
+        <>
+          {badgesSection}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-          { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-          { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card-elevated p-5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-lg font-semibold text-foreground">{value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <section aria-labelledby="journey-heading">
-        <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">Your Member Journey</h2>
-
-        {allStepsCompleted ? (
-          /* ── Compact completed view ── */
-          <div className="space-y-3">
-            <div className="card-elevated border-success/50 bg-success/5 p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">🎉 All Steps Complete!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You've completed every phase of the onboarding journey. Congratulations!
-                  </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {[
+              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
+              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
+              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card-elevated p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold text-foreground">{value}</p>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                onClick={() => setShowAllSteps(!showAllSteps)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
-              >
-                {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                {showAllSteps ? "Hide completed steps" : "Show completed steps"}
-              </button>
-            </div>
-
-            {showAllSteps && (
-              <div className="space-y-2 animate-fade-in">
-                {journeySteps.map((step) => (
-                  <Link
-                    key={step.id}
-                    to={step.href}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                    <span className="text-sm font-medium text-foreground">{step.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* ── Normal journey view ── */
-          <div className="space-y-3">
-            {journeySteps.map((step, index) => (
-              <div key={step.id}>
-                <JourneyStepCard step={step} index={index} />
               </div>
             ))}
           </div>
-        )}
-      </section>
 
+          {journeySection}
+        </>
+      ) : (
+        <>
+          {journeySection}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
+            {[
+              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
+              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
+              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card-elevated p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold text-foreground">{value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {badgesSection}
+        </>
+      )}
 
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
