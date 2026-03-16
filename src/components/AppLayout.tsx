@@ -185,7 +185,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="container-app py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src={techFleetLogo} alt="" className="h-6 w-6 dark:invert" aria-hidden="true" />
+              <img src={techFleetLogo} alt="" className="h-6 w-6 dark:invert" width={24} height={24} aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 © {new Date().getFullYear()} Tech Fleet. All rights reserved.
               </span>
