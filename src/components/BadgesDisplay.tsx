@@ -15,9 +15,10 @@ interface Badge {
 interface BadgesDisplayProps {
   allFirstStepsDone: boolean;
   allSecondStepsDone: boolean;
+  communityBadgeCount?: number | null;
 }
 
-export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone }: BadgesDisplayProps) {
+export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, communityBadgeCount }: BadgesDisplayProps) {
   const badges: Badge[] = [
     {
       id: "first-steps",
@@ -102,6 +103,13 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone }: BadgesD
           </div>
         ))}
       </div>
+
+      {communityBadgeCount != null && (
+        <p className="mt-4 text-sm text-muted-foreground text-center">
+          🏆 <span className="font-semibold text-foreground">{communityBadgeCount.toLocaleString()}</span>{" "}
+          {communityBadgeCount === 1 ? "badge" : "badges"} earned across all Tech Fleet members
+        </p>
+      )}
     </section>
   );
 }
