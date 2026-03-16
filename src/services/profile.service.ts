@@ -5,6 +5,7 @@ import { DiscordNotifyService } from "@/services/discord-notify.service";
 export interface Profile {
   first_name: string;
   last_name: string;
+  email: string;
   country: string;
   discord_username: string;
   discord_user_id: string;
