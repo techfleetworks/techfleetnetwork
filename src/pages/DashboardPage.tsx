@@ -37,19 +37,7 @@ export default function DashboardPage() {
   const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
 
-  // Auto-redirect to the user's current step page on load
-  useEffect(() => {
-    if (hasRedirected.current || firstStepsCompleted === null || secondStepsCompleted === null) return;
-    if (searchParams.get("view") === "overview") return;
-    hasRedirected.current = true;
-
-    if (!allFirstStepsDone) {
-      navigate("/journey/first-steps", { replace: true });
-    } else if (!allSecondStepsDone) {
-      navigate("/journey/second-steps", { replace: true });
-    }
-    // If all done, stay on dashboard
-  }, [firstStepsCompleted, secondStepsCompleted, allFirstStepsDone, allSecondStepsDone, navigate]);
+  // No auto-redirect — always show the dashboard overview on login
 
   const currentPhase = allSecondStepsDone
     ? "Third Steps"
