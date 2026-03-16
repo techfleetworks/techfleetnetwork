@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { offset = 0, limit = 50 } = await req.json().catch(() => ({}));
+    const { offset = 0, limit = 10, target_url = "https://guide.techfleet.org" } = await req.json().catch(() => ({}));
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
@@ -28,7 +28,7 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Step 1: Map the site to discover all URLs
-    console.log("Mapping guide.techfleet.org...");
+    console.log(`Mapping ${target_url}...`);
     const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
@@ -36,7 +36,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        url: "https://guide.techfleet.org",
+        url: target_url,
         limit: 500,
         includeSubdomains: false,
       }),
