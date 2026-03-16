@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { offset = 0, limit = 50 } = await req.json().catch(() => ({}));
+    const { offset = 0, limit = 10, target_url = "https://guide.techfleet.org" } = await req.json().catch(() => ({}));
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
