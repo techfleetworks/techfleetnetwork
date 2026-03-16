@@ -60,7 +60,10 @@ serve(async (req) => {
 
     // Step 2: Scrape each URL in the batch
 
-    for (const url of urls) {
+    let scraped = 0;
+    let errors = 0;
+
+    for (const url of batch) {
       try {
         console.log(`Scraping: ${url}`);
         const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
