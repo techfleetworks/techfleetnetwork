@@ -1,10 +1,11 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,9 @@ import { profileSchema } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
 import { COUNTRIES } from "@/lib/countries";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileEditPanelProps {
   open: boolean;
@@ -20,11 +23,15 @@ interface ProfileEditPanelProps {
 }
 
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ firstName: "", lastName: "", country: "", discordUsername: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // Sync form state when panel opens or profile changes
   useEffect(() => {
@@ -64,6 +71,31 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       setErrors({ general: err.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "Delete") return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await supabase.functions.invoke("delete-account", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (res.error) throw new Error("Failed to delete account");
+
+      toast.success("Your account has been deleted.");
+      setDeleteDialogOpen(false);
+      onOpenChange(false);
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -220,12 +252,57 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
           </form>
         </ScrollArea>
 
-        <div className="border-t px-6 py-4">
+        <div className="border-t px-6 py-4 space-y-3">
           <Button form="profile-edit-form" type="submit" className="w-full" disabled={saving}>
             {saving ? "Saving…" : "Save Changes"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => { setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Account
+          </Button>
         </div>
       </SheetContent>
+
+      {/* Delete account confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+            <DialogDescription>
+              This action is permanent and cannot be undone. All of your data — including your profile, progress, and activity — will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="delete-confirm">
+              Type <strong className="text-foreground">Delete</strong> to confirm
+            </Label>
+            <Input
+              id="delete-confirm"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Delete"
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "Delete" || deleting}
+            >
+              {deleting ? "Deleting…" : "Permanently Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
