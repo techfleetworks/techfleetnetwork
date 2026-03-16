@@ -56,6 +56,13 @@ function buildMessage(payload: NotifyPayload): string {
   return `${userTag} just did the following in Tech Fleet Network: **${action}**`;
 }
 
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,17 +71,20 @@ serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
 
-  const DISCORD_WEBHOOK_URL = Deno.env.get("DISCORD_WEBHOOK_URL");
-  if (!DISCORD_WEBHOOK_URL) {
-    log.error("config", `DISCORD_WEBHOOK_URL is not configured [${requestId}]`, { requestId });
-    return new Response(
-      JSON.stringify({ error: "Webhook not configured" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
   try {
     const payload: NotifyPayload = await req.json();
+
+    if (!payload?.event) {
+      log.warn("handler", `Missing event in request payload [${requestId}]`, { requestId });
+      return jsonResponse({ error: "Missing event" }, 400);
+    }
+
+    const DISCORD_WEBHOOK_URL = Deno.env.get("DISCORD_WEBHOOK_URL");
+    if (!DISCORD_WEBHOOK_URL) {
+      log.warn("config", `DISCORD_WEBHOOK_URL is not configured; skipping notification [${requestId}]`, { requestId, event: payload.event });
+      return jsonResponse({ success: false, skipped: true, reason: "webhook_not_configured" });
+    }
+
     log.info("notify", `Processing event "${payload.event}" for "${payload.display_name || "unknown"}" [${requestId}]`, {
       requestId,
       event: payload.event,
@@ -88,40 +98,35 @@ serve(async (req) => {
       allowed_mentions: { users: payload.discord_user_id ? [payload.discord_user_id] : [] },
     };
 
-    log.info("notify", `Sending webhook to Discord [${requestId}]`, { requestId, event: payload.event });
-    const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(discordBody),
-    });
-
-    if (!discordRes.ok) {
-      const errorText = await discordRes.text();
-      log.error("notify", `Discord API error [${requestId}]: HTTP ${discordRes.status} — ${errorText}`, {
-        requestId,
-        httpStatus: discordRes.status,
-        responseBody: errorText.substring(0, 500),
-        event: payload.event,
+    try {
+      log.info("notify", `Sending webhook to Discord [${requestId}]`, { requestId, event: payload.event });
+      const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(discordBody),
       });
-      return new Response(
-        JSON.stringify({ error: "Failed to send Discord notification" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      if (!discordRes.ok) {
+        const errorText = await discordRes.text();
+        log.warn("notify", `Discord API rejected webhook [${requestId}]: HTTP ${discordRes.status} — ${errorText}`, {
+          requestId,
+          httpStatus: discordRes.status,
+          responseBody: errorText.substring(0, 500),
+          event: payload.event,
+        });
+        return jsonResponse({ success: false, skipped: true, reason: "discord_api_error", status: discordRes.status });
+      }
+
+      await discordRes.text();
+      log.info("notify", `Discord notification sent successfully [${requestId}]`, { requestId, event: payload.event });
+      return jsonResponse({ success: true });
+    } catch (err) {
+      log.warn("notify", `Discord request failed; skipping notification [${requestId}]`, { requestId, event: payload.event }, err);
+      return jsonResponse({ success: false, skipped: true, reason: "discord_request_failed" });
     }
-
-    await discordRes.text();
-    log.info("notify", `Discord notification sent successfully [${requestId}]`, { requestId, event: payload.event });
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: message }, 500);
   }
 });
