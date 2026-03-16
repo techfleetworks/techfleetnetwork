@@ -39,7 +39,11 @@ export default function LandingPage() {
                 src={heroImage}
                 alt="Illustration of an astronaut floating in space near planets, representing the journey of learning and growth"
                 className="w-full max-w-md"
+                width={448}
+                height={448}
                 loading="eager"
+                fetchPriority="high"
+                decoding="async"
               />
             </div>
           </div>
