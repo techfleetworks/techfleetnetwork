@@ -274,7 +274,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
           <DialogHeader>
             <DialogTitle className="text-destructive">Delete Account</DialogTitle>
             <DialogDescription>
-              This action is permanent and cannot be undone. All of your data — including your profile, progress, and activity — will be permanently deleted.
+              This action is permanent and cannot be undone. All of your data, including your profile, progress, and activity, will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
