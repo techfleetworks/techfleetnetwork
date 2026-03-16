@@ -13,7 +13,9 @@ import { profileSchema } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
 import { COUNTRIES } from "@/lib/countries";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileEditPanelProps {
   open: boolean;
