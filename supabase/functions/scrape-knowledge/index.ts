@@ -122,12 +122,18 @@ serve(async (req) => {
       }
     }
 
+    const nextOffset = offset + limit;
+    const hasMore = nextOffset < urls.length;
+
     return new Response(
       JSON.stringify({
         success: true,
         total_urls: urls.length,
+        batch_size: batch.length,
         scraped,
         errors,
+        next_offset: hasMore ? nextOffset : null,
+        has_more: hasMore,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
