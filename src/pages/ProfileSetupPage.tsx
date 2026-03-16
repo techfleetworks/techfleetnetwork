@@ -415,8 +415,9 @@ export default function ProfileSetupPage() {
                   >
                     <Checkbox
                       checked={form.interests.includes(option)}
-                      onCheckedChange={() => toggleInterest(option)}
+                      tabIndex={-1}
                       className="pointer-events-none"
+                      aria-hidden="true"
                     />
                     <span className="text-sm font-medium text-foreground">{option}</span>
                   </button>
