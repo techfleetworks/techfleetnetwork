@@ -146,6 +146,10 @@ export default function DashboardPage() {
         )}
       </section>
 
+      <section className="mt-8">
+        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} />
+      </section>
+
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
       </section>
