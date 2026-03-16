@@ -18,6 +18,11 @@ export default function DashboardPage() {
   const totalFirstSteps = 6;
   const hasRedirected = useRef(false);
 
+  // Reset redirect flag on mount (handles re-navigation to /dashboard)
+  useEffect(() => {
+    hasRedirected.current = false;
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     Promise.all([
