@@ -168,8 +168,10 @@ export default function FirstStepsPage() {
     const newCompleted = !task.completed;
     setLoadingId(id);
 
+    console.log("[FirstSteps] Attempting upsert", { id, newCompleted });
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
+      console.log("[FirstSteps] Upsert succeeded", { id, newCompleted });
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
 
       if (newCompleted) {
