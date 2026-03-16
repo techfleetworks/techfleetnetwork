@@ -6,10 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   // Auto-redirect to the user's current step page on load
   useEffect(() => {
     if (hasRedirected.current || firstStepsCompleted === null || secondStepsCompleted === null) return;
+    if (searchParams.get("view") === "overview") return;
     hasRedirected.current = true;
 
     if (!allFirstStepsDone) {

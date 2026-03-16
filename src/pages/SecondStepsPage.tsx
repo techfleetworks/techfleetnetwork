@@ -97,7 +97,7 @@ export default function SecondStepsPage() {
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
       <Link
-        to="/dashboard"
+        to="/dashboard?view=overview"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
