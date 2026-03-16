@@ -29,8 +29,9 @@ export default function SecondStepsPage() {
   const { user } = useAuth();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<AgileLesson | null>(null);
-  const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]));
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [toggling, setToggling] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   // Load progress
   useEffect(() => {
