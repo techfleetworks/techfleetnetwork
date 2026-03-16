@@ -48,15 +48,18 @@ export const ProfileService = {
     if (error) throw new Error("Failed to save profile. Please try again.");
   },
 
-  /** Sync OAuth names to profile (used for Google sign-in) */
-  async updateNames(userId: string, firstName: string, lastName: string) {
+  /** Sync OAuth names and email to profile (used for Google sign-in) */
+  async updateNames(userId: string, firstName: string, lastName: string, email?: string) {
+    const updateData: Record<string, string> = {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: `${firstName} ${lastName}`.trim(),
+    };
+    if (email) updateData.email = email;
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        display_name: `${firstName} ${lastName}`.trim(),
-      } as any)
+      .update(updateData as any)
       .eq("user_id", userId);
     if (error) throw new Error("Failed to sync profile names.");
   },
