@@ -83,20 +83,35 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             {!loading && !user && (
-              <>
-                <Link to="/login" className="hidden md:inline-flex">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="h-4 w-4 mr-1" />
-                    Connect
-                  </Button>
-                </Link>
-              </>
+              <Link to="/login" className="hidden md:inline-flex">
+                <Button variant="outline" size="sm">
+                  <LogIn className="h-4 w-4 mr-1" />
+                  Connect
+                </Button>
+              </Link>
             )}
             {!loading && user && (
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="hidden md:inline-flex">
-                <LogOut className="h-4 w-4 mr-1" />
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hidden md:inline-flex rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
+                      <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => setProfileEditOpen(true)}>
+                    <UserPen className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             <Button
