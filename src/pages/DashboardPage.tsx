@@ -4,23 +4,42 @@ import { BarChart3, Clock, Trophy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
+  const [secondStepsCompleted, setSecondStepsCompleted] = useState(0);
   const totalFirstSteps = 6;
 
   useEffect(() => {
     if (!user) return;
-    JourneyService.getCompletedCount(user.id, "first_steps").then(setFirstStepsCompleted);
+    Promise.all([
+      JourneyService.getCompletedCount(user.id, "first_steps"),
+      JourneyService.getCompletedCount(user.id, "second_steps"),
+    ]).then(([first, second]) => {
+      setFirstStepsCompleted(first);
+      setSecondStepsCompleted(second);
+    });
   }, [user]);
 
   const allFirstStepsDone = firstStepsCompleted >= totalFirstSteps;
+  const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+
+  const currentPhase = allSecondStepsDone
+    ? "Third Steps"
+    : allFirstStepsDone
+    ? "Second Steps"
+    : "First Steps";
+
+  const totalCompleted = firstStepsCompleted + secondStepsCompleted;
+  const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
+  const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
 
   const journeySteps: JourneyStep[] = [
     { id: "first-steps", title: "First Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: "Complete the Agile Handbook course: 25 video and text lessons covering agile philosophies, teamwork, and methods.", status: allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
-    { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: "locked", href: "/journey/third-steps" },
+    { id: "second-steps", title: "Second Steps — Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
+    { id: "third-steps", title: "Third Steps — Teammate Handbook", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
     { id: "observer", title: "Observer Phase", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
     { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
   ];
@@ -36,9 +55,9 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label: "Current Phase", value: allFirstStepsDone ? "Second Steps" : "First Steps", icon: Clock, color: "text-primary" },
-          { label: "Tasks Completed", value: `${firstStepsCompleted} / ${totalFirstSteps}`, icon: BarChart3, color: "text-warning" },
-          { label: "Badges Earned", value: allFirstStepsDone ? "1" : "0", icon: Trophy, color: "text-success" },
+          { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
+          { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
+          { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card-elevated p-5">
             <div className="flex items-center gap-3">
