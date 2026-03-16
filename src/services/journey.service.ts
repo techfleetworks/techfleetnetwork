@@ -9,6 +9,8 @@ export interface TaskProgress {
 }
 
 // A03: Whitelist valid task IDs to prevent injection
+import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
+
 const VALID_TASK_IDS = new Set([
   "profile",
   "onboarding-class",
@@ -16,6 +18,7 @@ const VALID_TASK_IDS = new Set([
   "user-guide",
   "figma-account",
   "community-agreement",
+  ...ALL_AGILE_LESSON_IDS,
 ]);
 
 const VALID_PHASES: Set<string> = new Set([

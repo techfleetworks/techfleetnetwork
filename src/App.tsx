@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProfileSetupPage from "./pages/ProfileSetupPage";
 import FirstStepsPage from "./pages/FirstStepsPage";
+import SecondStepsPage from "./pages/SecondStepsPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import NotFound from "./pages/NotFound";
 
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
                 <Route path="/journey/first-steps" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
+                <Route path="/journey/second-steps" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
                 <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
