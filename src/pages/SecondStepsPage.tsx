@@ -6,9 +6,9 @@ import {
   Circle,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   ExternalLink,
   Play,
-  X,
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   AGILE_COURSE_SECTIONS,
   ALL_AGILE_LESSON_IDS,
+  ALL_AGILE_LESSONS,
   TOTAL_AGILE_LESSONS,
   type AgileLesson,
 } from "@/data/agile-course";
