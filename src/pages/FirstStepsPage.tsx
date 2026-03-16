@@ -147,8 +147,13 @@ export default function FirstStepsPage() {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    // For external tasks, require visiting the link first before marking complete
-    if (task.external && !task.completed && !visitedExternal.has(id)) return;
+    // For external tasks, prompt user to visit link first (soft gate with toast)
+    if (task.external && !task.completed && !visitedExternal.has(id)) {
+      toast.info("Open the link first", {
+        description: "Click the \"Open\" button to visit the resource, then check it off.",
+      });
+      return;
+    }
 
     const newCompleted = !task.completed;
     setLoadingId(id);
@@ -169,6 +174,10 @@ export default function FirstStepsPage() {
           DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
         }
       }
+    } catch (err: any) {
+      toast.error("Failed to update task", {
+        description: err?.message || "Please try again.",
+      });
     } finally {
       setLoadingId(null);
     }
