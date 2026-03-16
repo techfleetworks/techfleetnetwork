@@ -270,7 +270,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                 >
                   <Checkbox
                     checked={form.interests.includes(option)}
-                    onCheckedChange={() => toggleInterest(option)}
+                    tabIndex={-1}
                     className="pointer-events-none"
                   />
                   <span className="text-sm text-foreground">{option}</span>
