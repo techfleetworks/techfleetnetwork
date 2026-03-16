@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
