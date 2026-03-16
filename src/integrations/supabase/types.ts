@@ -158,6 +158,7 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          interests: string[]
           last_name: string
           professional_background: string
           profile_completed: boolean
@@ -175,6 +176,7 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          interests?: string[]
           last_name?: string
           professional_background?: string
           profile_completed?: boolean
@@ -192,6 +194,7 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          interests?: string[]
           last_name?: string
           professional_background?: string
           profile_completed?: boolean
