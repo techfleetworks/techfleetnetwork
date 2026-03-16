@@ -77,6 +77,7 @@ export default function DashboardPage() {
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
       </section>
+      <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
     </div>
   );
 }
