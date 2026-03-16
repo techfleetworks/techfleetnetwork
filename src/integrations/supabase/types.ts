@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      bdd_scenarios: {
+        Row: {
+          created_at: string
+          feature_area: string
+          feature_area_number: number
+          gherkin: string
+          id: string
+          notes: string | null
+          scenario_id: string
+          status: Database["public"]["Enums"]["bdd_status"]
+          test_file: string | null
+          test_type: Database["public"]["Enums"]["bdd_test_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_area: string
+          feature_area_number: number
+          gherkin: string
+          id?: string
+          notes?: string | null
+          scenario_id: string
+          status?: Database["public"]["Enums"]["bdd_status"]
+          test_file?: string | null
+          test_type?: Database["public"]["Enums"]["bdd_test_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_area?: string
+          feature_area_number?: number
+          gherkin?: string
+          id?: string
+          notes?: string | null
+          scenario_id?: string
+          status?: Database["public"]["Enums"]["bdd_status"]
+          test_file?: string | null
+          test_type?: Database["public"]["Enums"]["bdd_test_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -423,6 +468,8 @@ export type Database = {
       }
     }
     Enums: {
+      bdd_status: "implemented" | "partial" | "not_built"
+      bdd_test_type: "unit" | "e2e" | "both" | "none" | "manual"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -556,6 +603,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      bdd_status: ["implemented", "partial", "not_built"],
+      bdd_test_type: ["unit", "e2e", "both", "none", "manual"],
       journey_phase: [
         "first_steps",
         "second_steps",
