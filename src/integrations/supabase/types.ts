@@ -155,6 +155,7 @@ export type Database = {
           discord_user_id: string
           discord_username: string
           display_name: string
+          email: string
           first_name: string
           id: string
           last_name: string
@@ -171,6 +172,7 @@ export type Database = {
           discord_user_id?: string
           discord_username?: string
           display_name?: string
+          email?: string
           first_name?: string
           id?: string
           last_name?: string
@@ -187,6 +189,7 @@ export type Database = {
           discord_user_id?: string
           discord_username?: string
           display_name?: string
+          email?: string
           first_name?: string
           id?: string
           last_name?: string
