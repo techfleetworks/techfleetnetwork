@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      handbooks: {
+        Row: {
+          category: string
+          contents: string[]
+          created_at: string
+          description: string
+          id: string
+          link: string
+          name: string
+          target_audience: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          contents?: string[]
+          created_at?: string
+          description?: string
+          id?: string
+          link?: string
+          name: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          contents?: string[]
+          created_at?: string
+          description?: string
+          id?: string
+          link?: string
+          name?: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -188,6 +224,66 @@ export type Database = {
           id?: string
           identifier?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      workshops: {
+        Row: {
+          accountable_function: string
+          category: string
+          company_types: string[]
+          created_at: string
+          deliverables: string
+          description: string
+          figma_link: string
+          functions_involved: string[]
+          id: string
+          led_by: string
+          milestones: string
+          name: string
+          project_types: string[]
+          skills: string[]
+          stakeholders: string[]
+          timing: string
+          updated_at: string
+        }
+        Insert: {
+          accountable_function?: string
+          category?: string
+          company_types?: string[]
+          created_at?: string
+          deliverables?: string
+          description?: string
+          figma_link?: string
+          functions_involved?: string[]
+          id?: string
+          led_by?: string
+          milestones?: string
+          name: string
+          project_types?: string[]
+          skills?: string[]
+          stakeholders?: string[]
+          timing?: string
+          updated_at?: string
+        }
+        Update: {
+          accountable_function?: string
+          category?: string
+          company_types?: string[]
+          created_at?: string
+          deliverables?: string
+          description?: string
+          figma_link?: string
+          functions_involved?: string[]
+          id?: string
+          led_by?: string
+          milestones?: string
+          name?: string
+          project_types?: string[]
+          skills?: string[]
+          stakeholders?: string[]
+          timing?: string
+          updated_at?: string
         }
         Relationships: []
       }
