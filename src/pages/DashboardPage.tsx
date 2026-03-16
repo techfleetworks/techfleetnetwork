@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
-import { BarChart3, Clock, Trophy } from "lucide-react";
+import { BarChart3, Clock, Trophy, UserPen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { ProfileEditPanel } from "@/components/ProfileEditPanel";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const totalFirstSteps = 6;
 
   useEffect(() => {
@@ -30,8 +33,16 @@ export default function DashboardPage() {
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
-        <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
+            <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setProfileEditOpen(true)} className="shrink-0">
+            <UserPen className="h-4 w-4 mr-1.5" />
+            Edit Profile
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -66,6 +77,7 @@ export default function DashboardPage() {
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
       </section>
+      <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
     </div>
   );
 }
