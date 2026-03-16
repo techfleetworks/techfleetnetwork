@@ -173,7 +173,7 @@ export default function ProfileSetupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
           {/* STEP 1: Name & Country */}
           {step === 1 && (
             <>
