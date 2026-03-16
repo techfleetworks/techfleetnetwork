@@ -134,11 +134,16 @@ export default function ProfileSetupPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-2xl animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Welcome to Tech Fleet</h1>
-        <p className="text-muted-foreground mt-1">
-          Let's get you set up. Step {step} of {TOTAL_STEPS}.
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Welcome to Tech Fleet</h1>
+          <p className="text-muted-foreground mt-1">
+            Let's get you set up. Step {step} of {TOTAL_STEPS}.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => navigate("/dashboard", { replace: true })}>
+          Skip for now
+        </Button>
       </div>
 
       {/* Progress bar */}
