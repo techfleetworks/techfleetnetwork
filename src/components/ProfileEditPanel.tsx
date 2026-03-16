@@ -101,52 +101,50 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-firstName">First name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input
-                    id="edit-firstName"
-                    value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                    placeholder="Jane"
-                    className="pl-10"
-                    required
-                    aria-required="true"
-                    aria-invalid={!!errors.firstName}
-                    aria-describedby={errors.firstName ? "edit-fn-error" : undefined}
-                  />
-                </div>
-                {errors.firstName && (
-                  <p id="edit-fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
-                    <AlertCircle className="h-3 w-3" /> {errors.firstName}
-                  </p>
-                )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-firstName">First name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="edit-firstName"
+                  value={form.firstName}
+                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                  placeholder="Jane"
+                  className="pl-10"
+                  required
+                  aria-required="true"
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? "edit-fn-error" : undefined}
+                />
               </div>
+              {errors.firstName && (
+                <p id="edit-fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                  <AlertCircle className="h-3 w-3" /> {errors.firstName}
+                </p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-lastName">Last name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input
-                    id="edit-lastName"
-                    value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                    placeholder="Doe"
-                    className="pl-10"
-                    required
-                    aria-required="true"
-                    aria-invalid={!!errors.lastName}
-                    aria-describedby={errors.lastName ? "edit-ln-error" : undefined}
-                  />
-                </div>
-                {errors.lastName && (
-                  <p id="edit-ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
-                    <AlertCircle className="h-3 w-3" /> {errors.lastName}
-                  </p>
-                )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-lastName">Last name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="edit-lastName"
+                  value={form.lastName}
+                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  placeholder="Doe"
+                  className="pl-10"
+                  required
+                  aria-required="true"
+                  aria-invalid={!!errors.lastName}
+                  aria-describedby={errors.lastName ? "edit-ln-error" : undefined}
+                />
               </div>
+              {errors.lastName && (
+                <p id="edit-ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert">
+                  <AlertCircle className="h-3 w-3" /> {errors.lastName}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

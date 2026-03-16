@@ -79,24 +79,22 @@ export default function ProfileSetupPage() {
           <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{errors.general}</div>
         )}
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jane" className="pl-10" required aria-required="true" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "fn-error" : undefined} />
-              </div>
-              {errors.firstName && <p id="fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Input id="firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jane" className="pl-10" required aria-required="true" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "fn-error" : undefined} />
             </div>
+            {errors.firstName && <p id="fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className="pl-10" required aria-required="true" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "ln-error" : undefined} />
-              </div>
-              {errors.lastName && <p id="ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Input id="lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className="pl-10" required aria-required="true" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "ln-error" : undefined} />
             </div>
+            {errors.lastName && <p id="ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
           </div>
 
           {/* Email (read-only) */}
