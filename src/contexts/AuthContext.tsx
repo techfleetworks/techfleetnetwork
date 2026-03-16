@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoaded: boolean;
   signOut: () => Promise<void>;
   signOutAllDevices: () => Promise<void>;
   refreshProfile: () => Promise<void>;
