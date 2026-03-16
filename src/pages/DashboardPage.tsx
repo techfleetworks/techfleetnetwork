@@ -9,12 +9,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
-  const [firstStepsCompleted, setFirstStepsCompleted] = useState(0);
-  const [secondStepsCompleted, setSecondStepsCompleted] = useState(0);
+  const navigate = useNavigate();
+  const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
+  const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const totalFirstSteps = 6;
-  const currentStepRef = useRef<HTMLDivElement>(null);
-  const hasScrolled = useRef(false);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     if (!user) return;
