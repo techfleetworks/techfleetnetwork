@@ -28,14 +28,14 @@ describe("profileSchema (BDD 2.6: Profile setup completion)", () => {
   });
 
   it("accepts profile without interests (defaults to empty array)", () => {
-    const { interests, ...rest } = validInput;
+    const { interests: _interests, ...rest } = validInput;
     const result = profileSchema.safeParse(rest);
     expect(result.success).toBe(true);
     expect(result.data?.interests).toEqual([]);
   });
 
   it("accepts profile with omitted discordUsername (defaults to empty string)", () => {
-    const { discordUsername, ...rest } = validInput;
+    const { discordUsername: _discordUsername, ...rest } = validInput;
     const result = profileSchema.safeParse(rest);
     expect(result.success).toBe(true);
     expect(result.data?.discordUsername).toBe("");
