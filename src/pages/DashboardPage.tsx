@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
-import { BarChart3, Clock, Trophy } from "lucide-react";
+import { BarChart3, Clock, Trophy, UserPen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { ProfileEditPanel } from "@/components/ProfileEditPanel";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
