@@ -79,10 +79,30 @@ const joinDiscordTask: Omit<Task, "completed"> = {
 
 export default function FirstStepsPage() {
   const { user, profile } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>(defaultTasks.map((t) => ({ ...t, completed: false })));
+
+  // Build task list: include "join-discord" only if user has no discord username
+  const taskDefs = (() => {
+    const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
+    if (hasDiscord) return baseTasks;
+    // Insert join-discord after profile task
+    const idx = baseTasks.findIndex((t) => t.id === "profile");
+    const copy = [...baseTasks];
+    copy.splice(idx + 1, 0, joinDiscordTask);
+    return copy;
+  })();
+
+  const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
   const [agreementOpen, setAgreementOpen] = useState(false);
+
+  // Re-build tasks when profile changes (e.g. discord added)
+  useEffect(() => {
+    setTasks((prev) => {
+      const prevMap = new Map(prev.map((t) => [t.id, t.completed]));
+      return taskDefs.map((t) => ({ ...t, completed: prevMap.get(t.id) || false }));
+    });
+  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
