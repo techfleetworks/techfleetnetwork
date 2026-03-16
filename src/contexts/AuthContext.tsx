@@ -21,10 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const data = await ProfileService.fetch(userId);
-    setProfile(data);
+    // Only update profile if we got data — never null-out an existing profile during re-fetches
+    if (data) {
+      setProfile(data);
+    }
+    setProfileLoaded(true);
     return data;
   };
 
