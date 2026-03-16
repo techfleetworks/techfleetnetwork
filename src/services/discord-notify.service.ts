@@ -47,10 +47,10 @@ const TASK_LABELS: Record<string, string> = {
 };
 
 const PHASE_LABELS: Record<string, string> = {
-  first_steps: "First Steps",
-  second_steps: "Second Steps — Agile Handbook",
-  third_steps: "Third Steps — Teammate Handbook",
-  observer: "Observer Phase",
+  first_steps: "Onboarding Steps",
+  second_steps: "Build an Agile Mindset",
+  third_steps: "Learn About Agile Teamwork",
+  observer: "Observe Project Teams",
   projects: "Apply for Projects",
 };
 

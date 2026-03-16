@@ -39,10 +39,10 @@ export default function DashboardPage() {
   // No auto-redirect — always show the dashboard overview on login
 
   const currentPhase = allSecondStepsDone
-    ? "Third Steps"
+    ? "Learn About Agile Teamwork"
     : allFirstStepsDone
-    ? "Second Steps"
-    : "First Steps";
+    ? "Build an Agile Mindset"
+    : "Onboarding Steps";
 
   const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0);
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;

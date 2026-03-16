@@ -385,7 +385,7 @@ export default function ProfileSetupPage() {
                   </a>
                   <p className="text-xs text-muted-foreground">
                     You can add your Discord username later from your profile. A "Join Tech Fleet Discord" 
-                    step will appear in your First Steps checklist.
+                    step will appear in your Onboarding Steps checklist.
                   </p>
                 </div>
               )}
