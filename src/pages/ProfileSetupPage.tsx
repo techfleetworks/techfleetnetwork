@@ -32,8 +32,10 @@ export default function ProfileSetupPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
+  // Only pre-populate form from profile ONCE on initial mount, not on every profile change
+  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
-    if (profile) {
+    if (!initialized && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
@@ -42,8 +44,9 @@ export default function ProfileSetupPage() {
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
       });
+      setInitialized(true);
     }
-  }, [profile]);
+  }, [profile, initialized]);
 
   const validateStep = (): boolean => {
     const fieldErrors: Record<string, string> = {};
