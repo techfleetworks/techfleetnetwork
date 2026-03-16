@@ -112,7 +112,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0 overflow-hidden">
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <SheetTitle className="text-xl">Edit Profile</SheetTitle>
           <SheetDescription>
@@ -303,7 +303,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
           </form>
         </ScrollArea>
 
-        <div className="border-t px-6 py-4 space-y-3">
+        <div className="border-t px-6 py-4 space-y-3 shrink-0 relative z-10">
           <Button form="profile-edit-form" type="submit" className="w-full" disabled={saving}>
             {saving ? "Saving…" : "Save Changes"}
           </Button>
