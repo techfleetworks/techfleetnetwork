@@ -112,7 +112,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0 overflow-hidden">
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <SheetTitle className="text-xl">Edit Profile</SheetTitle>
           <SheetDescription>
