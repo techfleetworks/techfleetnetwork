@@ -146,6 +146,33 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          scraped_at: string
+          title: string
+          url: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          scraped_at?: string
+          title?: string
+          url: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          scraped_at?: string
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

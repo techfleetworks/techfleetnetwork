@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut, UserPen } from "lucide-react";
+import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut, UserPen, MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -24,6 +24,7 @@ const navLinks = [
   { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
   { label: "Training", href: "/training", icon: GraduationCap },
   { label: "Resources", href: "/resources", icon: BookOpen },
+  { label: "Ask TF", href: "/chat", icon: MessageCircle },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
