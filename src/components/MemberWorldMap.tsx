@@ -48,13 +48,16 @@ export function MemberWorldMap() {
 
   // Load member distribution
   useEffect(() => {
-    supabase
-      .rpc("get_member_country_distribution")
-      .then(({ data: result }) => {
+    const load = async () => {
+      try {
+        const { data: result } = await supabase.rpc("get_member_country_distribution");
         if (result) setData(result as unknown as CountryCount[]);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch {
+        // ignore
+      }
+      setLoading(false);
+    };
+    load();
   }, []);
 
   // Map country name → count AND numeric id → count
