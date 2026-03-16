@@ -193,9 +193,15 @@ export default function SecondStepsPage() {
                           isDone ? "bg-success/5" : ""
                         }`}
                       >
-                        {/* Completion checkbox */}
+                        {/* Completion checkbox — opens panel on first interaction */}
                         <button
-                          onClick={() => toggleLesson(lesson.id)}
+                          onClick={() => {
+                            if (!isDone) {
+                              // First time: open the lesson panel to encourage engagement
+                              setSelectedLesson(lesson);
+                            }
+                            toggleLesson(lesson.id);
+                          }}
                           disabled={toggling}
                           className="flex-shrink-0"
                           aria-label={`Mark "${lesson.title}" as ${isDone ? "incomplete" : "complete"}`}
