@@ -108,9 +108,9 @@ export function NetworkActivity() {
         {/* All-time step groups */}
         <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
         <div className="grid sm:grid-cols-3 gap-4 mb-10">
-          <StepGroup title="Step 1 — First Steps" active={stats.first_steps_active} completed={stats.first_steps_completed} />
-          <StepGroup title="Step 2 — Agile Handbook" active={stats.second_steps_active} completed={stats.second_steps_completed} />
-          <StepGroup title="Step 3 — Teammate Handbook" active={stats.third_steps_active} completed={stats.third_steps_completed} />
+          <StepGroup title="Step 1 — Onboarding" active={stats.first_steps_active} completed={stats.first_steps_completed} />
+          <StepGroup title="Step 2 — Agile Mindset" active={stats.second_steps_active} completed={stats.second_steps_completed} />
+          <StepGroup title="Step 3 — Agile Teamwork" active={stats.third_steps_active} completed={stats.third_steps_completed} />
         </div>
 
         {/* Last 7 days */}
