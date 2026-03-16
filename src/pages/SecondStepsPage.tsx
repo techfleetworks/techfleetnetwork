@@ -193,18 +193,20 @@ export default function SecondStepsPage() {
                           isDone ? "bg-success/5" : ""
                         }`}
                       >
-                        {/* Completion checkbox — opens panel on first interaction */}
+                        {/* Checkbox: incomplete → opens panel for engagement; complete → toggles back to incomplete */}
                         <button
                           onClick={() => {
                             if (!isDone) {
-                              // First time: open the lesson panel to encourage engagement
+                              // Open the lesson panel so the user engages with content first.
+                              // Completion only happens via "Mark as Complete" inside the panel.
                               setSelectedLesson(lesson);
+                            } else {
+                              toggleLesson(lesson.id);
                             }
-                            toggleLesson(lesson.id);
                           }}
                           disabled={toggling}
                           className="flex-shrink-0"
-                          aria-label={`Mark "${lesson.title}" as ${isDone ? "incomplete" : "complete"}`}
+                          aria-label={isDone ? `Mark "${lesson.title}" as incomplete` : `Open "${lesson.title}"`}
                         >
                           {isDone ? (
                             <CheckCircle2 className="h-5 w-5 text-success" />
