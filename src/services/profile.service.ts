@@ -5,6 +5,7 @@ import { DiscordNotifyService } from "@/services/discord-notify.service";
 export interface Profile {
   first_name: string;
   last_name: string;
+  email: string;
   country: string;
   discord_username: string;
   discord_user_id: string;
@@ -17,7 +18,7 @@ export const ProfileService = {
   async fetch(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
-      .select("first_name, last_name, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
+      .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed")
       .eq("user_id", userId)
       .single();
     if (error) return null;
@@ -47,15 +48,18 @@ export const ProfileService = {
     if (error) throw new Error("Failed to save profile. Please try again.");
   },
 
-  /** Sync OAuth names to profile (used for Google sign-in) */
-  async updateNames(userId: string, firstName: string, lastName: string) {
+  /** Sync OAuth names and email to profile (used for Google sign-in) */
+  async updateNames(userId: string, firstName: string, lastName: string, email?: string) {
+    const updateData: Record<string, string> = {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: `${firstName} ${lastName}`.trim(),
+    };
+    if (email) updateData.email = email;
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        display_name: `${firstName} ${lastName}`.trim(),
-      } as any)
+      .update(updateData as any)
       .eq("user_id", userId);
     if (error) throw new Error("Failed to sync profile names.");
   },

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -97,6 +97,22 @@ export default function ProfileSetupPage() {
               </div>
               {errors.lastName && <p id="ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
             </div>
+          </div>
+
+          {/* Email (read-only) */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="email"
+                value={profile?.email || user?.email || ""}
+                readOnly
+                disabled
+                className="pl-10 bg-muted/50"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">This is the email you registered with.</p>
           </div>
 
           <div className="space-y-2">
