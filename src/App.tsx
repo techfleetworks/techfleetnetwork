@@ -19,6 +19,7 @@ import FirstStepsPage from "./pages/FirstStepsPage";
 import SecondStepsPage from "./pages/SecondStepsPage";
 import TrainingPage from "./pages/TrainingPage";
 import ResourcesPage from "./pages/ResourcesPage";
+import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
 
 
