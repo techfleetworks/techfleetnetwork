@@ -48,17 +48,80 @@ export default function DashboardPage() {
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
   const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
 
-  const journeySteps: JourneyStep[] = [
-    { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
-    { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
-    { id: "observer", title: "Observe Project Teams", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
-    { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
-  ];
+  const journeySteps: JourneyStep[] = allFirstStepsDone
+    ? [
+        { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
+        { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+        { id: "team-practices", title: "Learn the Team Practices of Empowered Teams", description: "Master the practices that make agile teams effective and self-organizing.", status: "locked", href: "/journey/third-steps" },
+      ]
+    : [
+        { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: "current", href: "/journey/first-steps" },
+      ];
 
   const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
+
+  const journeyHeading = allFirstStepsDone ? "Recommended Courses" : "Get Started in Tech Fleet";
+
+  const journeySection = (
+    <section aria-labelledby="journey-heading">
+      <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">{journeyHeading}</h2>
+
+      {allStepsCompleted ? (
+        <div className="space-y-3">
+          <div className="card-elevated border-success/50 bg-success/5 p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-bold text-foreground">🎉 All Courses Complete!</h3>
+                <p className="text-sm text-muted-foreground">
+                  You've completed every recommended course. Congratulations!
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowAllSteps(!showAllSteps)}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+            >
+              {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {showAllSteps ? "Hide completed courses" : "Show completed courses"}
+            </button>
+          </div>
+
+          {showAllSteps && (
+            <div className="space-y-2 animate-fade-in">
+              {journeySteps.map((step) => (
+                <Link
+                  key={step.id}
+                  to={step.href}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
+                >
+                  <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground">{step.title}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {journeySteps.map((step, index) => (
+            <div key={step.id}>
+              <JourneyStepCard step={step} index={index} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  const badgesSection = (
+    <section className="mb-8">
+      <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
+    </section>
+  );
 
   return (
     <div className="container-app py-8 sm:py-12">
@@ -67,84 +130,59 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
 
-      {/* Badges at the top */}
-      <section className="mb-8">
-        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
-      </section>
+      {allFirstStepsDone ? (
+        <>
+          {badgesSection}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-          { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-          { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card-elevated p-5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-lg font-semibold text-foreground">{value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <section aria-labelledby="journey-heading">
-        <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">Your Member Journey</h2>
-
-        {allStepsCompleted ? (
-          /* ── Compact completed view ── */
-          <div className="space-y-3">
-            <div className="card-elevated border-success/50 bg-success/5 p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">🎉 All Steps Complete!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You've completed every phase of the onboarding journey. Congratulations!
-                  </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {[
+              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
+              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
+              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card-elevated p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold text-foreground">{value}</p>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                onClick={() => setShowAllSteps(!showAllSteps)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
-              >
-                {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                {showAllSteps ? "Hide completed steps" : "Show completed steps"}
-              </button>
-            </div>
-
-            {showAllSteps && (
-              <div className="space-y-2 animate-fade-in">
-                {journeySteps.map((step) => (
-                  <Link
-                    key={step.id}
-                    to={step.href}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                    <span className="text-sm font-medium text-foreground">{step.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* ── Normal journey view ── */
-          <div className="space-y-3">
-            {journeySteps.map((step, index) => (
-              <div key={step.id}>
-                <JourneyStepCard step={step} index={index} />
               </div>
             ))}
           </div>
-        )}
-      </section>
 
+          {journeySection}
+        </>
+      ) : (
+        <>
+          {journeySection}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
+            {[
+              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
+              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
+              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card-elevated p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold text-foreground">{value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {badgesSection}
+        </>
+      )}
 
       <section className="mt-10 border-t pt-8">
         <NetworkActivity />
