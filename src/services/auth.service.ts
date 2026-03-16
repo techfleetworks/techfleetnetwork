@@ -48,8 +48,12 @@ export const AuthService = {
 
   async signOut() {
     sessionStorage.removeItem("session_started_at");
+
     const { error } = await supabase.auth.signOut();
-    if (error) throw new Error("Sign out failed. Please try again.");
+    if (!error) return;
+
+    const { error: localError } = await supabase.auth.signOut({ scope: "local" });
+    if (localError) throw new Error("Sign out failed. Please try again.");
   },
 
   async signOutAllDevices() {
