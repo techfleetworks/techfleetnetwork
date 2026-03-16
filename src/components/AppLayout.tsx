@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut, UserPen } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { ProfileEditPanel } from "./ProfileEditPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
