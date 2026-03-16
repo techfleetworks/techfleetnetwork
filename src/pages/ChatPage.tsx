@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Conversation = { id: string; title: string; updated_at: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -71,7 +74,6 @@ async function streamChat({
     }
   }
 
-  // Flush remaining buffer
   if (textBuffer.trim()) {
     for (let raw of textBuffer.split("\n")) {
       if (!raw) continue;
@@ -91,31 +93,67 @@ async function streamChat({
   onDone();
 }
 
-/** Strip markdown to plain text for speech synthesis */
 function stripMarkdown(md: string): string {
   return md
-    .replace(/#{1,6}\s+/g, "") // headings
-    .replace(/\*\*(.+?)\*\*/g, "$1") // bold
-    .replace(/\*(.+?)\*/g, "$1") // italic
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
     .replace(/__(.+?)__/g, "$1")
     .replace(/_(.+?)_/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links → text only
-    .replace(/`{1,3}[^`]*`{1,3}/g, "") // code
-    .replace(/^\s*[-*+]\s+/gm, "") // list markers
-    .replace(/^\s*\d+\.\s+/gm, "") // numbered lists
-    .replace(/📚/g, "Sources:") // emoji
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/`{1,3}[^`]*`{1,3}/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/📚/g, "Sources:")
     .replace(/\n{2,}/g, ". ")
     .replace(/\n/g, " ")
     .trim();
 }
 
 export default function ChatPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load conversations list
+  useEffect(() => {
+    if (!user) return;
+    loadConversations();
+  }, [user]);
+
+  const loadConversations = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("chat_conversations")
+      .select("id, title, updated_at")
+      .order("updated_at", { ascending: false });
+    if (data) setConversations(data);
+  };
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (!activeConvoId) {
+      setMessages([]);
+      return;
+    }
+    loadMessages(activeConvoId);
+  }, [activeConvoId]);
+
+  const loadMessages = async (convoId: string) => {
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("role, content")
+      .eq("conversation_id", convoId)
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data as Msg[]);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -123,22 +161,17 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  // Cleanup speech on unmount
   useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-    };
+    return () => { window.speechSynthesis.cancel(); };
   }, []);
 
   const toggleSpeak = useCallback((index: number, text: string) => {
     const synth = window.speechSynthesis;
-
     if (speakingIdx === index) {
       synth.cancel();
       setSpeakingIdx(null);
       return;
     }
-
     synth.cancel();
     const plainText = stripMarkdown(text);
     const utterance = new SpeechSynthesisUtterance(plainText);
@@ -150,6 +183,51 @@ export default function ChatPage() {
     synth.speak(utterance);
   }, [speakingIdx]);
 
+  const createConversation = async (firstMessage: string): Promise<string | null> => {
+    if (!user) return null;
+    const title = firstMessage.length > 50 ? firstMessage.slice(0, 50) + "…" : firstMessage;
+    const { data, error } = await supabase
+      .from("chat_conversations")
+      .insert({ user_id: user.id, title })
+      .select("id")
+      .single();
+    if (error || !data) {
+      console.error("Create conversation error:", error);
+      return null;
+    }
+    await loadConversations();
+    return data.id;
+  };
+
+  const saveMessage = async (convoId: string, role: string, content: string) => {
+    await supabase.from("chat_messages").insert({
+      conversation_id: convoId,
+      role,
+      content,
+    });
+    // Update conversation timestamp
+    await supabase
+      .from("chat_conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", convoId);
+  };
+
+  const deleteConversation = async (convoId: string) => {
+    await supabase.from("chat_conversations").delete().eq("id", convoId);
+    if (activeConvoId === convoId) {
+      setActiveConvoId(null);
+      setMessages([]);
+    }
+    await loadConversations();
+  };
+
+  const startNewChat = () => {
+    setActiveConvoId(null);
+    setMessages([]);
+    setShowSidebar(false);
+    inputRef.current?.focus();
+  };
+
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -159,6 +237,16 @@ export default function ChatPage() {
     setInput("");
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
+
+    // Create or use existing conversation
+    let convoId = activeConvoId;
+    if (!convoId && user) {
+      convoId = await createConversation(text);
+      if (convoId) setActiveConvoId(convoId);
+    }
+
+    // Save user message
+    if (convoId) await saveMessage(convoId, "user", text);
 
     let assistantSoFar = "";
     const upsertAssistant = (nextChunk: string) => {
@@ -176,7 +264,13 @@ export default function ChatPage() {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsLoading(false),
+        onDone: async () => {
+          setIsLoading(false);
+          // Save assistant message
+          if (convoId && assistantSoFar) {
+            await saveMessage(convoId, "assistant", assistantSoFar);
+          }
+        },
       });
     } catch (e: any) {
       console.error(e);
@@ -186,141 +280,203 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="container-app py-6 sm:py-8 max-w-3xl flex flex-col h-[calc(100vh-8rem)]">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Bot className="h-6 w-6 text-primary" aria-hidden="true" />
-          Fleety
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ask me anything about Tech Fleet, team practices, workshops, and onboarding.
-        </p>
-      </div>
-
-      {/* Chat messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded-lg border bg-muted/20 p-4 space-y-4 mb-4"
-        role="log"
-        aria-label="Chat conversation"
-        aria-live="polite"
-      >
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <Bot className="h-12 w-12 text-muted-foreground/40 mb-4" aria-hidden="true" />
-            <h2 className="text-lg font-medium text-muted-foreground">Hi! I'm Fleety</h2>
-            <p className="text-sm text-muted-foreground/70 mt-1 max-w-md">
-              I can answer questions about Tech Fleet's community, team practices, workshops, handbooks, and onboarding process. I'll always include links to my sources!
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2 justify-center">
-              {[
-                "What is Tech Fleet?",
-                "How do I get started?",
-                "What workshops are available?",
-                "Tell me about team practices",
-              ].map((q) => (
-                <button
-                  key={q}
-                  onClick={() => {
-                    setInput(q);
-                    inputRef.current?.focus();
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+    <div className="container-app py-6 sm:py-8 max-w-4xl flex h-[calc(100vh-8rem)]">
+      {/* Conversation sidebar */}
+      {user && (
+        <div
+          className={`${
+            showSidebar ? "flex" : "hidden sm:flex"
+          } flex-col w-56 shrink-0 mr-4 border rounded-lg bg-card overflow-hidden`}
+        >
+          <div className="p-3 border-b flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">History</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startNewChat} aria-label="New chat">
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+            {conversations.length === 0 && (
+              <p className="text-xs text-muted-foreground p-2 text-center">No conversations yet</p>
+            )}
+            {conversations.map((c) => (
+              <div
+                key={c.id}
+                className={`group flex items-center gap-1.5 rounded-md px-2 py-1.5 cursor-pointer text-sm transition-colors ${
+                  activeConvoId === c.id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                onClick={() => {
+                  setActiveConvoId(c.id);
+                  setShowSidebar(false);
+                }}
+              >
+                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate flex-1 text-xs">{c.title}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteConversation(c.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete conversation"
+                >
+                  <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            {msg.role === "assistant" && (
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Bot className="h-6 w-6 text-primary" aria-hidden="true" />
+              Fleety
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Ask me anything about Tech Fleet, team practices, workshops, and onboarding.
+            </p>
+          </div>
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="sm:hidden"
+              onClick={() => setShowSidebar(!showSidebar)}
+            >
+              History
+            </Button>
+          )}
+        </div>
+
+        {/* Chat messages */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto rounded-lg border bg-muted/20 p-4 space-y-5 mb-4"
+          role="log"
+          aria-label="Chat conversation"
+          aria-live="polite"
+        >
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12">
+              <Bot className="h-12 w-12 text-muted-foreground/40 mb-4" aria-hidden="true" />
+              <h2 className="text-lg font-medium text-muted-foreground">Hi! I'm Fleety</h2>
+              <p className="text-sm text-muted-foreground/70 mt-1 max-w-md">
+                I can answer questions about Tech Fleet's community, team practices, workshops, handbooks, and onboarding process. I'll always include links to my sources!
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2 justify-center">
+                {[
+                  "What is Tech Fleet?",
+                  "How do I get started?",
+                  "What workshops are available?",
+                  "Tell me about team practices",
+                ].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => {
+                      setInput(q);
+                      inputRef.current?.focus();
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {msg.role === "assistant" && (
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mt-1">
+                  <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] rounded-lg ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground px-4 py-3"
+                    : "bg-card border border-border px-5 py-4"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <div>
+                    <div className="fleety-prose">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    </div>
+                    {!isLoading && msg.content.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-border/50">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleSpeak(i, msg.content)}
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                          aria-label={speakingIdx === i ? "Stop reading aloud" : "Read aloud"}
+                        >
+                          {speakingIdx === i ? (
+                            <>
+                              <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />
+                              Stop reading
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              Read aloud
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                )}
+              </div>
+              {msg.role === "user" && (
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center mt-1">
+                  <User className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+            <div className="flex gap-3 justify-start">
               <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
               </div>
-            )}
-            <div
-              className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card border border-border"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <div>
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-primary [&_a]:underline [&_a:hover]:text-primary/80">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                  </div>
-                  {/* Text-to-Speech button */}
-                  {!isLoading && msg.content.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-border/50">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleSpeak(i, msg.content)}
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                        aria-label={speakingIdx === i ? "Stop reading aloud" : "Read aloud"}
-                      >
-                        {speakingIdx === i ? (
-                          <>
-                            <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />
-                            Stop reading
-                          </>
-                        ) : (
-                          <>
-                            <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
-                            Read aloud
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              )}
-            </div>
-            {msg.role === "user" && (
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                <User className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
+              <div className="bg-card border border-border rounded-lg px-4 py-3">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          )}
+        </div>
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="flex gap-3 justify-start">
-            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
-            </div>
-            <div className="bg-card border border-border rounded-lg px-4 py-3">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          </div>
-        )}
+        {/* Input */}
+        <form onSubmit={send} className="flex gap-2">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about Tech Fleet..."
+            disabled={isLoading}
+            className="flex-1"
+            autoComplete="off"
+            aria-label="Type your question"
+          />
+          <Button type="submit" disabled={isLoading || !input.trim()} size="icon" aria-label="Send message">
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
       </div>
-
-      {/* Input */}
-      <form onSubmit={send} className="flex gap-2">
-        <Input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about Tech Fleet..."
-          disabled={isLoading}
-          className="flex-1"
-          autoComplete="off"
-          aria-label="Type your question"
-        />
-        <Button type="submit" disabled={isLoading || !input.trim()} size="icon" aria-label="Send message">
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
     </div>
   );
 }
