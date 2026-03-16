@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, FileText, ScrollText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, FileText, ScrollText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,11 +18,11 @@ interface Task {
   panelAction?: boolean;
 }
 
-const defaultTasks: Omit<Task, "completed">[] = [
+const baseTasks: Omit<Task, "completed">[] = [
   {
     id: "profile",
     title: "Set Up Profile",
-    description: "Fill in your name, country, and Discord username.",
+    description: "Fill in your name, country, and activity interests.",
     icon: User,
     action: "/profile-setup",
   },
@@ -67,6 +67,15 @@ const defaultTasks: Omit<Task, "completed">[] = [
     panelAction: true,
   },
 ];
+
+const joinDiscordTask: Omit<Task, "completed"> = {
+  id: "join-discord",
+  title: "Join Tech Fleet Discord",
+  description: "Sign up for the Tech Fleet Discord community at techfleet.org/join.",
+  icon: MessageSquare,
+  action: "https://techfleet.org/join",
+  external: true,
+};
 
 export default function FirstStepsPage() {
   const { user, profile } = useAuth();
