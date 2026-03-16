@@ -25,7 +25,7 @@ describe("LoginPage UI (BDD 17.1–17.3)", () => {
   });
 
   it("17.1: renders Sign In button", () => {
-    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
   });
 
   it("17.1: renders forgot password link", () => {
