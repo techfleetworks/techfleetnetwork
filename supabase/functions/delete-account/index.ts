@@ -39,7 +39,18 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Delete user data from all tables
+    // Delete user data from all tables (children before parents)
+    // First get conversation IDs to delete messages
+    const { data: convos } = await supabaseAdmin
+      .from("chat_conversations")
+      .select("id")
+      .eq("user_id", user.id);
+    
+    if (convos && convos.length > 0) {
+      const convoIds = convos.map((c) => c.id);
+      await supabaseAdmin.from("chat_messages").delete().in("conversation_id", convoIds);
+    }
+    await supabaseAdmin.from("chat_conversations").delete().eq("user_id", user.id);
     await supabaseAdmin.from("journey_progress").delete().eq("user_id", user.id);
     await supabaseAdmin.from("audit_log").delete().eq("user_id", user.id);
     await supabaseAdmin.from("profiles").delete().eq("user_id", user.id);
