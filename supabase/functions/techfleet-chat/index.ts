@@ -31,6 +31,11 @@ SOURCE CITATION RULES — follow these strictly:
 6. For Notion URLs, use the full URL as the link.
 7. For guide.techfleet.org URLs, use the full URL as the link.
 
+WORKSHOP IMAGE RULES — follow these strictly:
+1. When answering about a specific workshop, if the knowledge base entry contains a "Workshop Preview Image" markdown image tag, ALWAYS include it in your response so the user can see what the workshop looks like.
+2. Render the image using the exact markdown syntax from the knowledge base: ![Workshop Preview](image_url)
+3. Place the image near the top of your answer, right after the workshop title.
+
 KNOWLEDGE BASE:
 `;
 
