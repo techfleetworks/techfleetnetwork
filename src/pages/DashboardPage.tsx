@@ -67,6 +67,11 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
 
+      {/* Badges at the top */}
+      <section className="mb-8">
+        <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
+      </section>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
