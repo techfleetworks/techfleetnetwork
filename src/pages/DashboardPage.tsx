@@ -48,13 +48,15 @@ export default function DashboardPage() {
   const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
   const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
 
-  const journeySteps: JourneyStep[] = [
-    { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: allFirstStepsDone ? "completed" : "current", href: "/journey/first-steps" },
-    { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : allFirstStepsDone ? "current" : "locked", href: "/journey/second-steps" },
-    { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
-    { id: "observer", title: "Observe Project Teams", description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.", status: "locked", href: "/journey/observer" },
-    { id: "projects", title: "Apply for Projects", description: "Join real teams and contribute to community projects.", status: "locked", href: "/projects" },
-  ];
+  const journeySteps: JourneyStep[] = allFirstStepsDone
+    ? [
+        { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
+        { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+        { id: "team-practices", title: "Learn the Team Practices of Empowered Teams", description: "Master the practices that make agile teams effective and self-organizing.", status: "locked", href: "/journey/third-steps" },
+      ]
+    : [
+        { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: "current", href: "/journey/first-steps" },
+      ];
 
   const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
 
