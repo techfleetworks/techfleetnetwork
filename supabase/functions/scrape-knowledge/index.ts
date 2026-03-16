@@ -52,11 +52,13 @@ serve(async (req) => {
     }
 
     const urls: string[] = mapData.links || [];
-    console.log(`Found ${urls.length} URLs`);
+    console.log(`Found ${urls.length} URLs. Processing offset=${offset}, limit=${limit}`);
 
-    // Step 2: Scrape each URL
-    let scraped = 0;
-    let errors = 0;
+    // Slice to the requested batch
+    const batch = urls.slice(offset, offset + limit);
+    console.log(`Processing batch: ${batch.length} URLs (offset ${offset})`);
+
+    // Step 2: Scrape each URL in the batch
 
     for (const url of urls) {
       try {
