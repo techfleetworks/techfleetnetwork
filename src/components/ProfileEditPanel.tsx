@@ -128,6 +128,20 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               </div>
             )}
 
+            {/* Avatar upload */}
+            {user && (
+              <AvatarUpload
+                userId={user.id}
+                currentUrl={profile?.avatar_url || null}
+                initials={
+                  `${(form.firstName?.[0] || "").toUpperCase()}${(form.lastName?.[0] || "").toUpperCase()}` || "U"
+                }
+                onUploaded={async () => {
+                  await refreshProfile();
+                }}
+              />
+            )}
+
             {/* Email (read-only) */}
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email</Label>

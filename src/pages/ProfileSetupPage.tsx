@@ -167,6 +167,20 @@ export default function ProfileSetupPage() {
                 <p className="text-sm text-muted-foreground">We'll use this to personalize your experience.</p>
               </div>
 
+              {/* Avatar upload */}
+              {user && (
+                <AvatarUpload
+                  userId={user.id}
+                  currentUrl={profile?.avatar_url || null}
+                  initials={
+                    `${(form.firstName?.[0] || "").toUpperCase()}${(form.lastName?.[0] || "").toUpperCase()}` || "U"
+                  }
+                  onUploaded={() => {
+                    // Avatar is saved directly; will be picked up on refreshProfile
+                  }}
+                />
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="firstName">First name</Label>
                 <div className="relative">
