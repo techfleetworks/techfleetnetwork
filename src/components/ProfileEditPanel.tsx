@@ -85,6 +85,22 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               </div>
             )}
 
+            {/* Email (read-only) */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="edit-email"
+                  value={profile?.email || user?.email || ""}
+                  readOnly
+                  disabled
+                  className="pl-10 bg-muted/50"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstName">First name</Label>
