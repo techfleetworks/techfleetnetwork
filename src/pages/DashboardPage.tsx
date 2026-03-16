@@ -10,6 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
