@@ -8,7 +8,7 @@ export default function LandingPage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden" aria-labelledby="hero-heading">
+      <section className="relative overflow-hidden min-h-[60vh]" aria-labelledby="hero-heading">
         <div className="container-app py-16 sm:py-24 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
