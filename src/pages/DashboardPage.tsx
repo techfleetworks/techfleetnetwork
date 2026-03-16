@@ -23,9 +23,13 @@ export default function DashboardPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
-    ]).then(([first, second]) => {
+      StatsService.getNetworkStats(),
+    ]).then(([first, second, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
+      setCommunityBadgeCount(
+        (stats.first_steps_completed ?? 0) + (stats.second_steps_completed ?? 0)
+      );
     });
   }, [user]);
 
