@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
+import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
