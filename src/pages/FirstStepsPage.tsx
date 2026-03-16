@@ -201,8 +201,8 @@ export default function FirstStepsPage() {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">First Steps</h1>
-        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock Second Steps. You can do them in any order.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Onboarding Steps</h1>
+        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
       </div>
 
       <div className="mb-8">
