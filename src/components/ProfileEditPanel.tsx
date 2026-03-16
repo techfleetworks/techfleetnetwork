@@ -74,6 +74,31 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "Delete") return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await supabase.functions.invoke("delete-account", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (res.error) throw new Error("Failed to delete account");
+
+      toast.success("Your account has been deleted.");
+      setDeleteDialogOpen(false);
+      onOpenChange(false);
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
