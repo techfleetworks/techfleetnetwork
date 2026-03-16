@@ -93,7 +93,12 @@ export default function FirstStepsPage() {
 
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [visitedExternal, setVisitedExternal] = useState<Set<string>>(new Set());
+  const [visitedExternal, setVisitedExternal] = useState<Set<string>>(() => {
+    try {
+      const saved = sessionStorage.getItem("first_steps_visited");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
   const [agreementOpen, setAgreementOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added)
