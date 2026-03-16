@@ -27,9 +27,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    const clientKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!clientKey) {
+      throw new Error("Missing SUPABASE_ANON_KEY / SUPABASE_PUBLISHABLE_KEY for authenticated client creation.");
+    }
+
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      clientKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
