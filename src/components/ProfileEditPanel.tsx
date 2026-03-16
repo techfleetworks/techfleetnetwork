@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -268,11 +268,19 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                       : "border-border hover:border-primary/50"
                   )}
                 >
-                  <Checkbox
-                    checked={form.interests.includes(option)}
-                    tabIndex={-1}
-                    className="pointer-events-none"
-                  />
+                  <div
+                    className={cn(
+                      "h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center",
+                      form.interests.includes(option)
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-primary"
+                    )}
+                    aria-hidden="true"
+                  >
+                    {form.interests.includes(option) && (
+                      <Check className="h-3 w-3" />
+                    )}
+                  </div>
                   <span className="text-sm text-foreground">{option}</span>
                 </button>
               ))}
