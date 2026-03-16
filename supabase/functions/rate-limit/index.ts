@@ -1,4 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const log = createEdgeLogger("rate-limit");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,25 +14,30 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID().substring(0, 8);
+  log.info("handler", `Request received [${requestId}]`, { requestId });
+
   try {
     const { identifier, action } = await req.json();
 
-    // Validate inputs
     const VALID_ACTIONS = ["login_attempt", "signup_attempt", "password_reset"];
     if (!identifier || typeof identifier !== "string" || identifier.length > 255) {
+      log.warn("validate", `Invalid identifier [${requestId}]: type=${typeof identifier}, length=${identifier?.length}`, { requestId });
       return new Response(
         JSON.stringify({ error: "Invalid identifier" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     if (!action || !VALID_ACTIONS.includes(action)) {
+      log.warn("validate", `Invalid action "${action}" [${requestId}] — allowed: ${VALID_ACTIONS.join(", ")}`, { requestId, action });
       return new Response(
         JSON.stringify({ error: "Invalid action" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Hash the identifier server-side so we never store raw emails/IPs
+    log.info("check", `Checking rate limit for action "${action}" [${requestId}]`, { requestId, action });
+
     const encoder = new TextEncoder();
     const data = encoder.encode(identifier + Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -50,12 +58,27 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      console.error("Rate limit check failed");
-      // Fail open to not block legitimate users, but log the error
+      log.error("check", `Rate limit RPC failed [${requestId}]: ${error.message} — failing open`, { requestId, action }, error);
       return new Response(
         JSON.stringify({ allowed: true, remaining: 0, retry_after: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    if (!result.allowed) {
+      log.warn("check", `Rate limit exceeded [${requestId}]: action="${action}", retryAfter=${result.retry_after}s`, {
+        requestId,
+        action,
+        allowed: result.allowed,
+        remaining: result.remaining,
+        retryAfter: result.retry_after,
+      });
+    } else {
+      log.info("check", `Rate limit OK [${requestId}]: action="${action}", remaining=${result.remaining}`, {
+        requestId,
+        action,
+        remaining: result.remaining,
+      });
     }
 
     const statusCode = result.allowed ? 200 : 429;
@@ -67,7 +90,8 @@ Deno.serve(async (req) => {
         ...(result.retry_after > 0 && { "Retry-After": String(result.retry_after) }),
       },
     });
-  } catch {
+  } catch (err) {
+    log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     return new Response(
       JSON.stringify({ error: "Bad request" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

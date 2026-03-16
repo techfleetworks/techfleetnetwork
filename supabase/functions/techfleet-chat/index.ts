@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const log = createEdgeLogger("techfleet-chat");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,11 +48,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID().substring(0, 8);
+  log.info("handler", `Chat request received [${requestId}]`, { requestId });
+
   try {
     const { messages } = await req.json();
+    log.info("chat", `Processing ${messages?.length ?? 0} messages [${requestId}]`, {
+      requestId,
+      messageCount: messages?.length ?? 0,
+      lastUserMessage: messages?.[messages.length - 1]?.content?.substring(0, 100),
+    });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      log.error("config", `LOVABLE_API_KEY is not configured [${requestId}]`, { requestId });
       return new Response(
         JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -60,17 +72,21 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Load knowledge base content
+    log.info("kb", `Loading knowledge base [${requestId}]`, { requestId });
     const { data: knowledge, error: kbError } = await supabase
       .from("knowledge_base")
       .select("title, content, url")
       .order("title");
 
     if (kbError) {
-      console.error("Knowledge base error:", kbError);
+      log.error("kb", `Failed to load knowledge base [${requestId}]: ${kbError.message}`, { requestId }, kbError);
+    } else {
+      log.info("kb", `Loaded ${knowledge?.length ?? 0} knowledge base entries [${requestId}]`, {
+        requestId,
+        entryCount: knowledge?.length ?? 0,
+      });
     }
 
-    // Build knowledge context (truncate individual entries if needed to fit context)
     let knowledgeContext = "";
     if (knowledge && knowledge.length > 0) {
       for (const entry of knowledge) {
@@ -84,6 +100,11 @@ serve(async (req) => {
     }
 
     const fullSystemPrompt = SYSTEM_PROMPT + knowledgeContext;
+    log.info("ai", `Sending request to AI gateway [${requestId}]`, {
+      requestId,
+      model: "google/gemini-3-flash-preview",
+      systemPromptLength: fullSystemPrompt.length,
+    });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -103,32 +124,39 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
+        log.warn("ai", `AI gateway rate limit exceeded [${requestId}]`, { requestId, httpStatus: 429 });
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
+        log.warn("ai", `AI usage limit reached [${requestId}]`, { requestId, httpStatus: 402 });
         return new Response(
           JSON.stringify({ error: "AI usage limit reached. Please try again later." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      log.error("ai", `AI gateway error [${requestId}]: HTTP ${response.status} — ${t.substring(0, 500)}`, {
+        requestId,
+        httpStatus: response.status,
+        responseBody: t.substring(0, 500),
+      });
       return new Response(
         JSON.stringify({ error: "AI service error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
-  } catch (e) {
-    console.error("Chat error:", e);
+  } catch (err) {
+    log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
