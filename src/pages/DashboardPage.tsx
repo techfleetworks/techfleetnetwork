@@ -5,6 +5,7 @@ import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } fro
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { Link } from "react-router-dom";
 
