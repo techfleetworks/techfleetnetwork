@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.resolve-discord-id]
 verify_jwt = false
+
+[functions.scrape-knowledge]
+verify_jwt = false
+
+[functions.techfleet-chat]
+verify_jwt = false

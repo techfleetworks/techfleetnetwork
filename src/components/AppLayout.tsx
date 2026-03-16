@@ -24,6 +24,7 @@ const navLinks = [
   { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
   { label: "Training", href: "/training", icon: GraduationCap },
   { label: "Resources", href: "/resources", icon: BookOpen },
+  { label: "Ask TF", href: "/chat", icon: MessageCircle },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
