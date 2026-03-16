@@ -242,9 +242,9 @@ export default function FirstStepsPage() {
                   aria-label={`Mark "${task.title}" as ${task.completed ? "incomplete" : "complete"}`}
                 >
                   {task.completed ? (
-                    <CheckCircle2 className="h-6 w-6 text-success" />
+                    <CheckCircle2 className="h-7 w-7 text-success drop-shadow-[0_0_4px_hsl(var(--success)/0.4)]" />
                   ) : (
-                    <Circle className={`h-6 w-6 ${task.panelAction ? "text-muted-foreground/40" : "text-muted-foreground hover:text-primary cursor-pointer"} transition-colors`} />
+                    <div className={`h-7 w-7 rounded-full border-2 ${task.panelAction ? "border-muted-foreground/30" : "border-primary/60 hover:border-primary hover:bg-primary/10 cursor-pointer"} transition-all`} />
                   )}
                 </button>
 
@@ -253,36 +253,38 @@ export default function FirstStepsPage() {
                     {task.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">{task.description}</p>
-                </div>
 
-                {/* Action button */}
-                {task.panelAction ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={task.completed}
-                    onClick={() => setAgreementOpen(true)}
-                  >
-                    <Icon className="h-4 w-4 mr-1" />
-                    Review
-                  </Button>
-                ) : task.external ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExternalVisit(task.id, task.action)}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Open
-                  </Button>
-                ) : (
-                  <Link to={task.action}>
-                    <Button variant="outline" size="sm" disabled={task.completed}>
-                      <Icon className="h-4 w-4 mr-1" />
-                      Start
-                    </Button>
-                  </Link>
-                )}
+                  {/* Action button — aligned with text */}
+                  <div className="mt-2">
+                    {task.panelAction ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={task.completed}
+                        onClick={() => setAgreementOpen(true)}
+                      >
+                        <Icon className="h-4 w-4 mr-1" />
+                        Review
+                      </Button>
+                    ) : task.external ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExternalVisit(task.id, task.action)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open
+                      </Button>
+                    ) : (
+                      <Link to={task.action}>
+                        <Button variant="outline" size="sm" disabled={task.completed}>
+                          <Icon className="h-4 w-4 mr-1" />
+                          Start
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           );
