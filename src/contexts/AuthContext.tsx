@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setProfileLoaded(false);
         }
         setLoading(false);
       }
