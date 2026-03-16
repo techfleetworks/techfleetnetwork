@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2 } from "lucide-react";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,20 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
               </div>
+            )}
+
+            {/* Avatar upload */}
+            {user && (
+              <AvatarUpload
+                userId={user.id}
+                currentUrl={profile?.avatar_url || null}
+                initials={
+                  `${(form.firstName?.[0] || "").toUpperCase()}${(form.lastName?.[0] || "").toUpperCase()}` || "U"
+                }
+                onUploaded={async () => {
+                  await refreshProfile();
+                }}
+              />
             )}
 
             {/* Email (read-only) */}
