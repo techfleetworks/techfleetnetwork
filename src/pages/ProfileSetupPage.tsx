@@ -443,7 +443,7 @@ export default function ProfileSetupPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" className="flex-1" disabled={saving}>
+              <Button type="button" className="flex-1" disabled={saving} onClick={handleComplete}>
                 {saving ? "Saving…" : "Complete Setup"}
               </Button>
             )}
