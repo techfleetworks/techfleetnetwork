@@ -28,7 +28,7 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Step 1: Map the site to discover all URLs
-    console.log("Mapping guide.techfleet.org...");
+    console.log(`Mapping ${target_url}...`);
     const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
@@ -36,7 +36,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        url: "https://guide.techfleet.org",
+        url: target_url,
         limit: 500,
         includeSubdomains: false,
       }),
