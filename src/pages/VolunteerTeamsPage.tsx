@@ -40,7 +40,7 @@ export default function VolunteerTeamsPage() {
         met: prereqMet,
         loaded: prereqLoaded,
         courseName: "Learn About Agile Teamwork",
-        courseHref: "/journey/third-steps",
+        courseHref: "/courses/agile-teamwork",
       }}
     />
   );
