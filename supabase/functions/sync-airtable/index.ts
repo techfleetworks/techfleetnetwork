@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const fields = {
       application_id,
       user_id: userId,
-      user_email: userEmail,
+      user_email: email || userEmail,
       title: title ?? "General Application",
       about_yourself: about_yourself ?? "",
       status: status ?? "draft",
