@@ -45,6 +45,7 @@ export default function ProfileSetupPage() {
         lastName: profile.last_name || "",
         email: profile.email || user?.email || "",
         country: profile.country || "",
+        timezone: profile.timezone || "",
         hasDiscord: profile.discord_username ? true : null,
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
