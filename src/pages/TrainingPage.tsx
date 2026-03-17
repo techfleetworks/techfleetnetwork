@@ -233,23 +233,7 @@ export default function TrainingPage() {
         </p>
       </div>
 
-      {/* Prerequisite notice */}
-      {!allTeamworkDone && (
-        <div className="mb-6 card-elevated border-warning/30 bg-warning/5 p-4 flex items-start gap-3">
-          <Lock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-foreground">Some courses are locked</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Complete{" "}
-              <Link to="/courses/agile-teamwork" className="text-primary underline underline-offset-2 hover:text-primary/80">
-                Learn About Agile Teamwork
-              </Link>{" "}
-              to unlock <strong className="text-foreground">Join Project Training Teams</strong> and{" "}
-              <strong className="text-foreground">Join Volunteer Teams</strong>.
-            </p>
-          </div>
-        </div>
-      )}
+
 
       <Tabs defaultValue="core" className="w-full">
         <TabsList className="mb-6">
