@@ -53,9 +53,9 @@ export default function ApplicationsPage() {
             Submit your general application to join the Tech Fleet community.
             Covers your background, agile mindset, and service leadership.
           </p>
-          {appStatus.completed && appStatus.updatedAt && (
+          {appStatus.completed && appStatus.completedAt && (
             <p className="text-xs text-muted-foreground mt-2">
-              Completed on {format(new Date(appStatus.updatedAt), "MMM d, yyyy")}
+              Completed on {format(new Date(appStatus.completedAt), "MMM d, yyyy")}
             </p>
           )}
           <div className="flex items-center gap-1 mt-4 text-sm font-medium text-primary group-hover:gap-2 transition-all">
