@@ -18,6 +18,8 @@ import ProfileSetupPage from "./pages/ProfileSetupPage";
 import FirstStepsPage from "./pages/FirstStepsPage";
 import SecondStepsPage from "./pages/SecondStepsPage";
 import ThirdStepsPage from "./pages/ThirdStepsPage";
+import ProjectTrainingPage from "./pages/ProjectTrainingPage";
+import VolunteerTeamsPage from "./pages/VolunteerTeamsPage";
 import TrainingPage from "./pages/TrainingPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import ChatPage from "./pages/ChatPage";
