@@ -269,12 +269,20 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
         <div className="flex-1 flex flex-col min-w-0">
           <header
-            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
+            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
             role="banner"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <UniversalSearch />
               <ThemeToggle />
+              <div className="ml-4">
+                <ProfileDropdown
+                  profile={profile}
+                  user={user}
+                  onEditProfile={() => setProfileEditOpen(true)}
+                  onSignOut={handleSignOut}
+                />
+              </div>
             </div>
           </header>
           <main
