@@ -238,30 +238,75 @@ export type Database = {
       general_applications: {
         Row: {
           about_yourself: string
+          agile_philosophies: string
+          agile_vs_waterfall: string
+          collaboration_challenges: string
           created_at: string
+          current_section: number
           email: string
+          hours_commitment: string
           id: string
+          linkedin_url: string
+          portfolio_url: string
+          previous_engagement: string
+          previous_engagement_ways: string[]
+          psychological_safety: string
+          servant_leadership_actions: string
+          servant_leadership_challenges: string
+          servant_leadership_definition: string
+          servant_leadership_situation: string
           status: string
+          teammate_learnings: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
           about_yourself?: string
+          agile_philosophies?: string
+          agile_vs_waterfall?: string
+          collaboration_challenges?: string
           created_at?: string
+          current_section?: number
           email?: string
+          hours_commitment?: string
           id?: string
+          linkedin_url?: string
+          portfolio_url?: string
+          previous_engagement?: string
+          previous_engagement_ways?: string[]
+          psychological_safety?: string
+          servant_leadership_actions?: string
+          servant_leadership_challenges?: string
+          servant_leadership_definition?: string
+          servant_leadership_situation?: string
           status?: string
+          teammate_learnings?: string
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           about_yourself?: string
+          agile_philosophies?: string
+          agile_vs_waterfall?: string
+          collaboration_challenges?: string
           created_at?: string
+          current_section?: number
           email?: string
+          hours_commitment?: string
           id?: string
+          linkedin_url?: string
+          portfolio_url?: string
+          previous_engagement?: string
+          previous_engagement_ways?: string[]
+          psychological_safety?: string
+          servant_leadership_actions?: string
+          servant_leadership_challenges?: string
+          servant_leadership_definition?: string
+          servant_leadership_situation?: string
           status?: string
+          teammate_learnings?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -403,13 +448,19 @@ export type Database = {
           discord_user_id: string
           discord_username: string
           display_name: string
+          education_background: string[]
           email: string
+          experience_areas: string[]
           first_name: string
           id: string
           interests: string[]
           last_name: string
+          linkedin_url: string
           membership_tier: Database["public"]["Enums"]["membership_tier"]
+          notify_training_opportunities: boolean
+          portfolio_url: string
           professional_background: string
+          professional_goals: string
           profile_completed: boolean
           timezone: string
           updated_at: string
@@ -423,13 +474,19 @@ export type Database = {
           discord_user_id?: string
           discord_username?: string
           display_name?: string
+          education_background?: string[]
           email?: string
+          experience_areas?: string[]
           first_name?: string
           id?: string
           interests?: string[]
           last_name?: string
+          linkedin_url?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          notify_training_opportunities?: boolean
+          portfolio_url?: string
           professional_background?: string
+          professional_goals?: string
           profile_completed?: boolean
           timezone?: string
           updated_at?: string
@@ -443,13 +500,19 @@ export type Database = {
           discord_user_id?: string
           discord_username?: string
           display_name?: string
+          education_background?: string[]
           email?: string
+          experience_areas?: string[]
           first_name?: string
           id?: string
           interests?: string[]
           last_name?: string
+          linkedin_url?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          notify_training_opportunities?: boolean
+          portfolio_url?: string
           professional_background?: string
+          professional_goals?: string
           profile_completed?: boolean
           timezone?: string
           updated_at?: string
