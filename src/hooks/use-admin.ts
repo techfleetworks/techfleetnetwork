@@ -1,47 +1,29 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Hook that checks if the current user has the admin role.
- * Uses the server-side has_role function to avoid RLS recursion.
+ * Cached via React Query — won't re-fetch on every component mount.
  */
 export function useAdmin() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) {
-      setIsAdmin(false);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function checkAdmin() {
-      try {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("id")
-          .eq("user_id", user!.id)
-          .eq("role", "admin")
-          .maybeSingle();
-
-        if (!cancelled) {
-          setIsAdmin(!!data);
-        }
-      } catch {
-        if (!cancelled) setIsAdmin(false);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    checkAdmin();
-    return () => { cancelled = true; };
-  }, [user]);
+  const { data: isAdmin = false, isLoading: loading } = useQuery({
+    queryKey: ["admin-role", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 min — role rarely changes
+  });
 
   return { isAdmin, loading };
 }

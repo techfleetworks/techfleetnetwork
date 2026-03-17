@@ -49,7 +49,16 @@ function RouteFallback() {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,   // 5 min — avoid refetching on every mount
+      gcTime: 10 * 60 * 1000,     // 10 min — keep cache warm
+      retry: 1,                    // Single retry for transient failures
+      refetchOnWindowFocus: false, // Prevent refetch storms on tab switch
+    },
+  },
+});
 
 
 const App = () => (
