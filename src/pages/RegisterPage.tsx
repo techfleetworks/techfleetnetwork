@@ -42,6 +42,7 @@ export default function RegisterPage() {
     }
   }, [redirectParam]);
 
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const result = registerSchema.safeParse({ firstName, lastName, email, password, agreedToTerms });
     if (!result.success) {
