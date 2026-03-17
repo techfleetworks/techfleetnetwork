@@ -77,6 +77,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Activity; 
   client_updated: { label: "Client Updated", icon: Pencil, variant: "secondary" },
   client_deleted: { label: "Client Deleted", icon: FileText, variant: "destructive" },
   client_error: { label: "Client Error", icon: AlertCircle, variant: "destructive" },
+  project_created: { label: "Project Created", icon: FileText, variant: "default" },
+  project_updated: { label: "Project Updated", icon: Pencil, variant: "secondary" },
+  project_deleted: { label: "Project Deleted", icon: FileText, variant: "destructive" },
   error: { label: "Error", icon: AlertCircle, variant: "destructive" },
 };
 
