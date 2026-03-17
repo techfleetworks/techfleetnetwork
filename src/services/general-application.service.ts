@@ -6,7 +6,11 @@ const log = createLogger("GeneralApplicationService");
 /** Fire-and-forget sync to Airtable via edge function */
 async function syncToAirtable(app: GeneralApplication): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke("sync-airtable", {
+    const { data, error } = await supabase.functions.invoke<{
+      success: boolean;
+      error?: string;
+      airtable_id?: string | null;
+    }>("sync-airtable", {
       body: {
         application_id: app.id,
         title: app.title,
@@ -16,11 +20,21 @@ async function syncToAirtable(app: GeneralApplication): Promise<void> {
         updated_at: app.updated_at,
       },
     });
+
     if (error) {
-      log.warn("syncToAirtable", `Airtable sync failed: ${error.message}`, { appId: app.id }, error);
-    } else {
-      log.info("syncToAirtable", `Synced app ${app.id} to Airtable`, { appId: app.id });
+      log.warn("syncToAirtable", `Airtable sync request failed: ${error.message}`, { appId: app.id }, error);
+      return;
     }
+
+    if (!data?.success) {
+      log.warn("syncToAirtable", `Airtable sync failed: ${data?.error ?? "Unknown error"}`, { appId: app.id });
+      return;
+    }
+
+    log.info("syncToAirtable", `Synced app ${app.id} to Airtable`, {
+      appId: app.id,
+      airtableId: data.airtable_id ?? null,
+    });
   } catch (err) {
     log.warn("syncToAirtable", "Airtable sync error (non-blocking)", { appId: app.id }, err);
   }
