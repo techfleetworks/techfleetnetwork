@@ -37,7 +37,7 @@ describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
   it("24.1: completed step is a clickable link", () => {
     renderWithRouter(<JourneyStepCard step={completedStep} index={0} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/journey/first-steps");
+    expect(link).toHaveAttribute("href", "/courses/onboarding");
   });
 
   it("24.2: current step shows In Progress badge", () => {
