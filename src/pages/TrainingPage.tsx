@@ -66,8 +66,6 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
               <div className="absolute inset-x-0 top-0 bg-muted-foreground/80 text-background text-sm font-bold uppercase tracking-widest py-2 text-center pointer-events-none">
                 Locked
               </div>
-                Locked
-              </div>
               <div className="flex items-start justify-between mb-3">
                 <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
                   <Lock className="h-5 w-5 text-muted-foreground" />
