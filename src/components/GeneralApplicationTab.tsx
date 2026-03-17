@@ -5,10 +5,10 @@ import {
   Trash2,
   Save,
   CheckCircle2,
-  ArrowLeft,
   Copy,
   Loader2,
   ClipboardList,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
