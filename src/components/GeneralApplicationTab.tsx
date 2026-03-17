@@ -105,6 +105,7 @@ export function GeneralApplicationTab() {
   const openApp = (app: GeneralApplication) => {
     setActiveApp(app);
     setAboutYourself(app.about_yourself);
+    setTitle(app.title);
     setIsNewApp(false);
     setView("edit");
   };
