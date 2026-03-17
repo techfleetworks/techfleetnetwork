@@ -90,7 +90,7 @@ export const GeneralApplicationService = {
     });
   },
 
-  /** Save progress (update fields) */
+  /** Save progress (update fields) and sync to Airtable */
   async save(id: string, fields: Partial<Pick<GeneralApplication, "about_yourself" | "status" | "title">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
@@ -100,6 +100,11 @@ export const GeneralApplicationService = {
       if (error) {
         log.error("save", `Failed to save general app: ${error.message}`, { id }, error);
         throw new Error("Failed to save application.");
+      }
+      // Fetch updated record and sync to Airtable (non-blocking)
+      const updated = await GeneralApplicationService.fetch(id);
+      if (updated) {
+        syncToAirtable(updated).catch(() => {});
       }
     });
   },
