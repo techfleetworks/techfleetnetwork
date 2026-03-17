@@ -38,6 +38,13 @@ export const profileSchema = z.object({
   interests: z
     .array(z.string())
     .default([]),
+  portfolio_url: z.string().trim().max(500).optional().default(""),
+  linkedin_url: z.string().trim().max(500).optional().default(""),
+  experience_areas: z.array(z.string()).optional().default([]),
+  professional_goals: z.string().trim().max(2000).optional().default(""),
+  notify_training_opportunities: z.boolean().optional().default(false),
+  notify_announcements: z.boolean().optional().default(false),
+  education_background: z.array(z.string()).optional().default([]),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
