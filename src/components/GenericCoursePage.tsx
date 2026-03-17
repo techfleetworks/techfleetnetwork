@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   BookOpen,
   Lock,
   AlertTriangle,
+  PartyPopper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
