@@ -186,7 +186,7 @@ export default function DashboardPage() {
       title: "Join Project Training Teams",
       description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on apprenticeship training and nonprofit clients.`,
       icon: Briefcase,
-      href: "/journey/project-training",
+      href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted ?? 0,
       locked: !allThirdStepsDone,
