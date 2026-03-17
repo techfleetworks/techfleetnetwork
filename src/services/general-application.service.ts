@@ -3,6 +3,29 @@ import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("GeneralApplicationService");
 
+/** Fire-and-forget sync to Airtable via edge function */
+async function syncToAirtable(app: GeneralApplication): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke("sync-airtable", {
+      body: {
+        application_id: app.id,
+        title: app.title,
+        about_yourself: app.about_yourself,
+        status: app.status,
+        created_at: app.created_at,
+        updated_at: app.updated_at,
+      },
+    });
+    if (error) {
+      log.warn("syncToAirtable", `Airtable sync failed: ${error.message}`, { appId: app.id }, error);
+    } else {
+      log.info("syncToAirtable", `Synced app ${app.id} to Airtable`, { appId: app.id });
+    }
+  } catch (err) {
+    log.warn("syncToAirtable", "Airtable sync error (non-blocking)", { appId: app.id }, err);
+  }
+}
+
 export interface GeneralApplication {
   id: string;
   user_id: string;
