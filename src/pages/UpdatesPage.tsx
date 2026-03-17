@@ -62,6 +62,12 @@ export default function UpdatesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const selectAndMarkRead = async (a: Announcement) => {
+    setSelectedAnnouncement(a);
+    if (user) {
+      AnnouncementService.markRead(user.id, a.id).catch(() => {});
+    }
+  };
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -200,7 +206,7 @@ export default function UpdatesPage() {
                 <TableRow
                   key={a.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedAnnouncement(a)}
+                  onClick={() => selectAndMarkRead(a)}
                 >
                   <TableCell className="font-medium">{a.title}</TableCell>
                   <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
@@ -236,7 +242,7 @@ export default function UpdatesPage() {
           {announcements.map((a) => (
             <button
               key={a.id}
-              onClick={() => setSelectedAnnouncement(a)}
+              onClick={() => selectAndMarkRead(a)}
               className="card-elevated p-5 text-left hover:border-primary/40 transition-all group border border-white/50"
             >
               <div className="flex items-start justify-between gap-2 mb-2">

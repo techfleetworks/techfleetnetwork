@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
+import { NotificationBell } from "./NotificationBell";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
@@ -237,6 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-1">
               <UniversalSearch />
               <ThemeToggle />
+              <NotificationBell />
               <Button
                 variant="ghost"
                 size="icon"
@@ -330,6 +332,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center">
               <UniversalSearch />
               <ThemeToggle />
+              <NotificationBell />
               <div className="ml-4">
                 <ProfileDropdown
                   profile={profile}
