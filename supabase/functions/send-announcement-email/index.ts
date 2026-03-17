@@ -98,7 +98,11 @@ Deno.serve(async (req) => {
 
     // Enqueue emails for each recipient
     let enqueued = 0;
+    const now = new Date().toISOString();
+
     for (const recipient of recipients) {
+      const messageId = `announcement-${announcement_id}-${crypto.randomUUID()}`;
+
       const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -124,29 +128,34 @@ Deno.serve(async (req) => {
 </html>`;
 
       try {
+        // Log pending status first
+        await adminClient.from("email_send_log").insert({
+          message_id: messageId,
+          recipient_email: recipient.email,
+          template_name: "announcement",
+          status: "pending",
+          metadata: { announcement_id, title: announcement.title },
+        });
+
+        // Enqueue with all required fields for process-email-queue
         await adminClient.rpc("enqueue_email", {
           queue_name: "transactional_emails",
           payload: {
             to: recipient.email,
             subject: `[Tech Fleet] ${announcement.title}`,
             html: emailHtml,
-            from_name: "Tech Fleet",
+            from: `Tech Fleet <notifications@notify.techfleet.org>`,
+            sender_domain: "notify.techfleet.org",
+            label: "announcement",
+            message_id: messageId,
+            queued_at: now,
+            purpose: "transactional",
           },
         });
         enqueued++;
       } catch (e) {
         console.error(`Failed to enqueue email to ${recipient.email}:`, e);
       }
-    }
-
-    // Log to email_send_log
-    for (const recipient of recipients) {
-      await adminClient.from("email_send_log").insert({
-        recipient_email: recipient.email,
-        template_name: "announcement",
-        status: "pending",
-        metadata: { announcement_id, title: announcement.title },
-      });
     }
 
     return new Response(JSON.stringify({ sent: enqueued, total_recipients: recipients.length }), {
