@@ -455,7 +455,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Experience Areas */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Experience areas</Label>
               <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
               <MultiSelect
