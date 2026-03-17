@@ -62,6 +62,12 @@ export default function UpdatesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const selectAndMarkRead = async (a: Announcement) => {
+    setSelectedAnnouncement(a);
+    if (user) {
+      AnnouncementService.markRead(user.id, a.id).catch(() => {});
+    }
+  };
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
