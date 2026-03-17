@@ -293,8 +293,13 @@ export default function GenericCoursePage({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground mt-4">{title}</h2>
-        <p className="text-muted-foreground mt-1">{subtitle}</p>
+        <div className="flex items-start justify-between gap-4 mt-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+            <p className="text-muted-foreground mt-1">{subtitle}</p>
+          </div>
+          <ShareButton />
+        </div>
       </div>
 
       {/* Overall progress */}
