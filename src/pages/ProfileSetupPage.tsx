@@ -175,7 +175,7 @@ export default function ProfileSetupPage() {
           </div>
         )}
 
-        <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
+        <form onSubmit={handleFormSubmit} className="space-y-6" noValidate>
           {/* STEP 1: Name & Country */}
           {step === 1 && (
             <>
@@ -198,7 +198,7 @@ export default function ProfileSetupPage() {
                 />
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -219,7 +219,7 @@ export default function ProfileSetupPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="lastName">Last name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -244,7 +244,7 @@ export default function ProfileSetupPage() {
               {(() => {
                 const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
                 return (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -267,7 +267,7 @@ export default function ProfileSetupPage() {
                 );
               })()}
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Country</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -415,7 +415,7 @@ export default function ProfileSetupPage() {
                 <p className="text-sm text-muted-foreground">Choose all that apply. You can change this later.</p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {ACTIVITY_OPTIONS.map((option) => (
                   <button
                     key={option}

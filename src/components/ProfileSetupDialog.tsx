@@ -200,7 +200,7 @@ export function ProfileSetupDialog() {
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
-          <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleFormSubmit} className="space-y-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
@@ -215,7 +215,7 @@ export function ProfileSetupDialog() {
                   <p className="text-sm text-muted-foreground">We'll use this to personalize your experience.</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="setup-firstName">First name <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -236,7 +236,7 @@ export function ProfileSetupDialog() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="setup-lastName">Last name <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -258,7 +258,7 @@ export function ProfileSetupDialog() {
                 </div>
 
                 {/* Email: editable for email/password users, read-only for Google OAuth */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="setup-email">Email <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -286,7 +286,7 @@ export function ProfileSetupDialog() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Country <span className="text-destructive">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -329,7 +329,7 @@ export function ProfileSetupDialog() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Timezone <span className="text-destructive">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -421,7 +421,7 @@ export function ProfileSetupDialog() {
                 </div>
 
                 {form.hasDiscord === true && (
-                  <div className="space-y-2 mt-4">
+                  <div className="space-y-1.5 mt-4">
                     <Label htmlFor="setup-discordUsername">Discord username</Label>
                     <div className="relative">
                       <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -476,7 +476,7 @@ export function ProfileSetupDialog() {
                   <p className="text-sm text-muted-foreground">Choose all that apply. You can change this later.</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {ACTIVITY_OPTIONS.map((option) => (
                     <button
                       key={option}

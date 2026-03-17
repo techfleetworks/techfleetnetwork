@@ -416,7 +416,7 @@ export function GeneralApplicationTab() {
         onStepClick={(s) => { setErrors({}); setSection(s); }}
       />
 
-      <div className="card-elevated p-6 space-y-5" ref={formContainerRef}>
+      <div className="card-elevated p-6 space-y-6" ref={formContainerRef}>
         {/* Error summary banner */}
         {Object.keys(errors).length > 0 && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
@@ -445,7 +445,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 1: Basic Information ─── */}
         {section === 1 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="space-y-3">
               <Label className="text-base font-medium">
                 Tech Fleet project trainees are expected to commit 15 to 20 hours on project team training. This is flexible, and your team builds the schedule together based on their availability. Are you committed to contribute 15 to 20 hours a week during project training? <span className="text-destructive">*</span>
@@ -474,7 +474,7 @@ export function GeneralApplicationTab() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-portfolio">Portfolio URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
               <Input
                 id="app-portfolio"
@@ -486,7 +486,7 @@ export function GeneralApplicationTab() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-linkedin">LinkedIn URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
               <Input
                 id="app-linkedin"
@@ -502,9 +502,9 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 2: Review and Update Profile ─── */}
         {section === 2 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Location */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Location <span className="text-destructive">*</span></Label>
               <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                 <PopoverTrigger asChild>
@@ -541,7 +541,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Discord */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-discord">Discord Username</Label>
               <div className="relative">
                 <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -557,7 +557,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Timezone */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Timezone <span className="text-destructive">*</span></Label>
               <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
                 <PopoverTrigger asChild>
@@ -594,7 +594,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Experience Areas */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>In what areas do you want to gain experience on Tech Fleet's training programs? <span className="text-destructive">*</span></Label>
               <MultiSelect
                 options={experienceOptions}
@@ -609,7 +609,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Professional Goals */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-goals">Tell us more about the professional development goals you want to achieve <span className="text-destructive">*</span></Label>
               <Textarea
                 id="app-goals"
@@ -637,7 +637,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Education */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>What best describes your current or previous education? <span className="text-destructive">*</span></Label>
               <MultiSelect
                 options={educationOptions}
@@ -655,7 +655,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 3: Previous Engagement ─── */}
         {section === 3 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="space-y-3">
               <Label className="text-base font-medium">
                 Have you previously engaged in Tech Fleet community before? <span className="text-destructive">*</span>
@@ -682,7 +682,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {form.previous_engagement === "yes" && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>In what ways have you previously engaged in the Tech Fleet community so far? <span className="text-destructive">*</span></Label>
                 <MultiSelect
                   options={engagementOptions}
@@ -698,7 +698,7 @@ export function GeneralApplicationTab() {
             )}
 
             {form.previous_engagement === "yes" && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="app-teammate-learnings">What have you learned about being a teammate after engaging in Tech Fleet so far?</Label>
                 <Textarea
                   id="app-teammate-learnings"
@@ -716,7 +716,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 4: Agile Questions ─── */}
         {section === 4 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <LongFormQuestion
               id="agile-waterfall"
               label="What's the difference between Agile and Waterfall methods?"
@@ -754,7 +754,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 5: Service Leadership ─── */}
         {section === 5 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <LongFormQuestion
               id="sl-definition"
               label="What is Service Leadership to you?"
@@ -860,8 +860,8 @@ function LongFormQuestion({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-base font-medium leading-relaxed">
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-base font-semibold leading-relaxed">
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <Textarea

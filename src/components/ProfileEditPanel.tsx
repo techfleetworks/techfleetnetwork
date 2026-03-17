@@ -188,7 +188,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-6 py-4">
-          <form id="profile-edit-form" onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form id="profile-edit-form" onSubmit={handleSubmit} className="space-y-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
@@ -210,7 +210,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             )}
 
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -237,7 +237,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-firstName">First name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -258,7 +258,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-lastName">Last name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -279,7 +279,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Country</Label>
               <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                 <PopoverTrigger asChild>
@@ -326,7 +326,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Timezone <span className="text-destructive">*</span></Label>
               <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
                 <PopoverTrigger asChild>
@@ -375,7 +375,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-discordUsername">Discord username</Label>
               <div className="relative">
                 <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -430,7 +430,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Portfolio & LinkedIn */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-portfolio">Portfolio URL</Label>
               <Input
                 id="edit-portfolio"
@@ -442,7 +442,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-linkedin">LinkedIn URL</Label>
               <Input
                 id="edit-linkedin"
@@ -455,7 +455,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Experience Areas */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Experience areas</Label>
               <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
               <MultiSelect
@@ -468,7 +468,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Professional Goals */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-goals">Professional development goals</Label>
               <Textarea
                 id="edit-goals"
@@ -493,7 +493,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Education */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Education background</Label>
               <MultiSelect
                 options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
@@ -505,7 +505,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Password Reset */}
-            <div className="space-y-2 pt-2 border-t">
+            <div className="space-y-1.5 pt-2 border-t">
               <Label>Password</Label>
               {isOAuth ? (
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
@@ -557,7 +557,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               This action is permanent and cannot be undone. All of your data, including your profile, progress, and activity, will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-1.5 py-2">
             <Label htmlFor="delete-confirm">
               Type <strong className="text-foreground">Delete</strong> to confirm
             </Label>
