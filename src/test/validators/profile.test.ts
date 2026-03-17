@@ -66,7 +66,7 @@ describe("profileSchema (BDD 2.7: Missing mandatory fields)", () => {
   });
 
   it("rejects whitespace-only first name", () => {
-    const result = profileSchema.safeParse({ firstName: "   ", lastName: "Doe", country: "US" });
+    const result = profileSchema.safeParse({ firstName: "   ", lastName: "Doe", country: "US", timezone: "America/New_York" });
     expect(result.success).toBe(false);
   });
 });
