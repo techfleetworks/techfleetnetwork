@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
-import { BarChart3, Clock, Trophy, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
@@ -43,17 +43,8 @@ export default function DashboardPage() {
 
   // No auto-redirect — always show the dashboard overview on login
 
-  const currentPhase = allThirdStepsDone
-    ? "Learn the Team Practices"
-    : allSecondStepsDone
-    ? "Learn About Agile Teamwork"
-    : allFirstStepsDone
-    ? "Build an Agile Mindset"
-    : "Onboarding Steps";
 
-  const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0) + (thirdStepsCompleted ?? 0);
-  const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS + TOTAL_TEAMWORK_LESSONS;
-  const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0) + (allThirdStepsDone ? 1 : 0);
+
 
   const journeySteps: JourneyStep[] = allFirstStepsDone
     ? [
@@ -141,53 +132,11 @@ export default function DashboardPage() {
       {allFirstStepsDone ? (
         <>
           {badgesSection}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {[
-              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card-elevated p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="text-lg font-semibold text-foreground">{value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {journeySection}
         </>
       ) : (
         <>
           {journeySection}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
-            {[
-              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card-elevated p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="text-lg font-semibold text-foreground">{value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {badgesSection}
         </>
       )}
