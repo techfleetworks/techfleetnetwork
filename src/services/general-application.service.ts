@@ -132,7 +132,7 @@ export const GeneralApplicationService = {
     });
   },
 
-  /** Save progress (update fields) and sync to Airtable */
+  /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
   async save(id: string, fields: Partial<Pick<GeneralApplication, "about_yourself" | "status" | "title">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
@@ -143,9 +143,14 @@ export const GeneralApplicationService = {
         log.error("save", `Failed to save general app: ${error.message}`, { id }, error);
         throw new Error("Failed to save application.");
       }
-      // Fetch updated record and sync to Airtable (non-blocking)
+      // Fetch updated record for syncs
       const updated = await GeneralApplicationService.fetch(id);
       if (updated) {
+        // Sync about_yourself → profile.professional_background (non-blocking)
+        if (fields.about_yourself !== undefined) {
+          syncToProfileBackground(updated.user_id, updated.about_yourself).catch(() => {});
+        }
+        // Sync to Airtable (non-blocking)
         syncToAirtable(updated).catch(() => {});
       }
     });
