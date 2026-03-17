@@ -834,9 +834,9 @@ export function GeneralApplicationTab() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-2">
-            <Button onClick={() => setShowCelebration(false)}>
+            <Button onClick={() => { setShowCelebration(false); navigate("/applications"); }}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Continue
+              Back to Applications
             </Button>
           </div>
         </DialogContent>
