@@ -116,6 +116,7 @@ export function GeneralApplicationTab() {
     try {
       await GeneralApplicationService.save(activeApp.id, {
         about_yourself: aboutYourself,
+        title,
         status: markComplete ? "completed" : "draft",
       });
       toast.success(
