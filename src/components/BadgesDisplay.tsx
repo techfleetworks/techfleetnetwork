@@ -75,7 +75,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
             key={badge.id}
             to={badge.href}
             className="flex flex-col items-center text-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-2 transition-colors hover:bg-muted/50"
-            aria-label={`${badge.name} badge – ${badge.earned ? badge.description : "Locked"}`}
+            aria-label={`${badge.name} badge – ${badge.earned ? badge.description : "Click to Continue"}`}
           >
             <div
               className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full transition-all duration-300 ${
@@ -99,7 +99,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
               {badge.name}
             </p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight hidden sm:block">
-              {badge.earned ? badge.description : "Locked"}
+              {badge.earned ? badge.description : "Click to Continue"}
             </p>
           </Link>
         ))}

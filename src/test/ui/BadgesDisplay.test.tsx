@@ -52,8 +52,8 @@ describe("BadgesDisplay UI (BDD 25.1–25.2)", () => {
   it("25.2: earned badge shows description, locked shows 'Locked'", () => {
     renderWithRouter(<BadgesDisplay allFirstStepsDone={true} allSecondStepsDone={false} />);
     expect(screen.getByText("Completed onboarding checklist")).toBeInTheDocument();
-    const lockedTexts = screen.getAllByText("Locked");
-    expect(lockedTexts.length).toBeGreaterThanOrEqual(2);
+    const clickTexts = screen.getAllByText("Click to Continue");
+    expect(clickTexts.length).toBeGreaterThanOrEqual(2);
   });
 
   it("25.2: renders badge images with alt text", () => {
