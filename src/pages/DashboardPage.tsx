@@ -31,9 +31,7 @@ export default function DashboardPage() {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
       setThirdStepsCompleted(third);
-      setCommunityBadgeCount(
-        (stats.first_steps_completed ?? 0) + (stats.second_steps_completed ?? 0)
-      );
+      setCommunityBadgeCount(stats.badges_earned ?? 0);
     });
   }, [user]);
 
