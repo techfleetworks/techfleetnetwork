@@ -102,19 +102,19 @@ export function NetworkActivity() {
           <StatCard
             icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
             value={stats.core_courses_active}
-            label="Active in Core Courses"
+            label="Completed Core Courses"
             colorClass="bg-warning/10"
           />
           <StatCard
             icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
             value={stats.beginner_courses_active}
-            label="Active in Beginner Courses"
+            label="Completed Beginner Courses"
             colorClass="bg-info/10"
           />
           <StatCard
             icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
             value={stats.advanced_courses_active}
-            label="Active in Advanced Courses"
+            label="Completed Advanced Courses"
             colorClass="bg-accent/50"
           />
           <StatCard
@@ -152,20 +152,20 @@ export function NetworkActivity() {
             />
             <StatCard
               icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
-              value={stats.prev_week_core_active}
-              label="Active in Core Courses"
+            value={stats.prev_week_core_active}
+              label="Completed Core Courses"
               colorClass="bg-warning/10"
             />
             <StatCard
               icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
-              value={stats.prev_week_beginner_active}
-              label="Active in Beginner Courses"
+            value={stats.prev_week_beginner_active}
+              label="Completed Beginner Courses"
               colorClass="bg-info/10"
             />
             <StatCard
               icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
-              value={stats.prev_week_advanced_active}
-              label="Active in Advanced Courses"
+            value={stats.prev_week_advanced_active}
+              label="Completed Advanced Courses"
               colorClass="bg-accent/50"
             />
             <StatCard
