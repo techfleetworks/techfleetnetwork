@@ -1,8 +1,27 @@
 import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
-import { NetworkActivity } from "@/components/NetworkActivity";
 import heroImage from "@/assets/hero-space.png";
+
+const NetworkActivity = lazy(() =>
+  import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
+);
+
+function NetworkActivityFallback() {
+  return (
+    <section aria-label="Loading network activity" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
+      <div className="container-app">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse mb-8" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="card-elevated p-5 h-20 animate-pulse bg-muted/30" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -34,13 +53,14 @@ export default function LandingPage() {
                 </a>
               </div>
             </div>
-            <div className="hidden lg:flex justify-center">
+            {/* Explicit aspect-ratio container prevents CLS when image loads */}
+            <div className="hidden lg:flex justify-center" style={{ aspectRatio: "448 / 224", minHeight: 224 }}>
               <img
                 src={heroImage}
                 alt="Illustration of an astronaut floating in space near planets, representing the journey of learning and growth"
-                className="w-full max-w-md"
+                className="w-full max-w-md object-contain"
                 width={448}
-                height={448}
+                height={224}
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
@@ -50,9 +70,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Network Activity Section */}
-      <section className="border-t bg-muted/30">
-        <NetworkActivity />
+      {/* Network Activity Section — lazy loaded with reserved space */}
+      <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
+        <Suspense fallback={<NetworkActivityFallback />}>
+          <NetworkActivity />
+        </Suspense>
       </section>
 
       {/* Features Section */}

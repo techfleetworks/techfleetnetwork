@@ -95,7 +95,7 @@ export function MemberWorldMap() {
 
   if (loading || geoFeatures.length === 0) {
     return (
-      <div className="card-elevated p-6">
+      <div className="card-elevated p-6" style={{ minHeight: 420 }}>
         <div className="h-6 w-48 bg-muted rounded animate-pulse mb-4" />
         <div className="h-[300px] bg-muted/30 rounded animate-pulse" />
       </div>

@@ -65,7 +65,7 @@ export function NetworkActivity() {
 
   if (loading) {
     return (
-      <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16" style={{ minHeight: 600 }}>
+      <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
         <div className="container-app">
           <div className="h-8 w-48 bg-muted rounded animate-pulse mb-8" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
