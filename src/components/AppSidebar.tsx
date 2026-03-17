@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Activity,
   Megaphone,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -111,6 +112,18 @@ export function AppSidebar() {
                     <Link to="/admin/users">
                       <ShieldCheck className="h-4 w-4" />
                       <span>User Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/clients")}
+                    tooltip="Clients"
+                  >
+                    <Link to="/admin/clients">
+                      <Building2 className="h-4 w-4" />
+                      <span>Clients</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

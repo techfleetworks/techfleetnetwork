@@ -73,6 +73,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Activity; 
   admin_promotion_initiated: { label: "Admin Promotion", icon: ShieldCheck, variant: "default" },
   announcement_created: { label: "Announcement Created", icon: Activity, variant: "default" },
   announcement_deleted: { label: "Announcement Deleted", icon: Activity, variant: "destructive" },
+  client_created: { label: "Client Created", icon: FileText, variant: "default" },
+  client_updated: { label: "Client Updated", icon: Pencil, variant: "secondary" },
+  client_deleted: { label: "Client Deleted", icon: FileText, variant: "destructive" },
   client_error: { label: "Client Error", icon: AlertCircle, variant: "destructive" },
   error: { label: "Error", icon: AlertCircle, variant: "destructive" },
 };
