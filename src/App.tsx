@@ -32,6 +32,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AdminIngestPage = lazy(() => import("./pages/AdminIngestPage"));
 const ApplicationsPage = lazy(() => import("./pages/ApplicationsPage"));
+const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage"));
 const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 
 function RouteFallback() {
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                   <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
+                  <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
                   <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
                   <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

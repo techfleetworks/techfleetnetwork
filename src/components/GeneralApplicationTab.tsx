@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   Plus,
   FileText,
@@ -540,9 +541,9 @@ export function GeneralApplicationTab() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
-        <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => setView("list")}>
+        <Link to="/applications" className="text-muted-foreground hover:text-foreground transition-colors">
           Applications
-        </button>
+        </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
         <span className="font-medium text-foreground truncate">
           {isNewApp ? "Create General Application" : "Edit General Application"}
