@@ -7,6 +7,9 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
+// Polyfill scrollIntoView for cmdk in jsdom
+Element.prototype.scrollIntoView = vi.fn();
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
