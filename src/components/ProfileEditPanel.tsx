@@ -127,6 +127,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         experience_areas: form.experience_areas,
         professional_goals: form.professional_goals,
         notify_training_opportunities: form.notify_training_opportunities,
+        notify_announcements: form.notify_announcements,
         education_background: form.education_background,
       });
       await refreshProfile();
