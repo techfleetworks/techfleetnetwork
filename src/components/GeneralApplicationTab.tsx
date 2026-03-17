@@ -204,7 +204,7 @@ export function GeneralApplicationTab() {
       servant_leadership_situation: app.servant_leadership_situation || "",
     });
     setTitle(app.title);
-    setSection(app.current_section > 0 ? Math.min(app.current_section, TOTAL_SECTIONS) : 1);
+    setSection(app.status === "completed" ? 1 : (app.current_section > 0 ? Math.min(app.current_section, TOTAL_SECTIONS) : 1));
   };
 
   const gatherSaveFields = (): Partial<GeneralApplication> => ({

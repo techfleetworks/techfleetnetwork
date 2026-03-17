@@ -54,9 +54,12 @@ export default function ApplicationsPage() {
             Covers your background, agile mindset, and service leadership.
           </p>
           {appStatus.completed && appStatus.completedAt && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Completed on {format(new Date(appStatus.completedAt), "MMM d, yyyy")}
-            </p>
+            <div className="mt-3 flex items-center gap-2 rounded-md bg-success/10 border border-success/20 px-3 py-2">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+              <span className="text-sm font-medium text-success">
+                Completed on {format(new Date(appStatus.completedAt), "MMM d, yyyy")}
+              </span>
+            </div>
           )}
           <div className="flex items-center gap-1 mt-4 text-sm font-medium text-primary group-hover:gap-2 transition-all">
             {appStatus.completed ? "View & Edit" : "Open"}
