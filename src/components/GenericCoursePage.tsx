@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   CheckCircle2,
   Circle,
   ChevronDown,
@@ -23,6 +22,14 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
@@ -194,13 +201,22 @@ export default function GenericCoursePage({
   if (prerequisite && prerequisite.loaded && !prerequisite.met) {
     return (
       <div className="container-app py-8 sm:py-12 max-w-3xl">
-        <Link
-          to={backTo}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {backLabel}
-        </Link>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
+          <Breadcrumb className="mt-2">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/training">Courses</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
         <div className="flex flex-col items-center justify-center text-center py-16 px-4">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-6">
@@ -236,17 +252,22 @@ export default function GenericCoursePage({
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
-      <Link
-        to={backTo}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {backLabel}
-      </Link>
-
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{title}</h1>
-        <p className="text-muted-foreground mt-1">{subtitle}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
+        <Breadcrumb className="mt-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/training">Courses</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <p className="text-muted-foreground mt-2">{subtitle}</p>
       </div>
 
       {/* Overall progress */}
