@@ -60,13 +60,21 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
 
   return (
     <section aria-labelledby="badges-heading">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 id="badges-heading" className="text-xl font-semibold text-foreground">
-          Beginner Badges Earned
-        </h2>
-        <span className="text-sm text-muted-foreground">
-          ({earnedCount}/{badges.length})
-        </span>
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <h2 id="badges-heading" className="text-xl font-semibold text-foreground">
+            Beginner Badges Earned
+          </h2>
+          <span className="text-sm text-muted-foreground">
+            ({earnedCount}/{badges.length})
+          </span>
+        </div>
+        {communityBadgeCount != null && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            🏆 <span className="font-semibold text-foreground">{communityBadgeCount.toLocaleString()}</span>{" "}
+            {communityBadgeCount === 1 ? "badge" : "badges"} earned across all Tech Fleet members
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
