@@ -557,7 +557,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               This action is permanent and cannot be undone. All of your data, including your profile, progress, and activity, will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-1.5 py-2">
             <Label htmlFor="delete-confirm">
               Type <strong className="text-foreground">Delete</strong> to confirm
             </Label>
