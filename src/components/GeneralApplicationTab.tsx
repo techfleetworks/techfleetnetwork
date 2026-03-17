@@ -682,7 +682,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {form.previous_engagement === "yes" && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>In what ways have you previously engaged in the Tech Fleet community so far? <span className="text-destructive">*</span></Label>
                 <MultiSelect
                   options={engagementOptions}
