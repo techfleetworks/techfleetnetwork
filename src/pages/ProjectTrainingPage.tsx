@@ -36,6 +36,7 @@ export default function ProjectTrainingPage() {
       totalLessons={TOTAL_PROJECT_TRAINING_LESSONS}
       completionMessage="🎉 Project Training Course Complete!"
       completionSubtext="You're ready to join a project training team!"
+      nextCourse={{ title: "Join Volunteer Teams", href: "/courses/volunteer-teams" }}
       prerequisite={{
         met: prereqMet,
         loaded: prereqLoaded,
