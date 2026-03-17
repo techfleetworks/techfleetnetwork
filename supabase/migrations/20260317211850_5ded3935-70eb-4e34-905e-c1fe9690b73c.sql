@@ -1,0 +1,1 @@
+ALTER TYPE public.journey_phase ADD VALUE IF NOT EXISTS 'discord_learning';

@@ -26,6 +26,7 @@ const SecondStepsPage = lazy(() => import("./pages/SecondStepsPage"));
 const ThirdStepsPage = lazy(() => import("./pages/ThirdStepsPage"));
 const ProjectTrainingPage = lazy(() => import("./pages/ProjectTrainingPage"));
 const VolunteerTeamsPage = lazy(() => import("./pages/VolunteerTeamsPage"));
+const DiscordCoursePage = lazy(() => import("./pages/DiscordCoursePage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
@@ -68,6 +69,7 @@ const App = () => (
                   <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
                   <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
                   <Route path="/courses/agile-mindset" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
+                  <Route path="/courses/discord-learning" element={<ProtectedRoute><DiscordCoursePage /></ProtectedRoute>} />
                   <Route path="/courses/agile-teamwork" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
                   <Route path="/courses/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
                   <Route path="/courses/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />

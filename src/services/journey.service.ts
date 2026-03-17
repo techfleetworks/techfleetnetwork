@@ -16,6 +16,7 @@ import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
 import { ALL_TEAMWORK_LESSON_IDS } from "@/data/teamwork-course";
 import { ALL_PROJECT_TRAINING_LESSON_IDS } from "@/data/project-training-course";
 import { ALL_VOLUNTEER_LESSON_IDS } from "@/data/volunteer-teams-course";
+import { ALL_DISCORD_LESSON_IDS } from "@/data/discord-course";
 
 const VALID_TASK_IDS = new Set([
   "profile",
@@ -29,6 +30,7 @@ const VALID_TASK_IDS = new Set([
   ...ALL_TEAMWORK_LESSON_IDS,
   ...ALL_PROJECT_TRAINING_LESSON_IDS,
   ...ALL_VOLUNTEER_LESSON_IDS,
+  ...ALL_DISCORD_LESSON_IDS,
 ]);
 
 const VALID_PHASES: Set<string> = new Set([
@@ -39,6 +41,7 @@ const VALID_PHASES: Set<string> = new Set([
   "projects",
   "project_training",
   "volunteer",
+  "discord_learning",
 ]);
 
 export const JourneyService = {

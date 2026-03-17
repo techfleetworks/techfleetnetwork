@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
@@ -142,6 +143,7 @@ export default function TrainingPage() {
   const { user } = useAuth();
   const [firstCompleted, setFirstCompleted] = useState(0);
   const [agileCompleted, setAgileCompleted] = useState(0);
+  const [discordCompleted, setDiscordCompleted] = useState(0);
   const [teamworkCompleted, setTeamworkCompleted] = useState(0);
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState(0);
   const [volunteerCompleted, setVolunteerCompleted] = useState(0);
@@ -152,12 +154,14 @@ export default function TrainingPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
+      JourneyService.getCompletedCount(user.id, "discord_learning"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
-    ]).then(([first, second, third, pt, vol]) => {
+    ]).then(([first, second, discord, third, pt, vol]) => {
       setFirstCompleted(first);
       setAgileCompleted(second);
+      setDiscordCompleted(discord);
       setTeamworkCompleted(third);
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
@@ -185,6 +189,16 @@ export default function TrainingPage() {
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: agileCompleted,
+      locked: false,
+    },
+    {
+      id: "discord-learning",
+      title: "Discord Learning Series",
+      description: `${TOTAL_DISCORD_LESSONS} lessons on getting started, security, and interacting in Tech Fleet Discord.`,
+      icon: Users,
+      href: "/courses/discord-learning",
+      totalTasks: TOTAL_DISCORD_LESSONS,
+      completedTasks: discordCompleted,
       locked: false,
     },
     {
