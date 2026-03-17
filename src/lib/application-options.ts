@@ -66,21 +66,21 @@ export const EXPERIENCE_AREAS = [
 ] as const;
 
 export const EDUCATION_OPTIONS = [
-  "Self-Taught",
-  "Current college student",
-  "Previous college student",
   "Current bootcamp student",
-  "Previous bootcamp student",
   "Current certification programs",
-  "Previous certification programs",
-  "Self-studied",
+  "Current college student",
   "No formal education",
+  "Previous bootcamp student",
+  "Previous certification programs",
+  "Previous college student",
+  "Self-studied",
+  "Self-Taught",
 ] as const;
 
 export const PREVIOUS_ENGAGEMENT_OPTIONS = [
-  "I've observed",
   "I've been on project training teams",
-  "I've volunteered",
-  "I've taken classes",
+  "I've observed",
   "I've participated in other ways",
+  "I've taken classes",
+  "I've volunteered",
 ] as const;
