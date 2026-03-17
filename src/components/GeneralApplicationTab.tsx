@@ -557,7 +557,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Timezone */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Timezone <span className="text-destructive">*</span></Label>
               <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
                 <PopoverTrigger asChild>
