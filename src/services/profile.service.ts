@@ -24,7 +24,7 @@ export const ProfileService = {
     return log.track("fetch", `Fetching profile for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
+        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
         .eq("user_id", userId)
         .single();
       if (error) {
