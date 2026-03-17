@@ -18,15 +18,15 @@ export default function EventsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="public" className="w-full">
+      <Tabs defaultValue="community" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="public" className="gap-2">
-            <Globe className="h-4 w-4" />
-            Public Events
-          </TabsTrigger>
           <TabsTrigger value="community" className="gap-2">
             <Users className="h-4 w-4" />
             Community Events
+          </TabsTrigger>
+          <TabsTrigger value="public" className="gap-2">
+            <Globe className="h-4 w-4" />
+            Public Events
           </TabsTrigger>
         </TabsList>
 
