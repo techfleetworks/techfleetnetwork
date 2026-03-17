@@ -34,6 +34,7 @@ export function ProfileSetupDialog() {
     lastName: "",
     email: "",
     country: "",
+    timezone: "",
     hasDiscord: null as boolean | null,
     discordUsername: "",
     interests: [] as string[],
