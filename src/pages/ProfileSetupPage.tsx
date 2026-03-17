@@ -28,6 +28,7 @@ export default function ProfileSetupPage() {
     lastName: "",
     email: "",
     country: "",
+    timezone: "",
     hasDiscord: null as boolean | null,
     discordUsername: "",
     interests: [] as string[],
