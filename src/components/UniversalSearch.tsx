@@ -31,7 +31,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Onboarding Steps",
     description:
       "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
-    href: "/journey/first-steps",
+    href: "/courses/onboarding",
     group: "Courses",
   },
   {
