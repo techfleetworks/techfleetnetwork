@@ -41,6 +41,7 @@ const VALID_PHASES: Set<string> = new Set([
   "projects",
   "project_training",
   "volunteer",
+  "discord_learning",
 ]);
 
 export const JourneyService = {

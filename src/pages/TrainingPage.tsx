@@ -192,6 +192,16 @@ export default function TrainingPage() {
       locked: false,
     },
     {
+      id: "discord-learning",
+      title: "Discord Learning Series",
+      description: `${TOTAL_DISCORD_LESSONS} lessons on getting started, security, and interacting in Tech Fleet Discord.`,
+      icon: Users,
+      href: "/courses/discord-learning",
+      totalTasks: TOTAL_DISCORD_LESSONS,
+      completedTasks: discordCompleted,
+      locked: false,
+    },
+    {
       id: "agile-teamwork",
       title: "Learn About Agile Teamwork",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
