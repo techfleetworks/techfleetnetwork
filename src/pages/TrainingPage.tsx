@@ -63,7 +63,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
               className="card-elevated p-5 opacity-50 cursor-not-allowed relative overflow-hidden"
               aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
             >
-              <div className="absolute top-3 -right-8 bg-muted-foreground/10 text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-10 py-1 rotate-45 pointer-events-none">
+              <div className="absolute inset-x-0 top-0 bg-muted-foreground/80 text-background text-sm font-bold uppercase tracking-widest py-2 text-center pointer-events-none">
                 Locked
               </div>
               <div className="flex items-start justify-between mb-3">
