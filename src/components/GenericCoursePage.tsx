@@ -128,6 +128,14 @@ export default function GenericCoursePage({
   );
   const progress = (completedCount / totalLessons) * 100;
 
+  // Detect when course just became fully complete after a toggle
+  useEffect(() => {
+    if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < totalLessons && completedCount === totalLessons) {
+      setShowCompletionDialog(true);
+    }
+    prevCompletedCountRef.current = completedCount;
+  }, [completedCount, totalLessons]);
+
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;
     setToggling(true);
