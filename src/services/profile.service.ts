@@ -22,6 +22,7 @@ export interface Profile {
   experience_areas: string[];
   professional_goals: string;
   notify_training_opportunities: boolean;
+  notify_announcements: boolean;
   education_background: string[];
 }
 
