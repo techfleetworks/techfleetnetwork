@@ -8,13 +8,13 @@ import { format } from "date-fns";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
-  const [appStatus, setAppStatus] = useState<{ completed: boolean; updatedAt: string | null }>({ completed: false, updatedAt: null });
+  const [appStatus, setAppStatus] = useState<{ completed: boolean; completedAt: string | null }>({ completed: false, completedAt: null });
 
   useEffect(() => {
     if (!user) return;
     GeneralApplicationService.list(user.id).then((apps) => {
       if (apps.length > 0 && apps[0].status === "completed") {
-        setAppStatus({ completed: true, updatedAt: apps[0].updated_at });
+        setAppStatus({ completed: true, completedAt: (apps[0] as Record<string, unknown>).completed_at as string | null ?? apps[0].updated_at });
       }
     }).catch(() => {});
   }, [user]);
