@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
   X,
-  Rocket,
   BookOpen,
   GraduationCap,
   LayoutDashboard,
@@ -31,6 +30,60 @@ import {
 } from "@/components/ui/dropdown-menu";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
+import type { Profile } from "@/services/profile.service";
+import type { User } from "@supabase/supabase-js";
+
+function ProfileDropdown({
+  profile,
+  user,
+  onEditProfile,
+  onSignOut,
+}: {
+  profile: Profile | null;
+  user: User | null;
+  onEditProfile: () => void;
+  onSignOut: () => void;
+}) {
+  const avatarInitials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
+    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Account menu"
+        >
+          <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+            <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
+            <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <div className="px-2 py-1.5">
+          <p className="text-sm font-medium truncate">
+            {profile?.first_name || profile?.display_name || "Profile"}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {profile?.email || user?.email || ""}
+          </p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onEditProfile}>
+          <UserPen className="h-4 w-4 mr-2" />
+          Edit Profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onSignOut}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
