@@ -156,7 +156,7 @@ export default function DashboardPage() {
       title: "Onboarding Steps",
       description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
-      href: "/journey/first-steps",
+      href: "/courses/onboarding",
       totalTasks: totalFirstSteps,
       completedTasks: firstStepsCompleted ?? 0,
       locked: false,
