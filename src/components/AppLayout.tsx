@@ -11,6 +11,7 @@ import {
   UserPen,
   Bot,
   CalendarDays,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
