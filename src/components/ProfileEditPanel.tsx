@@ -29,10 +29,11 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", discordUsername: "", interests: [] as string[] });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", timezone: "", discordUsername: "", interests: [] as string[] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
