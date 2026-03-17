@@ -108,7 +108,7 @@ export function NetworkActivity() {
           <StatCard
             icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
             value={stats.beginner_courses_active}
-            label="Active in Beginner Courses"
+            label="Completed Beginner Courses"
             colorClass="bg-info/10"
           />
           <StatCard
