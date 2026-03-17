@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, GraduationCap, ClipboardList, Handshake } from "lucide-react";
+import { Search, GraduationCap, ClipboardList, Handshake, Megaphone } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
