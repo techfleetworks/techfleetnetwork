@@ -16,7 +16,7 @@ const currentStep: JourneyStep = {
   title: "Second Steps",
   description: "Complete the Agile Handbook course.",
   status: "current",
-  href: "/journey/second-steps",
+  href: "/courses/agile-mindset",
 };
 
 const lockedStep: JourneyStep = {
