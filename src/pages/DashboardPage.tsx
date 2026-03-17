@@ -43,17 +43,8 @@ export default function DashboardPage() {
 
   // No auto-redirect — always show the dashboard overview on login
 
-  const currentPhase = allThirdStepsDone
-    ? "Learn the Team Practices"
-    : allSecondStepsDone
-    ? "Learn About Agile Teamwork"
-    : allFirstStepsDone
-    ? "Build an Agile Mindset"
-    : "Onboarding Steps";
 
-  const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0) + (thirdStepsCompleted ?? 0);
-  const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS + TOTAL_TEAMWORK_LESSONS;
-  const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0) + (allThirdStepsDone ? 1 : 0);
+
 
   const journeySteps: JourneyStep[] = allFirstStepsDone
     ? [
