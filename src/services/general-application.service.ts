@@ -48,6 +48,21 @@ export interface GeneralApplication {
   status: string;
   title: string;
   about_yourself: string;
+  hours_commitment: string;
+  portfolio_url: string;
+  linkedin_url: string;
+  previous_engagement: string;
+  previous_engagement_ways: string[];
+  teammate_learnings: string;
+  agile_vs_waterfall: string;
+  psychological_safety: string;
+  agile_philosophies: string;
+  collaboration_challenges: string;
+  servant_leadership_definition: string;
+  servant_leadership_actions: string;
+  servant_leadership_challenges: string;
+  servant_leadership_situation: string;
+  current_section: number;
   created_at: string;
   updated_at: string;
 }
