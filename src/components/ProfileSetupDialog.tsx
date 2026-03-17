@@ -215,7 +215,7 @@ export function ProfileSetupDialog() {
                   <p className="text-sm text-muted-foreground">We'll use this to personalize your experience.</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="setup-firstName">First name <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
