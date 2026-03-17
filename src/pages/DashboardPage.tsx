@@ -127,6 +127,7 @@ export default function DashboardPage() {
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
   const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
   const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
+  const [latestAnnouncements, setLatestAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
     if (!user) return;
