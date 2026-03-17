@@ -169,6 +169,11 @@ body {
   .card-elevated {
     @apply bg-card text-card-foreground border rounded-md;
   }
+
+  /* Field group: tighter label-to-field proximity */
+  .field-group {
+    @apply flex flex-col gap-1.5;
+  }
 }
 
 /* Fleety chat prose — scannable, well-spaced formatting */
