@@ -20,7 +20,7 @@ interface BadgesDisplayProps {
   communityBadgeCount?: number | null;
 }
 
-export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, communityBadgeCount }: BadgesDisplayProps) {
+export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdStepsDone = false, communityBadgeCount }: BadgesDisplayProps) {
   const badges: Badge[] = [
     {
       id: "first-steps",
