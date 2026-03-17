@@ -279,6 +279,16 @@ export function GeneralApplicationTab() {
     }
   };
 
+  /** Check if a section has any user input */
+  const getSectionHasInput = (s: number): boolean => {
+    if (s === 1) return !!(form.hours_commitment || form.portfolio_url || form.linkedin_url);
+    if (s === 2) return !!(form.country || form.timezone || form.experience_areas.length > 0 || form.professional_goals || form.education_background.length > 0);
+    if (s === 3) return !!form.previous_engagement;
+    if (s === 4) return !!(form.agile_vs_waterfall || form.psychological_safety || form.agile_philosophies || form.collaboration_challenges);
+    if (s === 5) return !!(form.servant_leadership_definition || form.servant_leadership_actions || form.servant_leadership_challenges || form.servant_leadership_situation);
+    return false;
+  };
+
   /** Validate a specific section's fields without side effects */
   const getFieldErrors = (s: number): Record<string, string> => {
     const fieldErrors: Record<string, string> = {};
