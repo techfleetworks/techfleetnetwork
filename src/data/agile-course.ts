@@ -1,15 +1,7 @@
-export interface AgileLesson {
-  id: string;
-  title: string;
-  youtubeId: string | null;
-  sourceUrl: string;
-  content: string;
-}
+import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
-export interface AgileCourseSection {
-  title: string;
-  lessons: AgileLesson[];
-}
+export type AgileLesson = CourseLesson;
+export type AgileCourseSection = CourseSection;
 
 export const AGILE_COURSE_SECTIONS: AgileCourseSection[] = [
   {
