@@ -71,6 +71,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       firstName: form.firstName,
       lastName: form.lastName,
       country: form.country,
+      timezone: form.timezone,
       discordUsername: form.discordUsername,
       interests: form.interests,
     });

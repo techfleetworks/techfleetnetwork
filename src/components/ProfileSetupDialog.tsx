@@ -327,6 +327,51 @@ export function ProfileSetupDialog() {
                     </p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Timezone <span className="text-destructive">*</span></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
+                        aria-invalid={!!errors.timezone}
+                      >
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        {form.timezone
+                          ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone
+                          : "Select a timezone"}
+                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search timezones..." />
+                        <CommandList>
+                          <CommandEmpty>No timezone found.</CommandEmpty>
+                          <CommandGroup>
+                            {TIMEZONES.map((tz) => (
+                              <CommandItem
+                                key={tz.value}
+                                value={tz.label}
+                                onSelect={() => setForm({ ...form, timezone: tz.value })}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
+                                {tz.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.timezone && (
+                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
+                      <AlertCircle className="h-3 w-3" /> {errors.timezone}
+                    </p>
+                  )}
+                </div>
               </>
             )}
 
