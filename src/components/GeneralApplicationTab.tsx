@@ -413,10 +413,17 @@ export function GeneralApplicationTab() {
 
       {/* Step progress */}
       <StepProgressBar
-        steps={SECTION_TITLES.map((label, i) => ({
-          label,
-          hasError: sectionsTouched.has(i + 1) && Object.keys(getFieldErrors(i + 1)).length > 0,
-        }))}
+        steps={SECTION_TITLES.map((label, i) => {
+          const s = i + 1;
+          const fieldErrors = getFieldErrors(s);
+          const isComplete = Object.keys(fieldErrors).length === 0;
+          const hasAnyInput = getSectionHasInput(s);
+          return {
+            label,
+            hasError: sectionsTouched.has(s) && !isComplete,
+            status: isComplete && hasAnyInput ? "completed" as const : hasAnyInput ? "started" as const : "not_started" as const,
+          };
+        })}
         currentStep={section}
         onStepClick={(s) => { setErrors({}); setSection(s); }}
       />
