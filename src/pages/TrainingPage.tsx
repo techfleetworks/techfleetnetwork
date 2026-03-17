@@ -213,7 +213,7 @@ export default function TrainingPage() {
       title: "Join Volunteer Teams",
       description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.`,
       icon: Heart,
-      href: "/journey/volunteer-teams",
+      href: "/courses/volunteer-teams",
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
       completedTasks: volunteerCompleted,
       locked: !allTeamworkDone,
