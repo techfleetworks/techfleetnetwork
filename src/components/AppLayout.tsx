@@ -238,6 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-1">
               <UniversalSearch />
               <ThemeToggle />
+              <NotificationBell />
               <Button
                 variant="ghost"
                 size="icon"
