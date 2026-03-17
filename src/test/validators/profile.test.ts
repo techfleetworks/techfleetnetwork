@@ -157,6 +157,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "A".repeat(101),
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toContain("100");
