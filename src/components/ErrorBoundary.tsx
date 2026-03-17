@@ -1,0 +1,60 @@
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { reportError } from "@/services/error-reporter.service";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  errorMessage: string;
+}
+
+/**
+ * React Error Boundary that catches render-time errors,
+ * reports them to the audit_log for admin visibility, and
+ * shows a recovery UI.
+ */
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false, errorMessage: "" };
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, errorMessage: error.message };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    const stack = `${error.name}: ${error.message}\n${error.stack ?? ""}\n\nComponent stack:${info.componentStack ?? ""}`;
+    reportError(stack, "ErrorBoundary");
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, errorMessage: "" });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="flex flex-col items-center justify-center min-h-[40vh] gap-4 p-8"
+          role="alert"
+        >
+          <AlertCircle className="h-12 w-12 text-destructive" aria-hidden />
+          <h2 className="text-lg font-semibold text-foreground">
+            Something went wrong
+          </h2>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            An unexpected error occurred. The error has been logged for the
+            admin team to investigate.
+          </p>
+          <Button variant="outline" onClick={this.handleRetry}>
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
