@@ -81,6 +81,7 @@ export default function GenericCoursePage({
   completionMessage,
   completionSubtext,
   prerequisite,
+  nextCourse,
 }: GenericCoursePageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
