@@ -474,7 +474,7 @@ export function GeneralApplicationTab() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-portfolio">Portfolio URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
               <Input
                 id="app-portfolio"
