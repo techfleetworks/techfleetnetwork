@@ -17,6 +17,12 @@ export interface Profile {
   avatar_url: string | null;
   profile_completed: boolean;
   interests: string[];
+  portfolio_url: string;
+  linkedin_url: string;
+  experience_areas: string[];
+  professional_goals: string;
+  notify_training_opportunities: boolean;
+  education_background: string[];
 }
 
 export const ProfileService = {
