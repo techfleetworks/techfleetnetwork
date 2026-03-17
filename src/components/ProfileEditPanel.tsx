@@ -61,6 +61,12 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         timezone: profile.timezone || "",
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
+        portfolio_url: profile.portfolio_url || "",
+        linkedin_url: profile.linkedin_url || "",
+        experience_areas: profile.experience_areas || [],
+        professional_goals: profile.professional_goals || "",
+        notify_training_opportunities: profile.notify_training_opportunities || false,
+        education_background: profile.education_background || [],
       });
       setErrors({});
     }
