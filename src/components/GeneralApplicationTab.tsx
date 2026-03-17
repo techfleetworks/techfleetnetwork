@@ -145,8 +145,10 @@ export function GeneralApplicationTab() {
   const [latestCompleted, setLatestCompleted] = useState<GeneralApplication | null>(null);
   const [creatingWithPrefill, setCreatingWithPrefill] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sectionsTouched, setSectionsTouched] = useState<Set<number>>(new Set());
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
+  const formContainerRef = useRef<HTMLDivElement>(null);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
