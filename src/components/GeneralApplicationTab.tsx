@@ -51,11 +51,11 @@ import {
 const TOTAL_SECTIONS = 5;
 
 const SECTION_TITLES = [
-  "Basic Information",
-  "Review and Update Profile",
-  "Previous Engagement in Tech Fleet",
-  "Agile Questions",
-  "Service Leadership Questions",
+  "Intro",
+  "Profile",
+  "Engagement",
+  "Agile",
+  "Service Leadership",
 ];
 
 const experienceOptions: MultiSelectOption[] = EXPERIENCE_AREAS.map((e) => ({
@@ -279,6 +279,16 @@ export function GeneralApplicationTab() {
     }
   };
 
+  /** Check if a section has any user input */
+  const getSectionHasInput = (s: number): boolean => {
+    if (s === 1) return !!(form.hours_commitment || form.portfolio_url || form.linkedin_url);
+    if (s === 2) return !!(form.country || form.timezone || form.experience_areas.length > 0 || form.professional_goals || form.education_background.length > 0);
+    if (s === 3) return !!form.previous_engagement;
+    if (s === 4) return !!(form.agile_vs_waterfall || form.psychological_safety || form.agile_philosophies || form.collaboration_challenges);
+    if (s === 5) return !!(form.servant_leadership_definition || form.servant_leadership_actions || form.servant_leadership_challenges || form.servant_leadership_situation);
+    return false;
+  };
+
   /** Validate a specific section's fields without side effects */
   const getFieldErrors = (s: number): Record<string, string> => {
     const fieldErrors: Record<string, string> = {};
@@ -413,10 +423,17 @@ export function GeneralApplicationTab() {
 
       {/* Step progress */}
       <StepProgressBar
-        steps={SECTION_TITLES.map((label, i) => ({
-          label,
-          hasError: sectionsTouched.has(i + 1) && Object.keys(getFieldErrors(i + 1)).length > 0,
-        }))}
+        steps={SECTION_TITLES.map((label, i) => {
+          const s = i + 1;
+          const fieldErrors = getFieldErrors(s);
+          const isComplete = Object.keys(fieldErrors).length === 0;
+          const hasAnyInput = getSectionHasInput(s);
+          return {
+            label,
+            hasError: sectionsTouched.has(s) && !isComplete,
+            status: isComplete && hasAnyInput ? "completed" as const : hasAnyInput ? "started" as const : "not_started" as const,
+          };
+        })}
         currentStep={section}
         onStepClick={(s) => { setErrors({}); setSection(s); }}
       />
