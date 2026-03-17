@@ -25,6 +25,7 @@ import ResourcesPage from "./pages/ResourcesPage";
 import ChatPage from "./pages/ChatPage";
 import EventsPage from "./pages/EventsPage";
 import AdminIngestPage from "./pages/AdminIngestPage";
+import ApplicationsPage from "./pages/ApplicationsPage";
 import NotFound from "./pages/NotFound";
 
 
