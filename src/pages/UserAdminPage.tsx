@@ -240,7 +240,7 @@ export default function UserAdminPage() {
                             Admin
                           </Badge>
                         ) : u.pendingPromotion ? (
-                          <Badge variant="outline" className="text-amber-600 border-amber-300">
+                          <Badge variant="outline" className="text-warning border-warning/30">
                             Pending
                           </Badge>
                         ) : (
