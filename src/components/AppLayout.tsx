@@ -17,7 +17,7 @@ import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { ProfileEditPanel } from "./ProfileEditPanel";
 import { useAuth } from "@/contexts/AuthContext";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
