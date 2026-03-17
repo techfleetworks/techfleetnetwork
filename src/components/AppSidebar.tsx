@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -8,7 +8,6 @@ import {
   ClipboardList,
   Handshake,
   ShieldCheck,
-  LogOut,
   Activity,
 } from "lucide-react";
 import {
