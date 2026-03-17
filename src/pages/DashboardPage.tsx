@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
@@ -118,6 +119,7 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
+  const [discordCompleted, setDiscordCompleted] = useState<number | null>(null);
   const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
   const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
@@ -128,13 +130,15 @@ export default function DashboardPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
+      JourneyService.getCompletedCount(user.id, "discord_learning"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, third, pt, vol, stats]) => {
+    ]).then(([first, second, discord, third, pt, vol, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
+      setDiscordCompleted(discord);
       setThirdStepsCompleted(third);
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
@@ -144,11 +148,12 @@ export default function DashboardPage() {
 
   const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allDiscordDone = discordCompleted !== null && discordCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted !== null && thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted !== null && projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted !== null && volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
 
-  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
+  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
   const coreCourses: CoreCourse[] = [
     {
@@ -169,6 +174,16 @@ export default function DashboardPage() {
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: secondStepsCompleted ?? 0,
+      locked: false,
+    },
+    {
+      id: "discord-learning",
+      title: "Discord Learning Series",
+      description: `${TOTAL_DISCORD_LESSONS} lessons on getting started and interacting in Tech Fleet Discord.`,
+      icon: Users,
+      href: "/courses/discord-learning",
+      totalTasks: TOTAL_DISCORD_LESSONS,
+      completedTasks: discordCompleted ?? 0,
       locked: false,
     },
     {
