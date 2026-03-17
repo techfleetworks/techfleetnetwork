@@ -493,7 +493,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Education */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Education background</Label>
               <MultiSelect
                 options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
