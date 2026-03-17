@@ -74,7 +74,7 @@ export default function RegisterPage() {
         result.data.password,
         result.data.firstName,
         result.data.lastName,
-        window.location.origin + "/profile-setup"
+        window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
       );
       setSubmitted(true);
     } catch (err: any) {
