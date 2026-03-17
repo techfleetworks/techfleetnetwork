@@ -143,6 +143,7 @@ export default function TrainingPage() {
   const { user } = useAuth();
   const [firstCompleted, setFirstCompleted] = useState(0);
   const [agileCompleted, setAgileCompleted] = useState(0);
+  const [discordCompleted, setDiscordCompleted] = useState(0);
   const [teamworkCompleted, setTeamworkCompleted] = useState(0);
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState(0);
   const [volunteerCompleted, setVolunteerCompleted] = useState(0);
@@ -153,12 +154,14 @@ export default function TrainingPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
+      JourneyService.getCompletedCount(user.id, "discord_learning"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
-    ]).then(([first, second, third, pt, vol]) => {
+    ]).then(([first, second, discord, third, pt, vol]) => {
       setFirstCompleted(first);
       setAgileCompleted(second);
+      setDiscordCompleted(discord);
       setTeamworkCompleted(third);
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
