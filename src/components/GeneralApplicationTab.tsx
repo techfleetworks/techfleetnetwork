@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
-  Plus,
-  FileText,
-  Trash2,
-  Save,
-  CheckCircle2,
-  Copy,
   Loader2,
   ClipboardList,
   ChevronRight,
@@ -18,6 +12,8 @@ import {
   Check,
   ChevronsUpDown,
   AlertCircle,
+  Save,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
