@@ -32,7 +32,7 @@ const mainNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Applications", href: "/applications", icon: ClipboardList },
-  { label: "Project Training", href: "/project-training", icon: Handshake },
+  { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Fleety", href: "/chat", icon: Bot },
