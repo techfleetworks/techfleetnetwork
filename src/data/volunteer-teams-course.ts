@@ -13,126 +13,147 @@ export interface CourseSection {
 
 export const VOLUNTEER_TEAMS_SECTIONS: CourseSection[] = [
   {
-    title: "Getting Started as a Volunteer",
+    title: "Introduction",
     lessons: [
       {
-        id: "vt-start-1",
-        title: "What Is Volunteer Work at Tech Fleet?",
+        id: "vt-intro-1",
+        title: "Life as a Volunteer Teammate",
         youtubeId: null,
-        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/start-the-teammate-handbook-here/types-of-teamwork-in-the-community",
-        content: `**Volunteering for Tech Fleet Professional Association**
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/life-as-a-volunteer-teammate",
+        content: `**Life as a Volunteer Teammate**
 
-Community members can get involved in our organization — a nonprofit with 501(c)(3) public charity status — as nonprofit volunteers. Volunteers contribute to the mission and operations of Tech Fleet itself.
+As a community-driven nonprofit, our members work together to make change that we want to see in the working world. This community has iterated on its own training programs and operations through collaboration with community members since the beginning.
 
-**Key Differences from Project Training:**
+You can join our mission to create the change the working world needs for the future. Beyond apprenticeship training, you can volunteer with Tech Fleet and become part of project-based teams supporting our organization. These teams focus on either short-term projects or ongoing operations that help our community run.
 
-| | Project Training | Volunteering |
-|---|---|---|
-| **Purpose** | Learning & growth | Contributing to Tech Fleet's mission |
-| **Time** | 15-20 hrs/week | As little as 1 hour/week |
-| **Experience** | No experience needed | May require higher experience levels |
-| **Focus** | Your development | Organizational impact |
+Volunteer work should be mutually beneficial. Volunteers should learn as much as they give back to our organization. We prioritize opportunities for people to lead and own outcomes so they gain rich experiences making change and growing professionally. The teams of volunteers use the same cross-functional agile methods that apprenticeship training teams use, because we all live the agile ways of work.
 
-**What Volunteers Do:**
-• Work on teams that support Tech Fleet's operations and growth
-• Contribute to the central roadmap set by the Tech Fleet board of directors
-• Apply cross-functional teamwork principles in real organizational work
-• Help build and improve community programs and services
-
-**Who Can Volunteer:**
-Anyone in the community can explore volunteer opportunities. Some roles may expect higher levels of experience, but the culture remains collaborative and growth-oriented.`,
+When joining volunteer teams you are a teammate without a title who's working toward a shared outcome. Read more about this in our Agile Handbook section about Cross-Functional Agile teams.`,
       },
       {
-        id: "vt-start-2",
-        title: "Volunteer Time Commitment",
+        id: "vt-intro-2",
+        title: "Understanding the Organizational Structure of Our Nonprofit",
         youtubeId: null,
-        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/expectations-for-teammates/training-versus-volunteering",
-        content: `**Flexible Commitment for Real Impact**
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/understanding-the-organizational-structure-of-our-nonprofit",
+        content: `**Understanding the Organizational Structure of Our Nonprofit**
 
-Volunteering at Tech Fleet is designed to be accessible and flexible.
+**The Board of Directors**
 
-**Time Expectations:**
-• As little as 1 hour per week
-• No rigid schedules or required hourly commitments
-• You choose how much time you can dedicate
-• Flexible async and sync working options
+Every nonprofit public charity has a board of directors that governs it. Unlike other organizations, we aspire to distribute the ownership of our organization between the board of directors and the members we serve. The board of directors are accountable for the future of our nonprofit. They set and guide the mission and vision of the organization.
 
-**Volunteer Responsibilities:**
-1. Communicate your availability honestly with your team
-2. Follow through on commitments you make
-3. Apply the same agile teamwork principles as project training
-4. Support your fellow volunteers' growth
-5. Contribute to the goals set in the organizational roadmap
+**Employees**
 
-**Important Notes:**
-• Volunteer roles are unpaid — this is service to the community
-• You are a volunteer worker for Tech Fleet Professional Association
-• Your contributions directly impact the community's mission
-• Volunteering and project training can happen at different times`,
+While we don't have any employees (people who are paid) in 2026, we do plan to move toward this as we build a budget. Employees will operate the day-to-day running of the organization.
+
+**Volunteers**
+
+Everyone who works on the Tech Fleet organization is a volunteer today. Volunteers are voluntary workers of our nonprofit public charity. They have different responsibilities based on what they want to do in the organization. Volunteers can either participate in short-term projects or ongoing operations. They are not paid and are not employees.
+
+**Trainees**
+
+Trainees participate in our programs for teamwork and agile practice. They join training teams, lab-based classes, or advanced residencies to receive educational services in the real-world of agile teamwork.`,
       },
     ],
   },
   {
-    title: "Volunteer Team Dynamics",
+    title: "Volunteer Work",
     lessons: [
       {
-        id: "vt-dynamics-1",
-        title: "How Volunteer Teams Operate",
+        id: "vt-work-1",
+        title: "Types of Volunteer Project Work for Our Community",
         youtubeId: null,
-        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/expectations-for-teammates/sharing-leadership-with-teammates",
-        content: `**Shared Leadership in Volunteer Teams**
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/types-of-volunteer-project-work-for-our-community",
+        content: `**Types of Volunteer Project Work for Our Community**
 
-Just like project training teams, volunteer teams operate with shared leadership. No single person is "in charge" — everyone contributes their strengths and supports each other.
+Volunteering with Tech Fleet can take many forms, allowing individuals to choose the level of commitment that best suits them. As a volunteer, you'll join a team focused on short-term or ongoing projects. This makes it easy to find manageable ways to give back to our ecosystem and be a part of the mission.
 
-**How Volunteer Teams Work:**
+**Types of Work for Community Volunteers**
 
-1. **Roadmap-Driven:** Volunteer teams work from the central roadmap created by the Tech Fleet board of directors
-2. **Self-Organized:** Teams decide together how to approach their work
-3. **Cross-Functional:** Volunteers contribute across different types of work, not just their specialty
-4. **Agile Principles:** Sprint-based work with regular check-ins and retrospectives
+Here are the types of volunteer work that members can get involved in within our community.
 
-**Shared Leadership Means:**
-• Everyone makes decisions together
-• Ownership is distributed across the team
-• No one waits to be told what to do
-• Everyone supports each other's growth
-• Teammates use RACI charts to clarify responsibilities
+**Operations Volunteering**
 
-**Communication Expectations:**
-• Be direct and clear in your communication
-• Respect different working styles and time zones
-• Use async communication when possible
-• Come to sync meetings prepared and ready to contribute`,
+This type of volunteering contributes to running Tech Fleet's community or programs. Teams get together to work with the board of directors and operate as an agile team. We have different types of teams for operations volunteering: research, technical infrastructure, client management, and project management. We plan to build more into the future as we grow.
+
+**Program Volunteering**
+
+This type of community volunteering is focused on contributing to our nonprofit programs. We currently have two nonprofit programs that volunteers can contribute to: one for client-based team training experience and one for classes and resources helping people grow. Volunteers involved in program work help identify change, measure impact, and implement strategy that's set by the board of directors.
+
+**Community Volunteering**
+
+This type of community volunteering focuses on the social aspects of the organization, such as helping with technical support, helping members on Discord, running events, posting recordings, or other things that benefit our community members.
+
+**Board-Level Volunteering**
+
+Volunteers who want to participate in organizational development can work with the Board of Directors. We have committee teams who handle different aspects of the governance, and you can join these as a volunteer whenever there are openings. The Board of Directors may also host agile team projects that you can join as a volunteer too.`,
       },
       {
-        id: "vt-dynamics-2",
-        title: "Finding Your Volunteer Role",
+        id: "vt-work-2",
+        title: "Team Structure on Volunteer Teams",
         youtubeId: null,
-        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/expectations-for-teammates/commitment-vs.-job-function-vs.-people-on-teams",
-        content: `**Choosing How You Contribute**
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/team-structure-on-volunteer-teams",
+        content: `**Team Structure on Volunteer Teams**
 
-Volunteering at Tech Fleet isn't about filling a "job position." It's about choosing duties that align with your skills and what you want to contribute.
+Volunteer teams are just like any other agile team that's cross-functional. We provide consistent ways for people in this community to practice the mindsets and behaviors of agile and service leadership. Teammates do not have titles. They define shared outcomes each sprint, and agree to how people get involved based on the outcomes. This is the same way that any other project operates in the community, whether it be an internal project or training project.`,
+      },
+      {
+        id: "vt-work-3",
+        title: "Apply to Volunteer Teams",
+        youtubeId: null,
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/apply-to-volunteer-teams",
+        content: `**Apply to Volunteer Teams**
 
-**Understanding Roles vs. Duties:**
-• A **role** is a set of duties — not a job title
-• A **duty** is a commitment of activities you carry out
-• One person can have many duties across functions
-• You choose your level of involvement each cycle
+We welcome people from all different kinds of backgrounds to join us in community volunteer work. Our projects don't require you to have experience, because that's why you're here! We do ask that you build an agile mindset and service leadership mindset, as well as onboard to the Tech Fleet ethos before you join volunteer work in our community.
 
-**Available Volunteer Areas:**
-1. **Community Operations** — Help run programs, events, and member support
-2. **Content & Communications** — Create educational materials, newsletters, social media
-3. **Technology** — Build and maintain community platforms and tools
-4. **Strategy & Growth** — Research, partnerships, and organizational development
-5. **Education & Training** — Help design and facilitate learning programs
+**Steps to Start Volunteering:**
 
-**Getting Started:**
-• Review current volunteer opportunities
-• Talk to existing volunteers about their experience
-• Start with a small commitment and grow from there
-• Attend volunteer team meetings to see what resonates
+1. Join the community
+2. Attend community onboarding
+3. Attend the Service Leadership Masterclass
+4. Read the Agile Handbook
+5. Read the Project Success Handbook
+6. Read the Teammate Handbook
+7. Review the volunteer openings for our community
+8. Fill out the form to apply to a volunteer community project
+9. Sign the Tech Fleet Volunteer Agreement that we send you
+10. Onboard as a volunteer with a volunteer coordinator`,
+      },
+      {
+        id: "vt-work-4",
+        title: "Being On Volunteer Teams",
+        youtubeId: null,
+        sourceUrl: "https://guide.techfleet.org/team-portal/new-teammate-handbook/volunteering-teams/being-on-volunteer-teams",
+        content: `**Being On Volunteer Teams**
 
-**Remember:** You're not locked into one area. Cross-functional contribution is encouraged and celebrated.`,
+**Time Commitment for Volunteers**
+
+As a volunteer we cannot force you to work certain hours or schedule. Weekly time expectations range anywhere from 1 to 10 hours a week depending on the volunteer role you want to join. Typically, we provide a way for volunteers to commit to a 3 month timeframe, but this is flexible. We accommodate your schedule and time restrictions outside of our community.
+
+When you sign up for volunteering, you can see the information about the general expectations of time commitment, and you can make your own schedule around the expected time commitment. You choose what level of time commitment you can take on. It's important as a volunteer to be responsive, consistent, and detail-oriented.
+
+**Onboarding for Volunteer Work**
+
+When volunteers onboard, they should read all three of our handbooks for community members: the Agile Handbook, the Project Success Handbook, and the Teammate Handbook. After signing up for a volunteer role, you will join a volunteer onboarding call together with other volunteers. Each volunteer role may have its own training for you to receive after this onboarding as a volunteer. We highly recommend all volunteers also attend the Service Leadership Masterclass, a free class that offers the basic training about being a Service Leader. All Volunteers are expected to practice service leadership in their volunteer work, so this class is beneficial for your expectation setting.
+
+**Attending Meetings as a Volunteer Teammate**
+
+Meetings on volunteer teams are determined by the teams who operate the volunteer work. As self-organized teams, they make the call about how often they meet and when.
+
+**Using Tools as a Volunteer Teammate**
+
+Volunteers use the same kinds of tools that trainees do. Check out the Common Tools Used in Tech Fleet to learn more about the tools we use on teams.
+
+**Communication with Other Volunteers and Leadership**
+
+All communication is via Discord or email. You can have voice calls on Discord or video calls on Google Meet. We ask that you don't communicate outside of these channels (e.g. text).
+
+**Generating Case Studies and Reports After Volunteer Teamwork**
+
+Volunteers contribute to great teamwork and change that's made just like trainees. You, too, can generate story-driven case studies that showcase the impact you've made in your teamwork.
+
+**Ending your Volunteer Term with the Community**
+
+To end your volunteer experience, please email your project coordinator. A response must come from them to be captured in our tracking system.`,
       },
     ],
   },
