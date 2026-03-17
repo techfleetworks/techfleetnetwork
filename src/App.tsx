@@ -60,40 +60,42 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <AppLayout>
-              <IdleTimeoutGuard />
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-                  <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
-                  <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
-                  <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
-                  <Route path="/courses/agile-mindset" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
-                  <Route path="/courses/discord-learning" element={<ProtectedRoute><DiscordCoursePage /></ProtectedRoute>} />
-                  <Route path="/courses/agile-teamwork" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
-                  <Route path="/courses/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
-                  <Route path="/courses/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />
-                  <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-                  <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
-                  <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-                  <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
-                  <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
-                  <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
-                  <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
-                  <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
-                  <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
-                  <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
-                  <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </AppLayout>
+            <ErrorBoundary>
+              <AppLayout>
+                <IdleTimeoutGuard />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                    <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
+                    <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+                    <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
+                    <Route path="/courses/agile-mindset" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
+                    <Route path="/courses/discord-learning" element={<ProtectedRoute><DiscordCoursePage /></ProtectedRoute>} />
+                    <Route path="/courses/agile-teamwork" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
+                    <Route path="/courses/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
+                    <Route path="/courses/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />
+                    <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+                    <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
+                    <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+                    <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
+                    <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
+                    <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
+                    <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
+                    <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
+                    <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
+                    <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+                    <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </AppLayout>
+            </ErrorBoundary>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

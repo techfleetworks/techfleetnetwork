@@ -67,6 +67,10 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Activity; 
   conversation_deleted: { label: "Chat Deleted", icon: MessageSquare, variant: "destructive" },
   invitation_created: { label: "Invitation Sent", icon: UserPlus, variant: "default" },
   invitation_used: { label: "Invitation Used", icon: CheckCircle2, variant: "default" },
+  admin_promotion_initiated: { label: "Admin Promotion", icon: ShieldCheck, variant: "default" },
+  announcement_created: { label: "Announcement Created", icon: Activity, variant: "default" },
+  announcement_deleted: { label: "Announcement Deleted", icon: Activity, variant: "destructive" },
+  client_error: { label: "Client Error", icon: AlertCircle, variant: "destructive" },
   error: { label: "Error", icon: AlertCircle, variant: "destructive" },
 };
 
