@@ -329,7 +329,7 @@ export function ProfileSetupDialog() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Timezone <span className="text-destructive">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
