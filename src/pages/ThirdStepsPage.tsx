@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Circle,
@@ -26,6 +26,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,11 +47,14 @@ import {
 
 export default function ThirdStepsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<TeamworkLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [toggling, setToggling] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const prevCompletedCountRef = useRef<number | null>(null);
 
   // Load progress
   useEffect(() => {
@@ -80,6 +90,14 @@ export default function ThirdStepsPage() {
     [completedSet]
   );
   const progress = (completedCount / TOTAL_TEAMWORK_LESSONS) * 100;
+
+  // Detect when course just became fully complete
+  useEffect(() => {
+    if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < TOTAL_TEAMWORK_LESSONS && completedCount === TOTAL_TEAMWORK_LESSONS) {
+      setShowCompletionDialog(true);
+    }
+    prevCompletedCountRef.current = completedCount;
+  }, [completedCount]);
 
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;
@@ -344,10 +362,36 @@ export default function ThirdStepsPage() {
           <p className="text-muted-foreground">
             You've completed all lessons. You've earned the Teammate badge!
           </p>
+          <Button className="mt-4" onClick={() => navigate("/courses/project-training")}>
+            Continue to Join Project Training Teams
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
 
-      {/* Lesson detail panel */}
+      {/* Course completion popup */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Learn About Agile Teamwork Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've completed all lessons in this course. Well done! You're ready for the next course.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/project-training"); }}>
+              Continue to Join Project Training Teams
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Course
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Sheet
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}

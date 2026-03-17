@@ -21,6 +21,7 @@ export default function SecondStepsPage() {
       totalLessons={TOTAL_AGILE_LESSONS}
       completionMessage="🎉 Agile Handbook Complete!"
       completionSubtext="You've completed all lessons. You're ready for the next phase!"
+      nextCourse={{ title: "Learn About Agile Teamwork", href: "/courses/agile-teamwork" }}
     />
   );
 }
