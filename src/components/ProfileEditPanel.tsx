@@ -33,7 +33,13 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", timezone: "", discordUsername: "", interests: [] as string[] });
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "", country: "", timezone: "",
+    discordUsername: "", interests: [] as string[],
+    portfolio_url: "", linkedin_url: "",
+    experience_areas: [] as string[], professional_goals: "",
+    notify_training_opportunities: false, education_background: [] as string[],
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
