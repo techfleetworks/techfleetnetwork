@@ -176,7 +176,7 @@ export default function DashboardPage() {
       title: "Learn About Agile Teamwork",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook.`,
       icon: Users,
-      href: "/journey/third-steps",
+      href: "/courses/agile-teamwork",
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: thirdStepsCompleted ?? 0,
       locked: false,
