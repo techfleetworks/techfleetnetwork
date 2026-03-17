@@ -24,7 +24,7 @@ const lockedStep: JourneyStep = {
   title: "Observer Phase",
   description: "Complete a 2-week observation period.",
   status: "locked",
-  href: "/journey/observer",
+  href: "/courses/observer",
 };
 
 describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
