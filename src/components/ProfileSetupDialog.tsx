@@ -84,6 +84,7 @@ export function ProfileSetupDialog() {
       if (!form.email.trim()) fieldErrors.email = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) fieldErrors.email = "Please enter a valid email";
       if (!form.country.trim()) fieldErrors.country = "Country is required";
+      if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
     }
 
     if (step === 2) {
