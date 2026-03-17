@@ -235,6 +235,36 @@ export type Database = {
         }
         Relationships: []
       }
+      general_applications: {
+        Row: {
+          about_yourself: string
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          about_yourself?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          about_yourself?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       handbooks: {
         Row: {
           category: string
