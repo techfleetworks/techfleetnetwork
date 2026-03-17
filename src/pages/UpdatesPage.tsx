@@ -206,7 +206,7 @@ export default function UpdatesPage() {
                 <TableRow
                   key={a.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedAnnouncement(a)}
+                  onClick={() => selectAndMarkRead(a)}
                 >
                   <TableCell className="font-medium">{a.title}</TableCell>
                   <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
