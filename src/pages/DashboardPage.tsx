@@ -257,6 +257,49 @@ export default function DashboardPage() {
         </section>
       )}
 
+      {latestAnnouncements.length > 0 && (
+        <section aria-labelledby="announcements-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-primary" />
+              Latest Updates
+            </h2>
+            <Link
+              to="/updates"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {latestAnnouncements.map((a) => {
+              const plainText = (() => {
+                const tmp = document.createElement("div");
+                tmp.innerHTML = a.body_html;
+                return tmp.textContent || tmp.innerText || "";
+              })();
+              return (
+                <Link
+                  key={a.id}
+                  to="/updates"
+                  className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{plainText.slice(0, 120)}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                      {format(new Date(a.created_at), "MMM d")}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="border-t pt-9">
         <NetworkActivity />
       </section>
