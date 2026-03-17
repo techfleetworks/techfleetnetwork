@@ -264,6 +264,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           >
             <SidebarTrigger className="shrink-0" />
             <div className="flex-1" />
+            <UniversalSearch />
             <ThemeToggle />
           </header>
           <main
