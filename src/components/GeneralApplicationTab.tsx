@@ -88,6 +88,7 @@ export function GeneralApplicationTab() {
       );
       setActiveApp(app);
       setAboutYourself(app.about_yourself);
+      setIsNewApp(true);
       setView("edit");
       await loadApps();
     } catch {
