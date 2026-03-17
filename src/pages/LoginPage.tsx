@@ -115,7 +115,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           New member?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">Sign up</Link>
+          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary font-medium hover:underline">Sign up</Link>
         </p>
       </div>
     </div>
