@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, CheckCircle2, ChevronRight, ClipboardCheck, GraduationCap, Users } from "lucide-react";
+import {
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  GraduationCap,
+  Users,
+  Lock,
+  Briefcase,
+  Heart,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
+import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
+import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { JourneyService } from "@/services/journey.service";
 
 interface CourseCard {
@@ -15,6 +27,8 @@ interface CourseCard {
   href: string;
   totalTasks: number;
   completedTasks: number;
+  locked: boolean;
+  prerequisiteLabel?: string;
 }
 
 export default function TrainingPage() {
@@ -22,6 +36,8 @@ export default function TrainingPage() {
   const [firstCompleted, setFirstCompleted] = useState(0);
   const [agileCompleted, setAgileCompleted] = useState(0);
   const [teamworkCompleted, setTeamworkCompleted] = useState(0);
+  const [projectTrainingCompleted, setProjectTrainingCompleted] = useState(0);
+  const [volunteerCompleted, setVolunteerCompleted] = useState(0);
   const totalFirstSteps = 6;
 
   useEffect(() => {
@@ -30,22 +46,30 @@ export default function TrainingPage() {
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
-    ]).then(([first, second, third]) => {
+      JourneyService.getCompletedCount(user.id, "project_training"),
+      JourneyService.getCompletedCount(user.id, "volunteer"),
+    ]).then(([first, second, third, pt, vol]) => {
       setFirstCompleted(first);
       setAgileCompleted(second);
       setTeamworkCompleted(third);
+      setProjectTrainingCompleted(pt);
+      setVolunteerCompleted(vol);
     });
   }, [user]);
+
+  const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
   const courses: CourseCard[] = [
     {
       id: "onboarding",
       title: "Onboarding Steps",
-      description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
+      description:
+        "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
       href: "/journey/first-steps",
       totalTasks: totalFirstSteps,
       completedTasks: firstCompleted,
+      locked: false,
     },
     {
       id: "agile-mindset",
@@ -55,6 +79,7 @@ export default function TrainingPage() {
       href: "/journey/second-steps",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: agileCompleted,
+      locked: false,
     },
     {
       id: "agile-teamwork",
@@ -64,6 +89,29 @@ export default function TrainingPage() {
       href: "/journey/third-steps",
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
+      locked: false,
+    },
+    {
+      id: "project-training",
+      title: "Join Project Training Teams",
+      description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.`,
+      icon: Briefcase,
+      href: "/journey/project-training",
+      totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
+      completedTasks: projectTrainingCompleted,
+      locked: !allTeamworkDone,
+      prerequisiteLabel: "Learn About Agile Teamwork",
+    },
+    {
+      id: "volunteer-teams",
+      title: "Join Volunteer Teams",
+      description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.`,
+      icon: Heart,
+      href: "/journey/volunteer-teams",
+      totalTasks: TOTAL_VOLUNTEER_LESSONS,
+      completedTasks: volunteerCompleted,
+      locked: !allTeamworkDone,
+      prerequisiteLabel: "Learn About Agile Teamwork",
     },
   ];
 
@@ -87,14 +135,91 @@ export default function TrainingPage() {
           Member Journey Courses
         </h2>
 
+        {/* Prerequisite notice */}
+        {!allTeamworkDone && (
+          <div className="mb-6 card-elevated border-warning/30 bg-warning/5 p-4 flex items-start gap-3">
+            <Lock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Some courses are locked
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Complete{" "}
+                <Link
+                  to="/journey/third-steps"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  Learn About Agile Teamwork
+                </Link>{" "}
+                to unlock{" "}
+                <strong className="text-foreground">
+                  Join Project Training Teams
+                </strong>{" "}
+                and{" "}
+                <strong className="text-foreground">Join Volunteer Teams</strong>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
           {courses.map((course) => {
-            const progress = course.totalTasks > 0
-              ? Math.round((course.completedTasks / course.totalTasks) * 100)
-              : 0;
-            const isComplete = course.totalTasks > 0 && course.completedTasks >= course.totalTasks;
+            const progress =
+              course.totalTasks > 0
+                ? Math.round(
+                    (course.completedTasks / course.totalTasks) * 100
+                  )
+                : 0;
+            const isComplete =
+              course.totalTasks > 0 &&
+              course.completedTasks >= course.totalTasks;
             const isStarted = course.completedTasks > 0;
             const Icon = course.icon;
+
+            if (course.locked) {
+              return (
+                <div
+                  key={course.id}
+                  className="card-elevated p-5 opacity-50 cursor-not-allowed relative overflow-hidden"
+                  aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
+                >
+                  {/* Diagonal lock stripe */}
+                  <div className="absolute top-3 -right-8 bg-muted-foreground/10 text-muted-foreground text-[10px] font-bold uppercase tracking-widest px-10 py-1 rotate-45 pointer-events-none">
+                    Locked
+                  </div>
+
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs gap-1"
+                    >
+                      <Lock className="h-3 w-3" />
+                      Locked
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold text-muted-foreground mb-1">
+                    {course.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground/70 mb-3">
+                    {course.description}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/10 rounded-md px-2.5 py-1.5 mt-2">
+                    <Lock className="h-3 w-3 flex-shrink-0" />
+                    <span>
+                      Requires:{" "}
+                      <strong className="text-warning">
+                        {course.prerequisiteLabel}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <Link
