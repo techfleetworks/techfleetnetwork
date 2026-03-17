@@ -54,7 +54,7 @@ export default function ConfirmAdminPage() {
           )}
           {(status === "success" || status === "already") && (
             <>
-              <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto" />
+              <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
               <h2 className="text-xl font-bold text-foreground">{message}</h2>
               <p className="text-muted-foreground text-sm">
                 You now have admin privileges in the Tech Fleet Network.

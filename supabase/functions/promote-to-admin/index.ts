@@ -122,7 +122,6 @@ Deno.serve(async (req) => {
     }
 
     // Build confirmation URL
-    const projectId = Deno.env.get('SUPABASE_URL')?.match(/\/\/([^.]+)/)?.[1] || ''
     const confirmUrl = `${supabaseUrl}/functions/v1/confirm-admin-role?token=${promotion.token}`
 
     // Enqueue the confirmation email

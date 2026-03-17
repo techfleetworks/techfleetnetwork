@@ -253,7 +253,7 @@ export default function UserAdminPage() {
                         ) : u.isAdmin ? (
                           <span className="text-xs text-muted-foreground">Admin</span>
                         ) : u.pendingPromotion ? (
-                          <span className="text-xs text-amber-600">Awaiting confirmation</span>
+                          <span className="text-xs text-warning">Awaiting confirmation</span>
                         ) : (
                           <Button
                             size="sm"
