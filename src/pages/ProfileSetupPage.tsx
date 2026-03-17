@@ -61,6 +61,7 @@ export default function ProfileSetupPage() {
       if (!form.firstName.trim()) fieldErrors.firstName = "First name is required";
       if (!form.lastName.trim()) fieldErrors.lastName = "Last name is required";
       if (!form.country.trim()) fieldErrors.country = "Country is required";
+      if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
     }
 
     if (step === 2) {
