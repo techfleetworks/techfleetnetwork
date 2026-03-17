@@ -10,6 +10,7 @@ export interface Profile {
   last_name: string;
   email: string;
   country: string;
+  timezone: string;
   discord_username: string;
   discord_user_id: string;
   display_name: string;
