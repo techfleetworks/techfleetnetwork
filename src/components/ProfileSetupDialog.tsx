@@ -1,4 +1,5 @@
 import { useState, useEffect, type FormEvent } from "react";
+import { StepProgressBar } from "@/components/StepProgressBar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TOTAL_STEPS = 3;
+const STEP_LABELS = ["Identity", "Discord", "Interests"];
 
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
@@ -187,14 +189,13 @@ export function ProfileSetupDialog() {
               Skip for now
             </Button>
           </div>
-          {/* Progress bar */}
+          {/* Step progress */}
           <div className="mt-4">
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
-                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-              />
-            </div>
+            <StepProgressBar
+              steps={STEP_LABELS.map((label) => ({ label }))}
+              currentStep={step}
+              onStepClick={(s) => setStep(s)}
+            />
           </div>
         </DialogHeader>
 
