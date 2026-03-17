@@ -25,6 +25,7 @@ export default function ProfileSetupPage() {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
+    email: "",
     country: "",
     hasDiscord: null as boolean | null,
     discordUsername: "",
