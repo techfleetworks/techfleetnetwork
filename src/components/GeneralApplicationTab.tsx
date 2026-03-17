@@ -52,7 +52,7 @@ import {
   PREVIOUS_ENGAGEMENT_OPTIONS,
 } from "@/lib/application-options";
 
-type View = "list" | "edit";
+// Single-instance: users have 0 or 1 general application
 const TOTAL_SECTIONS = 5;
 
 const SECTION_TITLES = [
