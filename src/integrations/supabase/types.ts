@@ -239,6 +239,7 @@ export type Database = {
         Row: {
           about_yourself: string
           created_at: string
+          email: string
           id: string
           status: string
           title: string
@@ -248,6 +249,7 @@ export type Database = {
         Insert: {
           about_yourself?: string
           created_at?: string
+          email?: string
           id?: string
           status?: string
           title?: string
@@ -257,6 +259,7 @@ export type Database = {
         Update: {
           about_yourself?: string
           created_at?: string
+          email?: string
           id?: string
           status?: string
           title?: string

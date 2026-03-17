@@ -13,6 +13,7 @@ async function syncToAirtable(app: GeneralApplication): Promise<void> {
     }>("sync-airtable", {
       body: {
         application_id: app.id,
+        email: app.email,
         title: app.title,
         about_yourself: app.about_yourself,
         status: app.status,
@@ -43,11 +44,37 @@ async function syncToAirtable(app: GeneralApplication): Promise<void> {
 export interface GeneralApplication {
   id: string;
   user_id: string;
+  email: string;
   status: string;
   title: string;
   about_yourself: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Fetch the user's email from their profile */
+async function getProfileEmail(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("user_id", userId)
+    .single();
+  return data?.email ?? "";
+}
+
+/** Sync the about_yourself text to the profile's professional_background */
+async function syncToProfileBackground(userId: string, aboutYourself: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ professional_background: aboutYourself } as any)
+      .eq("user_id", userId);
+    if (error) {
+      log.warn("syncToProfileBackground", `Failed to sync background: ${error.message}`, { userId }, error);
+    }
+  } catch (err) {
+    log.warn("syncToProfileBackground", "Background sync error (non-blocking)", { userId }, err);
+  }
 }
 
 export const GeneralApplicationService = {
@@ -86,8 +113,10 @@ export const GeneralApplicationService = {
   /** Create a new draft application */
   async create(userId: string, prefill?: Partial<Pick<GeneralApplication, "about_yourself">>): Promise<GeneralApplication> {
     return log.track("create", `Creating general app for user ${userId}`, { userId }, async () => {
+      const email = await getProfileEmail(userId);
       const insertData: Record<string, unknown> = {
         user_id: userId,
+        email,
         status: "draft",
         about_yourself: prefill?.about_yourself ?? "",
       };
@@ -104,7 +133,7 @@ export const GeneralApplicationService = {
     });
   },
 
-  /** Save progress (update fields) and sync to Airtable */
+  /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
   async save(id: string, fields: Partial<Pick<GeneralApplication, "about_yourself" | "status" | "title">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
@@ -115,9 +144,14 @@ export const GeneralApplicationService = {
         log.error("save", `Failed to save general app: ${error.message}`, { id }, error);
         throw new Error("Failed to save application.");
       }
-      // Fetch updated record and sync to Airtable (non-blocking)
+      // Fetch updated record for syncs
       const updated = await GeneralApplicationService.fetch(id);
       if (updated) {
+        // Sync about_yourself → profile.professional_background (non-blocking)
+        if (fields.about_yourself !== undefined) {
+          syncToProfileBackground(updated.user_id, updated.about_yourself).catch(() => {});
+        }
+        // Sync to Airtable (non-blocking)
         syncToAirtable(updated).catch(() => {});
       }
     });
