@@ -468,7 +468,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Professional Goals */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-goals">Professional development goals</Label>
               <Textarea
                 id="edit-goals"
