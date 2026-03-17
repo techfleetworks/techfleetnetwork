@@ -144,6 +144,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "<script>hack</script>",
     });
     expect(result.success).toBe(false);
