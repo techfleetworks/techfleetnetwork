@@ -279,3 +279,62 @@ body {
 .fleety-prose th {
   @apply bg-muted font-semibold;
 }
+
+/* Quill editor theme overrides */
+.rich-text-editor .ql-toolbar.ql-snow {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
+}
+
+.rich-text-editor .ql-container.ql-snow {
+  border-color: hsl(var(--border));
+  border-radius: 0 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px);
+  font-family: inherit;
+  font-size: 0.875rem;
+  min-height: 150px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+}
+
+.rich-text-editor .ql-editor {
+  min-height: 150px;
+}
+
+.rich-text-editor .ql-editor.ql-blank::before {
+  color: hsl(var(--muted-foreground));
+  font-style: normal;
+}
+
+.rich-text-editor .ql-snow .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+.rich-text-editor .ql-snow .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+.rich-text-editor .ql-snow .ql-picker-label {
+  color: hsl(var(--foreground));
+}
+
+.rich-text-editor .ql-snow .ql-picker-options {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}
+
+.rich-text-editor .ql-snow button:hover .ql-stroke,
+.rich-text-editor .ql-snow button.ql-active .ql-stroke {
+  stroke: hsl(var(--primary));
+}
+
+.rich-text-editor .ql-snow button:hover .ql-fill,
+.rich-text-editor .ql-snow button.ql-active .ql-fill {
+  fill: hsl(var(--primary));
+}
+
+.rich-text-editor .ql-snow .ql-picker-label:hover,
+.rich-text-editor .ql-snow .ql-picker-item:hover,
+.rich-text-editor .ql-snow .ql-picker-item.ql-selected {
+  color: hsl(var(--primary));
+}
