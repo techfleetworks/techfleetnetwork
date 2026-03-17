@@ -11,6 +11,7 @@ import {
   UserPen,
   Bot,
   CalendarDays,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -91,6 +92,7 @@ interface AppLayoutProps {
 
 const mobileNavLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Updates", href: "/updates", icon: Megaphone },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Resources", href: "/resources", icon: BookOpen },

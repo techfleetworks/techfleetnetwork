@@ -38,7 +38,8 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
     discordUsername: "", interests: [] as string[],
     portfolio_url: "", linkedin_url: "",
     experience_areas: [] as string[], professional_goals: "",
-    notify_training_opportunities: false, education_background: [] as string[],
+    notify_training_opportunities: false, notify_announcements: false,
+    education_background: [] as string[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -66,6 +67,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         experience_areas: profile.experience_areas || [],
         professional_goals: profile.professional_goals || "",
         notify_training_opportunities: profile.notify_training_opportunities || false,
+        notify_announcements: (profile as any).notify_announcements || false,
         education_background: profile.education_background || [],
       });
       setErrors({});
@@ -125,6 +127,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         experience_areas: form.experience_areas,
         professional_goals: form.professional_goals,
         notify_training_opportunities: form.notify_training_opportunities,
+        notify_announcements: form.notify_announcements,
         education_background: form.education_background,
       });
       await refreshProfile();
@@ -480,7 +483,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
             </div>
 
-            {/* Notify */}
+            {/* Notify training */}
             <div className="flex items-start gap-3">
               <Checkbox
                 id="edit-notify"
@@ -489,6 +492,18 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
               <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
                 Notify me about training opportunities that match my preferences
+              </Label>
+            </div>
+
+            {/* Notify announcements */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="edit-notify-announcements"
+                checked={form.notify_announcements}
+                onCheckedChange={(checked) => setForm({ ...form, notify_announcements: !!checked })}
+              />
+              <Label htmlFor="edit-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
+                Send me email notifications when new announcements are posted
               </Label>
             </div>
 

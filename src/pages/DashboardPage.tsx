@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Heart,
   Lock,
+  Megaphone,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +17,13 @@ import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { StatsService } from "@/services/stats.service";
+import { AnnouncementService, type Announcement } from "@/services/announcement.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
+import { format } from "date-fns";
 
 const totalFirstSteps = 6;
 
@@ -124,6 +127,7 @@ export default function DashboardPage() {
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
   const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
   const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
+  const [latestAnnouncements, setLatestAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -135,7 +139,8 @@ export default function DashboardPage() {
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, discord, third, pt, vol, stats]) => {
+      AnnouncementService.latest(5),
+    ]).then(([first, second, discord, third, pt, vol, stats, announcements]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
       setDiscordCompleted(discord);
@@ -143,6 +148,7 @@ export default function DashboardPage() {
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
       setCommunityBadgeCount(stats.badges_earned ?? 0);
+      setLatestAnnouncements(announcements);
     });
   }, [user]);
 
@@ -247,6 +253,49 @@ export default function DashboardPage() {
             {coreCourses.map((course) => (
               <CoreCourseCard key={course.id} course={course} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {latestAnnouncements.length > 0 && (
+        <section aria-labelledby="announcements-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-primary" />
+              Latest Updates
+            </h2>
+            <Link
+              to="/updates"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {latestAnnouncements.map((a) => {
+              const plainText = (() => {
+                const tmp = document.createElement("div");
+                tmp.innerHTML = a.body_html;
+                return tmp.textContent || tmp.innerText || "";
+              })();
+              return (
+                <Link
+                  key={a.id}
+                  to="/updates"
+                  className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{plainText.slice(0, 120)}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                      {format(new Date(a.created_at), "MMM d")}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, GraduationCap, ClipboardList, Handshake } from "lucide-react";
+import { Search, GraduationCap, ClipboardList, Handshake, Megaphone } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -19,7 +19,7 @@ interface SearchItem {
   label: string;
   description: string;
   href: string;
-  group: "Courses" | "Applications" | "Project Training";
+  group: "Courses" | "Applications" | "Project Training" | "Updates";
 }
 
 /* ── Static catalogue ─────────────────────────────────────── */
@@ -102,6 +102,16 @@ const SEARCH_ITEMS: SearchItem[] = [
     href: "/project-training",
     group: "Project Training",
   },
+
+  // ── Updates ────────────────────────────────────────────────
+  {
+    id: "updates",
+    label: "Updates & Announcements",
+    description:
+      "View the latest announcements and updates from the Tech Fleet team.",
+    href: "/updates",
+    group: "Updates",
+  },
 ];
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -110,6 +120,7 @@ const GROUP_ICONS: Record<SearchItem["group"], React.ElementType> = {
   Courses: GraduationCap,
   Applications: ClipboardList,
   "Project Training": Handshake,
+  Updates: Megaphone,
 };
 
 /**

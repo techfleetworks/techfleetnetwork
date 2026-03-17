@@ -22,6 +22,7 @@ export interface Profile {
   experience_areas: string[];
   professional_goals: string;
   notify_training_opportunities: boolean;
+  notify_announcements: boolean;
   education_background: string[];
 }
 
@@ -30,7 +31,7 @@ export const ProfileService = {
     return log.track("fetch", `Fetching profile for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, experience_areas, professional_goals, notify_training_opportunities, education_background")
+        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background")
         .eq("user_id", userId)
         .single();
       if (error) {
