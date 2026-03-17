@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      announcements: {
+        Row: {
+          body_html: string
+          created_at: string
+          created_by: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           changed_fields: string[] | null
@@ -490,6 +517,7 @@ export type Database = {
           last_name: string
           linkedin_url: string
           membership_tier: Database["public"]["Enums"]["membership_tier"]
+          notify_announcements: boolean
           notify_training_opportunities: boolean
           portfolio_url: string
           professional_background: string
@@ -516,6 +544,7 @@ export type Database = {
           last_name?: string
           linkedin_url?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
           professional_background?: string
@@ -542,6 +571,7 @@ export type Database = {
           last_name?: string
           linkedin_url?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
           professional_background?: string
