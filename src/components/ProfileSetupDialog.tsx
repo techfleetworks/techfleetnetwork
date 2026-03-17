@@ -169,7 +169,7 @@ export function ProfileSetupDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleSkip(); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="w-full max-w-full md:max-w-[70vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             <div>
