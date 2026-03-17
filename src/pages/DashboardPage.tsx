@@ -117,7 +117,7 @@ export default function DashboardPage() {
   );
 
   const badgesSection = (
-    <section className="mb-8">
+    <section>
       <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} allThirdStepsDone={allThirdStepsDone} communityBadgeCount={communityBadgeCount} />
     </section>
   );
