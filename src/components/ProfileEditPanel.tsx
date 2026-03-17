@@ -12,6 +12,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
+import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
 import { COUNTRIES } from "@/lib/countries";
