@@ -203,14 +203,22 @@ export default function FirstStepsPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
-      <Link to="/dashboard?view=overview" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Link>
-
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Onboarding Steps</h1>
-        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
+        <Breadcrumb className="mt-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/courses">Courses</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Onboarding Steps</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <p className="text-muted-foreground mt-2">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
       </div>
 
       <div className="mb-8">
