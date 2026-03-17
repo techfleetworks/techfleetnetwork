@@ -505,7 +505,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Password Reset */}
-            <div className="space-y-2 pt-2 border-t">
+            <div className="space-y-1.5 pt-2 border-t">
               <Label>Password</Label>
               {isOAuth ? (
                 <div className="p-3 rounded-lg bg-muted/50 border border-border">
