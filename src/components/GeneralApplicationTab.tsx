@@ -502,7 +502,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 2: Review and Update Profile ─── */}
         {section === 2 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {/* Location */}
             <div className="space-y-2">
               <Label>Location <span className="text-destructive">*</span></Label>
