@@ -504,7 +504,7 @@ export function GeneralApplicationTab() {
         {section === 2 && (
           <div className="space-y-6">
             {/* Location */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Location <span className="text-destructive">*</span></Label>
               <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                 <PopoverTrigger asChild>
