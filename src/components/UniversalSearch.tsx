@@ -47,7 +47,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Learn About Agile Teamwork",
     description:
       "Lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.",
-    href: "/journey/third-steps",
+    href: "/courses/agile-teamwork",
     group: "Courses",
   },
   {
