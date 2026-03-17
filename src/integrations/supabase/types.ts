@@ -234,6 +234,45 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          mission: string
+          name: string
+          primary_contact: string
+          project_summary: string
+          status: Database["public"]["Enums"]["client_status"]
+          updated_at: string
+          website: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          mission?: string
+          name: string
+          primary_contact?: string
+          project_summary?: string
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          website?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          mission?: string
+          name?: string
+          primary_contact?: string
+          project_summary?: string
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          website?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -841,6 +880,7 @@ export type Database = {
       app_role: "admin" | "member"
       bdd_status: "implemented" | "partial" | "not_built"
       bdd_test_type: "unit" | "e2e" | "both" | "none" | "manual"
+      client_status: "active" | "inactive"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -981,6 +1021,7 @@ export const Constants = {
       app_role: ["admin", "member"],
       bdd_status: ["implemented", "partial", "not_built"],
       bdd_test_type: ["unit", "e2e", "both", "none", "manual"],
+      client_status: ["active", "inactive"],
       journey_phase: [
         "first_steps",
         "second_steps",
