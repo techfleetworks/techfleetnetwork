@@ -34,7 +34,7 @@ body {
     --accent: 215 20% 93%;
     --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 90% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 160 84% 39%;
@@ -85,7 +85,7 @@ body {
     --accent: 222 30% 14%;
     --accent-foreground: 210 20% 96%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 90% 55%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 160 84% 39%;
