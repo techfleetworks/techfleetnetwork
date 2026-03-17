@@ -13,6 +13,7 @@ describe("profileSchema (BDD 2.6: Profile setup completion)", () => {
     firstName: "Jane",
     lastName: "Doe",
     country: "United States",
+    timezone: "America/New_York",
     discordUsername: "janedoe",
     interests: ["Take classes", "Get mentorship"],
   };
