@@ -637,7 +637,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Education */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>What best describes your current or previous education? <span className="text-destructive">*</span></Label>
               <MultiSelect
                 options={educationOptions}
