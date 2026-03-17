@@ -845,18 +845,20 @@ export function GeneralApplicationTab() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="app-teammate-learnings">What have you learned about being a teammate after engaging in Tech Fleet so far?</Label>
-              <Textarea
-                id="app-teammate-learnings"
-                value={form.teammate_learnings}
-                onChange={(e) => updateField("teammate_learnings", e.target.value)}
-                placeholder="Share what you've learned about teamwork..."
-                className="min-h-[120px] resize-y"
-                maxLength={5000}
-              />
-              <p className="text-xs text-muted-foreground text-right">{form.teammate_learnings.length} / 5,000</p>
-            </div>
+            {form.previous_engagement === "yes" && (
+              <div className="space-y-2">
+                <Label htmlFor="app-teammate-learnings">What have you learned about being a teammate after engaging in Tech Fleet so far?</Label>
+                <Textarea
+                  id="app-teammate-learnings"
+                  value={form.teammate_learnings}
+                  onChange={(e) => updateField("teammate_learnings", e.target.value)}
+                  placeholder="Share what you've learned about teamwork..."
+                  className="min-h-[120px] resize-y"
+                  maxLength={5000}
+                />
+                <p className="text-xs text-muted-foreground text-right">{form.teammate_learnings.length} / 5,000</p>
+              </div>
+            )}
           </div>
         )}
 
