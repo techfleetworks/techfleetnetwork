@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2 } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
+import { AuthService } from "@/services/auth.service";
 import { COUNTRIES } from "@/lib/countries";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,26 +28,30 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", country: "", discordUsername: "", interests: [] as string[] });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", discordUsername: "", interests: [] as string[] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
+  const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
 
   useEffect(() => {
     if (open && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
+        email: profile.email || user?.email || "",
         country: profile.country || "",
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
       });
       setErrors({});
     }
-  }, [open, profile]);
+  }, [open, profile, user]);
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
@@ -59,7 +64,13 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = profileSchema.safeParse(form);
+    const result = profileSchema.safeParse({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      country: form.country,
+      discordUsername: form.discordUsername,
+      interests: form.interests,
+    });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
@@ -70,11 +81,23 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       return;
     }
 
+    // Validate email for non-OAuth users
+    if (!isOAuth) {
+      if (!form.email.trim()) {
+        setErrors({ email: "Email is required" });
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        setErrors({ email: "Please enter a valid email" });
+        return;
+      }
+    }
+
     setErrors({});
     setSaving(true);
 
     try {
-      await ProfileService.update(user!.id, result.data);
+      await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
       await refreshProfile();
       toast.success("Profile updated successfully");
       onOpenChange(false);
@@ -82,6 +105,21 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       setErrors({ general: err.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!user?.email) return;
+    setResetPasswordLoading(true);
+    try {
+      await AuthService.resetPassword(user.email, `${window.location.origin}/reset-password`);
+      toast.success("Password reset email sent", {
+        description: "Check your inbox for a link to reset your password.",
+      });
+    } catch {
+      toast.info("If an account exists with that email, a reset link has been sent.");
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -142,20 +180,32 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
             )}
 
-            {/* Email (read-only) */}
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input
                   id="edit-email"
-                  value={profile?.email || user?.email || ""}
-                  readOnly
-                  disabled
-                  className="pl-10 bg-muted/50"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })}
+                  readOnly={!!isOAuth}
+                  disabled={!!isOAuth}
+                  className={cn("pl-10", isOAuth && "bg-muted/50")}
+                  aria-invalid={!!errors.email}
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+              {isOAuth ? (
+                <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Update your contact email address.</p>
+              )}
+              {errors.email && (
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
+                  <AlertCircle className="h-3 w-3" /> {errors.email}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -299,6 +349,32 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                   <span className="text-sm text-foreground">{option}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Password Reset */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label>Password</Label>
+              {isOAuth ? (
+                <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    You signed in with Google. Password management is handled by your Google account.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetPassword}
+                    disabled={resetPasswordLoading}
+                  >
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    {resetPasswordLoading ? "Sending…" : "Reset Password"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">We'll send a reset link to your email.</p>
+                </div>
+              )}
             </div>
           </form>
         </ScrollArea>

@@ -238,21 +238,32 @@ export default function ProfileSetupPage() {
                 )}
               </div>
 
-              {/* Email (read-only) */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input
-                    id="email"
-                    value={profile?.email || user?.email || ""}
-                    readOnly
-                    disabled
-                    className="pl-10 bg-muted/50"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">This is the email you registered with.</p>
-              </div>
+              {/* Email: editable for email/password users, read-only for Google OAuth */}
+              {(() => {
+                const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profile?.email || user?.email || ""}
+                        onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })}
+                        readOnly={!!isOAuth}
+                        disabled={!!isOAuth}
+                        className={cn("pl-10", isOAuth && "bg-muted/50")}
+                      />
+                    </div>
+                    {isOAuth ? (
+                      <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">You can update your contact email here.</p>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="space-y-2">
                 <Label>Country</Label>
