@@ -86,7 +86,10 @@ export function RichTextEditor({ content, onChange, placeholder, className }: Ri
       variant="ghost"
       size="icon"
       className={cn("h-8 w-8", active && "bg-accent text-accent-foreground")}
-      onClick={onClick}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
       title={title}
       aria-label={title}
     >
