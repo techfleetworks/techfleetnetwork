@@ -279,7 +279,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Country</Label>
               <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                 <PopoverTrigger asChild>
