@@ -17,6 +17,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProfileSetupPage from "./pages/ProfileSetupPage";
 import FirstStepsPage from "./pages/FirstStepsPage";
 import SecondStepsPage from "./pages/SecondStepsPage";
+import ThirdStepsPage from "./pages/ThirdStepsPage";
 import TrainingPage from "./pages/TrainingPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import ChatPage from "./pages/ChatPage";
