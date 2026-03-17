@@ -267,7 +267,8 @@ export default function GenericCoursePage({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <p className="text-muted-foreground mt-2">{subtitle}</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground mt-4">{title}</h2>
+        <p className="text-muted-foreground mt-1">{subtitle}</p>
       </div>
 
       {/* Overall progress */}
