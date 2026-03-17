@@ -130,24 +130,17 @@ const emptyForm: AppFormData = {
 
 export function GeneralApplicationTab() {
   const { user, profile, refreshProfile } = useAuth();
-  const [apps, setApps] = useState<GeneralApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<View>("list");
   const [activeApp, setActiveApp] = useState<GeneralApplication | null>(null);
   const [form, setForm] = useState<AppFormData>({ ...emptyForm });
   const [title, setTitle] = useState("");
   const [section, setSection] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [isNewApp, setIsNewApp] = useState(false);
-  const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
-  const [prefillDialogOpen, setPrefillDialogOpen] = useState(false);
-  const [latestCompleted, setLatestCompleted] = useState<GeneralApplication | null>(null);
-  const [creatingWithPrefill, setCreatingWithPrefill] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sectionsTouched, setSectionsTouched] = useState<Set<number>>(new Set());
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const formContainerRef = useRef<HTMLDivElement>(null);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
@@ -162,18 +155,29 @@ export function GeneralApplicationTab() {
     }
   };
 
-  const loadApps = useCallback(async () => {
+  /** Load or create the single general application */
+  const loadOrCreateApp = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       const data = await GeneralApplicationService.list(user.id);
-      setApps(data);
+      if (data.length > 0) {
+        // Use existing app
+        const app = data[0];
+        setActiveApp(app);
+        populateFormFromApp(app);
+      } else {
+        // Create the user's first (and only) app
+        const app = await GeneralApplicationService.create(user.id);
+        setActiveApp(app);
+        populateFormFromApp(app);
+      }
     } catch {
-      toast.error("Failed to load applications");
+      toast.error("Failed to load application");
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => {
     loadApps();
