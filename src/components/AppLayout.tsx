@@ -16,6 +16,7 @@ import {
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { ProfileEditPanel } from "./ProfileEditPanel";
+import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -103,6 +104,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
+        <ProfileSetupDialog />
         <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
@@ -240,6 +242,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
+        <ProfileSetupDialog />
         <ProfileEditPanel
           open={profileEditOpen}
           onOpenChange={setProfileEditOpen}
@@ -276,6 +279,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
+      <ProfileSetupDialog />
       <ProfileEditPanel
         open={profileEditOpen}
         onOpenChange={setProfileEditOpen}

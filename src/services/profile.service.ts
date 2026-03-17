@@ -44,13 +44,14 @@ export const ProfileService = {
     });
   },
 
-  async update(userId: string, input: ProfileInput) {
+  async update(userId: string, input: ProfileInput, email?: string) {
     return log.track("update", `Updating profile for user ${userId}`, {
       userId,
       fields: Object.keys(input),
       country: input.country,
       hasDiscord: !!input.discordUsername,
       interestCount: input.interests?.length ?? 0,
+      hasEmail: !!email,
     }, async () => {
       let discordUserId = "";
       if (input.discordUsername) {
@@ -64,18 +65,24 @@ export const ProfileService = {
         }
       }
 
+      const updateData: Record<string, unknown> = {
+        first_name: input.firstName,
+        last_name: input.lastName,
+        country: input.country,
+        discord_username: input.discordUsername || "",
+        discord_user_id: discordUserId,
+        display_name: `${input.firstName} ${input.lastName}`.trim(),
+        interests: input.interests || [],
+        profile_completed: true,
+      };
+
+      if (email) {
+        updateData.email = email;
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          first_name: input.firstName,
-          last_name: input.lastName,
-          country: input.country,
-          discord_username: input.discordUsername || "",
-          discord_user_id: discordUserId,
-          display_name: `${input.firstName} ${input.lastName}`.trim(),
-          interests: input.interests || [],
-          profile_completed: true,
-        } as any)
+        .update(updateData as any)
         .eq("user_id", userId);
       if (error) {
         log.error("update", `Failed to save profile for user ${userId}: ${error.message}`, {
