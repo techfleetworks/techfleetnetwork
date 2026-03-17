@@ -1,5 +1,6 @@
 import { ClipboardList, FolderKanban, HeartHandshake } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GeneralApplicationTab } from "@/components/GeneralApplicationTab";
 
 export default function ApplicationsPage() {
   return (
@@ -31,16 +32,7 @@ export default function ApplicationsPage() {
         </TabsList>
 
         <TabsContent value="general">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              General Application
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Submit your general application to join Tech Fleet. This is the
-              first step to becoming a member of our community.
-            </p>
-          </div>
+          <GeneralApplicationTab />
         </TabsContent>
 
         <TabsContent value="projects">
