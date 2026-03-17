@@ -329,11 +329,11 @@ export function AppLayout({ children }: AppLayoutProps) {
             className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
             role="banner"
           >
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
               <UniversalSearch />
               <ThemeToggle />
               <NotificationBell />
-              <div className="ml-4">
+              <div className="ml-1">
                 <ProfileDropdown
                   profile={profile}
                   user={user}
