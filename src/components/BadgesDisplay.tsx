@@ -36,7 +36,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed all 25 Agile lessons",
       image: badgeSecondSteps,
       earned: allSecondStepsDone,
-      href: "/journey/second-steps",
+      href: "/courses/agile-mindset",
     },
     {
       id: "teammate",
