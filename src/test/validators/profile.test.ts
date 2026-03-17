@@ -134,6 +134,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: '<script src="evil"></script>',
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
   });
