@@ -91,6 +91,14 @@ export default function ThirdStepsPage() {
   );
   const progress = (completedCount / TOTAL_TEAMWORK_LESSONS) * 100;
 
+  // Detect when course just became fully complete
+  useEffect(() => {
+    if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < TOTAL_TEAMWORK_LESSONS && completedCount === TOTAL_TEAMWORK_LESSONS) {
+      setShowCompletionDialog(true);
+    }
+    prevCompletedCountRef.current = completedCount;
+  }, [completedCount]);
+
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;
     setToggling(true);
