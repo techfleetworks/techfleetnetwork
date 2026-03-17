@@ -17,7 +17,7 @@ import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { ProfileEditPanel } from "./ProfileEditPanel";
 import { useAuth } from "@/contexts/AuthContext";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
@@ -258,11 +258,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
         <div className="flex-1 flex flex-col min-w-0">
           <header
-            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
+            className="sticky top-0 z-40 h-12 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
             role="banner"
           >
-            <UniversalSearch />
-            <ThemeToggle />
+            <SidebarTrigger className="shrink-0" />
+            <div className="flex items-center gap-2">
+              <UniversalSearch />
+              <ThemeToggle />
+            </div>
           </header>
           <main
             id="main-content"
