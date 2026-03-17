@@ -128,7 +128,8 @@ Deno.serve(async (req) => {
     const userName = targetProfile.first_name || targetProfile.display_name || 'there'
     const messageId = `admin-promo-${targetUserId}-${crypto.randomUUID()}`
 
-    const emailPayload = {
+    const emailPayload: Record<string, unknown> = {
+      run_id: crypto.randomUUID(),
       to: targetProfile.email,
       subject: 'Tech Fleet: Confirm Your Admin Role',
       from: 'Tech Fleet <notifications@notify.techfleet.org>',

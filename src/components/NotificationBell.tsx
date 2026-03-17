@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { format } from "date-fns";
@@ -17,49 +17,31 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
-import { AnnouncementService, type Announcement } from "@/services/announcement.service";
+import {
+  useLatestAnnouncements,
+  useAnnouncementReadIds,
+  useMarkAnnouncementRead,
+} from "@/hooks/use-announcements";
+import { stripHtml } from "@/lib/html";
+import type { Announcement } from "@/services/announcement.service";
 
 export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    const [all, reads] = await Promise.all([
-      AnnouncementService.latest(20),
-      AnnouncementService.getReadIds(user.id),
-    ]);
-    setAnnouncements(all);
-    setReadIds(reads);
-  }, [user]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (open) fetchData();
-  }, [open, fetchData]);
+  const { data: announcements = [] } = useLatestAnnouncements(20);
+  const { data: readIds = new Set<string>() } = useAnnouncementReadIds();
+  const markRead = useMarkAnnouncementRead();
 
   const unread = announcements.filter((a) => !readIds.has(a.id));
   const unreadCount = unread.length;
 
-  const handleClick = async (announcement: Announcement) => {
-    if (!user) return;
-    await AnnouncementService.markRead(user.id, announcement.id);
-    setReadIds((prev) => new Set([...prev, announcement.id]));
+  const handleClick = (announcement: Announcement) => {
+    markRead.mutate(announcement.id);
     setOpen(false);
     setSelectedAnnouncement(announcement);
-  };
-
-  const stripHtml = (html: string) => {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
   };
 
   return (

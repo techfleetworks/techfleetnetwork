@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
         await adminClient.rpc("enqueue_email", {
           queue_name: "transactional_emails",
           payload: {
+            run_id: crypto.randomUUID(),
             to: recipient.email,
             subject: `[Tech Fleet] ${announcement.title}`,
             html: emailHtml,

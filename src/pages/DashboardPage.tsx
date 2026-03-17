@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
-  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   Heart,
@@ -15,17 +14,19 @@ import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
-import { JourneyService } from "@/services/journey.service";
+import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { StatsService } from "@/services/stats.service";
-import { AnnouncementService, type Announcement } from "@/services/announcement.service";
+import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
-const totalFirstSteps = 6;
+const TOTAL_FIRST_STEPS = 6;
 
 interface CoreCourse {
   id: string;
@@ -39,13 +40,11 @@ interface CoreCourse {
   prerequisiteLabel?: string;
 }
 
-function CoreCourseCard({ course }: { course: CoreCourse }) {
-  const progress =
-    course.totalTasks > 0
-      ? Math.round((course.completedTasks / course.totalTasks) * 100)
-      : 0;
-  const isComplete =
-    course.totalTasks > 0 && course.completedTasks >= course.totalTasks;
+const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCourse }) {
+  const progress = course.totalTasks > 0
+    ? Math.round((course.completedTasks / course.totalTasks) * 100)
+    : 0;
+  const isComplete = course.totalTasks > 0 && course.completedTasks >= course.totalTasks;
   const isStarted = course.completedTasks > 0;
   const Icon = course.icon;
 
@@ -116,49 +115,34 @@ function CoreCourseCard({ course }: { course: CoreCourse }) {
       </div>
     </Link>
   );
-}
+});
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
-  const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
-  const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
-  const [discordCompleted, setDiscordCompleted] = useState<number | null>(null);
-  const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
-  const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
-  const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
-  const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
-  const [latestAnnouncements, setLatestAnnouncements] = useState<Announcement[]>([]);
+  const userId = user?.id;
 
-  useEffect(() => {
-    if (!user) return;
-    Promise.all([
-      JourneyService.getCompletedCount(user.id, "first_steps"),
-      JourneyService.getCompletedCount(user.id, "second_steps"),
-      JourneyService.getCompletedCount(user.id, "discord_learning"),
-      JourneyService.getCompletedCount(user.id, "third_steps"),
-      JourneyService.getCompletedCount(user.id, "project_training"),
-      JourneyService.getCompletedCount(user.id, "volunteer"),
-      StatsService.getNetworkStats(),
-      AnnouncementService.latest(5),
-    ]).then(([first, second, discord, third, pt, vol, stats, announcements]) => {
-      setFirstStepsCompleted(first);
-      setSecondStepsCompleted(second);
-      setDiscordCompleted(discord);
-      setThirdStepsCompleted(third);
-      setProjectTrainingCompleted(pt);
-      setVolunteerCompleted(vol);
-      setCommunityBadgeCount(stats.badges_earned ?? 0);
-      setLatestAnnouncements(announcements);
-    });
-  }, [user]);
+  // React Query hooks — cached, deduped, no manual state
+  const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps");
+  const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
+  const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
+  const { data: thirdStepsCompleted = 0 } = useCompletedCount(userId, "third_steps");
+  const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
+  const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
+  const { data: latestAnnouncements = [] } = useLatestAnnouncements(5);
+  const { data: stats } = useQuery({
+    queryKey: ["network-stats"],
+    queryFn: () => StatsService.getNetworkStats(),
+    staleTime: 10 * 60 * 1000,
+  });
 
-  const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
-  const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
-  const allDiscordDone = discordCompleted !== null && discordCompleted >= TOTAL_DISCORD_LESSONS;
-  const allThirdStepsDone = thirdStepsCompleted !== null && thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
-  const allProjectTrainingDone = projectTrainingCompleted !== null && projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
-  const allVolunteerDone = volunteerCompleted !== null && volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
+  const communityBadgeCount = stats?.badges_earned ?? null;
 
+  const allFirstStepsDone = firstStepsCompleted >= TOTAL_FIRST_STEPS;
+  const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allDiscordDone = discordCompleted >= TOTAL_DISCORD_LESSONS;
+  const allThirdStepsDone = thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
+  const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
+  const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
   const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
   const coreCourses: CoreCourse[] = [
@@ -168,8 +152,8 @@ export default function DashboardPage() {
       description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
       href: "/courses/onboarding",
-      totalTasks: totalFirstSteps,
-      completedTasks: firstStepsCompleted ?? 0,
+      totalTasks: TOTAL_FIRST_STEPS,
+      completedTasks: firstStepsCompleted,
       locked: false,
     },
     {
@@ -179,7 +163,7 @@ export default function DashboardPage() {
       icon: BookOpen,
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
-      completedTasks: secondStepsCompleted ?? 0,
+      completedTasks: secondStepsCompleted,
       locked: false,
     },
     {
@@ -189,7 +173,7 @@ export default function DashboardPage() {
       icon: Users,
       href: "/courses/discord-learning",
       totalTasks: TOTAL_DISCORD_LESSONS,
-      completedTasks: discordCompleted ?? 0,
+      completedTasks: discordCompleted,
       locked: false,
     },
     {
@@ -199,7 +183,7 @@ export default function DashboardPage() {
       icon: Users,
       href: "/courses/agile-teamwork",
       totalTasks: TOTAL_TEAMWORK_LESSONS,
-      completedTasks: thirdStepsCompleted ?? 0,
+      completedTasks: thirdStepsCompleted,
       locked: false,
     },
     {
@@ -209,7 +193,7 @@ export default function DashboardPage() {
       icon: Briefcase,
       href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
-      completedTasks: projectTrainingCompleted ?? 0,
+      completedTasks: projectTrainingCompleted,
       locked: !allThirdStepsDone,
       prerequisiteLabel: "Learn About Agile Teamwork",
     },
@@ -220,7 +204,7 @@ export default function DashboardPage() {
       icon: Heart,
       href: "/courses/volunteer-teams",
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
-      completedTasks: volunteerCompleted ?? 0,
+      completedTasks: volunteerCompleted,
       locked: !allThirdStepsDone,
       prerequisiteLabel: "Learn About Agile Teamwork",
     },
@@ -272,30 +256,23 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-2">
-            {latestAnnouncements.map((a) => {
-              const plainText = (() => {
-                const tmp = document.createElement("div");
-                tmp.innerHTML = a.body_html;
-                return tmp.textContent || tmp.innerText || "";
-              })();
-              return (
-                <Link
-                  key={a.id}
-                  to="/updates"
-                  className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{plainText.slice(0, 120)}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                      {format(new Date(a.created_at), "MMM d")}
-                    </span>
+            {latestAnnouncements.map((a) => (
+              <Link
+                key={a.id}
+                to="/updates"
+                className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
                   </div>
-                </Link>
-              );
-            })}
+                  <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                    {format(new Date(a.created_at), "MMM d")}
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
