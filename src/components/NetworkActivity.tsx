@@ -120,7 +120,7 @@ export function NetworkActivity() {
           <StatCard
             icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />}
             value={stats.applications_completed}
-            label="Applications Completed"
+            label="General Applications Completed"
             colorClass="bg-success/10"
           />
           <StatCard
