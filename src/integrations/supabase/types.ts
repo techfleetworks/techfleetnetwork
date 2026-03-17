@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           changed_fields: string[] | null
           created_at: string
+          error_message: string | null
           event_type: string
           id: string
           ip_address: string | null
@@ -55,6 +56,7 @@ export type Database = {
         Insert: {
           changed_fields?: string[] | null
           created_at?: string
+          error_message?: string | null
           event_type: string
           id?: string
           ip_address?: string | null
@@ -65,6 +67,7 @@ export type Database = {
         Update: {
           changed_fields?: string[] | null
           created_at?: string
+          error_message?: string | null
           event_type?: string
           id?: string
           ip_address?: string | null
@@ -752,16 +755,28 @@ export type Database = {
           used_at: string
         }[]
       }
-      write_audit_log: {
-        Args: {
-          p_changed_fields?: string[]
-          p_event_type: string
-          p_record_id: string
-          p_table_name: string
-          p_user_id: string
-        }
-        Returns: undefined
-      }
+      write_audit_log:
+        | {
+            Args: {
+              p_changed_fields?: string[]
+              p_event_type: string
+              p_record_id: string
+              p_table_name: string
+              p_user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_changed_fields?: string[]
+              p_error_message?: string
+              p_event_type: string
+              p_record_id: string
+              p_table_name: string
+              p_user_id: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       app_role: "admin" | "member"

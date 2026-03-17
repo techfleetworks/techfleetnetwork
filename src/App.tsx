@@ -37,6 +37,7 @@ const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage
 const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 const UserAdminPage = lazy(() => import("./pages/UserAdminPage"));
 const ConfirmAdminPage = lazy(() => import("./pages/ConfirmAdminPage"));
+const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
 
 function RouteFallback() {
   return (
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
                   <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
                   <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
+                  <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
                   <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
