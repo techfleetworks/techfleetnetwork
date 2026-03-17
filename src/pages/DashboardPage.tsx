@@ -59,7 +59,8 @@ export default function DashboardPage() {
     ? [
         { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
         { id: "third-steps", title: "Learn About Agile Teamwork", description: `Complete the Teammate Handbook: ${thirdStepsCompleted ?? 0}/${TOTAL_TEAMWORK_LESSONS} lessons completed.`, status: allSecondStepsDone ? (allThirdStepsDone ? "completed" : "current") : "locked", href: "/journey/third-steps" },
-        { id: "team-practices", title: "Learn the Team Practices of Empowered Teams", description: "Master the practices that make agile teams effective and self-organizing.", status: "locked", href: "/journey/third-steps" },
+        { id: "project-training", title: "Join Project Training Teams", description: "Learn how apprenticeship training works and how to join a project team.", status: allThirdStepsDone ? "current" : "locked", href: "/journey/project-training" },
+        { id: "volunteer-teams", title: "Join Volunteer Teams", description: "Learn how volunteer teams operate and find your volunteer role.", status: allThirdStepsDone ? "current" : "locked", href: "/journey/volunteer-teams" },
       ]
     : [
         { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: "current", href: "/journey/first-steps" },
