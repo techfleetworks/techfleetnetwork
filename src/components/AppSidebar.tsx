@@ -7,6 +7,7 @@ import {
   Bot,
   CalendarDays,
   ClipboardList,
+  Handshake,
   UserPen,
   LogOut,
 } from "lucide-react";
