@@ -118,6 +118,15 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
+      // Save additional profile fields
+      await ProfileService.updateFields(user!.id, {
+        portfolio_url: form.portfolio_url,
+        linkedin_url: form.linkedin_url,
+        experience_areas: form.experience_areas,
+        professional_goals: form.professional_goals,
+        notify_training_opportunities: form.notify_training_opportunities,
+        education_background: form.education_background,
+      });
       await refreshProfile();
       toast.success("Profile updated successfully");
       onOpenChange(false);
