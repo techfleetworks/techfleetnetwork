@@ -21,6 +21,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+import { UniversalSearch } from "./UniversalSearch";
 
 interface AppLayoutProps {
   children: React.ReactNode;
