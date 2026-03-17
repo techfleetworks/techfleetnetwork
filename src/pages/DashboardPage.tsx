@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
+  const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
   const totalFirstSteps = 6;
