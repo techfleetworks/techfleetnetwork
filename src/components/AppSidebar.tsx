@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  ClipboardList,
   UserPen,
   LogOut,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const mainNav = [
   { label: "Training", href: "/training", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Resources", href: "/resources", icon: BookOpen },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "Fleety", href: "/chat", icon: Bot },
 ];
 
