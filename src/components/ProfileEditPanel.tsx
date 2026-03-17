@@ -483,7 +483,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
             </div>
 
-            {/* Notify */}
+            {/* Notify training */}
             <div className="flex items-start gap-3">
               <Checkbox
                 id="edit-notify"
@@ -492,6 +492,18 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
               <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
                 Notify me about training opportunities that match my preferences
+              </Label>
+            </div>
+
+            {/* Notify announcements */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="edit-notify-announcements"
+                checked={form.notify_announcements}
+                onCheckedChange={(checked) => setForm({ ...form, notify_announcements: !!checked })}
+              />
+              <Label htmlFor="edit-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
+                Send me email notifications when new announcements are posted
               </Label>
             </div>
 
