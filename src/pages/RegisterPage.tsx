@@ -35,7 +35,13 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  // Store redirect for OAuth flows
+  useEffect(() => {
+    if (redirectParam) {
+      sessionStorage.setItem("auth_redirect", redirectParam);
+    }
+  }, [redirectParam]);
+
     e.preventDefault();
     const result = registerSchema.safeParse({ firstName, lastName, email, password, agreedToTerms });
     if (!result.success) {
