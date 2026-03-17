@@ -1,0 +1,1 @@
+ALTER TABLE public.general_applications ADD COLUMN completed_at timestamp with time zone;
