@@ -211,6 +211,15 @@ export default function ActivityLogPage() {
     return fields.join(", ");
   };
 
+  const copyToClipboard = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
