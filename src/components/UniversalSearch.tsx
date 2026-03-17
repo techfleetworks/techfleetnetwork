@@ -63,7 +63,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Join Volunteer Teams",
     description:
       "Lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.",
-    href: "/journey/volunteer-teams",
+    href: "/courses/volunteer-teams",
     group: "Courses",
   },
 

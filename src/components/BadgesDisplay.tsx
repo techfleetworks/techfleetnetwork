@@ -52,7 +52,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed Observe Project Teams",
       image: badgeObserver,
       earned: false,
-      href: "/journey/observer",
+      href: "/courses/observer",
     },
   ];
 

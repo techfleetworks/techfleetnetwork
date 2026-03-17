@@ -48,7 +48,7 @@ describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
   it("24.2: current step is a clickable link", () => {
     renderWithRouter(<JourneyStepCard step={currentStep} index={1} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/journey/second-steps");
+    expect(link).toHaveAttribute("href", "/courses/agile-mindset");
   });
 
   it("24.3: locked step shows Locked badge", () => {
