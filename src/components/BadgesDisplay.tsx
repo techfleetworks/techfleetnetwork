@@ -44,7 +44,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed the Teammate Handbook",
       image: badgeThirdSteps,
       earned: allThirdStepsDone,
-      href: "/journey/third-steps",
+      href: "/courses/agile-teamwork",
     },
     {
       id: "observer",
