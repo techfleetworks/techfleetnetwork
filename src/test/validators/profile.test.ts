@@ -168,6 +168,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "Jane",
       lastName: "D".repeat(101),
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
   });
