@@ -59,22 +59,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // --- Check if record exists in Airtable (filter by application_id field) ---
+    // --- Airtable upsert ---
+    // Use Airtable's native upsert support so sync only requires one write request.
     const encodedTable = encodeURIComponent(AIRTABLE_TABLE_NAME);
-    const filterFormula = encodeURIComponent(`{application_id}="${application_id}"`);
-    const searchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}?filterByFormula=${filterFormula}&maxRecords=1`;
-
-    const searchRes = await fetch(searchUrl, {
-      headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
-    });
-
-    if (!searchRes.ok) {
-      const errBody = await searchRes.text();
-      throw new Error(`Airtable search failed [${searchRes.status}]: ${errBody}`);
-    }
-
-    const searchData = await searchRes.json();
-    const existingRecord = searchData.records?.[0];
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}`;
 
     const fields = {
       application_id,
@@ -87,44 +75,41 @@ Deno.serve(async (req) => {
       updated_at: updated_at ?? new Date().toISOString(),
     };
 
-    let airtableRes: Response;
-
-    if (existingRecord) {
-      // Update existing record
-      airtableRes = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}/${existingRecord.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_PAT}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fields }),
-        }
-      );
-    } else {
-      // Create new record
-      airtableRes = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_PAT}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fields }),
-        }
-      );
-    }
+    const airtableRes = await fetch(airtableUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_PAT}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        performUpsert: { fieldsToMergeOn: ["application_id"] },
+        records: [{ fields }],
+      }),
+    });
 
     if (!airtableRes.ok) {
       const errBody = await airtableRes.text();
-      throw new Error(`Airtable upsert failed [${airtableRes.status}]: ${errBody}`);
+      console.error("sync-airtable Airtable upsert failed", {
+        status: airtableRes.status,
+        baseId: AIRTABLE_BASE_ID,
+        tableName: AIRTABLE_TABLE_NAME,
+        patLength: AIRTABLE_PAT.length,
+        response: errBody,
+      });
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Airtable upsert failed [${airtableRes.status}]: ${errBody}`,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const result = await airtableRes.json();
+    const firstRecord = result.records?.[0];
 
-    return new Response(JSON.stringify({ success: true, airtable_id: result.id }), {
+    return new Response(JSON.stringify({ success: true, airtable_id: firstRecord?.id ?? null }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
