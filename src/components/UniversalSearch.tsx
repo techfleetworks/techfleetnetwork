@@ -19,7 +19,7 @@ interface SearchItem {
   label: string;
   description: string;
   href: string;
-  group: "Courses" | "Applications" | "Project Training";
+  group: "Courses" | "Applications" | "Project Training" | "Updates";
 }
 
 /* ── Static catalogue ─────────────────────────────────────── */
