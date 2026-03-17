@@ -43,11 +43,37 @@ async function syncToAirtable(app: GeneralApplication): Promise<void> {
 export interface GeneralApplication {
   id: string;
   user_id: string;
+  email: string;
   status: string;
   title: string;
   about_yourself: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Fetch the user's email from their profile */
+async function getProfileEmail(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("user_id", userId)
+    .single();
+  return data?.email ?? "";
+}
+
+/** Sync the about_yourself text to the profile's professional_background */
+async function syncToProfileBackground(userId: string, aboutYourself: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ professional_background: aboutYourself } as any)
+      .eq("user_id", userId);
+    if (error) {
+      log.warn("syncToProfileBackground", `Failed to sync background: ${error.message}`, { userId }, error);
+    }
+  } catch (err) {
+    log.warn("syncToProfileBackground", "Background sync error (non-blocking)", { userId }, err);
+  }
 }
 
 export const GeneralApplicationService = {
