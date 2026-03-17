@@ -124,6 +124,13 @@ body {
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  /* Placeholder text: grey, italic, distinct from entered values */
+  ::placeholder {
+    color: hsl(var(--placeholder));
+    font-style: italic;
+    opacity: 1;
+  }
+
   /* WCAG 2.0 / 3.0: Visible focus indicators */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring rounded-sm;
