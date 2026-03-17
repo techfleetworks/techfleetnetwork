@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Loader2,
-  ClipboardList,
   ChevronRight,
   ArrowLeft,
   ArrowRight,
