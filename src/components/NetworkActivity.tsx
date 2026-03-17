@@ -83,8 +83,8 @@ export function NetworkActivity() {
   return (
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
       <div className="container-app">
-        <div className="text-center mb-8">
-          <h2 id="network-activity-heading" className="text-3xl font-bold text-foreground">
+        <div className="mb-8">
+          <h2 id="network-activity-heading" className="text-xl font-semibold text-foreground">
             Network Activity
           </h2>
           <p className="text-muted-foreground mt-2">
