@@ -47,11 +47,14 @@ import {
 
 export default function ThirdStepsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<TeamworkLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [toggling, setToggling] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const prevCompletedCountRef = useRef<number | null>(null);
 
   // Load progress
   useEffect(() => {
