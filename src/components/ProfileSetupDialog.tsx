@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TOTAL_STEPS = 3;
+const STEP_LABELS = ["Identity", "Discord", "Interests"];
 
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
