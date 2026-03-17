@@ -332,6 +332,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center">
               <UniversalSearch />
               <ThemeToggle />
+              <NotificationBell />
               <div className="ml-4">
                 <ProfileDropdown
                   profile={profile}
