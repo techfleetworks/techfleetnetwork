@@ -48,6 +48,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         lastName: profile.last_name || "",
         email: profile.email || user?.email || "",
         country: profile.country || "",
+        timezone: profile.timezone || "",
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
       });
