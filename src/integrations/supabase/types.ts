@@ -241,6 +241,7 @@ export type Database = {
           agile_philosophies: string
           agile_vs_waterfall: string
           collaboration_challenges: string
+          completed_at: string | null
           created_at: string
           current_section: number
           email: string
@@ -266,6 +267,7 @@ export type Database = {
           agile_philosophies?: string
           agile_vs_waterfall?: string
           collaboration_challenges?: string
+          completed_at?: string | null
           created_at?: string
           current_section?: number
           email?: string
@@ -291,6 +293,7 @@ export type Database = {
           agile_philosophies?: string
           agile_vs_waterfall?: string
           collaboration_challenges?: string
+          completed_at?: string | null
           created_at?: string
           current_section?: number
           email?: string

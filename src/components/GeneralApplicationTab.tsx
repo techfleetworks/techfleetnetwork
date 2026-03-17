@@ -254,6 +254,9 @@ export function GeneralApplicationTab() {
       const fields = gatherSaveFields();
       if (markComplete) {
         fields.status = "completed";
+        if (!isCompleted) {
+          (fields as Record<string, unknown>).completed_at = new Date().toISOString();
+        }
       } else if (!isCompleted) {
         // Only revert to draft if not already completed (allow updates to completed apps)
         fields.status = "draft";

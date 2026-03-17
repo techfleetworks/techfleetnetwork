@@ -8,13 +8,13 @@ import { format } from "date-fns";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
-  const [appStatus, setAppStatus] = useState<{ completed: boolean; updatedAt: string | null }>({ completed: false, updatedAt: null });
+  const [appStatus, setAppStatus] = useState<{ completed: boolean; completedAt: string | null }>({ completed: false, completedAt: null });
 
   useEffect(() => {
     if (!user) return;
     GeneralApplicationService.list(user.id).then((apps) => {
       if (apps.length > 0 && apps[0].status === "completed") {
-        setAppStatus({ completed: true, updatedAt: apps[0].updated_at });
+        setAppStatus({ completed: true, completedAt: ((apps[0] as unknown as Record<string, unknown>).completed_at as string | null) ?? apps[0].updated_at });
       }
     }).catch(() => {});
   }, [user]);
@@ -53,9 +53,9 @@ export default function ApplicationsPage() {
             Submit your general application to join the Tech Fleet community.
             Covers your background, agile mindset, and service leadership.
           </p>
-          {appStatus.completed && appStatus.updatedAt && (
+          {appStatus.completed && appStatus.completedAt && (
             <p className="text-xs text-muted-foreground mt-2">
-              Completed on {format(new Date(appStatus.updatedAt), "MMM d, yyyy")}
+              Completed on {format(new Date(appStatus.completedAt), "MMM d, yyyy")}
             </p>
           )}
           <div className="flex items-center gap-1 mt-4 text-sm font-medium text-primary group-hover:gap-2 transition-all">
