@@ -67,22 +67,25 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
     <Sidebar collapsible="icon">
       <SidebarContent>
         {/* Logo + collapse trigger */}
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
-            <img
-              src={techFleetLogo}
-              alt="Tech Fleet"
-              className="h-7 w-7 dark:invert shrink-0"
-              width={28}
-              height={28}
-            />
-            {!collapsed && (
-              <span className="font-bold text-sm text-sidebar-foreground truncate">
-                Tech Fleet
-              </span>
-            )}
+        <div className="flex flex-col items-center px-4 py-4 gap-2">
+          <div className="flex items-center w-full justify-between">
+            <div className="flex items-center gap-2">
+              <img
+                src={techFleetLogo}
+                alt="Tech Fleet"
+                className="h-7 w-7 dark:invert shrink-0"
+                width={28}
+                height={28}
+              />
+              {!collapsed && (
+                <span className="font-bold text-sm text-sidebar-foreground truncate">
+                  Tech Fleet
+                </span>
+              )}
+            </div>
+            {!collapsed && <SidebarTrigger className="shrink-0" />}
           </div>
-          <SidebarTrigger className="shrink-0" />
+          {collapsed && <SidebarTrigger className="shrink-0" />}
         </div>
 
         <SidebarGroup>
