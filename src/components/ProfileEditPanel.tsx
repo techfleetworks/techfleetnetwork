@@ -67,6 +67,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         experience_areas: profile.experience_areas || [],
         professional_goals: profile.professional_goals || "",
         notify_training_opportunities: profile.notify_training_opportunities || false,
+        notify_announcements: (profile as any).notify_announcements || false,
         education_background: profile.education_background || [],
       });
       setErrors({});
