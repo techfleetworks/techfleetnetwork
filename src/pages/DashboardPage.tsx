@@ -117,14 +117,14 @@ export default function DashboardPage() {
   );
 
   const badgesSection = (
-    <section className="mb-8">
+    <section>
       <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} allThirdStepsDone={allThirdStepsDone} communityBadgeCount={communityBadgeCount} />
     </section>
   );
 
   return (
-    <div className="container-app py-8 sm:py-12">
-      <div className="mb-8">
+    <div className="container-app py-8 sm:py-12 space-y-9">
+      <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
@@ -141,7 +141,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      <section className="mt-10 border-t pt-8">
+      <section className="border-t pt-9">
         <NetworkActivity />
       </section>
     </div>
