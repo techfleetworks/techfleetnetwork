@@ -7,6 +7,7 @@ import {
   Bot,
   CalendarDays,
   ClipboardList,
+  Handshake,
   UserPen,
   LogOut,
 } from "lucide-react";
@@ -30,7 +31,8 @@ const mainNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
   { label: "Applications", href: "/applications", icon: ClipboardList },
-  { label: "Training", href: "/training", icon: GraduationCap },
+  { label: "Courses", href: "/training", icon: GraduationCap },
+  { label: "Project Training", href: "/project-training", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Fleety", href: "/chat", icon: Bot },
