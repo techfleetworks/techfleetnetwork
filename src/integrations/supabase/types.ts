@@ -411,6 +411,7 @@ export type Database = {
           membership_tier: Database["public"]["Enums"]["membership_tier"]
           professional_background: string
           profile_completed: boolean
+          timezone: string
           updated_at: string
           user_id: string
         }
@@ -430,6 +431,7 @@ export type Database = {
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
           professional_background?: string
           profile_completed?: boolean
+          timezone?: string
           updated_at?: string
           user_id: string
         }
@@ -449,6 +451,7 @@ export type Database = {
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
           professional_background?: string
           profile_completed?: boolean
+          timezone?: string
           updated_at?: string
           user_id?: string
         }
