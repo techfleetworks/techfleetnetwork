@@ -445,7 +445,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 1: Basic Information ─── */}
         {section === 1 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="space-y-3">
               <Label className="text-base font-medium">
                 Tech Fleet project trainees are expected to commit 15 to 20 hours on project team training. This is flexible, and your team builds the schedule together based on their availability. Are you committed to contribute 15 to 20 hours a week during project training? <span className="text-destructive">*</span>
