@@ -83,6 +83,13 @@ export const ProfileService = {
         display_name: `${input.firstName} ${input.lastName}`.trim(),
         interests: input.interests || [],
         profile_completed: true,
+        portfolio_url: input.portfolio_url || "",
+        linkedin_url: input.linkedin_url || "",
+        experience_areas: input.experience_areas || [],
+        professional_goals: input.professional_goals || "",
+        notify_training_opportunities: input.notify_training_opportunities ?? false,
+        notify_announcements: input.notify_announcements ?? false,
+        education_background: input.education_background || [],
       };
 
       if (email) {
