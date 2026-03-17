@@ -17,11 +17,13 @@ import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { StatsService } from "@/services/stats.service";
+import { AnnouncementService, type Announcement } from "@/services/announcement.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
+import { format } from "date-fns";
 
 const totalFirstSteps = 6;
 
