@@ -222,6 +222,52 @@ export default function GenericCoursePage({
     });
   };
 
+  // Share button component
+  const ShareButton = () => {
+    const [copied, setCopied] = useState(false);
+    const shareUrl = `${window.location.origin}${window.location.pathname}`;
+
+    const handleShare = async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Fallback for insecure contexts
+        const input = document.createElement("input");
+        input.value = shareUrl;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    };
+
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-shrink-0 gap-1.5"
+        onClick={handleShare}
+        aria-label="Copy share link"
+      >
+        {copied ? (
+          <>
+            <Check className="h-4 w-4 text-success" />
+            <span className="text-xs">Copied!</span>
+          </>
+        ) : (
+          <>
+            <Share2 className="h-4 w-4" />
+            <span className="text-xs">Share</span>
+          </>
+        )}
+      </Button>
+    );
+  };
+
   // Prerequisite gate
   if (prerequisite && prerequisite.loaded && !prerequisite.met) {
     return (
