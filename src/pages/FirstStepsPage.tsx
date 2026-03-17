@@ -50,6 +50,7 @@ const baseTasks: Omit<Task, "completed">[] = [
     icon: Users,
     action: "https://techfleet.org/overview/current-classes",
     external: true,
+  },
   {
     id: "figma-account",
     title: "Register for Figma Educational Account",
