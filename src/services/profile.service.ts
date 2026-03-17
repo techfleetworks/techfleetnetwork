@@ -134,4 +134,22 @@ export const ProfileService = {
       log.info("updateNames", `Profile names synced for user ${userId}`, { userId, firstName, lastName });
     });
   },
+
+  /** Update arbitrary profile fields (used by general application to sync Section 2 fields) */
+  async updateFields(userId: string, fields: Record<string, unknown>) {
+    return log.track("updateFields", `Updating profile fields for user ${userId}`, {
+      userId,
+      fields: Object.keys(fields),
+    }, async () => {
+      const { error } = await supabase
+        .from("profiles")
+        .update(fields as any)
+        .eq("user_id", userId);
+      if (error) {
+        log.error("updateFields", `Failed to update profile fields: ${error.message}`, { userId }, error);
+        throw new Error("Failed to update profile.");
+      }
+      log.info("updateFields", `Profile fields updated for user ${userId}`, { userId });
+    });
+  },
 };
