@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@/lib/react-query";
 import { JourneyService } from "@/services/journey.service";
 import type { Database } from "@/integrations/supabase/types";
 
