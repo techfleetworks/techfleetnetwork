@@ -10,13 +10,13 @@ const safeText = (label: string, max: number) =>
     .refine((val) => !/<script/i.test(val), `${label} contains invalid content`);
 
 export const ACTIVITY_OPTIONS = [
-  "Take classes",
-  "Join a community of practice",
-  "Work with buddies",
   "Get mentorship",
+  "I'm not sure yet, still exploring",
+  "Join a community of practice",
+  "Take classes",
   "Train on project teams",
   "Volunteer for Tech Fleet's nonprofit organization",
-  "I'm not sure yet, still exploring",
+  "Work with buddies",
 ] as const;
 
 export const profileSchema = z.object({
