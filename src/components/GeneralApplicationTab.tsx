@@ -754,7 +754,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 5: Service Leadership ─── */}
         {section === 5 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <LongFormQuestion
               id="sl-definition"
               label="What is Service Leadership to you?"
