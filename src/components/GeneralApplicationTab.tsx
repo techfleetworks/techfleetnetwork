@@ -609,7 +609,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Professional Goals */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="app-goals">Tell us more about the professional development goals you want to achieve <span className="text-destructive">*</span></Label>
               <Textarea
                 id="app-goals"
