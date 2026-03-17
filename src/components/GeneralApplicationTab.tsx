@@ -698,7 +698,7 @@ export function GeneralApplicationTab() {
             )}
 
             {form.previous_engagement === "yes" && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="app-teammate-learnings">What have you learned about being a teammate after engaging in Tech Fleet so far?</Label>
                 <Textarea
                   id="app-teammate-learnings"

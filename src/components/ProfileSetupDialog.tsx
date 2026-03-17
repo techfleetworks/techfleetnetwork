@@ -476,7 +476,7 @@ export function ProfileSetupDialog() {
                   <p className="text-sm text-muted-foreground">Choose all that apply. You can change this later.</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {ACTIVITY_OPTIONS.map((option) => (
                     <button
                       key={option}
