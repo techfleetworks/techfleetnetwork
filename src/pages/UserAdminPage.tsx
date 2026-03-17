@@ -43,8 +43,8 @@ export default function UserAdminPage() {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
-  const [pendingUserIds, setPendingUserIds] = useState<Set<string>>(new Set());
+  const [, setAdminUserIds] = useState<Set<string>>(new Set());
+  const [, setPendingUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
