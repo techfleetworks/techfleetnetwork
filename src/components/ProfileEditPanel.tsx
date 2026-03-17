@@ -442,7 +442,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-linkedin">LinkedIn URL</Label>
               <Input
                 id="edit-linkedin"
