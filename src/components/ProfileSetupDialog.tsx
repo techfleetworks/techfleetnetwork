@@ -21,7 +21,9 @@ export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
 
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
-  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed;
+  // Only show on very first login after signup — check sessionStorage flag
+  const isFirstLogin = sessionStorage.getItem("profile_setup_shown") !== "true";
+  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed && isFirstLogin;
 
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -43,6 +45,7 @@ export function ProfileSetupDialog() {
   useEffect(() => {
     if (shouldShow && !dismissed) {
       setOpen(true);
+      sessionStorage.setItem("profile_setup_shown", "true");
     } else {
       setOpen(false);
     }
@@ -166,7 +169,7 @@ export function ProfileSetupDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleSkip(); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="w-full max-w-full md:max-w-[70vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between">
             <div>
@@ -190,7 +193,7 @@ export function ProfileSetupDialog() {
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
+        <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
           <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
