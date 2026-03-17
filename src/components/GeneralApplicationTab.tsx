@@ -332,12 +332,15 @@ export function GeneralApplicationTab() {
 
   const handleNext = async () => {
     if (!validateSection()) return;
+    const nextSection = Math.min(section + 1, TOTAL_SECTIONS);
+    setSection(nextSection);
+    setErrors({});
     // Auto-save when moving forward
     if (activeApp) {
       setSaving(true);
       try {
         const fields = gatherSaveFields();
-        fields.current_section = section + 1;
+        fields.current_section = nextSection;
         fields.status = "draft";
         await GeneralApplicationService.save(activeApp.id, fields);
         await syncProfileFields();
@@ -346,8 +349,6 @@ export function GeneralApplicationTab() {
       } catch { /* non-blocking */ }
       setSaving(false);
     }
-    setSection((s) => Math.min(s + 1, TOTAL_SECTIONS));
-    setErrors({});
   };
 
   const handleBack = () => {
