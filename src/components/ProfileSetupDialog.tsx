@@ -21,7 +21,9 @@ export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
 
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
-  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed;
+  // Only show on very first login after signup — check sessionStorage flag
+  const isFirstLogin = sessionStorage.getItem("profile_setup_shown") !== "true";
+  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed && isFirstLogin;
 
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
