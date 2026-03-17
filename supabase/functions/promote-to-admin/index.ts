@@ -165,6 +165,18 @@ Deno.serve(async (req) => {
   </div>
 </body>
 </html>`,
+      text: [
+        `Tech Fleet Network`,
+        '',
+        `Admin Role Confirmation`,
+        '',
+        `Hi ${userName},`,
+        `You've been promoted to an Admin role in the Tech Fleet Network by an existing administrator.`,
+        `To confirm and activate your admin privileges, open this link: ${confirmUrl}`,
+        '',
+        `If you did not expect this, you can safely ignore this email.`,
+        `— Tech Fleet Team`,
+      ].join('\n'),
     }
 
     // Log pending status
