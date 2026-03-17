@@ -13,6 +13,9 @@ export interface TaskProgress {
 
 // A03: Whitelist valid task IDs to prevent injection
 import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
+import { ALL_TEAMWORK_LESSON_IDS } from "@/data/teamwork-course";
+import { ALL_PROJECT_TRAINING_LESSON_IDS } from "@/data/project-training-course";
+import { ALL_VOLUNTEER_LESSON_IDS } from "@/data/volunteer-teams-course";
 
 const VALID_TASK_IDS = new Set([
   "profile",
@@ -23,6 +26,9 @@ const VALID_TASK_IDS = new Set([
   "figma-account",
   "community-agreement",
   ...ALL_AGILE_LESSON_IDS,
+  ...ALL_TEAMWORK_LESSON_IDS,
+  ...ALL_PROJECT_TRAINING_LESSON_IDS,
+  ...ALL_VOLUNTEER_LESSON_IDS,
 ]);
 
 const VALID_PHASES: Set<string> = new Set([
@@ -31,6 +37,8 @@ const VALID_PHASES: Set<string> = new Set([
   "third_steps",
   "observer",
   "projects",
+  "project_training",
+  "volunteer",
 ]);
 
 export const JourneyService = {
