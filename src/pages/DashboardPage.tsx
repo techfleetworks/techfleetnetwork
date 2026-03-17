@@ -1,24 +1,127 @@
 import { useEffect, useState } from "react";
-import { JourneyStepCard, type JourneyStep } from "@/components/JourneyStepCard";
+import { Link } from "react-router-dom";
+import {
+  BookOpen,
+  Briefcase,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  Heart,
+  Lock,
+  Users,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
-import { CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
-import { NetworkActivity } from "@/components/NetworkActivity";
 import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
-import { Link } from "react-router-dom";
+import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
+import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
+
+const totalFirstSteps = 6;
+
+interface CoreCourse {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+  totalTasks: number;
+  completedTasks: number;
+  locked: boolean;
+  prerequisiteLabel?: string;
+}
+
+function CoreCourseCard({ course }: { course: CoreCourse }) {
+  const progress =
+    course.totalTasks > 0
+      ? Math.round((course.completedTasks / course.totalTasks) * 100)
+      : 0;
+  const isComplete =
+    course.totalTasks > 0 && course.completedTasks >= course.totalTasks;
+  const isStarted = course.completedTasks > 0;
+  const Icon = course.icon;
+
+  if (course.locked) {
+    return (
+      <div
+        className="card-elevated p-4 opacity-50 cursor-not-allowed relative overflow-hidden"
+        aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-muted-foreground truncate">{course.title}</h3>
+            <p className="text-xs text-muted-foreground/70 truncate">{course.description}</p>
+          </div>
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs gap-1 flex-shrink-0">
+            <Lock className="h-3 w-3" />
+            Locked
+          </Badge>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to={course.href}
+      className="card-elevated p-4 hover:border-primary/40 transition-all group block"
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="h-4 w-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
+              {course.title}
+            </h3>
+            {isComplete ? (
+              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0">
+                Complete
+              </Badge>
+            ) : isStarted ? (
+              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0">
+                In Progress
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
+            )}
+          </div>
+          {course.totalTasks > 0 && (
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden flex-1">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {course.completedTasks}/{course.totalTasks}
+              </span>
+            </div>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+      </div>
+    </Link>
+  );
+}
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
   const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
-  const [showAllSteps, setShowAllSteps] = useState(false);
+  const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
+  const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
   const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
-  const totalFirstSteps = 6;
-
 
   useEffect(() => {
     if (!user) return;
@@ -26,11 +129,15 @@ export default function DashboardPage() {
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
+      JourneyService.getCompletedCount(user.id, "project_training"),
+      JourneyService.getCompletedCount(user.id, "volunteer"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, third, stats]) => {
+    ]).then(([first, second, third, pt, vol, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
       setThirdStepsCompleted(third);
+      setProjectTrainingCompleted(pt);
+      setVolunteerCompleted(vol);
       setCommunityBadgeCount(stats.badges_earned ?? 0);
     });
   }, [user]);
@@ -38,87 +145,67 @@ export default function DashboardPage() {
   const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted !== null && thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
+  const allProjectTrainingDone = projectTrainingCompleted !== null && projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
+  const allVolunteerDone = volunteerCompleted !== null && volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
 
-  // No auto-redirect — always show the dashboard overview on login
+  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
-
-
-
-  const journeySteps: JourneyStep[] = allFirstStepsDone
-    ? [
-        { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
-        { id: "third-steps", title: "Learn About Agile Teamwork", description: `Complete the Teammate Handbook: ${thirdStepsCompleted ?? 0}/${TOTAL_TEAMWORK_LESSONS} lessons completed.`, status: allSecondStepsDone ? (allThirdStepsDone ? "completed" : "current") : "locked", href: "/journey/third-steps" },
-        { id: "project-training", title: "Join Project Training Teams", description: "Learn how apprenticeship training works and how to join a project team.", status: allThirdStepsDone ? "current" : "locked", href: "/journey/project-training" },
-        { id: "volunteer-teams", title: "Join Volunteer Teams", description: "Learn how volunteer teams operate and find your volunteer role.", status: allThirdStepsDone ? "current" : "locked", href: "/journey/volunteer-teams" },
-      ]
-    : [
-        { id: "first-steps", title: "Onboarding Steps", description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.", status: "current", href: "/journey/first-steps" },
-      ];
-
-  const allStepsCompleted = journeySteps.every((s) => s.status === "completed");
+  const coreCourses: CoreCourse[] = [
+    {
+      id: "onboarding",
+      title: "Onboarding Steps",
+      description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
+      icon: ClipboardCheck,
+      href: "/journey/first-steps",
+      totalTasks: totalFirstSteps,
+      completedTasks: firstStepsCompleted ?? 0,
+      locked: false,
+    },
+    {
+      id: "agile-mindset",
+      title: "Build an Agile Mindset",
+      description: `${TOTAL_AGILE_LESSONS} lessons covering agile philosophies, teamwork, and scrum methods.`,
+      icon: BookOpen,
+      href: "/journey/second-steps",
+      totalTasks: TOTAL_AGILE_LESSONS,
+      completedTasks: secondStepsCompleted ?? 0,
+      locked: false,
+    },
+    {
+      id: "agile-teamwork",
+      title: "Learn About Agile Teamwork",
+      description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook.`,
+      icon: Users,
+      href: "/journey/third-steps",
+      totalTasks: TOTAL_TEAMWORK_LESSONS,
+      completedTasks: thirdStepsCompleted ?? 0,
+      locked: false,
+    },
+    {
+      id: "project-training",
+      title: "Join Project Training Teams",
+      description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on apprenticeship training and nonprofit clients.`,
+      icon: Briefcase,
+      href: "/journey/project-training",
+      totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
+      completedTasks: projectTrainingCompleted ?? 0,
+      locked: !allThirdStepsDone,
+      prerequisiteLabel: "Learn About Agile Teamwork",
+    },
+    {
+      id: "volunteer-teams",
+      title: "Join Volunteer Teams",
+      description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet.`,
+      icon: Heart,
+      href: "/journey/volunteer-teams",
+      totalTasks: TOTAL_VOLUNTEER_LESSONS,
+      completedTasks: volunteerCompleted ?? 0,
+      locked: !allThirdStepsDone,
+      prerequisiteLabel: "Learn About Agile Teamwork",
+    },
+  ];
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
-
-  const journeyHeading = allFirstStepsDone ? "Recommended Courses" : "Get Started in Tech Fleet";
-
-  const journeySection = (
-    <section aria-labelledby="journey-heading">
-      <h2 id="journey-heading" className="text-xl font-semibold text-foreground mb-4">{journeyHeading}</h2>
-
-      {allStepsCompleted ? (
-        <div className="space-y-3">
-          <div className="card-elevated border-success/50 bg-success/5 p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <CheckCircle2 className="h-8 w-8 text-success flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-bold text-foreground">🎉 All Courses Complete!</h3>
-                <p className="text-sm text-muted-foreground">
-                  You've completed every recommended course. Congratulations!
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowAllSteps(!showAllSteps)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
-            >
-              {showAllSteps ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              {showAllSteps ? "Hide completed courses" : "Show completed courses"}
-            </button>
-          </div>
-
-          {showAllSteps && (
-            <div className="space-y-2 animate-fade-in">
-              {journeySteps.map((step) => (
-                <Link
-                  key={step.id}
-                  to={step.href}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
-                >
-                  <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                  <span className="text-sm font-medium text-foreground">{step.title}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {journeySteps.map((step, index) => (
-            <div key={step.id}>
-              <JourneyStepCard step={step} index={index} />
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-
-  const badgesSection = (
-    <section>
-      <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} allThirdStepsDone={allThirdStepsDone} communityBadgeCount={communityBadgeCount} />
-    </section>
-  );
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-9">
@@ -127,16 +214,26 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
       </div>
 
-      {allFirstStepsDone ? (
-        <>
-          {badgesSection}
-          {journeySection}
-        </>
-      ) : (
-        <>
-          {journeySection}
-          {badgesSection}
-        </>
+      <section>
+        <BadgesDisplay
+          allFirstStepsDone={allFirstStepsDone}
+          allSecondStepsDone={allSecondStepsDone}
+          allThirdStepsDone={allThirdStepsDone}
+          communityBadgeCount={communityBadgeCount}
+        />
+      </section>
+
+      {!allCoreCoursesDone && (
+        <section aria-labelledby="core-courses-heading">
+          <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
+            Core Courses
+          </h2>
+          <div className="space-y-2">
+            {coreCourses.map((course) => (
+              <CoreCourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="border-t pt-9">
