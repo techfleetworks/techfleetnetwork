@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
-  Plus,
-  FileText,
-  Trash2,
-  Save,
-  CheckCircle2,
-  Copy,
   Loader2,
-  ClipboardList,
   ChevronRight,
   ArrowLeft,
   ArrowRight,
@@ -18,6 +11,8 @@ import {
   Check,
   ChevronsUpDown,
   AlertCircle,
+  Save,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
@@ -52,7 +46,7 @@ import {
   PREVIOUS_ENGAGEMENT_OPTIONS,
 } from "@/lib/application-options";
 
-type View = "list" | "edit";
+// Single-instance: users have 0 or 1 general application
 const TOTAL_SECTIONS = 5;
 
 const SECTION_TITLES = [
@@ -130,24 +124,17 @@ const emptyForm: AppFormData = {
 
 export function GeneralApplicationTab() {
   const { user, profile, refreshProfile } = useAuth();
-  const [apps, setApps] = useState<GeneralApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<View>("list");
   const [activeApp, setActiveApp] = useState<GeneralApplication | null>(null);
   const [form, setForm] = useState<AppFormData>({ ...emptyForm });
   const [title, setTitle] = useState("");
   const [section, setSection] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [isNewApp, setIsNewApp] = useState(false);
-  const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
-  const [prefillDialogOpen, setPrefillDialogOpen] = useState(false);
-  const [latestCompleted, setLatestCompleted] = useState<GeneralApplication | null>(null);
-  const [creatingWithPrefill, setCreatingWithPrefill] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sectionsTouched, setSectionsTouched] = useState<Set<number>>(new Set());
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const formContainerRef = useRef<HTMLDivElement>(null);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
@@ -162,22 +149,33 @@ export function GeneralApplicationTab() {
     }
   };
 
-  const loadApps = useCallback(async () => {
+  /** Load or create the single general application */
+  const loadOrCreateApp = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       const data = await GeneralApplicationService.list(user.id);
-      setApps(data);
+      if (data.length > 0) {
+        // Use existing app
+        const app = data[0];
+        setActiveApp(app);
+        populateFormFromApp(app);
+      } else {
+        // Create the user's first (and only) app
+        const app = await GeneralApplicationService.create(user.id);
+        setActiveApp(app);
+        populateFormFromApp(app);
+      }
     } catch {
-      toast.error("Failed to load applications");
+      toast.error("Failed to load application");
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => {
-    loadApps();
-  }, [loadApps]);
+    loadOrCreateApp();
+  }, [loadOrCreateApp]);
 
   const populateFormFromApp = (app: GeneralApplication) => {
     setForm({
@@ -205,63 +203,6 @@ export function GeneralApplicationTab() {
     });
     setTitle(app.title);
     setSection(app.current_section > 0 ? Math.min(app.current_section, TOTAL_SECTIONS) : 1);
-  };
-
-  const handleNewApp = async () => {
-    if (!user) return;
-    const completed = await GeneralApplicationService.getLatestCompleted(user.id);
-    if (completed) {
-      setLatestCompleted(completed);
-      setPrefillDialogOpen(true);
-    } else {
-      await createApp();
-    }
-  };
-
-  const createApp = async (prefill?: GeneralApplication) => {
-    if (!user) return;
-    setCreatingWithPrefill(true);
-    try {
-      const app = await GeneralApplicationService.create(user.id, prefill ? { about_yourself: prefill.about_yourself } : undefined);
-      setActiveApp(app);
-      populateFormFromApp(app);
-      if (prefill) {
-        // Copy over all fields from prefill
-        setForm((prev) => ({
-          ...prev,
-          hours_commitment: prefill.hours_commitment || "",
-          portfolio_url: prefill.portfolio_url || "",
-          linkedin_url: prefill.linkedin_url || "",
-          previous_engagement: prefill.previous_engagement || "",
-          previous_engagement_ways: prefill.previous_engagement_ways || [],
-          teammate_learnings: prefill.teammate_learnings || "",
-          agile_vs_waterfall: prefill.agile_vs_waterfall || "",
-          psychological_safety: prefill.psychological_safety || "",
-          agile_philosophies: prefill.agile_philosophies || "",
-          collaboration_challenges: prefill.collaboration_challenges || "",
-          servant_leadership_definition: prefill.servant_leadership_definition || "",
-          servant_leadership_actions: prefill.servant_leadership_actions || "",
-          servant_leadership_challenges: prefill.servant_leadership_challenges || "",
-          servant_leadership_situation: prefill.servant_leadership_situation || "",
-        }));
-      }
-      setSection(1);
-      setIsNewApp(true);
-      setView("edit");
-      await loadApps();
-    } catch {
-      toast.error("Failed to create application");
-    } finally {
-      setCreatingWithPrefill(false);
-      setPrefillDialogOpen(false);
-    }
-  };
-
-  const openApp = (app: GeneralApplication) => {
-    setActiveApp(app);
-    populateFormFromApp(app);
-    setIsNewApp(false);
-    setView("edit");
   };
 
   const gatherSaveFields = (): Partial<GeneralApplication> => ({
@@ -302,6 +243,8 @@ export function GeneralApplicationTab() {
     }
   };
 
+  const isCompleted = activeApp?.status === "completed";
+
   const handleSave = async (markComplete = false) => {
     if (!activeApp) return;
     setSaving(true);
@@ -309,18 +252,20 @@ export function GeneralApplicationTab() {
       const fields = gatherSaveFields();
       if (markComplete) {
         fields.status = "completed";
-      } else {
+      } else if (!isCompleted) {
+        // Only revert to draft if not already completed (allow updates to completed apps)
         fields.status = "draft";
       }
       await GeneralApplicationService.save(activeApp.id, fields);
-      // Always sync profile fields
       await syncProfileFields();
-      toast.success(markComplete ? "Application submitted!" : "Progress saved");
       const updated = await GeneralApplicationService.fetch(activeApp.id);
       if (updated) setActiveApp(updated);
-      await loadApps();
-      if (markComplete) {
-        setView("list");
+
+      if (markComplete && !isCompleted) {
+        // First-time completion: celebrate!
+        setShowCelebration(true);
+      } else {
+        toast.success(markComplete ? "Application updated!" : "Progress saved");
       }
     } catch {
       toast.error("Failed to save application");
@@ -408,26 +353,7 @@ export function GeneralApplicationTab() {
     setSection((s) => Math.max(s - 1, 1));
   };
 
-  const handleDelete = async (id: string) => {
-    setDeleting(id);
-    try {
-      await GeneralApplicationService.remove(id);
-      toast.success("Application deleted");
-      if (activeApp?.id === id) {
-        setView("list");
-        setActiveApp(null);
-      }
-      await loadApps();
-    } catch {
-      toast.error("Failed to delete application");
-    } finally {
-      setDeleting(null);
-      setDeleteDialogId(null);
-    }
-  };
-
   const canSubmit = (): boolean => {
-    // Check all required fields across all sections
     return !!(
       form.hours_commitment &&
       form.country.trim() &&
@@ -448,123 +374,16 @@ export function GeneralApplicationTab() {
     );
   };
 
-  // ─── LIST VIEW ──────────────────────────────────────────────
-  if (view === "list") {
+  // ─── LOADING STATE ──────────────────────────────────────────
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Your General Applications</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Write once, reuse for multiple project and volunteer applications.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : apps.length === 0 ? (
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No applications yet</h3>
-            <p className="text-muted-foreground max-w-md mx-auto mb-4">
-              Create your first general application. You can save your progress and come back anytime.
-            </p>
-            <Button onClick={handleNewApp} disabled={creatingWithPrefill}>
-              <Plus className="h-4 w-4 mr-2" />
-              Start Your First Application
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {apps.map((app) => (
-              <div key={app.id} className="card-elevated p-4 flex items-center justify-between gap-4">
-                <button
-                  type="button"
-                  className="flex-1 text-left flex items-center gap-3 min-w-0"
-                  onClick={() => openApp(app)}
-                >
-                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground truncate">{app.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Updated {new Date(app.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                      {app.status === "draft" && app.current_section > 0 && (
-                        <span className="ml-2">· Section {app.current_section} of {TOTAL_SECTIONS}</span>
-                      )}
-                    </p>
-                  </div>
-                </button>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge
-                    variant={app.status === "completed" ? "default" : "secondary"}
-                    className={cn(app.status === "completed" && "bg-success/10 text-success border-success/30")}
-                  >
-                    {app.status === "completed" ? (
-                      <><CheckCircle2 className="h-3 w-3 mr-1" /> Completed</>
-                    ) : "Draft"}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={(e) => { e.stopPropagation(); setDeleteDialogId(app.id); }}
-                    disabled={deleting === app.id}
-                    aria-label={`Delete ${app.title}`}
-                  >
-                    {deleting === app.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* New app button for existing users */}
-        {apps.length > 0 && (
-          <Button onClick={handleNewApp} disabled={creatingWithPrefill} variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            New Application
-          </Button>
-        )}
-
-        {/* Delete confirmation */}
-        <Dialog open={!!deleteDialogId} onOpenChange={() => setDeleteDialogId(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-destructive">Delete Application</DialogTitle>
-              <DialogDescription>This will permanently delete this application. This action cannot be undone.</DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setDeleteDialogId(null)}>Cancel</Button>
-              <Button variant="destructive" onClick={() => deleteDialogId && handleDelete(deleteDialogId)} disabled={!!deleting}>
-                {deleting ? "Deleting…" : "Delete"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Prefill dialog */}
-        <Dialog open={prefillDialogOpen} onOpenChange={setPrefillDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Start from Previous Application?</DialogTitle>
-              <DialogDescription>Copy answers from your most recent completed application as a starting point?</DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => createApp()} disabled={creatingWithPrefill}>Start Fresh</Button>
-              <Button onClick={() => latestCompleted && createApp(latestCompleted)} disabled={creatingWithPrefill}>
-                <Copy className="h-4 w-4 mr-2" />
-                {creatingWithPrefill ? "Creating…" : "Copy from Previous"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // ─── EDIT VIEW ──────────────────────────────────────────────
+  // ─── FORM VIEW ──────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
@@ -574,7 +393,7 @@ export function GeneralApplicationTab() {
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
         <span className="font-medium text-foreground truncate">
-          {isNewApp ? "Create General Application" : "Edit General Application"}
+          General Application
         </span>
         {activeApp && (
           <Badge
@@ -1009,7 +828,7 @@ export function GeneralApplicationTab() {
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving…" : "Save Draft"}
+            {saving ? "Saving…" : isCompleted ? "Save Changes" : "Save Draft"}
           </Button>
           {section < TOTAL_SECTIONS ? (
             <Button onClick={handleNext} disabled={saving}>
@@ -1018,11 +837,33 @@ export function GeneralApplicationTab() {
           ) : (
             <Button onClick={() => handleSave(true)} disabled={saving || !canSubmit()}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              {saving ? "Submitting…" : "Submit Application"}
+              {saving ? "Submitting…" : isCompleted ? "Update Application" : "Submit Application"}
             </Button>
           )}
         </div>
       </div>
+
+      {/* 🎉 Celebration dialog on first completion */}
+      <Dialog open={showCelebration} onOpenChange={setShowCelebration}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              General Application Submitted!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Congratulations! Your general application has been submitted successfully.
+              You can update it anytime from the Applications page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => setShowCelebration(false)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
