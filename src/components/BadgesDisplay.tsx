@@ -113,12 +113,6 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
         ))}
       </div>
 
-      {communityBadgeCount != null && (
-        <p className="mt-4 text-sm text-muted-foreground text-center">
-          🏆 <span className="font-semibold text-foreground">{communityBadgeCount.toLocaleString()}</span>{" "}
-          {communityBadgeCount === 1 ? "badge" : "badges"} earned across all Tech Fleet members
-        </p>
-      )}
     </section>
   );
 }
