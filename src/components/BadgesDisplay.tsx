@@ -99,7 +99,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
               {badge.name}
             </p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight hidden sm:block">
-              {badge.earned ? badge.description : "Locked"}
+              {badge.earned ? badge.description : "Click to Continue"}
             </p>
           </Link>
         ))}
