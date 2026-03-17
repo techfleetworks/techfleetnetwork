@@ -267,7 +267,7 @@ export default function ProfileSetupPage() {
                 );
               })()}
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Country</Label>
                 <Popover>
                   <PopoverTrigger asChild>
