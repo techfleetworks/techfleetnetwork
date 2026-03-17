@@ -119,6 +119,7 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
+  const [discordCompleted, setDiscordCompleted] = useState<number | null>(null);
   const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
   const [projectTrainingCompleted, setProjectTrainingCompleted] = useState<number | null>(null);
   const [volunteerCompleted, setVolunteerCompleted] = useState<number | null>(null);
@@ -129,13 +130,15 @@ export default function DashboardPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
+      JourneyService.getCompletedCount(user.id, "discord_learning"),
       JourneyService.getCompletedCount(user.id, "third_steps"),
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, third, pt, vol, stats]) => {
+    ]).then(([first, second, discord, third, pt, vol, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
+      setDiscordCompleted(discord);
       setThirdStepsCompleted(third);
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
