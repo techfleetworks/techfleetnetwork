@@ -39,7 +39,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Build an Agile Mindset",
     description:
       "Lessons covering agile philosophies, teamwork, and scrum methods.",
-    href: "/journey/second-steps",
+    href: "/courses/agile-mindset",
     group: "Courses",
   },
   {
