@@ -9,6 +9,7 @@ import {
   Handshake,
   ShieldCheck,
   Activity,
+  Megaphone,
 } from "lucide-react";
 import {
   Sidebar,
