@@ -1,0 +1,1 @@
+ALTER TABLE public.general_applications ADD COLUMN email text NOT NULL DEFAULT '';
