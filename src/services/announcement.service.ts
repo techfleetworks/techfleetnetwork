@@ -66,4 +66,27 @@ export const AnnouncementService = {
       log.warn("sendNotifications", `Email notification failed: ${error.message}`, {}, error);
     }
   },
+
+  async getReadIds(userId: string): Promise<Set<string>> {
+    const { data, error } = await supabase
+      .from("announcement_reads")
+      .select("announcement_id")
+      .eq("user_id", userId);
+    if (error) {
+      log.error("getReadIds", `Failed to fetch read IDs: ${error.message}`, {}, error);
+      return new Set();
+    }
+    return new Set((data ?? []).map((r: any) => r.announcement_id));
+  },
+
+  async markRead(userId: string, announcementId: string): Promise<void> {
+    const { error } = await supabase
+      .from("announcement_reads")
+      .insert({ user_id: userId, announcement_id: announcementId } as any)
+      .select()
+      .maybeSingle();
+    if (error && !error.message.includes("duplicate")) {
+      log.error("markRead", `Failed to mark read: ${error.message}`, {}, error);
+    }
+  },
 };
