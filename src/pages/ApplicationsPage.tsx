@@ -1,6 +1,5 @@
-import { ClipboardList, FolderKanban, HeartHandshake } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GeneralApplicationTab } from "@/components/GeneralApplicationTab";
+import { Link } from "react-router-dom";
+import { ClipboardList, FolderKanban, HeartHandshake, ArrowRight } from "lucide-react";
 
 export default function ApplicationsPage() {
   return (
@@ -15,52 +14,58 @@ export default function ApplicationsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="general" className="gap-2">
-            <ClipboardList className="h-4 w-4" />
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* General Application Card */}
+        <Link
+          to="/applications/general"
+          className="group rounded-lg border bg-card p-6 hover:shadow-md transition-shadow duration-200 flex flex-col"
+        >
+          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
+            <ClipboardList className="h-5 w-5 text-primary" aria-hidden="true" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
             General Application
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="gap-2">
-            <FolderKanban className="h-4 w-4" />
+          </h2>
+          <p className="text-sm text-muted-foreground flex-1">
+            Submit your general application to join the Tech Fleet community.
+            Covers your background, agile mindset, and service leadership.
+          </p>
+          <div className="flex items-center gap-1 mt-4 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+            Open
+            <ArrowRight className="h-4 w-4" />
+          </div>
+        </Link>
+
+        {/* Project Applications Card */}
+        <div className="rounded-lg border bg-card p-6 flex flex-col">
+          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
+            <FolderKanban className="h-5 w-5 text-primary" aria-hidden="true" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
             Project Applications
-          </TabsTrigger>
-          <TabsTrigger value="volunteer" className="gap-2">
-            <HeartHandshake className="h-4 w-4" />
+          </h2>
+          <p className="text-sm text-muted-foreground flex-1">
+            Browse and apply to active project teams. Each project has its own
+            application requirements and timeline.
+          </p>
+          <span className="mt-4 text-sm text-muted-foreground italic">Coming soon</span>
+        </div>
+
+        {/* Volunteer Applications Card */}
+        <div className="rounded-lg border bg-card p-6 flex flex-col">
+          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
+            <HeartHandshake className="h-5 w-5 text-primary" aria-hidden="true" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-2">
             Volunteer Applications
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general">
-          <GeneralApplicationTab />
-        </TabsContent>
-
-        <TabsContent value="projects">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Project Applications
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Browse and apply to active project teams. Each project has its own
-              application requirements and timeline.
-            </p>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="volunteer">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <HeartHandshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Volunteer Applications
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Apply to volunteer teams that support Tech Fleet operations,
-              mentorship, and community initiatives.
-            </p>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </h2>
+          <p className="text-sm text-muted-foreground flex-1">
+            Apply to volunteer teams that support Tech Fleet operations,
+            mentorship, and community initiatives.
+          </p>
+          <span className="mt-4 text-sm text-muted-foreground italic">Coming soon</span>
+        </div>
+      </div>
     </div>
   );
 }
