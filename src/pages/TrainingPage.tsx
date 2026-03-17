@@ -241,7 +241,7 @@ export default function TrainingPage() {
             <p className="text-sm font-semibold text-foreground">Some courses are locked</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Complete{" "}
-              <Link to="/journey/third-steps" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              <Link to="/courses/agile-teamwork" className="text-primary underline underline-offset-2 hover:text-primary/80">
                 Learn About Agile Teamwork
               </Link>{" "}
               to unlock <strong className="text-foreground">Join Project Training Teams</strong> and{" "}
