@@ -90,6 +90,8 @@ export default function GenericCoursePage({
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [toggling, setToggling] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const prevCompletedCountRef = useRef<number | null>(null);
 
   // Load progress
   useEffect(() => {
