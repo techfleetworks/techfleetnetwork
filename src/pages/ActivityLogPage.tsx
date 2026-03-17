@@ -316,16 +316,44 @@ export default function ActivityLogPage() {
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">{entry.table_name}</div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">
-                          {details || "—"}
+                        <TableCell className="text-sm text-muted-foreground max-w-[300px]">
+                          {details ? (
+                            <div className="flex items-center gap-1 group">
+                              <span className="truncate">{details}</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => copyToClipboard(details)}
+                                    className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                                    aria-label="Copy details to clipboard"
+                                  >
+                                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Copy details</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          ) : "—"}
                         </TableCell>
                         <TableCell>
                           {entry.error_message ? (
-                            <div className="flex items-center gap-1" title={entry.error_message}>
+                            <div className="flex items-center gap-1 group" title={entry.error_message}>
                               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                               <span className="text-xs text-destructive truncate max-w-[200px]">
                                 {entry.error_message}
                               </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => copyToClipboard(entry.error_message!)}
+                                    className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                                    aria-label="Copy error message to clipboard"
+                                  >
+                                    <Copy className="h-3.5 w-3.5 text-destructive" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Copy error</TooltipContent>
+                              </Tooltip>
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
