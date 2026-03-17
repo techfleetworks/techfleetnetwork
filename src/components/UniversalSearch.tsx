@@ -102,6 +102,16 @@ const SEARCH_ITEMS: SearchItem[] = [
     href: "/project-training",
     group: "Project Training",
   },
+
+  // ── Updates ────────────────────────────────────────────────
+  {
+    id: "updates",
+    label: "Updates & Announcements",
+    description:
+      "View the latest announcements and updates from the Tech Fleet team.",
+    href: "/updates",
+    group: "Updates",
+  },
 ];
 
 /* ── Helpers ──────────────────────────────────────────────── */
