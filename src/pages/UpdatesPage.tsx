@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   Megaphone,
@@ -49,48 +49,39 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { AnnouncementService, type Announcement } from "@/services/announcement.service";
+import {
+  useAnnouncements,
+  useCreateAnnouncement,
+  useDeleteAnnouncement,
+  useMarkAnnouncementRead,
+} from "@/hooks/use-announcements";
+import { stripHtml } from "@/lib/html";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import type { Announcement } from "@/services/announcement.service";
 
 type ViewMode = "table" | "card";
 
 export default function UpdatesPage() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: announcements = [], isLoading: loading } = useAnnouncements();
+  const createMutation = useCreateAnnouncement();
+  const deleteMutation = useDeleteAnnouncement();
+  const markReadMutation = useMarkAnnouncementRead();
+
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const selectAndMarkRead = async (a: Announcement) => {
-    setSelectedAnnouncement(a);
-    if (user) {
-      AnnouncementService.markRead(user.id, a.id).catch(() => {});
-    }
-  };
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   // Create form
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
 
-  const fetchAnnouncements = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await AnnouncementService.list();
-      setAnnouncements(data);
-    } catch {
-      toast.error("Failed to load announcements.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+  const selectAndMarkRead = (a: Announcement) => {
+    setSelectedAnnouncement(a);
+    markReadMutation.mutate(a.id);
+  };
 
   const handleCreate = async () => {
     if (!newTitle.trim()) {
@@ -103,44 +94,26 @@ export default function UpdatesPage() {
     }
     if (!user) return;
 
-    setSaving(true);
     try {
-      const announcement = await AnnouncementService.create(newTitle.trim(), newBody, user.id);
+      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id });
       toast.success("Announcement posted!");
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
-      // Send email notifications in background
-      AnnouncementService.sendNotifications(announcement.id).catch(() => {
-        // Silently fail — emails are best-effort
-      });
-      await fetchAnnouncements();
     } catch {
       toast.error("Failed to create announcement.");
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
     try {
-      await AnnouncementService.remove(deleteTarget.id);
+      await deleteMutation.mutateAsync(deleteTarget.id);
       toast.success("Announcement deleted.");
       setDeleteTarget(null);
-      await fetchAnnouncements();
     } catch {
       toast.error("Failed to delete announcement.");
-    } finally {
-      setDeleting(false);
     }
-  };
-
-  const stripHtml = (html: string) => {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
   };
 
   return (
@@ -151,7 +124,6 @@ export default function UpdatesPage() {
           <p className="text-muted-foreground mt-1">Stay informed with the latest announcements.</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
           <div className="flex items-center border rounded-md">
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
@@ -202,38 +174,40 @@ export default function UpdatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {announcements.map((a) => (
-                <TableRow
-                  key={a.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => selectAndMarkRead(a)}
-                >
-                  <TableCell className="font-medium">{a.title}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
-                    {stripHtml(a.body_html).slice(0, 80)}
-                    {stripHtml(a.body_html).length > 80 ? "…" : ""}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                    {format(new Date(a.created_at), "MMM d, yyyy")}
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(a);
-                        }}
-                        aria-label={`Delete ${a.title}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              {announcements.map((a) => {
+                const plain = stripHtml(a.body_html);
+                return (
+                  <TableRow
+                    key={a.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => selectAndMarkRead(a)}
+                  >
+                    <TableCell className="font-medium">{a.title}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]">
+                      {plain.slice(0, 80)}{plain.length > 80 ? "…" : ""}
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {format(new Date(a.created_at), "MMM d, yyyy")}
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(a);
+                          }}
+                          aria-label={`Delete ${a.title}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -328,8 +302,8 @@ export default function UpdatesPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={saving}>
-              {saving ? "Posting…" : "Post Announcement"}
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Posting…" : "Post Announcement"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -348,10 +322,10 @@ export default function UpdatesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleting}
+              disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
