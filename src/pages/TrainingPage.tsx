@@ -172,7 +172,7 @@ export default function TrainingPage() {
       title: "Onboarding Steps",
       description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
-      href: "/journey/first-steps",
+      href: "/courses/onboarding",
       totalTasks: totalFirstSteps,
       completedTasks: firstCompleted,
       locked: false,
@@ -182,7 +182,7 @@ export default function TrainingPage() {
       title: "Build an Agile Mindset",
       description: `${TOTAL_AGILE_LESSONS} lessons covering agile philosophies, teamwork, and scrum methods.`,
       icon: BookOpen,
-      href: "/journey/second-steps",
+      href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: agileCompleted,
       locked: false,
@@ -192,7 +192,7 @@ export default function TrainingPage() {
       title: "Learn About Agile Teamwork",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
       icon: Users,
-      href: "/journey/third-steps",
+      href: "/courses/agile-teamwork",
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
       locked: false,
@@ -202,7 +202,7 @@ export default function TrainingPage() {
       title: "Join Project Training Teams",
       description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.`,
       icon: Briefcase,
-      href: "/journey/project-training",
+      href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted,
       locked: !allTeamworkDone,
@@ -213,7 +213,7 @@ export default function TrainingPage() {
       title: "Join Volunteer Teams",
       description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.`,
       icon: Heart,
-      href: "/journey/volunteer-teams",
+      href: "/courses/volunteer-teams",
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
       completedTasks: volunteerCompleted,
       locked: !allTeamworkDone,
@@ -241,7 +241,7 @@ export default function TrainingPage() {
             <p className="text-sm font-semibold text-foreground">Some courses are locked</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Complete{" "}
-              <Link to="/journey/third-steps" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              <Link to="/courses/agile-teamwork" className="text-primary underline underline-offset-2 hover:text-primary/80">
                 Learn About Agile Teamwork
               </Link>{" "}
               to unlock <strong className="text-foreground">Join Project Training Teams</strong> and{" "}

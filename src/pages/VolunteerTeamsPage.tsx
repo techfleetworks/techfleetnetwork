@@ -27,8 +27,8 @@ export default function VolunteerTeamsPage() {
     <GenericCoursePage
       title="Join Volunteer Teams"
       subtitle={`Complete the ${TOTAL_VOLUNTEER_LESSONS} lessons to learn how volunteer teams work at Tech Fleet.`}
-      backTo="/training"
-      backLabel="Back to Training"
+      backTo="/courses"
+      backLabel="Back to Courses"
       phase="volunteer"
       sections={VOLUNTEER_TEAMS_SECTIONS}
       allLessons={ALL_VOLUNTEER_LESSONS}
@@ -40,7 +40,7 @@ export default function VolunteerTeamsPage() {
         met: prereqMet,
         loaded: prereqLoaded,
         courseName: "Learn About Agile Teamwork",
-        courseHref: "/journey/third-steps",
+        courseHref: "/courses/agile-teamwork",
       }}
     />
   );

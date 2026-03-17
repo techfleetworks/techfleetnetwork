@@ -8,7 +8,7 @@ const completedStep: JourneyStep = {
   title: "First Steps",
   description: "Set up your profile and complete onboarding.",
   status: "completed",
-  href: "/journey/first-steps",
+  href: "/courses/onboarding",
 };
 
 const currentStep: JourneyStep = {
@@ -16,7 +16,7 @@ const currentStep: JourneyStep = {
   title: "Second Steps",
   description: "Complete the Agile Handbook course.",
   status: "current",
-  href: "/journey/second-steps",
+  href: "/courses/agile-mindset",
 };
 
 const lockedStep: JourneyStep = {
@@ -24,7 +24,7 @@ const lockedStep: JourneyStep = {
   title: "Observer Phase",
   description: "Complete a 2-week observation period.",
   status: "locked",
-  href: "/journey/observer",
+  href: "/courses/observer",
 };
 
 describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
@@ -37,7 +37,7 @@ describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
   it("24.1: completed step is a clickable link", () => {
     renderWithRouter(<JourneyStepCard step={completedStep} index={0} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/journey/first-steps");
+    expect(link).toHaveAttribute("href", "/courses/onboarding");
   });
 
   it("24.2: current step shows In Progress badge", () => {
@@ -48,7 +48,7 @@ describe("JourneyStepCard UI (BDD 24.1–24.3)", () => {
   it("24.2: current step is a clickable link", () => {
     renderWithRouter(<JourneyStepCard step={currentStep} index={1} />);
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/journey/second-steps");
+    expect(link).toHaveAttribute("href", "/courses/agile-mindset");
   });
 
   it("24.3: locked step shows Locked badge", () => {

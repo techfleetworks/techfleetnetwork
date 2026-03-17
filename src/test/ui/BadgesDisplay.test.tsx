@@ -44,9 +44,9 @@ describe("BadgesDisplay UI (BDD 25.1–25.2)", () => {
     renderWithRouter(<BadgesDisplay allFirstStepsDone={false} allSecondStepsDone={false} />);
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(4);
-    expect(links[1]).toHaveAttribute("href", "/journey/second-steps");
-    expect(links[2]).toHaveAttribute("href", "/journey/third-steps");
-    expect(links[3]).toHaveAttribute("href", "/journey/observer");
+    expect(links[1]).toHaveAttribute("href", "/courses/agile-mindset");
+    expect(links[2]).toHaveAttribute("href", "/courses/agile-teamwork");
+    expect(links[3]).toHaveAttribute("href", "/courses/observer");
   });
 
   it("25.2: earned badge shows description, locked shows 'Locked'", () => {

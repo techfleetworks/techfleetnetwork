@@ -50,12 +50,12 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
-                <Route path="/journey/first-steps" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
-                <Route path="/journey/second-steps" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
-                <Route path="/journey/third-steps" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
-                <Route path="/journey/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
-                <Route path="/journey/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />
-                <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+                <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+                <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
+                <Route path="/courses/agile-mindset" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
+                <Route path="/courses/agile-teamwork" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
+                <Route path="/courses/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
+                <Route path="/courses/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />
                 <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
                 <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />

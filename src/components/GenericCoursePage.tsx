@@ -207,7 +207,7 @@ export default function GenericCoursePage({
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/training">Courses</Link>
+                  <Link to="/courses">Courses</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -258,7 +258,7 @@ export default function GenericCoursePage({
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/training">Courses</Link>
+                <Link to="/courses">Courses</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />

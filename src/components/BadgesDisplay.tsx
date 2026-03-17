@@ -28,7 +28,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed onboarding checklist",
       image: badgeFirstSteps,
       earned: allFirstStepsDone,
-      href: "/journey/first-steps",
+      href: "/courses/onboarding",
     },
     {
       id: "agile-mindset",
@@ -36,7 +36,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed all 25 Agile lessons",
       image: badgeSecondSteps,
       earned: allSecondStepsDone,
-      href: "/journey/second-steps",
+      href: "/courses/agile-mindset",
     },
     {
       id: "teammate",
@@ -44,7 +44,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed the Teammate Handbook",
       image: badgeThirdSteps,
       earned: allThirdStepsDone,
-      href: "/journey/third-steps",
+      href: "/courses/agile-teamwork",
     },
     {
       id: "observer",
@@ -52,7 +52,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed Observe Project Teams",
       image: badgeObserver,
       earned: false,
-      href: "/journey/observer",
+      href: "/courses/observer",
     },
   ];
 

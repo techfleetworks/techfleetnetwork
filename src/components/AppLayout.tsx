@@ -29,8 +29,7 @@ interface AppLayoutProps {
 
 const mobileNavLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
-  { label: "Training", href: "/training", icon: GraduationCap },
+  { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Fleety", href: "/chat", icon: Bot },

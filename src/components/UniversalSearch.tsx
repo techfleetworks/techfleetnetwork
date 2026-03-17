@@ -31,7 +31,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Onboarding Steps",
     description:
       "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
-    href: "/journey/first-steps",
+    href: "/courses/onboarding",
     group: "Courses",
   },
   {
@@ -39,7 +39,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Build an Agile Mindset",
     description:
       "Lessons covering agile philosophies, teamwork, and scrum methods.",
-    href: "/journey/second-steps",
+    href: "/courses/agile-mindset",
     group: "Courses",
   },
   {
@@ -47,7 +47,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Learn About Agile Teamwork",
     description:
       "Lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.",
-    href: "/journey/third-steps",
+    href: "/courses/agile-teamwork",
     group: "Courses",
   },
   {
@@ -55,7 +55,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Join Project Training Teams",
     description:
       "Lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.",
-    href: "/journey/project-training",
+    href: "/courses/project-training",
     group: "Courses",
   },
   {
@@ -63,7 +63,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Join Volunteer Teams",
     description:
       "Lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.",
-    href: "/journey/volunteer-teams",
+    href: "/courses/volunteer-teams",
     group: "Courses",
   },
 

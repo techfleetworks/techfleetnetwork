@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, BookOpen, Users, User, ArrowLeft, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
+import { CheckCircle2, Circle, Play, BookOpen, Users, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
@@ -195,14 +203,22 @@ export default function FirstStepsPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
-      <Link to="/dashboard?view=overview" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Link>
-
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Onboarding Steps</h1>
-        <p className="text-muted-foreground mt-1">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
+        <Breadcrumb className="mt-2">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/courses">Courses</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Onboarding Steps</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <p className="text-muted-foreground mt-2">Complete all {tasks.length} tasks below to unlock the next phase. You can do them in any order.</p>
       </div>
 
       <div className="mb-8">
@@ -296,7 +312,7 @@ export default function FirstStepsPage() {
           <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3" />
           <h2 className="text-xl font-bold text-foreground mb-2">🎉 Onboarding Complete!</h2>
           <p className="text-muted-foreground mb-4">You've unlocked Build an Agile Mindset.</p>
-          <Link to="/journey/second-steps"><Button>Continue to Build an Agile Mindset</Button></Link>
+          <Link to="/courses/agile-mindset"><Button>Continue to Build an Agile Mindset</Button></Link>
         </div>
       )}
 

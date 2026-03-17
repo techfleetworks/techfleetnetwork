@@ -12,7 +12,7 @@ export default function SecondStepsPage() {
     <GenericCoursePage
       title="Second Steps — Build an Agile Mindset"
       subtitle={`Work through the ${TOTAL_AGILE_LESSONS} lessons of the Agile Handbook. Open each lesson to watch the video or read the text, then mark it complete.`}
-      backTo="/training"
+      backTo="/courses"
       backLabel="Back to Courses"
       phase="second_steps"
       sections={AGILE_COURSE_SECTIONS}

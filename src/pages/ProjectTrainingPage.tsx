@@ -27,8 +27,8 @@ export default function ProjectTrainingPage() {
     <GenericCoursePage
       title="Join Project Training Teams"
       subtitle={`Complete the ${TOTAL_PROJECT_TRAINING_LESSONS} lessons to learn how project training works at Tech Fleet.`}
-      backTo="/training"
-      backLabel="Back to Training"
+      backTo="/courses"
+      backLabel="Back to Courses"
       phase="project_training"
       sections={PROJECT_TRAINING_SECTIONS}
       allLessons={ALL_PROJECT_TRAINING_LESSONS}
@@ -40,7 +40,7 @@ export default function ProjectTrainingPage() {
         met: prereqMet,
         loaded: prereqLoaded,
         courseName: "Learn About Agile Teamwork",
-        courseHref: "/journey/third-steps",
+        courseHref: "/courses/agile-teamwork",
       }}
     />
   );
