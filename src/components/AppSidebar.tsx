@@ -36,29 +36,15 @@ const mainNav = [
   { label: "Fleety", href: "/chat", icon: Bot },
 ];
 
-interface AppSidebarProps {
-  onProfileEdit: () => void;
-}
-
-export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
+export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user } = useAuth();
   const { isAdmin } = useAdmin();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
-  const avatarInitials = profile
-    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
-    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
 
   if (!user) return null;
 
