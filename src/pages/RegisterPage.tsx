@@ -122,7 +122,7 @@ export default function RegisterPage() {
                 {errors.firstName && <p id="fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="reg-lastName">Last name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
