@@ -50,15 +50,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     icon: Users,
     action: "https://techfleet.org/overview/current-classes",
     external: true,
-  },
-  {
-    id: "user-guide",
-    title: "Complete the Discord Tutorial Series in the User Guide",
-    description: "Work through the Discord migration video tutorial series.",
-    icon: BookOpen,
-    action: "https://guide.techfleet.org/resources/the-great-tech-fleet-discord-migration-video-tutorials",
-    external: true,
-  },
   {
     id: "figma-account",
     title: "Register for Figma Educational Account",
