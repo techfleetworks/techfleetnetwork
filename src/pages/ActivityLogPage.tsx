@@ -37,7 +37,9 @@ import {
   XCircle,
   UserPlus,
   Pencil,
+  Copy,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
 interface AuditLogEntry {
