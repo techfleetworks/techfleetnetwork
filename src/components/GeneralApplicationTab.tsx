@@ -356,6 +356,39 @@ export function GeneralApplicationTab() {
       </nav>
 
       <div className="card-elevated p-6 space-y-5">
+        {/* Email (read-only from profile) */}
+        <div className="space-y-2">
+          <Label htmlFor="app-email" className="text-base font-medium">
+            Email
+          </Label>
+          <Input
+            id="app-email"
+            value={activeApp?.email ?? ""}
+            readOnly
+            disabled
+            className="bg-muted"
+            aria-label="Email address from your profile"
+          />
+          <p className="text-xs text-muted-foreground">
+            Pulled from your profile. Update your profile to change this.
+          </p>
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2">
+          <Label htmlFor="app-title" className="text-base font-medium">
+            Application Title
+          </Label>
+          <Input
+            id="app-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="General Application"
+            maxLength={200}
+          />
+        </div>
+
+        {/* About yourself */}
         <div className="space-y-2">
           <Label htmlFor="about-yourself" className="text-base font-medium">
             Tell us about yourself
@@ -379,6 +412,22 @@ export function GeneralApplicationTab() {
           >
             {aboutYourself.length} / 5,000
           </p>
+        </div>
+
+        {/* Status (read-only) */}
+        <div className="space-y-2">
+          <Label className="text-base font-medium">Status</Label>
+          <div>
+            <Badge
+              variant={activeApp?.status === "completed" ? "default" : "secondary"}
+              className={cn(
+                activeApp?.status === "completed" &&
+                  "bg-success/10 text-success border-success/30"
+              )}
+            >
+              {activeApp?.status === "completed" ? "Completed" : "Draft"}
+            </Badge>
+          </div>
         </div>
       </div>
 
