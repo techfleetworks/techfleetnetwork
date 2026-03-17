@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,10 @@ const passwordRequirements = [
 ];
 
 export default function RegisterPage() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get("redirect");
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,6 +34,13 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  // Store redirect for OAuth flows
+  useEffect(() => {
+    if (redirectParam) {
+      sessionStorage.setItem("auth_redirect", redirectParam);
+    }
+  }, [redirectParam]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -63,7 +74,7 @@ export default function RegisterPage() {
         result.data.password,
         result.data.firstName,
         result.data.lastName,
-        window.location.origin + "/profile-setup"
+        window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
       );
       setSubmitted(true);
     } catch (err: any) {
@@ -179,7 +190,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+          <Link to={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : "/login"} className="text-primary font-medium hover:underline">Sign in</Link>
         </p>
       </div>
     </div>

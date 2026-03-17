@@ -96,6 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const meta = session.user.user_metadata;
               const name = meta?.full_name || meta?.first_name || session.user.email || "Someone";
               DiscordNotifyService.userSignedUp(name);
+
+              // Handle stored redirect from shared course links (OAuth flow)
+              const storedRedirect = sessionStorage.getItem("auth_redirect");
+              if (storedRedirect) {
+                sessionStorage.removeItem("auth_redirect");
+                // Defer navigation to allow auth state to settle
+                setTimeout(() => {
+                  window.location.replace(storedRedirect);
+                }, 100);
+              }
             }
           }
           setTimeout(async () => {

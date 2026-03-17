@@ -11,7 +11,8 @@ import {
   BookOpen,
   Lock,
   AlertTriangle,
-  PartyPopper,
+  Share2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -221,6 +222,52 @@ export default function GenericCoursePage({
     });
   };
 
+  // Share button component
+  const ShareButton = () => {
+    const [copied, setCopied] = useState(false);
+    const shareUrl = `${window.location.origin}${window.location.pathname}`;
+
+    const handleShare = async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Fallback for insecure contexts
+        const input = document.createElement("input");
+        input.value = shareUrl;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    };
+
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-shrink-0 gap-1.5"
+        onClick={handleShare}
+        aria-label="Copy share link"
+      >
+        {copied ? (
+          <>
+            <Check className="h-4 w-4 text-success" />
+            <span className="text-xs">Copied!</span>
+          </>
+        ) : (
+          <>
+            <Share2 className="h-4 w-4" />
+            <span className="text-xs">Share</span>
+          </>
+        )}
+      </Button>
+    );
+  };
+
   // Prerequisite gate
   if (prerequisite && prerequisite.loaded && !prerequisite.met) {
     return (
@@ -291,8 +338,13 @@ export default function GenericCoursePage({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground mt-4">{title}</h2>
-        <p className="text-muted-foreground mt-1">{subtitle}</p>
+        <div className="flex items-start justify-between gap-4 mt-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+            <p className="text-muted-foreground mt-1">{subtitle}</p>
+          </div>
+          <ShareButton />
+        </div>
       </div>
 
       {/* Overall progress */}

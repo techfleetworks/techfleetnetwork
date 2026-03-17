@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,17 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get("redirect");
+  const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
+  const from = fromState || redirectParam || "/dashboard";
+
+  // Store redirect for OAuth flows
+  useEffect(() => {
+    if (from && from !== "/dashboard") {
+      sessionStorage.setItem("auth_redirect", from);
+    }
+  }, [from]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -105,7 +115,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           New member?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">Sign up</Link>
+          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary font-medium hover:underline">Sign up</Link>
         </p>
       </div>
     </div>
