@@ -5,10 +5,10 @@ import {
   Trash2,
   Save,
   CheckCircle2,
-  ArrowLeft,
   Copy,
   Loader2,
   ClipboardList,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,7 @@ export function GeneralApplicationTab() {
   const [aboutYourself, setAboutYourself] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [isNewApp, setIsNewApp] = useState(false);
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const [prefillDialogOpen, setPrefillDialogOpen] = useState(false);
   const [latestCompleted, setLatestCompleted] =
@@ -87,6 +88,7 @@ export function GeneralApplicationTab() {
       );
       setActiveApp(app);
       setAboutYourself(app.about_yourself);
+      setIsNewApp(true);
       setView("edit");
       await loadApps();
     } catch {
@@ -100,6 +102,7 @@ export function GeneralApplicationTab() {
   const openApp = (app: GeneralApplication) => {
     setActiveApp(app);
     setAboutYourself(app.about_yourself);
+    setIsNewApp(false);
     setView("edit");
   };
 
@@ -334,26 +337,24 @@ export function GeneralApplicationTab() {
   // Edit view
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setView("list")}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-foreground truncate">
-            {activeApp?.title || "General Application"}
-          </h2>
-        </div>
+          Applications
+        </button>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+        <span className="font-medium text-foreground truncate">
+          {isNewApp ? "Create General Application" : "Edit Existing General Application"}
+        </span>
         {activeApp && (
           <Badge
-            variant={
-              activeApp.status === "completed" ? "default" : "secondary"
-            }
+            variant={activeApp.status === "completed" ? "default" : "secondary"}
             className={cn(
+              "ml-2",
               activeApp.status === "completed" &&
                 "bg-success/10 text-success border-success/30"
             )}
@@ -361,7 +362,7 @@ export function GeneralApplicationTab() {
             {activeApp.status === "completed" ? "Completed" : "Draft"}
           </Badge>
         )}
-      </div>
+      </nav>
 
       <div className="card-elevated p-6 space-y-5">
         <div className="space-y-2">
