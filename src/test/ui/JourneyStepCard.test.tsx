@@ -8,7 +8,7 @@ const completedStep: JourneyStep = {
   title: "First Steps",
   description: "Set up your profile and complete onboarding.",
   status: "completed",
-  href: "/journey/first-steps",
+  href: "/courses/onboarding",
 };
 
 const currentStep: JourneyStep = {
