@@ -182,7 +182,7 @@ export default function TrainingPage() {
       title: "Build an Agile Mindset",
       description: `${TOTAL_AGILE_LESSONS} lessons covering agile philosophies, teamwork, and scrum methods.`,
       icon: BookOpen,
-      href: "/journey/second-steps",
+      href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: agileCompleted,
       locked: false,
