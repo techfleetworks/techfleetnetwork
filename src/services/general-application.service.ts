@@ -13,6 +13,7 @@ async function syncToAirtable(app: GeneralApplication): Promise<void> {
     }>("sync-airtable", {
       body: {
         application_id: app.id,
+        email: app.email,
         title: app.title,
         about_yourself: app.about_yourself,
         status: app.status,

@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
 
     // --- Body ---
     const body = await req.json();
-    const { application_id, title, about_yourself, status, created_at, updated_at } = body;
+    const { application_id, title, about_yourself, status, created_at, updated_at, email } = body;
 
     if (!application_id || typeof application_id !== "string") {
       return new Response(JSON.stringify({ error: "Missing application_id" }), {
