@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Loader2,
@@ -125,6 +125,7 @@ const emptyForm: AppFormData = {
 
 export function GeneralApplicationTab() {
   const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeApp, setActiveApp] = useState<GeneralApplication | null>(null);
   const [form, setForm] = useState<AppFormData>({ ...emptyForm });
@@ -137,6 +138,7 @@ export function GeneralApplicationTab() {
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const formContainerRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef(false);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -152,27 +154,26 @@ export function GeneralApplicationTab() {
 
   /** Load or create the single general application */
   const loadOrCreateApp = useCallback(async () => {
-    if (!user) return;
+    if (!user || initialLoadDone.current) return;
     setLoading(true);
     try {
       const data = await GeneralApplicationService.list(user.id);
       if (data.length > 0) {
-        // Use existing app
         const app = data[0];
         setActiveApp(app);
         populateFormFromApp(app);
       } else {
-        // Create the user's first (and only) app
         const app = await GeneralApplicationService.create(user.id);
         setActiveApp(app);
         populateFormFromApp(app);
       }
+      initialLoadDone.current = true;
     } catch {
       toast.error("Failed to load application");
     } finally {
       setLoading(false);
     }
-  }, [user, profile]);
+  }, [user]);
 
   useEffect(() => {
     loadOrCreateApp();
@@ -331,12 +332,15 @@ export function GeneralApplicationTab() {
 
   const handleNext = async () => {
     if (!validateSection()) return;
+    const nextSection = Math.min(section + 1, TOTAL_SECTIONS);
+    setSection(nextSection);
+    setErrors({});
     // Auto-save when moving forward
     if (activeApp) {
       setSaving(true);
       try {
         const fields = gatherSaveFields();
-        fields.current_section = section + 1;
+        fields.current_section = nextSection;
         fields.status = "draft";
         await GeneralApplicationService.save(activeApp.id, fields);
         await syncProfileFields();
@@ -345,8 +349,6 @@ export function GeneralApplicationTab() {
       } catch { /* non-blocking */ }
       setSaving(false);
     }
-    setSection((s) => Math.min(s + 1, TOTAL_SECTIONS));
-    setErrors({});
   };
 
   const handleBack = () => {
@@ -832,9 +834,9 @@ export function GeneralApplicationTab() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-2">
-            <Button onClick={() => setShowCelebration(false)}>
+            <Button onClick={() => { setShowCelebration(false); navigate("/applications"); }}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Continue
+              Back to Applications
             </Button>
           </div>
         </DialogContent>
