@@ -74,6 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (_event, session) => {
+        // For token refreshes, only update session/user if the user ID actually changed
+        // This prevents unnecessary re-renders that reset component state
+        if (_event === "TOKEN_REFRESHED") {
+          setSession((prev) => {
+            if (prev?.access_token === session?.access_token) return prev;
+            return session;
+          });
+          // Don't re-set user or re-fetch profile on token refresh — user hasn't changed
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {

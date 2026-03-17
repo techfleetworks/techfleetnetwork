@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
           "react-vendor": ["react", "react-dom", "react-router-dom"],
           "ui-vendor": ["@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-popover"],
           "query-vendor": ["@tanstack/react-query"],
-          "d3-geo": ["d3-geo", "topojson-client", "world-atlas"],
+          "d3-geo": ["d3-geo", "topojson-client"],
         },
       },
     },
