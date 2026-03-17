@@ -120,6 +120,7 @@ const GROUP_ICONS: Record<SearchItem["group"], React.ElementType> = {
   Courses: GraduationCap,
   Applications: ClipboardList,
   "Project Training": Handshake,
+  Updates: Megaphone,
 };
 
 /**
