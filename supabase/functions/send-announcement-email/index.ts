@@ -126,6 +126,17 @@ Deno.serve(async (req) => {
   </div>
 </body>
 </html>`;
+      const emailText = [
+        `Tech Fleet Announcement`,
+        '',
+        announcement.title,
+        '',
+        'A new announcement is available in Tech Fleet Network.',
+        'Please view it in the app to read the full rich-text content.',
+        '',
+        'You received this because you opted in to announcements.',
+        'To unsubscribe, update your notification preferences in your profile settings.',
+      ].join('\n');
 
       try {
         // Log pending status first
@@ -145,6 +156,7 @@ Deno.serve(async (req) => {
             to: recipient.email,
             subject: `[Tech Fleet] ${announcement.title}`,
             html: emailHtml,
+            text: emailText,
             from: `Tech Fleet <notifications@notify.techfleet.org>`,
             sender_domain: "notify.techfleet.org",
             label: "announcement",
