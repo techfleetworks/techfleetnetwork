@@ -242,7 +242,7 @@ export default function UpdatesPage() {
           {announcements.map((a) => (
             <button
               key={a.id}
-              onClick={() => setSelectedAnnouncement(a)}
+              onClick={() => selectAndMarkRead(a)}
               className="card-elevated p-5 text-left hover:border-primary/40 transition-all group border border-white/50"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
