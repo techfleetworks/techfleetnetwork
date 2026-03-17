@@ -148,11 +148,12 @@ export default function DashboardPage() {
 
   const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allDiscordDone = discordCompleted !== null && discordCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted !== null && thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted !== null && projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted !== null && volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
 
-  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
+  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
   const coreCourses: CoreCourse[] = [
     {
