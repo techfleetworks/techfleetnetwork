@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
+import { NotificationBell } from "./NotificationBell";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
