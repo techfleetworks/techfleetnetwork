@@ -171,6 +171,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <span>Tech Fleet</span>
             </Link>
             <div className="flex items-center gap-1">
+              <UniversalSearch />
               <ThemeToggle />
               <Button
                 variant="ghost"
