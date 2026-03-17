@@ -126,6 +126,7 @@ export function ProfileSetupDialog() {
       firstName: form.firstName,
       lastName: form.lastName,
       country: form.country,
+      timezone: form.timezone,
       discordUsername: form.hasDiscord ? form.discordUsername : "",
       interests: form.interests,
     });
