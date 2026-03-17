@@ -123,6 +123,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: '<script>alert("xss")</script>',
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
     expect(result.error?.issues.some((i) => i.message.includes("invalid content"))).toBe(true);
