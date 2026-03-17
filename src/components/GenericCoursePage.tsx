@@ -61,6 +61,11 @@ interface GenericCoursePageProps {
     courseName: string;
     courseHref: string;
   };
+  /** Next sequential course to navigate to after completion */
+  nextCourse?: {
+    title: string;
+    href: string;
+  };
 }
 
 export default function GenericCoursePage({
