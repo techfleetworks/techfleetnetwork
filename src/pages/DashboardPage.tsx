@@ -58,7 +58,7 @@ export default function DashboardPage() {
   const journeySteps: JourneyStep[] = allFirstStepsDone
     ? [
         { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
-        { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+        { id: "third-steps", title: "Learn About Agile Teamwork", description: `Complete the Teammate Handbook: ${thirdStepsCompleted ?? 0}/${TOTAL_TEAMWORK_LESSONS} lessons completed.`, status: allSecondStepsDone ? (allThirdStepsDone ? "completed" : "current") : "locked", href: "/journey/third-steps" },
         { id: "team-practices", title: "Learn the Team Practices of Empowered Teams", description: "Master the practices that make agile teams effective and self-organizing.", status: "locked", href: "/journey/third-steps" },
       ]
     : [
