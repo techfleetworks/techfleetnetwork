@@ -178,6 +178,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "a".repeat(101),
     });
     expect(result.success).toBe(false);
