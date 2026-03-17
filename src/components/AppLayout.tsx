@@ -1,28 +1,36 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Rocket, BookOpen, GraduationCap, LayoutDashboard, LogIn, LogOut, UserPen, Bot } from "lucide-react";
+import {
+  Menu,
+  X,
+  Rocket,
+  BookOpen,
+  GraduationCap,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  UserPen,
+  Bot,
+  CalendarDays,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import { ProfileEditPanel } from "./ProfileEditPanel";
 import { useAuth } from "@/contexts/AuthContext";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const navLinks = [
+const mobileNavLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
   { label: "Training", href: "/training", icon: GraduationCap },
+  { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Fleety", href: "/chat", icon: Bot },
 ];
@@ -33,8 +41,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
-  const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
+  const isActive = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(href + "/");
 
   const handleSignOut = async () => {
     await signOut();
@@ -42,163 +52,232 @@ export function AppLayout({ children }: AppLayoutProps) {
     setMobileMenuOpen(false);
   };
 
-  const avatarInitials = profile
-    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
-    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
+  // Public pages (no sidebar)
+  const isPublicPage =
+    !user ||
+    ["/", "/login", "/register", "/forgot-password", "/reset-password"].includes(
+      location.pathname
+    );
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" role="banner">
-        <nav className="container-app flex h-16 items-center justify-between" aria-label="Main navigation">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg" aria-label="Tech Fleet Home">
-            <img src={techFleetLogo} alt="Tech Fleet" className="h-8 w-8 dark:invert" width={32} height={32} />
-            <span className="hidden sm:inline">Tech Fleet</span>
-          </Link>
-
-          {/* Desktop nav — only show when logged in */}
-          {user && (
-            <div className="hidden md:flex items-center gap-1" role="menubar">
-              {navLinks.map(({ label, href, icon: Icon }) => (
-                <Link
-                  key={href}
-                  to={href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive(href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                  aria-current={isActive(href) ? "page" : undefined}
-                  role="menuitem"
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {!loading && !user && (
-              <Link to="/login" className="hidden md:inline-flex">
-                <Button variant="outline" size="sm">
-                  <LogIn className="h-4 w-4 mr-1" />
-                  Connect
-                </Button>
-              </Link>
-            )}
-            {!loading && user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hidden md:inline-flex rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
-                      <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
-                    </Avatar>
+  if (isPublicPage) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <header
+          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          role="banner"
+        >
+          <nav
+            className="container-app flex h-16 items-center justify-between"
+            aria-label="Main navigation"
+          >
+            <Link
+              to="/"
+              className="flex items-center gap-2 font-bold text-lg"
+              aria-label="Tech Fleet Home"
+            >
+              <img
+                src={techFleetLogo}
+                alt="Tech Fleet"
+                className="h-8 w-8 dark:invert"
+                width={32}
+                height={32}
+              />
+              <span className="hidden sm:inline">Tech Fleet</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {!loading && !user && (
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    <LogIn className="h-4 w-4 mr-1" />
+                    Connect
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem onClick={() => setProfileEditOpen(true)}>
+                </Link>
+              )}
+            </div>
+          </nav>
+        </header>
+        <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+          {children}
+        </main>
+        <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
+        <footer className="border-t bg-card" role="contentinfo">
+          <div className="container-app py-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <img
+                  src={techFleetLogo}
+                  alt=""
+                  className="h-6 w-6 dark:invert"
+                  width={24}
+                  height={24}
+                  aria-hidden="true"
+                />
+                <span className="text-sm text-muted-foreground">
+                  © {new Date().getFullYear()} Tech Fleet. All rights reserved.
+                </span>
+              </div>
+              <nav
+                aria-label="Footer navigation"
+                className="flex gap-4 text-sm text-muted-foreground"
+              >
+                <a
+                  href="https://techfleet.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Website
+                </a>
+              </nav>
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  // Authenticated: sidebar on desktop, hamburger on mobile
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <header
+          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          role="banner"
+        >
+          <nav
+            className="container-app flex h-14 items-center justify-between"
+            aria-label="Main navigation"
+          >
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 font-bold text-base"
+              aria-label="Tech Fleet Home"
+            >
+              <img
+                src={techFleetLogo}
+                alt="Tech Fleet"
+                className="h-7 w-7 dark:invert"
+                width={28}
+                height={28}
+              />
+              <span>Tech Fleet</span>
+            </Link>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-expanded={mobileMenuOpen}
+                aria-controls="mobile-menu"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </nav>
+          {mobileMenuOpen && (
+            <div
+              id="mobile-menu"
+              className="border-t animate-fade-in"
+              role="menu"
+            >
+              <div className="container-app py-4 space-y-1">
+                {mobileNavLinks.map(({ label, href, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    to={href}
+                    className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                      isActive(href)
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-current={isActive(href) ? "page" : undefined}
+                    role="menuitem"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </Link>
+                ))}
+                <div className="pt-3 border-t space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setProfileEditOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
                     <UserPen className="h-4 w-4 mr-2" />
                     Edit Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={handleSignOut}
+                  >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-menu"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
-        </nav>
-
-        {mobileMenuOpen && (
-          <div id="mobile-menu" className="md:hidden border-t animate-fade-in" role="menu">
-            <div className="container-app py-4 space-y-1">
-              {user && navLinks.map(({ label, href, icon: Icon }) => (
-                <Link
-                  key={href}
-                  to={href}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
-                    isActive(href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-current={isActive(href) ? "page" : undefined}
-                  role="menuitem"
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </Link>
-              ))}
-              <div className="pt-3 border-t space-y-2">
-                {!user ? (
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start">
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Connect
-                    </Button>
-                  </Link>
-                ) : (
-                  <>
-                    <Button variant="outline" className="w-full justify-start" onClick={() => { setProfileEditOpen(true); setMobileMenuOpen(false); }}>
-                      <UserPen className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </>
-                )}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </header>
+          )}
+        </header>
+        <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+          {children}
+        </main>
+        <ProfileEditPanel
+          open={profileEditOpen}
+          onOpenChange={setProfileEditOpen}
+        />
+      </div>
+    );
+  }
 
-      <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
-        {children}
-      </main>
-
-      <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
-
-      <footer className="border-t bg-card" role="contentinfo">
-        <div className="container-app py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <img src={techFleetLogo} alt="" className="h-6 w-6 dark:invert" width={24} height={24} aria-hidden="true" />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Tech Fleet. All rights reserved.
-              </span>
-            </div>
-            <nav aria-label="Footer navigation" className="flex gap-4 text-sm text-muted-foreground">
-              <a href="https://techfleet.org" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                Website
-              </a>
-              <Link to="/resources" className="hover:text-foreground transition-colors">Resources</Link>
-            </nav>
-          </div>
+  // Desktop: sidebar layout
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen flex w-full bg-background text-foreground">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header
+            className="sticky top-0 z-40 h-12 flex items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
+            role="banner"
+          >
+            <SidebarTrigger className="shrink-0" />
+            <div className="flex-1" />
+            <ThemeToggle />
+          </header>
+          <main
+            id="main-content"
+            className="flex-1"
+            role="main"
+            tabIndex={-1}
+          >
+            {children}
+          </main>
         </div>
-      </footer>
-    </div>
+      </div>
+      <ProfileEditPanel
+        open={profileEditOpen}
+        onOpenChange={setProfileEditOpen}
+      />
+    </SidebarProvider>
   );
 }

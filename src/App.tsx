@@ -20,6 +20,7 @@ import SecondStepsPage from "./pages/SecondStepsPage";
 import TrainingPage from "./pages/TrainingPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import ChatPage from "./pages/ChatPage";
+import EventsPage from "./pages/EventsPage";
 import AdminIngestPage from "./pages/AdminIngestPage";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/journey/first-steps" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
                 <Route path="/journey/second-steps" element={<ProtectedRoute><SecondStepsPage /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+                <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
                 <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                 <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />

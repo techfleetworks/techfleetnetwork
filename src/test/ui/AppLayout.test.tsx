@@ -55,8 +55,9 @@ describe("AppLayout / Navigation UI (BDD 22.1–22.4)", () => {
     expect(screen.getByRole("link", { name: /website/i })).toHaveAttribute("href", "https://techfleet.org");
   });
 
-  it("22.3: footer has Resources link", () => {
-    expect(screen.getByRole("link", { name: /resources/i })).toHaveAttribute("href", "/resources");
+  it("22.3: footer has external Website link", () => {
+    const websiteLinks = screen.getAllByRole("link", { name: /website/i });
+    expect(websiteLinks.some(l => l.getAttribute("href") === "https://techfleet.org")).toBe(true);
   });
 
   it("22.4: skip to main content link exists", () => {
