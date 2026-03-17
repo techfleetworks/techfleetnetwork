@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
   X,
-  Rocket,
   BookOpen,
   GraduationCap,
   LayoutDashboard,
@@ -21,8 +20,70 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
+import type { Profile } from "@/services/profile.service";
+import type { User } from "@supabase/supabase-js";
+
+function ProfileDropdown({
+  profile,
+  user,
+  onEditProfile,
+  onSignOut,
+}: {
+  profile: Profile | null;
+  user: User | null;
+  onEditProfile: () => void;
+  onSignOut: () => void;
+}) {
+  const avatarInitials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
+    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Account menu"
+        >
+          <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+            <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
+            <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <div className="px-2 py-1.5">
+          <p className="text-sm font-medium truncate">
+            {profile?.first_name || profile?.display_name || "Profile"}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {profile?.email || user?.email || ""}
+          </p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onEditProfile}>
+          <UserPen className="h-4 w-4 mr-2" />
+          Edit Profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onSignOut}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -258,15 +319,23 @@ export function AppLayout({ children }: AppLayoutProps) {
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
+        <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header
-            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
+            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
             role="banner"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <UniversalSearch />
               <ThemeToggle />
+              <div className="ml-4">
+                <ProfileDropdown
+                  profile={profile}
+                  user={user}
+                  onEditProfile={() => setProfileEditOpen(true)}
+                  onSignOut={handleSignOut}
+                />
+              </div>
             </div>
           </header>
           <main

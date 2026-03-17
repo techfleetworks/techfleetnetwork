@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -8,7 +8,6 @@ import {
   ClipboardList,
   Handshake,
   ShieldCheck,
-  LogOut,
   Activity,
 } from "lucide-react";
 import {
@@ -20,11 +19,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
@@ -39,29 +36,15 @@ const mainNav = [
   { label: "Fleety", href: "/chat", icon: Bot },
 ];
 
-interface AppSidebarProps {
-  onProfileEdit: () => void;
-}
-
-export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
+export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user } = useAuth();
   const { isAdmin } = useAdmin();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
-  const avatarInitials = profile
-    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
-    : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
 
   if (!user) return null;
 
@@ -146,28 +129,6 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
           </SidebarGroup>
         )}
       </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Edit Profile" onClick={onProfileEdit}>
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
-                <AvatarFallback className="text-[10px]">{avatarInitials}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">
-                {profile?.first_name || profile?.display_name || "Profile"}
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Sign Out" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
