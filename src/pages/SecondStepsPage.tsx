@@ -6,6 +6,7 @@ import {
   TOTAL_AGILE_LESSONS,
 } from "@/data/agile-course";
 
+
 export default function SecondStepsPage() {
   return (
     <GenericCoursePage
