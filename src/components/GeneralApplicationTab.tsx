@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -145,11 +145,21 @@ export function GeneralApplicationTab() {
   const [latestCompleted, setLatestCompleted] = useState<GeneralApplication | null>(null);
   const [creatingWithPrefill, setCreatingWithPrefill] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sectionsTouched, setSectionsTouched] = useState<Set<number>>(new Set());
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
+  const formContainerRef = useRef<HTMLDivElement>(null);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear error for this field as user corrects it
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   };
 
   const loadApps = useCallback(async () => {
@@ -319,40 +329,58 @@ export function GeneralApplicationTab() {
     }
   };
 
-  const validateSection = (): boolean => {
+  /** Validate a specific section's fields without side effects */
+  const getFieldErrors = (s: number): Record<string, string> => {
     const fieldErrors: Record<string, string> = {};
-
-    if (section === 1) {
+    if (s === 1) {
       if (!form.hours_commitment) fieldErrors.hours_commitment = "Please select an option";
     }
-    if (section === 2) {
+    if (s === 2) {
       if (!form.country.trim()) fieldErrors.country = "Country is required";
       if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
       if (form.experience_areas.length === 0) fieldErrors.experience_areas = "Please select at least one area or 'I'm not sure yet'";
       if (!form.professional_goals.trim()) fieldErrors.professional_goals = "Professional goals are required";
       if (form.education_background.length === 0) fieldErrors.education_background = "Please select at least one option";
     }
-    if (section === 3) {
+    if (s === 3) {
       if (!form.previous_engagement) fieldErrors.previous_engagement = "Please select an option";
       if (form.previous_engagement === "yes" && form.previous_engagement_ways.length === 0) {
         fieldErrors.previous_engagement_ways = "Please select at least one engagement type";
       }
     }
-    if (section === 4) {
+    if (s === 4) {
       if (!form.agile_vs_waterfall.trim()) fieldErrors.agile_vs_waterfall = "This field is required";
       if (!form.psychological_safety.trim()) fieldErrors.psychological_safety = "This field is required";
       if (!form.agile_philosophies.trim()) fieldErrors.agile_philosophies = "This field is required";
       if (!form.collaboration_challenges.trim()) fieldErrors.collaboration_challenges = "This field is required";
     }
-    if (section === 5) {
+    if (s === 5) {
       if (!form.servant_leadership_definition.trim()) fieldErrors.servant_leadership_definition = "This field is required";
       if (!form.servant_leadership_actions.trim()) fieldErrors.servant_leadership_actions = "This field is required";
       if (!form.servant_leadership_challenges.trim()) fieldErrors.servant_leadership_challenges = "This field is required";
       if (!form.servant_leadership_situation.trim()) fieldErrors.servant_leadership_situation = "This field is required";
     }
+    return fieldErrors;
+  };
 
+  const validateSection = (): boolean => {
+    const fieldErrors = getFieldErrors(section);
+    setSectionsTouched((prev) => new Set(prev).add(section));
     setErrors(fieldErrors);
-    return Object.keys(fieldErrors).length === 0;
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const errorCount = Object.keys(fieldErrors).length;
+      toast.error(`Please fix ${errorCount} required ${errorCount === 1 ? "field" : "fields"} before continuing`, {
+        description: Object.values(fieldErrors).join(", "),
+      });
+      // Scroll to the error summary banner
+      requestAnimationFrame(() => {
+        const firstError = formContainerRef.current?.querySelector('[role="alert"]');
+        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return false;
+    }
+    return true;
   };
 
   const handleNext = async () => {
@@ -559,22 +587,34 @@ export function GeneralApplicationTab() {
       </nav>
 
       {/* Section navigation tabs */}
-      <div className="flex flex-wrap gap-1.5">
-        {SECTION_TITLES.map((t, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => { setErrors({}); setSection(i + 1); }}
-            className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-md transition-colors border",
-              section === i + 1
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
-            )}
-          >
-            {i + 1}. {t}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Application sections">
+        {SECTION_TITLES.map((t, i) => {
+          const sNum = i + 1;
+          const isCurrent = section === sNum;
+          const hasErrors = sectionsTouched.has(sNum) && Object.keys(getFieldErrors(sNum)).length > 0;
+          return (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={isCurrent}
+              aria-label={`Section ${sNum}: ${t}${hasErrors ? " (has errors)" : ""}`}
+              onClick={() => { setErrors({}); setSection(sNum); }}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors border relative",
+                isCurrent
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-border hover:bg-muted/80",
+                hasErrors && !isCurrent && "border-destructive/60"
+              )}
+            >
+              {sNum}. {t}
+              {hasErrors && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background" aria-hidden="true" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Progress bar */}
@@ -582,7 +622,24 @@ export function GeneralApplicationTab() {
         <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(section / TOTAL_SECTIONS) * 100}%` }} />
       </div>
 
-      <div className="card-elevated p-6 space-y-5">
+      <div className="card-elevated p-6 space-y-5" ref={formContainerRef}>
+        {/* Error summary banner */}
+        {Object.keys(errors).length > 0 && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-destructive">
+                Please fix {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "error" : "errors"} to continue
+              </p>
+              <ul className="text-sm text-destructive/90 list-disc list-inside space-y-0.5">
+                {Object.values(errors).map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-semibold text-foreground">Section {section}: {SECTION_TITLES[section - 1]}</h2>
           {section === 2 && (
