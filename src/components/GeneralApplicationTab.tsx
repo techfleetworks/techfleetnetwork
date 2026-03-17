@@ -51,11 +51,11 @@ import {
 const TOTAL_SECTIONS = 5;
 
 const SECTION_TITLES = [
-  "Basic Information",
-  "Review and Update Profile",
-  "Previous Engagement in Tech Fleet",
-  "Agile Questions",
-  "Service Leadership Questions",
+  "Intro",
+  "Profile",
+  "Engagement",
+  "Agile",
+  "Service Leadership",
 ];
 
 const experienceOptions: MultiSelectOption[] = EXPERIENCE_AREAS.map((e) => ({
