@@ -41,6 +41,7 @@ export function GeneralApplicationTab() {
   const [aboutYourself, setAboutYourself] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [isNewApp, setIsNewApp] = useState(false);
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const [prefillDialogOpen, setPrefillDialogOpen] = useState(false);
   const [latestCompleted, setLatestCompleted] =
