@@ -122,12 +122,6 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Edit Profile" onClick={onProfileEdit}>
-              <UserPen className="h-4 w-4" />
-              <span>Edit Profile</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <SidebarMenuButton tooltip="Sign Out" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
               <span>Sign Out</span>
