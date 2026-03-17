@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Activity,
   Megaphone,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
