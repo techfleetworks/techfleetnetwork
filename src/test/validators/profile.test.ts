@@ -45,7 +45,7 @@ describe("profileSchema (BDD 2.6: Profile setup completion)", () => {
 
 describe("profileSchema (BDD 2.7: Missing mandatory fields)", () => {
   it("rejects empty first name", () => {
-    const result = profileSchema.safeParse({ firstName: "", lastName: "Doe", country: "US" });
+    const result = profileSchema.safeParse({ firstName: "", lastName: "Doe", country: "US", timezone: "America/New_York" });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toContain("required");
   });
