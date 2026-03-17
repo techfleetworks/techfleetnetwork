@@ -7,6 +7,7 @@ import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
