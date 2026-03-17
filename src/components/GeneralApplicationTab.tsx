@@ -40,6 +40,7 @@ export function GeneralApplicationTab() {
   const [view, setView] = useState<View>("list");
   const [activeApp, setActiveApp] = useState<GeneralApplication | null>(null);
   const [aboutYourself, setAboutYourself] = useState("");
+  const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [isNewApp, setIsNewApp] = useState(false);
