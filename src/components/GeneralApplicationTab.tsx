@@ -405,41 +405,15 @@ export function GeneralApplicationTab() {
         )}
       </nav>
 
-      {/* Section navigation tabs */}
-      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Application sections">
-        {SECTION_TITLES.map((t, i) => {
-          const sNum = i + 1;
-          const isCurrent = section === sNum;
-          const hasErrors = sectionsTouched.has(sNum) && Object.keys(getFieldErrors(sNum)).length > 0;
-          return (
-            <button
-              key={i}
-              type="button"
-              role="tab"
-              aria-selected={isCurrent}
-              aria-label={`Section ${sNum}: ${t}${hasErrors ? " (has errors)" : ""}`}
-              onClick={() => { setErrors({}); setSection(sNum); }}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors border relative",
-                isCurrent
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted text-muted-foreground border-border hover:bg-muted/80",
-                hasErrors && !isCurrent && "border-destructive/60"
-              )}
-            >
-              {sNum}. {t}
-              {hasErrors && (
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-background" aria-hidden="true" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(section / TOTAL_SECTIONS) * 100}%` }} />
-      </div>
+      {/* Step progress */}
+      <StepProgressBar
+        steps={SECTION_TITLES.map((label, i) => ({
+          label,
+          hasError: sectionsTouched.has(i + 1) && Object.keys(getFieldErrors(i + 1)).length > 0,
+        }))}
+        currentStep={section}
+        onStepClick={(s) => { setErrors({}); setSection(s); }}
+      />
 
       <div className="card-elevated p-6 space-y-5" ref={formContainerRef}>
         {/* Error summary banner */}

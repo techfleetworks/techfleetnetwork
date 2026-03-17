@@ -187,14 +187,13 @@ export function ProfileSetupDialog() {
               Skip for now
             </Button>
           </div>
-          {/* Progress bar */}
+          {/* Step progress */}
           <div className="mt-4">
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
-                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-              />
-            </div>
+            <StepProgressBar
+              steps={STEP_LABELS.map((label) => ({ label }))}
+              currentStep={step}
+              onStepClick={(s) => setStep(s)}
+            />
           </div>
         </DialogHeader>
 
