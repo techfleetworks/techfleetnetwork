@@ -834,7 +834,7 @@ export function GeneralApplicationTab() {
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving…" : "Save Draft"}
+            {saving ? "Saving…" : isCompleted ? "Save Changes" : "Save Draft"}
           </Button>
           {section < TOTAL_SECTIONS ? (
             <Button onClick={handleNext} disabled={saving}>
@@ -843,11 +843,33 @@ export function GeneralApplicationTab() {
           ) : (
             <Button onClick={() => handleSave(true)} disabled={saving || !canSubmit()}>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              {saving ? "Submitting…" : "Submit Application"}
+              {saving ? "Submitting…" : isCompleted ? "Update Application" : "Submit Application"}
             </Button>
           )}
         </div>
       </div>
+
+      {/* 🎉 Celebration dialog on first completion */}
+      <Dialog open={showCelebration} onOpenChange={setShowCelebration}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              General Application Submitted!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              Congratulations! Your general application has been submitted successfully.
+              You can update it anytime from the Applications page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => setShowCelebration(false)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
