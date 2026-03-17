@@ -90,6 +90,7 @@ export function GeneralApplicationTab() {
       );
       setActiveApp(app);
       setAboutYourself(app.about_yourself);
+      setTitle(app.title);
       setIsNewApp(true);
       setView("edit");
       await loadApps();
