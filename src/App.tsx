@@ -37,6 +37,7 @@ const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage
 const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 const UserAdminPage = lazy(() => import("./pages/UserAdminPage"));
 const ConfirmAdminPage = lazy(() => import("./pages/ConfirmAdminPage"));
+const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
 
 function RouteFallback() {
   return (
