@@ -432,8 +432,49 @@ export default function GenericCoursePage({
             {completionMessage}
           </h2>
           <p className="text-muted-foreground">{completionSubtext}</p>
+          {nextCourse && (
+            <Button className="mt-4" onClick={() => navigate(nextCourse.href)}>
+              Continue to {nextCourse.title}
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
         </div>
       )}
+
+      {/* Course completion popup */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              {title} Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've completed all lessons in this course. Well done!
+              {nextCourse
+                ? " You're ready for the next course."
+                : " " + completionSubtext}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            {nextCourse ? (
+              <>
+                <Button onClick={() => { setShowCompletionDialog(false); navigate(nextCourse.href); }}>
+                  Continue to {nextCourse.title}
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+                <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+                  Stay on This Course
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setShowCompletionDialog(false)}>
+                Close
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Lesson detail panel */}
       <Sheet
