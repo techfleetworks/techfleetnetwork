@@ -567,6 +567,33 @@ export type Database = {
         }
         Relationships: []
       }
+      milestone_reference: {
+        Row: {
+          activities: string[]
+          created_at: string
+          deliverables: string[]
+          id: string
+          milestone_name: string
+          skills: string[]
+        }
+        Insert: {
+          activities?: string[]
+          created_at?: string
+          deliverables?: string[]
+          id?: string
+          milestone_name: string
+          skills?: string[]
+        }
+        Update: {
+          activities?: string[]
+          created_at?: string
+          deliverables?: string[]
+          id?: string
+          milestone_name?: string
+          skills?: string[]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -650,6 +677,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string
+          current_phase_milestones: string[]
+          id: string
+          phase: Database["public"]["Enums"]["project_phase"]
+          project_status: Database["public"]["Enums"]["project_status_enum"]
+          project_type: Database["public"]["Enums"]["project_type"]
+          team_hats: string[]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by: string
+          current_phase_milestones?: string[]
+          id?: string
+          phase?: Database["public"]["Enums"]["project_phase"]
+          project_status?: Database["public"]["Enums"]["project_status_enum"]
+          project_type: Database["public"]["Enums"]["project_type"]
+          team_hats?: string[]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          current_phase_milestones?: string[]
+          id?: string
+          phase?: Database["public"]["Enums"]["project_phase"]
+          project_status?: Database["public"]["Enums"]["project_status_enum"]
+          project_type?: Database["public"]["Enums"]["project_type"]
+          team_hats?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limits: {
         Row: {
@@ -891,6 +965,20 @@ export type Database = {
         | "volunteer"
         | "discord_learning"
       membership_tier: "free" | "paid"
+      project_phase: "phase_1" | "phase_2" | "phase_3" | "phase_4"
+      project_status_enum:
+        | "coming_soon"
+        | "apply_now"
+        | "recruiting"
+        | "team_onboarding"
+        | "project_in_progress"
+        | "project_complete"
+      project_type:
+        | "website_design"
+        | "service_design"
+        | "application_design"
+        | "strategy"
+        | "discovery"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1033,6 +1121,22 @@ export const Constants = {
         "discord_learning",
       ],
       membership_tier: ["free", "paid"],
+      project_phase: ["phase_1", "phase_2", "phase_3", "phase_4"],
+      project_status_enum: [
+        "coming_soon",
+        "apply_now",
+        "recruiting",
+        "team_onboarding",
+        "project_in_progress",
+        "project_complete",
+      ],
+      project_type: [
+        "website_design",
+        "service_design",
+        "application_design",
+        "strategy",
+        "discovery",
+      ],
     },
   },
 } as const

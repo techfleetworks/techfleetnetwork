@@ -1,0 +1,54 @@
+/** Enums and option lists for the Projects feature */
+
+export const PROJECT_TYPES = [
+  { value: "website_design", label: "Website Design" },
+  { value: "service_design", label: "Service Design" },
+  { value: "application_design", label: "Application Design" },
+  { value: "strategy", label: "Strategy" },
+  { value: "discovery", label: "Discovery" },
+] as const;
+
+export const PROJECT_PHASES = [
+  { value: "phase_1", label: "Phase 1" },
+  { value: "phase_2", label: "Phase 2" },
+  { value: "phase_3", label: "Phase 3" },
+  { value: "phase_4", label: "Phase 4" },
+] as const;
+
+export const PROJECT_STATUSES = [
+  { value: "coming_soon", label: "Coming Soon" },
+  { value: "apply_now", label: "Apply Now" },
+  { value: "recruiting", label: "Recruiting" },
+  { value: "team_onboarding", label: "Team Onboarding" },
+  { value: "project_in_progress", label: "Project In Progress" },
+  { value: "project_complete", label: "Project Complete" },
+] as const;
+
+export const TEAM_HATS = [
+  "UX Design",
+  "UX Research",
+  "UX Writing",
+  "Project Management",
+  "Product Management",
+  "Development",
+  "Systems Design",
+  "Business Analysis",
+  "Scrum Master",
+  "Account Manager",
+  "QA",
+] as const;
+
+export const MILESTONE_OPTIONS = [
+  "Intake",
+  "Discovery",
+  "Requirements",
+  "Vision",
+  "Scope",
+  "Experience Design",
+  "Development",
+  "Acceptance",
+] as const;
+
+export type ProjectTypeValue = (typeof PROJECT_TYPES)[number]["value"];
+export type ProjectPhaseValue = (typeof PROJECT_PHASES)[number]["value"];
+export type ProjectStatusValue = (typeof PROJECT_STATUSES)[number]["value"];
