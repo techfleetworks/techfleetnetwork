@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, BookOpen, Users, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
+import { CheckCircle2, Circle, Play, Users, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,14 +49,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     description: "Register for the next available service leadership session.",
     icon: Users,
     action: "https://techfleet.org/overview/current-classes",
-    external: true,
-  },
-  {
-    id: "user-guide",
-    title: "Complete the Discord Tutorial Series in the User Guide",
-    description: "Work through the Discord migration video tutorial series.",
-    icon: BookOpen,
-    action: "https://guide.techfleet.org/resources/the-great-tech-fleet-discord-migration-video-tutorials",
     external: true,
   },
   {
