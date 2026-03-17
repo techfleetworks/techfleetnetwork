@@ -192,7 +192,7 @@ export default function TrainingPage() {
       title: "Learn About Agile Teamwork",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
       icon: Users,
-      href: "/journey/third-steps",
+      href: "/courses/agile-teamwork",
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
       locked: false,
