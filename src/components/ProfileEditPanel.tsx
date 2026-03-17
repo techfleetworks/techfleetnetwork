@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound, Clock } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -15,6 +15,7 @@ import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
 import { COUNTRIES } from "@/lib/countries";
+import { TIMEZONES } from "@/lib/timezones";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
