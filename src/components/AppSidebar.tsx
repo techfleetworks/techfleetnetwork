@@ -1,14 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Rocket,
   GraduationCap,
   BookOpen,
   Bot,
   CalendarDays,
   ClipboardList,
   Handshake,
-  UserPen,
+  ShieldCheck,
   LogOut,
 } from "lucide-react";
 import {
