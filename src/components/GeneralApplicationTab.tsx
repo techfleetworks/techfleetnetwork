@@ -594,7 +594,7 @@ export function GeneralApplicationTab() {
             </div>
 
             {/* Experience Areas */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>In what areas do you want to gain experience on Tech Fleet's training programs? <span className="text-destructive">*</span></Label>
               <MultiSelect
                 options={experienceOptions}
