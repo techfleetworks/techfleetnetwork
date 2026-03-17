@@ -19,7 +19,17 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get("redirect");
+  const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
+  const from = fromState || redirectParam || "/dashboard";
+
+  // Store redirect for OAuth flows
+  useEffect(() => {
+    if (from && from !== "/dashboard") {
+      sessionStorage.setItem("auth_redirect", from);
+    }
+  }, [from]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
