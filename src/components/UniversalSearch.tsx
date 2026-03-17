@@ -55,7 +55,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     label: "Join Project Training Teams",
     description:
       "Lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.",
-    href: "/journey/project-training",
+    href: "/courses/project-training",
     group: "Courses",
   },
   {
