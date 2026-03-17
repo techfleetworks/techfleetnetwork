@@ -152,6 +152,14 @@ export function GeneralApplicationTab() {
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear error for this field as user corrects it
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   };
 
   const loadApps = useCallback(async () => {
