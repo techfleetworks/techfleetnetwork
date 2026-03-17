@@ -124,44 +124,65 @@ Deno.serve(async (req) => {
     // Build confirmation URL
     const confirmUrl = `${supabaseUrl}/functions/v1/confirm-admin-role?token=${promotion.token}`
 
-    // Enqueue the confirmation email
+    // Enqueue the confirmation email with all required fields
     const userName = targetProfile.first_name || targetProfile.display_name || 'there'
+    const messageId = `admin-promo-${targetUserId}-${crypto.randomUUID()}`
+
     const emailPayload = {
       to: targetProfile.email,
       subject: 'Tech Fleet: Confirm Your Admin Role',
+      from: 'Tech Fleet <notifications@notify.techfleet.org>',
+      sender_domain: 'notify.techfleet.org',
+      label: 'admin_promotion',
+      message_id: messageId,
+      queued_at: new Date().toISOString(),
+      purpose: 'transactional',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #1a1a2e;">Admin Role Confirmation</h2>
-          <p>Hi ${userName},</p>
-          <p>You've been promoted to an <strong>Admin</strong> role in the Tech Fleet Network by an existing administrator.</p>
-          <p>To confirm and activate your admin privileges, please click the button below:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${confirmUrl}" 
-               style="background-color: hsl(221, 83%, 53%); color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-              Confirm Admin Role
-            </a>
-          </div>
-          <p style="color: #666; font-size: 14px;">If you did not expect this, you can safely ignore this email.</p>
-          <p style="color: #666; font-size: 14px;">— Tech Fleet Team</p>
-        </div>
-      `,
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    <div style="background: #ffffff; border-radius: 8px; padding: 32px; border: 1px solid #e4e4e7;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="font-size: 14px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Tech Fleet Network</h1>
+      </div>
+      <h2 style="font-size: 22px; font-weight: 700; color: #18181b; margin: 0 0 16px 0;">Admin Role Confirmation</h2>
+      <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">Hi ${userName},</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">You've been promoted to an <strong>Admin</strong> role in the Tech Fleet Network by an existing administrator.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #3f3f46;">To confirm and activate your admin privileges, please click the button below:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${confirmUrl}" 
+           style="background-color: hsl(221, 83%, 53%); color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Confirm Admin Role
+        </a>
+      </div>
+      <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;" />
+      <p style="font-size: 12px; color: #a1a1aa; text-align: center; margin: 0;">If you did not expect this, you can safely ignore this email.</p>
+      <p style="font-size: 12px; color: #a1a1aa; text-align: center; margin: 4px 0 0 0;">— Tech Fleet Team</p>
+    </div>
+  </div>
+</body>
+</html>`,
     }
 
-    // Try to enqueue via pgmq, fall back to log
+    // Log pending status
+    await adminClient.from('email_send_log').insert({
+      message_id: messageId,
+      recipient_email: targetProfile.email,
+      template_name: 'admin_promotion',
+      status: 'pending',
+      metadata: { confirm_url: confirmUrl },
+    })
+
+    // Enqueue via pgmq
     try {
       await adminClient.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: emailPayload,
       })
     } catch (enqueueErr) {
-      console.error('Failed to enqueue email, logging instead:', enqueueErr)
-      // Log the confirmation URL so it's not lost
-      await adminClient.from('email_send_log').insert({
-        recipient_email: targetProfile.email,
-        template_name: 'admin_promotion',
-        status: 'pending',
-        metadata: { confirm_url: confirmUrl },
-      })
+      console.error('Failed to enqueue email:', enqueueErr)
     }
 
     // Audit
