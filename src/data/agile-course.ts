@@ -12,87 +12,197 @@ export const AGILE_COURSE_SECTIONS: AgileCourseSection[] = [
         title: "What You Read About Agile May Be Different From What You See in the World",
         youtubeId: "iOHQRwqSvyE",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/start-the-agile-handbook-here/what-you-read-about-agile-may-be-different-from-what-you-see-in-the-world",
-        content: `**The Gap Between Agile Theory and Practice**
+        content: `**This Handbook Describes the Possibilities**
 
-Many organizations claim to be "agile" but often practice something very different from the original principles. This lesson explores the gap between what agile is supposed to be and what it often looks like in the real world.
+In Tech Fleet training, we train service leadership: how teammates bring themselves to teams to be in service to others. We train psychological safety: how teammates can provide encouragement for others to be themselves, speak out, and take healthy team risks. We train self-organization: how teams can be given the authority to collectively decide how to proceed themselves.
 
-**Key Points:**
+We train continuous improvement: How teams can help each other remove their fear of failure, and look at failure as opportunities to grow and change.
 
-• Agile in textbooks emphasizes collaboration, adaptability, and delivering value iteratively
-• In practice, many companies adopt agile terminology without truly changing how they work
-• "Agile theater" refers to teams that go through the motions of agile ceremonies without embracing the mindset
-• True agile transformation requires a cultural shift, not just process changes
+Tech Fleet project training teams mature in Agile philosophies as they were described.
 
-**Why This Matters for Tech Fleet:**
+This is not always the reality we find in the world. You may have experienced a completely different way of life on teams.
 
-1. Understanding this gap helps you recognize genuine agile practices
-2. You'll learn to distinguish between agile as a mindset vs. agile as a set of rituals
-3. This awareness prepares you to practice authentic agile teamwork in our community
-4. You'll be better equipped to bring real agile values to future workplaces`,
+You may have worked with managers who are authoritarian, or hands-off.
+
+You may have worked with team mates who acted in competition with you, and did not practice service leadership.
+
+You may have operated on teams where you did not feel psychologically safe to speak out, or fail, or bring your personality to the team work.
+
+We deal with these adversities everywhere in the work world.
+
+Teams may call themselves Agile, but do nothing to practice its philosophies. Leaders may operate based on fear, instead of growth, and prevent teams from taking healthy risks or try to control outcomes. Teams may not have foundations of psychological safety, and they may be afraid to speak up about things that can change. They may be agile in name only, and practice Waterfall philosophies.
+
+This is our reality. While you are training, you learn the ideal state. When you proceed in the world you have a choice to lead by example. You have a choice to inspire change in others. You have a choice in how you contribute to team culture. You can only control your behaviors and actions and intentions.
+
+**You Have the Power**
+
+You have the power to be the change that you want to see in the world. It only takes one person's realization that there are better ways of working to inspire change. It may not happen on a timeline that suits your needs, but change can happen.
+
+By practicing the Agile philosophies and the traits of strong Agile team work, you can change the world, one person, one team, at a time.
+
+You have a choice:
+
+1. You can choose to lead by example.
+2. You can choose to set healthy boundaries and share the perspective of psychological safety.
+3. You can choose to lead in service of others' growth, even in situations where someone's not being a service leader to you or to others.
+4. You can choose to inspire teams and managers to transfer their authority to a collective team voice, and build self-organization.
+
+You won't always have a perfect outcome on teams. But that's not what's important. What is important is your self-care, and your continuous improvement. Learning. Progress. Growth. Lessons in how to approach adversity on teams and in the world.
+
+**Tech Fleet Members Are the Change**
+
+We are pioneers in Agile.
+
+Tech Fleet members can bring this change to teams in the world to help them mature in Agile practices as they should be. We can help teams reach their potential through more psychological safety, more service leadership, and more self-organization.
+
+We encourage you to live this. Take it seriously. Read this handbook and practice these principles in Tech Fleet training. Learn how to live these words of Agile Manifesto. You will bring so much added value to teams in the world when you can bring a mindset of team growth and learning over the work outcomes. Through this, we will all be the change that the tech world needs.
+
+Go through the Agile Handbook to learn about the different ways that strong Agile teams prioritize growth over work outcomes, and how to live your best Agile life. You, too, can be the change on teams.`,
       },
       {
         id: "agile-intro-2",
         title: "Introduction to the Agile Handbook",
         youtubeId: "GMZRdXYCqzw",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/start-the-agile-handbook-here/introduction-to-the-agile-handbook",
-        content: `**Welcome to the Agile Handbook**
+        content: `**Get Ready for Your World To Change**
 
-This handbook is your guide to understanding and practicing agile philosophies, teamwork, and methods. It covers everything from the core principles of agile to the day-to-day practices of working on an agile team.
+**In school you are taught to produce a perfect result.** You do it in phases. You take your time. You deal with minor constraints. You may work without clients.
 
-**What You'll Learn:**
+To "succeed" in industry environments you have to re-learn and un-learn the ways you have been trained in your education.
 
-• The foundational philosophies behind agile ways of working
-• How agile teams collaborate and make decisions together
-• The five team practices that make agile teams successful
-• How cross-functional teamwork operates in practice
-• Scrum methods and common agile deliverables
+Agencies and in-house company teams in the industry operate in completely different ways:
 
-**How to Use This Handbook:**
+1. Their processes are non-linear.
+2. They do UX and development work in parallel.
+3. They collaborate across different functions.
+4. They don't gather all of the requirements up front.
+5. They change plans as they work.
+6. They operate in uncertainty.
+7. They ship products iteratively.
 
-1. Work through each section in order — the concepts build on each other
-2. Watch the videos for visual explanations of key concepts
-3. Read the text versions for deeper understanding
-4. Reflect on how each concept applies to your own growth
-5. Mark lessons complete as you work through them
+**Changing Your Mindset**
 
-**Important Context:**
+**You have to develop an Agile mindset to succeed in the industry.**
 
-This is not just theoretical material. Everything you learn here will be applied in real team settings at Tech Fleet. The agile philosophies and practices described in this handbook are the foundation of how all teams in our community operate.`,
+When you learn Agile, your ways of working will change.
+
+As a UX researcher, UX designer, product person, project management person, or developer, you will be expected to change the way you work.
+
+Your mindset will shift in how you should be bringing yourself to teams.
+
+Your perspective will grow and change over time.
+
+Companies may expect employees to already have experience working in Agile. You will likely be asked to speak to your Agile philosophies when interviewing.
+
+It's crucial to build your Agile mindset in UX, product, and development fields.
+
+Tech Fleet can help. We are an Agile Coaching organization, and all of the community work embeds Agile in its day-to-day processes.
+
+**TL;DR: What's Agile? Why Should I Care?**
+
+**Agile is a philosophy and a way of approaching UX work.**
+
+**Agile teams deliver incremental value as they go.**
+
+They do not work in sequential order or phases. They deliver small chunks of usable, valuable functionality to users continuously instead of delivering the full result all at once.
+
+Waterfall teams (AKA the way you have probably been trained) build nothing but the car they agreed to in the beginning. They build the parts in sequential order. They put the entire car together before they deliver to users or clients. No one sees anything being built until it's launched. No one validates their direction while they are building.
+
+Agile teams take the opposite approach. Instead of building a car in parts, Agile teams build usable things they can test along the way. They deliver value to users in chunks that increasingly solves more problems.
+
+**Incremental Value with Agile**
+
+Agile delivers value throughout a project, while Waterfall delivers value at the end of a project.
+
+Agile, as such, is less risky than Waterfall. Agile teams verify their direction as they deliver value and change if they need to.
+
+The Agile releases in the "Car" example solve incremental problems and bring incremental value:
+
+1. A skateboard meets basic needs of transportation.
+2. A scooter is more valuable than the skateboard because it offers more stability while traveling.
+3. A bike is more valuable than the scooter because it lets you travel further and more efficiently.
+4. A motorcycle is more valuable than the bike because it goes fast, travels far, and is safer.
+5. A car is more valuable than the motorcycle because it is safer, fast, holds more travelers, and offers more cargo space.
+
+If, and only if, the Agile team has validated that these results bring incremental value, they will start building towards the next release.
+
+If they learned after delivering something that it doesn't deliver needs, they change their plans.
+
+These are two very different ways of performing work.
+
+Agile teams, because they deliver incremental value, deliver stronger results in the end.
+
+**This Handbook Teaches a Foundational Agile Mindset**
+
+**Welcome to the "Fail Fast" life.** This is the new and improved Agile Handbook for Tech Fleet.
+
+This handbook offers introduction to the Agile ways of work. It covers:
+
+1. Agile philosophies
+2. Traits of strong Agile teams
+3. Living daily Agile life
+4. Deliverables for Agile team success
+
+Tech Fleet is an Agile coaching organization and all teams are expected to operate in Agile ways of work.
+
+All Tech Fleet members should read this handbook to prepare for the Agile mindset before they apply to project training.`,
       },
       {
         id: "agile-intro-3",
         title: "Can AI Replace Agile Teams?",
         youtubeId: "Ou0_QSuZwso",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/start-the-agile-handbook-here/can-ai-replace-agile-teams",
-        content: `**AI and the Future of Teamwork**
+        content: `**Increasing Use of Artificial Intelligence in Tech**
 
-With the rise of AI tools, a common question emerges: can AI replace the need for agile teams? This lesson explores why human collaboration remains essential even in an AI-powered world.
+In 2025 we see the advent of artificial intelligence in everything that we do. And in the tech industry that's no different. Artificial intelligence tools are popping up as a way to streamline work, to cut time in meetings, to cut down the process of delivery, to make life easier for everybody involved across all functions.
 
-**Key Arguments:**
+**Will AI Replace Agile Teams?**
 
-• AI can automate tasks but cannot replace human judgment, creativity, and empathy
-• Agile teams solve complex, ambiguous problems that require diverse perspectives
-• The value of agile is in the human dynamics — trust, communication, shared ownership
-• AI is a powerful tool that enhances team capabilities, not a replacement for teamwork
+What does that mean for the implications of teams that are working in an Agile fashion?
 
-**What AI Can Do:**
+Does that mean that our jobs are going to go away? Does that mean that cross functional teamwork will go away?
 
-1. Automate repetitive tasks and data analysis
-2. Generate code, content, and design suggestions
-3. Speed up research and information gathering
-4. Assist with project management and tracking
+Artificial intelligence is a tool. Artificial intelligence is a way to use something to carry out results of what you're trying to do. Artificial intelligence can help you define how something can get done, or what to recommend for goals.
 
-**What AI Cannot Replace:**
+But artificial intelligence can't collaborate. It can't decide what problems to focus on. It can't lead people. It can't make a critical thinking-based judgment. It can't team build. It can't decide when to pivot. Artificial intelligence is only as strong as what it's prompted and programmed to do. It's only as strong as its data and its data sets.
 
-1. Building trust and psychological safety within a team
-2. Navigating interpersonal conflicts and team dynamics
-3. Making value-based decisions that require ethical judgment
-4. Creating a sense of shared purpose and ownership
-5. Adapting to changing human needs and organizational culture
+AI can never replace Agile cross-functional team work, but it can make it stronger.
 
-**The Bottom Line:**
+**Agile is Human-Oriented**
 
-The future belongs to people who can work effectively in teams AND leverage AI tools. Learning agile teamwork makes you more valuable, not less, in an AI-powered world.`,
+Agile is a philosophy and a way of thinking. And it's very centered around people.
+
+Agile is not about the work, or the results. Agile is about how you treat others in your collaboration as a teammate. Agile is about how you prioritize delivery to users and clients.
+
+Strong agile teams provide space for people to grow, to learn, to fail, to experiment.
+
+Agile teamwork is about a way of life that you adopt in order to respect each other, to grow, to collaborate, to communicate, to use AI as tools.
+
+What works for the team is not defined by anything but the team itself. What works for the team is defined by the team on a continuous basis.
+
+The philosophy of agile will never go away in the age of AI. The processes of agile that get built are lived by, you guessed it, humans.
+
+Before they start doing their work, they have to define why they're here, what they're moving toward. They have to define how they want to work together. They need to define who does what function each time they go out and do work.
+
+None of that could be defined by artificial intelligence. All of that can be streamlined by artificial intelligence. Agile will never be replaced. Because Agile is not a tool.
+
+Because of this, AI is going to continue being used as a tool, but it will never replace the human oriented work of an Agile team.
+
+**How to Use AI for Agile Work**
+
+Here are some ways that Agile teams can use artificial intelligence to streamline their work.
+
+1. They can use AI to produce quicker results by using AI to get work done.
+2. They can use AI to plan how they're going to use AI as a tool.
+3. They can use AI to check their work.
+4. They can use AI to research the market.
+5. They can use AI to compile research results.
+6. They can use AI to research user needs that have been researched before.
+7. They can use AI to create interfaces as decided based on requirements.
+8. They can use AI to understand how to best communicate.
+9. They can use AI to identify best practices they could potentially adopt.
+
+And more. Through all of this, they still need to work together as humans, support each other as humans, grow as humans, experiment and fail as humans, and deliver value as humans.`,
       },
     ],
   },
@@ -104,143 +214,232 @@ The future belongs to people who can work effectively in teams AND leverage AI t
         title: "Waterfall Ways of Work",
         youtubeId: "M7Eo7YTu08Q",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-philosophies/waterfall-ways-of-work",
-        content: `**Understanding the Waterfall Approach**
+        content: `**What's Waterfall?**
 
-Before understanding agile, it helps to understand the traditional approach it evolved from: waterfall project management.
+First, we're going to learn about what's Waterfall. The way that you're learning in school is called waterfall.
 
-**What Is Waterfall?**
+Waterfall is a phased approach of work.
 
-Waterfall is a sequential, linear approach to project management where each phase must be completed before the next begins. It follows a strict order:
+1. Requirements
+2. Research
+3. Design
+4. Develop
+5. Test
+6. Release
 
-1. **Requirements** — Gather all requirements upfront
-2. **Design** — Create the complete design based on requirements
-3. **Implementation** — Build everything according to the design
-4. **Testing** — Test the finished product
-5. **Deployment** — Release the final product
-6. **Maintenance** — Fix issues after release
+**Example of Waterfall**
 
-**Problems with Waterfall:**
+Let's say that you're hired by a company to make a scooter. You have a year and a half to make that scooter.
 
-• Requirements change, but the process doesn't accommodate change easily
-• Customers don't see the product until the very end
-• Problems discovered late are expensive and difficult to fix
-• Teams work in silos — handoffs between phases create bottlenecks
-• There's no opportunity for learning and iteration during the process
+And so you plan the whole thing. You make a plan all at the beginning. You're going to do your requirements where you gather all the information that you need up front, and then you do all your research, and then you do all your design, you design the whole thing, and then you go into the development phase, and you develop the whole thing, and then you do your test phase and you test the whole thing.
 
-**Why This Matters:**
+Everything is sequential in Waterfall. Everything happens before the next. There's no design happening in the development phase, there's no research happening in the design phase.
 
-Understanding waterfall helps you appreciate why agile emerged as an alternative. Many organizations still operate with waterfall thinking even when they claim to be agile.`,
+It's all in steps.
+
+So that's what you do for your scooter. You go out in the world, and you go and talk to people. And, of course, they want everything under the sun. They want a GPS, and they want a backup camera, and they want a cat chariot. They want to carry their cat around because who doesn't want to carry their cat into the world?
+
+They want it all. You write it all down. You write down artificial intelligence, and driving up to 90 miles an hour. And having a touch screen, having that cat chariot and the three seater.
+
+And you've got your requirements phase done and you move on to the next.
+
+And now you're in the design phase and you design everything that it would ever be. You design the cat chariot and the AI and the GPS and everything that the scooter is ever going to be, you're going to spend three months doing the whole thing all at once. And then it gets into development and the developers build it in chunks.
+
+And they spend a whole year building it. So they're going to build the wheels, then they build the body, then they build the motor. Then they build the cat chariot, and then they put it all together, and it goes into the testing phase a year and three months in. And they're done the test, and it's ready to launch.
+
+You spend a year and a half building this, and you hit market.
+
+Behold! Ye Olde Cat Chariot!
+
+All of a sudden you realize that nobody wants it. The market's changed. This person told you that they wanted a GPS, and they wanted a cat chariot at the time, but then their life changed. The circumstances around them changed. Now they have a smartphone, they don't need a GPS anymore, and their cat ran away.
+
+They just ended up buying a bike six months ago. Meanwhile, your team worked 18 months and didn't talk to anybody while they did it. They didn't talk to any users, they didn't validate anything, they just worked behind the scenes, phase to phase to phase to phase, and delivered 18 months later. They just spend all that time and money delivering a scooter that nobody wants.
+
+You may have been on projects before where this has happened to you. You work for so long on a thing that's so complicated and hard, and you develop the perfect result, and you do it, you deliver it, and it may not even get used. And this is how people are trained.
+
+You might be thinking to yourself, This is fine. This is how it is. What happened on the next team project? Did you do the same thing?
+
+There is a better way of working UX. There are better ways and more effective ways to deliver value to whomever in the world.
+
+**The Rules of Waterfall**
+
+1. You do everything in phases
+2. You do your research and then you do your requirements And then you do your design and then you do your development And then you do your testing
+3. Clients and users don't say anything until the end if you mess up or you learn something new
+4. You don't change anything because in theory, the product requirements are already set in waterfall.
+5. You don't change anything or incorporate feedback until you're finished the project. With Waterfall, you're going to deliver what you agreed to.
+
+**Typical Waterfall Deliverables**
+
+1. Product Requirements document
+2. Work contracts
+3. Research reports
+4. Full design specifications`,
       },
       {
         id: "agile-phil-2",
         title: "Agile Ways of Work",
         youtubeId: "X6bjIIVaWVI",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-philosophies/agile-ways-of-work",
-        content: `**The Agile Alternative**
+        content: `**Agile is a Way of Life**
 
-Agile is a fundamentally different approach to work that embraces change, collaboration, and iterative delivery of value.
+Agile is a philosophy. It is a way that you carry yourself. It is not a bunch of meetings. It is not a bunch of processes or tools. It's not JIRA.
 
-**Core Agile Values (from the Agile Manifesto):**
+Agile is a mindset that you put into your head, that you approach a different way to deliver value to users and to customers.
 
-• **Individuals and interactions** over processes and tools
-• **Working software** over comprehensive documentation
-• **Customer collaboration** over contract negotiation
-• **Responding to change** over following a plan
+And every time you implement Agile, it changes the way it carries out, changes, evolves. It is different every single time. Every team you join that's Agile has a different way of doing things. That's on purpose because of what we follow called the Agile Manifesto.
 
-**How Agile Differs from Waterfall:**
+**The Rules of Agile**
 
-| Waterfall | Agile |
-|---|---|
-| Linear, sequential | Iterative, incremental |
-| Big upfront planning | Continuous planning |
-| Delivered at the end | Delivered frequently |
-| Change is costly | Change is expected |
-| Siloed teams | Cross-functional teams |
+These are the things that we live by as Agile UX practitioners.
 
-**Key Agile Principles:**
+**We are uncovering better ways of developing software by doing it and helping others do it.**
 
-1. Deliver working value frequently in small increments
-2. Welcome changing requirements, even late in development
-3. Build projects around motivated, empowered individuals
-4. The best results emerge from self-organizing teams
-5. Reflect regularly on how to become more effective
+Through this work, we have come to value:
 
-**At Tech Fleet:**
+1. **Individuals and interactions over processes and tools.** What does that mean? It means that you should never come up with a perfect process. You should talk it out with your team and figure out how you should go with your team.
 
-We practice these values in everything we do. Our teams are self-organizing, cross-functional, and focused on continuous improvement.`,
+2. **Delivering working software over comprehensive documentation.** What does that mean? It means that you should deliver things into the hands of users early and often. And you should spend your energy doing that. Getting it shipped. Getting the research results done. Getting the design done. Getting the evaluation of it. Versus documenting how it works.
+
+3. **Collaborating with customers over making contracts.** What does that mean? You shouldn't make a product requirements document. You should not be agreeing to everything all at once and then delivering what you agree to. You should set high level goals and high level priorities and then interact with individuals to figure out how that should change over time. Everything is in a state of flux on your team because everything in the world is in a state of flux. So you should never be building something that is steadfast and already agreed to. You should be figuring out what you think you're moving toward and then figuring out how can you validate that quickly and early and often to then figure out what your direction needs to be.
+
+4. **Responding to change over following a plan.** When the world changes, when your plan has to change, you change the plan. When you're no longer doing research, You got to respond to the change when your research priority changes, you got to respond to the change. When you are in need of making a whole new set of deliverables, you got to respond to the change.
+
+Notice how these are not very concrete. These are not very succinct. They're not telling you exactly how to do it exactly what meetings to do exactly what ways you need to work with researchers and developers and project managers. Because this is a philosophy. This is a way of life. You will live these four tenets.
+
+Everything you do is going to be interacting with individuals, delivering working UX results, collaborating with customers, and responding to change.
+
+That's all that Agile is. All the things that you add to Agile, like sprints, and scrum, and retros, and all that stuff, those are the ways of carrying out Agile. These are methodologies of Agile. Agile itself is a mindset. It's a way of life.`,
       },
       {
         id: "agile-phil-3",
         title: "Applying Agile Philosophies to Work",
         youtubeId: "MPpy7kAuxCU",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-philosophies/applying-agile-philosophies-to-work",
-        content: `**Putting Agile Into Practice**
+        content: `**Agile is an Adjective, Not a Noun**
 
-Understanding agile philosophy is one thing — applying it to real work is another. This lesson bridges the gap between theory and practice.
+You're either agile or you're not agile. And you can be agile anything. You could be an agile developer. You can be an agile researcher. You can be an agile car builder. You can be an agile accountant. You can be an agile vacation taker. You can do chores with Agile. Literally anything can apply to the Agile manifesto.
 
-**Practical Application of Agile Values:**
+When you're working with a team, your team's going to exist on a spectrum, a scale. How much does your team apply the Agile principles? Spoiler alert, it's never going to be 100%. It could be 0%. You could be waterfall as anything. You could be a mix. You could be operating with a mix of waterfall principles and Agile principles.
 
-• **Start small** — Don't try to plan everything upfront. Start with what you know and iterate
-• **Embrace feedback** — Seek input from teammates and stakeholders frequently
-• **Be transparent** — Share progress, blockers, and concerns openly with your team
-• **Focus on value** — Always ask "what delivers the most value to the user right now?"
+Over time, your team's agility, notice the adjective there, your team's agility is going to evolve the way that you all carry out the Agile manifesto, the way that you carry yourselves in your philosophy of your approach, the ways that you interact with individuals, the ways that you build working UX, the ways that you respond to change, that's going to change over time. That's why every single team that gets together is different. The way that you all agree how you're going to work together is actually defined by you.
 
-**Common Pitfalls When Applying Agile:**
+Everybody comes into the field looking for specific answers.
 
-1. Over-planning instead of starting and iterating
-2. Treating agile ceremonies as bureaucratic checkboxes
-3. Avoiding difficult conversations about progress or problems
-4. Working in isolation instead of collaborating across functions
-5. Perfectionism that delays delivery of working value
+1. What do I do?
+2. When do I do this?
+3. How do I do it?
+4. What should I not do?
 
-**How to Think Agile:**
+There is no one answer to that. There's no right way of doing that. There's only the way that you, the team, agree to do it. That's what makes Agile complicated.
 
-• Break large problems into smaller, manageable pieces
-• Deliver something usable, then improve it based on feedback
-• Communicate constantly with your team
-• Reflect on what's working and what isn't — then adapt
-• Trust your teammates and share responsibility for outcomes`,
+It's not going to be a concrete answer because Agile team work is an agreement that you make across roles across your team.
+
+**Agile Practice**
+
+Some of the principles of Agile, the things that you'll say when you carry out this work:
+
+1. Progress over process.
+2. Deliver early and often.
+3. Build fast, fail fast.
+4. Let the team experiment with new ways of work.
+5. You don't need all the requirements up front, you just need the most important ones up front.
+6. Do what makes sense in the context of your team.
+7. Show your progress.
+8. Pivot.
+
+**Build Fast, Fail Fast**
+
+Number one rule is to build fast fail fast, which means that you're not just failing. If you're just failing, you're just a giant mess. If you're not improving what you've done, based on the lessons that you've learned in failing, You're never going to progress. So in Agile, what you do is you build fast, which means get it into the hands of users quickly. And you learn that you're not headed in the right direction quickly, failing fast.
+
+And then you change your plan quickly. Learn fast, adjust fast. The key word there is fast. Not fail, but fast. You have to build fast, fail fast. In the context of research, that means that you have to deliver research fast and learn that you're headed in the right direction or not headed in the right direction fast.
+
+**Don't Talk About it Endlessly: Just Do It**
+
+Number two, don't talk about it endlessly. Just start doing it. You don't need to come up with a perfect process. You don't need to perfect it and talk about all the what ifs, what ifs, what ifs. Just start doing it. Start collaborating with your teammates, collaborating with customers, collaborating with users, and figure it out.
+
+**Do What Makes Sense in the Context of Your Team**
+
+Do what makes sense in the context of your team. If some theory is telling you, you have to do this, but the team context prevents you from doing that, You're not going to be able to fit that thing into the context of your team very well. You can't force the thing that you learn in a book on a team.
+
+You have to be able to build malleability and flexibility around how you apply that thing to the team.
+
+**Always Work on the Highest Priority**
+
+You always need to work on the most important thing, the riskiest assumptions, the highest priority items at any given time. If you're not doing that, and you're delivering the things that are nice to have, you're not really delivering a lot of value because you're moving toward things that are nice to have, but you're not vetting the most important things at any given time.
+
+If you do that, that will also lead to adjustments and pivots a lot more, but it will lead to a stronger product in the end. And you always want to deliver something usable after one iteration. An iteration is just a chunk of work. You will deliver research in one week.
+
+You will deliver designs that are validated in one week. One week's time. What you're used to in training is you have the whole semester. You have six months. You have two months. Not the case.
+
+**Constantly Deliver Usable Results**
+
+You always want to make sure that the thing that you build in the end isn't just a chunk. Isn't just a part of it, but it's something that you can put into the hands of users, validate, test, determine the direction of quickly.
+
+What this means for UX teams: you are delivering smaller rounds of research and design every week or every couple of weeks. You're not producing the entire finished result at once: you are delivering it in usable chunks that you can validate and provide prioritized value.
+
+Learn how Agile teams build products into the world with Agile in the next lesson.`,
       },
       {
         id: "agile-phil-4",
         title: "Building MVPs and MMPs with Agile",
         youtubeId: "5N3OqDBCMDo",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-philosophies/building-mvps-and-mmps-with-agile",
-        content: `**Minimum Viable Products and Minimum Marketable Products**
+        content: `**Agile Product Development**
 
-Two fundamental concepts in agile delivery are the MVP (Minimum Viable Product) and MMP (Minimum Marketable Product).
+If someone comes to you and says, I want to build a scooter, you have to determine what that long term end result looks like in the end, vaguely. The thing that you're trying to make money with and put into the market is called the **Minimum Marketable Product (MMP).**
 
-**MVP — Minimum Viable Product:**
+Then you work your way backwards and you say, what is the first thing that we should be doing that helps us validate the direction and is the most valuable thing that we could deliver first? The first release, and the incremental releases after that, are called **Minimum Viable Product (MVP).**
 
-• The simplest version of a product that can be used to test an idea
-• Focused on learning: "What do users actually need?"
-• Not a finished product — it's an experiment
-• Helps teams avoid building things nobody wants
+The way that agile product development works is you start with a cycle, working your way past the MMP to the MVP.
 
-**MMP — Minimum Marketable Product:**
+1. Define your long-term vision (MMP)
+2. Define the first release (MVP #1)
+3. Deliver the first release quickly
+4. Gather feedback
+5. Review the vision and adjust plans
+6. Start building the next MVP release and repeat the cycle
+7. Build as many MVP's as you need to before you launch at market
 
-• The smallest set of features that provides value to users
-• Ready for real use, not just experimentation
-• Focused on delivery: "What's the least we can build that's genuinely useful?"
-• The first real release to users
+**MVP: Minimum Viable Products**
 
-**The Relationship Between MVP and MMP:**
+At every point, you should be determining the bare minimum to deliver, the MVP that you should be working toward.
 
-1. Start with an MVP to validate your assumptions
-2. Learn from user feedback on the MVP
-3. Iterate toward an MMP that delivers real value
-4. Continue iterating based on ongoing feedback
+MVP is just a concept, but it's an important concept to know whether you're doing UX work or discovery work or development work.
 
-**Why This Matters:**
+The MVP itself is a concept that constitutes something that is simple, valuable, actionable, and testable.
 
-• Prevents wasted effort on features users don't need
-• Gets value into users' hands faster
-• Creates a feedback loop for continuous improvement
-• Teaches teams to prioritize ruthlessly
+The MVP is something that is very simple. Something that is valuable, usable, and testable.
 
-**At Tech Fleet:**
+**MVP Build Cycle**
 
-Our project training teams practice building MVPs and iterating toward MMPs with real nonprofit clients. This is one of the most valuable skills you'll develop.`,
+You build and validate the MVP quickly. You deliver it. You adjust your plans, and you go back to the drawing board, back to step number one, and say how does that change my long term vision? Let's do another one, and then you build another MVP, and then another MVP, and then another MVP, and you just keep going through that until maybe one day you release the thing to market.
+
+Maybe you never release it to market. The process that you're going to learn, whether it be through research or design or strategy or chores or vacationing or accounting work, is how to scope a plan in the beginning, determine the highest priority for that, deliver that thing quickly, analyze it, and adjust.
+
+You iterate, you release it, you evaluate, you plan that thing for the next release based on your priorities at the time, and then you keep going. Meanwhile, the thing that you're trying to build may change, and you have to go back into what you were working toward to then change it.
+
+**MVP Requirements**
+
+And when you're gathering requirements, you don't do it all at once. If you're building an MVP, you have to talk about what it must have. So, sorry, cat. Can't take a cat chariot around in the first MVP because that's not the most important priority. I apologize, cat. I know that that's disappointing for you, and that's really hard to hear.
+
+But what the scooter must have is that it must drive in the city. Can't go off road. It must be able to drive a reasonable speed. It must have one person seating. Because it needs to meet the basic needs of getting around and then once we have delivered that thing we've delivered the must have through one to many iterations.
+
+**Responding to Change**
+
+We evaluate that thing as we build and after we deliver. We plan the next release. And what that release looks like, we start it over again. Over time, what you're doing is you're building more value to users. You're not delivering all the value only at the end, like in Waterfall. So by the time you hit market, you've got a really strongly validated and really usable, really refined experience.
+
+**Building the Scooter with MVP's**
+
+Here's how you would build that motor scooter with a cat chariot through Agile. Each time you do it, you build something usable and valuable and minimal. So to meet the basic needs, I'll build a skateboard. It'll take me three months out of the 18 months, but I'll get something quickly out the door that helps me validate the direction, and then I'll say, okay.
+
+That validates the direction. Let's keep going. What is the next basic need that we can meet that kind of adds to the previous one? Well, we can add more stability. We can build a scooter with a handle. Not motorized. It just goes fast enough to get around, but it offers a little bit more stability and it meets a little bit more needs.
+
+And then you work on the fast things. And only if you have validated the direction of those MVPs, you know you're headed in the right direction with the MMP, and you start building the MMP. Notice how it takes 18 months still. But the things that we build in the first two MVPs are something completely different than what the end result should be, because they focus on basic problems that we're trying to solve.
+
+What happens if your requirements change? What happens if you build that skateboard and you determine, okay, everybody just got a smartphone because the smartphone came out.
+
+So we don't need a cat chariot scooter with a GPS. We need a bike. Oh, all right. That's cool. Pivot, change your direction, change your vision, change your scope, respond to the change.`,
       },
     ],
   },
@@ -252,104 +451,170 @@ Our project training teams practice building MVPs and iterating toward MMPs with
         title: "Prioritizing Growth Over Skills",
         youtubeId: "MDI_GFTK6qY",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/prioritizing-growth-over-skills",
-        content: `**Growth Mindset in Agile Teams**
+        content: `**It's Not About The Team's Skills or Experience**
 
-In traditional work environments, people are hired for specific skills. In agile teams, growth potential matters more than current skill level.
+You may have a perception in your head that if only you had more experience and more skills, you can join teams and immediately start producing work.
 
-**Why Growth Over Skills?**
+You may think that expert Agile teams in the world are very experienced in what they do.
 
-• Skills can be learned, but a growth mindset is a fundamental orientation
-• People who prioritize growth are more adaptable to change
-• Teams of learners outperform teams of experts who resist change
-• A growth-oriented culture creates psychological safety for experimentation
+This is a false perception.
 
-**What a Growth Mindset Looks Like:**
+Expert Agile teams are experts in navigating uncertainty, experts in pivoting, and experts in supporting growth of others.
 
-1. Willingness to try things outside your comfort zone
-2. Openness to feedback — even when it's uncomfortable
-3. Curiosity about how others work and what they know
-4. Resilience when things don't go as planned
-5. Commitment to continuous learning and improvement
+They are not necessarily experts in hard skills. They progress through product development by being of service to each other as they manage risks and build a working process together.
 
-**What a Fixed Mindset Looks Like:**
+Yes, we're all here to make a living. We're all here trying to deliver results. We want to ship products. We want to have job security. We've got to make management happy if we want to stay working at a company.
 
-• "That's not my job" — rigid role boundaries
-• Avoiding challenges to protect your reputation
-• Seeing feedback as criticism rather than growth opportunity
-• Competing with teammates instead of collaborating
-• Blaming others when things go wrong
+But Agile teamwork is not really about producing work itself.
 
-**At Tech Fleet:**
+Any one person with skills and experience can perform work.
 
-We value your commitment to growth above your current experience level. Everyone starts somewhere, and the willingness to learn and contribute is what makes our teams strong.`,
+To work as a unified Agile team, teams must look past the skills and tight deadlines. They must look past seeking perfect outcomes.
+
+They must provide environments for experimentation, risk taking, learning, and personal growth.
+
+**Agile Teams Help Each Other Grow**
+
+Teams that are Agile have the following foundations of active listening, empathy, understanding, learning, and support.
+
+They make their own calls about how to prioritize work. Agile teams don't try to control outcomes or prevent failure. They play out scenarios and respond to change.
+
+They collaborate and build working results quickly so that they can learn how to change their plans. The team decides how to work, and when to prioritize, and what to deliver. This requires a whole lot of foundational Agile culture and mindsets.
+
+Expert Agile teams provide the space for others to disagree and hear people out. They support each other in failing "fast" together, adjusting their work, and looking in reflection. They never judge or blame each other.
+
+The more a team provides these, the more a team produces strong end-results. The faster they will ship their product. The stronger that product will become at market.
+
+**Earning Work Efficiency**
+
+Everyone on an Agile team intentionally acts in support of growth. They:
+
+1. Make each team member (even the interns) feel like an essential piece.
+2. Seek to understand others, instead of seeking to be understood.
+3. Help each other set goals and mark progress.
+4. Allow space for people to try things for the first time.
+5. Prioritize the growth of others around them.
+6. Praise, celebrate, and acknowledge each other.
+7. Encourage teammates to experiment with new ways of work.
+8. Provide conditions for people to be themselves and be vulnerable.
+
+Through this, they will grow together. They will gain skills and experience. They will ship very strong products. They will meet the needs of clients. They will be satisfied in their work.`,
       },
       {
         id: "agile-team-2",
         title: "The Four Stages of Team Growth",
         youtubeId: "5Vs5PFCL7mw",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/the-four-stages-of-team-growth",
-        content: `**Tuckman's Model of Team Development**
+        content: `**Teams Earn Progress through Conflict Resolution**
 
-Every team goes through predictable stages of development. Understanding these stages helps you navigate team dynamics with patience and purpose.
+Most people think teams that work well together start immediately working well together. But it's not possible to do so without resolving conflict. After all, it's not about their skill levels.
 
-**The Four Stages:**
+Teammates have different experiences and different perspectives. Teammates have different ways of working and different lessons learned from the past. When they get together, those past experiences and perspectives may clash. This is the natural progression through the team growth process.
 
-1. **Forming** — Team members are polite and cautious. Everyone is learning about each other and the work. There's excitement but also uncertainty.
+Teams must provide room for respect and growth before being able to produce work efficiently together. They must hear each other, and acknowledge each other. They can't be in competition with each other.
 
-2. **Storming** — Disagreements surface. Team members push back on ideas, roles become unclear, and conflict emerges. This is normal and necessary.
+**There are Four Stages of Teamwork**
 
-3. **Norming** — The team establishes working agreements. Trust builds. People find their rhythm and start collaborating effectively.
+The moment a team gets together, they go through "stages of being".
 
-4. **Performing** — The team operates at high efficiency. Members trust each other, share leadership naturally, and deliver consistent value.
+Academic professionals theorized that there are four stages of every team's development. Every single team in the world goes through four stages of team work.
 
-**Important Truths About These Stages:**
+1. Forming
+2. Storming
+3. Norming
+4. Performing
 
-• Every team goes through storming — it's not a sign of failure
-• Teams can regress to earlier stages when membership changes
-• The goal is not to skip stages but to move through them with awareness
-• Storming is where the most growth happens for individuals and teams
+It's only when they start performing that they work well, efficiently deliver, produce more work, and are happy in their work.
 
-**How to Support Your Team at Each Stage:**
+**The Forming Stage**
 
-• **Forming:** Be open, share about yourself, ask questions
-• **Storming:** Stay engaged, communicate directly, seek to understand
-• **Norming:** Reinforce what's working, establish shared practices
-• **Performing:** Challenge the team to keep improving, mentor others`,
+During the Forming stage, the team first gets together, and doesn't have a common way of working established yet, but they meet each other.
+
+Tasks: A team kickoff, ice breakers, expectation setting.
+
+Feelings: Excitement, belonging, cheer, positivity, confidence, nervousness, anxiety.
+
+Behaviors: Being polite with each other, questions from team members, acting excitedly, uncertainty about the future, anxiety about their place on the team.
+
+**The Storming Stage**
+
+During the Storming stage, the team starts figuring out how they should be working together, and this happens through talking out disagreements.
+
+Tasks: Defining short-term action items based on goals, starting work, deciding how to work together.
+
+Feelings: Anxiety about whether the team can do what they are set out to do, anger about the lack of progress, frustration about the lack of progress.
+
+Behaviors: Arguing about how to work together and about decisions, conflict and discussing differences of opinion, discussing how to start in the work and the goals of the work, criticizing team mates' decisions, questioning the future of the team.
+
+**The Norming Stage**
+
+During the Norming phase, team members resolve their differences, and align in how to work together. They start making agreements in how they should produce the work in collaboration and proceed in the work.
+
+Tasks: Agreeing to work process, discussing and building consensus, collective teamwork, focusing on aligning goals.
+
+Feelings: Confidence, inclusion, comfort.
+
+Behaviors: Building consensus with team mates, constructive criticism, harmoniously working together, being willing to hear people and work together, celebrating team mates for what they bring to the table.
+
+**The Performing Stage**
+
+During the Performing phase, members work efficiently together, and are satisfied in their work together. They work well, and are more aligned than ever in the work.
+
+Tasks: Aligning on goals, planning long-term work, deepening knowledge, increasing skills, increasing accomplishments.
+
+Feelings: Satisfaction in the work, "Can Do" attitude, increased confidence, empowerment, happiness.
+
+Behaviors: Getting more work done, more flexibility in the work, team mates take on multiple roles of responsibility, team members feel empowered, appreciation for work and for others.
+
+**Storming is Essential**
+
+Without Storming, a team wouldn't be able to progress to performing. They need to build agreement with each other, and hear each other. They need to build a consensus about how they will work together and what they decide to work on. Teams should embrace storming as a natural part of team building.
+
+Most importantly, they need to respect diverse perspectives and people. They need to help each other grow. They need to fail forward together. They need to unify.
+
+In order to get over the Storming stage, Agile teams must bring the following fundamentals to their group:
+
+1. Psychological Safety
+2. Service Leadership
+3. Self-Organization
+4. Continuous Improvement
+
+When they do, they will move past Storming and progress toward Norming and Performing. They will start iteratively delivering value like the best Agile teams out there.`,
       },
       {
         id: "agile-team-3",
         title: "Building Agile Mindsets",
         youtubeId: "_9yjJJKrrDs",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/building-agile-mindsets",
-        content: `**What Makes an Agile Mindset?**
+        content: `**Agile Team Strength is Continuously Maintained**
 
-An agile mindset goes beyond knowing agile methods — it's a way of thinking about work, collaboration, and problem-solving.
+Team strength is not measured in how much work they can get done. In Agile environments it's measured in agility. Teams should build strong foundations of celebrating team mates, supporting growth, taking risks, and experimenting with new ways of working to successfully deliver strong results.
 
-**Core Elements of an Agile Mindset:**
+Agility changes over time, and it doesn't happen all at once. This is because it requires a huge mindset shift for teammates.
 
-• **Adaptability** — Embracing change rather than resisting it
-• **Collaboration** — Believing that teams produce better results than individuals
-• **Transparency** — Being open about progress, problems, and concerns
-• **Empowerment** — Taking initiative without waiting to be told what to do
-• **Reflection** — Regularly examining and improving how you work
+The philosophies of Agile must be constantly maintained, just like a garden must be watered and upkept.
 
-**Building Your Agile Mindset:**
+Team members check in with others and everyone acts in support of everyone's growth.
 
-1. Practice being comfortable with ambiguity
-2. Seek diverse perspectives before making decisions
-3. Share your work early and often — don't wait for perfection
-4. Take ownership of team outcomes, not just your individual tasks
-5. Celebrate learning from failures as much as successes
+What does someone's level of agility depend on? 5 things! Read more below.
 
-**The Self-Actualized Agile Team:**
+**Foundations of Strong Agile Teams**
 
-A self-actualized agile team is one where every member has internalized the agile mindset. These teams:
+Everyone on an Agile team leads in service to others: the interns, the junior contributors, the managers, and the executives.
 
-• Make decisions collectively and quickly
-• Adapt to change without disruption
-• Hold each other accountable with compassion
-• Continuously improve their processes and relationships
-• Deliver consistent value to their stakeholders`,
+At its core, all Agile teams who are strongly performing have the following principles built among the team within their culture:
+
+1. Psychological Safety
+2. Service Leadership
+3. Self-Organization
+4. Continuous Improvement
+5. Iterative Value Delivery
+
+There is a Pyramid of Agile Tenets that makes self-actualized Agile teams.
+
+This picture shows the hierarchy of Agile team needs and what must be in place before teams can Perform.
+
+Without a foundation of psychological safety and service leadership, teams cannot become strong Agile teams. They will Storm longer. They may storm forever, and never get to Performing. They won't get as much work done either!`,
       },
     ],
   },
@@ -361,194 +626,267 @@ A self-actualized agile team is one where every member has internalized the agil
         title: "Psychological Safety",
         youtubeId: "E_d01Me8GgU",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/psychological-safety",
-        content: `**The Foundation of High-Performing Teams**
+        content: `**Where We Are in the Agile Pyramid**
 
-Psychological safety is the single most important factor in team performance. It means team members feel safe to take risks, speak up, and be vulnerable without fear of punishment or embarrassment.
+We are all the way at the bottom of the Agile pyramid for strong teams. Psychological safety is the first thing that must be built in order to build self-actualized Agile teams.
 
-**What Psychological Safety Looks Like:**
+**Psychological Safety**
 
-• Team members admit mistakes openly
-• People ask questions without fear of looking "stupid"
-• Disagreement is welcomed as a path to better solutions
-• Everyone's voice is heard and valued equally
-• Experimentation is encouraged, even when results are uncertain
+Psychological Safety is the core foundation on all Agile teams.
 
-**What Psychological Safety Does NOT Mean:**
+**Psychological safety is a shared understanding that team members will not reject or punish people for speaking out, taking risks, or failing.**
 
-• It doesn't mean everyone always agrees
-• It doesn't mean avoiding difficult conversations
-• It doesn't mean lowering standards or expectations
-• It doesn't mean being "nice" at the expense of honesty
+Psychological safety is a required pre-requisite for Agile work. Without it, Agile teams cannot become fully Agile. Agile teams who have a shared mission, responsible collectively, require psychological safety in order for collaboration to happen. It provides space for people on teams to take risks that are healthy for team progress. With it, they can organize themselves and grow.
 
-**How to Build Psychological Safety:**
+If teams can't speak out about things that need to be improved, how can they respond to change? How can they collaborate? How can they produce working results?
 
-1. **Model vulnerability** — Share your own mistakes and what you learned
-2. **Respond constructively** — When someone shares a concern, thank them
-3. **Invite participation** — Actively ask quieter team members for input
-4. **Frame failures as learning** — Ask "what did we learn?" not "who messed up?"
-5. **Address disrespect immediately** — Protect the team's safe space
+**Psychological Safety Factors**
 
-**Google's Project Aristotle** found that psychological safety was the #1 predictor of team effectiveness — above everything else including skills, experience, and resources.`,
+**Psychological Safety includes Trust**
+
+Team mates must trust each other to proceed in their work. Trust is earned as teams understand each other and feel comfortable with each other.
+
+Trust happens in many ways. Teams must trust that activities will play out. Teams must trust that even when work fails, the team will progress together. Teams must trust that teammates have each others' backs.
+
+Team mates should not be reprimanded for taking risks or speaking dissent about things that move a team forward. There must be a shared understanding that teams can fail safely knowing they will progress and adjust.
+
+**Psychological Safety includes Empathy**
+
+Teams should be built with many diverse perspectives and backgrounds. To build psychological safety, each person needs to understand perspectives and people. They need to acknowledge each other, share an understanding, and listen to what they are saying before responding.
+
+Teams that build empathy with each other produce strong psychological safety to be themselves around the team. This is important for empowering teams.
+
+**Psychological Safety includes Respect**
+
+In addition to trust and empathy, team mates need to respect each other in their work. Respect shows itself in providing room for people to own work, or asking others' opinions before deciding.
+
+Teams who have strong psychological safety discuss and convene to build consensus after listening to each person's perspective who wants to be involved in the conversation.
+
+**Psychological Safety includes Inclusion**
+
+Team mates need to feel a strong sense of ownership, and value on their team.
+
+Dynamics of power should be shifted and distributed such that each teammate is included in decision making. Each teammate should be included in ownership of work, and have choices of how they get involved.
+
+Each teammate should feel the power of belonging, and feel their work has meaning. Teams should provide inclusive environments for personalities and perspectives to build a strong psychological safety.
+
+**Psychological Safety includes Openness**
+
+People need to provide space for team mates to be vulnerable and open with each other. Conflict can only be resolved when people know about it, and can speak about it constructively. Disagreements and dissenting opinions should be encouraged when they help a team progress in their work and when teams can talk it out constructively.
+
+They must always respect and empathize with each other through their open conversations. Teammates should be open with each other and candidly discuss items that bring out growth in teamwork, even when they are uncomfortable to discuss.
+
+Every person on the team has a role to play in providing room for open discussions and open perspectives.
+
+**Psychological Safety includes Risk Taking and Failure**
+
+Strong teams not only allow work failure, they embrace failure as part of their culture. They provide room for people to take risks if it will progress the team in their work.
+
+By giving each other room to try new things, to experiment, they will produce stronger work together and build stronger trust with each other.
+
+**Psychological Safety Checklist**
+
+Here's a way you can check to ensure that psychological safety is strong on your team:
+
+1. Make every member of the team feel like they have room to speak their mind.
+2. Actively listen when others have things to say, and make team feel like their voice matters.
+3. Give people the room for people to bring their own personalities and unique capabilities to the table in the way THEY want to do so.
+4. Allow room for team mates to challenge the status quo, and experiment with new ways of working.
+5. Encourage failing "fast", i.e. failure and quick reflection and quick adjustment based on what the team thinks they should do.
+6. Let people take the risks that THEY decide to take, that could lead to failure or disaster, for the purposes of allowing them to build up decision making prowess.
+
+**How to Build Psychological Safety**
+
+When teams feel a lack of psychological safety, they may be afraid to speak up, and they may lose their motivation to work. They may become more distant or absent in the team. They may think there's no point in bringing feedback up. These are signs that psychological safety may be lacking on the team. When psychological safety is lacking, the team will storm.
+
+This could be due to many things. You as a teammate should work to understand what's going on in the team dynamics before concluding how to resolve it. Teams must work together to identify issues with open conversation and respect toward each other.
+
+Every team member plays a role in success here. Leaders, managers, or team peers may contribute to a lack of psychological safety equally.
+
+To uncover opportunities to build psychological safety, it may be best to proceed with one-on-one conversations, or discuss things in sprint retrospectives constructively. It's important to build empathy and respect for individuals so that they're heard in these discussions. You can only build a psychologically safe team together, united, as one team. Everyone needs to be bought into psychological safety.`,
       },
       {
         id: "agile-prac-2",
         title: "Service Leadership",
         youtubeId: "jqWtW7NyAk0",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/service-leadership",
-        content: `**Leading by Serving Others**
+        content: `**Where We Are in the Agile Pyramid**
 
-Service leadership (also called servant leadership) flips the traditional leadership model. Instead of the team serving the leader, the leader serves the team.
+We're on the second tier of the Agile self-actualization pyramid!
 
-**Traditional Leadership vs. Service Leadership:**
+**Service Leadership**
 
-| Traditional | Service Leadership |
-|---|---|
-| Leader directs | Leader facilitates |
-| Power flows down | Power is shared |
-| Leader has answers | Team finds answers |
-| Focus on control | Focus on enablement |
-| Status-based authority | Trust-based influence |
+**In Agile, Servant Leadership is the style of leadership all Agile teams build.**
 
-**Principles of Service Leadership:**
+**In Tech Fleet, we call this "Service Leadership" as all teammates are leaders in service to others' growth.**
 
-1. **Listen first** — Understand before prescribing solutions
-2. **Remove obstacles** — Help teammates do their best work
-3. **Develop others** — Invest in your teammates' growth
-4. **Share credit** — Celebrate team achievements, not personal wins
-5. **Lead by example** — Model the behavior you want to see
+Teams who are psychologically safe can be there for each other as service leaders.
 
-**Service Leadership at Tech Fleet:**
+In this style, each individual on a team focuses on developing and mentoring others, providing guidance and support to help them grow and improve.
 
-• Every team member practices service leadership, not just designated leaders
-• Leadership is a behavior, not a title or position
-• You serve your teammates by being reliable, communicative, and supportive
-• The best way to lead is to help others succeed
+A manager provides direction, and allows teams to decide how they carry out the outcomes.
 
-**How to Practice Service Leadership Today:**
+The managers empower employees to take ownership of their work.
 
-• Ask a teammate "how can I help you?"
-• Share knowledge or resources proactively
-• Give credit to others in team discussions
-• Take on unglamorous tasks that help the team succeed
-• Mentor someone who is newer to the team`,
+Peers are service leaders to other peers. Managers are service leaders to employees. Employees are service leaders to managers.
+
+Everyone is a service leader to everyone else on an Agile team. It's a web of support, growth, and service.
+
+**Acting as a Service Leader**
+
+All team mates should act as servant leaders to each other, those around them, those "above" them, or those "below" them in any organization's hierarchy.
+
+There is no leadership hierarchy in this style of leadership because power is transferred to everyone on the team. Peers lead themselves and others together.
+
+Everyone plays a role in everyone else's success on an Agile team. You don't need to be an expert to be a leader. You are a leader in service to others' growth. You are celebrating your peers' growth. You are contributing to psychological safety with peers. You are celebrating risk-taking and growth. Everyone works together in service to each other.
+
+**Yes, that means you! Even the apprentices, even the interns, even the observers, are service leaders on Agile teams! NOT just the co-leads!**
+
+Here's how this plays out daily on teams:
+
+1. Service leaders shift their authority to teams, and allow teams to build consensus about how they carry out the outcomes.
+2. You're not telling people what to do or giving them the answer, or preventing them from failing.
+3. You are a guide, empowering people to find the answer on their own.
+4. You celebrate others doing things for the first time, and you may do first-time tasks with them.
+5. You empower them to step outside of their comfort zone and take ownership.
+6. You never take control or take over for someone.
+7. You ask how they want to be served in their growth.
+
+**Service Leadership on Modern Agile Teams**
+
+A person named Robert Greenleaf made this term in the 1970's with his essay, The Servant As Leader.
+
+In the story, a man acts as a servant to a group, doing work for them. One day the person disappears, and the team falls apart. It was then found that the servant was actually the head of an organization, a powerful leader.
+
+Yet, he was a team's source of inspiration and in service to them. Usually, teams are in service to their managers and leaders.
+
+And so, the concept of Servant Leadership was born, and the concept of authoritarian leadership was met with a new way of leading. Leading with the heart.
+
+That was over 50 years ago. Today the world has changed along with modern Agile team environments, and service leadership evolves with it.
+
+Service leaders on Agile teams do not take the work for others, like in the story described by Greenleaf. They empower others to own work and find meaning in the work. People in service to others on Agile teams should do work alongside people and teach them how to lead, producing other leaders and a web of accountability.
+
+When someone on the team leaves, the team should not fall apart because everyone has full ownership on modern Agile teams. Teams should be empowered to decide how to proceed together while being of service to each other. Everyone has ideas that need to be heard. Everyone has decision-making abilities to make judgment calls. Especially the apprentices and interns!
+
+It takes all people of all backgrounds, identities, and ethnicities to produce strong, diverse Agile teams. Seek to build teams with as many different perspectives, backgrounds, and identities for the strongest teamwork possible. This means no one kind of person should be the dedicated person "in charge".
+
+**Service Leadership Checklist**
+
+1. Do your team members support each others' growth over of their own?
+2. Does the person in charge tell everyone what to do, or do they transfer the power to the team?
+3. Does your team show respect towards others?
+4. Does your team empathize with others and help each other?
+5. Does your team seek to understand situations that arise, and communicate needs?
+6. Does your team set expectations with each other in healthy ways?
+
+**Comparing the Different Styles of Leadership**
+
+There are different ways to lead in this world. Agile teams rely on service leadership to thrive, but you may see teams carry out different styles of leadership.
+
+**Authoritarian Leadership** — In an authoritarian leadership team, there is one person telling everyone what to do. They have all of the vision. They have all of the answers. They make all of the decisions. Those around them carry out their orders. They are not supposed to question the authority of the person in charge.
+
+**Laissez-Faire Leadership** — This style is characterized by a hands-off approach, where the leader gives employees a lot of autonomy and freedom to make decisions. The leader is not involved in the decision-making process, and employees are expected to take ownership of their work.
+
+**Democratic Leadership** — In this style, the leader involves employees in the decision-making process and values their input and opinions. The leader encourages collaboration and open communication, and decisions are made through a consensus-building approach.`,
       },
       {
         id: "agile-prac-3",
         title: "Self-Organization",
         youtubeId: "PLRHGENreC4",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/self-organization",
-        content: `**Teams That Manage Themselves**
+        content: `**Where We Are in the Agile Pyramid**
 
-Self-organization means the team decides how to do the work, rather than being told by a manager. It's a core principle of agile that empowers teams to be more effective and engaged.
+We're progressing in the Agile self-actualization pyramid! Teams who are psychologically safe service leaders can start self-organizing and making their own ways of work.
 
-**What Self-Organization Means:**
+**Self-Organization**
 
-• The team collectively decides how to approach the work
-• Team members volunteer for tasks based on interest and ability
-• Decisions are made by the people closest to the work
-• No single person assigns tasks or dictates the process
-• The team adapts its approach based on what they learn
+With psychological safety in place, and service leadership in place, teams can start self-organizing.
 
-**What Self-Organization Does NOT Mean:**
+Self-organization is the principle that allows the day-to-day people doing the work to make decisions themselves.
 
-• It doesn't mean chaos or lack of structure
-• It doesn't mean no leadership or accountability
-• It doesn't mean everyone does whatever they want
-• It doesn't mean decisions are made without discussion
+The boss on the team does not tell them what to do. The managers and executives provide autonomy, and let the team carry out their own work in the way they want, or think is best. After all, they are the ones doing the work! They are the closest to the work and know what's the best thing for the team based on consensus. They know what's best for their process.
 
-**How Self-Organized Teams Work:**
+All Tech Fleet training teams practice self-organization in their work with clients. No one is an "expert" telling them answers, or preventing them from failing. They carry out work as service leaders to each other.
 
-1. The team agrees on goals and priorities together
-2. Individuals volunteer for work that aligns with their skills and growth goals
-3. The team establishes working agreements and norms
-4. When problems arise, the team solves them collectively
-5. Regular retrospectives help the team improve its processes
+A team of psychologically safe service leaders can start organizing themselves in the way they think is best. They can go very far in their teamwork through self-organization.
 
-**Benefits of Self-Organization:**
+The stakeholders and clients outside of the team may determine priorities and needs, but the team itself is the engine that decides how to carry it out. They decide when they should recommend changing the plan. They decide how they are going to work together to achieve goals. No book or boss or class should tell them exactly how they do it. They need to build a consensus together. They need to organize themselves.
 
-• Higher engagement — people are more committed to decisions they help make
-• Better solutions — diverse perspectives lead to more creative approaches
-• Faster adaptation — the team can pivot without waiting for approval
-• Stronger ownership — everyone feels responsible for the team's success`,
+**What about the interns? What about the juniors?**
+
+They should not sit around waiting for someone to tell them what to do. They should not be told. They should be given the decision making power. The power should be transferred to the people doing the work including juniors and interns. Together, through a collective team consensus, they all share their voice and decide things together. Self-organized teams build leaders out of everyone on the team because everyone is in service to everyone else's growth.
+
+**Self-Organization Checklist**
+
+1. Does your team give the juniors and interns a voice as much as the leads and seniors?
+2. Does your team wait for answers or initiate things on their own?
+3. Does your team ask for clarity before starting or continuing work?
+4. Does your team volunteer to work assignments?
+5. Does your team contribute to conversations?
+6. Does your team present new ideas for how to work, or idea for the product?
+7. Does your team build consensus together and involve each other in decision making?`,
       },
       {
         id: "agile-prac-4",
         title: "Continuous Improvement",
         youtubeId: "fA9sm68xyz8",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/continuous-improvement",
-        content: `**Always Getting Better**
+        content: `**Where We Are in the Agile Pyramid**
 
-Continuous improvement (also known as Kaizen) is the practice of regularly reflecting on how work is done and making small, incremental improvements.
+We're far along in the Agile self-actualization pyramid! Teams who are psychologically safe service leaders who are self-organized in their work can start continuously improving their work.
 
-**The Continuous Improvement Cycle:**
+**Continuous Improvement**
 
-1. **Reflect** — What went well? What didn't?
-2. **Identify** — What's one thing we could improve?
-3. **Experiment** — Try a small change
-4. **Evaluate** — Did the change help?
-5. **Repeat** — Keep the cycle going
+Agile teams fail often. They do not look at failure in judgement, but celebration. Failure could mean that their plan didn't follow through. It could mean that a teammate didn't do something they said, or they tried and it didn't work out. Failure could mean that someone didn't show up.
 
-**Key Principles:**
+Everything that "fails" on an Agile team is looked at as learning opportunities. Teams intentionally build small value in their releases so that they can deliver quickly and "fail fast", or learn from the delivery.
 
-• Small, frequent improvements compound over time
-• Every team member is responsible for suggesting improvements
-• Focus on the process, not blame for individuals
-• Experimentation is valued — not every improvement will work
-• Celebrate progress, even small wins
+Teams who are continuously improving use retrospectives and reflection moments to listen and learn from feedback received.
 
-**Practical Ways to Practice Continuous Improvement:**
+Teams who are continuously improving aren't perfectionists, and they don't treat their teammates as perfectionists. They experiment with something that may not work, and deliver quickly to get feedback quickly. They iterate by making adjustments based on feedback received.
 
-• Participate actively in retrospectives
-• Share what you've learned with your teammates
-• Suggest process changes when you see inefficiencies
-• Be willing to try new approaches, even if they feel uncomfortable
-• Track improvements to see progress over time
+In order to do this, there must be a strong foundation of psychological safety, service leadership in teammates, and self-organization among leadership. These three tenets enable teams to continuously progress, continuously learn from mistakes, continuously improve.
 
-**At Tech Fleet:**
+**Continuous Improvement Checklist**
 
-Our teams hold regular retrospectives where everyone reflects on what's working and what could be better. This isn't just a ceremony — it's how we build a culture of growth and excellence.`,
+1. Does your team deliver work incrementally in small chunks?
+2. Does your team often reflect on previous work and identify areas of improvement?
+3. Does your team celebrate failure as progress and learning opportunities?
+4. Does your team constantly involve clients, stakeholders, and users in feedback sessions?
+5. Does your team work on the most important things at any given time, and deliver them quickly?`,
       },
       {
         id: "agile-prac-5",
         title: "Iterative Value Delivery",
         youtubeId: "eFRl0F6PQ9c",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/making-strong-agile-teams/self-actualized-agile-teams/iterative-value-delivery",
-        content: `**Delivering Value in Small Increments**
+        content: `**Where We Are in the Agile Pyramid**
 
-Iterative value delivery is the practice of breaking work into small chunks and delivering usable value frequently, rather than waiting until everything is "done."
+We made it to the top of the Agile self-actualization pyramid!
 
-**Why Iterate?**
+**Delivering Value In Chunks**
 
-• Get feedback early before investing too much in the wrong direction
-• Reduce risk by validating assumptions continuously
-• Build momentum — small wins keep the team motivated
-• Learn faster — each iteration teaches you something new
-• Adapt to changing needs and priorities
+Teams who are psychologically safe service leaders acting self-organized in their work can continuously improve and deliver iterative value to the world.
 
-**How Iterative Delivery Works:**
+They provide space for experimentation and learning.
 
-1. Break the work into the smallest pieces that deliver value
-2. Prioritize the most valuable pieces first
-3. Deliver and get feedback on each piece
-4. Use feedback to inform the next iteration
-5. Continuously refine and improve what you've built
+They give a voice to all team members and provide room for full ownership all around.
 
-**Iteration vs. Incremental:**
+They transfer the power to those in the room who are less experienced so that there are more learning opportunities.
 
-• **Iterative** — Improving the same thing through multiple passes (like painting layers)
-• **Incremental** — Adding new pieces one at a time (like building rooms in a house)
-• The best agile teams do both — deliver incrementally while iterating on quality
+They are always looking for opportunities to fail fast and improve their work.
 
-**Common Mistakes:**
+When Agile teams build their self-actualization pyramid, they can truly Perform.
 
-• Trying to deliver everything at once ("big bang" delivery)
-• Not getting feedback between iterations
-• Making iterations too large — aim for days, not weeks
-• Confusing "done" with "perfect" — deliver value, then improve
+They must do it together. No one single person is responsible for an Agile team's success. No one is "in charge", making all decisions for others. It requires the consensus of many diverse perspectives of people in service to each others' growth.
 
-**At Tech Fleet:**
+Value comes when they solve problems for users and for clients. Nothing is ever finished, only progressed. As teams build they get feedback. As they deliver they get feedback. They adjust their plans and respond to change. They collaborate with each other and build working results.
 
-Our project training teams deliver work to nonprofit clients in small iterations, getting real feedback and adapting their approach. This mirrors how professional agile teams operate.`,
+Over time, the value they deliver in the world builds on itself.
+
+They may never get to the MMP because they need to pivot. But whatever happens, their progression is the most valuable thing for the product or service they are building. They are able to validate the risks and produce user-centered value through Agile conventions of work.
+
+In the next lesson, learn what it's like in daily work on self-actualized Agile teams.`,
       },
     ],
   },
@@ -560,112 +898,191 @@ Our project training teams deliver work to nonprofit clients in small iterations
         title: "Cross-Functional Agile Teamwork",
         youtubeId: "VvUi6MJNeTU",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/cross-functional-agile-teamwork",
-        content: `**Working Across Functions**
+        content: `**Waterfall is the Opposite of Cross-Functional Agile Teamwork**
 
-Cross-functional teamwork means that team members work across traditional role boundaries. Instead of siloed specialists, everyone contributes to all aspects of the work.
+Waterfall teams dedicate people to specific functions. In a traditional waterfall team, each person has a dedicated duty that they do all the time.
 
-**What Cross-Functional Means:**
+The designer designs. The coder codes. The researcher researches. They all rely on each other to do their specific function.
 
-• Team members contribute beyond their primary skill area
-• No strict boundaries between "design," "development," "research," etc.
-• Everyone participates in planning, execution, and review
-• Skills are shared and learned across the team
-• The team collectively owns all aspects of the deliverable
+When one person leaves, everyone else waits. The specified duty must be filled. Work stops.
 
-**Why Cross-Functional Teams Work Better:**
+When the researcher is busy, the rest of the team waits for them to finish. Work stops.
 
-1. **Fewer bottlenecks** — Work doesn't stall waiting for a specialist
-2. **Better understanding** — Everyone knows the full picture
-3. **More innovation** — Diverse perspectives spark creative solutions
-4. **Shared ownership** — The whole team is invested in every outcome
-5. **Faster delivery** — Parallel work across functions speeds delivery
+That's not efficient at all.
 
-**How to Be a Cross-Functional Teammate:**
+When they don't involve others in their work, they create what's called a "work silo". Someone who is dedicated to a role does the work alone, and only for what they were hired for. Waterfall teams are made up of "work silos".
 
-• Volunteer for tasks outside your comfort zone
-• Ask questions about work that's unfamiliar to you
-• Pair with teammates from different backgrounds on tasks
-• Share your knowledge openly so others can learn
-• Be curious about how different functions approach problems
+**Cross-Functional Agile Teams are More Flexible**
 
-**At Tech Fleet:**
+We need to work together to achieve shared outcomes. We need different perspectives to make decisions. We need to share knowledge and information across teams for them to succeed. Cross-functional teamwork achieves this.
 
-Every team is cross-functional by design. Whether you're in project training or volunteering, you'll work alongside people from different backgrounds and skill sets. This is how you grow the fastest.`,
+"Cross-functional" Agile teams are teams that contribute across functions together.
+
+They have diverse backgrounds and perspectives. They pitch into each other's work, and they aren't working in one single function. Perspectives are shared across all functions when performing duties. Everyone can contribute to responsibilities across functions whenever they want to.
+
+Cross-functional team members contribute toward a "shared outcome". The entire team, and all of its functions, equally pitch in to get the outcome achieved. When designers volunteer to code, and researchers volunteer to design, and designers volunteer to research, this is celebrated.
+
+**Agile Teams are Like a Heist Crew**
+
+A cross-functional Agile team is assembled for the "perfect heist". They have no titles. They do not stick to one duty. They will only achieve success by working with each other collaboratively.
+
+They all have different backgrounds. They each bring their own unique capabilities. They collaborate with each other in work across different skill sets and functions. They volunteer in the moments that work is needed to achieve the outcome.
+
+Each teammate pitches in to collaborate on work that the other teammates are doing all the time. Diverse perspectives are heard in the work. The more diverse perspectives are heard, the stronger the outcomes. Everyone is a valuable member of the Agile Heist Team.
+
+Each week, the duties change because the team asks who wants to own work whenever they prioritize tasks. People agree to the responsibilities they play in the moments that work needs to be prioritized. They self-organize and agree together who's going to be involved, and how.
+
+You've got the psychological safety to take risks, and you've got service leaders around you helping you grow while doing work that you may have never done before. You and the team self-organize to agree to who will pitch into work. The team prioritizes opportunities for people to continuously improve and try things for the first time.
+
+**Carrying Out Agile Cross-Functional Teamwork**
+
+Here are some things you will hear on strongly performing Agile cross-functional teams:
+
+If there's strong psychological safety:
+**"I'm a developer, but I want to participate in user testing this sprint with the designers and researchers."**
+
+If there's strong service leadership:
+**"How do you want to be supported in the work? How do you want to get involved in other team roles?"**
+
+If there's strong self-organization:
+**"All teams can vote together on what tasks we're going to take on this iteration"**
+
+If there's strong continuous improvement:
+**"Let's get with the research team to discuss how this design task went and discuss how to change the way we collaborate in the future"**
+
+If there's strong iterative value delivery:
+**"We're going to have a usable feature to test with users by the end of the week".**
+
+**Agreeing to Daily Responsibilities**
+
+All of this may sound confusing to you if you've never experienced it. Why not stick to your job duties? Work silos are good for expectation setting, right?
+
+If your job title is one thing, and you are supposed to work cross-functionally, does that mean you are not doing things in your job title?
+
+No!
+
+Everyone makes their own decision about what they want to contribute to on the team as part of the heist team. No person tells other people what to work on. Teammates assign themselves work based on the team goals and their interests.
+
+If teammates want to stick to a particular function, they'd still collaborate with other kinds of work. Others will rely on their perspective.
+
+During meetings like Sprint Planning in the Scrum Method, teams get together to agree to the shared outcome with Sprint Goals. The Scrum Master helps teammates assign themselves work based on goals. They all self-commit to who's responsible, who's accountable, who's consulted, and who's informed in the work.
+
+No one else tells them what to do, or assigns them work.
+
+They must self-commit. If they commit to work in their own function, great! If they self-commit to work outside of their function, they should be supported!
+
+This is when the team cross-functionally spans across different roles if they want to do so.
+
+The important distinction is this: the team has the capabilities to span across any function while performing work, and they may need to do so in their daily cross-functional work together.
+
+Someone might get sick. Someone might leave the team. Someone might be busy with other things.
+
+That's ok! You have a cross-functional team! No one is siloed. The important thing is for the team to not wait. They are a psychologically safe, self-organized team, and the people who are not in those functions can also do all kinds of other work if they are in a supported environment.
+
+**Deliverables for Cross-Functional Work**
+
+Agile teams maintain a deliverable called a RACI chart (which stands for "Responsible, Accountable, Consulted, Informed") to map out a team's desired functional activities based on the needed tasks.
+
+The chart will change every week because the heist team contributes to different work every week. Team members maintain the details. No one dictates this. The team gets together to agree and build consensus about who does what tasks. This deliverable helps cross-functional teams set expectations across the team.`,
       },
       {
         id: "agile-cross-2",
         title: "Leadership on Agile Teams",
         youtubeId: "Bccz4aSuUpQ",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/leadership-on-agile-teams",
-        content: `**Shared Leadership in Action**
+        content: `**TL;DR - There is no leadership hierarchy on Agile Teams!**
 
-On agile teams, leadership is not a position — it's a behavior that every team member practices. There are no bosses, only teammates who lead in different ways at different times.
+The strongest functioning Agile teams in the world transfer ownership and accountability to everyone on the team because they're all service leaders to each other. As such, there should be no person who tells the team what to do and how to work.
 
-**How Leadership Works on Agile Teams:**
+**On Tech Fleet project training teams, there is no boss. There is no manager. "co-leads" and "apprentices" are equal to each other. There is only the team of people doing work together.**
 
-• Leadership rotates based on context and expertise
-• The person closest to the problem often leads the solution
-• Everyone is empowered to make decisions within their area
-• Formal hierarchies are replaced by trust and competence
-• Leading means facilitating, not directing
+Co-leads guide in service leadership and take ownership. Apprentices guide in service leadership and take full ownership.
 
-**Types of Leadership on Agile Teams:**
+Everyone has a voice because of psychological safety. Everyone has decision making power because of self-organization. Everyone grows because of continuous improvement.
 
-1. **Facilitative** — Guiding discussions and helping the team reach decisions
-2. **Technical** — Sharing expertise to help the team solve specific problems
-3. **Emotional** — Supporting teammates through challenges and celebrating wins
-4. **Strategic** — Helping the team see the bigger picture and prioritize
-5. **Mentoring** — Helping less experienced teammates grow
+**On a self-organized Agile team, everyone is in charge! The voice of many decides the outcomes together.**
 
-**What Shared Leadership Requires:**
+**The Difference between Co-Leads and Apprentices in Tech Fleet**
 
-• Trust that your teammates will follow through
-• Willingness to step up AND step back as needed
-• Clear communication about who is leading what
-• Accountability without blame
-• Respect for different leadership styles
+We know what you're thinking: if there is no leadership hierarchy, why are the co-leads called "leads"? Aren't they "in charge"?
 
-**At Tech Fleet:**
+No! If they were in charge, they would be practicing authoritarian leadership. We must practice service leadership on Agile teams. And we must build self-organized teams. Apprentices are as "in charge" as co-leads. Co-leads are the guides who may pave the way for empowered teams.
 
-We don't have managers, team leads, or bosses. Every person on a team shares leadership responsibility. This might feel unfamiliar at first, but it's one of the most powerful skills you'll develop here.`,
+They may take on coaching roles while they themselves take on work. They should always take opportunities to make the apprentices feel the full ownership of work and give them a stake. They should always transfer the power to the collective team consensus.
+
+Co-leads and apprentices are equals to each other. They are peers. We have co-leads so that we have people helping to set expectations in the work. Soon after projects start, co-leads should be transferring the power to apprentices so that they can lead and own work.
+
+This is so important to be able to do on a strong performing Agile team. It's crucial for a self-organized team to all feel the same kind of ownership as equals. After all, we're all peers learning together, none of us are experts, even later in life when we have a lot of experience.
+
+To take this approach is to let go of one's ego and tell yourself, "those around me also have great ideas, let's decide together".
+
+**Who Makes Decisions on an Agile Team?**
+
+The team is organized by themselves for themselves. They are all in service to each other. As such, strong Agile teams ask for the consensus. This is why there's a lot of voting on Agile teams. Consensus and discussion from the voice of the team is crucial to finding the team's way forward. No one should provide the answer or tell them what the answer is. They need to build a working relationship together where they decide together in unison.`,
       },
       {
         id: "agile-cross-3",
         title: "Daily Life on Agile Teams",
         youtubeId: "RjqUTMCPRLg",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/daily-life-on-agile-teams",
-        content: `**A Day in the Life of an Agile Teammate**
+        content: `**Cross-Functional Agile Team Structure**
 
-What does it actually look like to work on an agile team day-to-day? This lesson gives you a practical picture of the rhythms and routines of agile teamwork.
+How are Agile Teams Structured? It depends!
 
-**Daily Practices:**
+The team who is cross-functional in their nature brings many backgrounds and perspectives. They get together and build a consensus in what they will be responsible or accountable for, together as they agree to work week-to-week.
 
-• **Stand-ups** — Brief daily check-ins where team members share what they're working on, what's blocking them, and where they need help
-• **Async updates** — For distributed teams, written updates that keep everyone informed
-• **Pair work** — Working together on tasks for shared learning and quality
-• **Documentation** — Keeping team knowledge accessible and up-to-date
+They don't stick within these boundaries either: they live a cross-functional lifestyle where they can float across responsibilities and functions for the purposes of learning.
 
-**Weekly Rhythms:**
+You should never hear teammates say "That's not my job, that's their job" on an Agile team.
 
-1. Sprint planning — Deciding what to work on this cycle
-2. Team collaboration sessions — Working together on shared tasks
-3. Check-ins with stakeholders — Sharing progress and gathering feedback
-4. Knowledge sharing — Teaching each other what you've learned
+You should hear teammates say, "I was hired for research but this week I want to get into product strategy!"
 
-**Sprint Ceremonies:**
+Your team may have job titles, but their duties vary and may fall outside of those titles. Everyone should be celebrating and encouraging this kind of environment for all of the reasons we talk about regarding making strong Agile teams.
 
-• **Sprint Planning** — Set goals for the upcoming sprint
-• **Daily Stand-up** — Quick sync on progress and blockers
-• **Sprint Review** — Demo work to stakeholders and get feedback
-• **Sprint Retrospective** — Reflect on what to improve
+The more your team collaborates across functions:
 
-**Tips for Success:**
+1. The quicker they will get to Performing stage.
+2. The more they will all "self-heal" from team conflict.
+3. The stronger your self-organization becomes.
+4. The stronger your continuous improvement becomes.
 
-• Be prepared for meetings — come with updates and questions ready
-• Communicate proactively — don't wait for someone to ask
-• Ask for help early — waiting too long wastes time
-• Celebrate small wins with your team
-• Stay curious and engaged, even when the work is challenging`,
+**Functions Are Not Roles**
+
+The title you have doesn't mean that you only do that kind of work on a cross-functional team.
+
+If you operate with different responsibilities, it does not mean you have multiple job titles.
+
+A title is the function. A role is not a function. A role is a set of responsibilities that you agree to on an Agile cross-functional team.
+
+**Daily Life on Agile Teams**
+
+Let's talk about what day to day life looks like on Waterfall and on Agile cross-functional teams.
+
+**Life on a Waterfall Team**
+
+It's more common that teams call themselves agile and they don't live in the agile philosophies.
+
+If you're building things on a waterfall team, this is what happens:
+
+**Everybody in the beginning of a project agrees to the scope before doing the work. Someone produces what's called a Product Requirements Document which outlines everything in scope for the whole project.**
+
+**When the product requirements are outlined, each team works in phases. Every team function is working alone. They meet alone, they talk alone, they decide alone. They don't communicate across functions. They don't collaborate across functions. They ship their work in silos to the next team.**
+
+**When the project is finished, they ship it, and gather feedback from clients and users. When it may be too late!**
+
+**Life on an Agile Team**
+
+Life on an Agile team is the opposite of Waterfall teams.
+
+The teams are working together across functions in cross-functional teamwork.
+
+**When they start the work, all functions rally to understand high level goals and outcomes to achieve.**
+
+**Everyone collaborates across functions to gather the most important requirements to deliver first.**
+
+**Everyone collaborates to quickly deliver those requirements across research, design, and development. They check their work as they go with users and with clients.**
+
+**They ship in usable, small chunks quickly, and gather feedback in order to pivot and refine their plans ahead.**`,
       },
     ],
   },
@@ -677,117 +1094,128 @@ What does it actually look like to work on an agile team day-to-day? This lesson
         title: "Resolving Team Conflict as Service Leaders",
         youtubeId: "A8UPOsGDxCw",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/resolving-team-conflict-as-service-leaders",
-        content: `**Conflict Is Normal — How You Handle It Matters**
+        content: `**Resolving Conflict is Key to Team Success**
 
-Conflict is a natural and necessary part of teamwork. In agile teams, where shared leadership and self-organization are the norm, knowing how to resolve conflict constructively is essential.
+Team strength must be maintained through conflict resolution. The only way to support psychologically safe, self-organized environments is to hold space for respectful conflict resolution among teammates.
 
-**Why Conflict Happens on Teams:**
+When we work together, many challenges can arise. Work challenges arise. Challenges with stakeholders arise. Challenges among teammates arise.
 
-• Different perspectives and communication styles
-• Unclear expectations or misunderstandings
-• Disagreements about priorities or approaches
-• Stress from workload or external pressures
-• The storming phase of team development
+We are all people with different personalities, experiences, and skills. We must provide each other with psychologically safe spaces to be heard and disagree, to build consensus. Through this, we must resolve conflict together.
 
-**The Service Leadership Approach to Conflict:**
+Our primary goal on Tech Fleet projects is to learn to work in cross-functional Agile teams. We prioritize growth over skills.
 
-1. **Assume positive intent** — Most conflicts arise from miscommunication, not malice
-2. **Address it directly** — Don't let issues fester or talk behind someone's back
-3. **Listen to understand** — Seek to understand the other person's perspective before responding
-4. **Focus on the problem, not the person** — Separate the behavior from the individual
-5. **Seek a solution together** — Involve all parties in finding a resolution
+As service-focused leaders, we are all responsible for the success of our projects and our team cohesion. Even the apprentices. Even the co-leads.
 
-**Healthy vs. Unhealthy Conflict:**
+**Conflict Resolution Responsibilities for Team Members**
 
-| Healthy | Unhealthy |
-|---|---|
-| About ideas and approaches | About people and blame |
-| Open and direct | Passive-aggressive or avoidant |
-| Leads to better solutions | Leads to resentment |
-| Both parties feel heard | One party dominates |
-| Strengthens relationships | Damages trust |
+We're all responsible for each others success, and for resolving conflict:
 
-**At Tech Fleet:**
+1. **Conflict is not abuse.** It's natural. It's needed. It should be confronted. We must be willing to treat conflicts as opportunities for growth, even when we feel like we're not responsible.
 
-We expect all team members to handle conflict as service leaders. This means being direct, compassionate, and focused on solutions rather than blame.`,
+2. **We can't change other people.** We should always reflect on our part in team interactions. We should reflect on what we're contributing to conflict. Opportunities for growth and leadership come from learning how to work with people we don't agree with, relate to, or even sometimes like. Through our understanding of what we're contributing to conversations, we can understand the other side. We can learn how to find ways for mutual benefit instead of demanding people align to our ways of thinking or behaving.
+
+3. **We operate with a mindset of service to others.** As service leaders, we do not look for ways to police others, criticize, or blame. We help people play out scenarios themselves. We help them form their own conclusions on their own time. We are there in support and service to their growth, always. We are always looking to see how we can support others in productive, positive ways.
+
+4. **We live in the real world.** Even though Tech Fleet is a collective, community-run organization, power dynamics still exist. It's a good idea to notice where you have implicit power, whether because of your role on the project, your level of experience, your status in a cultural or societal context, or your comfort with English. We're here to remove barriers to access and we always want to be mindful to be encouraging to those who may be facing obstacles, even if we didn't ourselves impose the obstacles.`,
       },
       {
         id: "agile-conflict-2",
         title: "The Process for Resolving Conflicts",
         youtubeId: "vKWOHRijDmI",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/the-process-for-resolving-conflicts",
-        content: `**A Step-by-Step Approach to Conflict Resolution**
+        content: `**Process for Resolving Team Conflicts**
 
-Having a clear process for resolving conflicts helps teams address issues quickly and fairly.
+• **Take ownership of your experience** from the beginning. Recognize that every situation has different perspectives. Start by naming your own experience. For example, "I notice that when I am coming to this meeting I am feeling a sense of dread that I may not be heard," instead of "you don't listen to me."
 
-**The Conflict Resolution Process:**
+• **Do not assume a position of power-over**, even if you are a lead. By this, we mean do not threaten, coerce, or direct others to do things as though you are in command. Do not assume that anyone on the team has more "say" by virtue of their role.
 
-1. **Identify the issue** — Be specific about what the conflict is about
-2. **Have a direct conversation** — Talk to the person involved, not about them
-3. **Listen actively** — Let them share their perspective fully
-4. **Find common ground** — Identify what you both agree on
-5. **Agree on next steps** — Decide together what will change going forward
-6. **Follow up** — Check in to make sure the resolution is working
+• **Focus on the problem and factual information** not other people's personalities or your interpretation of other peoples' behavior. For example, you may feel that someone is being too pushy. You might say, "I am noticing that I don't feel good or comfortable with this direction yet. Can we consider what we would need to know to make a good decision?"
 
-**Communication Tips for Difficult Conversations:**
+• **Use the situation to learn.** Humility is an essential aspect of service leadership. Remember, we all come into situations with our own lived experience and triggers. How can this situation help you to see how you might solve a problem like this at work or in your other relationships? What could you do differently to be more encouraging, supportive, or helpful to others on your team?
 
-• Use "I" statements: "I felt frustrated when..." instead of "You always..."
-• Be specific about behaviors, not character: "When the deadline was missed..." not "You're unreliable"
-• Ask questions: "Can you help me understand why...?"
-• Acknowledge emotions: "I can see this is frustrating for you too"
-• Focus on the future: "How can we prevent this going forward?"
+• **Avoid blame.** When we do root cause analysis, we may see that the structures we're working in are leading to some of the behavior we don't like. Look for ways for everyone to benefit, and avoid win-loss or "grudging compromise."
 
-**When to Escalate:**
+• **Seek support.** If you are in a situation where you feel that you're not being adequately considered, seek support. This does not mean "build a case for why you are right." Get personal support and perspective by consulting with a peer. This might be your group lead or project coordinator, or the Agile Coach if your project has one.
 
-• If direct conversation doesn't resolve the issue after genuine effort
-• If the conflict involves harassment or safety concerns
-• If the conflict is affecting the entire team's ability to work
-• If both parties agree they need outside support
+• **Ask for help.** If your issues can't be resolved in the group, or if you are overwhelmed and you need someone to listen, you can reach out to the Conflict Resolution Support Team. For violations of our Cultural Agreement, you report anonymously through our support form. Note that the support team is not here to direct or manage the team. As a community-driven org, our goal is to support one another to find good ways to handle tension and conflict, not to fix situations by making decisions for the team.
 
-**Remember:** Most conflicts can be resolved through direct, honest conversation. The key is addressing issues early before they grow.`,
+**A few other guidelines**
+
+• **Do not use text-based communication** to resolve conflicts. If there is an issue, use voice and ideally video to communicate.
+
+• **Get into the right headspace.** When you are feeling agitated, wronged, or angry at another person, you may not act as your best self. Take time to calm down. If you're in a meeting, you might say, "I need some time to consider this" or "I'd like to talk about this when I am feeling more centered."
+
+• **Report explicit violations.** If someone is violating our community pledge, i.e. by harassing or abusing others, or by sharing sensitive data, or other explicit violations, please use our reporting process ASAP.
+
+• **Use discretion to decide if you should address issues one-on-one or with the team.** If you can share what you're noticing compassionately and with openness to the perspectives of the other person, then a one-on-one dialogue can be great. Imagine how you would want someone to share an issue with you. If it feels like the group is being disrupted by a conflict, it can be very helpful to do a group exercise. Remember that our goal is always to find a way forward, not to assign blame.
+
+• **Clarify the processes of the team.** Before the project starts, have a plan for dealing with conflict.
+
+• **Recognize different communication styles.** Some people may simply be very passionate about a particular issue, and may not see their behavior as being "difficult."`,
       },
       {
         id: "agile-conflict-3",
         title: "Collective Agreement Violations",
         youtubeId: null,
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-teamwork/day-to-day-on-an-agile-team/collective-agreement-violations",
-        content: `**When Team Agreements Are Broken**
+        content: `**Collective Agreement Violations**
 
-Every team creates collective agreements — shared commitments about how the team will work together. When these agreements are violated, the team needs a fair and constructive way to address it.
+Per Tech Fleet's Community Collective Agreement, these are the **explicit violations** that should lead to reporting:
 
-**What Are Collective Agreements?**
+**Primary Violations**
 
-• Shared commitments the team creates together
-• Cover areas like communication, attendance, quality standards, and behavior
-• Everyone has a voice in creating and modifying them
-• They are living documents that evolve with the team
+• Violence: intentionally hurting or endangering any persons, groups, or "types of people".
+• Unapproved sharing of confidential information.
+• Characterizing anyone's personality or behavior on the basis of immutable identities or perceptions such as race, ethnicity, gender, sex, sexual orientation or national origin.
+• Unnecessary personal attention or harassment after any clear request to stop it.
+• Legal endangerment: Openly illegal activities, fraud, or hate speech.
 
-**Examples of Collective Agreements:**
+**Secondary Violations**
 
-1. "We will communicate blockers within 24 hours"
-2. "We will come to meetings prepared"
-3. "We will give and receive feedback respectfully"
-4. "We will share work evenly across functions"
-5. "We will update our task board daily"
+• Failing to responsibly package and present media which includes, links or describes any Primary Violations.
+• Preventing others from participating through coercion, threat, or suppression.
+• Ignoring or neglecting a message of concern from any of our trusted community leaders (including the Board, staff, and Guild leadership).
+• Circumventing a removal by using another identity, account or profile.
 
-**When Agreements Are Violated:**
+**How to report explicit violations**
 
-• Address it promptly — don't let violations accumulate
-• Approach the person with curiosity, not accusation
-• Ask what prevented them from following the agreement
-• Discuss whether the agreement needs to be modified
-• If the pattern continues, involve the broader team in discussion
+Report issues to safespace@techfleet.org, and/or submit a ticket in #create-a-ticket for support in Discord. If you would like to report something anonymously, see our guidelines for reporting.
 
-**Modifying Agreements:**
+1. Report exactly what happened, and where. (Screenshots and links help!) If the Violation(s) aren't self-explanatory, explain your complaint.
 
-• Agreements should be revisited regularly during retrospectives
-• If an agreement isn't working, change it — don't just ignore it
-• New team members should be included in agreement discussions
-• Agreements should reflect the team's current needs and context
+**Actions taken once violations are reported**
 
-**At Tech Fleet:**
+1. Support Team will review the report and seek additional information if necessary.
+2. Possible actions include: No action (no violation found), invitation to parties for a mediated conflict resolution process, encouragement to resolve the conflict as a team, suspension from the project, permanent removal from the project, or suspension or removal from Tech Fleet.
 
-Our community collective agreement sets the foundation for all team interactions. Every team can create additional agreements specific to their context, but the community agreement applies to everyone.`,
+**Conflict Examples**
+
+**When you should deal with something one-on-one or among the team, using principles of service leadership:**
+
+1. You perceive a team member to be too controlling or directive
+2. You find yourself in frequent conflict with a group member
+3. Someone on the team is not doing work they agreed to
+4. Someone on the team is not showing up to meetings
+5. A person doesn't know how to do the work they agreed to do
+6. You perceive a team member to be speaking disrespectfully to you
+7. You disagree with someone's opinion and you feel they are not listening to you
+
+**When you should involve your project coordinator or the Support Team:**
+
+1. A lead is withholding information from apprentices
+2. Attempts at resolving conflict using all the steps outlined in our conflict resolution approach have failed
+3. You believe someone is lying or acting in bad faith to the team
+4. Someone on the team is not using good data security practices
+5. You believe the project is in jeopardy of not being completed or being materially delayed
+
+**Violation Examples**
+
+1. Someone on the team is using language that disparages others based on race, ethnicity, gender, disability, sexual orientation, or other immutable aspects of others' identities
+2. Someone is sharing private data outside of the project
+3. Someone is preventing other people on the team from participating
+4. Someone on the team is using threats, ultimatums, or other forms of dominance or coercion to obtain compliance to their directives
+5. Someone on the team is ignoring the communicated policies of Tech Fleet from the Board or Executive team
+6. You have documented evidence of deceptive or antisocial behaviour that affects the team or project (being clear that this may be subject to further investigation)`,
       },
     ],
   },
@@ -799,165 +1227,258 @@ Our community collective agreement sets the foundation for all team interactions
         title: "What is Scrum?",
         youtubeId: "ikxnRq8tscs",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-methods/scrum-method/what-is-scrum",
-        content: `**The Most Popular Agile Framework**
+        content: `**Agile Philosophies vs. Agile Methods**
 
-Scrum is a lightweight framework for developing, delivering, and sustaining complex products. It's the most widely used agile method in the world.
+**What's the difference between Scrum and Agile?**
 
-**Scrum in a Nutshell:**
+What's the difference between the methods and the philosophies of Agile?
 
-• Work is organized into **sprints** — fixed time periods (usually 1-4 weeks)
-• Each sprint produces a potentially shippable increment of work
-• The team inspects and adapts at regular intervals
-• Transparency, inspection, and adaptation are the three pillars
+Good questions! We're so glad you asked.
 
-**The Scrum Framework:**
+**Agile is a philosophy.**
 
-1. **Product Backlog** — A prioritized list of everything the team might work on
-2. **Sprint Planning** — The team selects work from the backlog for the sprint
-3. **Sprint Backlog** — The work selected for the current sprint
-4. **Daily Scrum** — A brief daily meeting to synchronize the team
-5. **Sprint Review** — The team demonstrates completed work to stakeholders
-6. **Sprint Retrospective** — The team reflects on how to improve
+**Scrum is a method of Agile.**
 
-**Key Scrum Values:**
+Agile philosophies are the mindsets you build to approach work in an Agile way. Building incremental value instead of value all at once.
 
-• **Commitment** — to achieving the sprint goals
-• **Courage** — to do the right thing and work on tough problems
-• **Focus** — on the work of the sprint
-• **Openness** — about all the work and challenges
-• **Respect** — for each other as capable, independent people
+Think back to the "Build the skateboard before you build the car" example in previous sections of the Agile Handbook.
 
-**Why Scrum Works:**
+Agile Methods are the processes that teams use to carry out the work in Agile ways.
 
-Scrum creates a rhythm of planning, doing, reviewing, and improving. This rhythm keeps teams focused, accountable, and continuously improving.`,
+**Examples of Agile Methods**
+
+Here are some Agile Methods you see in the world:
+
+1. Scrum
+2. Kanban
+3. SAFE, otherwise called Scaled Agile Framework
+4. Extreme Programming
+5. Google Design Sprints
+6. So many more!
+
+All of these are methods to carry out the Agile philosophies.
+
+**Crawling Before Sprinting (See what we did there?)**
+
+You have to build an Agile mindset before you learn how to operate an Agile method. Once you are ready to build strong teamwork foundations on Agile teams, and ready to mature your team from Forming to Performing, you are ready to operate Agile methods.
+
+**Scrum Method**
+
+Scrum is one of the most common methods for Agile work on teams.
+
+In this method, work is always done in a fixed timeframe called a "Sprint". We "Scrum-ites" (followers of Scrum method) call this a "time box" of work. Sometimes this is called an iteration of work.
+
+Each team agrees to whatever their fixed timebox of work will be. They agree to one week, two week, three week, or four week sprints.
+
+This could change over time. A team who agrees to one-week sprints may want to change to two-week or three-week sprints. They have the right to do so as a self-organized, psychologically safe team of service leaders.
+
+Scrum teams deliver usable functionality every "sprint".
+
+**Scrum Process**
+
+Scrum has specific chunks of responsibilities and specific meetings you'd run on a team.
+
+1. **Build a backlog** of small amounts of work
+2. **Refine the work** and estimate its level of complexity
+3. **Do your "Planning":** Plan work in sprints
+4. **Run** sprints
+5. **Do your "Stand-Up":** Check in every day during the sprint
+6. **Do your "Demo":** Demonstrate work in progress at the end of the sprint
+7. **Do your "Retro":** Get together and reflect in your previous sprint to identify how to improve
+
+**Scrum's Persona: "Just keep sprinting, just keep sprinting..."**
+
+If Scrum were a persona, they'd be just like the fish from Finding Nemo:
+
+"Just keep sprinting, just keep sprinting, sprinting sprinting sprinting sprinting".
+
+The persona of Scrum is someone who's consistently operating and planning their next moves, just like a Scrum team.
+
+**Goals and Motivations**
+
+• Consistency in work intervals.
+• Forecast the dates of releases.
+• Increase team work capacity.
+• Report progress to those outside the team.
+
+**Benefits**
+
+• Consistent planning of work items.
+• Teams are able to get into a rhythm while working together.
+
+**Pain Points**
+
+• Rigid in flexibility (you should not change your sprint plan once it begins).
+• Lots of work must happen before sprint teams can deliver work, it takes a lot of orchestration.
+
+**How to Start Doing Scrum**
+
+• Pick a consistent work interval called a "Sprint" (one week, two weeks, three weeks).
+• Produce and deliver usable work every Sprint.
+• Plan 1 to 2 Sprints ahead consistently.
+• Once the sprint starts, work should not be added or removed, but often is decided by the team whether it is.`,
       },
       {
         id: "agile-method-2",
         title: "Scrum Team Functions",
         youtubeId: "xAXU4lAd0L8",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-methods/scrum-method/scrum-team-functions",
-        content: `**Roles and Responsibilities in Scrum**
+        content: `**Scrum Functions**
 
-Scrum defines specific functions (not job titles) that team members fulfill. Understanding these functions helps you contribute effectively to any scrum team.
+Scrum has 3 different roles that make up a Scrum team: the Product Owner, the Scrum Master role, and the "Doer" role. These 3 roles may be operated by one single person, or 3 separate people.
 
-**The Three Scrum Functions:**
+In Tech Fleet, the Product Strategy team typically owns the responsibilities for Scrum teams. This could change based on RACI chart decisions.
 
-1. **Product Owner**
-   • Manages the product backlog and prioritizes work
-   • Represents the voice of the customer/stakeholder
-   • Makes decisions about what the team builds next
-   • Ensures the team is working on the most valuable items
+Remember: Roles are not job titles! They are simply commitments of responsibilities on teams that team members assign themselves each sprint. One person can own many roles.
 
-2. **Scrum Master**
-   • Facilitates scrum ceremonies and removes obstacles
-   • Coaches the team on agile practices
-   • Protects the team from external distractions
-   • Helps the team improve their processes
+**Product Owner Function**
 
-3. **Development Team**
-   • The people who do the work of creating the product
-   • Self-organizing — they decide how to accomplish the work
-   • Cross-functional — collectively have all skills needed
-   • Typically 3-9 people for optimal collaboration
+This function is fulfilled by the Product Strategy Team in Tech Fleet.
 
-**Important Notes:**
+The product owner function is the keeper of the backlog and the orchestrator of product work. They direct the priorities of work based on key needs and roadmap outcomes. They work in tandem with a product manager to set roadmap and vision, and focus on delivering the vision near-term.
 
-• These are functions, not job titles — one person can serve multiple functions
-• At Tech Fleet, these functions are shared across the team
-• The "development team" includes everyone who builds — designers, researchers, developers, strategists
-• No function is more important than another — they all work together
+• Product Backlog Management: Create, prioritize, and refine the product backlog, ensuring it is aligned with the product vision and strategy. Prioritization: Prioritize features and user stories based on business value, customer needs, and technical feasibility.
+• Stakeholder Management: Collaborate with stakeholders, including customers, business owners, and team members, to ensure that product decisions align with their needs and expectations.
+• Communication: Communicate product plans, priorities, and progress to stakeholders, including daily stand-ups, sprint planning, and sprint reviews.
+• Market and Customer Research: Gather, manage, and prioritize market/customer requirements, acting as a customer advocate to articulate user needs.
+• Decision Making: Make decisions on product features, priorities, and trade-offs, balancing business, customer, and technical requirements.
+• Team Alignment: Ensure the development team understands the product vision, priorities, and goals, and aligns their work accordingly.
+• Backlog Refinement: Refine the product backlog regularly, ensuring it remains relevant, up-to-date, and aligned with the product vision and strategy.
+• Sprint Planning: Participate in sprint planning, ensuring the team has a clear understanding of the product backlog and priorities.
+• Sprint Review: Participate in sprint reviews, ensuring the team demonstrates working software and receives feedback from stakeholders.
 
-**At Tech Fleet:**
+**Scrum Master Function**
 
-Our teams practice shared scrum functions. Everyone learns to facilitate, prioritize, and build. This gives you a well-rounded understanding of how agile teams operate.`,
+This function is fulfilled by the Product Strategy Team in Tech Fleet.
+
+The Scrum Master function is a facilitator and coaching function that ensures the Scrum framework is followed and the team is empowered to achieve its goals. Here are the key responsibilities:
+
+• Facilitating Scrum Ceremonies: Lead daily stand-ups, facilitate sprint planning meetings, lead sprint review meetings, facilitate sprint retrospective meetings.
+• Removing Impediments: Identify and remove obstacles that hinder the team's progress. Collaborate with team members and stakeholders to resolve issues and find solutions.
+• Coaching and Mentoring: Coach team members in Scrum principles and practices. Mentor team members to improve their skills and knowledge. Encourage self-organization and empowerment within the team.
+• Team Support: Provide guidance and support to team members as needed. Help team members understand their roles and responsibilities. Foster a positive and collaborative team culture.
+• Reporting and Analysis: Analyze burndown charts and other metrics to identify trends and areas for improvement. Report on team progress and performance to stakeholders.
+
+**"Sprint Do'er" Function**
+
+Anyone who takes ownership of a ticket in a sprint is a Do'er.
+
+In the industry, Scrum teams may call this the "development team", although they are not always developers! This is confusing to people who are not doing development in Scrum teams. This is why we call them "Do'ers". People doing the sprint work.
+
+This function is fulfilled by the UX research team, the UX design team, the UX writing team, the project management team, and the development team in Tech Fleet.
+
+**Scrum Team Activities and Responsibilities**
+
+Here is a RACI chart of which roles on Agile teams are set to work on Agile deliverables.
+
+1. **Responsible** = the person who performs the work.
+2. **Accountable** = the person who oversees and ensures that the work progresses.
+3. **Consulted** = the person who provides considerations and is asked advice.
+4. **Informed** = the person who is told what happens after it happens.`,
       },
       {
         id: "agile-method-3",
         title: "Scrum Meetings",
         youtubeId: "MoFbcsMPnt4",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-methods/scrum-method/scrum-meetings",
-        content: `**The Ceremonies That Drive Scrum**
+        content: `**Scrum "Meeting Cadence"**
 
-Scrum meetings (also called ceremonies or events) create the rhythm of inspect-and-adapt that makes scrum effective.
+Meetings are often called "cadences" in Scrum, implying that they always keep happening. They become a part of the operating rhythm of the Scrum team. Every sprint, there are meeting "cadences" that always happen no matter what.
 
-**The Four Scrum Meetings:**
+The Scrum Framework has the following meeting cadences:
 
-1. **Sprint Planning**
-   • When: Start of each sprint
-   • Duration: Up to 2 hours per sprint week
-   • Purpose: Decide what to work on and how
-   • Outcome: Sprint backlog with clear goals
+1. Sprint backlog refinement
+2. Level of effort estimation
+3. Sprint planning
+4. During the sprint
+5. Daily standups
+6. Sprint demo / Sprint review
+7. Sprint retrospectives
 
-2. **Daily Stand-up (Daily Scrum)**
-   • When: Every day during the sprint
-   • Duration: 15 minutes max
-   • Purpose: Synchronize the team
-   • Each person answers: What did I do? What will I do? Any blockers?
+**Backlog Refinement**
 
-3. **Sprint Review**
-   • When: End of each sprint
-   • Duration: Up to 1 hour per sprint week
-   • Purpose: Demonstrate completed work to stakeholders
-   • Outcome: Feedback that informs next sprint planning
+During backlog refinement, teams get together and discuss the work that's being documented before it starts. They discuss the scope of tasks, whether the work is feasible, what the design members and development members think need to be considered or included, and how complex is the work. The Product Owner duty owns this in the Scrum method. Backlog refinement should be a daily task for product teams. The result should be tasks for the team that are ready to be taken on in sprints.
 
-4. **Sprint Retrospective**
-   • When: After the sprint review
-   • Duration: Up to 45 minutes per sprint week
-   • Purpose: Reflect on how the team worked together
-   • Outcome: Action items for improvement
+**Sprint Planning**
 
-**Best Practices for Scrum Meetings:**
+Sprint Planning meeting is a meeting where the entire team gets together and plans their next upcoming sprint. Product Strategy teams should rely on the team to consult in priorities based on current and previous work, and the entire team should align together in the goals. The Product Owner duty owns this. Teams do this before every sprint begins. Outcomes include Sprint Goals, Updated Project Roadmap, and Refined backlog tasks.
 
-• Come prepared — have your updates and questions ready
-• Stay focused — respect the time box
-• Be honest — share blockers and concerns openly
-• Follow through — act on commitments made in meetings
-• Participate actively — every voice matters`,
+**Level of Effort Estimation**
+
+Level of effort estimation is an activity where teams estimate the complexity of upcoming work. Level of effort should be measured for all kinds of work: research, design, and development alike. Teams should gauge level of effort for their work so that they have an idea of what's too much work for a given iteration, and can track the changes over time.
+
+Velocity is measured in story points per sprint. For instance, you'd describe the velocity of the team by saying "The team's velocity is 20 story points per sprint; the team can finish 20 story points of work on average every sprint".
+
+**Daily Standups (AKA Daily Scrum)**
+
+A daily standup is a full-team touch base for visibility. Everyone on the team needs to attend standup everyday to report on their progress:
+
+1. What did you do yesterday?
+2. What are you doing / did you do today?
+3. What blockers do you have?
+
+The most important aspect of this meeting is identifying blockers for the team, things that prevent team members from succeeding in their work. Together the team should discuss what they should do to remove the blockers together.
+
+The entire team is accountable to run standup. The Product Owner and Scrum Master should not be attending these meetings. As a self-organized team, the team itself should run and hold these meetings. This is a live or asynchronous 15 minute meeting, every day.
+
+**Sprint Demo / Sprint Review**
+
+The sprint demo is a key moment in the sprint lifecycle. The team gets together at the end of their sprint and shows their work in progress. Whatever is half finished or fully finished is shown. They collect feedback from clients and teammates so that they can determine the direction they need to head for the next round of sprint planning. This happens at the end of every sprint increment.
+
+**Sprint Retrospective**
+
+The Sprint Retrospective is a time for the team to get together and reflect. They reflect on their work process and their teamwork together. They discuss:
+
+1. What they liked that they want to continue
+2. What they learned in hindsight that they want to change
+3. What they lacked that they want to change
+4. What they longed for that they want to change
+
+This meeting should happen during each sprint increment. Outcomes include Sprint Retro action items, Updated Working Agreements, and Team process changes.
+
+**One-Week Sprint Example**
+
+Before the sprint: Sprint planning, refinement, level of effort estimation.
+During the sprint: Daily standups, do the work that was planned, sprint demo at the end, sprint retro for previous sprint.`,
       },
       {
         id: "agile-method-4",
         title: "Common Agile Deliverables",
         youtubeId: "U-aZol4ybzc",
         sourceUrl: "https://guide.techfleet.org/agile-training-portal/agile-handbook/agile-methods/scrum-method/common-agile-deliverables",
-        content: `**What Agile Teams Produce**
+        content: `**Common Agile Deliverables**
 
-Agile teams create a variety of deliverables (also called artifacts) that help organize work, communicate progress, and deliver value.
+Here are some common deliverables when you are operating with Agile methods. Some of these pertain to the Scrum method only, and some of them are also created in other Agile methods.
 
-**Key Agile Deliverables:**
+**Project Roadmaps (AKA "Sprint Plans")**
 
-1. **User Stories**
-   • Short descriptions of a feature from the user's perspective
-   • Format: "As a [user], I want [feature] so that [benefit]"
-   • Include acceptance criteria that define "done"
-   • Sized small enough to complete in one sprint
+This deliverable is exclusive to Scrum method. A sprint plan outlines a future plan for sprint work. It determines an estimate for the kinds of work that future sprints will hold based on the best guess of the team.
 
-2. **Product Backlog**
-   • A living, prioritized list of all desired work
-   • Continuously refined and reprioritized
-   • Owned by the product owner
-   • Items at the top are more detailed and ready to work on
+**Sprint Planning Items**
 
-3. **Sprint Backlog**
-   • The subset of backlog items selected for the current sprint
-   • Includes tasks broken down by the development team
-   • Visible to the whole team via a task board
-   • Updated daily as work progresses
+This deliverable is exclusive to Scrum method. Sprint Planning Items happen after a Sprint Planning meeting where the team outlines their shared goals for a sprint and assigns committed team members.
 
-4. **Increment**
-   • The sum of all completed work at the end of a sprint
-   • Must be in a usable condition
-   • Represents tangible progress toward the product goal
-   • Demonstrated to stakeholders during sprint review
+**Sprint Velocity**
 
-5. **Definition of Done**
-   • A shared understanding of what "complete" means
-   • Applies to every piece of work the team delivers
-   • Ensures consistent quality across all deliverables
-   • Reviewed and updated by the team as needed
+This deliverable is exclusive to Scrum method. Sprint Velocity is a number that indicates how much work a team is estimated to be able to get done in one sprint.
 
-**At Tech Fleet:**
+**Kanban Boards**
 
-Our project training teams create all of these deliverables as part of their real-world projects with nonprofit clients. This hands-on experience is invaluable for your career.`,
+This is not exclusive to Scrum method, it is common with Scrum teams and Kanban teams. Kanban Boards outline the team's process and allow teams to track the work in different statuses. This helps teams gain visibility into their collective work.
+
+**Sprint Retro Boards**
+
+This deliverable is exclusive to Scrum method. Sprint Retrospectives are a crucial part of the Agile process and Scrum Method. Sprint Retro Boards are the place where the team reflects in their process from the previous sprint.
+
+**RACI Charts**
+
+This is not exclusive to Scrum method, but common with Scrum teams. A RACI (which stands for Responsible, Accountable, Consulted, Informed) chart outlines daily tasks and breaks down who does them on Agile teams. This deliverable is a key alignment deliverable to come to agreements about how work gets done.
+
+People on cross-functional teams wear different hats of responsibilities. This is a RACI chart in visual form!
+
+**Working Agreements**
+
+This is not exclusive to Scrum method, but common with Scrum teams. Working agreements are lists of statements that outline how a team agrees to work together. They are flexible and defined by the self-organized teams that run themselves.`,
       },
     ],
   },
