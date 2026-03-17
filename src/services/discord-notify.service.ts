@@ -57,7 +57,7 @@ const TASK_LABELS: Record<string, string> = {
   profile: "Set Up Profile",
   "onboarding-class": "Complete Onboarding Class",
   "service-leadership": "Sign Up for Service Leadership Class",
-  "user-guide": "Complete the Discord Tutorial Series",
+  
   "figma-account": "Register for Figma Educational Account",
   "community-agreement": "Agree to the Community Member Agreement",
 };
