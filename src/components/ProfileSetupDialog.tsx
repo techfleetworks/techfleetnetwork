@@ -45,6 +45,7 @@ export function ProfileSetupDialog() {
   useEffect(() => {
     if (shouldShow && !dismissed) {
       setOpen(true);
+      sessionStorage.setItem("profile_setup_shown", "true");
     } else {
       setOpen(false);
     }
