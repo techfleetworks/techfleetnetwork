@@ -112,8 +112,10 @@ export const GeneralApplicationService = {
   /** Create a new draft application */
   async create(userId: string, prefill?: Partial<Pick<GeneralApplication, "about_yourself">>): Promise<GeneralApplication> {
     return log.track("create", `Creating general app for user ${userId}`, { userId }, async () => {
+      const email = await getProfileEmail(userId);
       const insertData: Record<string, unknown> = {
         user_id: userId,
+        email,
         status: "draft",
         about_yourself: prefill?.about_yourself ?? "",
       };
