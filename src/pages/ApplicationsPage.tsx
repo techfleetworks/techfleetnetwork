@@ -14,7 +14,7 @@ export default function ApplicationsPage() {
     if (!user) return;
     GeneralApplicationService.list(user.id).then((apps) => {
       if (apps.length > 0 && apps[0].status === "completed") {
-        setAppStatus({ completed: true, completedAt: (apps[0] as Record<string, unknown>).completed_at as string | null ?? apps[0].updated_at });
+        setAppStatus({ completed: true, completedAt: ((apps[0] as unknown as Record<string, unknown>).completed_at as string | null) ?? apps[0].updated_at });
       }
     }).catch(() => {});
   }, [user]);
