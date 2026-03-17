@@ -259,11 +259,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
         <div className="flex-1 flex flex-col min-w-0">
           <header
-            className="sticky top-0 z-40 h-12 flex items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
+            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-2"
             role="banner"
           >
-            <SidebarTrigger className="shrink-0" />
-            <div className="flex-1" />
             <UniversalSearch />
             <ThemeToggle />
           </header>
