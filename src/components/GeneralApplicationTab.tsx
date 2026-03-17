@@ -716,7 +716,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 4: Agile Questions ─── */}
         {section === 4 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <LongFormQuestion
               id="agile-waterfall"
               label="What's the difference between Agile and Waterfall methods?"
