@@ -56,7 +56,12 @@ describe("profileSchema (BDD 2.7: Missing mandatory fields)", () => {
   });
 
   it("rejects empty country", () => {
-    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "" });
+    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "", timezone: "America/New_York" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty timezone", () => {
+    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "US", timezone: "" });
     expect(result.success).toBe(false);
   });
 
