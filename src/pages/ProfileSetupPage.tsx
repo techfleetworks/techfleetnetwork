@@ -244,7 +244,7 @@ export default function ProfileSetupPage() {
               {(() => {
                 const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
                 return (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
