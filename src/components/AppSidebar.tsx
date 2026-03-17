@@ -6,6 +6,9 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  ClipboardList,
+  UserPen,
+  CalendarDays,
   UserPen,
   LogOut,
 } from "lucide-react";
