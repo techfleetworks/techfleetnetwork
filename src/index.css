@@ -82,6 +82,7 @@ body {
 
     --muted: 222 30% 14%;
     --muted-foreground: 0 0% 100%;
+    --placeholder: 220 10% 75%;
 
     --accent: 222 30% 14%;
     --accent-foreground: 210 20% 96%;
