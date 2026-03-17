@@ -43,7 +43,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       name: "Teammate",
       description: "Completed the Teammate Handbook",
       image: badgeThirdSteps,
-      earned: false,
+      earned: allThirdStepsDone,
       href: "/journey/third-steps",
     },
     {
