@@ -416,7 +416,7 @@ export function GeneralApplicationTab() {
         onStepClick={(s) => { setErrors({}); setSection(s); }}
       />
 
-      <div className="card-elevated p-6 space-y-5" ref={formContainerRef}>
+      <div className="card-elevated p-6 space-y-6" ref={formContainerRef}>
         {/* Error summary banner */}
         {Object.keys(errors).length > 0 && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
