@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Heart,
   Lock,
+  Megaphone,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
