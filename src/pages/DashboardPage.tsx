@@ -139,7 +139,8 @@ export default function DashboardPage() {
       JourneyService.getCompletedCount(user.id, "project_training"),
       JourneyService.getCompletedCount(user.id, "volunteer"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, discord, third, pt, vol, stats]) => {
+      AnnouncementService.latest(5),
+    ]).then(([first, second, discord, third, pt, vol, stats, announcements]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
       setDiscordCompleted(discord);
@@ -147,6 +148,7 @@ export default function DashboardPage() {
       setProjectTrainingCompleted(pt);
       setVolunteerCompleted(vol);
       setCommunityBadgeCount(stats.badges_earned ?? 0);
+      setLatestAnnouncements(announcements);
     });
   }, [user]);
 
