@@ -154,27 +154,26 @@ export function GeneralApplicationTab() {
 
   /** Load or create the single general application */
   const loadOrCreateApp = useCallback(async () => {
-    if (!user) return;
+    if (!user || initialLoadDone.current) return;
     setLoading(true);
     try {
       const data = await GeneralApplicationService.list(user.id);
       if (data.length > 0) {
-        // Use existing app
         const app = data[0];
         setActiveApp(app);
         populateFormFromApp(app);
       } else {
-        // Create the user's first (and only) app
         const app = await GeneralApplicationService.create(user.id);
         setActiveApp(app);
         populateFormFromApp(app);
       }
+      initialLoadDone.current = true;
     } catch {
       toast.error("Failed to load application");
     } finally {
       setLoading(false);
     }
-  }, [user, profile]);
+  }, [user]);
 
   useEffect(() => {
     loadOrCreateApp();
