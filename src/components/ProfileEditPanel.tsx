@@ -429,6 +429,81 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               ))}
             </div>
 
+            {/* Portfolio & LinkedIn */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-portfolio">Portfolio URL</Label>
+              <Input
+                id="edit-portfolio"
+                type="url"
+                value={form.portfolio_url}
+                onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })}
+                placeholder="https://yourportfolio.com"
+                maxLength={500}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-linkedin">LinkedIn URL</Label>
+              <Input
+                id="edit-linkedin"
+                type="url"
+                value={form.linkedin_url}
+                onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                placeholder="https://linkedin.com/in/yourprofile"
+                maxLength={500}
+              />
+            </div>
+
+            {/* Experience Areas */}
+            <div className="space-y-2">
+              <Label>Experience areas</Label>
+              <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
+              <MultiSelect
+                options={EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }))}
+                selected={form.experience_areas}
+                onChange={(v) => setForm({ ...form, experience_areas: v })}
+                placeholder="Search and select areas..."
+                aria-label="Experience areas"
+              />
+            </div>
+
+            {/* Professional Goals */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-goals">Professional development goals</Label>
+              <Textarea
+                id="edit-goals"
+                value={form.professional_goals}
+                onChange={(e) => setForm({ ...form, professional_goals: e.target.value })}
+                placeholder="Describe your professional development goals..."
+                className="min-h-[100px] resize-y"
+                maxLength={5000}
+              />
+            </div>
+
+            {/* Notify */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="edit-notify"
+                checked={form.notify_training_opportunities}
+                onCheckedChange={(checked) => setForm({ ...form, notify_training_opportunities: !!checked })}
+              />
+              <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
+                Notify me about training opportunities that match my preferences
+              </Label>
+            </div>
+
+            {/* Education */}
+            <div className="space-y-2">
+              <Label>Education background</Label>
+              <MultiSelect
+                options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
+                selected={form.education_background}
+                onChange={(v) => setForm({ ...form, education_background: v })}
+                placeholder="Search and select education..."
+                aria-label="Education background"
+              />
+            </div>
+
             {/* Password Reset */}
             <div className="space-y-2 pt-2 border-t">
               <Label>Password</Label>
