@@ -118,6 +118,18 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
+                    isActive={isActive("/admin/clients")}
+                    tooltip="Clients"
+                  >
+                    <Link to="/admin/clients">
+                      <Building2 className="h-4 w-4" />
+                      <span>Clients</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive("/admin/activity-log")}
                     tooltip="Activity Log"
                   >
