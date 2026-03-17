@@ -149,7 +149,7 @@ export const GeneralApplicationService = {
   },
 
   /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
-  async save(id: string, fields: Partial<Pick<GeneralApplication, "about_yourself" | "status" | "title">>): Promise<void> {
+  async save(id: string, fields: Partial<Omit<GeneralApplication, "id" | "user_id" | "created_at" | "updated_at">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
         .from("general_applications")
