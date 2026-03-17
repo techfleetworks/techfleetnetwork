@@ -188,7 +188,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-6 py-4">
-          <form id="profile-edit-form" onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form id="profile-edit-form" onSubmit={handleSubmit} className="space-y-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}

@@ -860,8 +860,8 @@ function LongFormQuestion({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-base font-medium leading-relaxed">
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-base font-semibold leading-relaxed">
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <Textarea

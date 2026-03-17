@@ -75,8 +75,8 @@ export default function ForgotPasswordPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{error}</div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />

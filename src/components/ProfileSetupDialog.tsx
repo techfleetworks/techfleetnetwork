@@ -200,7 +200,7 @@ export function ProfileSetupDialog() {
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
-          <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleFormSubmit} className="space-y-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
