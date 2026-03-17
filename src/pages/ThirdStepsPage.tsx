@@ -362,10 +362,36 @@ export default function ThirdStepsPage() {
           <p className="text-muted-foreground">
             You've completed all lessons. You've earned the Teammate badge!
           </p>
+          <Button className="mt-4" onClick={() => navigate("/courses/project-training")}>
+            Continue to Join Project Training Teams
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
 
-      {/* Lesson detail panel */}
+      {/* Course completion popup */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Learn About Agile Teamwork Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've completed all lessons in this course. Well done! You're ready for the next course.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/project-training"); }}>
+              Continue to Join Project Training Teams
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Course
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Sheet
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}
