@@ -719,6 +719,7 @@ export type Database = {
         | "projects"
         | "project_training"
         | "volunteer"
+        | "discord_learning"
       membership_tier: "free" | "paid"
     }
     CompositeTypes: {
@@ -857,6 +858,7 @@ export const Constants = {
         "projects",
         "project_training",
         "volunteer",
+        "discord_learning",
       ],
       membership_tier: ["free", "paid"],
     },
