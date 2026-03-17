@@ -16,6 +16,7 @@ interface Badge {
 interface BadgesDisplayProps {
   allFirstStepsDone: boolean;
   allSecondStepsDone: boolean;
+  allThirdStepsDone?: boolean;
   communityBadgeCount?: number | null;
 }
 
