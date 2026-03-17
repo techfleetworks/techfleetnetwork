@@ -655,7 +655,7 @@ export function GeneralApplicationTab() {
 
         {/* ─── SECTION 3: Previous Engagement ─── */}
         {section === 3 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="space-y-3">
               <Label className="text-base font-medium">
                 Have you previously engaged in Tech Fleet community before? <span className="text-destructive">*</span>
