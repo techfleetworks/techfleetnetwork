@@ -152,27 +152,13 @@ export function GeneralApplicationTab() {
   if (view === "list") {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              Your General Applications
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Write once, reuse for multiple project and volunteer applications.
-            </p>
-          </div>
-          <Button
-            onClick={handleNewApp}
-            disabled={creatingWithPrefill}
-            size="sm"
-          >
-            {creatingWithPrefill ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4 mr-2" />
-            )}
-            New Application
-          </Button>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Your General Applications
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Write once, reuse for multiple project and volunteer applications.
+          </p>
         </div>
 
         {loading ? (
