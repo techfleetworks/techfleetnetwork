@@ -321,40 +321,58 @@ export function GeneralApplicationTab() {
     }
   };
 
-  const validateSection = (): boolean => {
+  /** Validate a specific section's fields without side effects */
+  const getFieldErrors = (s: number): Record<string, string> => {
     const fieldErrors: Record<string, string> = {};
-
-    if (section === 1) {
+    if (s === 1) {
       if (!form.hours_commitment) fieldErrors.hours_commitment = "Please select an option";
     }
-    if (section === 2) {
+    if (s === 2) {
       if (!form.country.trim()) fieldErrors.country = "Country is required";
       if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
       if (form.experience_areas.length === 0) fieldErrors.experience_areas = "Please select at least one area or 'I'm not sure yet'";
       if (!form.professional_goals.trim()) fieldErrors.professional_goals = "Professional goals are required";
       if (form.education_background.length === 0) fieldErrors.education_background = "Please select at least one option";
     }
-    if (section === 3) {
+    if (s === 3) {
       if (!form.previous_engagement) fieldErrors.previous_engagement = "Please select an option";
       if (form.previous_engagement === "yes" && form.previous_engagement_ways.length === 0) {
         fieldErrors.previous_engagement_ways = "Please select at least one engagement type";
       }
     }
-    if (section === 4) {
+    if (s === 4) {
       if (!form.agile_vs_waterfall.trim()) fieldErrors.agile_vs_waterfall = "This field is required";
       if (!form.psychological_safety.trim()) fieldErrors.psychological_safety = "This field is required";
       if (!form.agile_philosophies.trim()) fieldErrors.agile_philosophies = "This field is required";
       if (!form.collaboration_challenges.trim()) fieldErrors.collaboration_challenges = "This field is required";
     }
-    if (section === 5) {
+    if (s === 5) {
       if (!form.servant_leadership_definition.trim()) fieldErrors.servant_leadership_definition = "This field is required";
       if (!form.servant_leadership_actions.trim()) fieldErrors.servant_leadership_actions = "This field is required";
       if (!form.servant_leadership_challenges.trim()) fieldErrors.servant_leadership_challenges = "This field is required";
       if (!form.servant_leadership_situation.trim()) fieldErrors.servant_leadership_situation = "This field is required";
     }
+    return fieldErrors;
+  };
 
+  const validateSection = (): boolean => {
+    const fieldErrors = getFieldErrors(section);
+    setSectionsTouched((prev) => new Set(prev).add(section));
     setErrors(fieldErrors);
-    return Object.keys(fieldErrors).length === 0;
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const errorCount = Object.keys(fieldErrors).length;
+      toast.error(`Please fix ${errorCount} required ${errorCount === 1 ? "field" : "fields"} before continuing`, {
+        description: Object.values(fieldErrors).join(", "),
+      });
+      // Scroll to the error summary banner
+      requestAnimationFrame(() => {
+        const firstError = formContainerRef.current?.querySelector('[role="alert"]');
+        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return false;
+    }
+    return true;
   };
 
   const handleNext = async () => {
