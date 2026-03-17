@@ -26,6 +26,7 @@ const SecondStepsPage = lazy(() => import("./pages/SecondStepsPage"));
 const ThirdStepsPage = lazy(() => import("./pages/ThirdStepsPage"));
 const ProjectTrainingPage = lazy(() => import("./pages/ProjectTrainingPage"));
 const VolunteerTeamsPage = lazy(() => import("./pages/VolunteerTeamsPage"));
+const DiscordCoursePage = lazy(() => import("./pages/DiscordCoursePage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
