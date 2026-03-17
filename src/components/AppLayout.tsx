@@ -104,6 +104,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
+        <ProfileSetupDialog />
         <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
