@@ -319,7 +319,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <AppSidebar onProfileEdit={() => setProfileEditOpen(true)} />
+        <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header
             className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
