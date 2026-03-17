@@ -132,53 +132,11 @@ export default function DashboardPage() {
       {allFirstStepsDone ? (
         <>
           {badgesSection}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {[
-              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card-elevated p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="text-lg font-semibold text-foreground">{value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {journeySection}
         </>
       ) : (
         <>
           {journeySection}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
-            {[
-              { label: "Current Phase", value: currentPhase, icon: Clock, color: "text-primary" },
-              { label: "Tasks Completed", value: `${totalCompleted} / ${totalTasks}`, icon: BarChart3, color: "text-warning" },
-              { label: "Badges Earned", value: String(badgesEarned), icon: Trophy, color: "text-success" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="card-elevated p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                    <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="text-lg font-semibold text-foreground">{value}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {badgesSection}
         </>
       )}
