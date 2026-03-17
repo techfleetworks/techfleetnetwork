@@ -13,6 +13,13 @@
     <meta name="description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
     <meta name="author" content="Tech Fleet" />
 
+    <!-- Preconnect to font origins to reduce connection latency -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload hero image for LCP discovery from HTML -->
+    <link rel="preload" as="image" href="/src/assets/hero-space.png" type="image/png" fetchpriority="high" />
+
     <!-- Preload fonts to avoid render-blocking and layout shifts -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" as="style" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
