@@ -32,6 +32,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AdminIngestPage = lazy(() => import("./pages/AdminIngestPage"));
 const ApplicationsPage = lazy(() => import("./pages/ApplicationsPage"));
+const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage"));
 const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 
 function RouteFallback() {
