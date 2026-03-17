@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
+import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Loader2,
   ChevronRight,
