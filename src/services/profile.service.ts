@@ -10,6 +10,7 @@ export interface Profile {
   last_name: string;
   email: string;
   country: string;
+  timezone: string;
   discord_username: string;
   discord_user_id: string;
   display_name: string;
@@ -23,7 +24,7 @@ export const ProfileService = {
     return log.track("fetch", `Fetching profile for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, country, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
+        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
         .eq("user_id", userId)
         .single();
       if (error) {
@@ -69,6 +70,7 @@ export const ProfileService = {
         first_name: input.firstName,
         last_name: input.lastName,
         country: input.country,
+        timezone: input.timezone,
         discord_username: input.discordUsername || "",
         discord_user_id: discordUserId,
         display_name: `${input.firstName} ${input.lastName}`.trim(),

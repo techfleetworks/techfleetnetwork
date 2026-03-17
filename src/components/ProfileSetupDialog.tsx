@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, ArrowLeft, ArrowRight, ExternalLink, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { COUNTRIES } from "@/lib/countries";
+import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ export function ProfileSetupDialog() {
     lastName: "",
     email: "",
     country: "",
+    timezone: "",
     hasDiscord: null as boolean | null,
     discordUsername: "",
     interests: [] as string[],
@@ -59,6 +61,7 @@ export function ProfileSetupDialog() {
         lastName: profile.last_name || "",
         email: profile.email || user.email || "",
         country: profile.country || "",
+        timezone: profile.timezone || "",
         hasDiscord: profile.discord_username ? true : null,
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
@@ -81,6 +84,7 @@ export function ProfileSetupDialog() {
       if (!form.email.trim()) fieldErrors.email = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) fieldErrors.email = "Please enter a valid email";
       if (!form.country.trim()) fieldErrors.country = "Country is required";
+      if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
     }
 
     if (step === 2) {
@@ -122,6 +126,7 @@ export function ProfileSetupDialog() {
       firstName: form.firstName,
       lastName: form.lastName,
       country: form.country,
+      timezone: form.timezone,
       discordUsername: form.hasDiscord ? form.discordUsername : "",
       interests: form.interests,
     });
@@ -319,6 +324,51 @@ export function ProfileSetupDialog() {
                   {errors.country && (
                     <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                       <AlertCircle className="h-3 w-3" /> {errors.country}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Timezone <span className="text-destructive">*</span></Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
+                        aria-invalid={!!errors.timezone}
+                      >
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        {form.timezone
+                          ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone
+                          : "Select a timezone"}
+                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search timezones..." />
+                        <CommandList>
+                          <CommandEmpty>No timezone found.</CommandEmpty>
+                          <CommandGroup>
+                            {TIMEZONES.map((tz) => (
+                              <CommandItem
+                                key={tz.value}
+                                value={tz.label}
+                                onSelect={() => setForm({ ...form, timezone: tz.value })}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
+                                {tz.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.timezone && (
+                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
+                      <AlertCircle className="h-3 w-3" /> {errors.timezone}
                     </p>
                   )}
                 </div>

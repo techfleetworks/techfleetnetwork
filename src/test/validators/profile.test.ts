@@ -13,6 +13,7 @@ describe("profileSchema (BDD 2.6: Profile setup completion)", () => {
     firstName: "Jane",
     lastName: "Doe",
     country: "United States",
+    timezone: "America/New_York",
     discordUsername: "janedoe",
     interests: ["Take classes", "Get mentorship"],
   };
@@ -44,23 +45,28 @@ describe("profileSchema (BDD 2.6: Profile setup completion)", () => {
 
 describe("profileSchema (BDD 2.7: Missing mandatory fields)", () => {
   it("rejects empty first name", () => {
-    const result = profileSchema.safeParse({ firstName: "", lastName: "Doe", country: "US" });
+    const result = profileSchema.safeParse({ firstName: "", lastName: "Doe", country: "US", timezone: "America/New_York" });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toContain("required");
   });
 
   it("rejects empty last name", () => {
-    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "", country: "US" });
+    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "", country: "US", timezone: "America/New_York" });
     expect(result.success).toBe(false);
   });
 
   it("rejects empty country", () => {
-    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "" });
+    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "", timezone: "America/New_York" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty timezone", () => {
+    const result = profileSchema.safeParse({ firstName: "Jane", lastName: "Doe", country: "US", timezone: "" });
     expect(result.success).toBe(false);
   });
 
   it("rejects whitespace-only first name", () => {
-    const result = profileSchema.safeParse({ firstName: "   ", lastName: "Doe", country: "US" });
+    const result = profileSchema.safeParse({ firstName: "   ", lastName: "Doe", country: "US", timezone: "America/New_York" });
     expect(result.success).toBe(false);
   });
 });
@@ -71,6 +77,7 @@ describe("profileSchema — Discord username validation", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "jane.doe",
     });
     expect(result.success).toBe(true);
@@ -81,6 +88,7 @@ describe("profileSchema — Discord username validation", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "jane_doe_123",
     });
     expect(result.success).toBe(true);
@@ -91,6 +99,7 @@ describe("profileSchema — Discord username validation", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "jane@doe#1234",
     });
     expect(result.success).toBe(false);
@@ -101,6 +110,7 @@ describe("profileSchema — Discord username validation", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "jane doe",
     });
     expect(result.success).toBe(false);
@@ -113,6 +123,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: '<script>alert("xss")</script>',
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
     expect(result.error?.issues.some((i) => i.message.includes("invalid content"))).toBe(true);
@@ -123,6 +134,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: '<script src="evil"></script>',
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
   });
@@ -132,6 +144,7 @@ describe("profileSchema — XSS prevention (A03 security)", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "<script>hack</script>",
     });
     expect(result.success).toBe(false);
@@ -144,6 +157,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "A".repeat(101),
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toContain("100");
@@ -154,6 +168,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "Jane",
       lastName: "D".repeat(101),
       country: "US",
+      timezone: "America/New_York",
     });
     expect(result.success).toBe(false);
   });
@@ -163,6 +178,7 @@ describe("profileSchema — Field length limits", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "a".repeat(101),
     });
     expect(result.success).toBe(false);

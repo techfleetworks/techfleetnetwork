@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound, Clock } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -15,6 +15,7 @@ import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
 import { COUNTRIES } from "@/lib/countries";
+import { TIMEZONES } from "@/lib/timezones";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,10 +29,11 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", discordUsername: "", interests: [] as string[] });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", timezone: "", discordUsername: "", interests: [] as string[] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -46,6 +48,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         lastName: profile.last_name || "",
         email: profile.email || user?.email || "",
         country: profile.country || "",
+        timezone: profile.timezone || "",
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
       });
@@ -68,6 +71,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       firstName: form.firstName,
       lastName: form.lastName,
       country: form.country,
+      timezone: form.timezone,
       discordUsername: form.discordUsername,
       interests: form.interests,
     });
@@ -293,6 +297,55 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               {errors.country && (
                 <p className="text-sm text-destructive flex items-center gap-1" role="alert">
                   <AlertCircle className="h-3 w-3" /> {errors.country}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Timezone <span className="text-destructive">*</span></Label>
+              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={timezoneOpen}
+                    className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
+                    aria-invalid={!!errors.timezone}
+                  >
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    {form.timezone
+                      ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone
+                      : "Select a timezone"}
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search timezones..." />
+                    <CommandList>
+                      <CommandEmpty>No timezone found.</CommandEmpty>
+                      <CommandGroup>
+                        {TIMEZONES.map((tz) => (
+                          <CommandItem
+                            key={tz.value}
+                            value={tz.label}
+                            onSelect={() => {
+                              setForm({ ...form, timezone: tz.value });
+                              setTimezoneOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
+                            {tz.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {errors.timezone && (
+                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
+                  <AlertCircle className="h-3 w-3" /> {errors.timezone}
                 </p>
               )}
             </div>

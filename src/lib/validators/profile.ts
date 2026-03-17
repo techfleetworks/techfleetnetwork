@@ -23,6 +23,7 @@ export const profileSchema = z.object({
   firstName: safeText("First name", 100),
   lastName: safeText("Last name", 100),
   country: safeText("Country", 100),
+  timezone: safeText("Timezone", 100),
   discordUsername: z
     .string()
     .trim()
