@@ -21,6 +21,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -66,20 +67,23 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-4">
-          <img
-            src={techFleetLogo}
-            alt="Tech Fleet"
-            className="h-7 w-7 dark:invert shrink-0"
-            width={28}
-            height={28}
-          />
-          {!collapsed && (
-            <span className="font-bold text-sm text-sidebar-foreground truncate">
-              Tech Fleet
-            </span>
-          )}
+        {/* Logo + collapse trigger */}
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-2">
+            <img
+              src={techFleetLogo}
+              alt="Tech Fleet"
+              className="h-7 w-7 dark:invert shrink-0"
+              width={28}
+              height={28}
+            />
+            {!collapsed && (
+              <span className="font-bold text-sm text-sidebar-foreground truncate">
+                Tech Fleet
+              </span>
+            )}
+          </div>
+          <SidebarTrigger className="shrink-0" />
         </div>
 
         <SidebarGroup>
