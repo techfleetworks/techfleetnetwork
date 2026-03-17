@@ -21,6 +21,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+import { UniversalSearch } from "./UniversalSearch";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -170,6 +171,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <span>Tech Fleet</span>
             </Link>
             <div className="flex items-center gap-1">
+              <UniversalSearch />
               <ThemeToggle />
               <Button
                 variant="ghost"
@@ -262,6 +264,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           >
             <SidebarTrigger className="shrink-0" />
             <div className="flex-1" />
+            <UniversalSearch />
             <ThemeToggle />
           </header>
           <main
