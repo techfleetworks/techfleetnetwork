@@ -312,7 +312,7 @@ export default function FirstStepsPage() {
           <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3" />
           <h2 className="text-xl font-bold text-foreground mb-2">🎉 Onboarding Complete!</h2>
           <p className="text-muted-foreground mb-4">You've unlocked Build an Agile Mindset.</p>
-          <Link to="/journey/second-steps"><Button>Continue to Build an Agile Mindset</Button></Link>
+          <Link to="/courses/agile-mindset"><Button>Continue to Build an Agile Mindset</Button></Link>
         </div>
       )}
 
