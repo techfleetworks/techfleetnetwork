@@ -28,7 +28,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       description: "Completed onboarding checklist",
       image: badgeFirstSteps,
       earned: allFirstStepsDone,
-      href: "/journey/first-steps",
+      href: "/courses/onboarding",
     },
     {
       id: "agile-mindset",
