@@ -1,15 +1,18 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { StepProgressBar } from "@/components/StepProgressBar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, ArrowLeft, ArrowRight, ExternalLink, Clock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,35 +20,28 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const TOTAL_STEPS = 3;
-const STEP_LABELS = ["Identity", "Discord", "Interests"];
-
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
-
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
-  // Only show on very first login after signup — check sessionStorage flag
   const isFirstLogin = sessionStorage.getItem("profile_setup_shown") !== "true";
   const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed && isFirstLogin;
 
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    country: "",
-    timezone: "",
-    hasDiscord: null as boolean | null,
-    discordUsername: "",
-    interests: [] as string[],
+    firstName: "", lastName: "", email: "", country: "", timezone: "",
+    discordUsername: "", interests: [] as string[],
+    portfolio_url: "", linkedin_url: "",
+    experience_areas: [] as string[], professional_goals: "",
+    notify_training_opportunities: false, notify_announcements: false,
+    education_background: [] as string[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [timezoneOpen, setTimezoneOpen] = useState(false);
 
-  // Show dialog when profile is incomplete
   useEffect(() => {
     if (shouldShow && !dismissed) {
       setOpen(true);
@@ -55,7 +51,6 @@ export function ProfileSetupDialog() {
     }
   }, [shouldShow, dismissed]);
 
-  // Pre-populate form
   useEffect(() => {
     if (!initialized && profile && user) {
       setForm({
@@ -64,9 +59,15 @@ export function ProfileSetupDialog() {
         email: profile.email || user.email || "",
         country: profile.country || "",
         timezone: profile.timezone || "",
-        hasDiscord: profile.discord_username ? true : null,
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
+        portfolio_url: profile.portfolio_url || "",
+        linkedin_url: profile.linkedin_url || "",
+        experience_areas: profile.experience_areas || [],
+        professional_goals: profile.professional_goals || "",
+        notify_training_opportunities: profile.notify_training_opportunities || false,
+        notify_announcements: (profile as any).notify_announcements || false,
+        education_background: profile.education_background || [],
       });
       setInitialized(true);
     }
@@ -75,40 +76,6 @@ export function ProfileSetupDialog() {
   const handleSkip = () => {
     setDismissed(true);
     setOpen(false);
-  };
-
-  const validateStep = (): boolean => {
-    const fieldErrors: Record<string, string> = {};
-
-    if (step === 1) {
-      if (!form.firstName.trim()) fieldErrors.firstName = "First name is required";
-      if (!form.lastName.trim()) fieldErrors.lastName = "Last name is required";
-      if (!form.email.trim()) fieldErrors.email = "Email is required";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) fieldErrors.email = "Please enter a valid email";
-      if (!form.country.trim()) fieldErrors.country = "Country is required";
-      if (!form.timezone.trim()) fieldErrors.timezone = "Timezone is required";
-    }
-
-    if (step === 2) {
-      if (form.hasDiscord === null) fieldErrors.hasDiscord = "Please select an option";
-      if (form.hasDiscord && !form.discordUsername.trim()) fieldErrors.discordUsername = "Discord username is required";
-      if (form.hasDiscord && form.discordUsername.trim() && !/^[a-zA-Z0-9._]+$/.test(form.discordUsername.trim())) {
-        fieldErrors.discordUsername = "Discord username can only contain letters, numbers, dots, and underscores";
-      }
-    }
-
-    setErrors(fieldErrors);
-    return Object.keys(fieldErrors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (!validateStep()) return;
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-  };
-
-  const handleBack = () => {
-    setErrors({});
-    setStep((s) => Math.max(s - 1, 1));
   };
 
   const toggleInterest = (interest: string) => {
@@ -120,26 +87,43 @@ export function ProfileSetupDialog() {
     }));
   };
 
-  const handleComplete = async () => {
-    if (!validateStep()) return;
+  const handleComplete = async (e: FormEvent) => {
+    e.preventDefault();
     if (!user) return;
+
+    const fieldErrors: Record<string, string> = {};
+    if (!isOAuth) {
+      if (!form.email.trim()) fieldErrors.email = "Email is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) fieldErrors.email = "Please enter a valid email";
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      return;
+    }
 
     const result = profileSchema.safeParse({
       firstName: form.firstName,
       lastName: form.lastName,
       country: form.country,
       timezone: form.timezone,
-      discordUsername: form.hasDiscord ? form.discordUsername : "",
+      discordUsername: form.discordUsername,
       interests: form.interests,
+      portfolio_url: form.portfolio_url,
+      linkedin_url: form.linkedin_url,
+      experience_areas: form.experience_areas,
+      professional_goals: form.professional_goals,
+      notify_training_opportunities: form.notify_training_opportunities,
+      notify_announcements: form.notify_announcements,
+      education_background: form.education_background,
     });
 
     if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
+      const errs: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+        if (!errs[field]) errs[field] = err.message;
       });
-      setErrors(fieldErrors);
+      setErrors(errs);
       return;
     }
 
@@ -165,13 +149,6 @@ export function ProfileSetupDialog() {
     }
   };
 
-  const handleFormSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (step < TOTAL_STEPS) {
-      handleNext();
-    }
-  };
-
   if (!open) return null;
 
   return (
@@ -182,353 +159,223 @@ export function ProfileSetupDialog() {
             <div>
               <DialogTitle className="text-xl">Welcome to Tech Fleet</DialogTitle>
               <DialogDescription className="mt-1">
-                Let's get you set up. Step {step} of {TOTAL_STEPS}.
+                Complete your profile to get the most out of your experience.
               </DialogDescription>
             </div>
             <Button variant="ghost" size="sm" className="text-muted-foreground shrink-0" onClick={handleSkip}>
               Skip for now
             </Button>
           </div>
-          {/* Step progress */}
-          <div className="mt-4">
-            <StepProgressBar
-              steps={STEP_LABELS.map((label) => ({ label }))}
-              currentStep={step}
-              onStepClick={(s) => setStep(s)}
-            />
-          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
-          <form onSubmit={handleFormSubmit} className="space-y-6" noValidate>
+          <form id="profile-setup-form" onSubmit={handleComplete} className="space-y-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
               </div>
             )}
 
-            {/* STEP 1: Name, Email & Country */}
-            {step === 1 && (
-              <>
-                <div className="mb-2">
-                  <h2 className="text-lg font-semibold text-foreground">Tell us about yourself</h2>
-                  <p className="text-sm text-muted-foreground">We'll use this to personalize your experience.</p>
-                </div>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-email">Email {!isOAuth && <span className="text-destructive">*</span>}</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="dialog-email" type="email" value={form.email} onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })} readOnly={!!isOAuth} disabled={!!isOAuth} className={cn("pl-10", isOAuth && "bg-muted/50")} aria-invalid={!!errors.email} />
+              </div>
+              {isOAuth && <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>}
+              {errors.email && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.email}</p>}
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="setup-firstName">First name <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id="setup-firstName"
-                      value={form.firstName}
-                      onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                      placeholder="Jane"
-                      className="pl-10"
-                      required
-                      aria-invalid={!!errors.firstName}
-                    />
+            {/* First name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-firstName">First name <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="dialog-firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jane" className="pl-10" required aria-invalid={!!errors.firstName} />
+              </div>
+              {errors.firstName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
+            </div>
+
+            {/* Last name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-lastName">Last name <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="dialog-lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className="pl-10" required aria-invalid={!!errors.lastName} />
+              </div>
+              {errors.lastName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
+            </div>
+
+            {/* Country */}
+            <div className="space-y-1.5">
+              <Label>Country <span className="text-destructive">*</span></Label>
+              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={countryOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    {form.country || "Select a country"}
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search countries..." />
+                    <CommandList>
+                      <CommandEmpty>No country found.</CommandEmpty>
+                      <CommandGroup>
+                        {COUNTRIES.map((c) => (
+                          <CommandItem key={c.code} value={c.name} onSelect={() => { setForm({ ...form, country: c.name }); setCountryOpen(false); }}>
+                            <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
+                            {c.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
+            </div>
+
+            {/* Timezone */}
+            <div className="space-y-1.5">
+              <Label>Timezone <span className="text-destructive">*</span></Label>
+              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search timezones..." />
+                    <CommandList>
+                      <CommandEmpty>No timezone found.</CommandEmpty>
+                      <CommandGroup>
+                        {TIMEZONES.map((tz) => (
+                          <CommandItem key={tz.value} value={tz.label} onSelect={() => { setForm({ ...form, timezone: tz.value }); setTimezoneOpen(false); }}>
+                            <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
+                            {tz.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
+            </div>
+
+            {/* Discord */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-discord">Discord username</Label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="dialog-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} placeholder="username" className="pl-10" aria-invalid={!!errors.discordUsername} />
+              </div>
+              <p className="text-xs text-muted-foreground">Tech Fleet's community lives on Discord. Enter your username if you have one.</p>
+              {errors.discordUsername && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.discordUsername}</p>}
+            </div>
+
+            {/* Activity Interests */}
+            <div className="space-y-3">
+              <Label>Activity interests</Label>
+              <p className="text-xs text-muted-foreground">What kinds of activities do you want to do in Tech Fleet?</p>
+              {ACTIVITY_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => toggleInterest(option)}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3",
+                    form.interests.includes(option) ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <div className={cn("h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center", form.interests.includes(option) ? "bg-primary border-primary text-primary-foreground" : "border-primary")} aria-hidden="true">
+                    {form.interests.includes(option) && <Check className="h-3 w-3" />}
                   </div>
-                  {errors.firstName && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.firstName}
-                    </p>
-                  )}
-                </div>
+                  <span className="text-sm text-foreground">{option}</span>
+                </button>
+              ))}
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="setup-lastName">Last name <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id="setup-lastName"
-                      value={form.lastName}
-                      onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                      placeholder="Doe"
-                      className="pl-10"
-                      required
-                      aria-invalid={!!errors.lastName}
-                    />
-                  </div>
-                  {errors.lastName && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.lastName}
-                    </p>
-                  )}
-                </div>
+            {/* Portfolio & LinkedIn */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-portfolio">Portfolio URL</Label>
+              <Input id="dialog-portfolio" type="url" value={form.portfolio_url} onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })} placeholder="https://yourportfolio.com" maxLength={500} />
+            </div>
 
-                {/* Email: editable for email/password users, read-only for Google OAuth */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="setup-email">Email <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <Input
-                      id="setup-email"
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })}
-                      readOnly={!!isOAuth}
-                      disabled={!!isOAuth}
-                      className={cn("pl-10", isOAuth && "bg-muted/50")}
-                      required
-                      aria-invalid={!!errors.email}
-                    />
-                  </div>
-                  {isOAuth ? (
-                    <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">You can update your contact email here.</p>
-                  )}
-                  {errors.email && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.email}
-                    </p>
-                  )}
-                </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-linkedin">LinkedIn URL</Label>
+              <Input id="dialog-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label>Country <span className="text-destructive">*</span></Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")}
-                        aria-invalid={!!errors.country}
-                      >
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        {form.country || "Select a country"}
-                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search countries..." />
-                        <CommandList>
-                          <CommandEmpty>No country found.</CommandEmpty>
-                          <CommandGroup>
-                            {COUNTRIES.map((c) => (
-                              <CommandItem
-                                key={c.code}
-                                value={c.name}
-                                onSelect={() => setForm({ ...form, country: c.name })}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
-                                {c.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {errors.country && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.country}
-                    </p>
-                  )}
-                </div>
+            {/* Experience Areas */}
+            <div className="space-y-1.5">
+              <Label>Experience areas</Label>
+              <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
+              <MultiSelect
+                options={EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }))}
+                selected={form.experience_areas}
+                onChange={(v) => setForm({ ...form, experience_areas: v })}
+                placeholder="Search and select areas..."
+                aria-label="Experience areas"
+              />
+            </div>
 
-                <div className="space-y-1.5">
-                  <Label>Timezone <span className="text-destructive">*</span></Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
-                        aria-invalid={!!errors.timezone}
-                      >
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        {form.timezone
-                          ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone
-                          : "Select a timezone"}
-                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search timezones..." />
-                        <CommandList>
-                          <CommandEmpty>No timezone found.</CommandEmpty>
-                          <CommandGroup>
-                            {TIMEZONES.map((tz) => (
-                              <CommandItem
-                                key={tz.value}
-                                value={tz.label}
-                                onSelect={() => setForm({ ...form, timezone: tz.value })}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
-                                {tz.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {errors.timezone && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.timezone}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
+            {/* Professional Goals */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-goals">Professional development goals</Label>
+              <Textarea
+                id="dialog-goals"
+                value={form.professional_goals}
+                onChange={(e) => setForm({ ...form, professional_goals: e.target.value })}
+                placeholder="Describe your professional development goals..."
+                className="min-h-[100px] resize-y"
+                maxLength={5000}
+              />
+            </div>
 
-            {/* STEP 2: Discord */}
-            {step === 2 && (
-              <>
-                <div className="mb-2">
-                  <h2 className="text-lg font-semibold text-foreground">Do you have a Discord username?</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Tech Fleet's community lives on Discord. Let us know if you're already there.
-                  </p>
-                </div>
+            {/* Education */}
+            <div className="space-y-1.5">
+              <Label>Education background</Label>
+              <MultiSelect
+                options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
+                selected={form.education_background}
+                onChange={(v) => setForm({ ...form, education_background: v })}
+                placeholder="Search and select education..."
+                aria-label="Education background"
+              />
+            </div>
 
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, hasDiscord: true })}
-                    className={cn(
-                      "w-full text-left p-4 rounded-lg border-2 transition-all",
-                      form.hasDiscord === true
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="font-medium text-foreground">Yes, I have a Discord username</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, hasDiscord: false, discordUsername: "" })}
-                    className={cn(
-                      "w-full text-left p-4 rounded-lg border-2 transition-all",
-                      form.hasDiscord === false
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="font-medium text-foreground">No, not yet</span>
-                  </button>
-
-                  {errors.hasDiscord && (
-                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                      <AlertCircle className="h-3 w-3" /> {errors.hasDiscord}
-                    </p>
-                  )}
-                </div>
-
-                {form.hasDiscord === true && (
-                  <div className="space-y-1.5 mt-4">
-                    <Label htmlFor="setup-discordUsername">Discord username</Label>
-                    <div className="relative">
-                      <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <Input
-                        id="setup-discordUsername"
-                        value={form.discordUsername}
-                        onChange={(e) => setForm({ ...form, discordUsername: e.target.value })}
-                        placeholder="username"
-                        className="pl-10"
-                        required
-                        aria-invalid={!!errors.discordUsername}
-                      />
-                    </div>
-                    {errors.discordUsername && (
-                      <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                        <AlertCircle className="h-3 w-3" /> {errors.discordUsername}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {form.hasDiscord === false && (
-                  <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border space-y-3">
-                    <p className="text-sm text-foreground font-medium">Join the Tech Fleet Discord community</p>
-                    <p className="text-sm text-muted-foreground">
-                      Discord is where our community connects, collaborates, and supports each other.
-                    </p>
-                    <a
-                      href="https://techfleet.org/join"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Join Tech Fleet Discord
-                    </a>
-                    <p className="text-xs text-muted-foreground">
-                      You can add your Discord username later from your profile.
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* STEP 3: Interests */}
-            {step === 3 && (
-              <>
-                <div className="mb-2">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    What kinds of activities interest you?
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Choose all that apply. You can change this later.</p>
-                </div>
-
-                <div className="space-y-1.5">
-                  {ACTIVITY_OPTIONS.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => toggleInterest(option)}
-                      className={cn(
-                        "w-full text-left p-4 rounded-lg border-2 transition-all flex items-center gap-3",
-                        form.interests.includes(option)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center",
-                          form.interests.includes(option)
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "border-primary bg-transparent"
-                        )}
-                        aria-hidden="true"
-                      >
-                        {form.interests.includes(option) && <Check className="h-3 w-3" />}
-                      </div>
-                      <span className="text-sm font-medium text-foreground">{option}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Navigation buttons */}
-            <div className="flex gap-3 pt-2">
-              {step > 1 && (
-                <Button type="button" variant="outline" onClick={handleBack} className="flex-1">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-              )}
-
-              {step < TOTAL_STEPS ? (
-                <Button type="button" onClick={handleNext} className="flex-1">
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              ) : (
-                <Button type="button" className="flex-1" disabled={saving} onClick={handleComplete}>
-                  {saving ? "Saving…" : "Complete Setup"}
-                </Button>
-              )}
+            {/* Notification preferences */}
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base font-semibold">Notification preferences</Label>
+              <div className="flex items-start gap-3">
+                <Checkbox id="dialog-notify-training" checked={form.notify_training_opportunities} onCheckedChange={(checked) => setForm({ ...form, notify_training_opportunities: !!checked })} />
+                <Label htmlFor="dialog-notify-training" className="text-sm leading-relaxed cursor-pointer">
+                  Notify me about training opportunities that match my preferences
+                </Label>
+              </div>
+              <div className="flex items-start gap-3">
+                <Checkbox id="dialog-notify-announcements" checked={form.notify_announcements} onCheckedChange={(checked) => setForm({ ...form, notify_announcements: !!checked })} />
+                <Label htmlFor="dialog-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
+                  Send me email notifications when new announcements are posted
+                </Label>
+              </div>
             </div>
           </form>
         </ScrollArea>
+
+        {/* Footer */}
+        <div className="border-t px-6 py-4 shrink-0">
+          <Button form="profile-setup-form" type="submit" className="w-full" disabled={saving}>
+            {saving ? "Saving…" : "Complete Profile Setup"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
