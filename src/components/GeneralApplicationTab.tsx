@@ -180,8 +180,8 @@ export function GeneralApplicationTab() {
   }, [user, profile]);
 
   useEffect(() => {
-    loadApps();
-  }, [loadApps]);
+    loadOrCreateApp();
+  }, [loadOrCreateApp]);
 
   const populateFormFromApp = (app: GeneralApplication) => {
     setForm({
@@ -209,63 +209,6 @@ export function GeneralApplicationTab() {
     });
     setTitle(app.title);
     setSection(app.current_section > 0 ? Math.min(app.current_section, TOTAL_SECTIONS) : 1);
-  };
-
-  const handleNewApp = async () => {
-    if (!user) return;
-    const completed = await GeneralApplicationService.getLatestCompleted(user.id);
-    if (completed) {
-      setLatestCompleted(completed);
-      setPrefillDialogOpen(true);
-    } else {
-      await createApp();
-    }
-  };
-
-  const createApp = async (prefill?: GeneralApplication) => {
-    if (!user) return;
-    setCreatingWithPrefill(true);
-    try {
-      const app = await GeneralApplicationService.create(user.id, prefill ? { about_yourself: prefill.about_yourself } : undefined);
-      setActiveApp(app);
-      populateFormFromApp(app);
-      if (prefill) {
-        // Copy over all fields from prefill
-        setForm((prev) => ({
-          ...prev,
-          hours_commitment: prefill.hours_commitment || "",
-          portfolio_url: prefill.portfolio_url || "",
-          linkedin_url: prefill.linkedin_url || "",
-          previous_engagement: prefill.previous_engagement || "",
-          previous_engagement_ways: prefill.previous_engagement_ways || [],
-          teammate_learnings: prefill.teammate_learnings || "",
-          agile_vs_waterfall: prefill.agile_vs_waterfall || "",
-          psychological_safety: prefill.psychological_safety || "",
-          agile_philosophies: prefill.agile_philosophies || "",
-          collaboration_challenges: prefill.collaboration_challenges || "",
-          servant_leadership_definition: prefill.servant_leadership_definition || "",
-          servant_leadership_actions: prefill.servant_leadership_actions || "",
-          servant_leadership_challenges: prefill.servant_leadership_challenges || "",
-          servant_leadership_situation: prefill.servant_leadership_situation || "",
-        }));
-      }
-      setSection(1);
-      setIsNewApp(true);
-      setView("edit");
-      await loadApps();
-    } catch {
-      toast.error("Failed to create application");
-    } finally {
-      setCreatingWithPrefill(false);
-      setPrefillDialogOpen(false);
-    }
-  };
-
-  const openApp = (app: GeneralApplication) => {
-    setActiveApp(app);
-    populateFormFromApp(app);
-    setIsNewApp(false);
-    setView("edit");
   };
 
   const gatherSaveFields = (): Partial<GeneralApplication> => ({
@@ -306,6 +249,8 @@ export function GeneralApplicationTab() {
     }
   };
 
+  const isCompleted = activeApp?.status === "completed";
+
   const handleSave = async (markComplete = false) => {
     if (!activeApp) return;
     setSaving(true);
@@ -313,18 +258,20 @@ export function GeneralApplicationTab() {
       const fields = gatherSaveFields();
       if (markComplete) {
         fields.status = "completed";
-      } else {
+      } else if (!isCompleted) {
+        // Only revert to draft if not already completed (allow updates to completed apps)
         fields.status = "draft";
       }
       await GeneralApplicationService.save(activeApp.id, fields);
-      // Always sync profile fields
       await syncProfileFields();
-      toast.success(markComplete ? "Application submitted!" : "Progress saved");
       const updated = await GeneralApplicationService.fetch(activeApp.id);
       if (updated) setActiveApp(updated);
-      await loadApps();
-      if (markComplete) {
-        setView("list");
+
+      if (markComplete && !isCompleted) {
+        // First-time completion: celebrate!
+        setShowCelebration(true);
+      } else {
+        toast.success(markComplete ? "Application updated!" : "Progress saved");
       }
     } catch {
       toast.error("Failed to save application");
