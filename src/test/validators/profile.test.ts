@@ -88,6 +88,7 @@ describe("profileSchema — Discord username validation", () => {
       firstName: "Jane",
       lastName: "Doe",
       country: "US",
+      timezone: "America/New_York",
       discordUsername: "jane_doe_123",
     });
     expect(result.success).toBe(true);
