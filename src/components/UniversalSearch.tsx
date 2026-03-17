@@ -186,7 +186,7 @@ export function UniversalSearch() {
         className={
           isMobile
             ? "h-9 w-9"
-            : "relative h-9 w-full max-w-[220px] justify-start gap-2 text-sm text-muted-foreground"
+            : "relative h-9 w-full max-w-[300px] justify-start gap-2 text-sm text-muted-foreground"
         }
         onClick={() => setOpen(true)}
         aria-label="Search courses, applications, and project training"
