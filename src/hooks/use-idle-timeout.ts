@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 
-const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "keyup", "scroll", "touchstart", "click", "input", "focus", "change"];
 
 /**
  * Auto-signs the user out after a period of inactivity.
