@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, ArrowLeft, ArrowRight, ExternalLink, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { COUNTRIES } from "@/lib/countries";
+import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
