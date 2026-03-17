@@ -430,7 +430,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
             </div>
 
             {/* Portfolio & LinkedIn */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="edit-portfolio">Portfolio URL</Label>
               <Input
                 id="edit-portfolio"
