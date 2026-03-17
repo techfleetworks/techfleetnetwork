@@ -12,6 +12,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
+import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
 import { COUNTRIES } from "@/lib/countries";
@@ -29,7 +33,13 @@ interface ProfileEditPanelProps {
 export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", country: "", timezone: "", discordUsername: "", interests: [] as string[] });
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "", country: "", timezone: "",
+    discordUsername: "", interests: [] as string[],
+    portfolio_url: "", linkedin_url: "",
+    experience_areas: [] as string[], professional_goals: "",
+    notify_training_opportunities: false, education_background: [] as string[],
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
@@ -51,6 +61,12 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         timezone: profile.timezone || "",
         discordUsername: profile.discord_username || "",
         interests: profile.interests || [],
+        portfolio_url: profile.portfolio_url || "",
+        linkedin_url: profile.linkedin_url || "",
+        experience_areas: profile.experience_areas || [],
+        professional_goals: profile.professional_goals || "",
+        notify_training_opportunities: profile.notify_training_opportunities || false,
+        education_background: profile.education_background || [],
       });
       setErrors({});
     }
@@ -102,6 +118,15 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
+      // Save additional profile fields
+      await ProfileService.updateFields(user!.id, {
+        portfolio_url: form.portfolio_url,
+        linkedin_url: form.linkedin_url,
+        experience_areas: form.experience_areas,
+        professional_goals: form.professional_goals,
+        notify_training_opportunities: form.notify_training_opportunities,
+        education_background: form.education_background,
+      });
       await refreshProfile();
       toast.success("Profile updated successfully");
       onOpenChange(false);
@@ -402,6 +427,81 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                   <span className="text-sm text-foreground">{option}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Portfolio & LinkedIn */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-portfolio">Portfolio URL</Label>
+              <Input
+                id="edit-portfolio"
+                type="url"
+                value={form.portfolio_url}
+                onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })}
+                placeholder="https://yourportfolio.com"
+                maxLength={500}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-linkedin">LinkedIn URL</Label>
+              <Input
+                id="edit-linkedin"
+                type="url"
+                value={form.linkedin_url}
+                onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
+                placeholder="https://linkedin.com/in/yourprofile"
+                maxLength={500}
+              />
+            </div>
+
+            {/* Experience Areas */}
+            <div className="space-y-2">
+              <Label>Experience areas</Label>
+              <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
+              <MultiSelect
+                options={EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }))}
+                selected={form.experience_areas}
+                onChange={(v) => setForm({ ...form, experience_areas: v })}
+                placeholder="Search and select areas..."
+                aria-label="Experience areas"
+              />
+            </div>
+
+            {/* Professional Goals */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-goals">Professional development goals</Label>
+              <Textarea
+                id="edit-goals"
+                value={form.professional_goals}
+                onChange={(e) => setForm({ ...form, professional_goals: e.target.value })}
+                placeholder="Describe your professional development goals..."
+                className="min-h-[100px] resize-y"
+                maxLength={5000}
+              />
+            </div>
+
+            {/* Notify */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="edit-notify"
+                checked={form.notify_training_opportunities}
+                onCheckedChange={(checked) => setForm({ ...form, notify_training_opportunities: !!checked })}
+              />
+              <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
+                Notify me about training opportunities that match my preferences
+              </Label>
+            </div>
+
+            {/* Education */}
+            <div className="space-y-2">
+              <Label>Education background</Label>
+              <MultiSelect
+                options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
+                selected={form.education_background}
+                onChange={(v) => setForm({ ...form, education_background: v })}
+                placeholder="Search and select education..."
+                aria-label="Education background"
+              />
             </div>
 
             {/* Password Reset */}

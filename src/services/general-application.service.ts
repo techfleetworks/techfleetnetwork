@@ -48,6 +48,21 @@ export interface GeneralApplication {
   status: string;
   title: string;
   about_yourself: string;
+  hours_commitment: string;
+  portfolio_url: string;
+  linkedin_url: string;
+  previous_engagement: string;
+  previous_engagement_ways: string[];
+  teammate_learnings: string;
+  agile_vs_waterfall: string;
+  psychological_safety: string;
+  agile_philosophies: string;
+  collaboration_challenges: string;
+  servant_leadership_definition: string;
+  servant_leadership_actions: string;
+  servant_leadership_challenges: string;
+  servant_leadership_situation: string;
+  current_section: number;
   created_at: string;
   updated_at: string;
 }
@@ -134,7 +149,7 @@ export const GeneralApplicationService = {
   },
 
   /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
-  async save(id: string, fields: Partial<Pick<GeneralApplication, "about_yourself" | "status" | "title">>): Promise<void> {
+  async save(id: string, fields: Partial<Omit<GeneralApplication, "id" | "user_id" | "created_at" | "updated_at">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
         .from("general_applications")

@@ -17,6 +17,12 @@ export interface Profile {
   avatar_url: string | null;
   profile_completed: boolean;
   interests: string[];
+  portfolio_url: string;
+  linkedin_url: string;
+  experience_areas: string[];
+  professional_goals: string;
+  notify_training_opportunities: boolean;
+  education_background: string[];
 }
 
 export const ProfileService = {
@@ -24,7 +30,7 @@ export const ProfileService = {
     return log.track("fetch", `Fetching profile for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests")
+        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, experience_areas, professional_goals, notify_training_opportunities, education_background")
         .eq("user_id", userId)
         .single();
       if (error) {
@@ -126,6 +132,24 @@ export const ProfileService = {
         throw new Error("Failed to sync profile names.");
       }
       log.info("updateNames", `Profile names synced for user ${userId}`, { userId, firstName, lastName });
+    });
+  },
+
+  /** Update arbitrary profile fields (used by general application to sync Section 2 fields) */
+  async updateFields(userId: string, fields: Record<string, unknown>) {
+    return log.track("updateFields", `Updating profile fields for user ${userId}`, {
+      userId,
+      fields: Object.keys(fields),
+    }, async () => {
+      const { error } = await supabase
+        .from("profiles")
+        .update(fields as any)
+        .eq("user_id", userId);
+      if (error) {
+        log.error("updateFields", `Failed to update profile fields: ${error.message}`, { userId }, error);
+        throw new Error("Failed to update profile.");
+      }
+      log.info("updateFields", `Profile fields updated for user ${userId}`, { userId });
     });
   },
 };
