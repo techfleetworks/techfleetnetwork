@@ -24,7 +24,7 @@ import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@/lib/react-query";
 
 const TOTAL_FIRST_STEPS = 6;
 
