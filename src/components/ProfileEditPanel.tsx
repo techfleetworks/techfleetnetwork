@@ -92,6 +92,13 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       timezone: form.timezone,
       discordUsername: form.discordUsername,
       interests: form.interests,
+      portfolio_url: form.portfolio_url,
+      linkedin_url: form.linkedin_url,
+      experience_areas: form.experience_areas,
+      professional_goals: form.professional_goals,
+      notify_training_opportunities: form.notify_training_opportunities,
+      notify_announcements: form.notify_announcements,
+      education_background: form.education_background,
     });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -120,16 +127,6 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
-      // Save additional profile fields
-      await ProfileService.updateFields(user!.id, {
-        portfolio_url: form.portfolio_url,
-        linkedin_url: form.linkedin_url,
-        experience_areas: form.experience_areas,
-        professional_goals: form.professional_goals,
-        notify_training_opportunities: form.notify_training_opportunities,
-        notify_announcements: form.notify_announcements,
-        education_background: form.education_background,
-      });
       await refreshProfile();
       toast.success("Profile updated successfully");
       onOpenChange(false);
