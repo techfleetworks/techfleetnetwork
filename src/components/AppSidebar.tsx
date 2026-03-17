@@ -1,14 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Rocket,
   GraduationCap,
   BookOpen,
   Bot,
   CalendarDays,
   ClipboardList,
   Handshake,
-  UserPen,
+  ShieldCheck,
   LogOut,
 } from "lucide-react";
 import {
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const mainNav = [
@@ -48,6 +48,7 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
@@ -109,6 +110,28 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/users")}
+                    tooltip="User Admin"
+                  >
+                    <Link to="/admin/users">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>User Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

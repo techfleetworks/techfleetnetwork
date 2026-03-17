@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_promotions: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          promoted_by: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          promoted_by: string
+          token?: string
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          promoted_by?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           changed_fields: string[] | null
@@ -577,6 +604,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       workshops: {
         Row: {
           accountable_function: string
@@ -663,6 +711,13 @@ export type Database = {
       }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -709,6 +764,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "member"
       bdd_status: "implemented" | "partial" | "not_built"
       bdd_test_type: "unit" | "e2e" | "both" | "none" | "manual"
       journey_phase:
@@ -848,6 +904,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "member"],
       bdd_status: ["implemented", "partial", "not_built"],
       bdd_test_type: ["unit", "e2e", "both", "none", "manual"],
       journey_phase: [
