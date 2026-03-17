@@ -9,6 +9,7 @@ import {
   Handshake,
   ShieldCheck,
   LogOut,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
