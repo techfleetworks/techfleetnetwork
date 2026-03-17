@@ -421,7 +421,7 @@ export function ProfileSetupDialog() {
                 </div>
 
                 {form.hasDiscord === true && (
-                  <div className="space-y-2 mt-4">
+                  <div className="space-y-1.5 mt-4">
                     <Label htmlFor="setup-discordUsername">Discord username</Label>
                     <div className="relative">
                       <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
