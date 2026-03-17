@@ -28,11 +28,11 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const mainNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "My Journey", href: "/journey/first-steps", icon: Rocket },
   { label: "Training", href: "/training", icon: GraduationCap },
-  { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Resources", href: "/resources", icon: BookOpen },
-  { label: "Applications", href: "/applications", icon: ClipboardList },
+  { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Fleety", href: "/chat", icon: Bot },
 ];
 
