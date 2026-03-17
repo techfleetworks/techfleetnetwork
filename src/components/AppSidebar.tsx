@@ -48,6 +48,7 @@ export function AppSidebar({ onProfileEdit }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
