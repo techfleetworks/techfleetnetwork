@@ -7,12 +7,14 @@ import { JourneyService } from "@/services/journey.service";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { StatsService } from "@/services/stats.service";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const [firstStepsCompleted, setFirstStepsCompleted] = useState<number | null>(null);
   const [secondStepsCompleted, setSecondStepsCompleted] = useState<number | null>(null);
+  const [thirdStepsCompleted, setThirdStepsCompleted] = useState<number | null>(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [communityBadgeCount, setCommunityBadgeCount] = useState<number | null>(null);
   const totalFirstSteps = 6;
@@ -23,10 +25,12 @@ export default function DashboardPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
+      JourneyService.getCompletedCount(user.id, "third_steps"),
       StatsService.getNetworkStats(),
-    ]).then(([first, second, stats]) => {
+    ]).then(([first, second, third, stats]) => {
       setFirstStepsCompleted(first);
       setSecondStepsCompleted(second);
+      setThirdStepsCompleted(third);
       setCommunityBadgeCount(
         (stats.first_steps_completed ?? 0) + (stats.second_steps_completed ?? 0)
       );
@@ -35,23 +39,26 @@ export default function DashboardPage() {
 
   const allFirstStepsDone = firstStepsCompleted !== null && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted !== null && secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allThirdStepsDone = thirdStepsCompleted !== null && thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
 
   // No auto-redirect — always show the dashboard overview on login
 
-  const currentPhase = allSecondStepsDone
+  const currentPhase = allThirdStepsDone
+    ? "Learn the Team Practices"
+    : allSecondStepsDone
     ? "Learn About Agile Teamwork"
     : allFirstStepsDone
     ? "Build an Agile Mindset"
     : "Onboarding Steps";
 
-  const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0);
-  const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS;
-  const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0);
+  const totalCompleted = (firstStepsCompleted ?? 0) + (secondStepsCompleted ?? 0) + (thirdStepsCompleted ?? 0);
+  const totalTasks = totalFirstSteps + TOTAL_AGILE_LESSONS + TOTAL_TEAMWORK_LESSONS;
+  const badgesEarned = (allFirstStepsDone ? 1 : 0) + (allSecondStepsDone ? 1 : 0) + (allThirdStepsDone ? 1 : 0);
 
   const journeySteps: JourneyStep[] = allFirstStepsDone
     ? [
         { id: "second-steps", title: "Build an Agile Mindset", description: `Complete the Agile Handbook course: ${secondStepsCompleted ?? 0}/${TOTAL_AGILE_LESSONS} lessons completed.`, status: allSecondStepsDone ? "completed" : "current", href: "/journey/second-steps" },
-        { id: "third-steps", title: "Learn About Agile Teamwork", description: "Read the Teammate Handbook and pass the comprehension quiz.", status: allSecondStepsDone ? "current" : "locked", href: "/journey/third-steps" },
+        { id: "third-steps", title: "Learn About Agile Teamwork", description: `Complete the Teammate Handbook: ${thirdStepsCompleted ?? 0}/${TOTAL_TEAMWORK_LESSONS} lessons completed.`, status: allSecondStepsDone ? (allThirdStepsDone ? "completed" : "current") : "locked", href: "/journey/third-steps" },
         { id: "team-practices", title: "Learn the Team Practices of Empowered Teams", description: "Master the practices that make agile teams effective and self-organizing.", status: "locked", href: "/journey/third-steps" },
       ]
     : [
@@ -119,7 +126,7 @@ export default function DashboardPage() {
 
   const badgesSection = (
     <section className="mb-8">
-      <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} communityBadgeCount={communityBadgeCount} />
+      <BadgesDisplay allFirstStepsDone={allFirstStepsDone} allSecondStepsDone={allSecondStepsDone} allThirdStepsDone={allThirdStepsDone} communityBadgeCount={communityBadgeCount} />
     </section>
   );
 

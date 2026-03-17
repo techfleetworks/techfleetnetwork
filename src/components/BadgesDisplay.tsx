@@ -16,10 +16,11 @@ interface Badge {
 interface BadgesDisplayProps {
   allFirstStepsDone: boolean;
   allSecondStepsDone: boolean;
+  allThirdStepsDone?: boolean;
   communityBadgeCount?: number | null;
 }
 
-export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, communityBadgeCount }: BadgesDisplayProps) {
+export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdStepsDone = false, communityBadgeCount }: BadgesDisplayProps) {
   const badges: Badge[] = [
     {
       id: "first-steps",
@@ -42,7 +43,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
       name: "Teammate",
       description: "Completed the Teammate Handbook",
       image: badgeThirdSteps,
-      earned: false,
+      earned: allThirdStepsDone,
       href: "/journey/third-steps",
     },
     {

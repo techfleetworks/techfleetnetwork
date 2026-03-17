@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, CheckCircle2, ChevronRight, ClipboardCheck, Eye, GraduationCap, Users } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, ClipboardCheck, GraduationCap, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { JourneyService } from "@/services/journey.service";
 
 interface CourseCard {
@@ -21,6 +21,7 @@ export default function TrainingPage() {
   const { user } = useAuth();
   const [firstCompleted, setFirstCompleted] = useState(0);
   const [agileCompleted, setAgileCompleted] = useState(0);
+  const [teamworkCompleted, setTeamworkCompleted] = useState(0);
   const totalFirstSteps = 6;
 
   useEffect(() => {
@@ -28,9 +29,11 @@ export default function TrainingPage() {
     Promise.all([
       JourneyService.getCompletedCount(user.id, "first_steps"),
       JourneyService.getCompletedCount(user.id, "second_steps"),
-    ]).then(([first, second]) => {
+      JourneyService.getCompletedCount(user.id, "third_steps"),
+    ]).then(([first, second, third]) => {
       setFirstCompleted(first);
       setAgileCompleted(second);
+      setTeamworkCompleted(third);
     });
   }, [user]);
 
@@ -56,20 +59,11 @@ export default function TrainingPage() {
     {
       id: "agile-teamwork",
       title: "Learn About Agile Teamwork",
-      description: "Read the Teammate Handbook and pass the comprehension quiz to demonstrate your understanding.",
+      description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
       icon: Users,
       href: "/journey/third-steps",
-      totalTasks: 0,
-      completedTasks: 0,
-    },
-    {
-      id: "observe-teams",
-      title: "Observe Project Teams",
-      description: "Complete a 2-week observation period with daily posts, meeting attendance, and reflections.",
-      icon: Eye,
-      href: "/journey/observer",
-      totalTasks: 0,
-      completedTasks: 0,
+      totalTasks: TOTAL_TEAMWORK_LESSONS,
+      completedTasks: teamworkCompleted,
     },
   ];
 
@@ -154,12 +148,6 @@ export default function TrainingPage() {
                       />
                     </div>
                   </div>
-                )}
-
-                {course.totalTasks === 0 && (
-                  <p className="text-xs text-muted-foreground italic">
-                    Coming soon
-                  </p>
                 )}
 
                 <div className="flex items-center gap-1 text-xs text-primary mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
