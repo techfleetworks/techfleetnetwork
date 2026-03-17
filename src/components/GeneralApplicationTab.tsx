@@ -614,7 +614,24 @@ export function GeneralApplicationTab() {
         <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(section / TOTAL_SECTIONS) * 100}%` }} />
       </div>
 
-      <div className="card-elevated p-6 space-y-5">
+      <div className="card-elevated p-6 space-y-5" ref={formContainerRef}>
+        {/* Error summary banner */}
+        {Object.keys(errors).length > 0 && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-destructive">
+                Please fix {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "error" : "errors"} to continue
+              </p>
+              <ul className="text-sm text-destructive/90 list-disc list-inside space-y-0.5">
+                {Object.values(errors).map((msg, i) => (
+                  <li key={i}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-semibold text-foreground">Section {section}: {SECTION_TITLES[section - 1]}</h2>
           {section === 2 && (
