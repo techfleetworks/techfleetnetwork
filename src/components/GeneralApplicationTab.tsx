@@ -125,6 +125,7 @@ const emptyForm: AppFormData = {
 
 export function GeneralApplicationTab() {
   const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeApp, setActiveApp] = useState<GeneralApplication | null>(null);
   const [form, setForm] = useState<AppFormData>({ ...emptyForm });
@@ -137,6 +138,7 @@ export function GeneralApplicationTab() {
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const formContainerRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef(false);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
