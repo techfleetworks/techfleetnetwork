@@ -375,6 +375,7 @@ export type Database = {
           id: string
           interests: string[]
           last_name: string
+          membership_tier: Database["public"]["Enums"]["membership_tier"]
           professional_background: string
           profile_completed: boolean
           updated_at: string
@@ -393,6 +394,7 @@ export type Database = {
           id?: string
           interests?: string[]
           last_name?: string
+          membership_tier?: Database["public"]["Enums"]["membership_tier"]
           professional_background?: string
           profile_completed?: boolean
           updated_at?: string
@@ -411,6 +413,7 @@ export type Database = {
           id?: string
           interests?: string[]
           last_name?: string
+          membership_tier?: Database["public"]["Enums"]["membership_tier"]
           professional_background?: string
           profile_completed?: boolean
           updated_at?: string
@@ -612,6 +615,7 @@ export type Database = {
         | "third_steps"
         | "observer"
         | "projects"
+      membership_tier: "free" | "paid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -748,6 +752,7 @@ export const Constants = {
         "observer",
         "projects",
       ],
+      membership_tier: ["free", "paid"],
     },
   },
 } as const
