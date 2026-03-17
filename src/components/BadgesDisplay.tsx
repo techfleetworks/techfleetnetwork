@@ -1,8 +1,8 @@
+import { Link } from "react-router-dom";
 import badgeFirstSteps from "@/assets/badge-first-steps.png";
 import badgeSecondSteps from "@/assets/badge-second-steps.png";
 import badgeThirdSteps from "@/assets/badge-third-steps.png";
 import badgeObserver from "@/assets/badge-observer.png";
-import badgeProjects from "@/assets/badge-projects.png";
 
 interface Badge {
   id: string;
@@ -10,6 +10,7 @@ interface Badge {
   description: string;
   image: string;
   earned: boolean;
+  href: string;
 }
 
 interface BadgesDisplayProps {
@@ -26,6 +27,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
       description: "Completed onboarding checklist",
       image: badgeFirstSteps,
       earned: allFirstStepsDone,
+      href: "/journey/first-steps",
     },
     {
       id: "agile-mindset",
@@ -33,6 +35,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
       description: "Completed all 25 Agile lessons",
       image: badgeSecondSteps,
       earned: allSecondStepsDone,
+      href: "/journey/second-steps",
     },
     {
       id: "teammate",
@@ -40,6 +43,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
       description: "Completed the Teammate Handbook",
       image: badgeThirdSteps,
       earned: false,
+      href: "/journey/third-steps",
     },
     {
       id: "observer",
@@ -47,13 +51,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
       description: "Completed Observe Project Teams",
       image: badgeObserver,
       earned: false,
-    },
-    {
-      id: "contributor",
-      name: "Contributor",
-      description: "Joined a real project team",
-      image: badgeProjects,
-      earned: false,
+      href: "/journey/observer",
     },
   ];
 
@@ -63,18 +61,20 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
     <section aria-labelledby="badges-heading">
       <div className="flex items-center gap-2 mb-4">
         <h2 id="badges-heading" className="text-xl font-semibold text-foreground">
-          Badges Earned
+          Beginner Badges Earned
         </h2>
         <span className="text-sm text-muted-foreground">
           ({earnedCount}/{badges.length})
         </span>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {badges.map((badge) => (
-          <div
+          <Link
             key={badge.id}
-            className="flex flex-col items-center text-center group"
+            to={badge.href}
+            className="flex flex-col items-center text-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-2 transition-colors hover:bg-muted/50"
+            aria-label={`${badge.name} badge – ${badge.earned ? badge.description : "Locked"}`}
           >
             <div
               className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full transition-all duration-300 ${
@@ -100,7 +100,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, community
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-tight hidden sm:block">
               {badge.earned ? badge.description : "Locked"}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 
