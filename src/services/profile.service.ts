@@ -70,6 +70,7 @@ export const ProfileService = {
         first_name: input.firstName,
         last_name: input.lastName,
         country: input.country,
+        timezone: input.timezone,
         discord_username: input.discordUsername || "",
         discord_user_id: discordUserId,
         display_name: `${input.firstName} ${input.lastName}`.trim(),
