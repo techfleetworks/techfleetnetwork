@@ -202,7 +202,7 @@ export default function TrainingPage() {
       title: "Join Project Training Teams",
       description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.`,
       icon: Briefcase,
-      href: "/journey/project-training",
+      href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted,
       locked: !allTeamworkDone,
