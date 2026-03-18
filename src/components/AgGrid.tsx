@@ -18,6 +18,8 @@ interface Props<T> extends AgGridReactProps<T> {
   gridId?: string;
   /** Hide the reset view button even when gridId is set */
   hideResetButton?: boolean;
+  /** Extra buttons/controls rendered in the toolbar row alongside Reset View */
+  toolbarLeft?: React.ReactNode;
 }
 
 export function ThemedAgGrid<T = unknown>({
