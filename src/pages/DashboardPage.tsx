@@ -123,6 +123,8 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
 
+  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+
   // React Query hooks — cached, deduped, no manual state
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps");
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
