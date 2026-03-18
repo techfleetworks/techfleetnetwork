@@ -216,6 +216,10 @@ export default function ProjectApplicationPage() {
     }
   }, [existingApp, appLoading, initialized]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [step]);
+
   const isCompleted = existingApp?.status === "completed";
 
   /* ── available team hats scoped to project ─────────────── */
