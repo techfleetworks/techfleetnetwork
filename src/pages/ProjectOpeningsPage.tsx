@@ -59,7 +59,7 @@ export default function ProjectOpeningsPage() {
       const { data, error } = await supabase
         .from("projects")
         .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones")
-        .in("project_status", VISIBLE_STATUSES as unknown as string[])
+        .in("project_status", [...VISIBLE_STATUSES])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as OpenProject[];
