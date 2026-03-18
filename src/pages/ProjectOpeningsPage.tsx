@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil,
 } from "lucide-react";
@@ -14,7 +15,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
+  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES, TEAM_HATS,
 } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
@@ -34,6 +35,17 @@ interface ClientInfo {
   name: string;
 }
 
+interface ProjectAppStat {
+  project_id: string;
+  team_hats_interest: string[];
+}
+
+interface EnrichedProject extends OpenProject {
+  clientName: string;
+  totalApps: number;
+  hatCounts: Record<string, number>;
+}
+
 const SECTION_LABELS = [
   "Introduction",
   "Profile Review",
@@ -44,6 +56,7 @@ const SECTION_LABELS = [
 
 export default function ProjectOpeningsPage() {
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [view, setView] = useState<"card" | "table">("card");
   const [gateDialogOpen, setGateDialogOpen] = useState(false);
@@ -76,6 +89,54 @@ export default function ProjectOpeningsPage() {
   });
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
+
+  /* Fetch submitted application stats for all open projects */
+  const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
+  const { data: appStats = [] } = useQuery({
+    queryKey: ["project-opening-app-stats", projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("project_id, team_hats_interest")
+        .in("project_id", projectIds)
+        .eq("status", "completed");
+      if (error) throw error;
+      return (data ?? []) as ProjectAppStat[];
+    },
+    enabled: projectIds.length > 0,
+  });
+
+  /* Compute per-project stats */
+  const statsMap = useMemo(() => {
+    const map = new Map<string, { total: number; hatCounts: Record<string, number> }>();
+    for (const stat of appStats) {
+      let entry = map.get(stat.project_id);
+      if (!entry) {
+        entry = { total: 0, hatCounts: {} };
+        map.set(stat.project_id, entry);
+      }
+      entry.total++;
+      for (const hat of stat.team_hats_interest) {
+        entry.hatCounts[hat] = (entry.hatCounts[hat] ?? 0) + 1;
+      }
+    }
+    return map;
+  }, [appStats]);
+
+  /* Enriched projects */
+  const enrichedProjects = useMemo<EnrichedProject[]>(() =>
+    projects.map((p) => {
+      const stats = statsMap.get(p.id);
+      return {
+        ...p,
+        clientName: clientMap.get(p.client_id) ?? "Client",
+        totalApps: stats?.total ?? 0,
+        hatCounts: stats?.hatCounts ?? {},
+      };
+    }),
+    [projects, clientMap, statsMap]
+  );
 
   const { data: genApp } = useQuery({
     queryKey: ["general-app-status", user?.id],
@@ -132,11 +193,11 @@ export default function ProjectOpeningsPage() {
   const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
   const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
-  const columnDefs = useMemo<ColDef<OpenProject>[]>(() => [
+  const columnDefs = useMemo<ColDef<EnrichedProject>[]>(() => [
     {
       headerName: "Client",
+      field: "clientName",
       flex: 2,
-      valueGetter: (params) => clientMap.get(params.data?.client_id ?? "") ?? "Client",
     },
     {
       headerName: "Project Type",
@@ -158,6 +219,19 @@ export default function ProjectOpeningsPage() {
       flex: 2,
       valueGetter: (params) => (params.data?.team_hats ?? []).join(", "),
     },
+    {
+      headerName: "Applications",
+      field: "totalApps",
+      flex: 0.8,
+      minWidth: 110,
+    },
+    /* One column per team hat */
+    ...TEAM_HATS.map((hat) => ({
+      headerName: hat,
+      flex: 0.7,
+      minWidth: 90,
+      valueGetter: (params: { data?: EnrichedProject }) => params.data?.hatCounts[hat] ?? 0,
+    } as ColDef<EnrichedProject>)),
   ], [clientMap]);
 
   return (
@@ -208,12 +282,12 @@ export default function ProjectOpeningsPage() {
             </div>
           ) : view === "card" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((p) => (
+              {enrichedProjects.map((p) => (
                 <Card key={p.id} className="flex flex-col">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <CardTitle className="text-lg leading-tight">{clientMap.get(p.client_id) ?? "Client"}</CardTitle>
+                        <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
                       </div>
                       <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
@@ -230,6 +304,23 @@ export default function ProjectOpeningsPage() {
                         {p.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
                       </div>
                     </div>
+                    <div>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">Total Applications</p>
+                      <p className="text-xs text-foreground pl-3 font-medium">{p.totalApps}</p>
+                    </div>
+                    {/* Per-hat counts — only show hats with > 0 */}
+                    {Object.keys(p.hatCounts).length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-muted-foreground mb-1">Applications by Team Hat</p>
+                        <div className="space-y-0.5 pl-3">
+                          {p.team_hats.map((hat) => (
+                            <p key={hat} className="text-xs text-muted-foreground">
+                              <span className="text-foreground font-medium">{p.hatCounts[hat] ?? 0}</span> — {hat}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
                     {appliedProjectIds.has(p.id) ? (
@@ -246,10 +337,10 @@ export default function ProjectOpeningsPage() {
               ))}
             </div>
           ) : (
-            <ThemedAgGrid<OpenProject>
+            <ThemedAgGrid<EnrichedProject>
               gridId="project-openings"
               height="400px"
-              rowData={projects}
+              rowData={enrichedProjects}
               columnDefs={columnDefs}
               getRowId={(params) => params.data.id}
               onRowClicked={(params) => {
@@ -261,6 +352,8 @@ export default function ProjectOpeningsPage() {
                 }
               }}
               rowStyle={{ cursor: "pointer" }}
+              showExportCsv={isAdmin}
+              exportFileName="project-openings"
             />
           )}
         </TabsContent>
