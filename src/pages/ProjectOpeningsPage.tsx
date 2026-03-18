@@ -217,6 +217,16 @@ export default function ProjectOpeningsPage() {
       valueGetter: (params) => statusLabel(params.data?.project_status ?? ""),
     },
     {
+      headerName: "Your Status",
+      field: "userStatus",
+      flex: 1,
+      minWidth: 110,
+      cellStyle: (params) => ({
+        color: params.value === "Applied" ? "hsl(var(--primary))" : undefined,
+        fontWeight: params.value === "Applied" ? 600 : undefined,
+      }),
+    },
+    {
       headerName: "Team Hats",
       flex: 2,
       valueGetter: (params) => (params.data?.team_hats ?? []).join(", "),
