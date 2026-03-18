@@ -4,8 +4,8 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import {
-  ArrowLeft, Share2, CheckCircle2, XCircle, User, Globe,
-  Briefcase, GraduationCap, MessageCircle, Loader2, Copy,
+  ArrowLeft, Share2, CheckCircle2, XCircle, User,
+  Briefcase, GraduationCap, Loader2, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,10 @@ import {
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
+
+const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
+const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
+const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
 export default function ApplicationSubmissionDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
