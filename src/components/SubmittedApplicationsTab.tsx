@@ -163,7 +163,8 @@ export default function SubmittedApplicationsTab() {
     },
     {
       headerName: "Previous Participant",
-      width: 160,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.participated_previous_phase ? "Yes" : "No",
     },
     {
