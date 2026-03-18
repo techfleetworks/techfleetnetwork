@@ -1,33 +1,50 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useImperativeHandle, forwardRef } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
-import type { ColDef, GridReadyEvent, ColumnResizedEvent, SortChangedEvent, FilterChangedEvent, ColumnMovedEvent, GridApi } from "ag-grid-community";
+import type {
+  ColDef, GridReadyEvent, ColumnResizedEvent, SortChangedEvent,
+  FilterChangedEvent, ColumnMovedEvent, ColumnVisibleEvent, GridApi,
+} from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { useTheme } from "next-themes";
 import { useGridState, type GridState } from "@/hooks/use-grid-state";
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
+
+export interface ThemedAgGridHandle {
+  resetView: () => void;
+}
 
 interface Props<T> extends AgGridReactProps<T> {
   height?: string;
   /** Unique id used to persist grid state per user. If omitted, state is not persisted. */
   gridId?: string;
+  /** Hide the reset view button even when gridId is set */
+  hideResetButton?: boolean;
 }
 
-export function ThemedAgGrid<T = unknown>({
-  height = "400px",
-  gridId,
-  defaultColDef,
-  onGridReady: externalOnGridReady,
-  onSortChanged: externalOnSortChanged,
-  onFilterChanged: externalOnFilterChanged,
-  onColumnResized: externalOnColumnResized,
-  onColumnMoved: externalOnColumnMoved,
-  ...rest
-}: Props<T>) {
+function ThemedAgGridInner<T = unknown>(
+  {
+    height = "400px",
+    gridId,
+    hideResetButton,
+    defaultColDef,
+    onGridReady: externalOnGridReady,
+    onSortChanged: externalOnSortChanged,
+    onFilterChanged: externalOnFilterChanged,
+    onColumnResized: externalOnColumnResized,
+    onColumnMoved: externalOnColumnMoved,
+    columnDefs,
+    ...rest
+  }: Props<T>,
+  ref: React.Ref<ThemedAgGridHandle>
+) {
   const { resolvedTheme } = useTheme();
   const themeClass = resolvedTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
   const apiRef = useRef<GridApi<T> | null>(null);
 
-  const { savedState, loaded, persistState } = useGridState(gridId ?? "");
+  const { savedState, loaded, persistState, clearState } = useGridState(gridId ?? "");
 
   const mergedColDef = useMemo<ColDef<T>>(
     () => ({
@@ -51,10 +68,21 @@ export function ThemedAgGrid<T = unknown>({
     persistState(state);
   }, [gridId, persistState]);
 
+  const resetView = useCallback(async () => {
+    await clearState();
+    if (apiRef.current) {
+      apiRef.current.resetColumnState();
+      apiRef.current.setFilterModel(null);
+      apiRef.current.sizeColumnsToFit();
+    }
+    toast.success("Table view reset to default");
+  }, [clearState]);
+
+  useImperativeHandle(ref, () => ({ resetView }), [resetView]);
+
   const handleGridReady = useCallback(
     (e: GridReadyEvent<T>) => {
       apiRef.current = e.api;
-      // Restore saved state
       if (gridId && savedState) {
         if (savedState.columnState) {
           e.api.applyColumnState({ state: savedState.columnState, applyOrder: true });
@@ -63,7 +91,6 @@ export function ThemedAgGrid<T = unknown>({
           e.api.setFilterModel(savedState.filterModel);
         }
       }
-      // Size columns to fit container
       e.api.sizeColumnsToFit();
       externalOnGridReady?.(e);
     },
@@ -71,42 +98,30 @@ export function ThemedAgGrid<T = unknown>({
   );
 
   const handleSortChanged = useCallback(
-    (e: SortChangedEvent<T>) => {
-      saveCurrentState();
-      externalOnSortChanged?.(e);
-    },
+    (e: SortChangedEvent<T>) => { saveCurrentState(); externalOnSortChanged?.(e); },
     [saveCurrentState, externalOnSortChanged]
   );
 
   const handleFilterChanged = useCallback(
-    (e: FilterChangedEvent<T>) => {
-      saveCurrentState();
-      externalOnFilterChanged?.(e);
-    },
+    (e: FilterChangedEvent<T>) => { saveCurrentState(); externalOnFilterChanged?.(e); },
     [saveCurrentState, externalOnFilterChanged]
   );
 
   const handleColumnResized = useCallback(
-    (e: ColumnResizedEvent<T>) => {
-      if (e.finished) {
-        saveCurrentState();
-      }
-      externalOnColumnResized?.(e);
-    },
+    (e: ColumnResizedEvent<T>) => { if (e.finished) saveCurrentState(); externalOnColumnResized?.(e); },
     [saveCurrentState, externalOnColumnResized]
   );
 
   const handleColumnMoved = useCallback(
-    (e: ColumnMovedEvent<T>) => {
-      if (e.finished) {
-        saveCurrentState();
-      }
-      externalOnColumnMoved?.(e);
-    },
+    (e: ColumnMovedEvent<T>) => { if (e.finished) saveCurrentState(); externalOnColumnMoved?.(e); },
     [saveCurrentState, externalOnColumnMoved]
   );
 
-  // Don't render until saved state is loaded so we can apply it on first render
+  const handleColumnVisible = useCallback(
+    (_e: ColumnVisibleEvent<T>) => { saveCurrentState(); },
+    [saveCurrentState]
+  );
+
   if (gridId && !loaded) {
     return (
       <div className={themeClass} style={{ height, width: "100%" }} role="status" aria-label="Loading grid">
@@ -116,17 +131,34 @@ export function ThemedAgGrid<T = unknown>({
   }
 
   return (
-    <div className={themeClass} style={{ height, width: "100%" }}>
-      <AgGridReact<T>
-        defaultColDef={mergedColDef}
-        animateRows
-        onGridReady={handleGridReady}
-        onSortChanged={handleSortChanged}
-        onFilterChanged={handleFilterChanged}
-        onColumnResized={handleColumnResized}
-        onColumnMoved={handleColumnMoved}
-        {...rest}
-      />
+    <div className="space-y-2">
+      {gridId && !hideResetButton && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={resetView} className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset View
+          </Button>
+        </div>
+      )}
+      <div className={themeClass} style={{ height, width: "100%" }}>
+        <AgGridReact<T>
+          defaultColDef={mergedColDef}
+          columnDefs={columnDefs}
+          animateRows
+          onGridReady={handleGridReady}
+          onSortChanged={handleSortChanged}
+          onFilterChanged={handleFilterChanged}
+          onColumnResized={handleColumnResized}
+          onColumnMoved={handleColumnMoved}
+          onColumnVisible={handleColumnVisible}
+          {...rest}
+        />
+      </div>
     </div>
   );
 }
+
+// Export with generic support via type assertion
+export const ThemedAgGrid = forwardRef(ThemedAgGridInner) as <T = unknown>(
+  props: Props<T> & { ref?: React.Ref<ThemedAgGridHandle> }
+) => React.ReactElement;

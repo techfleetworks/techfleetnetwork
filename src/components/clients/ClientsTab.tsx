@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,11 +23,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, "Client name is required").max(200),
@@ -122,6 +121,69 @@ export function ClientsTab() {
   const statusBadge = (status: string) =>
     status === "active" ? <Badge className="bg-success/10 text-success border-success/20">Active</Badge> : <Badge variant="secondary">Inactive</Badge>;
 
+  const columnDefs = useMemo<ColDef<Client>[]>(() => [
+    { headerName: "Name", field: "name", flex: 2, minWidth: 140 },
+    {
+      headerName: "Website", field: "website", flex: 2, minWidth: 140,
+      valueGetter: (params) => {
+        try { return new URL(params.data?.website ?? "").hostname; } catch { return params.data?.website ?? ""; }
+      },
+    },
+    { headerName: "Primary Contact", field: "primary_contact", flex: 1, minWidth: 120 },
+    {
+      headerName: "Status", field: "status", flex: 1, minWidth: 90,
+      valueFormatter: (params) => params.value === "active" ? "Active" : "Inactive",
+    },
+    {
+      headerName: "Mission", field: "mission", flex: 2, minWidth: 140, hide: true,
+      valueFormatter: (params) => {
+        const v = params.value ?? "";
+        return v.length > 80 ? v.slice(0, 80) + "…" : v;
+      },
+    },
+    {
+      headerName: "Project Summary", field: "project_summary", flex: 2, minWidth: 140, hide: true,
+      valueFormatter: (params) => {
+        const v = params.value ?? "";
+        return v.length > 80 ? v.slice(0, 80) + "…" : v;
+      },
+    },
+    {
+      headerName: "Updated", field: "updated_at", flex: 1, minWidth: 110,
+      valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
+    },
+    {
+      headerName: "Actions",
+      colId: "actions",
+      sortable: false,
+      filter: false,
+      resizable: false,
+      flex: 1,
+      minWidth: 100,
+      maxWidth: 120,
+      cellRenderer: (params: ICellRendererParams<Client>) => {
+        if (!params.data) return null;
+        const c = params.data;
+        return `<div style="display:flex;gap:4px;align-items:center;height:100%">
+          <button data-action="edit" data-id="${c.id}" style="padding:4px;cursor:pointer;background:none;border:none" aria-label="Edit ${c.name}">✏️</button>
+          <button data-action="delete" data-id="${c.id}" style="padding:4px;cursor:pointer;background:none;border:none;color:hsl(var(--destructive))" aria-label="Delete ${c.name}">🗑️</button>
+        </div>`;
+      },
+    },
+  ], []);
+
+  const onCellClicked = useCallback((params: any) => {
+    if (params.colDef.colId !== "actions") return;
+    const target = params.event?.target as HTMLElement;
+    const action = target?.closest("[data-action]")?.getAttribute("data-action");
+    const id = target?.closest("[data-id]")?.getAttribute("data-id");
+    if (!action || !id) return;
+    const client = clients.find((c) => c.id === id);
+    if (!client) return;
+    if (action === "edit") openEdit(client);
+    if (action === "delete") setDeleteTarget(client);
+  }, [clients, openEdit]);
+
   if (isLoading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
@@ -146,41 +208,16 @@ export function ClientsTab() {
           <p className="text-sm mt-1">Click "Add Client" to create your first record.</p>
         </div>
       ) : view === "table" ? (
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Website</TableHead>
-                <TableHead>Primary Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Updated</TableHead>
-                <TableHead className="w-[100px] text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>
-                    <a href={c.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-sm">
-                      {new URL(c.website).hostname}<ExternalLink className="h-3 w-3" />
-                    </a>
-                  </TableCell>
-                  <TableCell className="text-sm">{c.primary_contact}</TableCell>
-                  <TableCell>{statusBadge(c.status)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(c.updated_at), "MMM d, yyyy")}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(c)} aria-label={`Edit ${c.name}`}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(c)} aria-label={`Delete ${c.name}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ThemedAgGrid<Client>
+          gridId="admin-clients"
+          height="450px"
+          rowData={clients}
+          columnDefs={columnDefs}
+          getRowId={(params) => params.data.id}
+          onCellClicked={onCellClicked}
+          pagination
+          paginationPageSize={20}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {clients.map((c) => (

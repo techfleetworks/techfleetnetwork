@@ -26,6 +26,7 @@ const GROUP_LABELS: Record<string, string> = {
 export const ALL_COLUMNS: ColumnDef[] = [
   // Core
   { key: "applicant", label: "Applicant", group: "core" },
+  { key: "email", label: "Email", group: "core" },
   { key: "client", label: "Client", group: "core" },
   { key: "project_type", label: "Project Type", group: "core" },
   { key: "phase", label: "Phase", group: "core" },
