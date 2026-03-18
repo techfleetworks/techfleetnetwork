@@ -8,6 +8,7 @@ import {
   Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
   PartyPopper, ChevronRight,
 } from "lucide-react";
+import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -356,31 +357,21 @@ export default function ProjectApplicationPage() {
       )}
 
       {/* Step progress */}
-      <div className="flex items-center gap-2">
-        {STEP_LABELS.map((label, i) => {
+      <StepProgressBar
+        steps={STEP_LABELS.map((label, i) => {
           const stepNum = i + 1;
-          const isActive = step === stepNum;
-          const isDone = step > stepNum || isCompleted;
-          return (
-            <button
-              key={label}
-              type="button"
-              onClick={() => { if (isCompleted || isDone) setStep(stepNum); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : isDone
-                  ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
-                  : "bg-muted text-muted-foreground"
-              }`}
-              aria-current={isActive ? "step" : undefined}
-            >
-              {isDone && !isActive ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span>{stepNum}</span>}
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          );
+          const status = isCompleted || step > stepNum
+            ? "completed"
+            : step === stepNum
+              ? "started"
+              : "not_started";
+          return { label, status };
         })}
-      </div>
+        currentStep={step}
+        onStepClick={(s) => {
+          if (isCompleted || s <= step) setStep(s);
+        }}
+      />
 
       {/* Project info card (always visible) */}
       <Card>
