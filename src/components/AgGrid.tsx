@@ -33,8 +33,9 @@ export function ThemedAgGrid<T = unknown>({
   columnDefs,
   ...rest
 }: Props<T>) {
-  const { resolvedTheme } = useTheme();
-  const themeClass = resolvedTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
+  const { resolvedTheme, theme } = useTheme();
+  const effectiveTheme = resolvedTheme ?? theme;
+  const themeClass = effectiveTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
   const apiRef = useRef<GridApi<T> | null>(null);
 
   const { savedState, loaded, persistState, clearState } = useGridState(gridId ?? "");
@@ -116,7 +117,7 @@ export function ThemedAgGrid<T = unknown>({
     [saveCurrentState]
   );
 
-  if (gridId && !loaded) {
+  if (!effectiveTheme || (gridId && !loaded)) {
     return (
       <div className={themeClass} style={{ height, width: "100%" }} role="status" aria-label="Loading grid">
         <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Loading…</div>
