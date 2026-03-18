@@ -15,41 +15,9 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
-
-const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
-const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
-const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
-
-interface AnswerBlockProps {
-  question: string;
-  answer: string;
-}
-
-function AnswerBlock({ question, answer }: AnswerBlockProps) {
-  if (!answer?.trim()) return null;
-  return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">{question}</p>
-      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{answer}</p>
-    </div>
-  );
-}
-
-function ArrayAnswerBlock({ question, items }: { question: string; items: string[] }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className="space-y-1.5">
-      <p className="text-sm font-medium text-foreground">{question}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function ApplicationSubmissionDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
