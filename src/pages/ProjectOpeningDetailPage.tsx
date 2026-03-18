@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Loader2, Send, Globe, Building2, ExternalLink, Briefcase,
-  Users, Calendar, Share2, CheckCircle2, MapPin, FileText,
-  Lightbulb, ClipboardList, Target, Layers,
+  Loader2, Send, Building2, ExternalLink, Briefcase,
+  Users, Share2, CheckCircle2, FileText,
+  Lightbulb, ClipboardList, Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
