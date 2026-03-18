@@ -198,6 +198,16 @@ export default function SubmittedApplicationsTab() {
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
                 </div>
 
+                {/* Other Apply Now apps */}
+                {app.totalApplyNowCount > 1 && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                    <span className="text-warning font-medium">
+                      {app.otherApplyNowCount} other active {app.otherApplyNowCount === 1 ? "application" : "applications"}
+                    </span>
+                  </div>
+                )}
+
                 {/* Date */}
                 {app.completed_at && (
                   <p className="text-xs text-muted-foreground">
