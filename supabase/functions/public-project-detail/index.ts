@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       .from("projects")
       .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url")
       .eq("id", projectId)
-      .eq("project_status", "apply_now")
+      .neq("project_status", "project_complete")
       .maybeSingle();
 
     if (projErr) throw projErr;
