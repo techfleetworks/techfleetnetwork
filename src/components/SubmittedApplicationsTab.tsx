@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
+import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -309,8 +309,24 @@ export default function SubmittedApplicationsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
+          {view === "table" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => gridApiRef.current?.exportDataAsCsv({
+                onlySelected: false,
+                fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
+              })}
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
+        </div>
         <div className="flex border rounded-lg overflow-hidden">
           <button
             onClick={() => setView("card")}
