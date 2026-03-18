@@ -41,7 +41,7 @@ const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.
 
 export default function SubmittedApplicationsTab() {
   const navigate = useNavigate();
-  const [view, setView] = useState<"card" | "table">("card");
+  const [view, setView] = useState<"card" | "table">("table");
 
   const { data: apps, isLoading: appsLoading } = useQuery({
     queryKey: ["admin-submitted-project-apps"],
