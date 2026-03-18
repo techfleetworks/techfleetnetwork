@@ -46,7 +46,7 @@ export function useDashboardPreferences() {
       const { error } = await supabase
         .from("dashboard_preferences")
         .upsert(
-          { user_id: user!.id, visible_widgets: widgets as unknown as Record<string, unknown> },
+          [{ user_id: user!.id, visible_widgets: widgets as unknown as import("@/integrations/supabase/types").Json }],
           { onConflict: "user_id" }
         );
       if (error) throw error;
