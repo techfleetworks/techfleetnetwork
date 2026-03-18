@@ -108,7 +108,7 @@ export default function ApplicationsPage() {
           <FolderKanban className="h-5 w-5 text-primary" aria-hidden="true" />
         </div>
         <h2 className="text-lg font-semibold text-foreground mb-2">
-          Project Applications
+          My Project Applications
         </h2>
         <p className="text-sm text-muted-foreground flex-1">
           View your project team applications. Each project has its own
