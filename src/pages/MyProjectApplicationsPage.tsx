@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
   ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
+  LayoutGrid, List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -32,9 +35,15 @@ interface ProjectApp {
   team_hats_interest: string[];
 }
 
+interface EnrichedApp extends ProjectApp {
+  project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] };
+  client?: { id: string; name: string };
+}
+
 export default function MyProjectApplicationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [view, setView] = useState<"card" | "table">("card");
 
   const { data: apps, isLoading } = useQuery({
     queryKey: ["my-project-applications", user?.id],
@@ -87,6 +96,87 @@ export default function MyProjectApplicationsPage() {
     return { ...a, project: proj, client: cli };
   }), [apps, projectMap, clientMap]);
 
+  /* ── AG Grid column definitions ── */
+  const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
+    {
+      headerName: "Client",
+      field: "client",
+      valueGetter: (p) => p.data?.client?.name ?? "Unknown",
+      flex: 1.5,
+      minWidth: 140,
+    },
+    {
+      headerName: "Status",
+      field: "status",
+      cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
+        const d = p.data;
+        if (!d) return null;
+        if (d.status === "completed") return "Submitted";
+        if (d.status === "draft") return "In Progress";
+        return d.status;
+      },
+      flex: 1,
+      minWidth: 100,
+    },
+    {
+      headerName: "Type",
+      valueGetter: (p) => typeLabel(p.data?.project?.project_type ?? ""),
+      flex: 1,
+      minWidth: 120,
+    },
+    {
+      headerName: "Phase",
+      valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? ""),
+      flex: 0.8,
+      minWidth: 80,
+    },
+    {
+      headerName: "Project Status",
+      valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? ""),
+      flex: 1,
+      minWidth: 110,
+    },
+    {
+      headerName: "Team Hats",
+      valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
+      flex: 1.5,
+      minWidth: 140,
+    },
+    {
+      headerName: "Date",
+      valueGetter: (p) => {
+        const d = p.data;
+        if (!d) return "";
+        return d.completed_at
+          ? format(new Date(d.completed_at), "MMM d, yyyy")
+          : format(new Date(d.updated_at), "MMM d, yyyy");
+      },
+      flex: 1,
+      minWidth: 110,
+    },
+    {
+      headerName: "",
+      sortable: false,
+      filter: false,
+      maxWidth: 100,
+      cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
+        if (!p.data) return null;
+        const isCompleted = p.data.status === "completed";
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 h-7 text-xs"
+            onClick={() => navigate(`/project-openings/${p.data!.project_id}/apply`)}
+          >
+            {isCompleted ? "View" : "Continue"}
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+        );
+      },
+    },
+  ], [navigate]);
+
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -111,16 +201,44 @@ export default function MyProjectApplicationsPage() {
       </Breadcrumb>
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/applications")} aria-label="Back to Applications">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Your Project Applications</h1>
-          <p className="text-sm text-muted-foreground">
-            Track the status of your project team applications.
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/applications")} aria-label="Back to Applications">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Your Project Applications</h1>
+            <p className="text-sm text-muted-foreground">
+              Track the status of your project team applications.
+            </p>
+          </div>
         </div>
+
+        {/* View toggle */}
+        {enriched.length > 0 && (
+          <div className="flex items-center gap-1 self-start">
+            <Button
+              variant={view === "card" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("card")}
+              aria-label="Card view"
+              className="gap-1.5"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Cards
+            </Button>
+            <Button
+              variant={view === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("table")}
+              aria-label="Table view"
+              className="gap-1.5"
+            >
+              <List className="h-4 w-4" />
+              Table
+            </Button>
+          </div>
+        )}
       </div>
 
       {enriched.length === 0 ? (
@@ -138,6 +256,16 @@ export default function MyProjectApplicationsPage() {
             Browse Project Openings
           </Button>
         </div>
+      ) : view === "table" ? (
+        <ThemedAgGrid<EnrichedApp>
+          gridId="my-project-applications"
+          height="450px"
+          rowData={enriched}
+          columnDefs={columnDefs}
+          onRowClicked={(e) => {
+            if (e.data) navigate(`/project-openings/${e.data.project_id}/apply`);
+          }}
+        />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {enriched.map((app) => {
