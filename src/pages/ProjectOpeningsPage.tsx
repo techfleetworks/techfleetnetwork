@@ -102,10 +102,9 @@ export default function ProjectOpeningsPage() {
 
   const isAppCompleted = genApp?.status === "completed";
 
-  const handleApply = () => {
+  const handleApply = (projectId: string) => {
     if (isAppCompleted) {
-      // Future: navigate to project-specific application
-      // For now just acknowledge
+      navigate(`/project-openings/${projectId}/apply`);
       return;
     }
     // Show gate dialog
