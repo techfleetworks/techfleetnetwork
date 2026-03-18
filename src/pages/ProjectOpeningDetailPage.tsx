@@ -268,6 +268,9 @@ export default function ProjectOpeningDetailPage() {
 
       <Separator />
 
+      {/* ── Readiness Checklist ────────────────────────────── */}
+      <ReadinessChecklist />
+
       {/* ── Client Information ────────────────────────────── */}
       {client && (
         <InfoSection icon={Building2} title="About the Client">
