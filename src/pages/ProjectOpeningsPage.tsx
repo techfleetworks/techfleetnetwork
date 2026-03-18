@@ -344,7 +344,7 @@ export default function ProjectOpeningsPage() {
                   <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
                   Live Projects
                 </h3>
-                <ProjectSection title="Live Projects" icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
+                <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
               </div>
             </div>
           )}
