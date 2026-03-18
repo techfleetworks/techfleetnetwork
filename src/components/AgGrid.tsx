@@ -116,7 +116,7 @@ export function ThemedAgGrid<T = unknown>({
     [saveCurrentState]
   );
 
-  if (!effectiveTheme || (gridId && !loaded)) {
+  if (gridId && !loaded) {
     return (
       <div className={themeClass} style={{ height, width: "100%" }} role="status" aria-label="Loading grid">
         <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Loading…</div>
