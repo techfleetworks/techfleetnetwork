@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -16,10 +16,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
+import { DashboardCustomizer } from "@/components/DashboardCustomizer";
+import { DashboardEmptyState } from "@/components/DashboardEmptyState";
+import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
+import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
@@ -122,10 +126,12 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
+  const customizerRef = useRef<HTMLButtonElement>(null);
+
+  const { visibleWidgets, isVisible, toggleWidget, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
   const totalFirstSteps = useFirstStepsTotalForUser(profile);
 
-  // React Query hooks — cached, deduped, no manual state
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps");
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
   const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
@@ -139,7 +145,6 @@ export default function DashboardPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // User's own project applications
   const { data: myProjectApps = [] } = useQuery({
     queryKey: ["dashboard-my-project-apps", userId],
     queryFn: async () => {
@@ -260,23 +265,41 @@ export default function DashboardPage() {
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
+  // Count how many togglable sections are visible (excluding core_courses which is always structural)
+  const togglableSectionsVisible = visibleWidgets.filter((w) => w !== "core_courses").length;
+  const showEmptyState = !prefsLoading && isNewUser && togglableSectionsVisible === 0;
+
+  const handleOpenCustomizer = () => {
+    customizerRef.current?.click();
+  };
+
   return (
     <div className="container-app py-8 sm:py-12 space-y-9">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
-        <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
+          <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+        </div>
+        <div className="flex-shrink-0 pt-1">
+          <DashboardCustomizer
+            visibleWidgets={visibleWidgets}
+            onToggle={toggleWidget}
+          />
+        </div>
       </div>
 
-      <section>
-        <BadgesDisplay
-          allFirstStepsDone={allFirstStepsDone}
-          allSecondStepsDone={allSecondStepsDone}
-          allThirdStepsDone={allThirdStepsDone}
-          communityBadgeCount={communityBadgeCount}
-        />
-      </section>
+      {isVisible("badges") && (
+        <section>
+          <BadgesDisplay
+            allFirstStepsDone={allFirstStepsDone}
+            allSecondStepsDone={allSecondStepsDone}
+            allThirdStepsDone={allThirdStepsDone}
+            communityBadgeCount={communityBadgeCount}
+          />
+        </section>
+      )}
 
-      {!allCoreCoursesDone && (
+      {isVisible("core_courses") && !allCoreCoursesDone && (
         <section aria-labelledby="core-courses-heading">
           <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
             Core Courses
@@ -289,7 +312,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {myProjectApps.length > 0 && (
+      {isVisible("my_project_apps") && (
         <section aria-labelledby="my-apps-heading">
           <div className="flex items-center justify-between mb-4">
             <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -303,59 +326,67 @@ export default function DashboardPage() {
               View all <ChevronRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="space-y-2">
-            {myProjectApps.map((app) => {
-              const proj = dashProjectMap.get(app.project_id);
-              const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
-              const isCompleted = app.status === "completed";
-              const isDraft = app.status === "draft";
+          {myProjectApps.length === 0 ? (
+            <SectionEmptyState
+              icon={FolderKanban}
+              title="No project applications yet"
+              description="When project openings are available, you can apply and track your progress here."
+            />
+          ) : (
+            <div className="space-y-2">
+              {myProjectApps.map((app) => {
+                const proj = dashProjectMap.get(app.project_id);
+                const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
+                const isCompleted = app.status === "completed";
+                const isDraft = app.status === "draft";
 
-              return (
-                <Link
-                  key={app.id}
-                  to={`/project-openings/${app.project_id}/apply`}
-                  className="card-elevated p-4 hover:border-primary/40 transition-all block"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FolderKanban className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm text-foreground truncate">
-                          {clientName}
-                        </h3>
-                        {isCompleted ? (
-                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Submitted
-                          </Badge>
-                        ) : isDraft ? (
-                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                            <Clock className="h-3 w-3" />
-                            In Progress
-                          </Badge>
-                        ) : null}
+                return (
+                  <Link
+                    key={app.id}
+                    to={`/project-openings/${app.project_id}/apply`}
+                    className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <FolderKanban className="h-4 w-4 text-primary" />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {isCompleted && app.completed_at
-                          ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
-                          : isDraft
-                            ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
-                            : ""}
-                        {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm text-foreground truncate">
+                            {clientName}
+                          </h3>
+                          {isCompleted ? (
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Submitted
+                            </Badge>
+                          ) : isDraft ? (
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                              <Clock className="h-3 w-3" />
+                              In Progress
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {isCompleted && app.completed_at
+                            ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                            : isDraft
+                              ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                              : ""}
+                          {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
-      {latestAnnouncements.length > 0 && (
+      {isVisible("latest_updates") && (
         <section aria-labelledby="announcements-heading">
           <div className="flex items-center justify-between mb-4">
             <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -369,31 +400,48 @@ export default function DashboardPage() {
               View all <ChevronRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="space-y-2">
-            {latestAnnouncements.map((a) => (
-              <Link
-                key={a.id}
-                to="/updates"
-                className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
+          {latestAnnouncements.length === 0 ? (
+            <SectionEmptyState
+              icon={Megaphone}
+              title="No updates yet"
+              description="Announcements and news from Tech Fleet will appear here."
+            />
+          ) : (
+            <div className="space-y-2">
+              {latestAnnouncements.map((a) => (
+                <Link
+                  key={a.id}
+                  to="/updates"
+                  className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                      {format(new Date(a.created_at), "MMM d")}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                    {format(new Date(a.created_at), "MMM d")}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      <section className="border-t pt-9">
-        <NetworkActivity />
-      </section>
+      {(isVisible("network_activity") || isVisible("world_map")) && (
+        <section className="border-t pt-9">
+          <NetworkActivity
+            showMap={isVisible("world_map")}
+            showActivity={isVisible("network_activity")}
+          />
+        </section>
+      )}
+
+      {showEmptyState && (
+        <DashboardEmptyState onCustomize={handleOpenCustomizer} />
+      )}
     </div>
   );
 }

@@ -273,6 +273,30 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          visible_widgets: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          visible_widgets?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          visible_widgets?: Json
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
