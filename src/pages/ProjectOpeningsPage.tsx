@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
-  Rocket, PlayCircle,
+  Rocket, PlayCircle, Clock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
