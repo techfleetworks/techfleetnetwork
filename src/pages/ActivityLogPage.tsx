@@ -74,6 +74,15 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   project_application_status_changed: { label: "Project App Status Changed", variant: "secondary" },
   project_application_submitted: { label: "Project App Submitted", variant: "default" },
   error: { label: "Error", variant: "destructive" },
+  // Email pipeline events
+  email_queued: { label: "Email Queued", variant: "secondary" },
+  email_sent: { label: "Email Sent", variant: "default" },
+  email_failed: { label: "Email Failed", variant: "destructive" },
+  email_dlq: { label: "Email Dead-Lettered", variant: "destructive" },
+  email_rate_limited: { label: "Email Rate Limited", variant: "secondary" },
+  email_suppressed: { label: "Email Suppressed", variant: "secondary" },
+  email_bounced: { label: "Email Bounced", variant: "destructive" },
+  email_complained: { label: "Email Complained", variant: "destructive" },
 };
 
 const PAGE_SIZE = 50;
@@ -177,6 +186,10 @@ export default function ActivityLogPage() {
 
   const formatChangedFields = (fields: string[] | null, eventType: string) => {
     if (!fields || fields.length === 0) return "";
+    if (eventType.startsWith("email_")) {
+      const [template, recipient, status] = fields;
+      return [template, recipient, status].filter(Boolean).join(" · ");
+    }
     if (eventType === "task_completed" || eventType === "task_uncompleted") return `${fields[0]} → ${fields[1] || ""}`;
     if (eventType === "application_status_changed" && fields.length >= 2) return `${fields[0]} → ${fields[1]}`;
     return fields.join(", ");
