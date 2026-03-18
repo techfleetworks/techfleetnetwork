@@ -271,7 +271,7 @@ export default function ProjectApplicationPage() {
       if (vars.submit) {
         setCelebrationOpen(true);
       } else {
-        toast.success("Draft saved");
+        toast.success("Draft saved — you can resume anytime");
       }
     },
     onError: (err: Error) => toast.error(err.message),
