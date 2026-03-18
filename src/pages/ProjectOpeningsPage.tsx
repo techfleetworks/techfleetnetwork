@@ -134,9 +134,10 @@ export default function ProjectOpeningsPage() {
         clientName: clientMap.get(p.client_id) ?? "Client",
         totalApps: stats?.total ?? 0,
         hatCounts: stats?.hatCounts ?? {},
+        userStatus: appliedProjectIds.has(p.id) ? "Applied" as const : "Apply Now" as const,
       };
     }),
-    [projects, clientMap, statsMap]
+    [projects, clientMap, statsMap, appliedProjectIds]
   );
 
   const { data: genApp } = useQuery({
