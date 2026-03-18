@@ -165,19 +165,19 @@ export default function ApplicationSubmissionDetailPage() {
       </div>
 
       {/* Submission meta */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-2">
         {projApp.completed_at && (
-          <Badge className="bg-success/10 text-success border-success/30 gap-1">
+          <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit">
             <CheckCircle2 className="h-3 w-3" />
             Submitted {format(new Date(projApp.completed_at as string), "MMMM d, yyyy")}
           </Badge>
         )}
-        <Badge variant="secondary">{typeLabel((project?.project_type as string) ?? "")}</Badge>
-        <Badge variant="outline">{phaseLabel((project?.phase as string) ?? "")}</Badge>
-        <Badge variant="outline">{statusLabel((project?.project_status as string) ?? "")}</Badge>
+        <Badge variant="secondary" className="w-fit">{typeLabel((project?.project_type as string) ?? "")}</Badge>
+        <Badge variant="outline" className="w-fit">{phaseLabel((project?.phase as string) ?? "")}</Badge>
+        <Badge variant="outline" className="w-fit">{statusLabel((project?.project_status as string) ?? "")}</Badge>
         {participatedPrev
-          ? <Badge className="bg-success/10 text-success border-success/30 gap-1"><CheckCircle2 className="h-3 w-3" />Previous Participant</Badge>
-          : <Badge variant="outline" className="gap-1"><XCircle className="h-3 w-3" />New Participant</Badge>}
+          ? <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit"><CheckCircle2 className="h-3 w-3" />Previous Participant</Badge>
+          : <Badge variant="outline" className="gap-1 w-fit"><XCircle className="h-3 w-3" />New Participant</Badge>}
       </div>
 
       <Separator />
