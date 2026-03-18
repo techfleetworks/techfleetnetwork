@@ -186,6 +186,10 @@ export default function ActivityLogPage() {
 
   const formatChangedFields = (fields: string[] | null, eventType: string) => {
     if (!fields || fields.length === 0) return "";
+    if (eventType.startsWith("email_")) {
+      const [template, recipient, status] = fields;
+      return [template, recipient, status].filter(Boolean).join(" · ");
+    }
     if (eventType === "task_completed" || eventType === "task_uncompleted") return `${fields[0]} → ${fields[1] || ""}`;
     if (eventType === "application_status_changed" && fields.length >= 2) return `${fields[0]} → ${fields[1]}`;
     return fields.join(", ");
