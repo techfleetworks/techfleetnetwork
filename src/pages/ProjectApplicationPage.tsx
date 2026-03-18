@@ -8,6 +8,7 @@ import {
   Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
   PartyPopper, ChevronRight,
 } from "lucide-react";
+import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
