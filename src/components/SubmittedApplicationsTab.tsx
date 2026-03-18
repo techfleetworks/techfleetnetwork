@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { AllApplicationsColumnPicker, ALL_COLUMNS, DEFAULT_VISIBLE_KEYS } from "@/components/admin/AllApplicationsColumnPicker";
-import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
+import type { ColDef, GridReadyEvent, GridApi, ICellRendererParams } from "ag-grid-community";
 
 interface ProjectApp {
   id: string;
