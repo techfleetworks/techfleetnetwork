@@ -247,6 +247,7 @@ export default function ProjectOpeningsPage() {
             </div>
           ) : (
             <ThemedAgGrid<OpenProject>
+              gridId="project-openings"
               height="400px"
               rowData={projects}
               columnDefs={columnDefs}

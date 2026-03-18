@@ -188,13 +188,15 @@ export default function ActivityLogPage() {
     {
       headerName: "Date",
       field: "created_at",
-      width: 170,
+      flex: 1,
+      minWidth: 140,
       valueFormatter: (params) =>
         params.value ? format(new Date(params.value), "MMM d, yyyy HH:mm") : "—",
     },
     {
       headerName: "User",
-      width: 200,
+      flex: 2,
+      minWidth: 140,
       valueGetter: (params) => {
         const e = params.data;
         if (!e?.user_id) return "System";
@@ -205,13 +207,15 @@ export default function ActivityLogPage() {
     {
       headerName: "Event",
       field: "event_type",
-      width: 220,
+      flex: 1,
+      minWidth: 140,
       valueFormatter: (params) => getEventConfig(params.value).label,
     },
     {
       headerName: "Table",
       field: "table_name",
-      width: 140,
+      flex: 1,
+      minWidth: 100,
     },
     {
       headerName: "Details",
@@ -225,7 +229,8 @@ export default function ActivityLogPage() {
     {
       headerName: "Error",
       field: "error_message",
-      width: 200,
+      flex: 1,
+      minWidth: 120,
       cellStyle: (params) => params.value ? { color: "hsl(var(--destructive))" } : undefined,
       valueFormatter: (params) => params.value || "—",
     },
@@ -286,6 +291,7 @@ export default function ActivityLogPage() {
       ) : (
         <>
           <ThemedAgGrid<AuditLogEntry>
+            gridId="activity-log"
             height="500px"
             rowData={filteredEntries}
             columnDefs={columnDefs}

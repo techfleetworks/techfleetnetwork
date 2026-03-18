@@ -98,7 +98,8 @@ export default function UpdatesPage() {
     {
       headerName: "Date",
       field: "created_at",
-      width: 140,
+      flex: 1,
+      minWidth: 110,
       valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
     },
   ], []);
@@ -151,6 +152,7 @@ export default function UpdatesPage() {
         </div>
       ) : viewMode === "table" ? (
         <ThemedAgGrid<Announcement>
+          gridId="updates"
           height="450px"
           rowData={announcements}
           columnDefs={columnDefs}

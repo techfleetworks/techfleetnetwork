@@ -163,17 +163,20 @@ export default function SubmittedApplicationsTab() {
     },
     {
       headerName: "Previous Participant",
-      width: 160,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.participated_previous_phase ? "Yes" : "No",
     },
     {
       headerName: "Other Active Apps",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.otherApplyNowCount ?? 0,
     },
     {
       headerName: "Date Submitted",
-      width: 140,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.completed_at,
       valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
     },
@@ -267,6 +270,7 @@ export default function SubmittedApplicationsTab() {
         </div>
       ) : (
         <ThemedAgGrid<EnrichedApp>
+          gridId="submitted-applications"
           height="500px"
           rowData={enriched}
           columnDefs={columnDefs}

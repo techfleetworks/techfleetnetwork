@@ -441,6 +441,33 @@ export type Database = {
         }
         Relationships: []
       }
+      grid_view_states: {
+        Row: {
+          created_at: string
+          grid_id: string
+          id: string
+          state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          grid_id: string
+          id?: string
+          state?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          grid_id?: string
+          id?: string
+          state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       handbooks: {
         Row: {
           category: string
