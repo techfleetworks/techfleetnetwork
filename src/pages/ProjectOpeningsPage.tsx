@@ -239,10 +239,17 @@ export default function ProjectOpeningsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
-                    <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
-                      <Send className="h-4 w-4" />
-                      Apply
-                    </Button>
+                    {appliedProjectIds.has(p.id) ? (
+                      <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/project-openings/${p.id}/apply`)}>
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    ) : (
+                      <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
+                        <Send className="h-4 w-4" />
+                        Apply
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))}
