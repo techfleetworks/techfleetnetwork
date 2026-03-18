@@ -99,12 +99,30 @@ export default function SubmittedApplicationsTab() {
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
   const profileMap = useMemo(() => new Map((profiles ?? []).map((p) => [p.user_id, p])), [profiles]);
 
-  const enriched = useMemo(() => (apps ?? []).map((a) => {
-    const proj = projectMap.get(a.project_id);
-    const cli = proj ? clientMap.get(proj.client_id) : undefined;
-    const prof = profileMap.get(a.user_id);
-    return { ...a, project: proj, client: cli, profile: prof };
-  }), [apps, projectMap, clientMap, profileMap]);
+  const enriched = useMemo(() => {
+    const items = (apps ?? []).map((a) => {
+      const proj = projectMap.get(a.project_id);
+      const cli = proj ? clientMap.get(proj.client_id) : undefined;
+      const prof = profileMap.get(a.user_id);
+      return { ...a, project: proj, client: cli, profile: prof };
+    });
+
+    // Count per user how many apply_now project apps they have
+    const userApplyNowCounts = new Map<string, number>();
+    for (const item of items) {
+      if (item.project?.project_status === "apply_now") {
+        userApplyNowCounts.set(item.user_id, (userApplyNowCounts.get(item.user_id) ?? 0) + 1);
+      }
+    }
+
+    return items.map((item) => ({
+      ...item,
+      otherApplyNowCount: item.project?.project_status === "apply_now"
+        ? (userApplyNowCounts.get(item.user_id) ?? 1) - 1
+        : userApplyNowCounts.get(item.user_id) ?? 0,
+      totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+    }));
+  }, [apps, projectMap, clientMap, profileMap]);
 
   if (appsLoading) {
     return (
