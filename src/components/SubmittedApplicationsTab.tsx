@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,12 +100,30 @@ export default function SubmittedApplicationsTab() {
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
   const profileMap = useMemo(() => new Map((profiles ?? []).map((p) => [p.user_id, p])), [profiles]);
 
-  const enriched = useMemo(() => (apps ?? []).map((a) => {
-    const proj = projectMap.get(a.project_id);
-    const cli = proj ? clientMap.get(proj.client_id) : undefined;
-    const prof = profileMap.get(a.user_id);
-    return { ...a, project: proj, client: cli, profile: prof };
-  }), [apps, projectMap, clientMap, profileMap]);
+  const enriched = useMemo(() => {
+    const items = (apps ?? []).map((a) => {
+      const proj = projectMap.get(a.project_id);
+      const cli = proj ? clientMap.get(proj.client_id) : undefined;
+      const prof = profileMap.get(a.user_id);
+      return { ...a, project: proj, client: cli, profile: prof };
+    });
+
+    // Count per user how many apply_now project apps they have
+    const userApplyNowCounts = new Map<string, number>();
+    for (const item of items) {
+      if (item.project?.project_status === "apply_now") {
+        userApplyNowCounts.set(item.user_id, (userApplyNowCounts.get(item.user_id) ?? 0) + 1);
+      }
+    }
+
+    return items.map((item) => ({
+      ...item,
+      otherApplyNowCount: item.project?.project_status === "apply_now"
+        ? (userApplyNowCounts.get(item.user_id) ?? 1) - 1
+        : userApplyNowCounts.get(item.user_id) ?? 0,
+      totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+    }));
+  }, [apps, projectMap, clientMap, profileMap]);
 
   if (appsLoading) {
     return (
@@ -179,6 +198,16 @@ export default function SubmittedApplicationsTab() {
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
                 </div>
 
+                {/* Other Apply Now apps */}
+                {app.totalApplyNowCount > 1 && (
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                    <span className="text-warning font-medium">
+                      {app.otherApplyNowCount} other active {app.otherApplyNowCount === 1 ? "application" : "applications"}
+                    </span>
+                  </div>
+                )}
+
                 {/* Date */}
                 {app.completed_at && (
                   <p className="text-xs text-muted-foreground">
@@ -204,6 +233,16 @@ export default function SubmittedApplicationsTab() {
                 <TableHead>Phase</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Previous Participant?</TableHead>
+                <TableHead>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help underline decoration-dotted underline-offset-4">Other Active Apps</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs text-xs">Number of other submitted applications this person has for projects currently accepting applications (Apply Now)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
                 <TableHead>Date Submitted</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
@@ -227,6 +266,16 @@ export default function SubmittedApplicationsTab() {
                     {app.participated_previous_phase
                       ? <Badge className="bg-success/10 text-success border-success/30 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />Yes</Badge>
                       : <span className="text-sm text-muted-foreground">No</span>}
+                  </TableCell>
+                  <TableCell>
+                    {app.totalApplyNowCount > 1 ? (
+                      <Badge className="bg-warning/10 text-warning border-warning/30 text-xs gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {app.otherApplyNowCount}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">0</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">{app.completed_at ? format(new Date(app.completed_at), "MMM d, yyyy") : "—"}</TableCell>
                   <TableCell className="text-right">
