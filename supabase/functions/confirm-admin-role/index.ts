@@ -46,6 +46,10 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Derive the app origin from the Supabase URL (e.g. https://xyz.supabase.co → published app)
+    // We use a known app URL; fall back to referer or a safe default
+    const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://techfleetnetwork.lovable.app'
+
     // Grant the admin role
     const { error: roleErr } = await supabase
       .from('user_roles')
@@ -53,10 +57,10 @@ Deno.serve(async (req) => {
 
     if (roleErr) {
       console.error('Failed to grant admin role:', roleErr)
-      return new Response(
-        JSON.stringify({ error: 'Failed to grant admin role' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: `${appOrigin}/login?admin_confirmed=error` },
+      })
     }
 
     // Mark promotion as confirmed
@@ -74,10 +78,10 @@ Deno.serve(async (req) => {
       p_changed_fields: ['role:admin'],
     })
 
-    return new Response(
-      JSON.stringify({ message: 'Admin role confirmed successfully', confirmed: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, Location: `${appOrigin}/login?admin_confirmed=true` },
+    })
   } catch (err) {
     console.error('Unexpected error:', err)
     return new Response(
