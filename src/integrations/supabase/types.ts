@@ -778,39 +778,54 @@ export type Database = {
       }
       projects: {
         Row: {
+          anticipated_end_date: string | null
+          anticipated_start_date: string | null
           client_id: string
+          client_intake_url: string
           created_at: string
           created_by: string
           current_phase_milestones: string[]
           id: string
+          notion_repository_url: string
           phase: Database["public"]["Enums"]["project_phase"]
           project_status: Database["public"]["Enums"]["project_status_enum"]
           project_type: Database["public"]["Enums"]["project_type"]
           team_hats: string[]
+          timezone_range: string
           updated_at: string
         }
         Insert: {
+          anticipated_end_date?: string | null
+          anticipated_start_date?: string | null
           client_id: string
+          client_intake_url?: string
           created_at?: string
           created_by: string
           current_phase_milestones?: string[]
           id?: string
+          notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
           project_type: Database["public"]["Enums"]["project_type"]
           team_hats?: string[]
+          timezone_range?: string
           updated_at?: string
         }
         Update: {
+          anticipated_end_date?: string | null
+          anticipated_start_date?: string | null
           client_id?: string
+          client_intake_url?: string
           created_at?: string
           created_by?: string
           current_phase_milestones?: string[]
           id?: string
+          notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
           project_type?: Database["public"]["Enums"]["project_type"]
           team_hats?: string[]
+          timezone_range?: string
           updated_at?: string
         }
         Relationships: [

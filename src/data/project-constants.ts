@@ -49,6 +49,14 @@ export const MILESTONE_OPTIONS = [
   "Acceptance",
 ] as const;
 
+export const TIMEZONE_RANGES = [
+  { value: "EDT +/-5", label: "EDT ±5" },
+  { value: "PST +/-5", label: "PST ±5" },
+  { value: "UTC +/-5", label: "UTC ±5" },
+  { value: "IST +/-5", label: "IST ±5" },
+] as const;
+
 export type ProjectTypeValue = (typeof PROJECT_TYPES)[number]["value"];
 export type ProjectPhaseValue = (typeof PROJECT_PHASES)[number]["value"];
 export type ProjectStatusValue = (typeof PROJECT_STATUSES)[number]["value"];
+export type TimezoneRangeValue = (typeof TIMEZONE_RANGES)[number]["value"];
