@@ -149,7 +149,7 @@ export default function UserAdminPage() {
     const isSelf = u.user_id === user?.id;
     if (isSelf) return <span className="text-muted-foreground text-xs">You</span>;
     if (u.isAdmin) return <span className="text-muted-foreground text-xs">Admin</span>;
-    if (u.pendingPromotion) return <span className="text-yellow-600 dark:text-yellow-400 text-xs">Awaiting confirmation</span>;
+    if (u.pendingPromotion) return <span className="text-accent-foreground text-xs">Awaiting confirmation</span>;
     return <span className="text-primary text-xs cursor-pointer hover:underline">Promote</span>;
   }, [user?.id]);
 
