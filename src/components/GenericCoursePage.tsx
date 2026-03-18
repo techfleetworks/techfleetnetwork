@@ -159,6 +159,8 @@ export default function GenericCoursePage({
         newCompleted ? next.add(lessonId) : next.delete(lessonId);
         return next;
       });
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, phase] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, phase] });
     } finally {
       setToggling(false);
     }
