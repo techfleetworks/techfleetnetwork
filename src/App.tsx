@@ -35,6 +35,7 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AdminIngestPage = lazy(() => import("./pages/AdminIngestPage"));
 const ApplicationsPage = lazy(() => import("./pages/ApplicationsPage"));
 const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage"));
+const MyProjectApplicationsPage = lazy(() => import("./pages/MyProjectApplicationsPage"));
 const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 const UserAdminPage = lazy(() => import("./pages/UserAdminPage"));
 const ConfirmAdminPage = lazy(() => import("./pages/ConfirmAdminPage"));
@@ -97,6 +98,7 @@ const App = () => (
                     <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                     <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
                     <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
+                    <Route path="/applications/projects" element={<ProtectedRoute><MyProjectApplicationsPage /></ProtectedRoute>} />
                     <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
                     <Route path="/project-openings/:projectId/apply" element={<ProtectedRoute><ProjectApplicationPage /></ProtectedRoute>} />
                     <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
