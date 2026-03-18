@@ -430,7 +430,11 @@ export default function ProjectApplicationPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Apply — {client?.name ?? "Project"}</BreadcrumbPage>
+              <BreadcrumbLink href={`/project-openings/${projectId}`}>Project Overview</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Create Application</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
