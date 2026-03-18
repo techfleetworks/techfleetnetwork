@@ -19,7 +19,17 @@ export const ALL_WIDGETS: { id: DashboardWidgetId; label: string }[] = [
   { id: "badges", label: "Beginner Badges Earned" },
 ];
 
-const DEFAULT_WIDGETS: DashboardWidgetId[] = ["core_courses", "latest_updates"];
+/** Default order for all widget IDs */
+const DEFAULT_ORDER: DashboardWidgetId[] = ALL_WIDGETS.map((w) => w.id);
+
+/** Default visible widgets for brand-new users */
+const DEFAULT_VISIBLE: DashboardWidgetId[] = ["core_courses", "latest_updates"];
+
+interface Prefs {
+  visibleWidgets: DashboardWidgetId[];
+  widgetOrder: DashboardWidgetId[];
+  isNew: boolean;
+}
 
 export function useDashboardPreferences() {
   const { user } = useAuth();
@@ -28,33 +38,45 @@ export function useDashboardPreferences() {
 
   const { data, isLoading } = useQuery({
     queryKey,
-    queryFn: async () => {
+    queryFn: async (): Promise<Prefs> => {
       const { data: row } = await supabase
         .from("dashboard_preferences")
-        .select("visible_widgets")
+        .select("visible_widgets, widget_order")
         .eq("user_id", user!.id)
         .maybeSingle();
-      if (!row) return { widgets: DEFAULT_WIDGETS, isNew: true };
-      return { widgets: (row.visible_widgets as DashboardWidgetId[]) ?? DEFAULT_WIDGETS, isNew: false };
+      if (!row) return { visibleWidgets: DEFAULT_VISIBLE, widgetOrder: DEFAULT_ORDER, isNew: true };
+
+      const visible = (row.visible_widgets as DashboardWidgetId[]) ?? DEFAULT_VISIBLE;
+      let order = (row.widget_order as DashboardWidgetId[] | null) ?? DEFAULT_ORDER;
+
+      // Ensure all known widget IDs are present in the order array
+      const missing = DEFAULT_ORDER.filter((id) => !order.includes(id));
+      if (missing.length > 0) order = [...order, ...missing];
+
+      return { visibleWidgets: visible, widgetOrder: order, isNew: false };
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 
   const mutation = useMutation({
-    mutationFn: async (widgets: DashboardWidgetId[]) => {
+    mutationFn: async (prefs: { visibleWidgets: DashboardWidgetId[]; widgetOrder: DashboardWidgetId[] }) => {
       const { error } = await supabase
         .from("dashboard_preferences")
         .upsert(
-          [{ user_id: user!.id, visible_widgets: widgets as unknown as import("@/integrations/supabase/types").Json }],
-          { onConflict: "user_id" }
+          [{
+            user_id: user!.id,
+            visible_widgets: prefs.visibleWidgets as unknown as import("@/integrations/supabase/types").Json,
+            widget_order: prefs.widgetOrder as unknown as import("@/integrations/supabase/types").Json,
+          }],
+          { onConflict: "user_id" },
         );
       if (error) throw error;
     },
-    onMutate: async (widgets) => {
+    onMutate: async (prefs) => {
       await qc.cancelQueries({ queryKey });
       const prev = qc.getQueryData(queryKey);
-      qc.setQueryData(queryKey, { widgets, isNew: false });
+      qc.setQueryData(queryKey, { ...prefs, isNew: false });
       return { prev };
     },
     onError: (_err, _vars, ctx) => {
@@ -63,17 +85,25 @@ export function useDashboardPreferences() {
     onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  const visibleWidgets = data?.widgets ?? DEFAULT_WIDGETS;
+  const visibleWidgets = data?.visibleWidgets ?? DEFAULT_VISIBLE;
+  const widgetOrder = data?.widgetOrder ?? DEFAULT_ORDER;
   const isNewUser = data?.isNew ?? true;
 
+  const persist = (visible: DashboardWidgetId[], order: DashboardWidgetId[]) =>
+    mutation.mutate({ visibleWidgets: visible, widgetOrder: order });
+
   const isVisible = (id: DashboardWidgetId) => visibleWidgets.includes(id);
-  const setWidgets = (widgets: DashboardWidgetId[]) => mutation.mutate(widgets);
+
+  const setWidgets = (widgets: DashboardWidgetId[]) => persist(widgets, widgetOrder);
+
   const toggleWidget = (id: DashboardWidgetId) => {
     const next = isVisible(id)
       ? visibleWidgets.filter((w) => w !== id)
       : [...visibleWidgets, id];
-    setWidgets(next);
+    persist(next, widgetOrder);
   };
 
-  return { visibleWidgets, isVisible, setWidgets, toggleWidget, isNewUser, isLoading };
+  const reorderWidgets = (order: DashboardWidgetId[]) => persist(visibleWidgets, order);
+
+  return { visibleWidgets, widgetOrder, isVisible, setWidgets, toggleWidget, reorderWidgets, isNewUser, isLoading };
 }
