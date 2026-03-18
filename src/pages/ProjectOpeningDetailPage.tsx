@@ -260,7 +260,7 @@ export default function ProjectOpeningDetailPage() {
             <Share2 className="h-4 w-4" /> Share
           </Button>
           <Button className="gap-1.5" onClick={handleApply}>
-            <Send className="h-4 w-4" /> Apply
+            {hasApplied ? <><Pencil className="h-4 w-4" /> Edit</> : <><Send className="h-4 w-4" /> Apply</>}
           </Button>
         </div>
       </div>
