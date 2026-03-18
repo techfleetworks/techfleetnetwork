@@ -139,6 +139,50 @@ export default function DashboardPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // User's own project applications
+  const { data: myProjectApps = [] } = useQuery({
+    queryKey: ["dashboard-my-project-apps", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("id, project_id, status, completed_at, updated_at, current_step, team_hats_interest")
+        .eq("user_id", userId!)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!userId,
+  });
+
+  const projectIds = useMemo(() => [...new Set(myProjectApps.map((a) => a.project_id))], [myProjectApps]);
+  const { data: dashProjects = [] } = useQuery({
+    queryKey: ["dashboard-projects-for-apps", projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: projectIds.length > 0,
+  });
+
+  const dashClientIds = useMemo(() => [...new Set(dashProjects.map((p) => p.client_id))], [dashProjects]);
+  const { data: dashClients = [] } = useQuery({
+    queryKey: ["dashboard-clients-for-apps", dashClientIds],
+    queryFn: async () => {
+      if (dashClientIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("clients").select("id, name").in("id", dashClientIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: dashClientIds.length > 0,
+  });
+
+  const dashProjectMap = useMemo(() => new Map(dashProjects.map((p) => [p.id, p])), [dashProjects]);
+  const dashClientMap = useMemo(() => new Map(dashClients.map((c) => [c.id, c])), [dashClients]);
+
   const communityBadgeCount = stats?.badges_earned ?? null;
 
   const allFirstStepsDone = firstStepsCompleted >= TOTAL_FIRST_STEPS;
