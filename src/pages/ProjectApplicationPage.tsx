@@ -120,7 +120,38 @@ export default function ProjectApplicationPage() {
     enabled: !!project?.client_id,
   });
 
-  /* ── fetch or create application ───────────────────────── */
+  /* ── fetch user's general application ──────────────────── */
+  const { data: genApp } = useQuery({
+    queryKey: ["general-app-for-review", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Record<string, unknown> | null;
+    },
+    enabled: !!user,
+  });
+
+  /* ── fetch user's profile for step 1 review ───────────── */
+  const { data: userProfile } = useQuery({
+    queryKey: ["profile-for-review", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      if (error) throw error;
+      return data as Record<string, unknown>;
+    },
+    enabled: !!user,
+  });
+
   const { data: existingApp, isLoading: appLoading } = useQuery({
     queryKey: ["project-application", user?.id, projectId],
     queryFn: async () => {
