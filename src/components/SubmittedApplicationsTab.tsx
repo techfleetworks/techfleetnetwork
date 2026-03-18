@@ -169,7 +169,8 @@ export default function SubmittedApplicationsTab() {
     },
     {
       headerName: "Other Active Apps",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.otherApplyNowCount ?? 0,
     },
     {
