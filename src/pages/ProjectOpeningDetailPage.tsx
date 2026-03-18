@@ -145,6 +145,23 @@ export default function ProjectOpeningDetailPage() {
       .finally(() => setLoading(false));
   }, [projectId]);
 
+  /* Check if user has already applied to this project */
+  const { data: existingApp } = useQuery({
+    queryKey: ["user-project-app", user?.id, projectId],
+    queryFn: async () => {
+      const { data: app } = await supabase
+        .from("project_applications")
+        .select("id")
+        .eq("user_id", user!.id)
+        .eq("project_id", projectId!)
+        .maybeSingle();
+      return app;
+    },
+    enabled: !!user && !!projectId,
+  });
+
+  const hasApplied = !!existingApp;
+
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/project-openings/${projectId}`;
