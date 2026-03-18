@@ -273,6 +273,10 @@ export default function ProjectApplicationPage() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["project-application", user?.id, projectId] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-apps-for-openings", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-apps-count", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["project-opening-app-stats"] });
       if (vars.submit) {
         setCelebrationOpen(true);
       } else {
