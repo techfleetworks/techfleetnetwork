@@ -72,6 +72,31 @@ interface ClientInfo {
 
 const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
 
+/* ── read-only display helpers ───────────────────────────── */
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  if (!value?.trim()) return null;
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{value}</p>
+    </div>
+  );
+}
+
+function ReadOnlyArrayField({ label, items }: { label: string; items: string[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── component ────────────────────────────────────────────── */
 export default function ProjectApplicationPage() {
   const { projectId } = useParams<{ projectId: string }>();
