@@ -18,7 +18,7 @@ import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
@@ -29,8 +29,6 @@ import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
 import { useQuery } from "@/lib/react-query";
-
-const TOTAL_FIRST_STEPS = 6;
 
 interface CoreCourse {
   id: string;
@@ -125,6 +123,8 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
 
+  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+
   // React Query hooks — cached, deduped, no manual state
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps");
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
@@ -185,7 +185,7 @@ export default function DashboardPage() {
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
-  const allFirstStepsDone = firstStepsCompleted >= TOTAL_FIRST_STEPS;
+  const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allDiscordDone = discordCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
@@ -200,7 +200,7 @@ export default function DashboardPage() {
       description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
       href: "/courses/onboarding",
-      totalTasks: TOTAL_FIRST_STEPS,
+      totalTasks: totalFirstSteps,
       completedTasks: firstStepsCompleted,
       locked: false,
     },
