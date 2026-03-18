@@ -200,7 +200,7 @@ export default function DashboardPage() {
       description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
       icon: ClipboardCheck,
       href: "/courses/onboarding",
-      totalTasks: TOTAL_FIRST_STEPS,
+      totalTasks: totalFirstSteps,
       completedTasks: firstStepsCompleted,
       locked: false,
     },
