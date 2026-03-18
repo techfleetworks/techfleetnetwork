@@ -559,16 +559,25 @@ export default function ProjectApplicationPage() {
 
           <Separator />
 
-          {/* Previous phase toggle */}
-          <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="prev-phase" className="flex-1">
-              Did you participate in a previous phase of this project?
+          {/* Previous phase radio */}
+          <div className="space-y-2">
+            <Label className="text-foreground font-semibold">
+              Did you participate in a previous phase of this project? <span className="text-destructive">*</span>
             </Label>
-            <Switch
-              id="prev-phase"
-              checked={participatedPrev}
-              onCheckedChange={setParticipatedPrev}
-            />
+            <RadioGroup
+              value={participatedPrev ? "yes" : "no"}
+              onValueChange={(v) => setParticipatedPrev(v === "yes")}
+              className="flex gap-6"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="no" id="prev-phase-no" />
+                <Label htmlFor="prev-phase-no" className="text-foreground font-medium cursor-pointer">No</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="yes" id="prev-phase-yes" />
+                <Label htmlFor="prev-phase-yes" className="text-foreground font-medium cursor-pointer">Yes</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {participatedPrev ? (
