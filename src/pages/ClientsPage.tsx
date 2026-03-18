@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,8 @@ import { ProjectsTab } from "@/components/clients/ProjectsTab";
 
 export default function ClientsPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "projects" ? "projects" : "clients";
 
   if (adminLoading) {
     return (
@@ -21,7 +23,7 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Clients & Projects</h1>
 
-      <Tabs defaultValue="clients">
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
         <TabsList>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
