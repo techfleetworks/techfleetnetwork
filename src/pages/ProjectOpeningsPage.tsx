@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
-  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil,
+  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil, CheckCircle2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ interface EnrichedProject extends OpenProject {
   clientName: string;
   totalApps: number;
   hatCounts: Record<string, number>;
+  userStatus: "Apply Now" | "Applied";
 }
 
 const SECTION_LABELS = [
@@ -124,36 +125,6 @@ export default function ProjectOpeningsPage() {
     return map;
   }, [appStats]);
 
-  /* Enriched projects */
-  const enrichedProjects = useMemo<EnrichedProject[]>(() =>
-    projects.map((p) => {
-      const stats = statsMap.get(p.id);
-      return {
-        ...p,
-        clientName: clientMap.get(p.client_id) ?? "Client",
-        totalApps: stats?.total ?? 0,
-        hatCounts: stats?.hatCounts ?? {},
-      };
-    }),
-    [projects, clientMap, statsMap]
-  );
-
-  const { data: genApp } = useQuery({
-    queryKey: ["general-app-status", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("general_applications")
-        .select("id, status, current_section")
-        .eq("user_id", user!.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
   const { data: myProjectApps = [] } = useQuery({
     queryKey: ["my-project-apps-for-openings", user?.id],
     queryFn: async () => {
@@ -171,6 +142,37 @@ export default function ProjectOpeningsPage() {
     () => new Set(myProjectApps.map((a) => a.project_id)),
     [myProjectApps]
   );
+
+  /* Enriched projects */
+  const enrichedProjects = useMemo<EnrichedProject[]>(() =>
+    projects.map((p) => {
+      const stats = statsMap.get(p.id);
+      return {
+        ...p,
+        clientName: clientMap.get(p.client_id) ?? "Client",
+        totalApps: stats?.total ?? 0,
+        hatCounts: stats?.hatCounts ?? {},
+        userStatus: appliedProjectIds.has(p.id) ? "Applied" as const : "Apply Now" as const,
+      };
+    }),
+    [projects, clientMap, statsMap, appliedProjectIds]
+  );
+
+  const { data: genApp } = useQuery({
+    queryKey: ["general-app-status", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("id, status, current_section")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const isAppCompleted = genApp?.status === "completed";
 
@@ -213,6 +215,16 @@ export default function ProjectOpeningsPage() {
       headerName: "Status",
       flex: 1,
       valueGetter: (params) => statusLabel(params.data?.project_status ?? ""),
+    },
+    {
+      headerName: "Your Status",
+      field: "userStatus",
+      flex: 1,
+      minWidth: 110,
+      cellStyle: (params) => ({
+        color: params.value === "Applied" ? "hsl(var(--primary))" : undefined,
+        fontWeight: params.value === "Applied" ? 600 : undefined,
+      }),
     },
     {
       headerName: "Team Hats",
@@ -294,6 +306,16 @@ export default function ProjectOpeningsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-3 text-sm">
+                    <div>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">Your Status</p>
+                      {p.userStatus === "Applied" ? (
+                        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Applied
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Apply Now</Badge>
+                      )}
+                    </div>
                     <div>
                       <p className="text-sm font-semibold text-muted-foreground mb-1">Phase</p>
                       <Badge variant="secondary" className="text-xs">{phaseLabel(p.phase)}</Badge>
