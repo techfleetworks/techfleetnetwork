@@ -197,11 +197,12 @@ export default function UserAdminPage() {
       sortable: false,
       filter: false,
       resizable: false,
-      flex: 1,
+      width: 130,
       minWidth: 100,
       maxWidth: 160,
       pinned: "right",
       lockPinned: true,
+      suppressSizeToFit: true,
       cellRenderer: ActionsCellRenderer,
     },
   ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
