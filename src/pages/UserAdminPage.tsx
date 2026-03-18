@@ -119,24 +119,46 @@ export default function UserAdminPage() {
     }
   };
 
+  const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
+    const u = params.data;
+    if (!u) return null;
+    const name = u.first_name || u.last_name
+      ? `${u.first_name} ${u.last_name}`.trim()
+      : u.display_name || "—";
+    return (
+      <div className="flex items-center gap-2">
+        <span className={u.isAdmin ? "text-primary" : "text-muted-foreground"}>
+          {u.isAdmin ? "🛡" : "👤"}
+        </span>
+        <span className="font-medium">{name}</span>
+      </div>
+    );
+  }, []);
+
+  const RoleCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
+    const u = params.data;
+    if (!u) return null;
+    if (u.isAdmin) return <span className="text-primary font-semibold">Admin</span>;
+    if (u.pendingPromotion) return <span className="text-yellow-600 dark:text-yellow-400 font-medium">Pending</span>;
+    return <span className="text-muted-foreground">Member</span>;
+  }, []);
+
+  const ActionsCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
+    const u = params.data;
+    if (!u) return null;
+    const isSelf = u.user_id === user?.id;
+    if (isSelf) return <span className="text-muted-foreground text-xs">You</span>;
+    if (u.isAdmin) return <span className="text-muted-foreground text-xs">Admin</span>;
+    if (u.pendingPromotion) return <span className="text-yellow-600 dark:text-yellow-400 text-xs">Awaiting confirmation</span>;
+    return <span className="text-primary text-xs cursor-pointer hover:underline">Promote</span>;
+  }, [user?.id]);
+
   const columnDefs = useMemo<ColDef<UserRow>[]>(() => [
     {
       headerName: "Name",
       field: "first_name",
       flex: 2,
-      cellRenderer: (params: ICellRendererParams<UserRow>) => {
-        const u = params.data;
-        if (!u) return null;
-        const name = u.first_name || u.last_name
-          ? `${u.first_name} ${u.last_name}`.trim()
-          : u.display_name || "—";
-        return `<div style="display:flex;align-items:center;gap:8px">
-          <span style="color:${u.isAdmin ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}">
-            ${u.isAdmin ? '🛡' : '👤'}
-          </span>
-          <span style="font-weight:500">${name}</span>
-        </div>`;
-      },
+      cellRenderer: NameCellRenderer,
       valueGetter: (params) => {
         const u = params.data;
         if (!u) return "";
@@ -161,13 +183,7 @@ export default function UserAdminPage() {
       headerName: "Role",
       field: "isAdmin",
       flex: 1,
-      cellRenderer: (params: ICellRendererParams<UserRow>) => {
-        const u = params.data;
-        if (!u) return null;
-        if (u.isAdmin) return '<span style="color:hsl(var(--primary));font-weight:600">Admin</span>';
-        if (u.pendingPromotion) return '<span style="color:hsl(var(--warning));font-weight:500">Pending</span>';
-        return '<span style="color:hsl(var(--muted-foreground))">Member</span>';
-      },
+      cellRenderer: RoleCellRenderer,
       valueGetter: (params) => {
         const u = params.data;
         if (!u) return "";
@@ -184,17 +200,9 @@ export default function UserAdminPage() {
       flex: 1,
       minWidth: 100,
       maxWidth: 160,
-      cellRenderer: (params: ICellRendererParams<UserRow>) => {
-        const u = params.data;
-        if (!u) return null;
-        const isSelf = u.user_id === user?.id;
-        if (isSelf) return '<span style="color:hsl(var(--muted-foreground));font-size:0.75rem">You</span>';
-        if (u.isAdmin) return '<span style="color:hsl(var(--muted-foreground));font-size:0.75rem">Admin</span>';
-        if (u.pendingPromotion) return '<span style="color:hsl(var(--warning));font-size:0.75rem">Awaiting confirmation</span>';
-        return null; // Button will be handled via onCellClicked
-      },
+      cellRenderer: ActionsCellRenderer,
     },
-  ], [user?.id]);
+  ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
 
   const onCellClicked = useCallback((params: { colDef: ColDef<UserRow>; data: UserRow | undefined }) => {
     if (params.colDef.headerName === "Actions" && params.data) {
