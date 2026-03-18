@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
-import { ThemedAgGrid, type ThemedAgGridHandle } from "@/components/AgGrid";
+import { ThemedAgGrid } from "@/components/AgGrid";
 import { AllApplicationsColumnPicker, ALL_COLUMNS, DEFAULT_VISIBLE_KEYS } from "@/components/admin/AllApplicationsColumnPicker";
 import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
 
