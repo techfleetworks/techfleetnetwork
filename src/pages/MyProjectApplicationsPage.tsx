@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { format } from "date-fns";
 import {
   ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
