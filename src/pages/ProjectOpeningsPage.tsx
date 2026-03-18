@@ -367,11 +367,7 @@ export default function ProjectOpeningsPage() {
               getRowId={(params) => params.data.id}
               onRowClicked={(params) => {
                 if (!params.data) return;
-                if (appliedProjectIds.has(params.data.id)) {
-                  navigate(`/project-openings/${params.data.id}/apply`);
-                } else {
-                  handleApply(params.data.id);
-                }
+                navigate(`/project-openings/${params.data.id}`);
               }}
               rowStyle={{ cursor: "pointer" }}
               showExportCsv={isAdmin}
