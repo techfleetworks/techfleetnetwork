@@ -562,16 +562,21 @@ export default function ProjectOpeningDetailPage() {
 
       {/* ── Bottom CTA ────────────────────────────────────── */}
       <div className="rounded-lg border bg-card p-6 sm:p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-foreground">Ready to Join This Project?</h2>
+        <h2 className="text-xl font-bold text-foreground">
+          {hasApplied ? "Review Your Application" : "Ready to Join This Project?"}
+        </h2>
         <p className="text-muted-foreground max-w-lg mx-auto">
-          Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already.
+          {hasApplied
+            ? "You've already submitted an application for this project. You can review or edit your responses."
+            : "Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already."
+          }
         </p>
         <div className="flex items-center justify-center gap-3">
           <Button variant="outline" className="gap-1.5" onClick={handleShare}>
             <Share2 className="h-4 w-4" /> Share This Opening
           </Button>
           <Button size="lg" className="gap-2" onClick={handleApply}>
-            <Send className="h-5 w-5" /> Apply Now
+            {hasApplied ? <><Pencil className="h-5 w-5" /> Edit Application</> : <><Send className="h-5 w-5" /> Apply Now</>}
           </Button>
         </div>
       </div>
