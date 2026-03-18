@@ -114,7 +114,8 @@ export function ProjectsTab() {
     },
     {
       headerName: "Updated",
-      width: 130,
+      flex: 1,
+      minWidth: 110,
       valueGetter: (params) => params.data?.updated_at,
       valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
     },
