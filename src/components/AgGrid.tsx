@@ -1,14 +1,9 @@
 import { useMemo } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type ColDef,
-  themeAlpine,
-} from "ag-grid-community";
-
-// Register all community modules once
-ModuleRegistry.registerModules([AllCommunityModule]);
+import type { ColDef } from "ag-grid-community";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
+import { useTheme } from "next-themes";
 
 interface Props<T> extends AgGridReactProps<T> {
   height?: string;
@@ -19,6 +14,11 @@ export function ThemedAgGrid<T = unknown>({
   defaultColDef,
   ...rest
 }: Props<T>) {
+  const { resolvedTheme } = useTheme();
+
+  const themeClass =
+    resolvedTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
+
   const mergedColDef = useMemo<ColDef<T>>(
     () => ({
       sortable: true,
@@ -30,9 +30,8 @@ export function ThemedAgGrid<T = unknown>({
   );
 
   return (
-    <div style={{ height, width: "100%" }}>
+    <div className={themeClass} style={{ height, width: "100%" }}>
       <AgGridReact<T>
-        theme={themeAlpine}
         defaultColDef={mergedColDef}
         animateRows
         {...rest}
