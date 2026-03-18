@@ -200,19 +200,22 @@ export default function UpdatesPage() {
       {/* Detail side panel */}
       <Sheet open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
         <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
-          <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <SheetTitle className="text-xl pr-8 break-words whitespace-normal">{selectedAnnouncement?.title}</SheetTitle>
+          <SheetHeader className="px-6 pt-6 pb-4 border-b min-w-0">
+            <SheetTitle className="text-xl pr-8 break-words whitespace-normal overflow-hidden overflow-wrap-anywhere" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{selectedAnnouncement?.title}</SheetTitle>
             <SheetDescription>
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6 py-4">
-            {selectedAnnouncement && (
-              <div
-                className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body_html }}
-              />
-            )}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-4">
+              {selectedAnnouncement && (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none break-words"
+                  style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body_html }}
+                />
+              )}
+            </div>
           </ScrollArea>
         </SheetContent>
       </Sheet>
