@@ -81,6 +81,7 @@ const joinDiscordTask: Omit<Task, "completed"> = {
 
 export default function FirstStepsPage() {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
 
   // Build task list: include "join-discord" only if user has no discord username
   const taskDefs = (() => {
