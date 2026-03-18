@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useImperativeHandle, forwardRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type {
   ColDef, GridReadyEvent, ColumnResizedEvent, SortChangedEvent,
@@ -12,10 +12,6 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
-export interface ThemedAgGridHandle {
-  resetView: () => void;
-}
-
 interface Props<T> extends AgGridReactProps<T> {
   height?: string;
   /** Unique id used to persist grid state per user. If omitted, state is not persisted. */
@@ -24,22 +20,19 @@ interface Props<T> extends AgGridReactProps<T> {
   hideResetButton?: boolean;
 }
 
-function ThemedAgGridInner<T = unknown>(
-  {
-    height = "400px",
-    gridId,
-    hideResetButton,
-    defaultColDef,
-    onGridReady: externalOnGridReady,
-    onSortChanged: externalOnSortChanged,
-    onFilterChanged: externalOnFilterChanged,
-    onColumnResized: externalOnColumnResized,
-    onColumnMoved: externalOnColumnMoved,
-    columnDefs,
-    ...rest
-  }: Props<T>,
-  ref: React.Ref<ThemedAgGridHandle>
-) {
+export function ThemedAgGrid<T = unknown>({
+  height = "400px",
+  gridId,
+  hideResetButton,
+  defaultColDef,
+  onGridReady: externalOnGridReady,
+  onSortChanged: externalOnSortChanged,
+  onFilterChanged: externalOnFilterChanged,
+  onColumnResized: externalOnColumnResized,
+  onColumnMoved: externalOnColumnMoved,
+  columnDefs,
+  ...rest
+}: Props<T>) {
   const { resolvedTheme } = useTheme();
   const themeClass = resolvedTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
   const apiRef = useRef<GridApi<T> | null>(null);
@@ -77,8 +70,6 @@ function ThemedAgGridInner<T = unknown>(
     }
     toast.success("Table view reset to default");
   }, [clearState]);
-
-  useImperativeHandle(ref, () => ({ resetView }), [resetView]);
 
   const handleGridReady = useCallback(
     (e: GridReadyEvent<T>) => {
@@ -157,8 +148,3 @@ function ThemedAgGridInner<T = unknown>(
     </div>
   );
 }
-
-// Export with generic support via type assertion
-export const ThemedAgGrid = forwardRef(ThemedAgGridInner) as <T = unknown>(
-  props: Props<T> & { ref?: React.Ref<ThemedAgGridHandle> }
-) => React.ReactElement;
