@@ -9,16 +9,54 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type { ColDef } from "ag-grid-community";
 
-interface SubmittedApp {
+interface ProjectApp {
   id: string;
   user_id: string;
   project_id: string;
   status: string;
   completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  current_step: number;
   participated_previous_phase: boolean;
   team_hats_interest: string[];
+  passion_for_project: string;
+  client_project_knowledge: string;
+  project_success_contribution: string;
+  cross_functional_contribution: string;
+  prior_engagement_preparation: string;
+  previous_phase_position: string;
+  previous_phase_learnings: string;
+  previous_phase_help_teammates: string;
+}
+
+interface GeneralApp {
+  id: string;
+  user_id: string;
+  email: string;
+  title: string;
+  status: string;
+  current_section: number;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  linkedin_url: string;
+  portfolio_url: string;
+  hours_commitment: string;
+  about_yourself: string;
+  previous_engagement: string;
+  previous_engagement_ways: string[];
+  agile_philosophies: string;
+  agile_vs_waterfall: string;
+  collaboration_challenges: string;
+  teammate_learnings: string;
+  psychological_safety: string;
+  servant_leadership_definition: string;
+  servant_leadership_situation: string;
+  servant_leadership_actions: string;
+  servant_leadership_challenges: string;
 }
 
 interface ProjectRow {
@@ -34,10 +72,19 @@ interface ClientRow {
   name: string;
 }
 
-interface EnrichedApp extends SubmittedApp {
+interface ProfileRow {
+  user_id: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+interface EnrichedApp extends ProjectApp {
   project?: ProjectRow;
   client?: ClientRow;
-  profile?: { user_id: string; display_name: string; first_name: string; last_name: string; email: string };
+  profile?: ProfileRow;
+  generalApp?: GeneralApp;
   otherApplyNowCount: number;
   totalApplyNowCount: number;
 }
@@ -45,11 +92,13 @@ interface EnrichedApp extends SubmittedApp {
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
+const truncate = (v: string, n = 100) => v && v.length > n ? v.slice(0, n) + "…" : v || "—";
 
 export default function SubmittedApplicationsTab() {
   const navigate = useNavigate();
   const [view, setView] = useState<"card" | "table">("table");
 
+  // Fetch project applications
   const { data: apps, isLoading: appsLoading } = useQuery({
     queryKey: ["admin-submitted-project-apps"],
     queryFn: async () => {
@@ -59,8 +108,21 @@ export default function SubmittedApplicationsTab() {
         .eq("status", "completed")
         .order("completed_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as SubmittedApp[];
+      return (data ?? []) as unknown as ProjectApp[];
     },
+  });
+
+  // Fetch general applications
+  const { data: generalApps } = useQuery({
+    queryKey: ["admin-general-apps-for-submitted"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as unknown as GeneralApp[];
+    },
+    enabled: (apps ?? []).length > 0,
   });
 
   const projectIds = useMemo(() => [...new Set((apps ?? []).map((a) => a.project_id))], [apps]);
@@ -95,7 +157,7 @@ export default function SubmittedApplicationsTab() {
       const { data, error } = await supabase
         .from("profiles").select("user_id, display_name, first_name, last_name, email").in("user_id", userIds);
       if (error) throw error;
-      return (data ?? []) as { user_id: string; display_name: string; first_name: string; last_name: string; email: string }[];
+      return (data ?? []) as ProfileRow[];
     },
     enabled: (apps ?? []).length > 0,
   });
@@ -103,13 +165,19 @@ export default function SubmittedApplicationsTab() {
   const projectMap = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p])), [projects]);
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
   const profileMap = useMemo(() => new Map((profiles ?? []).map((p) => [p.user_id, p])), [profiles]);
+  const generalAppMap = useMemo(() => {
+    const map = new Map<string, GeneralApp>();
+    (generalApps ?? []).forEach((g) => map.set(g.user_id, g));
+    return map;
+  }, [generalApps]);
 
   const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
       const proj = projectMap.get(a.project_id);
       const cli = proj ? clientMap.get(proj.client_id) : undefined;
       const prof = profileMap.get(a.user_id);
-      return { ...a, project: proj, client: cli, profile: prof };
+      const genApp = generalAppMap.get(a.user_id);
+      return { ...a, project: proj, client: cli, profile: prof, generalApp: genApp };
     });
     const userApplyNowCounts = new Map<string, number>();
     for (const item of items) {
@@ -124,61 +192,262 @@ export default function SubmittedApplicationsTab() {
         : userApplyNowCounts.get(item.user_id) ?? 0,
       totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
     }));
-  }, [apps, projectMap, clientMap, profileMap]);
+  }, [apps, projectMap, clientMap, profileMap, generalAppMap]);
 
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
+    // ── Core visible columns ──
     {
       headerName: "Applicant",
+      colId: "applicant",
       flex: 2,
-      valueGetter: (params) => {
-        const p = params.data?.profile;
-        if (!p) return "Unknown";
-        return p.display_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || "Unknown";
+      valueGetter: (p) => {
+        const pr = p.data?.profile;
+        if (!pr) return "Unknown";
+        return pr.display_name || `${pr.first_name ?? ""} ${pr.last_name ?? ""}`.trim() || "Unknown";
       },
     },
     {
       headerName: "Email",
+      colId: "email",
       flex: 2,
-      valueGetter: (params) => params.data?.profile?.email ?? "—",
+      valueGetter: (p) => p.data?.profile?.email ?? "—",
     },
     {
       headerName: "Client",
+      colId: "client",
       flex: 1,
-      valueGetter: (params) => params.data?.client?.name ?? "—",
+      valueGetter: (p) => p.data?.client?.name ?? "—",
     },
     {
       headerName: "Project Type",
+      colId: "project_type",
       flex: 1,
-      valueGetter: (params) => typeLabel(params.data?.project?.project_type ?? ""),
+      valueGetter: (p) => typeLabel(p.data?.project?.project_type ?? ""),
     },
     {
       headerName: "Phase",
+      colId: "phase",
       flex: 1,
-      valueGetter: (params) => phaseLabel(params.data?.project?.phase ?? ""),
+      valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? ""),
     },
     {
-      headerName: "Status",
+      headerName: "Project Status",
+      colId: "project_status",
       flex: 1,
-      valueGetter: (params) => statusLabel(params.data?.project?.project_status ?? ""),
+      valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? ""),
     },
     {
       headerName: "Previous Participant",
-      flex: 1,
-      minWidth: 120,
-      valueGetter: (params) => params.data?.participated_previous_phase ? "Yes" : "No",
+      colId: "prev_participant",
+      flex: 1, minWidth: 120,
+      valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No",
     },
     {
       headerName: "Other Active Apps",
-      flex: 1,
-      minWidth: 120,
-      valueGetter: (params) => params.data?.otherApplyNowCount ?? 0,
+      colId: "other_apps",
+      flex: 1, minWidth: 120,
+      valueGetter: (p) => p.data?.otherApplyNowCount ?? 0,
     },
     {
       headerName: "Date Submitted",
-      flex: 1,
-      minWidth: 120,
-      valueGetter: (params) => params.data?.completed_at,
-      valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
+      colId: "date_submitted",
+      flex: 1, minWidth: 120,
+      valueGetter: (p) => p.data?.completed_at,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—",
+    },
+
+    // ── Project Application fields (hidden by default) ──
+    {
+      headerName: "Team Hats Interest",
+      colId: "pa_team_hats",
+      hide: true, flex: 2,
+      valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
+    },
+    {
+      headerName: "Passion for Project",
+      colId: "pa_passion",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.passion_for_project ?? ""),
+    },
+    {
+      headerName: "Client/Project Knowledge",
+      colId: "pa_client_knowledge",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.client_project_knowledge ?? ""),
+    },
+    {
+      headerName: "Project Success Contribution",
+      colId: "pa_success",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.project_success_contribution ?? ""),
+    },
+    {
+      headerName: "Cross-Functional Contribution",
+      colId: "pa_cross_func",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.cross_functional_contribution ?? ""),
+    },
+    {
+      headerName: "Prior Engagement Preparation",
+      colId: "pa_prior_prep",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.prior_engagement_preparation ?? ""),
+    },
+    {
+      headerName: "Previous Phase Position",
+      colId: "pa_prev_position",
+      hide: true, flex: 1,
+      valueGetter: (p) => truncate(p.data?.previous_phase_position ?? ""),
+    },
+    {
+      headerName: "Previous Phase Learnings",
+      colId: "pa_prev_learnings",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.previous_phase_learnings ?? ""),
+    },
+    {
+      headerName: "Previous Phase Help Teammates",
+      colId: "pa_prev_help",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.previous_phase_help_teammates ?? ""),
+    },
+    {
+      headerName: "Project App Created",
+      colId: "pa_created",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.created_at,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy HH:mm") : "—",
+    },
+    {
+      headerName: "Project App Updated",
+      colId: "pa_updated",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.updated_at,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy HH:mm") : "—",
+    },
+    {
+      headerName: "Current Step",
+      colId: "pa_step",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.current_step ?? "—",
+    },
+
+    // ── General Application fields (hidden by default) ──
+    {
+      headerName: "GA: Title",
+      colId: "ga_title",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.title ?? "—",
+    },
+    {
+      headerName: "GA: Status",
+      colId: "ga_status",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.status ?? "—",
+    },
+    {
+      headerName: "GA: LinkedIn",
+      colId: "ga_linkedin",
+      hide: true, flex: 2,
+      valueGetter: (p) => p.data?.generalApp?.linkedin_url ?? "—",
+    },
+    {
+      headerName: "GA: Portfolio",
+      colId: "ga_portfolio",
+      hide: true, flex: 2,
+      valueGetter: (p) => p.data?.generalApp?.portfolio_url ?? "—",
+    },
+    {
+      headerName: "GA: Hours Commitment",
+      colId: "ga_hours",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.hours_commitment ?? "—",
+    },
+    {
+      headerName: "GA: About Yourself",
+      colId: "ga_about",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.about_yourself ?? ""),
+    },
+    {
+      headerName: "GA: Previous Engagement",
+      colId: "ga_prev_engage",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.previous_engagement ?? "—",
+    },
+    {
+      headerName: "GA: Previous Engagement Ways",
+      colId: "ga_prev_ways",
+      hide: true, flex: 2,
+      valueGetter: (p) => (p.data?.generalApp?.previous_engagement_ways ?? []).join(", "),
+    },
+    {
+      headerName: "GA: Agile Philosophies",
+      colId: "ga_agile_phil",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.agile_philosophies ?? ""),
+    },
+    {
+      headerName: "GA: Agile vs Waterfall",
+      colId: "ga_agile_water",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.agile_vs_waterfall ?? ""),
+    },
+    {
+      headerName: "GA: Collaboration Challenges",
+      colId: "ga_collab",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.collaboration_challenges ?? ""),
+    },
+    {
+      headerName: "GA: Teammate Learnings",
+      colId: "ga_teammate",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.teammate_learnings ?? ""),
+    },
+    {
+      headerName: "GA: Psychological Safety",
+      colId: "ga_psych",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.psychological_safety ?? ""),
+    },
+    {
+      headerName: "GA: Servant Leadership Def.",
+      colId: "ga_sl_def",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.servant_leadership_definition ?? ""),
+    },
+    {
+      headerName: "GA: Servant Leadership Sit.",
+      colId: "ga_sl_sit",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.servant_leadership_situation ?? ""),
+    },
+    {
+      headerName: "GA: Servant Leadership Actions",
+      colId: "ga_sl_actions",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.servant_leadership_actions ?? ""),
+    },
+    {
+      headerName: "GA: Servant Leadership Challenges",
+      colId: "ga_sl_challenges",
+      hide: true, flex: 2,
+      valueGetter: (p) => truncate(p.data?.generalApp?.servant_leadership_challenges ?? ""),
+    },
+    {
+      headerName: "GA: Completed At",
+      colId: "ga_completed",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.completed_at,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—",
+    },
+    {
+      headerName: "GA: Created At",
+      colId: "ga_created",
+      hide: true, flex: 1,
+      valueGetter: (p) => p.data?.generalApp?.created_at,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—",
     },
   ], []);
 
@@ -279,6 +548,23 @@ export default function SubmittedApplicationsTab() {
           rowStyle={{ cursor: "pointer" }}
           pagination
           paginationPageSize={25}
+          sideBar={{
+            toolPanels: [
+              {
+                id: "columns",
+                labelDefault: "Columns",
+                labelKey: "columns",
+                iconKey: "columns",
+                toolPanel: "agColumnsToolPanel",
+                toolPanelParams: {
+                  suppressRowGroups: true,
+                  suppressValues: true,
+                  suppressPivots: true,
+                  suppressPivotMode: true,
+                },
+              },
+            ],
+          }}
         />
       )}
     </div>
