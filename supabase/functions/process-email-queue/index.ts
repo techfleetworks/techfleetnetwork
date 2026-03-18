@@ -69,6 +69,49 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
+async function getOrCreateUnsubscribeToken(
+  supabase: ReturnType<typeof createClient>,
+  email: unknown
+): Promise<string | null> {
+  if (typeof email !== 'string') {
+    return null
+  }
+
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!normalizedEmail) {
+    return null
+  }
+
+  const { data: existingToken, error: existingError } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token')
+    .eq('email', normalizedEmail)
+    .is('used_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingError) {
+    throw existingError
+  }
+
+  if (existingToken?.token) {
+    return existingToken.token
+  }
+
+  const token = crypto.randomUUID()
+  const { error: insertError } = await supabase.from('email_unsubscribe_tokens').insert({
+    email: normalizedEmail,
+    token,
+  })
+
+  if (insertError) {
+    throw insertError
+  }
+
+  return token
+}
+
 Deno.serve(async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -268,6 +311,11 @@ Deno.serve(async (req) => {
       }
 
       try {
+        const unsubscribeToken =
+          payload.purpose === 'transactional'
+            ? await getOrCreateUnsubscribeToken(supabase, payload.to)
+            : null
+
         const requestPayload = {
           to: payload.to,
           from: payload.from,
@@ -278,15 +326,12 @@ Deno.serve(async (req) => {
           purpose: payload.purpose,
           label: payload.label,
           idempotency_key: payload.idempotency_key ?? payload.message_id,
-          unsubscribe_token: payload.unsubscribe_token,
+          unsubscribe_token: payload.unsubscribe_token ?? unsubscribeToken,
           message_id: payload.message_id,
         }
 
         await sendLovableEmail(
           requestPayload,
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
           {
             apiKey,
             sendUrl: Deno.env.get('LOVABLE_SEND_URL'),
