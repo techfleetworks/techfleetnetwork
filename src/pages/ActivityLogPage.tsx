@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/use-admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,14 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
   Search,
   Loader2,
@@ -39,8 +31,9 @@ import {
   Pencil,
   Copy,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 
 interface AuditLogEntry {
   id: string;
@@ -51,39 +44,36 @@ interface AuditLogEntry {
   changed_fields: string[] | null;
   error_message: string | null;
   created_at: string;
-  // Joined from profiles
-  user_email?: string;
-  user_name?: string;
 }
 
-const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Activity; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  profile_created: { label: "Profile Created", icon: UserPlus, variant: "default" },
-  profile_updated: { label: "Profile Updated", icon: Pencil, variant: "secondary" },
-  role_granted: { label: "Role Granted", icon: ShieldCheck, variant: "default" },
-  role_revoked: { label: "Role Revoked", icon: XCircle, variant: "destructive" },
-  task_completed: { label: "Task Completed", icon: CheckCircle2, variant: "default" },
-  task_uncompleted: { label: "Task Uncompleted", icon: XCircle, variant: "secondary" },
-  application_created: { label: "Application Created", icon: FileText, variant: "default" },
-  application_status_changed: { label: "Application Status Changed", icon: FileText, variant: "secondary" },
-  application_submitted: { label: "Application Submitted", icon: FileText, variant: "default" },
-  conversation_created: { label: "Chat Started", icon: MessageSquare, variant: "secondary" },
-  conversation_deleted: { label: "Chat Deleted", icon: MessageSquare, variant: "destructive" },
-  invitation_created: { label: "Invitation Sent", icon: UserPlus, variant: "default" },
-  invitation_used: { label: "Invitation Used", icon: CheckCircle2, variant: "default" },
-  admin_promotion_initiated: { label: "Admin Promotion", icon: ShieldCheck, variant: "default" },
-  announcement_created: { label: "Announcement Created", icon: Activity, variant: "default" },
-  announcement_deleted: { label: "Announcement Deleted", icon: Activity, variant: "destructive" },
-  client_created: { label: "Client Created", icon: FileText, variant: "default" },
-  client_updated: { label: "Client Updated", icon: Pencil, variant: "secondary" },
-  client_deleted: { label: "Client Deleted", icon: FileText, variant: "destructive" },
-  client_error: { label: "Client Error", icon: AlertCircle, variant: "destructive" },
-  project_created: { label: "Project Created", icon: FileText, variant: "default" },
-  project_updated: { label: "Project Updated", icon: Pencil, variant: "secondary" },
-  project_deleted: { label: "Project Deleted", icon: FileText, variant: "destructive" },
-  project_application_created: { label: "Project App Created", icon: FileText, variant: "default" },
-  project_application_status_changed: { label: "Project App Status Changed", icon: FileText, variant: "secondary" },
-  project_application_submitted: { label: "Project App Submitted", icon: FileText, variant: "default" },
-  error: { label: "Error", icon: AlertCircle, variant: "destructive" },
+const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
+  profile_created: { label: "Profile Created", variant: "default" },
+  profile_updated: { label: "Profile Updated", variant: "secondary" },
+  role_granted: { label: "Role Granted", variant: "default" },
+  role_revoked: { label: "Role Revoked", variant: "destructive" },
+  task_completed: { label: "Task Completed", variant: "default" },
+  task_uncompleted: { label: "Task Uncompleted", variant: "secondary" },
+  application_created: { label: "Application Created", variant: "default" },
+  application_status_changed: { label: "Application Status Changed", variant: "secondary" },
+  application_submitted: { label: "Application Submitted", variant: "default" },
+  conversation_created: { label: "Chat Started", variant: "secondary" },
+  conversation_deleted: { label: "Chat Deleted", variant: "destructive" },
+  invitation_created: { label: "Invitation Sent", variant: "default" },
+  invitation_used: { label: "Invitation Used", variant: "default" },
+  admin_promotion_initiated: { label: "Admin Promotion", variant: "default" },
+  announcement_created: { label: "Announcement Created", variant: "default" },
+  announcement_deleted: { label: "Announcement Deleted", variant: "destructive" },
+  client_created: { label: "Client Created", variant: "default" },
+  client_updated: { label: "Client Updated", variant: "secondary" },
+  client_deleted: { label: "Client Deleted", variant: "destructive" },
+  client_error: { label: "Client Error", variant: "destructive" },
+  project_created: { label: "Project Created", variant: "default" },
+  project_updated: { label: "Project Updated", variant: "secondary" },
+  project_deleted: { label: "Project Deleted", variant: "destructive" },
+  project_application_created: { label: "Project App Created", variant: "default" },
+  project_application_status_changed: { label: "Project App Status Changed", variant: "secondary" },
+  project_application_submitted: { label: "Project App Submitted", variant: "default" },
+  error: { label: "Error", variant: "destructive" },
 };
 
 const PAGE_SIZE = 50;
@@ -117,32 +107,21 @@ export default function ActivityLogPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      // Get count
       let countQuery = supabase
         .from("audit_log")
         .select("id", { count: "exact", head: true });
-
-      if (eventFilter !== "all") {
-        countQuery = countQuery.eq("event_type", eventFilter);
-      }
-
+      if (eventFilter !== "all") countQuery = countQuery.eq("event_type", eventFilter);
       const { count } = await countQuery;
       setTotalCount(count || 0);
 
-      // Get page of data
       let query = supabase
         .from("audit_log")
         .select("*")
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      if (eventFilter !== "all") {
-        query = query.eq("event_type", eventFilter);
-      }
-
+      if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
       const { data, error } = await query;
       if (error) throw error;
-
       setEntries((data || []) as unknown as AuditLogEntry[]);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -152,15 +131,11 @@ export default function ActivityLogPage() {
   };
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) {
-      fetchProfiles();
-    }
+    if (isAdmin && !adminLoading) fetchProfiles();
   }, [isAdmin, adminLoading]);
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) {
-      fetchLogs();
-    }
+    if (isAdmin && !adminLoading) fetchLogs();
   }, [isAdmin, adminLoading, page, eventFilter]);
 
   const filteredEntries = useMemo(() => {
@@ -181,7 +156,6 @@ export default function ActivityLogPage() {
 
   const uniqueEventTypes = useMemo(() => {
     const types = new Set(entries.map((e) => e.event_type));
-    // Also add from config
     Object.keys(EVENT_TYPE_CONFIG).forEach((t) => types.add(t));
     return Array.from(types).sort();
   }, [entries]);
@@ -195,7 +169,67 @@ export default function ActivityLogPage() {
     }
   }, []);
 
+  const getEventConfig = (eventType: string) =>
+    EVENT_TYPE_CONFIG[eventType] || {
+      label: eventType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      variant: "secondary",
+    };
+
+  const formatChangedFields = (fields: string[] | null, eventType: string) => {
+    if (!fields || fields.length === 0) return "";
+    if (eventType === "task_completed" || eventType === "task_uncompleted") return `${fields[0]} → ${fields[1] || ""}`;
+    if (eventType === "application_status_changed" && fields.length >= 2) return `${fields[0]} → ${fields[1]}`;
+    return fields.join(", ");
+  };
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const columnDefs = useMemo<ColDef<AuditLogEntry>[]>(() => [
+    {
+      headerName: "Date",
+      field: "created_at",
+      width: 170,
+      valueFormatter: (params) =>
+        params.value ? format(new Date(params.value), "MMM d, yyyy HH:mm") : "—",
+    },
+    {
+      headerName: "User",
+      width: 200,
+      valueGetter: (params) => {
+        const e = params.data;
+        if (!e?.user_id) return "System";
+        const info = profiles.get(e.user_id);
+        return info ? `${info.name} (${info.email})` : "Unknown";
+      },
+    },
+    {
+      headerName: "Event",
+      field: "event_type",
+      width: 220,
+      valueFormatter: (params) => getEventConfig(params.value).label,
+    },
+    {
+      headerName: "Table",
+      field: "table_name",
+      width: 140,
+    },
+    {
+      headerName: "Details",
+      flex: 1,
+      valueGetter: (params) => {
+        const e = params.data;
+        if (!e) return "";
+        return formatChangedFields(e.changed_fields, e.event_type);
+      },
+    },
+    {
+      headerName: "Error",
+      field: "error_message",
+      width: 200,
+      cellStyle: (params) => params.value ? { color: "hsl(var(--destructive))" } : undefined,
+      valueFormatter: (params) => params.value || "—",
+    },
+  ], [profiles]);
 
   if (adminLoading) {
     return (
@@ -205,29 +239,7 @@ export default function ActivityLogPage() {
     );
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const getEventConfig = (eventType: string) => {
-    return EVENT_TYPE_CONFIG[eventType] || {
-      label: eventType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      icon: Activity,
-      variant: "secondary" as const,
-    };
-  };
-
-  const formatChangedFields = (fields: string[] | null, eventType: string) => {
-    if (!fields || fields.length === 0) return null;
-
-    if (eventType === "task_completed" || eventType === "task_uncompleted") {
-      return `${fields[0]} → ${fields[1] || ""}`;
-    }
-    if (eventType === "application_status_changed" && fields.length >= 2) {
-      return `${fields[0]} → ${fields[1]}`;
-    }
-    return fields.join(", ");
-  };
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="space-y-6">
@@ -273,133 +285,27 @@ export default function ActivityLogPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[160px]">Date</TableHead>
-                  <TableHead className="w-[180px]">User</TableHead>
-                  <TableHead className="w-[200px]">Event</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead className="w-[60px]">Error</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEntries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No activity found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredEntries.map((entry) => {
-                    const config = getEventConfig(entry.event_type);
-                    const Icon = config.icon;
-                    const userInfo = entry.user_id ? profiles.get(entry.user_id) : null;
-                    const details = formatChangedFields(entry.changed_fields, entry.event_type);
+          <ThemedAgGrid<AuditLogEntry>
+            height="500px"
+            rowData={filteredEntries}
+            columnDefs={columnDefs}
+            getRowId={(params) => params.data.id}
+            rowClassRules={{
+              "bg-destructive/5": (params) => !!params.data?.error_message,
+            }}
+          />
 
-                    return (
-                      <TableRow key={entry.id} className={entry.error_message ? "bg-destructive/5" : ""}>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {format(new Date(entry.created_at), "MMM d, yyyy HH:mm")}
-                        </TableCell>
-                        <TableCell>
-                          {userInfo ? (
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">{userInfo.name}</div>
-                                <div className="text-xs text-muted-foreground truncate">{userInfo.email}</div>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">System</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
-                            <Badge variant={config.variant} className="text-xs whitespace-nowrap">
-                              {config.label}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">{entry.table_name}</div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[300px]">
-                          {details ? (
-                            <div className="flex items-center gap-1 group">
-                              <span className="truncate">{details}</span>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => copyToClipboard(details)}
-                                    className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                    aria-label="Copy details to clipboard"
-                                  >
-                                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>Copy details</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {entry.error_message ? (
-                            <div className="flex items-center gap-1 group" title={entry.error_message}>
-                              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-                              <span className="text-xs text-destructive truncate max-w-[200px]">
-                                {entry.error_message}
-                              </span>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => copyToClipboard(entry.error_message!)}
-                                    className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                    aria-label="Copy error message to clipboard"
-                                  >
-                                    <Copy className="h-3.5 w-3.5 text-destructive" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>Copy error</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Page {page + 1} of {totalPages}
               </p>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>

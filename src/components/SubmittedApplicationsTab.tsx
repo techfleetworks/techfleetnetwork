@@ -4,14 +4,12 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 
 interface SubmittedApp {
   id: string;
@@ -34,6 +32,14 @@ interface ProjectRow {
 interface ClientRow {
   id: string;
   name: string;
+}
+
+interface EnrichedApp extends SubmittedApp {
+  project?: ProjectRow;
+  client?: ClientRow;
+  profile?: { user_id: string; display_name: string; first_name: string; last_name: string; email: string };
+  otherApplyNowCount: number;
+  totalApplyNowCount: number;
 }
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
@@ -62,8 +68,7 @@ export default function SubmittedApplicationsTab() {
     queryKey: ["admin-projects-for-apps", projectIds],
     queryFn: async () => {
       if (projectIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("projects").select("*").in("id", projectIds);
+      const { data, error } = await supabase.from("projects").select("*").in("id", projectIds);
       if (error) throw error;
       return (data ?? []) as unknown as ProjectRow[];
     },
@@ -75,8 +80,7 @@ export default function SubmittedApplicationsTab() {
     queryKey: ["admin-clients-for-apps", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("clients").select("*").in("id", clientIds);
+      const { data, error } = await supabase.from("clients").select("*").in("id", clientIds);
       if (error) throw error;
       return (data ?? []) as unknown as ClientRow[];
     },
@@ -100,22 +104,19 @@ export default function SubmittedApplicationsTab() {
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
   const profileMap = useMemo(() => new Map((profiles ?? []).map((p) => [p.user_id, p])), [profiles]);
 
-  const enriched = useMemo(() => {
+  const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
       const proj = projectMap.get(a.project_id);
       const cli = proj ? clientMap.get(proj.client_id) : undefined;
       const prof = profileMap.get(a.user_id);
       return { ...a, project: proj, client: cli, profile: prof };
     });
-
-    // Count per user how many apply_now project apps they have
     const userApplyNowCounts = new Map<string, number>();
     for (const item of items) {
       if (item.project?.project_status === "apply_now") {
         userApplyNowCounts.set(item.user_id, (userApplyNowCounts.get(item.user_id) ?? 0) + 1);
       }
     }
-
     return items.map((item) => ({
       ...item,
       otherApplyNowCount: item.project?.project_status === "apply_now"
@@ -124,6 +125,59 @@ export default function SubmittedApplicationsTab() {
       totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
     }));
   }, [apps, projectMap, clientMap, profileMap]);
+
+  const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
+    {
+      headerName: "Applicant",
+      flex: 2,
+      valueGetter: (params) => {
+        const p = params.data?.profile;
+        if (!p) return "Unknown";
+        return p.display_name || `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || "Unknown";
+      },
+    },
+    {
+      headerName: "Email",
+      flex: 2,
+      valueGetter: (params) => params.data?.profile?.email ?? "—",
+    },
+    {
+      headerName: "Client",
+      flex: 1,
+      valueGetter: (params) => params.data?.client?.name ?? "—",
+    },
+    {
+      headerName: "Project Type",
+      flex: 1,
+      valueGetter: (params) => typeLabel(params.data?.project?.project_type ?? ""),
+    },
+    {
+      headerName: "Phase",
+      flex: 1,
+      valueGetter: (params) => phaseLabel(params.data?.project?.phase ?? ""),
+    },
+    {
+      headerName: "Status",
+      flex: 1,
+      valueGetter: (params) => statusLabel(params.data?.project?.project_status ?? ""),
+    },
+    {
+      headerName: "Previous Participant",
+      width: 160,
+      valueGetter: (params) => params.data?.participated_previous_phase ? "Yes" : "No",
+    },
+    {
+      headerName: "Other Active Apps",
+      width: 150,
+      valueGetter: (params) => params.data?.otherApplyNowCount ?? 0,
+    },
+    {
+      headerName: "Date Submitted",
+      width: 140,
+      valueGetter: (params) => params.data?.completed_at,
+      valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
+    },
+  ], []);
 
   if (appsLoading) {
     return (
@@ -144,7 +198,6 @@ export default function SubmittedApplicationsTab() {
 
   return (
     <div className="space-y-4">
-      {/* View toggle */}
       <div className="flex justify-end">
         <div className="flex border rounded-lg overflow-hidden">
           <button
@@ -173,15 +226,12 @@ export default function SubmittedApplicationsTab() {
               onClick={() => navigate(`/admin/applications/${app.id}`)}
             >
               <CardContent className="pt-5 space-y-3">
-                {/* Applicant */}
                 <div>
                   <p className="text-sm font-semibold text-foreground">
                     {app.profile?.display_name || `${app.profile?.first_name ?? ""} ${app.profile?.last_name ?? ""}`.trim() || "Unknown"}
                   </p>
                   <p className="text-xs text-muted-foreground">{app.profile?.email}</p>
                 </div>
-
-                {/* Project / Client */}
                 <div className="space-y-1">
                   <p className="text-sm text-foreground font-medium">{app.client?.name ?? "Unknown Client"}</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -190,15 +240,11 @@ export default function SubmittedApplicationsTab() {
                     <Badge variant="secondary" className="text-xs">{statusLabel(app.project?.project_status ?? "")}</Badge>
                   </div>
                 </div>
-
-                {/* Previous participant */}
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {app.participated_previous_phase
                     ? <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Previous Participant</>
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
                 </div>
-
-                {/* Other Apply Now apps */}
                 {app.totalApplyNowCount > 1 && (
                   <div className="flex items-center gap-1.5 text-xs">
                     <AlertTriangle className="h-3.5 w-3.5 text-warning" />
@@ -207,14 +253,11 @@ export default function SubmittedApplicationsTab() {
                     </span>
                   </div>
                 )}
-
-                {/* Date */}
                 {app.completed_at && (
                   <p className="text-xs text-muted-foreground">
                     Submitted {format(new Date(app.completed_at), "MMM d, yyyy")}
                   </p>
                 )}
-
                 <Button variant="outline" size="sm" className="w-full mt-2 gap-1">
                   View Full Application <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
@@ -223,71 +266,16 @@ export default function SubmittedApplicationsTab() {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Applicant</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Project Type</TableHead>
-                <TableHead>Phase</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Previous Participant?</TableHead>
-                <TableHead>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-help underline decoration-dotted underline-offset-4">Other Active Apps</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs text-xs">Number of other submitted applications this person has for projects currently accepting applications (Apply Now)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TableHead>
-                <TableHead>Date Submitted</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {enriched.map((app) => (
-                <TableRow key={app.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/applications/${app.id}`)}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">
-                        {app.profile?.display_name || `${app.profile?.first_name ?? ""} ${app.profile?.last_name ?? ""}`.trim() || "Unknown"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{app.profile?.email}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{app.client?.name ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{typeLabel(app.project?.project_type ?? "")}</TableCell>
-                  <TableCell className="text-sm">{phaseLabel(app.project?.phase ?? "")}</TableCell>
-                  <TableCell><Badge variant="secondary" className="text-xs">{statusLabel(app.project?.project_status ?? "")}</Badge></TableCell>
-                  <TableCell>
-                    {app.participated_previous_phase
-                      ? <Badge className="bg-success/10 text-success border-success/30 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />Yes</Badge>
-                      : <span className="text-sm text-muted-foreground">No</span>}
-                  </TableCell>
-                  <TableCell>
-                    {app.totalApplyNowCount > 1 ? (
-                      <Badge className="bg-warning/10 text-warning border-warning/30 text-xs gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        {app.otherApplyNowCount}
-                      </Badge>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">0</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">{app.completed_at ? format(new Date(app.completed_at), "MMM d, yyyy") : "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      View <ExternalLink className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ThemedAgGrid<EnrichedApp>
+          height="500px"
+          rowData={enriched}
+          columnDefs={columnDefs}
+          getRowId={(params) => params.data.id}
+          onRowClicked={(params) => params.data && navigate(`/admin/applications/${params.data.id}`)}
+          rowStyle={{ cursor: "pointer" }}
+          pagination
+          paginationPageSize={25}
+        />
       )}
     </div>
   );
