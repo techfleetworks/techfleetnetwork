@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { ColumnState, SortModelItem } from "ag-grid-community";
+import type { ColumnState } from "ag-grid-community";
 
 export interface GridState {
   columnState?: ColumnState[];
@@ -9,7 +9,7 @@ export interface GridState {
 }
 
 /**
- * Persist AG Grid column widths, order, sort, and filter per user per grid.
+ * Persist AG Grid column widths, order, sort, visibility, and filter per user per grid.
  * Debounces saves to avoid excessive writes.
  */
 export function useGridState(gridId: string) {
@@ -20,7 +20,7 @@ export function useGridState(gridId: string) {
 
   // Load state on mount
   useEffect(() => {
-    if (!user) { setLoaded(true); return; }
+    if (!user || !gridId) { setLoaded(true); return; }
 
     (async () => {
       try {
@@ -44,7 +44,7 @@ export function useGridState(gridId: string) {
   // Debounced save
   const persistState = useCallback(
     (state: GridState) => {
-      if (!user) return;
+      if (!user || !gridId) return;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(async () => {
         try {
@@ -62,5 +62,21 @@ export function useGridState(gridId: string) {
     [user, gridId]
   );
 
-  return { savedState, loaded, persistState };
+  // Delete saved state (reset)
+  const clearState = useCallback(async () => {
+    if (!user || !gridId) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setSavedState(null);
+    try {
+      await (supabase as any)
+        .from("grid_view_states")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("grid_id", gridId);
+    } catch {
+      // silent
+    }
+  }, [user, gridId]);
+
+  return { savedState, loaded, persistState, clearState };
 }
