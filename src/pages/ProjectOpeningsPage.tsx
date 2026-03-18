@@ -220,7 +220,7 @@ export default function ProjectOpeningsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
-                    <Button className="w-full gap-2" onClick={handleApply}>
+                    <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
                       <Send className="h-4 w-4" />
                       Apply
                     </Button>
