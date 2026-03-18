@@ -321,6 +321,15 @@ export default function ProjectOpeningsPage() {
             />
           ) : (
             <div className="space-y-10">
+              {/* Coming Soon */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                  Coming Soon
+                </h3>
+                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are coming soon." />
+              </div>
+
               {/* Open Applications */}
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
