@@ -40,7 +40,7 @@ interface Project {
 export function ProjectsTab() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<"table" | "card">("table");
+  const [view, setView] = useState<"table" | "card">("card");
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
   const { data: clients = [] } = useQuery({
