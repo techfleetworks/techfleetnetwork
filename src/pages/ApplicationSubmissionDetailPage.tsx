@@ -228,28 +228,28 @@ export default function ApplicationSubmissionDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <AnswerBlock question="Tell us about yourself" answer={(genApp.about_yourself as string) ?? ""} />
-            <AnswerBlock question="Hours commitment" answer={(genApp.hours_commitment as string) ?? ""} />
+            <ReadOnlyField label="Tell us about yourself" value={(genApp.about_yourself as string) ?? ""} />
+            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
-            <AnswerBlock question="Previous engagement with Tech Fleet" answer={(genApp.previous_engagement as string) ?? ""} />
-            <ArrayAnswerBlock question="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-            <AnswerBlock question="What have you learned from teammates?" answer={(genApp.teammate_learnings as string) ?? ""} />
+            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
+            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
+            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
-            <AnswerBlock question="Agile vs Waterfall" answer={(genApp.agile_vs_waterfall as string) ?? ""} />
-            <AnswerBlock question="Psychological Safety" answer={(genApp.psychological_safety as string) ?? ""} />
-            <AnswerBlock question="Agile Philosophies" answer={(genApp.agile_philosophies as string) ?? ""} />
-            <AnswerBlock question="Collaboration Challenges" answer={(genApp.collaboration_challenges as string) ?? ""} />
+            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
+            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
+            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
+            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
-            <AnswerBlock question="Servant Leadership Definition" answer={(genApp.servant_leadership_definition as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Actions" answer={(genApp.servant_leadership_actions as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Challenges" answer={(genApp.servant_leadership_challenges as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Situation" answer={(genApp.servant_leadership_situation as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Definition" value={(genApp.servant_leadership_definition as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Actions" value={(genApp.servant_leadership_actions as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Challenges" value={(genApp.servant_leadership_challenges as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Situation" value={(genApp.servant_leadership_situation as string) ?? ""} />
           </CardContent>
         </Card>
       )}
@@ -263,7 +263,7 @@ export default function ApplicationSubmissionDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ArrayAnswerBlock question="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
+          <ReadOnlyArrayField label="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -272,23 +272,23 @@ export default function ApplicationSubmissionDetailPage() {
 
           {participatedPrev ? (
             <>
-              <AnswerBlock question="What team position did you join in the previous phase?" answer={(projApp.previous_phase_position as string) ?? ""} />
-              <AnswerBlock question="What did you learn in the previous phase?" answer={(projApp.previous_phase_learnings as string) ?? ""} />
-              <AnswerBlock question="How will you help your teammates succeed in this upcoming phase?" answer={(projApp.previous_phase_help_teammates as string) ?? ""} />
+              <ReadOnlyField label="What team position did you join in the previous phase?" value={(projApp.previous_phase_position as string) ?? ""} />
+              <ReadOnlyField label="What did you learn in the previous phase?" value={(projApp.previous_phase_learnings as string) ?? ""} />
+              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(projApp.previous_phase_help_teammates as string) ?? ""} />
             </>
           ) : (
-            <AnswerBlock
-              question="How has your prior engagement in Tech Fleet prepared you for this team role?"
-              answer={(projApp.prior_engagement_preparation as string) ?? ""}
+            <ReadOnlyField
+              label="How has your prior engagement in Tech Fleet prepared you for this team role?"
+              value={(projApp.prior_engagement_preparation as string) ?? ""}
             />
           )}
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
-          <AnswerBlock question="Why are you passionate about being on this project?" answer={(projApp.passion_for_project as string) ?? ""} />
-          <AnswerBlock question="What do you know about the client and the project?" answer={(projApp.client_project_knowledge as string) ?? ""} />
-          <AnswerBlock question="How would you like to contribute to cross-functional teamwork?" answer={(projApp.cross_functional_contribution as string) ?? ""} />
-          <AnswerBlock question="How will you contribute to this project's successful outcomes?" answer={(projApp.project_success_contribution as string) ?? ""} />
+          <ReadOnlyField label="Why are you passionate about being on this project?" value={(projApp.passion_for_project as string) ?? ""} />
+          <ReadOnlyField label="What do you know about the client and the project?" value={(projApp.client_project_knowledge as string) ?? ""} />
+          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(projApp.cross_functional_contribution as string) ?? ""} />
+          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(projApp.project_success_contribution as string) ?? ""} />
         </CardContent>
       </Card>
 
