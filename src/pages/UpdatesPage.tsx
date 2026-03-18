@@ -69,7 +69,7 @@ export default function UpdatesPage() {
   const deleteMutation = useDeleteAnnouncement();
   const markReadMutation = useMarkAnnouncementRead();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
