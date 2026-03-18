@@ -4,8 +4,8 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import {
-  ArrowLeft, Share2, CheckCircle2, XCircle, User, Globe,
-  Briefcase, GraduationCap, MessageCircle, Loader2, Copy,
+  ArrowLeft, Share2, CheckCircle2, XCircle, User,
+  Briefcase, GraduationCap, Loader2, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,41 +15,13 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
-
-interface AnswerBlockProps {
-  question: string;
-  answer: string;
-}
-
-function AnswerBlock({ question, answer }: AnswerBlockProps) {
-  if (!answer?.trim()) return null;
-  return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">{question}</p>
-      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{answer}</p>
-    </div>
-  );
-}
-
-function ArrayAnswerBlock({ question, items }: { question: string; items: string[] }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div className="space-y-1.5">
-      <p className="text-sm font-medium text-foreground">{question}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function ApplicationSubmissionDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
@@ -218,49 +190,26 @@ export default function ApplicationSubmissionDetailPage() {
             Applicant Profile
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Name:</span>{" "}
-              <span className="text-muted-foreground">{applicantName}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Email:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.email as string) ?? "—"}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Country:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.country as string) || "—"}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Timezone:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.timezone as string) || "—"}</span>
-            </div>
-            {(profile?.discord_username as string) && (
-              <div>
-                <span className="font-medium text-foreground">Discord:</span>{" "}
-                <span className="text-muted-foreground">{profile.discord_username as string}</span>
-              </div>
-            )}
-            {(profile?.linkedin_url as string) && (
-              <div>
-                <span className="font-medium text-foreground">LinkedIn:</span>{" "}
-                <a href={profile.linkedin_url as string} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">Profile</a>
-              </div>
-            )}
-            {(profile?.portfolio_url as string) && (
-              <div>
-                <span className="font-medium text-foreground">Portfolio:</span>{" "}
-                <a href={profile.portfolio_url as string} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">View</a>
-              </div>
-            )}
-          </div>
-          <ArrayAnswerBlock question="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
-          <ArrayAnswerBlock question="Education Background" items={(profile?.education_background as string[]) ?? []} />
-          <ArrayAnswerBlock question="Interests" items={(profile?.interests as string[]) ?? []} />
-          <AnswerBlock question="Professional Background" answer={(profile?.professional_background as string) ?? ""} />
-          <AnswerBlock question="Professional Goals" answer={(profile?.professional_goals as string) ?? ""} />
-          <AnswerBlock question="Bio" answer={(profile?.bio as string) ?? ""} />
+        <CardContent className="space-y-4">
+          <ReadOnlyField label="Name" value={applicantName} />
+          <ReadOnlyField label="Email" value={(profile?.email as string) ?? "—"} />
+          <ReadOnlyField label="Country" value={(profile?.country as string) || "—"} />
+          <ReadOnlyField label="Timezone" value={(profile?.timezone as string) || "—"} />
+          {(profile?.discord_username as string) && (
+            <ReadOnlyField label="Discord" value={profile.discord_username as string} />
+          )}
+          {(profile?.linkedin_url as string) && (
+            <ReadOnlyLinkField label="LinkedIn" href={profile.linkedin_url as string} linkText="Profile" />
+          )}
+          {(profile?.portfolio_url as string) && (
+            <ReadOnlyLinkField label="Portfolio" href={profile.portfolio_url as string} linkText="View" />
+          )}
+          <ReadOnlyArrayField label="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
+          <ReadOnlyArrayField label="Education Background" items={(profile?.education_background as string[]) ?? []} />
+          <ReadOnlyArrayField label="Interests" items={(profile?.interests as string[]) ?? []} />
+          <ReadOnlyField label="Professional Background" value={(profile?.professional_background as string) ?? ""} />
+          <ReadOnlyField label="Professional Goals" value={(profile?.professional_goals as string) ?? ""} />
+          <ReadOnlyField label="Bio" value={(profile?.bio as string) ?? ""} />
         </CardContent>
       </Card>
 
@@ -279,28 +228,28 @@ export default function ApplicationSubmissionDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <AnswerBlock question="Tell us about yourself" answer={(genApp.about_yourself as string) ?? ""} />
-            <AnswerBlock question="Hours commitment" answer={(genApp.hours_commitment as string) ?? ""} />
+            <ReadOnlyField label="Tell us about yourself" value={(genApp.about_yourself as string) ?? ""} />
+            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
-            <AnswerBlock question="Previous engagement with Tech Fleet" answer={(genApp.previous_engagement as string) ?? ""} />
-            <ArrayAnswerBlock question="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-            <AnswerBlock question="What have you learned from teammates?" answer={(genApp.teammate_learnings as string) ?? ""} />
+            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
+            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
+            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
-            <AnswerBlock question="Agile vs Waterfall" answer={(genApp.agile_vs_waterfall as string) ?? ""} />
-            <AnswerBlock question="Psychological Safety" answer={(genApp.psychological_safety as string) ?? ""} />
-            <AnswerBlock question="Agile Philosophies" answer={(genApp.agile_philosophies as string) ?? ""} />
-            <AnswerBlock question="Collaboration Challenges" answer={(genApp.collaboration_challenges as string) ?? ""} />
+            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
+            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
+            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
+            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
 
             <Separator className="my-2" />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
-            <AnswerBlock question="Servant Leadership Definition" answer={(genApp.servant_leadership_definition as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Actions" answer={(genApp.servant_leadership_actions as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Challenges" answer={(genApp.servant_leadership_challenges as string) ?? ""} />
-            <AnswerBlock question="Servant Leadership Situation" answer={(genApp.servant_leadership_situation as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Definition" value={(genApp.servant_leadership_definition as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Actions" value={(genApp.servant_leadership_actions as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Challenges" value={(genApp.servant_leadership_challenges as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Situation" value={(genApp.servant_leadership_situation as string) ?? ""} />
           </CardContent>
         </Card>
       )}
@@ -314,7 +263,7 @@ export default function ApplicationSubmissionDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ArrayAnswerBlock question="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
+          <ReadOnlyArrayField label="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -323,23 +272,23 @@ export default function ApplicationSubmissionDetailPage() {
 
           {participatedPrev ? (
             <>
-              <AnswerBlock question="What team position did you join in the previous phase?" answer={(projApp.previous_phase_position as string) ?? ""} />
-              <AnswerBlock question="What did you learn in the previous phase?" answer={(projApp.previous_phase_learnings as string) ?? ""} />
-              <AnswerBlock question="How will you help your teammates succeed in this upcoming phase?" answer={(projApp.previous_phase_help_teammates as string) ?? ""} />
+              <ReadOnlyField label="What team position did you join in the previous phase?" value={(projApp.previous_phase_position as string) ?? ""} />
+              <ReadOnlyField label="What did you learn in the previous phase?" value={(projApp.previous_phase_learnings as string) ?? ""} />
+              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(projApp.previous_phase_help_teammates as string) ?? ""} />
             </>
           ) : (
-            <AnswerBlock
-              question="How has your prior engagement in Tech Fleet prepared you for this team role?"
-              answer={(projApp.prior_engagement_preparation as string) ?? ""}
+            <ReadOnlyField
+              label="How has your prior engagement in Tech Fleet prepared you for this team role?"
+              value={(projApp.prior_engagement_preparation as string) ?? ""}
             />
           )}
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
-          <AnswerBlock question="Why are you passionate about being on this project?" answer={(projApp.passion_for_project as string) ?? ""} />
-          <AnswerBlock question="What do you know about the client and the project?" answer={(projApp.client_project_knowledge as string) ?? ""} />
-          <AnswerBlock question="How would you like to contribute to cross-functional teamwork?" answer={(projApp.cross_functional_contribution as string) ?? ""} />
-          <AnswerBlock question="How will you contribute to this project's successful outcomes?" answer={(projApp.project_success_contribution as string) ?? ""} />
+          <ReadOnlyField label="Why are you passionate about being on this project?" value={(projApp.passion_for_project as string) ?? ""} />
+          <ReadOnlyField label="What do you know about the client and the project?" value={(projApp.client_project_knowledge as string) ?? ""} />
+          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(projApp.cross_functional_contribution as string) ?? ""} />
+          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(projApp.project_success_contribution as string) ?? ""} />
         </CardContent>
       </Card>
 
