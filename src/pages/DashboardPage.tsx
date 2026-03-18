@@ -18,7 +18,7 @@ import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
@@ -29,8 +29,6 @@ import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
 import { useQuery } from "@/lib/react-query";
-
-const TOTAL_FIRST_STEPS = 6;
 
 interface CoreCourse {
   id: string;
