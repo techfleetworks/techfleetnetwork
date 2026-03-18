@@ -243,7 +243,7 @@ export default function ProjectOpeningsPage() {
   }
 
   /* ── Section renderer ────────────────────────────────────── */
-  function ProjectSection({ title, icon: Icon, items, emptyText }: { title: string; icon: React.ElementType; items: EnrichedProject[]; emptyText: string }) {
+  function ProjectSection({ icon: Icon, items, emptyText }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string }) {
     if (items.length === 0) return (
       <div className="rounded-lg border bg-card p-6 text-center">
         <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
