@@ -151,6 +151,7 @@ export default function UpdatesPage() {
         </div>
       ) : viewMode === "table" ? (
         <ThemedAgGrid<Announcement>
+          gridId="updates"
           height="450px"
           rowData={announcements}
           columnDefs={columnDefs}
