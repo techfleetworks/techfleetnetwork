@@ -307,6 +307,16 @@ export default function ProjectOpeningsPage() {
                   </CardHeader>
                   <CardContent className="flex-1 space-y-3 text-sm">
                     <div>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">Your Status</p>
+                      {p.userStatus === "Applied" ? (
+                        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Applied
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Apply Now</Badge>
+                      )}
+                    </div>
+                    <div>
                       <p className="text-sm font-semibold text-muted-foreground mb-1">Phase</p>
                       <Badge variant="secondary" className="text-xs">{phaseLabel(p.phase)}</Badge>
                     </div>
