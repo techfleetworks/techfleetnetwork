@@ -144,6 +144,8 @@ export default function FirstStepsPage() {
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
 
       if (newCompleted) {
         const name = getDisplayName();
