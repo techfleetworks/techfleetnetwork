@@ -100,6 +100,25 @@ export default function ProjectOpeningsPage() {
     enabled: !!user,
   });
 
+  // Fetch user's existing project applications to know which projects they already applied to
+  const { data: myProjectApps = [] } = useQuery({
+    queryKey: ["my-project-apps-for-openings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("id, project_id, status")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const appliedProjectIds = useMemo(
+    () => new Set(myProjectApps.map((a) => a.project_id)),
+    [myProjectApps]
+  );
+
   const isAppCompleted = genApp?.status === "completed";
 
   const handleApply = (projectId: string) => {
