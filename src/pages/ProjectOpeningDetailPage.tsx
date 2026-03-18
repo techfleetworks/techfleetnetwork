@@ -150,9 +150,7 @@ export default function ProjectOpeningDetailPage() {
     if (user) {
       navigate(`/project-openings/${projectId}/apply`);
     } else {
-      // Store redirect path so login redirects back
-      sessionStorage.setItem("redirectAfterLogin", `/project-openings/${projectId}/apply`);
-      navigate("/login");
+      navigate("/login", { state: { from: { pathname: `/project-openings/${projectId}/apply` } } });
     }
   };
 
