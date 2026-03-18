@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@/lib/react-query";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
 interface GenericCoursePageProps {
@@ -86,6 +87,7 @@ export default function GenericCoursePage({
 }: GenericCoursePageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
@@ -157,6 +159,8 @@ export default function GenericCoursePage({
         newCompleted ? next.add(lessonId) : next.delete(lessonId);
         return next;
       });
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, phase] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, phase] });
     } finally {
       setToggling(false);
     }

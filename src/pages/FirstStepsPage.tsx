@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@/lib/react-query";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
@@ -80,6 +81,7 @@ const joinDiscordTask: Omit<Task, "completed"> = {
 
 export default function FirstStepsPage() {
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
 
   // Build task list: include "join-discord" only if user has no discord username
   const taskDefs = (() => {
@@ -142,6 +144,8 @@ export default function FirstStepsPage() {
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
 
       if (newCompleted) {
         const name = getDisplayName();
@@ -173,6 +177,8 @@ export default function FirstStepsPage() {
       setTasks((prev) =>
         prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
       );
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
 
       const name = getDisplayName();
       const discord = getDiscordUsername();
