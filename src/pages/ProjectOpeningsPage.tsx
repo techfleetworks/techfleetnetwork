@@ -145,6 +145,7 @@ export default function ProjectOpeningsPage() {
   );
 
   /* ── Split into sections ─────────────────────────────────── */
+  const comingSoon = useMemo(() => enrichedProjects.filter((p) => p.project_status === "coming_soon"), [enrichedProjects]);
   const openApplications = useMemo(() => enrichedProjects.filter((p) => p.project_status === "apply_now"), [enrichedProjects]);
   const startingSoon = useMemo(() => enrichedProjects.filter((p) => p.project_status === "recruiting" || p.project_status === "team_onboarding"), [enrichedProjects]);
   const liveProjects = useMemo(() => enrichedProjects.filter((p) => p.project_status === "project_in_progress"), [enrichedProjects]);
