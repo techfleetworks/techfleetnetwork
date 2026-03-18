@@ -257,7 +257,7 @@ export function UniversalSearch() {
                 label,
                 description: desc,
                 href: p.project_status === "apply_now"
-                  ? `/project-openings/${p.id}/apply`
+                  ? `/project-openings/${p.id}`
                   : isAdmin ? `/admin/clients/projects/${p.id}/edit` : "/project-openings",
                 group: "Projects",
               });
