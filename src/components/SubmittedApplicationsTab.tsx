@@ -267,6 +267,16 @@ export default function SubmittedApplicationsTab() {
                       ? <Badge className="bg-success/10 text-success border-success/30 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />Yes</Badge>
                       : <span className="text-sm text-muted-foreground">No</span>}
                   </TableCell>
+                  <TableCell>
+                    {app.totalApplyNowCount > 1 ? (
+                      <Badge className="bg-warning/10 text-warning border-warning/30 text-xs gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {app.otherApplyNowCount}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">{app.completed_at ? format(new Date(app.completed_at), "MMM d, yyyy") : "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" className="gap-1">
