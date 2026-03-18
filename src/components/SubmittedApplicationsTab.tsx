@@ -233,6 +233,16 @@ export default function SubmittedApplicationsTab() {
                 <TableHead>Phase</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Previous Participant?</TableHead>
+                <TableHead>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help underline decoration-dotted underline-offset-4">Other Active Apps</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs text-xs">Number of other submitted applications this person has for projects currently accepting applications (Apply Now)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
                 <TableHead>Date Submitted</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
