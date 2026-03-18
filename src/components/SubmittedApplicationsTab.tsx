@@ -311,8 +311,6 @@ export default function SubmittedApplicationsTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
-        </div>
         <div className="flex border rounded-lg overflow-hidden">
           <button
             onClick={() => setView("card")}
