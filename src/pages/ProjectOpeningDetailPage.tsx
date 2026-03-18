@@ -5,6 +5,7 @@ import {
   Loader2, Send, Building2, ExternalLink, Briefcase,
   Users, Share2, CheckCircle2, FileText,
   Lightbulb, ClipboardList, Target, Clock, Calendar, Link2,
+  ScrollText, ShieldCheck, CalendarClock, UserSearch, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
