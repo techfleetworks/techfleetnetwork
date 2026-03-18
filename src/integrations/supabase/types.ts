@@ -280,6 +280,7 @@ export type Database = {
           updated_at: string
           user_id: string
           visible_widgets: Json
+          widget_order: Json
         }
         Insert: {
           created_at?: string
@@ -287,6 +288,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           visible_widgets?: Json
+          widget_order?: Json
         }
         Update: {
           created_at?: string
@@ -294,6 +296,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           visible_widgets?: Json
+          widget_order?: Json
         }
         Relationships: []
       }
