@@ -40,10 +40,11 @@ Deno.serve(async (req) => {
     }
 
     if (promotion.confirmed_at) {
-      return new Response(
-        JSON.stringify({ message: 'Admin role already confirmed', already_confirmed: true }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://techfleetnetwork.lovable.app'
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: `${appOrigin}/login?admin_confirmed=already` },
+      })
     }
 
     // Derive the app origin from the Supabase URL (e.g. https://xyz.supabase.co → published app)
