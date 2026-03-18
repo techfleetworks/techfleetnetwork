@@ -26,6 +26,7 @@ export function ThemedAgGrid<T = unknown>({
   height = "400px",
   gridId,
   hideResetButton,
+  toolbarLeft,
   defaultColDef,
   onGridReady: externalOnGridReady,
   onSortChanged: externalOnSortChanged,
