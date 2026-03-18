@@ -245,6 +245,7 @@ export default function UserAdminPage() {
         </div>
       ) : (
         <ThemedAgGrid<UserRow>
+          gridId="user-admin"
           height="500px"
           rowData={filteredUsers}
           columnDefs={columnDefs}
