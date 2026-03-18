@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { StatsService } from "@/services/stats.service";
