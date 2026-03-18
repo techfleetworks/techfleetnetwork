@@ -638,41 +638,43 @@ export default function ProjectApplicationPage() {
         </div>
       )}
 
-      {/* ── Actions bar ──────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3 pb-8">
-        <div>
-          {step > 1 && !isCompleted && (
-            <Button variant="outline" onClick={handleBack} disabled={isSaving}>
-              Back
-            </Button>
-          )}
+      {/* ── Actions bar (hidden on step 1 for non-completed apps — CTAs are inline) ──── */}
+      {(step > 1 || isCompleted) && (
+        <div className="flex flex-col sm:flex-row justify-between gap-3 pb-8">
+          <div>
+            {step > 1 && !isCompleted && (
+              <Button variant="outline" onClick={handleBack} disabled={isSaving}>
+                Back
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            {!isCompleted && step > 1 && (
+              <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Save Draft
+              </Button>
+            )}
+            {isCompleted ? (
+              <Button onClick={handleSaveCompleted} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Save Changes
+              </Button>
+            ) : step < 3 ? (
+              <Button onClick={handleNext} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Continue
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button onClick={handleNext} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Submit Application
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3">
-          {!isCompleted && step > 1 && (
-            <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Save Draft
-            </Button>
-          )}
-          {isCompleted ? (
-            <Button onClick={handleSaveCompleted} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Save Changes
-            </Button>
-          ) : step < 3 ? (
-            <Button onClick={handleNext} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Continue
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          ) : (
-            <Button onClick={handleNext} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Submit Application
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* ── Celebration dialog ───────────────────────────── */}
       <Dialog open={celebrationOpen} onOpenChange={setCelebrationOpen}>
