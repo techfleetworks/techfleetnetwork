@@ -207,7 +207,8 @@ export default function ActivityLogPage() {
     {
       headerName: "Event",
       field: "event_type",
-      width: 220,
+      flex: 1,
+      minWidth: 140,
       valueFormatter: (params) => getEventConfig(params.value).label,
     },
     {
