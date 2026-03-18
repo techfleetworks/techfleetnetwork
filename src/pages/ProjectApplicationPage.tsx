@@ -455,7 +455,7 @@ export default function ProjectApplicationPage() {
       </div>
 
       {/* ── Scrollable Content ────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Project info card (always visible) */}
           <Card>
