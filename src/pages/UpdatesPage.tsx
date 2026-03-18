@@ -69,7 +69,7 @@ export default function UpdatesPage() {
   const deleteMutation = useDeleteAnnouncement();
   const markReadMutation = useMarkAnnouncementRead();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
@@ -126,22 +126,22 @@ export default function UpdatesPage() {
         <div className="flex items-center gap-2">
           <div className="flex items-center border rounded-md">
             <Button
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-8 w-8 rounded-r-none"
-              onClick={() => setViewMode("table")}
-              aria-label="Table view"
-            >
-              <LayoutList className="h-4 w-4" />
-            </Button>
-            <Button
               variant={viewMode === "card" ? "secondary" : "ghost"}
               size="icon"
-              className="h-8 w-8 rounded-l-none"
+              className="h-8 w-8 rounded-r-none"
               onClick={() => setViewMode("card")}
               aria-label="Card view"
             >
               <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8 rounded-l-none"
+              onClick={() => setViewMode("table")}
+              aria-label="Table view"
+            >
+              <LayoutList className="h-4 w-4" />
             </Button>
           </div>
           {isAdmin && (

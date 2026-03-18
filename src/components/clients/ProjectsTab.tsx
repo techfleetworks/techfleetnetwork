@@ -40,7 +40,7 @@ interface Project {
 export function ProjectsTab() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<"table" | "card">("table");
+  const [view, setView] = useState<"table" | "card">("card");
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
   const { data: clients = [] } = useQuery({
@@ -95,8 +95,8 @@ export function ProjectsTab() {
         <p className="text-muted-foreground">Manage projects across clients.</p>
         <div className="flex items-center gap-2">
           <div className="flex border rounded-md overflow-hidden">
-            <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view"><List className="h-4 w-4" /></Button>
             <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view"><LayoutGrid className="h-4 w-4" /></Button>
+            <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view"><List className="h-4 w-4" /></Button>
           </div>
           <Button onClick={() => navigate("/admin/clients/projects/new")}><Plus className="h-4 w-4 mr-1" /> Add Project</Button>
         </div>
