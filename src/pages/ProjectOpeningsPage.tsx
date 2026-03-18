@@ -45,7 +45,7 @@ interface EnrichedProject extends OpenProject {
   userApplied: boolean;
 }
 
-const VISIBLE_STATUSES = ["apply_now", "recruiting", "team_onboarding", "project_in_progress"] as const;
+const VISIBLE_STATUSES: Array<"apply_now" | "recruiting" | "team_onboarding" | "project_in_progress"> = ["apply_now", "recruiting", "team_onboarding", "project_in_progress"];
 
 export default function ProjectOpeningsPage() {
   const { user } = useAuth();
