@@ -97,6 +97,7 @@ const App = () => (
                     <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
                     <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
                     <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
+                    <Route path="/project-openings/:projectId/apply" element={<ProtectedRoute><ProjectApplicationPage /></ProtectedRoute>} />
                     <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
                     <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
                     <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
