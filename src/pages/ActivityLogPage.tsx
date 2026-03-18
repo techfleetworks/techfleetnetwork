@@ -195,7 +195,8 @@ export default function ActivityLogPage() {
     },
     {
       headerName: "User",
-      width: 200,
+      flex: 2,
+      minWidth: 140,
       valueGetter: (params) => {
         const e = params.data;
         if (!e?.user_id) return "System";
