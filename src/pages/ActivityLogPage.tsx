@@ -229,7 +229,8 @@ export default function ActivityLogPage() {
     {
       headerName: "Error",
       field: "error_message",
-      width: 200,
+      flex: 1,
+      minWidth: 120,
       cellStyle: (params) => params.value ? { color: "hsl(var(--destructive))" } : undefined,
       valueFormatter: (params) => params.value || "—",
     },
