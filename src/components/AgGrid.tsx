@@ -57,6 +57,7 @@ export function ThemedAgGrid<T = unknown>({
       sortable: true,
       resizable: true,
       filter: true,
+      floatingFilter: true,
       flex: 1,
       minWidth: 80,
       wrapText: true,
