@@ -74,11 +74,13 @@ const STEP_LABELS = ["Review General App", "Project Questions", "Client Question
 
 /* ── read-only display helpers ───────────────────────────── */
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  if (!value?.trim()) return null;
+  const hasValue = !!value?.trim();
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-foreground">{label}</p>
-      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{value}</p>
+      <p className={`text-sm whitespace-pre-wrap leading-relaxed ${hasValue ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`}>
+        {hasValue ? value : "Not provided"}
+      </p>
     </div>
   );
 }
