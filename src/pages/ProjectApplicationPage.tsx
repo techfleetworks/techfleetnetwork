@@ -305,6 +305,29 @@ export default function ProjectApplicationPage() {
     return errs;
   }, [passion, clientKnowledge, crossFunctional, successContribution]);
 
+  /* ── error toast helper ─────────────────────────────────── */
+  const showValidationErrorToast = useCallback((errs: Record<string, string>) => {
+    const count = Object.keys(errs).length;
+    const fieldNames = Object.values(errs).map((msg, i) => {
+      const key = Object.keys(errs)[i];
+      const labels: Record<string, string> = {
+        team_hats_interest: "Team Hats selection",
+        previous_phase_position: "Previous phase position",
+        previous_phase_learnings: "Previous phase learnings",
+        previous_phase_help_teammates: "How you'll help teammates",
+        prior_engagement_preparation: "Prior engagement preparation",
+        passion_for_project: "Passion for project",
+        client_project_knowledge: "Client & project knowledge",
+        cross_functional_contribution: "Cross-functional contribution",
+        project_success_contribution: "Project success contribution",
+      };
+      return labels[key] ?? key;
+    });
+    toast.error(
+      `${count} required field${count > 1 ? "s" : ""} need${count === 1 ? "s" : ""} attention: ${fieldNames.join(", ")}. Please fill in all required fields to continue.`
+    );
+  }, []);
+
   /* ── navigation ────────────────────────────────────────── */
   const handleNext = useCallback(() => {
     if (step === 1) {
@@ -314,7 +337,7 @@ export default function ProjectApplicationPage() {
     }
     if (step === 2) {
       const errs = validateStep2();
-      if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+      if (Object.keys(errs).length > 0) { setErrors(errs); showValidationErrorToast(errs); return; }
       setErrors({});
       saveMutation.mutate({ fields: collectFields(), newStep: 3 });
       setStep(3);
@@ -324,20 +347,20 @@ export default function ProjectApplicationPage() {
       const errs2 = validateStep2();
       const errs3 = validateStep3();
       const allErrs = { ...errs2, ...errs3 };
-      if (Object.keys(allErrs).length > 0) { setErrors(allErrs); return; }
+      if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
       setErrors({});
       saveMutation.mutate({ fields: collectFields(), submit: true });
     }
-  }, [step, collectFields, saveMutation, validateStep2, validateStep3]);
+  }, [step, collectFields, saveMutation, validateStep2, validateStep3, showValidationErrorToast]);
 
   const handleSubmit = useCallback(() => {
     const errs2 = validateStep2();
     const errs3 = validateStep3();
     const allErrs = { ...errs2, ...errs3 };
-    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); return; }
+    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
     setErrors({});
     saveMutation.mutate({ fields: collectFields(), submit: true });
-  }, [collectFields, validateStep2, validateStep3, saveMutation]);
+  }, [collectFields, validateStep2, validateStep3, saveMutation, showValidationErrorToast]);
 
   const handleBack = useCallback(() => {
     if (step > 1) {
