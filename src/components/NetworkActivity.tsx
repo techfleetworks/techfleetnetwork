@@ -99,132 +99,138 @@ export function NetworkActivity({ showMap = true, showActivity = true }: Network
           </p>
         </div>
 
-        {/* All Time Stats */}
-        <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          <StatCard
-            icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />}
-            value={stats.total_signups}
-            label="New Sign-ups"
-            colorClass="bg-primary/10"
-          />
-          <StatCard
-            icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
-            value={stats.core_courses_active}
-            label="Completed Core Courses"
-            colorClass="bg-warning/10"
-          />
-          <StatCard
-            icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
-            value={stats.beginner_courses_active}
-            label="Completed Beginner Courses"
-            colorClass="bg-info/10"
-          />
-          <StatCard
-            icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
-            value={stats.advanced_courses_active}
-            label="Completed Advanced Courses"
-            colorClass="bg-accent/50"
-          />
-          <StatCard
-            icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />}
-            value={stats.applications_completed}
-            label="General Applications Completed"
-            colorClass="bg-success/10"
-          />
-          <StatCard
-            icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />}
-            value={stats.badges_earned}
-            label="Badges Earned"
-            colorClass="bg-primary/10"
-          />
-        </div>
+        {showActivity && (
+          <>
+            {/* All Time Stats */}
+            <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+              <StatCard
+                icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />}
+                value={stats.total_signups}
+                label="New Sign-ups"
+                colorClass="bg-primary/10"
+              />
+              <StatCard
+                icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
+                value={stats.core_courses_active}
+                label="Completed Core Courses"
+                colorClass="bg-warning/10"
+              />
+              <StatCard
+                icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
+                value={stats.beginner_courses_active}
+                label="Completed Beginner Courses"
+                colorClass="bg-info/10"
+              />
+              <StatCard
+                icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
+                value={stats.advanced_courses_active}
+                label="Completed Advanced Courses"
+                colorClass="bg-accent/50"
+              />
+              <StatCard
+                icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />}
+                value={stats.applications_completed}
+                label="General Applications Completed"
+                colorClass="bg-success/10"
+              />
+              <StatCard
+                icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />}
+                value={stats.badges_earned}
+                label="Badges Earned"
+                colorClass="bg-primary/10"
+              />
+            </div>
 
-        {/* Project Training */}
-        <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <StatCard
-            icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />}
-            value={stats.projects_open_applications}
-            label="Open Applications"
-            colorClass="bg-success/10"
-          />
-          <StatCard
-            icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />}
-            value={stats.projects_coming_soon}
-            label="Coming Soon"
-            colorClass="bg-warning/10"
-          />
-          <StatCard
-            icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
-            value={stats.projects_live}
-            label="Live"
-            colorClass="bg-primary/10"
-          />
-          <StatCard
-            icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
-            value={stats.projects_previously_completed}
-            label="Previously Completed"
-            colorClass="bg-muted"
-          />
-        </div>
+            {/* Project Training */}
+            <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+              <StatCard
+                icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />}
+                value={stats.projects_open_applications}
+                label="Open Applications"
+                colorClass="bg-success/10"
+              />
+              <StatCard
+                icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />}
+                value={stats.projects_coming_soon}
+                label="Coming Soon"
+                colorClass="bg-warning/10"
+              />
+              <StatCard
+                icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
+                value={stats.projects_live}
+                label="Live"
+                colorClass="bg-primary/10"
+              />
+              <StatCard
+                icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
+                value={stats.projects_previously_completed}
+                label="Previously Completed"
+                colorClass="bg-muted"
+              />
+            </div>
 
-        {/* Previous Week */}
-        <div className="border-t pt-8">
-          <div className="flex items-center gap-2 mb-1">
-            <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-            <h3 className="text-lg font-semibold text-foreground">Previous Week</h3>
-          </div>
-          {stats.prev_week_start && stats.prev_week_end && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {formatDateRange(stats.prev_week_start, stats.prev_week_end)}
-            </p>
-          )}
+            {/* Previous Week */}
+            <div className="border-t pt-8">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
+                <h3 className="text-lg font-semibold text-foreground">Previous Week</h3>
+              </div>
+              {stats.prev_week_start && stats.prev_week_end && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  {formatDateRange(stats.prev_week_start, stats.prev_week_end)}
+                </p>
+              )}
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard
-              icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />}
-              value={stats.prev_week_signups}
-              label="New Sign-ups"
-              colorClass="bg-primary/10"
-            />
-            <StatCard
-              icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
-            value={stats.prev_week_core_active}
-              label="Completed Core Courses"
-              colorClass="bg-warning/10"
-            />
-            <StatCard
-              icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
-            value={stats.prev_week_beginner_active}
-              label="Completed Beginner Courses"
-              colorClass="bg-info/10"
-            />
-            <StatCard
-              icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
-            value={stats.prev_week_advanced_active}
-              label="Completed Advanced Courses"
-              colorClass="bg-accent/50"
-            />
-            <StatCard
-              icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />}
-              value={stats.prev_week_applications}
-              label="General Applications Completed"
-              colorClass="bg-success/10"
-            />
-            <StatCard
-              icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />}
-              value={stats.prev_week_badges}
-              label="Badges Earned"
-              colorClass="bg-primary/10"
-            />
-          </div>
-        </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard
+                  icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />}
+                  value={stats.prev_week_signups}
+                  label="New Sign-ups"
+                  colorClass="bg-primary/10"
+                />
+                <StatCard
+                  icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />}
+                  value={stats.prev_week_core_active}
+                  label="Completed Core Courses"
+                  colorClass="bg-warning/10"
+                />
+                <StatCard
+                  icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />}
+                  value={stats.prev_week_beginner_active}
+                  label="Completed Beginner Courses"
+                  colorClass="bg-info/10"
+                />
+                <StatCard
+                  icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />}
+                  value={stats.prev_week_advanced_active}
+                  label="Completed Advanced Courses"
+                  colorClass="bg-accent/50"
+                />
+                <StatCard
+                  icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />}
+                  value={stats.prev_week_applications}
+                  label="General Applications Completed"
+                  colorClass="bg-success/10"
+                />
+                <StatCard
+                  icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />}
+                  value={stats.prev_week_badges}
+                  label="Badges Earned"
+                  colorClass="bg-primary/10"
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {/* World map */}
-        <div className="border-t pt-8 mt-8">
-          <MemberWorldMap />
-        </div>
+        {showMap && (
+          <div className={showActivity ? "border-t pt-8 mt-8" : ""}>
+            <MemberWorldMap />
+          </div>
+        )}
       </div>
     </section>
   );
