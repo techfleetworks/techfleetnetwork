@@ -137,6 +137,18 @@ export default function ProjectOpeningDetailPage() {
     return `${window.location.origin}/project-openings/${projectId}`;
   }, [projectId]);
 
+  const pageTitle = useMemo(() => {
+    if (!data) return "Project Opening | Tech Fleet";
+    const clientName = data.client?.name ?? "Project Opening";
+    return `${clientName} — ${typeLabel(data.project?.project_type ?? "")} | Tech Fleet`;
+  }, [data]);
+
+  // Update document title for SEO / sharing
+  useEffect(() => {
+    document.title = pageTitle;
+    return () => { document.title = "Tech Fleet Network"; };
+  }, [pageTitle]);
+
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -177,14 +189,6 @@ export default function ProjectOpeningDetailPage() {
   }
 
   const { project, client, milestoneData, applicationCount } = data;
-
-  const pageTitle = `${client?.name ?? "Project Opening"} — ${typeLabel(project.project_type)} | Tech Fleet`;
-
-  // Update document title for SEO / sharing
-  useEffect(() => {
-    document.title = pageTitle;
-    return () => { document.title = "Tech Fleet Network"; };
-  }, [pageTitle]);
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-4xl mx-auto space-y-8">
