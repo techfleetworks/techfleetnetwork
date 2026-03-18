@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { NavLink } from "@/components/NavLink";
+import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
 } from "@/data/project-constants";
 import { format } from "date-fns";
