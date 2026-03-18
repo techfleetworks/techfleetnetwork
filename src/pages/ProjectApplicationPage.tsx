@@ -384,7 +384,7 @@ export default function ProjectApplicationPage() {
             <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">Apply Now</Badge>
           </div>
           {client && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm pt-1">
+            <div className="space-y-2 text-sm pt-1">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Globe className="h-3.5 w-3.5 shrink-0" />
                 <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
