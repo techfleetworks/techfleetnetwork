@@ -267,6 +267,8 @@ export default function MyProjectApplicationsPage() {
           onRowClicked={(e) => {
             if (e.data) navigate(`/project-openings/${e.data.project_id}/apply`);
           }}
+          showExportCsv={isAdmin}
+          exportFileName="my-project-applications"
         />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
