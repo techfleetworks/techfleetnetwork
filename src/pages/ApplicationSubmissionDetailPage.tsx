@@ -190,49 +190,26 @@ export default function ApplicationSubmissionDetailPage() {
             Applicant Profile
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="font-medium text-foreground">Name:</span>{" "}
-              <span className="text-muted-foreground">{applicantName}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Email:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.email as string) ?? "—"}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Country:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.country as string) || "—"}</span>
-            </div>
-            <div>
-              <span className="font-medium text-foreground">Timezone:</span>{" "}
-              <span className="text-muted-foreground">{(profile?.timezone as string) || "—"}</span>
-            </div>
-            {(profile?.discord_username as string) && (
-              <div>
-                <span className="font-medium text-foreground">Discord:</span>{" "}
-                <span className="text-muted-foreground">{profile.discord_username as string}</span>
-              </div>
-            )}
-            {(profile?.linkedin_url as string) && (
-              <div>
-                <span className="font-medium text-foreground">LinkedIn:</span>{" "}
-                <a href={profile.linkedin_url as string} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">Profile</a>
-              </div>
-            )}
-            {(profile?.portfolio_url as string) && (
-              <div>
-                <span className="font-medium text-foreground">Portfolio:</span>{" "}
-                <a href={profile.portfolio_url as string} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1">View</a>
-              </div>
-            )}
-          </div>
-          <ArrayAnswerBlock question="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
-          <ArrayAnswerBlock question="Education Background" items={(profile?.education_background as string[]) ?? []} />
-          <ArrayAnswerBlock question="Interests" items={(profile?.interests as string[]) ?? []} />
-          <AnswerBlock question="Professional Background" answer={(profile?.professional_background as string) ?? ""} />
-          <AnswerBlock question="Professional Goals" answer={(profile?.professional_goals as string) ?? ""} />
-          <AnswerBlock question="Bio" answer={(profile?.bio as string) ?? ""} />
+        <CardContent className="space-y-4">
+          <ReadOnlyField label="Name" value={applicantName} />
+          <ReadOnlyField label="Email" value={(profile?.email as string) ?? "—"} />
+          <ReadOnlyField label="Country" value={(profile?.country as string) || "—"} />
+          <ReadOnlyField label="Timezone" value={(profile?.timezone as string) || "—"} />
+          {(profile?.discord_username as string) && (
+            <ReadOnlyField label="Discord" value={profile.discord_username as string} />
+          )}
+          {(profile?.linkedin_url as string) && (
+            <ReadOnlyLinkField label="LinkedIn" href={profile.linkedin_url as string} linkText="Profile" />
+          )}
+          {(profile?.portfolio_url as string) && (
+            <ReadOnlyLinkField label="Portfolio" href={profile.portfolio_url as string} linkText="View" />
+          )}
+          <ReadOnlyArrayField label="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
+          <ReadOnlyArrayField label="Education Background" items={(profile?.education_background as string[]) ?? []} />
+          <ReadOnlyArrayField label="Interests" items={(profile?.interests as string[]) ?? []} />
+          <ReadOnlyField label="Professional Background" value={(profile?.professional_background as string) ?? ""} />
+          <ReadOnlyField label="Professional Goals" value={(profile?.professional_goals as string) ?? ""} />
+          <ReadOnlyField label="Bio" value={(profile?.bio as string) ?? ""} />
         </CardContent>
       </Card>
 
