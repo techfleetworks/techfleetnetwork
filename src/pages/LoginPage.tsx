@@ -8,6 +8,7 @@ import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import { loginSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { toast } from "sonner";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 export default function LoginPage() {
@@ -23,6 +24,28 @@ export default function LoginPage() {
   const redirectParam = searchParams.get("redirect");
   const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
   const from = fromState || redirectParam || "/dashboard";
+
+  // Show toast for admin confirmation redirect
+  useEffect(() => {
+    const adminConfirmed = searchParams.get("admin_confirmed");
+    if (adminConfirmed === "true") {
+      toast.success("Admin Role successfully confirmed!");
+      // Clean URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete("admin_confirmed");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    } else if (adminConfirmed === "already") {
+      toast.info("Your admin role was already confirmed.");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("admin_confirmed");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    } else if (adminConfirmed === "error") {
+      toast.error("Failed to confirm admin role. Please try again or contact support.");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("admin_confirmed");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, []);
 
   // Store redirect for OAuth flows
   useEffect(() => {
