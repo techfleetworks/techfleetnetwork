@@ -4,7 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send,
+  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
