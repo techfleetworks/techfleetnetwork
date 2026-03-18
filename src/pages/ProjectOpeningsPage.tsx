@@ -125,6 +125,24 @@ export default function ProjectOpeningsPage() {
     return map;
   }, [appStats]);
 
+  const { data: myProjectApps = [] } = useQuery({
+    queryKey: ["my-project-apps-for-openings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("id, project_id, status")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const appliedProjectIds = useMemo(
+    () => new Set(myProjectApps.map((a) => a.project_id)),
+    [myProjectApps]
+  );
+
   /* Enriched projects */
   const enrichedProjects = useMemo<EnrichedProject[]>(() =>
     projects.map((p) => {
@@ -155,24 +173,6 @@ export default function ProjectOpeningsPage() {
     },
     enabled: !!user,
   });
-
-  const { data: myProjectApps = [] } = useQuery({
-    queryKey: ["my-project-apps-for-openings", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("project_applications")
-        .select("id, project_id, status")
-        .eq("user_id", user!.id);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
-
-  const appliedProjectIds = useMemo(
-    () => new Set(myProjectApps.map((a) => a.project_id)),
-    [myProjectApps]
-  );
 
   const isAppCompleted = genApp?.status === "completed";
 
