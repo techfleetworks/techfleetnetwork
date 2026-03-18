@@ -377,7 +377,7 @@ export default function ProjectApplicationPage() {
     const errs2 = validateStep2();
     const errs3 = validateStep3();
     const allErrs = { ...errs2, ...errs3 };
-    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); toast.error("Please fix validation errors"); return; }
+    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
     setErrors({});
     saveMutation.mutate({ fields: collectFields(), submit: true });
   }, [collectFields, validateStep2, validateStep3, saveMutation]);
