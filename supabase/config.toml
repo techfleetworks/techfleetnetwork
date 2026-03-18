@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.confirm-admin-role]
 verify_jwt = false
+
+[functions.public-project-detail]
+verify_jwt = false
