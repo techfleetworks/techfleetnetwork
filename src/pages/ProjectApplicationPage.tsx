@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +108,7 @@ export default function ProjectApplicationPage() {
 
   const [step, setStep] = useState(1);
   const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   /* form state */
   const [teamHatsInterest, setTeamHatsInterest] = useState<string[]>([]);
@@ -214,6 +215,10 @@ export default function ProjectApplicationPage() {
       setInitialized(true);
     }
   }, [existingApp, appLoading, initialized]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [step]);
 
   const isCompleted = existingApp?.status === "completed";
 
@@ -450,7 +455,7 @@ export default function ProjectApplicationPage() {
       </div>
 
       {/* ── Scrollable Content ────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Project info card (always visible) */}
           <Card>
