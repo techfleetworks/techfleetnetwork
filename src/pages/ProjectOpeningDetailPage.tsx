@@ -389,6 +389,138 @@ export default function ProjectOpeningDetailPage() {
         </InfoSection>
       )}
 
+      {/* ── Client Project Timeframe ─────────────────────── */}
+      <InfoSection icon={CalendarClock} title="Client Project Timeframe">
+        <p className="text-sm text-foreground">This is a 12-week project.</p>
+      </InfoSection>
+
+      {/* ── Contributor Agreement ─────────────────────────── */}
+      <InfoSection icon={ScrollText} title="Contributor Agreement">
+        <p className="text-sm text-foreground">
+          All Tech Fleet community contributors who join project training must read and agree to the Contributor Terms and Conditions.
+        </p>
+        <p className="text-sm text-foreground">
+          Read more in the Tech Fleet Contributor Terms:{" "}
+          <a
+            href="https://techfleet.org/community-contributor-terms-and-conditions"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1"
+          >
+            techfleet.org/community-contributor-terms-and-conditions
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </p>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">People on this team are considered trainees. This means:</p>
+          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>They are in training.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>They are not considered volunteers.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>They are not considered employees.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>They are unpaid and in apprenticeship training for the purposes of getting team experience while learning.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>They are not required to work certain amounts of hours or time frames, but are expected to put in 15 hours a week with the team doing work.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>They are on the team for the purposes of learning and experience building.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">7.</span>They are able to use the deliverables from the project on a case study or portfolio for the purposes of getting hired.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">8.</span>At the end of their training, they are not guaranteed future training positions or employment by Tech Fleet or the client.</li>
+          </ul>
+        </div>
+      </InfoSection>
+
+      {/* ── Tech Fleet Policies ────────────────────────────── */}
+      <InfoSection icon={ShieldCheck} title="Tech Fleet Policies">
+        <p className="text-sm text-foreground">
+          All Tech Fleet community contributors must read and agree to Tech Fleet policies in order to interact with the community and be a part of project training.
+        </p>
+        <p className="text-sm text-foreground">
+          Find the policies here:{" "}
+          <a
+            href="https://guide.techfleet.org/policies/tech-fleets-policies"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1"
+          >
+            guide.techfleet.org/policies/tech-fleets-policies
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </p>
+      </InfoSection>
+
+      {/* ── Project Timeline ──────────────────────────────── */}
+      <InfoSection icon={Calendar} title="Project Timeline">
+        <p className="text-sm text-foreground">
+          Learn more in the Tech Fleet user guide:{" "}
+          <a
+            href="https://guide.techfleet.org/project-portal/applying-to-tech-fleet-project-training"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1"
+          >
+            guide.techfleet.org/project-portal/applying-to-tech-fleet-project-training
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </p>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">Rough timeline after applications close:</p>
+          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>One week after applications close: Tech Fleet Project Coordinator will interview and choose teammates for the project. The entire process of building team can take up to 3–4 weeks.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Project Week 1–3 (3 weeks): Pre-kickoff</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>Project Week 3–10 (8 weeks): Project teamwork</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Project Week 11 (1 week): Hand-off</li>
+          </ul>
+        </div>
+      </InfoSection>
+
+      {/* ── Interview Process ─────────────────────────────── */}
+      <InfoSection icon={UserSearch} title="Interview Process">
+        <p className="text-sm text-foreground">
+          Learn more in the Tech Fleet user guide:{" "}
+          <a
+            href="https://guide.techfleet.org/project-portal/applying-to-tech-fleet-project-training/project-timelines-and-application-process"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1"
+          >
+            guide.techfleet.org/.../project-timelines-and-application-process
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </p>
+        <p className="text-sm text-foreground">
+          Here are some important pieces of information about interviewing with Tech Fleet projects:
+        </p>
+
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">How leads get selected:</p>
+          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>The project coordinator will interview selected leads.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The leads who interview may be chosen for the project team.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>There may be times when people from a previous phase are chosen to automatically continue as teammates for the sake of keeping people with project experience and knowledge, but the coordinator will communicate this, and will provide as close to 100% fair treatment as possible.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All teammates train on the project with peer learning and are operating with pro bono volunteer work.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>Not all teammates are experts or experienced, some teammates are doing this for the first-time ever, as is designed in Tech Fleet to open more space for first-time learners.</li>
+          </ul>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">How apprentices get selected:</p>
+          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Submit the video ask responses.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will interview selected apprentices.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Typically, for each team function, up to 4 apprentices will be chosen, but sometimes more or less will be chosen depending on circumstances.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All apprentices train on the project with peer learning and are operating with pro bono volunteer work.</li>
+          </ul>
+        </div>
+      </InfoSection>
+
+      {/* ── Considerations ────────────────────────────────── */}
+      <InfoSection icon={AlertTriangle} title="Considerations">
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>While the expectations are for projects to start 4 weeks after applications close, this is not guaranteed, as this is a community-driven effort with pro bono volunteers giving their time back to coordinate projects for the betterment of the community. Please provide them patience, and thanks for understanding that the community is doing the best it can to coordinate these projects.</li>
+          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Not everyone who applies will be interviewed, or contacted individually due to demand on the project applications.</li>
+          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will communicate in the platform, through Email, and #project-openings channel in Tech Fleet Discord with updates.</li>
+        </ul>
+      </InfoSection>
+
       {/* ── Bottom CTA ────────────────────────────────────── */}
       <div className="rounded-lg border bg-card p-6 sm:p-8 text-center space-y-4">
         <h2 className="text-xl font-bold text-foreground">Ready to Join This Project?</h2>
