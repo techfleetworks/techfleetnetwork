@@ -201,7 +201,7 @@ export default function UpdatesPage() {
       <Sheet open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
         <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
-            <SheetTitle className="text-xl pr-8">{selectedAnnouncement?.title}</SheetTitle>
+            <SheetTitle className="text-xl pr-8 break-words whitespace-normal">{selectedAnnouncement?.title}</SheetTitle>
             <SheetDescription>
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
