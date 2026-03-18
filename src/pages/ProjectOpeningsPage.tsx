@@ -326,7 +326,7 @@ export default function ProjectOpeningsPage() {
                   <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
                   Open Applications
                 </h3>
-                <ProjectSection title="Open Applications" icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
+                <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
               </div>
 
               {/* Starting Soon */}
