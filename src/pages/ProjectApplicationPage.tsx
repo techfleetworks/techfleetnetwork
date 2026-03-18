@@ -108,6 +108,7 @@ export default function ProjectApplicationPage() {
 
   const [step, setStep] = useState(1);
   const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   /* form state */
   const [teamHatsInterest, setTeamHatsInterest] = useState<string[]>([]);
