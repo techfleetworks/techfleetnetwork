@@ -6,10 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { toast } from "sonner";
 import { z } from "zod";
+import { format } from "date-fns";
 import {
-  Loader2, ArrowLeft, Globe, User, ExternalLink,
+  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,16 +19,27 @@ import {
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
-  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES, TEAM_HATS, MILESTONE_OPTIONS,
+  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES, TEAM_HATS, MILESTONE_OPTIONS, TIMEZONE_RANGES,
   type ProjectTypeValue, type ProjectPhaseValue, type ProjectStatusValue,
 } from "@/data/project-constants";
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
 import type { Client } from "@/components/clients/ClientsTab";
+import { cn } from "@/lib/utils";
+
+// ---------- Helpers ----------
+const optionalUrl = z.string().refine(
+  (v) => v === "" || /^https?:\/\/.+/.test(v),
+  { message: "Must be a valid URL starting with http:// or https://" },
+);
 
 // ---------- Schema ----------
 const projectSchema = z.object({
@@ -36,6 +49,11 @@ const projectSchema = z.object({
   team_hats: z.array(z.string()).min(1, "Select at least one team hat"),
   project_status: z.enum(["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress", "project_complete"] as const),
   current_phase_milestones: z.array(z.string()).min(1, "Select at least one milestone"),
+  timezone_range: z.string().min(1, "Select a timezone range"),
+  anticipated_start_date: z.string().nullable(),
+  anticipated_end_date: z.string().nullable(),
+  client_intake_url: optionalUrl,
+  notion_repository_url: optionalUrl,
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -47,6 +65,11 @@ const EMPTY_FORM: ProjectForm = {
   team_hats: [],
   project_status: "coming_soon",
   current_phase_milestones: [],
+  timezone_range: "",
+  anticipated_start_date: null,
+  anticipated_end_date: null,
+  client_intake_url: "",
+  notion_repository_url: "",
 };
 
 export default function ProjectFormPage() {
@@ -80,6 +103,11 @@ export default function ProjectFormPage() {
             team_hats: data.team_hats ?? [],
             project_status: data.project_status as ProjectStatusValue,
             current_phase_milestones: data.current_phase_milestones ?? [],
+            timezone_range: data.timezone_range ?? "",
+            anticipated_start_date: data.anticipated_start_date ?? null,
+            anticipated_end_date: data.anticipated_end_date ?? null,
+            client_intake_url: data.client_intake_url ?? "",
+            notion_repository_url: data.notion_repository_url ?? "",
           });
           setInitialized(true);
         }
@@ -87,7 +115,7 @@ export default function ProjectFormPage() {
     },
   });
 
-  // Workaround: useQuery doesn't support meta.onSettled in all versions, so use effect-like pattern
+  // Workaround: useQuery doesn't support meta.onSettled in all versions
   const { data: existingProject } = useQuery({
     queryKey: ["project-init", id],
     queryFn: async () => {
@@ -98,7 +126,6 @@ export default function ProjectFormPage() {
     enabled: isEditing && !initialized,
   });
 
-  // Initialize form from fetched project
   if (existingProject && !initialized) {
     setForm({
       client_id: existingProject.client_id,
@@ -107,6 +134,11 @@ export default function ProjectFormPage() {
       team_hats: existingProject.team_hats ?? [],
       project_status: existingProject.project_status as ProjectStatusValue,
       current_phase_milestones: existingProject.current_phase_milestones ?? [],
+      timezone_range: (existingProject as any).timezone_range ?? "",
+      anticipated_start_date: (existingProject as any).anticipated_start_date ?? null,
+      anticipated_end_date: (existingProject as any).anticipated_end_date ?? null,
+      client_intake_url: (existingProject as any).client_intake_url ?? "",
+      notion_repository_url: (existingProject as any).notion_repository_url ?? "",
     });
     setInitialized(true);
   }
@@ -270,6 +302,77 @@ export default function ProjectFormPage() {
           </Select>
         </div>
 
+        {/* Timezone Range */}
+        <div className="space-y-1.5">
+          <Label htmlFor="timezone-range">Timezone Range <span className="text-destructive">*</span></Label>
+          <Select value={form.timezone_range} onValueChange={(v) => setForm((f) => ({ ...f, timezone_range: v }))}>
+            <SelectTrigger id="timezone-range" aria-invalid={!!errors.timezone_range}><SelectValue placeholder="Select a timezone range" /></SelectTrigger>
+            <SelectContent>
+              {TIMEZONE_RANGES.map((tz) => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {errors.timezone_range && <p className="text-xs text-destructive">{errors.timezone_range}</p>}
+        </div>
+
+        {/* Anticipated Date Range */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-1.5">
+            <Label>Anticipated Start Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !form.anticipated_start_date && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.anticipated_start_date ? format(new Date(form.anticipated_start_date + "T00:00:00"), "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.anticipated_start_date ? new Date(form.anticipated_start_date + "T00:00:00") : undefined}
+                  onSelect={(d) => setForm((f) => ({ ...f, anticipated_start_date: d ? format(d, "yyyy-MM-dd") : null }))}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Anticipated End Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !form.anticipated_end_date && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.anticipated_end_date ? format(new Date(form.anticipated_end_date + "T00:00:00"), "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.anticipated_end_date ? new Date(form.anticipated_end_date + "T00:00:00") : undefined}
+                  onSelect={(d) => setForm((f) => ({ ...f, anticipated_end_date: d ? format(d, "yyyy-MM-dd") : null }))}
+                  disabled={(date) =>
+                    form.anticipated_start_date ? date < new Date(form.anticipated_start_date + "T00:00:00") : false
+                  }
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
         {/* Team Hats */}
         <div className="space-y-1.5">
           <Label>Team Hats <span className="text-destructive">*</span></Label>
@@ -339,6 +442,39 @@ export default function ProjectFormPage() {
             </div>
           </>
         )}
+
+        <Separator />
+
+        {/* Links */}
+        <div className="space-y-5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">External Links</p>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="client-intake-url">Client Intake Link</Label>
+            <Input
+              id="client-intake-url"
+              type="url"
+              placeholder="https://..."
+              value={form.client_intake_url}
+              onChange={(e) => setForm((f) => ({ ...f, client_intake_url: e.target.value }))}
+              aria-invalid={!!errors.client_intake_url}
+            />
+            {errors.client_intake_url && <p className="text-xs text-destructive">{errors.client_intake_url}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="notion-url">Project Repository in Notion</Label>
+            <Input
+              id="notion-url"
+              type="url"
+              placeholder="https://..."
+              value={form.notion_repository_url}
+              onChange={(e) => setForm((f) => ({ ...f, notion_repository_url: e.target.value }))}
+              aria-invalid={!!errors.notion_repository_url}
+            />
+            {errors.notion_repository_url && <p className="text-xs text-destructive">{errors.notion_repository_url}</p>}
+          </div>
+        </div>
       </div>
 
       {/* Actions */}

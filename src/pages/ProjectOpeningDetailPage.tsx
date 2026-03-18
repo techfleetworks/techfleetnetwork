@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Send, Building2, ExternalLink, Briefcase,
   Users, Share2, CheckCircle2, FileText,
-  Lightbulb, ClipboardList, Target,
+  Lightbulb, ClipboardList, Target, Clock, Calendar, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,11 @@ interface ProjectDetail {
   team_hats: string[];
   current_phase_milestones: string[];
   created_at: string;
+  timezone_range?: string;
+  anticipated_start_date?: string | null;
+  anticipated_end_date?: string | null;
+  client_intake_url?: string;
+  notion_repository_url?: string;
 }
 
 interface ClientDetail {
@@ -143,7 +148,6 @@ export default function ProjectOpeningDetailPage() {
     return `${clientName} — ${typeLabel(data.project?.project_type ?? "")} | Tech Fleet`;
   }, [data]);
 
-  // Update document title for SEO / sharing
   useEffect(() => {
     document.title = pageTitle;
     return () => { document.title = "Tech Fleet Network"; };
@@ -189,6 +193,8 @@ export default function ProjectOpeningDetailPage() {
   }
 
   const { project, client, milestoneData, applicationCount } = data;
+
+  const hasDateRange = project.anticipated_start_date || project.anticipated_end_date;
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-4xl mx-auto space-y-8">
@@ -273,6 +279,69 @@ export default function ProjectOpeningDetailPage() {
           />
         </div>
       </InfoSection>
+
+      {/* ── Schedule & Timezone ────────────────────────────── */}
+      {(project.timezone_range || hasDateRange) && (
+        <InfoSection icon={Clock} title="Schedule & Timezone">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {project.timezone_range && (
+              <DetailRow label="Timezone Range" value={project.timezone_range} />
+            )}
+            {project.anticipated_start_date && (
+              <DetailRow
+                label="Anticipated Start Date"
+                value={format(new Date(project.anticipated_start_date + "T00:00:00"), "MMMM d, yyyy")}
+              />
+            )}
+            {project.anticipated_end_date && (
+              <DetailRow
+                label="Anticipated End Date"
+                value={format(new Date(project.anticipated_end_date + "T00:00:00"), "MMMM d, yyyy")}
+              />
+            )}
+          </div>
+        </InfoSection>
+      )}
+
+      {/* ── External Links ────────────────────────────────── */}
+      {(project.client_intake_url || project.notion_repository_url) && (
+        <InfoSection icon={Link2} title="External Links">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {project.client_intake_url && (
+              <DetailRow
+                label="Client Intake"
+                value={
+                  <a
+                    href={project.client_intake_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    {(() => { try { return new URL(project.client_intake_url).hostname; } catch { return project.client_intake_url; } })()}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                }
+              />
+            )}
+            {project.notion_repository_url && (
+              <DetailRow
+                label="Project Repository (Notion)"
+                value={
+                  <a
+                    href={project.notion_repository_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    {(() => { try { return new URL(project.notion_repository_url).hostname; } catch { return project.notion_repository_url; } })()}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                }
+              />
+            )}
+          </div>
+        </InfoSection>
+      )}
 
       {/* ── Team Hats ─────────────────────────────────────── */}
       <InfoSection icon={Users} title="Team Hats (Roles)">
