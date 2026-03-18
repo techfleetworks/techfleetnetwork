@@ -299,6 +299,8 @@ export default function ActivityLogPage() {
             rowClassRules={{
               "bg-destructive/5": (params) => !!params.data?.error_message,
             }}
+            showExportCsv
+            exportFileName="activity-log"
           />
 
           {totalPages > 1 && (

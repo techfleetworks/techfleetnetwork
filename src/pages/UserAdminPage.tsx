@@ -256,6 +256,8 @@ export default function UserAdminPage() {
           pagination
           paginationPageSize={25}
           domLayout="normal"
+          showExportCsv
+          exportFileName="users"
         />
       )}
 

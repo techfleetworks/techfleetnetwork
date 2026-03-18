@@ -389,22 +389,10 @@ export default function SubmittedApplicationsTab() {
           pagination
           paginationPageSize={25}
           toolbarLeft={
-            <>
-              <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-9"
-                onClick={() => gridApiRef.current?.exportDataAsCsv({
-                  onlySelected: false,
-                  fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
-                })}
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-            </>
+            <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
           }
+          showExportCsv
+          exportFileName="applications-export"
         />
       )}
     </div>
