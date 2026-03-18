@@ -132,8 +132,8 @@ export function ClientsTab() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex border rounded-md overflow-hidden">
-            <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view"><List className="h-4 w-4" /></Button>
             <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view"><LayoutGrid className="h-4 w-4" /></Button>
+            <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view"><List className="h-4 w-4" /></Button>
           </div>
           <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Client</Button>
         </div>
