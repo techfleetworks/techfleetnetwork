@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus } from "lucide-react";
+import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2 } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { MemberWorldMap } from "@/components/MemberWorldMap";
 
@@ -18,6 +18,10 @@ const defaultStats: NetworkStats = {
   prev_week_advanced_active: 0,
   prev_week_applications: 0,
   prev_week_badges: 0,
+  projects_open_applications: 0,
+  projects_coming_soon: 0,
+  projects_live: 0,
+  projects_previously_completed: 0,
 };
 
 interface StatCardProps {
