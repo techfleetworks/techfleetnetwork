@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,17 +20,9 @@ import { Search, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
-
-interface UserRow {
-  user_id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  display_name: string;
-  created_at: string;
-  isAdmin: boolean;
-  pendingPromotion: boolean;
-}
+import { UserActionsDropdown } from "@/components/admin/UserActionsDropdown";
+import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
+import type { UserRow } from "@/components/admin/UserActionsDropdown";
 
 export default function UserAdminPage() {
   const { user } = useAuth();
@@ -41,6 +32,8 @@ export default function UserAdminPage() {
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"promote" | "resend">("promote");
+  const [viewUser, setViewUser] = useState<UserRow | null>(null);
 
   const fetchData = async () => {
     try {
@@ -119,6 +112,28 @@ export default function UserAdminPage() {
     }
   };
 
+  const handleResendInvite = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const res = await supabase.functions.invoke("promote-to-admin", {
+        body: { user_id: targetUser.user_id },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to resend invite");
+      const result = res.data;
+      if (result?.error) throw new Error(result.error);
+      toast.success("Admin invite re-sent to " + targetUser.email);
+      await fetchData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to resend invite";
+      toast.error(message);
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
   const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
@@ -147,10 +162,15 @@ export default function UserAdminPage() {
     const u = params.data;
     if (!u) return null;
     const isSelf = u.user_id === user?.id;
-    if (isSelf) return <span className="text-muted-foreground text-xs">You</span>;
-    if (u.isAdmin) return <span className="text-muted-foreground text-xs">Admin</span>;
-    if (u.pendingPromotion) return <span className="text-accent-foreground text-xs">Awaiting confirmation</span>;
-    return <span className="text-primary text-xs cursor-pointer hover:underline">Promote</span>;
+    return (
+      <UserActionsDropdown
+        user={u}
+        isSelf={isSelf}
+        onPromote={(usr) => { setConfirmAction("promote"); setConfirmUser(usr); }}
+        onResendInvite={(usr) => { setConfirmAction("resend"); setConfirmUser(usr); }}
+        onView={(usr) => setViewUser(usr)}
+      />
+    );
   }, [user?.id]);
 
   const columnDefs = useMemo<ColDef<UserRow>[]>(() => [
@@ -197,25 +217,15 @@ export default function UserAdminPage() {
       sortable: false,
       filter: false,
       resizable: false,
-      width: 130,
-      minWidth: 100,
-      maxWidth: 160,
+      width: 80,
+      minWidth: 60,
+      maxWidth: 100,
       pinned: "right",
       lockPinned: true,
       suppressSizeToFit: true,
       cellRenderer: ActionsCellRenderer,
     },
   ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
-
-  const onCellClicked = useCallback((params: { colDef: ColDef<UserRow>; data: UserRow | undefined }) => {
-    if (params.colDef.headerName === "Actions" && params.data) {
-      const u = params.data;
-      const isSelf = u.user_id === user?.id;
-      if (!isSelf && !u.isAdmin && !u.pendingPromotion) {
-        setConfirmUser(u);
-      }
-    }
-  }, [user?.id]);
 
   if (adminLoading) {
     return (
@@ -226,6 +236,12 @@ export default function UserAdminPage() {
   }
 
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
+  const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : "Resend Admin Invite?";
+  const confirmDesc = confirmAction === "promote"
+    ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
+    : `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`;
+  const confirmButton = confirmAction === "promote" ? "Send Confirmation" : "Resend Invite";
 
   return (
     <div className="space-y-6">
@@ -262,7 +278,6 @@ export default function UserAdminPage() {
           height="500px"
           rowData={filteredUsers}
           columnDefs={columnDefs}
-          onCellClicked={onCellClicked}
           getRowId={(params) => params.data.user_id}
           pagination
           paginationPageSize={25}
@@ -275,26 +290,27 @@ export default function UserAdminPage() {
       <AlertDialog open={!!confirmUser} onOpenChange={() => setConfirmUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Promote to Admin?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will send a confirmation email to{" "}
-              <strong>{confirmUser?.email}</strong>. They must click the link in
-              the email to activate their admin role. You cannot undo this action
-              from here.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={!!promoting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmUser && handlePromote(confirmUser)}
+              onClick={() => {
+                if (!confirmUser) return;
+                if (confirmAction === "promote") handlePromote(confirmUser);
+                else handleResendInvite(confirmUser);
+              }}
               disabled={!!promoting}
             >
               {promoting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Send Confirmation
+              {confirmButton}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UserDetailDialog user={viewUser} onClose={() => setViewUser(null)} />
     </div>
   );
 }
