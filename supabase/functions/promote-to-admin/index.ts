@@ -129,13 +129,13 @@ Deno.serve(async (req) => {
     const messageId = `admin-promo-${targetUserId}-${crypto.randomUUID()}`
 
     const emailPayload: Record<string, unknown> = {
-      run_id: crypto.randomUUID(),
       to: targetProfile.email,
       subject: 'Tech Fleet: Confirm Your Admin Role',
       from: 'Tech Fleet <notifications@notify.techfleet.org>',
       sender_domain: 'notify.techfleet.org',
       label: 'admin_promotion',
       message_id: messageId,
+      idempotency_key: messageId,
       queued_at: new Date().toISOString(),
       purpose: 'transactional',
       html: `
