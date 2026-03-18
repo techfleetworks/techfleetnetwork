@@ -79,10 +79,13 @@ export function ThemedAgGrid<T = unknown>({
           e.api.applyColumnState({ state: savedState.columnState, applyOrder: true });
         }
         if (savedState.filterModel) {
-          e.api.setFilterModel(savedState.filterModel);
+          // Delay filter application so columns are fully initialized
+          setTimeout(() => e.api.setFilterModel(savedState.filterModel!), 0);
         }
+        // Don't call sizeColumnsToFit — saved state already has column widths
+      } else {
+        e.api.sizeColumnsToFit();
       }
-      e.api.sizeColumnsToFit();
       externalOnGridReady?.(e);
     },
     [gridId, savedState, externalOnGridReady]
