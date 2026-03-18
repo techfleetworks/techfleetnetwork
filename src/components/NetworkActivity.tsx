@@ -135,6 +135,35 @@ export function NetworkActivity() {
           />
         </div>
 
+        {/* Project Training */}
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <StatCard
+            icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />}
+            value={stats.projects_open_applications}
+            label="Open Applications"
+            colorClass="bg-success/10"
+          />
+          <StatCard
+            icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />}
+            value={stats.projects_coming_soon}
+            label="Coming Soon"
+            colorClass="bg-warning/10"
+          />
+          <StatCard
+            icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
+            value={stats.projects_live}
+            label="Live"
+            colorClass="bg-primary/10"
+          />
+          <StatCard
+            icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
+            value={stats.projects_previously_completed}
+            label="Previously Completed"
+            colorClass="bg-muted"
+          />
+        </div>
+
         {/* Previous Week */}
         <div className="border-t pt-8">
           <div className="flex items-center gap-2 mb-1">
