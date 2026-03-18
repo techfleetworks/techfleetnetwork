@@ -17,7 +17,7 @@ export const PROJECT_PHASES = [
 
 export const PROJECT_STATUSES = [
   { value: "coming_soon", label: "Coming Soon" },
-  { value: "apply_now", label: "Apply Now" },
+  { value: "apply_now", label: "Accepting Applications" },
   { value: "recruiting", label: "Recruiting" },
   { value: "team_onboarding", label: "Team Onboarding" },
   { value: "project_in_progress", label: "Project In Progress" },
