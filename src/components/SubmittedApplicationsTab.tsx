@@ -391,6 +391,20 @@ export default function SubmittedApplicationsTab() {
           rowStyle={{ cursor: "pointer" }}
           pagination
           paginationPageSize={25}
+          toolbarLeft={
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => gridApiRef.current?.exportDataAsCsv({
+                onlySelected: false,
+                fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
+              })}
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          }
         />
       )}
     </div>
