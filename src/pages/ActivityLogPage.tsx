@@ -214,7 +214,8 @@ export default function ActivityLogPage() {
     {
       headerName: "Table",
       field: "table_name",
-      width: 140,
+      flex: 1,
+      minWidth: 100,
     },
     {
       headerName: "Details",
