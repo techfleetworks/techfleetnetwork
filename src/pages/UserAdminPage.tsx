@@ -139,7 +139,7 @@ export default function UserAdminPage() {
     const u = params.data;
     if (!u) return null;
     if (u.isAdmin) return <span className="text-primary font-semibold">Admin</span>;
-    if (u.pendingPromotion) return <span className="text-yellow-600 dark:text-yellow-400 font-medium">Pending</span>;
+    if (u.pendingPromotion) return <span className="text-accent-foreground font-medium">Pending</span>;
     return <span className="text-muted-foreground">Member</span>;
   }, []);
 
