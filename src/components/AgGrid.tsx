@@ -59,6 +59,8 @@ export function ThemedAgGrid<T = unknown>({
       filter: true,
       flex: 1,
       minWidth: 80,
+      wrapText: true,
+      autoHeight: true,
       ...defaultColDef,
     }),
     [defaultColDef]
