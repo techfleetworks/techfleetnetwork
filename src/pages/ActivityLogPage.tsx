@@ -80,6 +80,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Activity; 
   project_created: { label: "Project Created", icon: FileText, variant: "default" },
   project_updated: { label: "Project Updated", icon: Pencil, variant: "secondary" },
   project_deleted: { label: "Project Deleted", icon: FileText, variant: "destructive" },
+  project_application_created: { label: "Project App Created", icon: FileText, variant: "default" },
+  project_application_status_changed: { label: "Project App Status Changed", icon: FileText, variant: "secondary" },
+  project_application_submitted: { label: "Project App Submitted", icon: FileText, variant: "default" },
   error: { label: "Error", icon: AlertCircle, variant: "destructive" },
 };
 

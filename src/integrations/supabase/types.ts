@@ -678,6 +678,77 @@ export type Database = {
         }
         Relationships: []
       }
+      project_applications: {
+        Row: {
+          client_project_knowledge: string
+          completed_at: string | null
+          created_at: string
+          cross_functional_contribution: string
+          current_step: number
+          id: string
+          participated_previous_phase: boolean
+          passion_for_project: string
+          previous_phase_help_teammates: string
+          previous_phase_learnings: string
+          previous_phase_position: string
+          prior_engagement_preparation: string
+          project_id: string
+          project_success_contribution: string
+          status: string
+          team_hats_interest: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_project_knowledge?: string
+          completed_at?: string | null
+          created_at?: string
+          cross_functional_contribution?: string
+          current_step?: number
+          id?: string
+          participated_previous_phase?: boolean
+          passion_for_project?: string
+          previous_phase_help_teammates?: string
+          previous_phase_learnings?: string
+          previous_phase_position?: string
+          prior_engagement_preparation?: string
+          project_id: string
+          project_success_contribution?: string
+          status?: string
+          team_hats_interest?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_project_knowledge?: string
+          completed_at?: string | null
+          created_at?: string
+          cross_functional_contribution?: string
+          current_step?: number
+          id?: string
+          participated_previous_phase?: boolean
+          passion_for_project?: string
+          previous_phase_help_teammates?: string
+          previous_phase_learnings?: string
+          previous_phase_position?: string
+          prior_engagement_preparation?: string
+          project_id?: string
+          project_success_contribution?: string
+          status?: string
+          team_hats_interest?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_id: string

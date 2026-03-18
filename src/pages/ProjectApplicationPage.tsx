@@ -1,0 +1,593 @@
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import {
+  Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
+  PartyPopper, ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  PROJECT_TYPES, PROJECT_PHASES, TEAM_HATS,
+} from "@/data/project-constants";
+import { format } from "date-fns";
+
+/* ── types ─────────────────────────────────────────────────── */
+interface ProjectApp {
+  id: string;
+  user_id: string;
+  project_id: string;
+  status: string;
+  current_step: number;
+  team_hats_interest: string[];
+  participated_previous_phase: boolean;
+  previous_phase_position: string;
+  previous_phase_learnings: string;
+  previous_phase_help_teammates: string;
+  prior_engagement_preparation: string;
+  passion_for_project: string;
+  client_project_knowledge: string;
+  cross_functional_contribution: string;
+  project_success_contribution: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectInfo {
+  id: string;
+  client_id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  team_hats: string[];
+  current_phase_milestones: string[];
+}
+
+interface ClientInfo {
+  id: string;
+  name: string;
+  website: string;
+  mission: string;
+  project_summary: string;
+  primary_contact: string;
+}
+
+const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
+
+/* ── component ────────────────────────────────────────────── */
+export default function ProjectApplicationPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [step, setStep] = useState(1);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+
+  /* form state */
+  const [teamHatsInterest, setTeamHatsInterest] = useState<string[]>([]);
+  const [participatedPrev, setParticipatedPrev] = useState(false);
+  const [prevPosition, setPrevPosition] = useState("");
+  const [prevLearnings, setPrevLearnings] = useState("");
+  const [prevHelpTeammates, setPrevHelpTeammates] = useState("");
+  const [priorPreparation, setPriorPreparation] = useState("");
+  const [passion, setPassion] = useState("");
+  const [clientKnowledge, setClientKnowledge] = useState("");
+  const [crossFunctional, setCrossFunctional] = useState("");
+  const [successContribution, setSuccessContribution] = useState("");
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
+
+  /* ── fetch project info ────────────────────────────────── */
+  const { data: project, isLoading: projLoading } = useQuery({
+    queryKey: ["project-detail", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects").select("*").eq("id", projectId!).single();
+      if (error) throw error;
+      return data as unknown as ProjectInfo;
+    },
+    enabled: !!projectId,
+  });
+
+  const { data: client } = useQuery({
+    queryKey: ["client-detail", project?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients").select("*").eq("id", project!.client_id).single();
+      if (error) throw error;
+      return data as unknown as ClientInfo;
+    },
+    enabled: !!project?.client_id,
+  });
+
+  /* ── fetch or create application ───────────────────────── */
+  const { data: existingApp, isLoading: appLoading } = useQuery({
+    queryKey: ["project-application", user?.id, projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("project_id", projectId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as ProjectApp | null;
+    },
+    enabled: !!user && !!projectId,
+  });
+
+  /* populate form from existing app */
+  useEffect(() => {
+    if (existingApp && !initialized) {
+      setTeamHatsInterest(existingApp.team_hats_interest ?? []);
+      setParticipatedPrev(existingApp.participated_previous_phase ?? false);
+      setPrevPosition(existingApp.previous_phase_position ?? "");
+      setPrevLearnings(existingApp.previous_phase_learnings ?? "");
+      setPrevHelpTeammates(existingApp.previous_phase_help_teammates ?? "");
+      setPriorPreparation(existingApp.prior_engagement_preparation ?? "");
+      setPassion(existingApp.passion_for_project ?? "");
+      setClientKnowledge(existingApp.client_project_knowledge ?? "");
+      setCrossFunctional(existingApp.cross_functional_contribution ?? "");
+      setSuccessContribution(existingApp.project_success_contribution ?? "");
+      setStep(existingApp.status === "completed" ? 1 : existingApp.current_step);
+      setInitialized(true);
+    }
+    if (!existingApp && !appLoading && !initialized) {
+      setInitialized(true);
+    }
+  }, [existingApp, appLoading, initialized]);
+
+  const isCompleted = existingApp?.status === "completed";
+
+  /* ── available team hats scoped to project ─────────────── */
+  const availableHats = useMemo(
+    () => (project?.team_hats ?? TEAM_HATS.map(String)).map((h) => ({ label: h, value: h })),
+    [project],
+  );
+
+  /* ── collect form data ─────────────────────────────────── */
+  const collectFields = useCallback(() => ({
+    team_hats_interest: teamHatsInterest,
+    participated_previous_phase: participatedPrev,
+    previous_phase_position: prevPosition,
+    previous_phase_learnings: prevLearnings,
+    previous_phase_help_teammates: prevHelpTeammates,
+    prior_engagement_preparation: priorPreparation,
+    passion_for_project: passion,
+    client_project_knowledge: clientKnowledge,
+    cross_functional_contribution: crossFunctional,
+    project_success_contribution: successContribution,
+  }), [teamHatsInterest, participatedPrev, prevPosition, prevLearnings, prevHelpTeammates, priorPreparation, passion, clientKnowledge, crossFunctional, successContribution]);
+
+  /* ── save draft mutation ───────────────────────────────── */
+  const saveMutation = useMutation({
+    mutationFn: async (opts: { fields: Record<string, unknown>; newStep?: number; submit?: boolean }) => {
+      const payload: Record<string, unknown> = {
+        ...opts.fields,
+        current_step: opts.newStep ?? step,
+      };
+      if (opts.submit) {
+        payload.status = "completed";
+        payload.completed_at = new Date().toISOString();
+      }
+
+      if (existingApp) {
+        const { error } = await supabase
+          .from("project_applications")
+          .update(payload as any)
+          .eq("id", existingApp.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("project_applications")
+          .insert({
+            user_id: user!.id,
+            project_id: projectId!,
+            ...payload,
+          } as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["project-application", user?.id, projectId] });
+      if (vars.submit) {
+        setCelebrationOpen(true);
+      } else {
+        toast.success("Draft saved");
+      }
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  /* ── validation ────────────────────────────────────────── */
+  const validateStep2 = useCallback(() => {
+    const errs: Record<string, string> = {};
+    if (teamHatsInterest.length === 0) errs.team_hats_interest = "Select at least one team hat";
+    if (participatedPrev) {
+      if (!prevPosition.trim()) errs.previous_phase_position = "Required";
+      if (!prevLearnings.trim()) errs.previous_phase_learnings = "Required";
+      if (!prevHelpTeammates.trim()) errs.previous_phase_help_teammates = "Required";
+    } else {
+      if (!priorPreparation.trim()) errs.prior_engagement_preparation = "Required";
+    }
+    return errs;
+  }, [teamHatsInterest, participatedPrev, prevPosition, prevLearnings, prevHelpTeammates, priorPreparation]);
+
+  const validateStep3 = useCallback(() => {
+    const errs: Record<string, string> = {};
+    if (!passion.trim()) errs.passion_for_project = "Required";
+    if (!clientKnowledge.trim()) errs.client_project_knowledge = "Required";
+    if (!crossFunctional.trim()) errs.cross_functional_contribution = "Required";
+    if (!successContribution.trim()) errs.project_success_contribution = "Required";
+    return errs;
+  }, [passion, clientKnowledge, crossFunctional, successContribution]);
+
+  /* ── navigation ────────────────────────────────────────── */
+  const handleNext = useCallback(() => {
+    if (step === 1) {
+      // Step 1 has no validation, just save draft & advance
+      saveMutation.mutate({ fields: collectFields(), newStep: 2 });
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      const errs = validateStep2();
+      if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+      setErrors({});
+      saveMutation.mutate({ fields: collectFields(), newStep: 3 });
+      setStep(3);
+      return;
+    }
+    if (step === 3) {
+      const errs2 = validateStep2();
+      const errs3 = validateStep3();
+      const allErrs = { ...errs2, ...errs3 };
+      if (Object.keys(allErrs).length > 0) { setErrors(allErrs); return; }
+      setErrors({});
+      saveMutation.mutate({ fields: collectFields(), submit: true });
+    }
+  }, [step, collectFields, saveMutation, validateStep2, validateStep3]);
+
+  const handleBack = useCallback(() => {
+    if (step > 1) {
+      saveMutation.mutate({ fields: collectFields(), newStep: step - 1 });
+      setStep(step - 1);
+    }
+  }, [step, collectFields, saveMutation]);
+
+  const handleSaveDraft = useCallback(() => {
+    saveMutation.mutate({ fields: collectFields(), newStep: step });
+  }, [collectFields, step, saveMutation]);
+
+  const handleSaveCompleted = useCallback(() => {
+    const errs2 = validateStep2();
+    const errs3 = validateStep3();
+    const allErrs = { ...errs2, ...errs3 };
+    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); toast.error("Please fix validation errors"); return; }
+    setErrors({});
+    saveMutation.mutate({ fields: collectFields(), submit: true });
+  }, [collectFields, validateStep2, validateStep3, saveMutation]);
+
+  /* ── helpers ───────────────────────────────────────────── */
+  const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
+  const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
+
+  if (projLoading || appLoading || !initialized) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="container-app py-12 text-center">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/project-openings")}>
+          Back to Openings
+        </Button>
+      </div>
+    );
+  }
+
+  const isSaving = saveMutation.isPending;
+
+  return (
+    <div className="container-app py-8 sm:py-12 max-w-3xl mx-auto space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/project-openings">Project Openings</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Apply — {client?.name ?? "Project"}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/project-openings")} aria-label="Back">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Project Application
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {client?.name} — {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
+          </p>
+        </div>
+      </div>
+
+      {/* Completion banner */}
+      {isCompleted && existingApp?.completed_at && (
+        <div className="rounded-lg border bg-success/10 border-success/30 p-4 flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Application Submitted</p>
+            <p className="text-xs text-muted-foreground">
+              Submitted on {format(new Date(existingApp.completed_at), "MMMM d, yyyy 'at' h:mm a")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Step progress */}
+      <div className="flex items-center gap-2">
+        {STEP_LABELS.map((label, i) => {
+          const stepNum = i + 1;
+          const isActive = step === stepNum;
+          const isDone = step > stepNum || isCompleted;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => { if (isCompleted || isDone) setStep(stepNum); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : isDone
+                  ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                  : "bg-muted text-muted-foreground"
+              }`}
+              aria-current={isActive ? "step" : undefined}
+            >
+              {isDone && !isActive ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span>{stepNum}</span>}
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Project info card (always visible) */}
+      <Card>
+        <CardContent className="pt-4 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-semibold text-foreground">{client?.name}</p>
+              <p className="text-sm text-muted-foreground">{typeLabel(project.project_type)} · {phaseLabel(project.phase)}</p>
+            </div>
+            <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">Apply Now</Badge>
+          </div>
+          {client && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm pt-1">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Globe className="h-3.5 w-3.5 shrink-0" />
+                <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                  {(() => { try { return new URL(client.website).hostname; } catch { return client.website; } })()}
+                  <ExternalLink className="h-3 w-3 inline ml-1" />
+                </a>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{client.primary_contact}</span>
+              </div>
+            </div>
+          )}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
+            <div className="flex flex-wrap gap-1">
+              {project.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── STEP 1: Review General App ─────────────────────── */}
+      {step === 1 && (
+        <div className="rounded-lg border bg-card p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Step 1: Review General App</h2>
+          <p className="text-sm text-muted-foreground">
+            Please double check to ensure that you have reviewed your general application before proceeding.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button variant="outline" onClick={() => navigate("/applications/general")}>
+              Go to General App
+            </Button>
+            <Button onClick={handleNext} disabled={isSaving}>
+              Continue to Project App
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: Project Questions ──────────────────────── */}
+      {step === 2 && (
+        <div className="rounded-lg border bg-card p-6 space-y-5">
+          <h2 className="text-lg font-semibold text-foreground">Step 2: Project Questions</h2>
+
+          {/* Team hats interest */}
+          <div className="space-y-1.5">
+            <Label>Select all of the team hats you want to contribute to on the project <span className="text-destructive">*</span></Label>
+            <MultiSelect
+              options={availableHats}
+              selected={teamHatsInterest}
+              onChange={setTeamHatsInterest}
+              placeholder="Select team hats..."
+            />
+            {errors.team_hats_interest && <p className="text-xs text-destructive">{errors.team_hats_interest}</p>}
+          </div>
+
+          <Separator />
+
+          {/* Previous phase toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="prev-phase" className="flex-1">
+              Did you participate in a previous phase of this project?
+            </Label>
+            <Switch
+              id="prev-phase"
+              checked={participatedPrev}
+              onCheckedChange={setParticipatedPrev}
+            />
+          </div>
+
+          {participatedPrev ? (
+            <div className="space-y-4 pl-1 border-l-2 border-primary/20 ml-2 pl-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
+                <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} />
+                {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
+                <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} />
+                {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
+                <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} />
+                {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="prior-prep">
+                How has your prior engagement (either in projects, in classes, or observing) in Tech Fleet community prepared you for this team role? <span className="text-destructive">*</span>
+              </Label>
+              <Textarea id="prior-prep" value={priorPreparation} onChange={(e) => setPriorPreparation(e.target.value)} rows={4} />
+              {errors.prior_engagement_preparation && <p className="text-xs text-destructive">{errors.prior_engagement_preparation}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── STEP 3: Client Questions ──────────────────────── */}
+      {step === 3 && (
+        <div className="rounded-lg border bg-card p-6 space-y-5">
+          <h2 className="text-lg font-semibold text-foreground">Step 3: Client Questions</h2>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="passion">Why are you passionate about being on this project? <span className="text-destructive">*</span></Label>
+            <Textarea id="passion" value={passion} onChange={(e) => setPassion(e.target.value)} rows={4} />
+            {errors.passion_for_project && <p className="text-xs text-destructive">{errors.passion_for_project}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="client-knowledge">
+              What do you know about the client and the project that you're applying to? Tell us about it. <span className="text-destructive">*</span>
+            </Label>
+            <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} />
+            {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cross-functional">
+              How would you like to contribute to cross-functional teamwork on the team? <span className="text-destructive">*</span>
+            </Label>
+            <Textarea id="cross-functional" value={crossFunctional} onChange={(e) => setCrossFunctional(e.target.value)} rows={4} />
+            {errors.cross_functional_contribution && <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="success-contribution">
+              How will you contribute to this project's successful outcomes as an apprentice or a co-lead and as a teammate? <span className="text-destructive">*</span>
+            </Label>
+            <Textarea id="success-contribution" value={successContribution} onChange={(e) => setSuccessContribution(e.target.value)} rows={4} />
+            {errors.project_success_contribution && <p className="text-xs text-destructive">{errors.project_success_contribution}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Actions bar ──────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row justify-between gap-3 pb-8">
+        <div>
+          {step > 1 && !isCompleted && (
+            <Button variant="outline" onClick={handleBack} disabled={isSaving}>
+              Back
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-3">
+          {!isCompleted && step > 1 && (
+            <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Save Draft
+            </Button>
+          )}
+          {isCompleted ? (
+            <Button onClick={handleSaveCompleted} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Save Changes
+            </Button>
+          ) : step < 3 ? (
+            <Button onClick={handleNext} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Continue
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button onClick={handleNext} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Submit Application
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Celebration dialog ───────────────────────────── */}
+      <Dialog open={celebrationOpen} onOpenChange={setCelebrationOpen}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              <PartyPopper className="h-6 w-6 text-warning" />
+              Application Submitted!
+            </DialogTitle>
+            <DialogDescription>
+              Your application for {client?.name} has been submitted successfully. The team will review it and get back to you.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="justify-center sm:justify-center pt-2">
+            <Button onClick={() => { setCelebrationOpen(false); navigate("/project-openings"); }}>
+              Back to Openings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

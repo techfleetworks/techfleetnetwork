@@ -102,10 +102,9 @@ export default function ProjectOpeningsPage() {
 
   const isAppCompleted = genApp?.status === "completed";
 
-  const handleApply = () => {
+  const handleApply = (projectId: string) => {
     if (isAppCompleted) {
-      // Future: navigate to project-specific application
-      // For now just acknowledge
+      navigate(`/project-openings/${projectId}/apply`);
       return;
     }
     // Show gate dialog
@@ -221,7 +220,7 @@ export default function ProjectOpeningsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
-                    <Button className="w-full gap-2" onClick={handleApply}>
+                    <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
                       <Send className="h-4 w-4" />
                       Apply
                     </Button>
@@ -258,7 +257,7 @@ export default function ProjectOpeningsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" className="gap-1.5" onClick={handleApply}>
+                        <Button size="sm" className="gap-1.5" onClick={() => handleApply(p.id)}>
                           <Send className="h-3.5 w-3.5" />
                           Apply
                         </Button>
