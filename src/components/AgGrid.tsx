@@ -128,13 +128,16 @@ export function ThemedAgGrid<T = unknown>({
   }
 
   return (
-    <div className="space-y-2">
-      {gridId && !hideResetButton && (
-        <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={resetView} className="gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <RotateCcw className="h-3.5 w-3.5" />
-            Reset View
-          </Button>
+    <div className="flex flex-col gap-6">
+      {(toolbarLeft || (gridId && !hideResetButton)) && (
+        <div className="flex items-center gap-2">
+          {gridId && !hideResetButton && (
+            <Button variant="outline" size="sm" onClick={resetView} className="gap-1.5 text-xs h-9">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset View
+            </Button>
+          )}
+          {toolbarLeft}
         </div>
       )}
       <div key={themeClass} className={themeClass} style={{ height, width: "100%" }}>
