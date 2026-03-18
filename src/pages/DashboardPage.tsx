@@ -283,7 +283,9 @@ export default function DashboardPage() {
         <div className="flex-shrink-0 pt-1">
           <DashboardCustomizer
             visibleWidgets={visibleWidgets}
+            widgetOrder={widgetOrder}
             onToggle={toggleWidget}
+            onReorder={reorderWidgets}
           />
         </div>
       </div>
