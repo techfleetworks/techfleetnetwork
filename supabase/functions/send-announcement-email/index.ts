@@ -152,7 +152,6 @@ Deno.serve(async (req) => {
         await adminClient.rpc("enqueue_email", {
           queue_name: "transactional_emails",
           payload: {
-            run_id: crypto.randomUUID(),
             to: recipient.email,
             subject: `[Tech Fleet] ${announcement.title}`,
             html: emailHtml,
@@ -161,6 +160,7 @@ Deno.serve(async (req) => {
             sender_domain: "notify.techfleet.org",
             label: "announcement",
             message_id: messageId,
+            idempotency_key: messageId,
             queued_at: now,
             purpose: "transactional",
           },
