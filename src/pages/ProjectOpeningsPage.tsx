@@ -295,7 +295,7 @@ export default function ProjectOpeningsPage() {
           ) : view === "card" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {enrichedProjects.map((p) => (
-                <Card key={p.id} className="flex flex-col">
+                <Card key={p.id} className="flex flex-col cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -367,11 +367,7 @@ export default function ProjectOpeningsPage() {
               getRowId={(params) => params.data.id}
               onRowClicked={(params) => {
                 if (!params.data) return;
-                if (appliedProjectIds.has(params.data.id)) {
-                  navigate(`/project-openings/${params.data.id}/apply`);
-                } else {
-                  handleApply(params.data.id);
-                }
+                navigate(`/project-openings/${params.data.id}`);
               }}
               rowStyle={{ cursor: "pointer" }}
               showExportCsv={isAdmin}
