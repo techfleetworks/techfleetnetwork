@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, GraduationCap, ClipboardList, Handshake, Megaphone } from "lucide-react";
+import {
+  Search, GraduationCap, ClipboardList, Handshake, Megaphone,
+  Building2, FolderKanban, Users,
+} from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,15 +14,28 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
+import { supabase } from "@/integrations/supabase/client";
+import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 /* ── Searchable item types ────────────────────────────────── */
+
+type SearchGroup =
+  | "Courses"
+  | "Applications"
+  | "Project Training"
+  | "Updates"
+  | "Clients"
+  | "Projects"
+  | "Members";
 
 interface SearchItem {
   id: string;
   label: string;
   description: string;
   href: string;
-  group: "Courses" | "Applications" | "Project Training" | "Updates";
+  group: SearchGroup;
 }
 
 /* ── Static catalogue ─────────────────────────────────────── */
@@ -116,30 +132,35 @@ const SEARCH_ITEMS: SearchItem[] = [
 
 /* ── Helpers ──────────────────────────────────────────────── */
 
-const GROUP_ICONS: Record<SearchItem["group"], React.ElementType> = {
+const GROUP_ICONS: Record<SearchGroup, React.ElementType> = {
   Courses: GraduationCap,
   Applications: ClipboardList,
   "Project Training": Handshake,
   Updates: Megaphone,
+  Clients: Building2,
+  Projects: FolderKanban,
+  Members: Users,
 };
 
 /**
  * Case-insensitive partial / wildcard match.
  * Supports `*` as a wildcard character.
- * Example: "agil*mind" matches "Build an Agile Mindset".
  */
 function matchesQuery(text: string, query: string): boolean {
   if (!query) return true;
   const escaped = query
     .toLowerCase()
-    .replace(/[.+?^${}()|[\]\\]/g, "\\$&") // escape regex specials except *
-    .replace(/\*/g, ".*"); // convert wildcard * → .*
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*");
   try {
     return new RegExp(escaped).test(text.toLowerCase());
   } catch {
     return text.toLowerCase().includes(query.toLowerCase());
   }
 }
+
+const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
+const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 
 /* ── Component ────────────────────────────────────────────── */
 
@@ -148,6 +169,12 @@ export function UniversalSearch() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+
+  /* ── Dynamic results from DB ──────────────────────────── */
+  const [dynamicItems, setDynamicItems] = useState<SearchItem[]>([]);
+  const [searching, setSearching] = useState(false);
 
   // Keyboard shortcut: Ctrl/Cmd + K
   useEffect(() => {
@@ -161,7 +188,126 @@ export function UniversalSearch() {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  const filtered = useMemo(() => {
+  // Reset on close
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setDynamicItems([]);
+    }
+  }, [open]);
+
+  // Debounced DB search
+  useEffect(() => {
+    if (!open || !user) return;
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setDynamicItems([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const items: SearchItem[] = [];
+        const searchPattern = `%${trimmed}%`;
+
+        // Search clients (all authenticated users can see active clients)
+        const { data: clients } = await supabase
+          .from("clients")
+          .select("id, name, mission, status")
+          .ilike("name", searchPattern)
+          .limit(5);
+
+        if (!controller.signal.aborted && clients) {
+          for (const c of clients) {
+            items.push({
+              id: `client-${c.id}`,
+              label: c.name,
+              description: c.mission || `Client · ${c.status}`,
+              href: isAdmin ? "/admin/clients" : "/project-openings",
+              group: "Clients",
+            });
+          }
+        }
+
+        // Search projects (RLS will handle visibility)
+        const { data: projects } = await supabase
+          .from("projects")
+          .select("id, project_type, phase, project_status, client_id")
+          .limit(10);
+
+        if (!controller.signal.aborted && projects) {
+          // Need client names for project labels
+          const clientIds = [...new Set(projects.map((p) => p.client_id))];
+          const { data: projClients } = clientIds.length > 0
+            ? await supabase.from("clients").select("id, name").in("id", clientIds)
+            : { data: [] };
+
+          const clientNameMap = new Map((projClients ?? []).map((c) => [c.id, c.name]));
+
+          for (const p of projects) {
+            const clientName = clientNameMap.get(p.client_id) ?? "Client";
+            const label = `${clientName} — ${typeLabel(p.project_type)}`;
+            const desc = `${phaseLabel(p.phase)} · ${p.project_status.replace(/_/g, " ")}`;
+
+            if (matchesQuery(label, trimmed) || matchesQuery(desc, trimmed) || matchesQuery(clientName, trimmed)) {
+              items.push({
+                id: `project-${p.id}`,
+                label,
+                description: desc,
+                href: p.project_status === "apply_now"
+                  ? `/project-openings/${p.id}/apply`
+                  : isAdmin ? `/admin/clients/projects/${p.id}/edit` : "/project-openings",
+                group: "Projects",
+              });
+            }
+          }
+        }
+
+        // Search members (admin-only via RLS)
+        if (isAdmin) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, display_name, first_name, last_name, email, country")
+            .or(`display_name.ilike.${searchPattern},first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern}`)
+            .limit(8);
+
+          if (!controller.signal.aborted && profiles) {
+            for (const p of profiles) {
+              const name = p.display_name
+                || [p.first_name, p.last_name].filter(Boolean).join(" ")
+                || p.email
+                || "Unknown";
+              items.push({
+                id: `member-${p.user_id}`,
+                label: name,
+                description: [p.email, p.country].filter(Boolean).join(" · ") || "Member",
+                href: "/admin/users",
+                group: "Members",
+              });
+            }
+          }
+        }
+
+        if (!controller.signal.aborted) {
+          setDynamicItems(items);
+        }
+      } catch {
+        // silently ignore search errors
+      } finally {
+        if (!controller.signal.aborted) setSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [query, open, user, isAdmin]);
+
+  /* ── Filter static items ──────────────────────────────── */
+  const filteredStatic = useMemo(() => {
     if (!query.trim()) return SEARCH_ITEMS;
     return SEARCH_ITEMS.filter(
       (item) =>
@@ -171,14 +317,17 @@ export function UniversalSearch() {
     );
   }, [query]);
 
+  /* ── Merge static + dynamic ───────────────────────────── */
+  const allItems = useMemo(() => [...filteredStatic, ...dynamicItems], [filteredStatic, dynamicItems]);
+
   const grouped = useMemo(() => {
     const groups: Record<string, SearchItem[]> = {};
-    for (const item of filtered) {
+    for (const item of allItems) {
       if (!groups[item.group]) groups[item.group] = [];
       groups[item.group].push(item);
     }
     return groups;
-  }, [filtered]);
+  }, [allItems]);
 
   const handleSelect = useCallback(
     (href: string) => {
@@ -200,7 +349,7 @@ export function UniversalSearch() {
             : "relative h-9 w-full max-w-[300px] justify-start gap-2 text-sm text-muted-foreground"
         }
         onClick={() => setOpen(true)}
-        aria-label="Search courses, applications, and project training"
+        aria-label="Search courses, applications, clients, projects, and members"
       >
         <Search className="h-4 w-4 shrink-0" />
         {!isMobile && (
@@ -215,14 +364,16 @@ export function UniversalSearch() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Search courses, applications, project training…"
+          placeholder="Search courses, clients, projects, members…"
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>
+            {searching ? "Searching…" : "No results found."}
+          </CommandEmpty>
           {Object.entries(grouped).map(([group, items]) => {
-            const Icon = GROUP_ICONS[group as SearchItem["group"]];
+            const Icon = GROUP_ICONS[group as SearchGroup] ?? Search;
             return (
               <CommandGroup key={group} heading={group}>
                 {items.map((item) => (

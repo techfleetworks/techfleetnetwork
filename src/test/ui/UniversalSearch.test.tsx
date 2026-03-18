@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { UniversalSearch } from "@/components/UniversalSearch";
+import type { ReactNode } from "react";
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -16,6 +17,33 @@ vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => false,
 }));
 
+// Mock useAuth
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "user-1" }, session: {}, profile: null, loading: false, profileLoaded: true }),
+  AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+// Mock useAdmin
+let mockIsAdmin = false;
+vi.mock("@/hooks/use-admin", () => ({
+  useAdmin: () => ({ isAdmin: mockIsAdmin, loading: false }),
+}));
+
+// Mock supabase
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        ilike: () => ({ limit: () => ({ data: [], error: null }) }),
+        or: () => ({ limit: () => ({ data: [], error: null }) }),
+        in: () => ({ data: [], error: null }),
+        eq: () => ({ single: () => ({ data: null, error: null }), maybeSingle: () => ({ data: null, error: null }) }),
+        limit: () => ({ data: [], error: null }),
+      }),
+    }),
+  },
+}));
+
 function renderSearch() {
   return render(
     <MemoryRouter>
@@ -27,6 +55,7 @@ function renderSearch() {
 describe("Universal Search (BDD 38.1–38.15)", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockIsAdmin = false;
   });
 
   // 38.1 – Open search dialog via button
@@ -102,7 +131,7 @@ describe("Universal Search (BDD 38.1–38.15)", () => {
   // 38.15 – Accessibility
   it("38.15: search button has accessible aria-label", () => {
     renderSearch();
-    const btn = screen.getByRole("button", { name: /search courses, applications, and project training/i });
+    const btn = screen.getByRole("button", { name: /search courses, applications, clients, projects, and members/i });
     expect(btn).toBeInTheDocument();
   });
 });
