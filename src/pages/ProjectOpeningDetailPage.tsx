@@ -260,9 +260,11 @@ export default function ProjectOpeningDetailPage() {
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
             <Share2 className="h-4 w-4" /> Share
           </Button>
-          <Button className="gap-1.5" onClick={handleApply}>
-            {hasApplied ? <><Pencil className="h-4 w-4" /> Edit</> : <><Send className="h-4 w-4" /> Apply</>}
-          </Button>
+          {project.project_status === "apply_now" && (
+            <Button className="gap-1.5" onClick={handleApply}>
+              {hasApplied ? <><Pencil className="h-4 w-4" /> Edit</> : <><Send className="h-4 w-4" /> Apply</>}
+            </Button>
+          )}
         </div>
       </div>
 
