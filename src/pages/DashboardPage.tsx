@@ -355,6 +355,7 @@ export default function DashboardPage() {
         </section>
       )}
 
+      {latestAnnouncements.length > 0 && (
         <section aria-labelledby="announcements-heading">
           <div className="flex items-center justify-between mb-4">
             <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
