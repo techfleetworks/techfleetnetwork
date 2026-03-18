@@ -290,156 +290,174 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isVisible("badges") && (
-        <section>
-          <BadgesDisplay
-            allFirstStepsDone={allFirstStepsDone}
-            allSecondStepsDone={allSecondStepsDone}
-            allThirdStepsDone={allThirdStepsDone}
-            communityBadgeCount={communityBadgeCount}
-          />
-        </section>
-      )}
+      {widgetOrder.map((widgetId) => {
+        switch (widgetId) {
+          case "badges":
+            return isVisible("badges") ? (
+              <section key="badges">
+                <BadgesDisplay
+                  allFirstStepsDone={allFirstStepsDone}
+                  allSecondStepsDone={allSecondStepsDone}
+                  allThirdStepsDone={allThirdStepsDone}
+                  communityBadgeCount={communityBadgeCount}
+                />
+              </section>
+            ) : null;
 
-      {isVisible("core_courses") && !allCoreCoursesDone && (
-        <section aria-labelledby="core-courses-heading">
-          <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
-            Core Courses
-          </h2>
-          <div className="space-y-2">
-            {coreCourses.map((course) => (
-              <CoreCourseCard key={course.id} course={course} />
-            ))}
-          </div>
-        </section>
-      )}
+          case "core_courses":
+            return isVisible("core_courses") && !allCoreCoursesDone ? (
+              <section key="core_courses" aria-labelledby="core-courses-heading">
+                <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
+                  Core Courses
+                </h2>
+                <div className="space-y-2">
+                  {coreCourses.map((course) => (
+                    <CoreCourseCard key={course.id} course={course} />
+                  ))}
+                </div>
+              </section>
+            ) : null;
 
-      {isVisible("my_project_apps") && (
-        <section aria-labelledby="my-apps-heading">
-          <div className="flex items-center justify-between mb-4">
-            <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
-              <FolderKanban className="h-5 w-5 text-primary" />
-              My Project Applications
-            </h2>
-            <Link
-              to="/applications/projects"
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              View all <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
-          {myProjectApps.length === 0 ? (
-            <SectionEmptyState
-              icon={FolderKanban}
-              title="No project applications yet"
-              description="When project openings are available, you can apply and track your progress here."
-            />
-          ) : (
-            <div className="space-y-2">
-              {myProjectApps.map((app) => {
-                const proj = dashProjectMap.get(app.project_id);
-                const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
-                const isCompleted = app.status === "completed";
-                const isDraft = app.status === "draft";
-
-                return (
+          case "my_project_apps":
+            return isVisible("my_project_apps") ? (
+              <section key="my_project_apps" aria-labelledby="my-apps-heading">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <FolderKanban className="h-5 w-5 text-primary" />
+                    My Project Applications
+                  </h2>
                   <Link
-                    key={app.id}
-                    to={`/project-openings/${app.project_id}/apply`}
-                    className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                    to="/applications/projects"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <FolderKanban className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm text-foreground truncate">
-                            {clientName}
-                          </h3>
-                          {isCompleted ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Submitted
-                            </Badge>
-                          ) : isDraft ? (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                              <Clock className="h-3 w-3" />
-                              In Progress
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {isCompleted && app.completed_at
-                            ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
-                            : isDraft
-                              ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
-                              : ""}
-                          {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
-                        </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </div>
+                    View all <ChevronRight className="h-3 w-3" />
                   </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
+                </div>
+                {myProjectApps.length === 0 ? (
+                  <SectionEmptyState
+                    icon={FolderKanban}
+                    title="No project applications yet"
+                    description="When project openings are available, you can apply and track your progress here."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {myProjectApps.map((app) => {
+                      const proj = dashProjectMap.get(app.project_id);
+                      const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
+                      const isCompleted = app.status === "completed";
+                      const isDraft = app.status === "draft";
 
-      {isVisible("latest_updates") && (
-        <section aria-labelledby="announcements-heading">
-          <div className="flex items-center justify-between mb-4">
-            <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-primary" />
-              Latest Updates
-            </h2>
-            <Link
-              to="/updates"
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              View all <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
-          {latestAnnouncements.length === 0 ? (
-            <SectionEmptyState
-              icon={Megaphone}
-              title="No updates yet"
-              description="Announcements and news from Tech Fleet will appear here."
-            />
-          ) : (
-            <div className="space-y-2">
-              {latestAnnouncements.map((a) => (
-                <Link
-                  key={a.id}
-                  to="/updates"
-                  className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                      {format(new Date(a.created_at), "MMM d")}
-                    </span>
+                      return (
+                        <Link
+                          key={app.id}
+                          to={`/project-openings/${app.project_id}/apply`}
+                          className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <FolderKanban className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-sm text-foreground truncate">
+                                  {clientName}
+                                </h3>
+                                {isCompleted ? (
+                                  <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Submitted
+                                  </Badge>
+                                ) : isDraft ? (
+                                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    In Progress
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {isCompleted && app.completed_at
+                                  ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                                  : isDraft
+                                    ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                                    : ""}
+                                {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+                              </p>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+                )}
+              </section>
+            ) : null;
 
-      {(isVisible("network_activity") || isVisible("world_map")) && (
-        <section className="border-t pt-9">
-          <NetworkActivity
-            showMap={isVisible("world_map")}
-            showActivity={isVisible("network_activity")}
-          />
-        </section>
-      )}
+          case "latest_updates":
+            return isVisible("latest_updates") ? (
+              <section key="latest_updates" aria-labelledby="announcements-heading">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Megaphone className="h-5 w-5 text-primary" />
+                    Latest Updates
+                  </h2>
+                  <Link
+                    to="/updates"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                  >
+                    View all <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </div>
+                {latestAnnouncements.length === 0 ? (
+                  <SectionEmptyState
+                    icon={Megaphone}
+                    title="No updates yet"
+                    description="Announcements and news from Tech Fleet will appear here."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {latestAnnouncements.map((a) => (
+                      <Link
+                        key={a.id}
+                        to="/updates"
+                        className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                            {format(new Date(a.created_at), "MMM d")}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null;
+
+          case "network_activity":
+          case "world_map": {
+            // Render the combined network section only once, at whichever comes first in order
+            const firstNetworkIdx = widgetOrder.findIndex((w) => w === "network_activity" || w === "world_map");
+            if (widgetOrder[firstNetworkIdx] !== widgetId) return null;
+            const showAny = isVisible("network_activity") || isVisible("world_map");
+            return showAny ? (
+              <section key="network" className="border-t pt-9">
+                <NetworkActivity
+                  showMap={isVisible("world_map")}
+                  showActivity={isVisible("network_activity")}
+                />
+              </section>
+            ) : null;
+          }
+
+          default:
+            return null;
+        }
+      })}
 
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
