@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@/lib/react-query";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
 interface GenericCoursePageProps {

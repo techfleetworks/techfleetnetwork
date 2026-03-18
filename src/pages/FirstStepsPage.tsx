@@ -177,6 +177,8 @@ export default function FirstStepsPage() {
       setTasks((prev) =>
         prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
       );
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
 
       const name = getDisplayName();
       const discord = getDiscordUsername();
