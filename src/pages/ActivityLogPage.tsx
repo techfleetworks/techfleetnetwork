@@ -291,6 +291,7 @@ export default function ActivityLogPage() {
       ) : (
         <>
           <ThemedAgGrid<AuditLogEntry>
+            gridId="activity-log"
             height="500px"
             rowData={filteredEntries}
             columnDefs={columnDefs}

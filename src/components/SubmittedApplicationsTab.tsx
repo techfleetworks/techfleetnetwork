@@ -270,6 +270,7 @@ export default function SubmittedApplicationsTab() {
         </div>
       ) : (
         <ThemedAgGrid<EnrichedApp>
+          gridId="submitted-applications"
           height="500px"
           rowData={enriched}
           columnDefs={columnDefs}

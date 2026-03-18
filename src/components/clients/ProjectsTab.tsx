@@ -144,6 +144,7 @@ export function ProjectsTab() {
         </div>
       ) : view === "table" ? (
         <ThemedAgGrid<Project>
+          gridId="admin-projects"
           height="450px"
           rowData={projects}
           columnDefs={columnDefs}

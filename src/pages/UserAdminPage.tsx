@@ -181,7 +181,9 @@ export default function UserAdminPage() {
       sortable: false,
       filter: false,
       resizable: false,
-      width: 140,
+      flex: 1,
+      minWidth: 100,
+      maxWidth: 160,
       cellRenderer: (params: ICellRendererParams<UserRow>) => {
         const u = params.data;
         if (!u) return null;
