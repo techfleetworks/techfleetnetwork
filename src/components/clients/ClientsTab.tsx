@@ -54,7 +54,7 @@ const EMPTY_FORM: ClientForm = {
 export function ClientsTab() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<"table" | "card">("table");
+  const [view, setView] = useState<"table" | "card">("card");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
