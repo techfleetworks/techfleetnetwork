@@ -87,6 +87,7 @@ export default function GenericCoursePage({
 }: GenericCoursePageProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
