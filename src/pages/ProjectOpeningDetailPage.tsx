@@ -204,6 +204,21 @@ export default function ProjectOpeningDetailPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-4xl mx-auto space-y-8">
+      {/* ── Breadcrumbs ───────────────────────────────────── */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <NavLink to="/project-openings">Project Openings</NavLink>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Project Overview</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* ── Hero Header ───────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="space-y-2">
