@@ -6,7 +6,7 @@ import type {
 } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 import { useGridState, type GridState } from "@/hooks/use-grid-state";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
