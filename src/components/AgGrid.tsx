@@ -134,7 +134,7 @@ export function ThemedAgGrid<T = unknown>({
           </Button>
         </div>
       )}
-      <div className={themeClass} style={{ height, width: "100%" }}>
+      <div key={themeClass} className={themeClass} style={{ height, width: "100%" }}>
         <AgGridReact<T>
           defaultColDef={mergedColDef}
           columnDefs={columnDefs}
