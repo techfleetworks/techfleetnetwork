@@ -188,7 +188,8 @@ export default function ActivityLogPage() {
     {
       headerName: "Date",
       field: "created_at",
-      width: 170,
+      flex: 1,
+      minWidth: 140,
       valueFormatter: (params) =>
         params.value ? format(new Date(params.value), "MMM d, yyyy HH:mm") : "—",
     },
