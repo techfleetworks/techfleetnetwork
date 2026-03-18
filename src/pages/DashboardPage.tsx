@@ -1,10 +1,13 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
+  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
+  Clock,
+  FolderKanban,
   Heart,
   Lock,
   Megaphone,
@@ -14,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { StatsService } from "@/services/stats.service";
@@ -135,6 +139,50 @@ export default function DashboardPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // User's own project applications
+  const { data: myProjectApps = [] } = useQuery({
+    queryKey: ["dashboard-my-project-apps", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("id, project_id, status, completed_at, updated_at, current_step, team_hats_interest")
+        .eq("user_id", userId!)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!userId,
+  });
+
+  const projectIds = useMemo(() => [...new Set(myProjectApps.map((a) => a.project_id))], [myProjectApps]);
+  const { data: dashProjects = [] } = useQuery({
+    queryKey: ["dashboard-projects-for-apps", projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: projectIds.length > 0,
+  });
+
+  const dashClientIds = useMemo(() => [...new Set(dashProjects.map((p) => p.client_id))], [dashProjects]);
+  const { data: dashClients = [] } = useQuery({
+    queryKey: ["dashboard-clients-for-apps", dashClientIds],
+    queryFn: async () => {
+      if (dashClientIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("clients").select("id, name").in("id", dashClientIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: dashClientIds.length > 0,
+  });
+
+  const dashProjectMap = useMemo(() => new Map(dashProjects.map((p) => [p.id, p])), [dashProjects]);
+  const dashClientMap = useMemo(() => new Map(dashClients.map((c) => [c.id, c])), [dashClients]);
+
   const communityBadgeCount = stats?.badges_earned ?? null;
 
   const allFirstStepsDone = firstStepsCompleted >= TOTAL_FIRST_STEPS;
@@ -237,6 +285,72 @@ export default function DashboardPage() {
             {coreCourses.map((course) => (
               <CoreCourseCard key={course.id} course={course} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {myProjectApps.length > 0 && (
+        <section aria-labelledby="my-apps-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <FolderKanban className="h-5 w-5 text-primary" />
+              My Project Applications
+            </h2>
+            <Link
+              to="/applications/projects"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {myProjectApps.map((app) => {
+              const proj = dashProjectMap.get(app.project_id);
+              const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
+              const isCompleted = app.status === "completed";
+              const isDraft = app.status === "draft";
+
+              return (
+                <Link
+                  key={app.id}
+                  to={`/project-openings/${app.project_id}/apply`}
+                  className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <FolderKanban className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm text-foreground truncate">
+                          {clientName}
+                        </h3>
+                        {isCompleted ? (
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Submitted
+                          </Badge>
+                        ) : isDraft ? (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                            <Clock className="h-3 w-3" />
+                            In Progress
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isCompleted && app.completed_at
+                          ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                          : isDraft
+                            ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                            : ""}
+                        {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
