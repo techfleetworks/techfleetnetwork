@@ -309,10 +309,7 @@ export default function SubmittedApplicationsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex border rounded-lg overflow-hidden">
           <button
             onClick={() => setView("card")}
@@ -392,18 +389,21 @@ export default function SubmittedApplicationsTab() {
           pagination
           paginationPageSize={25}
           toolbarLeft={
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-9"
-              onClick={() => gridApiRef.current?.exportDataAsCsv({
-                onlySelected: false,
-                fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
-              })}
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
+            <>
+              <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-9"
+                onClick={() => gridApiRef.current?.exportDataAsCsv({
+                  onlySelected: false,
+                  fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
+                })}
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </>
           }
         />
       )}
