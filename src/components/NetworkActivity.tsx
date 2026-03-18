@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus } from "lucide-react";
+import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2 } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { MemberWorldMap } from "@/components/MemberWorldMap";
 
@@ -18,6 +18,10 @@ const defaultStats: NetworkStats = {
   prev_week_advanced_active: 0,
   prev_week_applications: 0,
   prev_week_badges: 0,
+  projects_open_applications: 0,
+  projects_coming_soon: 0,
+  projects_live: 0,
+  projects_previously_completed: 0,
 };
 
 interface StatCardProps {
@@ -128,6 +132,35 @@ export function NetworkActivity() {
             value={stats.badges_earned}
             label="Badges Earned"
             colorClass="bg-primary/10"
+          />
+        </div>
+
+        {/* Project Training */}
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <StatCard
+            icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />}
+            value={stats.projects_open_applications}
+            label="Open Applications"
+            colorClass="bg-success/10"
+          />
+          <StatCard
+            icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />}
+            value={stats.projects_coming_soon}
+            label="Coming Soon"
+            colorClass="bg-warning/10"
+          />
+          <StatCard
+            icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />}
+            value={stats.projects_live}
+            label="Live"
+            colorClass="bg-primary/10"
+          />
+          <StatCard
+            icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}
+            value={stats.projects_previously_completed}
+            label="Previously Completed"
+            colorClass="bg-muted"
           />
         </div>
 

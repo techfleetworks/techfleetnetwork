@@ -18,6 +18,10 @@ export interface NetworkStats {
   prev_week_advanced_active: number;
   prev_week_applications: number;
   prev_week_badges: number;
+  projects_open_applications: number;
+  projects_coming_soon: number;
+  projects_live: number;
+  projects_previously_completed: number;
 }
 
 export const StatsService = {
