@@ -200,6 +200,8 @@ export default function UserAdminPage() {
       flex: 1,
       minWidth: 100,
       maxWidth: 160,
+      pinned: "right",
+      lockPinned: true,
       cellRenderer: ActionsCellRenderer,
     },
   ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
