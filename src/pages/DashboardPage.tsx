@@ -1,10 +1,13 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
+  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
+  Clock,
+  FolderKanban,
   Heart,
   Lock,
   Megaphone,
