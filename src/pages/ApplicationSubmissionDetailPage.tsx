@@ -219,7 +219,7 @@ export default function ApplicationSubmissionDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+          <div className="space-y-3 text-sm">
             <div>
               <span className="font-medium text-foreground">Name:</span>{" "}
               <span className="text-muted-foreground">{applicantName}</span>
