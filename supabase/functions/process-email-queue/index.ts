@@ -69,6 +69,49 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
+async function getOrCreateUnsubscribeToken(
+  supabase: ReturnType<typeof createClient>,
+  email: unknown
+): Promise<string | null> {
+  if (typeof email !== 'string') {
+    return null
+  }
+
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!normalizedEmail) {
+    return null
+  }
+
+  const { data: existingToken, error: existingError } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token')
+    .eq('email', normalizedEmail)
+    .is('used_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingError) {
+    throw existingError
+  }
+
+  if (existingToken?.token) {
+    return existingToken.token
+  }
+
+  const token = crypto.randomUUID()
+  const { error: insertError } = await supabase.from('email_unsubscribe_tokens').insert({
+    email: normalizedEmail,
+    token,
+  })
+
+  if (insertError) {
+    throw insertError
+  }
+
+  return token
+}
+
 Deno.serve(async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
