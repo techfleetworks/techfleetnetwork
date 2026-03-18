@@ -354,6 +354,13 @@ export default function ProjectApplicationPage() {
     saveMutation.mutate({ fields: collectFields(), submit: true });
   }, [collectFields, validateStep2, validateStep3, saveMutation]);
 
+  /* Check if all fields are filled for submit button state */
+  const isSubmitReady = useMemo(() => {
+    const errs2 = validateStep2();
+    const errs3 = validateStep3();
+    return Object.keys(errs2).length === 0 && Object.keys(errs3).length === 0;
+  }, [validateStep2, validateStep3]);
+
   /* ── helpers ───────────────────────────────────────────── */
   const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
   const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
