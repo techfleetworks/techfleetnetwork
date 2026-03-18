@@ -4,6 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AG Grid theme token mapping */
+.ag-theme-alpine,
+.ag-theme-alpine-dark {
+  --ag-background-color: hsl(var(--background));
+  --ag-foreground-color: hsl(var(--foreground));
+  --ag-header-background-color: hsl(var(--muted));
+  --ag-header-foreground-color: hsl(var(--foreground));
+  --ag-border-color: hsl(var(--border));
+  --ag-row-hover-color: hsl(var(--muted) / 0.5);
+  --ag-selected-row-background-color: hsl(var(--primary) / 0.1);
+  --ag-odd-row-background-color: transparent;
+  --ag-header-cell-hover-background-color: hsl(var(--accent));
+  --ag-range-selection-border-color: hsl(var(--primary));
+  --ag-input-focus-border-color: hsl(var(--ring));
+  --ag-card-shadow: none;
+  --ag-font-family: inherit;
+  --ag-font-size: 0.875rem;
+  --ag-grid-size: 6px;
+  --ag-row-border-color: hsl(var(--border));
+}
+
 /* Font-display fallback to prevent FOIT layout shifts */
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
