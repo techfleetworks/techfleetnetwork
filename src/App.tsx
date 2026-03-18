@@ -39,6 +39,7 @@ const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
 const UserAdminPage = lazy(() => import("./pages/UserAdminPage"));
 const ConfirmAdminPage = lazy(() => import("./pages/ConfirmAdminPage"));
 const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
+const ApplicationSubmissionDetailPage = lazy(() => import("./pages/ApplicationSubmissionDetailPage"));
 const UpdatesPage = lazy(() => import("./pages/UpdatesPage"));
 const ClientsPage = lazy(() => import("./pages/ClientsPage"));
 const ProjectFormPage = lazy(() => import("./pages/ProjectFormPage"));
