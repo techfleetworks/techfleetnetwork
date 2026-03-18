@@ -56,7 +56,12 @@ function formatDateRange(start: string, end: string): string {
   return `${fmt(start)} – ${fmt(end)}, ${year}`;
 }
 
-export function NetworkActivity() {
+interface NetworkActivityProps {
+  showMap?: boolean;
+  showActivity?: boolean;
+}
+
+export function NetworkActivity({ showMap = true, showActivity = true }: NetworkActivityProps) {
   const [stats, setStats] = useState<NetworkStats>(defaultStats);
   const [loading, setLoading] = useState(true);
 
