@@ -335,7 +335,7 @@ export default function ProjectOpeningsPage() {
                   <Rocket className="h-5 w-5 text-warning" aria-hidden="true" />
                   Starting Soon
                 </h3>
-                <ProjectSection title="Starting Soon" icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
+                <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
               </div>
 
               {/* Live Projects */}
