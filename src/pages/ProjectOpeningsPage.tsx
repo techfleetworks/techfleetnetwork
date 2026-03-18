@@ -11,14 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
 } from "@/data/project-constants";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef } from "ag-grid-community";
 
 interface OpenProject {
   id: string;
@@ -51,7 +50,6 @@ export default function ProjectOpeningsPage() {
   const [appSection, setAppSection] = useState(1);
   const [hasApp, setHasApp] = useState(false);
 
-  // Fetch apply_now projects (RLS filters to only apply_now for non-admins)
   const { data: projects = [], isLoading: projLoading } = useQuery({
     queryKey: ["project-openings"],
     queryFn: async () => {
@@ -65,16 +63,12 @@ export default function ProjectOpeningsPage() {
     },
   });
 
-  // Fetch active clients for name display
   const clientIds = useMemo(() => [...new Set(projects.map((p) => p.client_id))], [projects]);
   const { data: clients = [] } = useQuery({
     queryKey: ["project-opening-clients", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, name")
-        .in("id", clientIds);
+      const { data, error } = await supabase.from("clients").select("id, name").in("id", clientIds);
       if (error) throw error;
       return (data ?? []) as ClientInfo[];
     },
@@ -83,7 +77,6 @@ export default function ProjectOpeningsPage() {
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
 
-  // Fetch user's general application status
   const { data: genApp } = useQuery({
     queryKey: ["general-app-status", user?.id],
     queryFn: async () => {
@@ -100,7 +93,6 @@ export default function ProjectOpeningsPage() {
     enabled: !!user,
   });
 
-  // Fetch user's existing project applications to know which projects they already applied to
   const { data: myProjectApps = [] } = useQuery({
     queryKey: ["my-project-apps-for-openings", user?.id],
     queryFn: async () => {
@@ -126,7 +118,6 @@ export default function ProjectOpeningsPage() {
       navigate(`/project-openings/${projectId}/apply`);
       return;
     }
-    // Show gate dialog
     setHasApp(!!genApp);
     setAppSection(genApp?.current_section ?? 1);
     setGateDialogOpen(true);
@@ -134,23 +125,45 @@ export default function ProjectOpeningsPage() {
 
   const handleGoToApp = () => {
     setGateDialogOpen(false);
-    if (hasApp) {
-      navigate(`/applications/general`);
-    } else {
-      navigate("/applications/general");
-    }
+    navigate("/applications/general");
   };
 
   const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
   const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
   const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
+  const columnDefs = useMemo<ColDef<OpenProject>[]>(() => [
+    {
+      headerName: "Client",
+      flex: 2,
+      valueGetter: (params) => clientMap.get(params.data?.client_id ?? "") ?? "Client",
+    },
+    {
+      headerName: "Project Type",
+      flex: 1,
+      valueGetter: (params) => typeLabel(params.data?.project_type ?? ""),
+    },
+    {
+      headerName: "Phase",
+      flex: 1,
+      valueGetter: (params) => phaseLabel(params.data?.phase ?? ""),
+    },
+    {
+      headerName: "Status",
+      flex: 1,
+      valueGetter: (params) => statusLabel(params.data?.project_status ?? ""),
+    },
+    {
+      headerName: "Team Hats",
+      flex: 2,
+      valueGetter: (params) => (params.data?.team_hats ?? []).join(", "),
+    },
+  ], [clientMap]);
+
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          Project Openings
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Project Openings</h1>
         <p className="text-muted-foreground mt-1">
           Browse current openings for client project training and volunteer teams.
         </p>
@@ -158,16 +171,11 @@ export default function ProjectOpeningsPage() {
 
       <Tabs defaultValue="client" className="w-full">
         <TabsList className="w-full sm:w-auto mb-6">
-          <TabsTrigger value="client" className="flex-1 sm:flex-none">
-            Client Project Openings
-          </TabsTrigger>
-          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none">
-            Volunteer Openings
-          </TabsTrigger>
+          <TabsTrigger value="client" className="flex-1 sm:flex-none">Client Project Openings</TabsTrigger>
+          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none">Volunteer Openings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="client">
-          {/* View toggle */}
           {projects.length > 0 && (
             <div className="flex justify-end mb-4">
               <div className="flex border rounded-md overflow-hidden">
@@ -188,20 +196,13 @@ export default function ProjectOpeningsPage() {
           ) : projects.length === 0 ? (
             <div className="rounded-lg border bg-card p-8 text-center">
               <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">
-                No Openings Right Now
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground mb-2">No Openings Right Now</h2>
               <p className="text-muted-foreground max-w-md mx-auto mb-4">
                 There are no client projects currently accepting applications. Check back soon or visit the guide for more details.
               </p>
-              <a
-                href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings" target="_blank" rel="noopener noreferrer">
                 <Button variant="outline">
-                  <ExternalLink className="h-4 w-4 mr-1.5" />
-                  View on Guide
+                  <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
                 </Button>
               </a>
             </div>
@@ -212,16 +213,10 @@ export default function ProjectOpeningsPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <CardTitle className="text-lg leading-tight">
-                          {clientMap.get(p.client_id) ?? "Client"}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {typeLabel(p.project_type)}
-                        </p>
+                        <CardTitle className="text-lg leading-tight">{clientMap.get(p.client_id) ?? "Client"}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
                       </div>
-                      <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">
-                        {statusLabel(p.project_status)}
-                      </Badge>
+                      <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-3 text-sm">
@@ -232,22 +227,18 @@ export default function ProjectOpeningsPage() {
                     <div>
                       <p className="text-sm font-semibold text-muted-foreground mb-1">Team Hats</p>
                       <div className="flex flex-wrap gap-1">
-                        {p.team_hats.map((h) => (
-                          <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
-                        ))}
+                        {p.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
                     {appliedProjectIds.has(p.id) ? (
                       <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/project-openings/${p.id}/apply`)}>
-                        <Pencil className="h-4 w-4" />
-                        Edit
+                        <Pencil className="h-4 w-4" /> Edit
                       </Button>
                     ) : (
                       <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
-                        <Send className="h-4 w-4" />
-                        Apply
+                        <Send className="h-4 w-4" /> Apply
                       </Button>
                     )}
                   </CardFooter>
@@ -255,78 +246,40 @@ export default function ProjectOpeningsPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Project Type</TableHead>
-                    <TableHead>Phase</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Team Hats</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projects.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{clientMap.get(p.client_id) ?? "Client"}</TableCell>
-                      <TableCell className="text-sm">{typeLabel(p.project_type)}</TableCell>
-                      <TableCell><Badge variant="secondary" className="text-xs">{phaseLabel(p.phase)}</Badge></TableCell>
-                      <TableCell><Badge className="bg-warning/10 text-warning border-warning/20">{statusLabel(p.project_status)}</Badge></TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {p.team_hats.slice(0, 3).map((h) => (
-                            <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
-                          ))}
-                          {p.team_hats.length > 3 && <Badge variant="outline" className="text-xs">+{p.team_hats.length - 3}</Badge>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {appliedProjectIds.has(p.id) ? (
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/project-openings/${p.id}/apply`)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                        ) : (
-                          <Button size="sm" className="gap-1.5" onClick={() => handleApply(p.id)}>
-                            <Send className="h-3.5 w-3.5" />
-                            Apply
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <ThemedAgGrid<OpenProject>
+              height="400px"
+              rowData={projects}
+              columnDefs={columnDefs}
+              getRowId={(params) => params.data.id}
+              onRowClicked={(params) => {
+                if (!params.data) return;
+                if (appliedProjectIds.has(params.data.id)) {
+                  navigate(`/project-openings/${params.data.id}/apply`);
+                } else {
+                  handleApply(params.data.id);
+                }
+              }}
+              rowStyle={{ cursor: "pointer" }}
+            />
           )}
         </TabsContent>
 
         <TabsContent value="volunteer">
           <div className="rounded-lg border bg-card p-8 text-center">
             <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Volunteer Openings
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
             <p className="text-muted-foreground max-w-md mx-auto mb-4">
               View current volunteer team opportunities to support Tech Fleet's mission and operations.
             </p>
-            <a
-              href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings" target="_blank" rel="noopener noreferrer">
               <Button variant="outline">
-                <ExternalLink className="h-4 w-4 mr-1.5" />
-                View on Guide
+                <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
               </Button>
             </a>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Gate Dialog — General App not completed */}
       <Dialog open={gateDialogOpen} onOpenChange={setGateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -352,9 +305,7 @@ export default function ProjectOpeningsPage() {
             )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setGateDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setGateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleGoToApp}>
               {hasApp ? "Continue Application" : "Start Application"}
             </Button>

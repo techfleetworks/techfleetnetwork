@@ -13,9 +13,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import {
@@ -23,6 +20,8 @@ import {
 } from "@/data/project-constants";
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
 import type { Client } from "@/components/clients/ClientsTab";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef } from "ag-grid-community";
 
 interface Project {
   id: string;
@@ -87,6 +86,40 @@ export function ProjectsTab() {
     }
   };
 
+  const columnDefs = useMemo<ColDef<Project>[]>(() => [
+    {
+      headerName: "Client",
+      flex: 2,
+      valueGetter: (params) => clientMap.get(params.data?.client_id ?? "")?.name ?? "Unknown",
+    },
+    {
+      headerName: "Type",
+      flex: 1,
+      valueGetter: (params) => typeLabel(params.data?.project_type ?? ""),
+    },
+    {
+      headerName: "Phase",
+      flex: 1,
+      valueGetter: (params) => phaseLabel(params.data?.phase ?? ""),
+    },
+    {
+      headerName: "Status",
+      flex: 1,
+      valueGetter: (params) => statusLabel(params.data?.project_status ?? ""),
+    },
+    {
+      headerName: "Team Hats",
+      flex: 2,
+      valueGetter: (params) => (params.data?.team_hats ?? []).join(", "),
+    },
+    {
+      headerName: "Updated",
+      width: 130,
+      valueGetter: (params) => params.data?.updated_at,
+      valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
+    },
+  ], [clientMap]);
+
   if (isLoading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
@@ -109,41 +142,16 @@ export function ProjectsTab() {
           <p className="text-sm mt-1">Click "Add Project" to create your first project.</p>
         </div>
       ) : view === "table" ? (
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Phase</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Team Hats</TableHead>
-                <TableHead className="w-[80px]">Updated</TableHead>
-                <TableHead className="w-[100px] text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{clientMap.get(p.client_id)?.name ?? "Unknown"}</TableCell>
-                  <TableCell className="text-sm">{typeLabel(p.project_type)}</TableCell>
-                  <TableCell className="text-sm">{phaseLabel(p.phase)}</TableCell>
-                  <TableCell><Badge className={statusBadgeColor(p.project_status)}>{statusLabel(p.project_status)}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">{p.team_hats.slice(0, 3).map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}{p.team_hats.length > 3 && <Badge variant="outline" className="text-xs">+{p.team_hats.length - 3}</Badge>}</div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(p.updated_at), "MMM d, yyyy")}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/clients/projects/${p.id}/edit`)} aria-label="Edit project"><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(p)} aria-label="Delete project"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ThemedAgGrid<Project>
+          height="450px"
+          rowData={projects}
+          columnDefs={columnDefs}
+          getRowId={(params) => params.data.id}
+          onRowClicked={(params) => params.data && navigate(`/admin/clients/projects/${params.data.id}/edit`)}
+          rowStyle={{ cursor: "pointer" }}
+          pagination
+          paginationPageSize={20}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => {
@@ -189,7 +197,6 @@ export function ProjectsTab() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

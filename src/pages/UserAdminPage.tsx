@@ -1,19 +1,12 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Navigate } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +18,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, ShieldCheck, User, Mail, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { format } from "date-fns";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 
 interface UserRow {
   user_id: string;
@@ -43,8 +37,6 @@ export default function UserAdminPage() {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [, setAdminUserIds] = useState<Set<string>>(new Set());
-  const [, setPendingUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
@@ -52,31 +44,23 @@ export default function UserAdminPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch all profiles (admin RLS allows this)
       const { data: profiles, error: profilesErr } = await supabase
         .from("profiles")
         .select("user_id, email, first_name, last_name, display_name, created_at")
         .order("created_at", { ascending: false });
-
       if (profilesErr) throw profilesErr;
 
-      // Fetch all admin roles
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id, role")
         .eq("role", "admin");
-
       const adminIds = new Set((roles || []).map((r: { user_id: string }) => r.user_id));
-      setAdminUserIds(adminIds);
 
-      // Fetch pending promotions
       const { data: promos } = await supabase
         .from("admin_promotions")
         .select("user_id")
         .is("confirmed_at", null);
-
       const pendingIds = new Set((promos || []).map((p: { user_id: string }) => p.user_id));
-      setPendingUserIds(pendingIds);
 
       const rows: UserRow[] = (profiles || []).map((p) => ({
         user_id: p.user_id,
@@ -88,7 +72,6 @@ export default function UserAdminPage() {
         isAdmin: adminIds.has(p.user_id),
         pendingPromotion: pendingIds.has(p.user_id),
       }));
-
       setUsers(rows);
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -99,9 +82,7 @@ export default function UserAdminPage() {
   };
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) {
-      fetchData();
-    }
+    if (isAdmin && !adminLoading) fetchData();
   }, [isAdmin, adminLoading]);
 
   const filteredUsers = useMemo(() => {
@@ -121,20 +102,12 @@ export default function UserAdminPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
-
       const res = await supabase.functions.invoke("promote-to-admin", {
         body: { user_id: targetUser.user_id },
       });
-
-      if (res.error) {
-        throw new Error(res.error.message || "Failed to promote user");
-      }
-
+      if (res.error) throw new Error(res.error.message || "Failed to promote user");
       const result = res.data;
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-
+      if (result?.error) throw new Error(result.error);
       toast.success(result?.message || "Confirmation email sent");
       await fetchData();
     } catch (err: unknown) {
@@ -146,6 +119,91 @@ export default function UserAdminPage() {
     }
   };
 
+  const columnDefs = useMemo<ColDef<UserRow>[]>(() => [
+    {
+      headerName: "Name",
+      field: "first_name",
+      flex: 2,
+      cellRenderer: (params: ICellRendererParams<UserRow>) => {
+        const u = params.data;
+        if (!u) return null;
+        const name = u.first_name || u.last_name
+          ? `${u.first_name} ${u.last_name}`.trim()
+          : u.display_name || "—";
+        return `<div style="display:flex;align-items:center;gap:8px">
+          <span style="color:${u.isAdmin ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}">
+            ${u.isAdmin ? '🛡' : '👤'}
+          </span>
+          <span style="font-weight:500">${name}</span>
+        </div>`;
+      },
+      valueGetter: (params) => {
+        const u = params.data;
+        if (!u) return "";
+        return u.first_name || u.last_name
+          ? `${u.first_name} ${u.last_name}`.trim()
+          : u.display_name || "";
+      },
+    },
+    {
+      headerName: "Email",
+      field: "email",
+      flex: 2,
+    },
+    {
+      headerName: "Joined",
+      field: "created_at",
+      flex: 1,
+      valueFormatter: (params) =>
+        params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
+    },
+    {
+      headerName: "Role",
+      field: "isAdmin",
+      flex: 1,
+      cellRenderer: (params: ICellRendererParams<UserRow>) => {
+        const u = params.data;
+        if (!u) return null;
+        if (u.isAdmin) return '<span style="color:hsl(var(--primary));font-weight:600">Admin</span>';
+        if (u.pendingPromotion) return '<span style="color:hsl(var(--warning));font-weight:500">Pending</span>';
+        return '<span style="color:hsl(var(--muted-foreground))">Member</span>';
+      },
+      valueGetter: (params) => {
+        const u = params.data;
+        if (!u) return "";
+        if (u.isAdmin) return "Admin";
+        if (u.pendingPromotion) return "Pending";
+        return "Member";
+      },
+    },
+    {
+      headerName: "Actions",
+      sortable: false,
+      filter: false,
+      resizable: false,
+      width: 140,
+      cellRenderer: (params: ICellRendererParams<UserRow>) => {
+        const u = params.data;
+        if (!u) return null;
+        const isSelf = u.user_id === user?.id;
+        if (isSelf) return '<span style="color:hsl(var(--muted-foreground));font-size:0.75rem">You</span>';
+        if (u.isAdmin) return '<span style="color:hsl(var(--muted-foreground));font-size:0.75rem">Admin</span>';
+        if (u.pendingPromotion) return '<span style="color:hsl(var(--warning));font-size:0.75rem">Awaiting confirmation</span>';
+        return null; // Button will be handled via onCellClicked
+      },
+    },
+  ], [user?.id]);
+
+  const onCellClicked = useCallback((params: { colDef: ColDef<UserRow>; data: UserRow | undefined }) => {
+    if (params.colDef.headerName === "Actions" && params.data) {
+      const u = params.data;
+      const isSelf = u.user_id === user?.id;
+      if (!isSelf && !u.isAdmin && !u.pendingPromotion) {
+        setConfirmUser(u);
+      }
+    }
+  }, [user?.id]);
+
   if (adminLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -154,9 +212,7 @@ export default function UserAdminPage() {
     );
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="space-y-6">
@@ -188,95 +244,16 @@ export default function UserAdminPage() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((u) => {
-                  const isSelf = u.user_id === user?.id;
-                  return (
-                    <TableRow key={u.user_id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {u.isAdmin ? (
-                            <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-                          ) : (
-                            <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                          )}
-                          <span className="font-medium">
-                            {u.first_name || u.last_name
-                              ? `${u.first_name} ${u.last_name}`.trim()
-                              : u.display_name || "—"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          {u.email || "—"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {format(new Date(u.created_at), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {u.isAdmin ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20">
-                            Admin
-                          </Badge>
-                        ) : u.pendingPromotion ? (
-                          <Badge variant="outline" className="text-warning border-warning/30">
-                            Pending
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Member</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isSelf ? (
-                          <span className="text-xs text-muted-foreground">You</span>
-                        ) : u.isAdmin ? (
-                          <span className="text-xs text-muted-foreground">Admin</span>
-                        ) : u.pendingPromotion ? (
-                          <span className="text-xs text-warning">Awaiting confirmation</span>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setConfirmUser(u)}
-                            disabled={!!promoting}
-                          >
-                            {promoting === u.user_id ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <ShieldCheck className="h-3 w-3 mr-1" />
-                            )}
-                            Make Admin
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <ThemedAgGrid<UserRow>
+          height="500px"
+          rowData={filteredUsers}
+          columnDefs={columnDefs}
+          onCellClicked={onCellClicked}
+          getRowId={(params) => params.data.user_id}
+          pagination
+          paginationPageSize={25}
+          domLayout="normal"
+        />
       )}
 
       <AlertDialog open={!!confirmUser} onOpenChange={() => setConfirmUser(null)}>
@@ -296,9 +273,7 @@ export default function UserAdminPage() {
               onClick={() => confirmUser && handlePromote(confirmUser)}
               disabled={!!promoting}
             >
-              {promoting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+              {promoting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Send Confirmation
             </AlertDialogAction>
           </AlertDialogFooter>
