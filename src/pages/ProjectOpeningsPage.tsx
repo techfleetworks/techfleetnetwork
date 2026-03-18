@@ -226,11 +226,11 @@ export default function ProjectOpeningsPage() {
                   </CardHeader>
                   <CardContent className="flex-1 space-y-3 text-sm">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Phase</p>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">Phase</p>
                       <Badge variant="secondary" className="text-xs">{phaseLabel(p.phase)}</Badge>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">Team Hats</p>
                       <div className="flex flex-wrap gap-1">
                         {p.team_hats.map((h) => (
                           <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
