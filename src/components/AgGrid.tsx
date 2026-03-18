@@ -33,8 +33,9 @@ export function ThemedAgGrid<T = unknown>({
   columnDefs,
   ...rest
 }: Props<T>) {
-  const { resolvedTheme } = useTheme();
-  const themeClass = resolvedTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
+  const { resolvedTheme, theme } = useTheme();
+  const effectiveTheme = resolvedTheme ?? theme;
+  const themeClass = effectiveTheme === "dark" ? "ag-theme-alpine-dark" : "ag-theme-alpine";
   const apiRef = useRef<GridApi<T> | null>(null);
 
   const { savedState, loaded, persistState, clearState } = useGridState(gridId ?? "");
