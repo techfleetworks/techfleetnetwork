@@ -72,6 +72,31 @@ interface ClientInfo {
 
 const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
 
+/* ── read-only display helpers ───────────────────────────── */
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  if (!value?.trim()) return null;
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{value}</p>
+    </div>
+  );
+}
+
+function ReadOnlyArrayField({ label, items }: { label: string; items: string[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── component ────────────────────────────────────────────── */
 export default function ProjectApplicationPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -120,7 +145,38 @@ export default function ProjectApplicationPage() {
     enabled: !!project?.client_id,
   });
 
-  /* ── fetch or create application ───────────────────────── */
+  /* ── fetch user's general application ──────────────────── */
+  const { data: genApp } = useQuery({
+    queryKey: ["general-app-for-review", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Record<string, unknown> | null;
+    },
+    enabled: !!user,
+  });
+
+  /* ── fetch user's profile for step 1 review ───────────── */
+  const { data: userProfile } = useQuery({
+    queryKey: ["profile-for-review", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      if (error) throw error;
+      return data as Record<string, unknown>;
+    },
+    enabled: !!user,
+  });
+
   const { data: existingApp, isLoading: appLoading } = useQuery({
     queryKey: ["project-application", user?.id, projectId],
     queryFn: async () => {
@@ -409,12 +465,68 @@ export default function ProjectApplicationPage() {
 
       {/* ── STEP 1: Review General App ─────────────────────── */}
       {step === 1 && (
-        <div className="rounded-lg border bg-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Step 1: Review General App</h2>
-          <p className="text-sm text-muted-foreground">
-            Please double check to ensure that you have reviewed your general application before proceeding.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="space-y-6">
+          <div className="rounded-lg border bg-card p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">Step 1: Review General App</h2>
+            <p className="text-sm text-muted-foreground">
+              Please review your general application below before proceeding. If anything needs updating, go to the General App to make edits.
+            </p>
+          </div>
+
+          {genApp ? (
+            <>
+              {/* Profile Info */}
+              <div className="rounded-lg border bg-card p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Profile Information</h3>
+                <ReadOnlyField label="Name" value={`${(userProfile?.first_name as string) ?? ""} ${(userProfile?.last_name as string) ?? ""}`.trim()} />
+                <ReadOnlyField label="Email" value={(genApp.email as string) ?? ""} />
+                <ReadOnlyField label="Country" value={(userProfile?.country as string) ?? ""} />
+                <ReadOnlyField label="Timezone" value={(userProfile?.timezone as string) ?? ""} />
+                <ReadOnlyField label="LinkedIn" value={(genApp.linkedin_url as string) ?? ""} />
+                <ReadOnlyField label="Portfolio" value={(genApp.portfolio_url as string) ?? ""} />
+                <ReadOnlyField label="Hours Commitment" value={(genApp.hours_commitment as string) ?? ""} />
+              </div>
+
+              {/* About Yourself */}
+              <div className="rounded-lg border bg-card p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">About You</h3>
+                <ReadOnlyField label="Tell us about yourself" value={(genApp.about_yourself as string) ?? ""} />
+              </div>
+
+              {/* Engagement History */}
+              <div className="rounded-lg border bg-card p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</h3>
+                <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
+                <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
+                <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
+              </div>
+
+              {/* Agile Mindset */}
+              <div className="rounded-lg border bg-card p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</h3>
+                <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
+                <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
+                <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
+                <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
+              </div>
+
+              {/* Service Leadership */}
+              <div className="rounded-lg border bg-card p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</h3>
+                <ReadOnlyField label="Servant Leadership Definition" value={(genApp.servant_leadership_definition as string) ?? ""} />
+                <ReadOnlyField label="Servant Leadership Actions" value={(genApp.servant_leadership_actions as string) ?? ""} />
+                <ReadOnlyField label="Servant Leadership Challenges" value={(genApp.servant_leadership_challenges as string) ?? ""} />
+                <ReadOnlyField label="Servant Leadership Situation" value={(genApp.servant_leadership_situation as string) ?? ""} />
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border bg-card p-6 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">No general application found. Please complete it first.</p>
+            </div>
+          )}
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button variant="outline" onClick={() => navigate("/applications/general")}>
               Go to General App
             </Button>
