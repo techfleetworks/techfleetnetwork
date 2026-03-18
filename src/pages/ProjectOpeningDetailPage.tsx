@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Send, Building2, ExternalLink, Briefcase,
-  Users, Share2, CheckCircle2, FileText,
+  Users, Share2, CheckCircle2, FileText, Pencil,
   Lightbulb, ClipboardList, Target, Clock, Calendar, Link2,
   ScrollText, ShieldCheck, CalendarClock, UserSearch, AlertTriangle,
 } from "lucide-react";
