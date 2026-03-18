@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
-  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil,
+  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil, CheckCircle2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
