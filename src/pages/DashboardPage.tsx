@@ -128,7 +128,7 @@ export default function DashboardPage() {
   const userId = user?.id;
   const customizerRef = useRef<HTMLButtonElement>(null);
 
-  const { visibleWidgets, isVisible, toggleWidget, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
+  const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
   const totalFirstSteps = useFirstStepsTotalForUser(profile);
 
