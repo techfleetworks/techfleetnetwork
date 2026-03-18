@@ -101,7 +101,11 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
 
     for (const recipient of recipients) {
+      const normalizedEmail = String(recipient.email ?? "").trim().toLowerCase();
+      if (!normalizedEmail) continue;
+
       const messageId = `announcement-${announcement_id}-${crypto.randomUUID()}`;
+      const unsubscribeToken = crypto.randomUUID();
 
       const emailHtml = `
 <!DOCTYPE html>
@@ -139,20 +143,23 @@ Deno.serve(async (req) => {
       ].join('\n');
 
       try {
-        // Log pending status first
+        await adminClient.from("email_unsubscribe_tokens").insert({
+          email: normalizedEmail,
+          token: unsubscribeToken,
+        });
+
         await adminClient.from("email_send_log").insert({
           message_id: messageId,
-          recipient_email: recipient.email,
+          recipient_email: normalizedEmail,
           template_name: "announcement",
           status: "pending",
           metadata: { announcement_id, title: announcement.title },
         });
 
-        // Enqueue with all required fields for process-email-queue
         await adminClient.rpc("enqueue_email", {
           queue_name: "transactional_emails",
           payload: {
-            to: recipient.email,
+            to: normalizedEmail,
             subject: `[Tech Fleet] ${announcement.title}`,
             html: emailHtml,
             text: emailText,
@@ -161,13 +168,14 @@ Deno.serve(async (req) => {
             label: "announcement",
             message_id: messageId,
             idempotency_key: messageId,
+            unsubscribe_token: unsubscribeToken,
             queued_at: now,
             purpose: "transactional",
           },
         });
         enqueued++;
       } catch (e) {
-        console.error(`Failed to enqueue email to ${recipient.email}:`, e);
+        console.error(`Failed to enqueue email to ${normalizedEmail}:`, e);
       }
     }
 
