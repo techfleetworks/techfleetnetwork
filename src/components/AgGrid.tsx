@@ -1,16 +1,9 @@
 import { useMemo } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type ColDef,
-} from "ag-grid-community";
+import type { ColDef } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { useTheme } from "next-themes";
-
-// Register all community modules once
-ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface Props<T> extends AgGridReactProps<T> {
   height?: string;
