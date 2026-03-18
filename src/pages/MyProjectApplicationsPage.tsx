@@ -179,7 +179,7 @@ export default function MyProjectApplicationsPage() {
                   {/* Team hats */}
                   {app.team_hats_interest.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Your Team Hats</p>
+                      <p className="text-sm font-semibold text-muted-foreground">Your Team Hats</p>
                       <div className="flex flex-wrap gap-1">
                         {app.team_hats_interest.map((h) => (
                           <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
