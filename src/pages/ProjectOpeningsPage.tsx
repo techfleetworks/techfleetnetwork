@@ -4,7 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send,
+  Handshake, ExternalLink, LayoutGrid, List, Loader2, Send, Pencil,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,25 @@ export default function ProjectOpeningsPage() {
     },
     enabled: !!user,
   });
+
+  // Fetch user's existing project applications to know which projects they already applied to
+  const { data: myProjectApps = [] } = useQuery({
+    queryKey: ["my-project-apps-for-openings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_applications")
+        .select("id, project_id, status")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const appliedProjectIds = useMemo(
+    () => new Set(myProjectApps.map((a) => a.project_id)),
+    [myProjectApps]
+  );
 
   const isAppCompleted = genApp?.status === "completed";
 
@@ -220,10 +239,17 @@ export default function ProjectOpeningsPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-3 border-t">
-                    <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
-                      <Send className="h-4 w-4" />
-                      Apply
-                    </Button>
+                    {appliedProjectIds.has(p.id) ? (
+                      <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/project-openings/${p.id}/apply`)}>
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </Button>
+                    ) : (
+                      <Button className="w-full gap-2" onClick={() => handleApply(p.id)}>
+                        <Send className="h-4 w-4" />
+                        Apply
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))}
@@ -257,10 +283,17 @@ export default function ProjectOpeningsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" className="gap-1.5" onClick={() => handleApply(p.id)}>
-                          <Send className="h-3.5 w-3.5" />
-                          Apply
-                        </Button>
+                        {appliedProjectIds.has(p.id) ? (
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/project-openings/${p.id}/apply`)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                        ) : (
+                          <Button size="sm" className="gap-1.5" onClick={() => handleApply(p.id)}>
+                            <Send className="h-3.5 w-3.5" />
+                            Apply
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
