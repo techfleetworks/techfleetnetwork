@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
-  Rocket, PlayCircle,
+  Rocket, PlayCircle, Clock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ interface EnrichedProject extends OpenProject {
   userApplied: boolean;
 }
 
-const VISIBLE_STATUSES: Array<"apply_now" | "recruiting" | "team_onboarding" | "project_in_progress"> = ["apply_now", "recruiting", "team_onboarding", "project_in_progress"];
+const VISIBLE_STATUSES: Array<"coming_soon" | "apply_now" | "recruiting" | "team_onboarding" | "project_in_progress"> = ["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress"];
 
 export default function ProjectOpeningsPage() {
   const { user } = useAuth();
@@ -145,6 +145,7 @@ export default function ProjectOpeningsPage() {
   );
 
   /* ── Split into sections ─────────────────────────────────── */
+  const comingSoon = useMemo(() => enrichedProjects.filter((p) => p.project_status === "coming_soon"), [enrichedProjects]);
   const openApplications = useMemo(() => enrichedProjects.filter((p) => p.project_status === "apply_now"), [enrichedProjects]);
   const startingSoon = useMemo(() => enrichedProjects.filter((p) => p.project_status === "recruiting" || p.project_status === "team_onboarding"), [enrichedProjects]);
   const liveProjects = useMemo(() => enrichedProjects.filter((p) => p.project_status === "project_in_progress"), [enrichedProjects]);
@@ -320,6 +321,15 @@ export default function ProjectOpeningsPage() {
             />
           ) : (
             <div className="space-y-10">
+              {/* Coming Soon */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                  Coming Soon
+                </h3>
+                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are coming soon." />
+              </div>
+
               {/* Open Applications */}
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
