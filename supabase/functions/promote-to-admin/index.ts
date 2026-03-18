@@ -126,16 +126,19 @@ Deno.serve(async (req) => {
 
     // Enqueue the confirmation email with all required fields
     const userName = targetProfile.first_name || targetProfile.display_name || 'there'
+    const normalizedEmail = targetProfile.email.trim().toLowerCase()
     const messageId = `admin-promo-${targetUserId}-${crypto.randomUUID()}`
+    const unsubscribeToken = crypto.randomUUID()
 
     const emailPayload: Record<string, unknown> = {
-      to: targetProfile.email,
+      to: normalizedEmail,
       subject: 'Tech Fleet: Confirm Your Admin Role',
       from: 'Tech Fleet <notifications@notify.techfleet.org>',
       sender_domain: 'notify.techfleet.org',
       label: 'admin_promotion',
       message_id: messageId,
       idempotency_key: messageId,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
       purpose: 'transactional',
       html: `
@@ -179,10 +182,15 @@ Deno.serve(async (req) => {
       ].join('\n'),
     }
 
+    await adminClient.from('email_unsubscribe_tokens').insert({
+      email: normalizedEmail,
+      token: unsubscribeToken,
+    })
+
     // Log pending status
     await adminClient.from('email_send_log').insert({
       message_id: messageId,
-      recipient_email: targetProfile.email,
+      recipient_email: normalizedEmail,
       template_name: 'admin_promotion',
       status: 'pending',
       metadata: { confirm_url: confirmUrl },
