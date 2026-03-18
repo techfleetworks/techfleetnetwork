@@ -303,7 +303,6 @@ export default function ProjectApplicationPage() {
   /* ── navigation ────────────────────────────────────────── */
   const handleNext = useCallback(() => {
     if (step === 1) {
-      // Step 1 has no validation, just save draft & advance
       saveMutation.mutate({ fields: collectFields(), newStep: 2 });
       setStep(2);
       return;
@@ -325,6 +324,15 @@ export default function ProjectApplicationPage() {
       saveMutation.mutate({ fields: collectFields(), submit: true });
     }
   }, [step, collectFields, saveMutation, validateStep2, validateStep3]);
+
+  const handleSubmit = useCallback(() => {
+    const errs2 = validateStep2();
+    const errs3 = validateStep3();
+    const allErrs = { ...errs2, ...errs3 };
+    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); return; }
+    setErrors({});
+    saveMutation.mutate({ fields: collectFields(), submit: true });
+  }, [collectFields, validateStep2, validateStep3, saveMutation]);
 
   const handleBack = useCallback(() => {
     if (step > 1) {
