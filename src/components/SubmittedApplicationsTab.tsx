@@ -175,7 +175,8 @@ export default function SubmittedApplicationsTab() {
     },
     {
       headerName: "Date Submitted",
-      width: 140,
+      flex: 1,
+      minWidth: 120,
       valueGetter: (params) => params.data?.completed_at,
       valueFormatter: (params) => params.value ? format(new Date(params.value), "MMM d, yyyy") : "—",
     },
