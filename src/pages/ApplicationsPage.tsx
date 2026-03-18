@@ -126,7 +126,7 @@ export default function ApplicationsPage() {
           <HeartHandshake className="h-5 w-5 text-primary" aria-hidden="true" />
         </div>
         <h2 className="text-lg font-semibold text-foreground mb-2">
-          Volunteer Applications
+          My Volunteer Applications
         </h2>
         <p className="text-sm text-muted-foreground flex-1">
           Apply to volunteer teams that support Tech Fleet operations,
