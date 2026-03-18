@@ -44,6 +44,7 @@ interface EnrichedProject extends OpenProject {
   clientName: string;
   totalApps: number;
   hatCounts: Record<string, number>;
+  userStatus: "Apply Now" | "Applied";
 }
 
 const SECTION_LABELS = [
