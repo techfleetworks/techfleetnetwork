@@ -178,6 +178,14 @@ export default function ProjectOpeningDetailPage() {
 
   const { project, client, milestoneData, applicationCount } = data;
 
+  const pageTitle = `${client?.name ?? "Project Opening"} — ${typeLabel(project.project_type)} | Tech Fleet`;
+
+  // Update document title for SEO / sharing
+  useEffect(() => {
+    document.title = pageTitle;
+    return () => { document.title = "Tech Fleet Network"; };
+  }, [pageTitle]);
+
   return (
     <div className="container-app py-8 sm:py-12 max-w-4xl mx-auto space-y-8">
       {/* ── Hero Header ───────────────────────────────────── */}
