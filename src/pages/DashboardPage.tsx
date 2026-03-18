@@ -185,7 +185,7 @@ export default function DashboardPage() {
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
-  const allFirstStepsDone = firstStepsCompleted >= TOTAL_FIRST_STEPS;
+  const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allDiscordDone = discordCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
