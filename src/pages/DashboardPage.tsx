@@ -289,7 +289,72 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {latestAnnouncements.length > 0 && (
+      {myProjectApps.length > 0 && (
+        <section aria-labelledby="my-apps-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <FolderKanban className="h-5 w-5 text-primary" />
+              My Project Applications
+            </h2>
+            <Link
+              to="/applications/projects"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {myProjectApps.map((app) => {
+              const proj = dashProjectMap.get(app.project_id);
+              const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
+              const isCompleted = app.status === "completed";
+              const isDraft = app.status === "draft";
+
+              return (
+                <Link
+                  key={app.id}
+                  to={`/project-openings/${app.project_id}/apply`}
+                  className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <FolderKanban className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm text-foreground truncate">
+                          {clientName}
+                        </h3>
+                        {isCompleted ? (
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Submitted
+                          </Badge>
+                        ) : isDraft ? (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                            <Clock className="h-3 w-3" />
+                            In Progress
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isCompleted && app.completed_at
+                          ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                          : isDraft
+                            ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                            : ""}
+                        {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
         <section aria-labelledby="announcements-heading">
           <div className="flex items-center justify-between mb-4">
             <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
