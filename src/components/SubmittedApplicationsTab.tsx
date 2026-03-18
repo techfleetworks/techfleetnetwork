@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { AllApplicationsColumnPicker, ALL_COLUMNS, DEFAULT_VISIBLE_KEYS } from "@/components/admin/AllApplicationsColumnPicker";
-import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
+import type { ColDef, GridReadyEvent, GridApi, ICellRendererParams } from "ag-grid-community";
 
 interface ProjectApp {
   id: string;
@@ -264,6 +264,31 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Previous Phase Position", colId: "pa_previous_phase_position", flex: 1, valueGetter: (p) => truncate(p.data?.previous_phase_position ?? "") },
       { headerName: "Previous Phase Learnings", colId: "pa_previous_phase_learnings", flex: 2, valueGetter: (p) => truncate(p.data?.previous_phase_learnings ?? "") },
       { headerName: "Previous Phase Help", colId: "pa_previous_phase_help", flex: 2, valueGetter: (p) => truncate(p.data?.previous_phase_help_teammates ?? "") },
+      {
+        headerName: "Actions",
+        colId: "actions",
+        sortable: false,
+        filter: false,
+        resizable: false,
+        width: 120,
+        minWidth: 120,
+        maxWidth: 140,
+        pinned: "right",
+        lockPinned: true,
+        cellRenderer: (params: ICellRendererParams<EnrichedApp>) => {
+          if (!params.data) return null;
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 text-xs h-7"
+              onClick={(e) => { e.stopPropagation(); navigate(`/admin/applications/${params.data!.id}`); }}
+            >
+              View <ExternalLink className="h-3 w-3" />
+            </Button>
+          );
+        },
+      },
     ];
 
     // Set hide based on visibleKeys
