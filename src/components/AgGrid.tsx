@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type {
   ColDef, GridReadyEvent, ColumnResizedEvent, SortChangedEvent,
@@ -9,8 +9,9 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { useTheme } from "@/components/ThemeProvider";
 import { useGridState, type GridState } from "@/hooks/use-grid-state";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Download } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface Props<T> extends AgGridReactProps<T> {
   height?: string;
@@ -20,6 +21,12 @@ interface Props<T> extends AgGridReactProps<T> {
   hideResetButton?: boolean;
   /** Extra buttons/controls rendered in the toolbar row alongside Reset View */
   toolbarLeft?: React.ReactNode;
+  /** Show CSV export button in toolbar */
+  showExportCsv?: boolean;
+  /** Custom CSV filename prefix (default: gridId or "export") */
+  exportFileName?: string;
+  /** Callback to receive the grid API reference */
+  onApiReady?: (api: GridApi<T>) => void;
 }
 
 export function ThemedAgGrid<T = unknown>({
@@ -27,6 +34,9 @@ export function ThemedAgGrid<T = unknown>({
   gridId,
   hideResetButton,
   toolbarLeft,
+  showExportCsv,
+  exportFileName,
+  onApiReady,
   defaultColDef,
   onGridReady: externalOnGridReady,
   onSortChanged: externalOnSortChanged,
@@ -74,24 +84,31 @@ export function ThemedAgGrid<T = unknown>({
     toast.success("Table view reset to default");
   }, [clearState]);
 
+  const handleExportCsv = useCallback(() => {
+    if (!apiRef.current) return;
+    const prefix = exportFileName ?? gridId ?? "export";
+    apiRef.current.exportDataAsCsv({
+      fileName: `${prefix}-${format(new Date(), "yyyy-MM-dd")}`,
+    });
+  }, [exportFileName, gridId]);
+
   const handleGridReady = useCallback(
     (e: GridReadyEvent<T>) => {
       apiRef.current = e.api;
+      onApiReady?.(e.api as unknown as GridApi<T>);
       if (gridId && savedState) {
         if (savedState.columnState) {
           e.api.applyColumnState({ state: savedState.columnState, applyOrder: true });
         }
         if (savedState.filterModel) {
-          // Delay filter application so columns are fully initialized
           setTimeout(() => e.api.setFilterModel(savedState.filterModel!), 0);
         }
-        // Don't call sizeColumnsToFit — saved state already has column widths
       } else {
         e.api.sizeColumnsToFit();
       }
       externalOnGridReady?.(e);
     },
-    [gridId, savedState, externalOnGridReady]
+    [gridId, savedState, externalOnGridReady, onApiReady]
   );
 
   const handleSortChanged = useCallback(
@@ -119,6 +136,8 @@ export function ThemedAgGrid<T = unknown>({
     [saveCurrentState]
   );
 
+  const showToolbar = toolbarLeft || (gridId && !hideResetButton) || showExportCsv;
+
   if (gridId && !loaded) {
     return (
       <div className={themeClass} style={{ height, width: "100%" }} role="status" aria-label="Loading grid">
@@ -129,12 +148,18 @@ export function ThemedAgGrid<T = unknown>({
 
   return (
     <div className="flex flex-col gap-6">
-      {(toolbarLeft || (gridId && !hideResetButton)) && (
+      {showToolbar && (
         <div className="flex items-center gap-2">
           {gridId && !hideResetButton && (
             <Button variant="outline" size="sm" onClick={resetView} className="gap-1.5 text-xs h-9">
               <RotateCcw className="h-3.5 w-3.5" />
               Reset View
+            </Button>
+          )}
+          {showExportCsv && (
+            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5 text-xs h-9">
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
             </Button>
           )}
           {toolbarLeft}

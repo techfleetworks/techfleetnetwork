@@ -217,6 +217,8 @@ export function ClientsTab() {
           onCellClicked={onCellClicked}
           pagination
           paginationPageSize={20}
+          showExportCsv
+          exportFileName="clients"
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

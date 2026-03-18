@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { format } from "date-fns";
 import {
   ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
@@ -43,6 +44,7 @@ interface EnrichedApp extends ProjectApp {
 export default function MyProjectApplicationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
   const [view, setView] = useState<"card" | "table">("card");
 
   const { data: apps, isLoading } = useQuery({
@@ -265,6 +267,8 @@ export default function MyProjectApplicationsPage() {
           onRowClicked={(e) => {
             if (e.data) navigate(`/project-openings/${e.data.project_id}/apply`);
           }}
+          showExportCsv={isAdmin}
+          exportFileName="my-project-applications"
         />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">

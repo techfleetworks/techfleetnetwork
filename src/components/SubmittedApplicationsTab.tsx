@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle, Download } from "lucide-react";
+import { LayoutGrid, LayoutList, ExternalLink, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -389,22 +389,10 @@ export default function SubmittedApplicationsTab() {
           pagination
           paginationPageSize={25}
           toolbarLeft={
-            <>
-              <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-9"
-                onClick={() => gridApiRef.current?.exportDataAsCsv({
-                  onlySelected: false,
-                  fileName: `applications-export-${format(new Date(), "yyyy-MM-dd")}`,
-                })}
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-            </>
+            <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
           }
+          showExportCsv
+          exportFileName="applications-export"
         />
       )}
     </div>

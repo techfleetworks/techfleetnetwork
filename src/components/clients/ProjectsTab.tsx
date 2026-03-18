@@ -153,6 +153,8 @@ export function ProjectsTab() {
           rowStyle={{ cursor: "pointer" }}
           pagination
           paginationPageSize={20}
+          showExportCsv
+          exportFileName="projects"
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
