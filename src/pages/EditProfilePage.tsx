@@ -420,9 +420,14 @@ export default function EditProfilePage() {
                   </Label>
                 </div>
               </div>
+            </div>
+          </TabsContent>
 
+          {/* ── Tab 4: Account ── */}
+          <TabsContent value="account" className="space-y-6">
+            <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Password Reset */}
-              <div className="space-y-1.5 pt-2 border-t">
+              <div className="space-y-1.5">
                 <Label>Password</Label>
                 {isOAuth ? (
                   <div className="p-3 rounded-lg bg-muted/50 border border-border">
@@ -444,6 +449,7 @@ export default function EditProfilePage() {
               {/* Delete Account */}
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-destructive">Danger zone</Label>
+                <p className="text-xs text-muted-foreground mb-2">Once you delete your account, there is no going back. Please be certain.</p>
                 <Button
                   type="button"
                   variant="outline"
