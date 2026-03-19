@@ -18,6 +18,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { ProfileEditPanel } from "./ProfileEditPanel";
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,11 +30,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
+import { Fragment } from "react";
 
 function ProfileDropdown({
   profile,
