@@ -4,7 +4,6 @@ import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Loader2,
   ArrowLeft,
-  ArrowLeft,
   ArrowRight,
   Globe,
   Clock,
