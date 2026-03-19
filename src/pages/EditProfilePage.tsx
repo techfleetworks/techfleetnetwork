@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { usePageHeader } from "@/contexts/PageHeaderContext";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
