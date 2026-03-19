@@ -223,6 +223,10 @@ export default function ProjectApplicationPage() {
 
   const isCompleted = existingApp?.status === "completed";
 
+  /* ── helpers ───────────────────────────────────────────── */
+  const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
+  const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
+
   /* ── push page context into the global header ──────────── */
   const { setHeader } = usePageHeader();
   const description = client?.name
