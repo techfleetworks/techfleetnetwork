@@ -398,34 +398,36 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Desktop: sidebar layout
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background text-foreground">
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <DesktopHeader
-            profile={profile}
-            user={user}
-            onEditProfile={() => setProfileEditOpen(true)}
-            onSignOut={handleSignOut}
-          />
-          <main
-            id="main-content"
-            className="flex-1"
-            role="main"
-            tabIndex={-1}
-          >
-            {children}
-          </main>
+    <PageHeaderProvider>
+      <SidebarProvider defaultOpen={true}>
+        <div className="min-h-screen flex w-full bg-background text-foreground">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <DesktopHeader
+              profile={profile}
+              user={user}
+              onEditProfile={() => setProfileEditOpen(true)}
+              onSignOut={handleSignOut}
+            />
+            <main
+              id="main-content"
+              className="flex-1"
+              role="main"
+              tabIndex={-1}
+            >
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-      <ProfileSetupDialog />
-      <ProfileEditPanel
-        open={profileEditOpen}
-        onOpenChange={setProfileEditOpen}
-      />
-    </SidebarProvider>
+        <ProfileSetupDialog />
+        <ProfileEditPanel
+          open={profileEditOpen}
+          onOpenChange={setProfileEditOpen}
+        />
+      </SidebarProvider>
+    </PageHeaderProvider>
   );
 }
