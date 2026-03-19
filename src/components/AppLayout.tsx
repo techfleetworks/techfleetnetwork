@@ -383,10 +383,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
-        <ProfileEditPanel
-          open={profileEditOpen}
-          onOpenChange={setProfileEditOpen}
-        />
       </div>
     );
   }
