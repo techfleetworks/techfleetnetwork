@@ -176,11 +176,11 @@ export default function EditProfilePage() {
 
       <form id="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <Tabs defaultValue="basic-info" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 mb-6">
-            <TabsTrigger value="basic-info">Basic Info</TabsTrigger>
-            <TabsTrigger value="training-goals">Training Goals</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="basic-info" className="gap-1.5">Basic Info</TabsTrigger>
+            <TabsTrigger value="training-goals" className="gap-1.5">Training Goals</TabsTrigger>
+            <TabsTrigger value="preferences" className="gap-1.5">Preferences</TabsTrigger>
+            <TabsTrigger value="account" className="gap-1.5">Account</TabsTrigger>
           </TabsList>
 
           {/* ── Tab 1: Basic Info ── */}
