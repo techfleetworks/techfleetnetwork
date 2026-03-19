@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { ProfileEditPanel } from "./ProfileEditPanel";
+
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
