@@ -47,6 +47,7 @@ const ProjectFormPage = lazy(() => import("./pages/ProjectFormPage"));
 const ProjectApplicationPage = lazy(() => import("./pages/ProjectApplicationPage"));
 const ProjectOpeningDetailPage = lazy(() => import("./pages/ProjectOpeningDetailPage"));
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
+const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 
 function RouteFallback() {
   return (
@@ -107,6 +108,7 @@ const App = () => (
                     <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
                     <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
                     <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
+                    <Route path="/admin/applications/analysis/:projectId" element={<ProtectedRoute><ProjectAnalysisDetailPage /></ProtectedRoute>} />
                     <Route path="/admin/applications/:applicationId" element={<ProtectedRoute><ApplicationSubmissionDetailPage /></ProtectedRoute>} />
                     <Route path="/admin/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
                     <Route path="/admin/clients/projects/new" element={<ProtectedRoute><ProjectFormPage /></ProtectedRoute>} />
