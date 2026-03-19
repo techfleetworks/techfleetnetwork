@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -39,7 +39,6 @@ import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
-import { Fragment } from "react";
 
 function ProfileDropdown({
   profile,
