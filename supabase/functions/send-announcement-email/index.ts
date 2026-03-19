@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
       const messageId = `announcement-${announcement_id}-${crypto.randomUUID()}`;
       const unsubscribeToken = crypto.randomUUID();
 
+      const announcementUrl = `https://techfleetnetwork.lovable.app/updates?highlight=${announcement_id}`;
+
       const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -120,6 +122,9 @@ Deno.serve(async (req) => {
       <h2 style="font-size: 22px; font-weight: 700; color: #18181b; margin: 0 0 16px 0;">${announcement.title}</h2>
       <div style="font-size: 15px; line-height: 1.6; color: #3f3f46;">
         ${announcement.body_html}
+      </div>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${announcementUrl}" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 6px; text-decoration: none;">View Announcement</a>
       </div>
       <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 24px 0;" />
       <p style="font-size: 12px; color: #a1a1aa; text-align: center; margin: 0;">
@@ -136,7 +141,7 @@ Deno.serve(async (req) => {
         announcement.title,
         '',
         'A new announcement is available in Tech Fleet Network.',
-        'Please view it in the app to read the full rich-text content.',
+        `View it here: ${announcementUrl}`,
         '',
         'You received this because you opted in to announcements.',
         'To unsubscribe, update your notification preferences in your profile settings.',
