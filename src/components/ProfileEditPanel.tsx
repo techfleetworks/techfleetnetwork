@@ -495,9 +495,12 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                 checked={form.notify_training_opportunities}
                 onCheckedChange={(checked) => setForm({ ...form, notify_training_opportunities: !!checked })}
               />
-              <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
-                Notify me about training opportunities that match my preferences
-              </Label>
+              <div>
+                <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
+                  Notify me about training opportunities that match my preferences
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Receive in-app notifications when matching opportunities open.</p>
+              </div>
             </div>
 
             {/* Notify announcements */}
@@ -507,9 +510,12 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                 checked={form.notify_announcements}
                 onCheckedChange={(checked) => setForm({ ...form, notify_announcements: !!checked })}
               />
-              <Label htmlFor="edit-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
-                Send me email notifications when new announcements are posted
-              </Label>
+              <div>
+                <Label htmlFor="edit-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
+                  Send me email notifications
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Receive emails about announcements and, if combined with the above, training opportunity alerts.</p>
+              </div>
             </div>
 
             {/* Education */}
