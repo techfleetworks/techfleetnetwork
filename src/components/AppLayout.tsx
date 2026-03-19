@@ -23,6 +23,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAnnouncementRealtime } from "@/hooks/use-announcement-realtime";
+import { useNotificationRealtime } from "@/hooks/use-notifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -188,6 +189,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, loading, signOut } = useAuth();
   const isMobile = useIsMobile();
   useAnnouncementRealtime();
+  useNotificationRealtime();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
