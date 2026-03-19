@@ -182,7 +182,6 @@ const mobileNavLinks = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
