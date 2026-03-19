@@ -218,7 +218,16 @@ export default function UpdatesPage() {
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-1 min-h-0">
-            <div className="px-6 py-4">
+            <div className="px-6 py-4 space-y-4">
+              {selectedAnnouncement?.video_url && (
+                <video
+                  src={selectedAnnouncement.video_url}
+                  controls
+                  playsInline
+                  className="w-full rounded-lg aspect-video bg-black"
+                  aria-label="Announcement video"
+                />
+              )}
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
