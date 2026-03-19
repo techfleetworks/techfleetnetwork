@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, type FormEvent } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ export default function EditProfilePage() {
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic-info");
 
   useEffect(() => {
     if (!initialized && profile) {
@@ -108,12 +109,63 @@ export default function EditProfilePage() {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
+
+      // Map fields to their tab and input id
+      const fieldToTab: Record<string, string> = {
+        firstName: "basic-info", lastName: "basic-info", country: "basic-info",
+        timezone: "basic-info", discordUsername: "basic-info", email: "basic-info",
+        interests: "training-goals", experience_areas: "training-goals",
+        education_background: "training-goals", professional_goals: "training-goals",
+      };
+      const fieldToId: Record<string, string> = {
+        firstName: "edit-firstName", lastName: "edit-lastName",
+        email: "edit-email", discordUsername: "edit-discordUsername",
+        professional_goals: "edit-professional-goals",
+      };
+
+      // Build human-readable labels for the toast
+      const fieldLabels: Record<string, string> = {
+        firstName: "First name", lastName: "Last name", country: "Country",
+        timezone: "Timezone", discordUsername: "Discord username", email: "Email",
+      };
+      const errorLabels = Object.keys(fieldErrors).map((f) => fieldLabels[f] || f);
+      toast.error("Please fix the following errors", {
+        description: errorLabels.join(", "),
+      });
+
+      // Switch to the tab containing the first error field and scroll to it
+      const firstField = Object.keys(fieldErrors)[0];
+      const targetTab = fieldToTab[firstField];
+      if (targetTab) {
+        setActiveTab(targetTab);
+        // Wait for tab content to render, then scroll
+        setTimeout(() => {
+          const targetId = fieldToId[firstField];
+          const el = targetId
+            ? document.getElementById(targetId)
+            : document.querySelector(`[aria-invalid="true"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (el && "focus" in el) (el as HTMLElement).focus();
+        }, 100);
+      }
       return;
     }
 
     if (!isOAuth) {
-      if (!form.email.trim()) { setErrors({ email: "Email is required" }); return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { setErrors({ email: "Please enter a valid email" }); return; }
+      if (!form.email.trim()) {
+        setErrors({ email: "Email is required" });
+        toast.error("Please fix the following errors", { description: "Email" });
+        setActiveTab("basic-info");
+        setTimeout(() => document.getElementById("edit-email")?.focus(), 100);
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        setErrors({ email: "Please enter a valid email" });
+        toast.error("Please fix the following errors", { description: "Email" });
+        setActiveTab("basic-info");
+        setTimeout(() => document.getElementById("edit-email")?.focus(), 100);
+        return;
+      }
     }
 
     setErrors({});
@@ -186,7 +238,7 @@ export default function EditProfilePage() {
       noValidate
       className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in"
     >
-      <Tabs defaultValue="basic-info" className="flex flex-col flex-1 min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         {/* Sticky tabs */}
         <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2">
           {errors.general && (
