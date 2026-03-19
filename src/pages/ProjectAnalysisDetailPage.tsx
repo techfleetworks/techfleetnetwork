@@ -554,8 +554,8 @@ export default function ProjectAnalysisDetailPage() {
             Foundational Hat Coverage
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Readiness is based on <strong>unique applicants</strong> (those who only applied to this project).
-            Ideal: {IDEAL_PER_HAT} unique per hat. Minimum: {MIN_PER_HAT}.
+            Readiness is based on <strong>exclusive applicants</strong> — people who selected this hat and did <em>not</em> apply to any other project.
+            Ideal: {IDEAL_PER_HAT} exclusive per hat. Minimum: {MIN_PER_HAT}. Multi-project applicants are shown but don't count toward readiness.
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
