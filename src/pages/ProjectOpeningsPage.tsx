@@ -53,6 +53,11 @@ export default function ProjectOpeningsPage() {
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [view, setView] = useState<"card" | "table">("card");
+  const [stats, setStats] = useState<NetworkStats | null>(null);
+
+  useEffect(() => {
+    StatsService.getNetworkStats().then(setStats).catch(() => {});
+  }, []);
 
   const { data: projects = [], isLoading: projLoading } = useQuery({
     queryKey: ["project-openings-all"],
