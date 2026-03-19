@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/pagination";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
-  Users, Target, Info, HelpCircle, ExternalLink, ChevronUp, ChevronDown,
+  Users, Target, Info, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
