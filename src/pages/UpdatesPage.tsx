@@ -177,9 +177,14 @@ export default function UpdatesPage() {
               className="card-elevated p-5 text-left hover:border-primary/40 transition-all group border border-white/50"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                  {a.title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {a.title}
+                  </h3>
+                  {a.video_url && (
+                    <Video className="h-4 w-4 text-primary shrink-0" aria-label="Has video" />
+                  )}
+                </div>
                 {isAdmin && (
                   <Button
                     variant="ghost"
