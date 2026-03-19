@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +17,18 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ThemedAgGrid } from "@/components/AgGrid";
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from "@/components/ui/table";
+import {
+  Pagination, PaginationContent, PaginationItem,
+  PaginationLink, PaginationPrevious, PaginationNext,
+} from "@/components/ui/pagination";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
   Users, Target, Info, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
-import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
 
 /* ── constants ─────────────────────────────────────── */
 const FOUNDATIONAL_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
@@ -145,7 +150,6 @@ export default function ProjectAnalysisDetailPage() {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { setHeader } = usePageHeader();
-  const gridApiRef = useRef<GridApi | null>(null);
   const [multiProjectSheet, setMultiProjectSheet] = useState<{ hat: string } | null>(null);
 
   /* ── data fetching ──────────────────────────────── */
@@ -322,79 +326,8 @@ export default function ProjectAnalysisDetailPage() {
     }));
   }, [completedApps, profileMap, analysis]);
 
-  type EnrichedRow = (typeof enrichedRows)[number];
 
-  const colDefs: ColDef<EnrichedRow>[] = useMemo(() => [
-    {
-      headerName: "Applicant",
-      valueGetter: (p) => p.data?.profile?.display_name || `${p.data?.profile?.first_name ?? ""} ${p.data?.profile?.last_name ?? ""}`.trim() || p.data?.profile?.email || "Unknown",
-      flex: 1.5,
-      minWidth: 160,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Email",
-      valueGetter: (p) => p.data?.profile?.email ?? "",
-      flex: 1.5,
-      minWidth: 180,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Unique",
-      valueGetter: (p) => p.data?.isUnique ? "Yes" : "No",
-      width: 100,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      cellStyle: (p) => ({ color: p.value === "Yes" ? "hsl(var(--success))" : "hsl(var(--warning))" }),
-    },
-    {
-      headerName: "Team Hats",
-      valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
-      flex: 2,
-      minWidth: 200,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      wrapText: true,
-      autoHeight: true,
-    },
-    {
-      headerName: "Previous Phase",
-      valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No",
-      width: 130,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Other Projects Applied",
-      valueGetter: (p) => {
-        const others = p.data?.otherProjects ?? [];
-        if (others.length === 0) return "None (unique)";
-        return others.map((o) => o.clientName).join(", ");
-      },
-      flex: 1.5,
-      minWidth: 180,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      wrapText: true,
-      autoHeight: true,
-    },
-    {
-      headerName: "Submitted",
-      valueGetter: (p) => p.data?.completed_at ?? p.data?.created_at,
-      valueFormatter: (p) => {
-        try { return new Date(p.value).toLocaleDateString(); } catch { return "—"; }
-      },
-      width: 120,
-      sort: "desc",
-    },
-  ], []);
 
-  const onGridReady = useCallback((e: GridReadyEvent) => {
-    gridApiRef.current = e.api;
-    e.api.sizeColumnsToFit();
-  }, []);
 
   /* ── loading / auth guards ──────────────────────── */
   if (adminLoading || projLoading) {
@@ -596,28 +529,7 @@ export default function ProjectAnalysisDetailPage() {
       )}
 
       {/* ── Applicants Table ─────────────────────── */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle>All Applicants</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {enrichedRows.length} completed {enrichedRows.length === 1 ? "application" : "applications"} for this project
-          </p>
-        </CardHeader>
-        <CardContent className="overflow-auto">
-          <div style={{ width: "100%", minWidth: 0, height: Math.min(600, 56 + enrichedRows.length * 48) }}>
-            <ThemedAgGrid<EnrichedRow>
-              rowData={enrichedRows}
-              columnDefs={colDefs}
-              onGridReady={onGridReady}
-              domLayout="normal"
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <ApplicantsTable rows={enrichedRows} />
       {/* ── Multi-project applicants side panel ── */}
       <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
         <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
@@ -699,6 +611,162 @@ export default function ProjectAnalysisDetailPage() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+/* ── Applicants Table with pagination ─────────────── */
+const PAGE_SIZE = 10;
+
+interface ApplicantsTableProps {
+  rows: {
+    id: string;
+    user_id: string;
+    team_hats_interest: string[];
+    participated_previous_phase: boolean;
+    completed_at: string | null;
+    created_at: string;
+    profile?: ProfileRow;
+    otherProjects: { projectId: string; clientName: string }[];
+    isUnique: boolean;
+  }[];
+}
+
+function ApplicantsTable({ rows }: ApplicantsTableProps) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset to page 1 if rows change
+  useEffect(() => { setPage(1); }, [rows.length]);
+
+  const formatDate = (v: string | null) => {
+    if (!v) return "—";
+    try { return new Date(v).toLocaleDateString(); } catch { return "—"; }
+  };
+
+  const getName = (p?: ProfileRow) =>
+    p?.display_name || `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim() || p?.email || "Unknown";
+
+  // Generate visible page numbers
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("ellipsis");
+      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+      if (page < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>All Applicants</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {rows.length} completed {rows.length === 1 ? "application" : "applications"} for this project
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="overflow-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Applicant</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="w-[80px]">Unique</TableHead>
+                <TableHead>Team Hats</TableHead>
+                <TableHead className="w-[100px]">Prev. Phase</TableHead>
+                <TableHead>Other Projects</TableHead>
+                <TableHead className="w-[100px]">Submitted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    No applicants yet
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pageRows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{getName(row.profile)}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{row.profile?.email ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={row.isUnique ? "default" : "secondary"} className="text-xs">
+                        {row.isUnique ? "Yes" : "No"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {row.team_hats_interest.map((h) => (
+                          <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>{row.participated_previous_phase ? "Yes" : "No"}</TableCell>
+                    <TableCell>
+                      {row.otherProjects.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">None</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {row.otherProjects.map((op) => (
+                            <Badge key={op.projectId} variant="secondary" className="text-xs">{op.clientName}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(row.completed_at ?? row.created_at)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-disabled={page === 1}
+                  className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              {getPageNumbers().map((p, i) =>
+                p === "ellipsis" ? (
+                  <PaginationItem key={`e-${i}`}>
+                    <span className="flex h-9 w-9 items-center justify-center text-muted-foreground">…</span>
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      isActive={p === page}
+                      onClick={() => setPage(p)}
+                      className="cursor-pointer"
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  aria-disabled={page === totalPages}
+                  className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
