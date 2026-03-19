@@ -72,6 +72,7 @@ export type Database = {
       }
       announcements: {
         Row: {
+          audio_url: string | null
           body_html: string
           created_at: string
           created_by: string
@@ -81,6 +82,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          audio_url?: string | null
           body_html?: string
           created_at?: string
           created_by: string
@@ -90,6 +92,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          audio_url?: string | null
           body_html?: string
           created_at?: string
           created_by?: string

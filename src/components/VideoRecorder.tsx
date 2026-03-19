@@ -1,42 +1,46 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Video, Square, Trash2, Loader2, Camera, Monitor } from "lucide-react";
+import { Video, Mic, Square, Trash2, Loader2, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
-const log = createLogger("VideoRecorder");
+const log = createLogger("MediaRecorder");
 
-type SourceMode = "camera" | "screen";
+type MediaType = "video" | "audio";
+type VideoSource = "camera" | "screen";
 
-interface VideoRecorderProps {
+interface MediaRecorderProps {
   /** Called with the public URL after successful upload, or null when cleared */
-  onVideoReady: (url: string | null) => void;
+  onMediaReady: (url: string | null, type: MediaType | null) => void;
   /** Maximum recording duration in seconds (default 300 = 5 min) */
   maxDuration?: number;
-  /** Optional existing video URL for display */
+  /** Optional existing media URL for display */
   existingUrl?: string | null;
+  /** Type of existing media */
+  existingType?: MediaType | null;
 }
 
-export default function VideoRecorder({
-  onVideoReady,
+export default function AnnouncementMediaRecorder({
+  onMediaReady,
   maxDuration = 300,
   existingUrl = null,
-}: VideoRecorderProps) {
-  const [sourceMode, setSourceMode] = useState<SourceMode>("camera");
+  existingType = null,
+}: MediaRecorderProps) {
+  const [mediaType, setMediaType] = useState<MediaType | null>(existingType);
+  const [videoSource, setVideoSource] = useState<VideoSource>("camera");
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl);
+  const [previewType, setPreviewType] = useState<MediaType | null>(existingType);
   const [elapsed, setElapsed] = useState(0);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recorderRef = useRef<globalThis.MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const liveVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopAllTracks();
@@ -51,10 +55,13 @@ export default function VideoRecorder({
     streamRef.current = null;
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (type: MediaType) => {
     try {
       let stream: MediaStream;
-      if (sourceMode === "camera") {
+
+      if (type === "audio") {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } else if (videoSource === "camera") {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
           audio: true,
@@ -68,19 +75,19 @@ export default function VideoRecorder({
 
       streamRef.current = stream;
       chunksRef.current = [];
+      setMediaType(type);
 
-      // Show live preview
-      if (liveVideoRef.current) {
+      if (type === "video" && liveVideoRef.current) {
         liveVideoRef.current.srcObject = stream;
         liveVideoRef.current.play().catch(() => {});
       }
 
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-        ? "video/webm;codecs=vp9,opus"
-        : "video/webm";
+      const mimeType = type === "audio"
+        ? (globalThis.MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm")
+        : (globalThis.MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm");
 
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
+      const recorder = new globalThis.MediaRecorder(stream, { mimeType });
+      recorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -90,20 +97,20 @@ export default function VideoRecorder({
         const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
-        uploadVideo(blob);
+        setPreviewType(type);
+        uploadMedia(blob, type);
         stopAllTracks();
       };
 
-      // Auto-stop when screen share ends
-      if (sourceMode === "screen") {
+      if (type === "video" && videoSource === "screen") {
         stream.getVideoTracks()[0].addEventListener("ended", () => {
-          if (mediaRecorderRef.current?.state === "recording") {
+          if (recorderRef.current?.state === "recording") {
             stopRecording();
           }
         });
       }
 
-      recorder.start(1000); // 1s chunks
+      recorder.start(1000);
       setRecording(true);
       setElapsed(0);
 
@@ -118,16 +125,16 @@ export default function VideoRecorder({
       }, 1000);
     } catch (err: any) {
       const msg = err?.name === "NotAllowedError"
-        ? "Permission denied. Please allow camera/microphone access."
+        ? "Permission denied. Please allow device access."
         : "Could not start recording. Check your device permissions.";
       toast.error(msg);
       log.error("startRecording", msg, {}, err);
     }
-  }, [sourceMode, maxDuration, stopAllTracks]);
+  }, [videoSource, maxDuration, stopAllTracks]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") {
+      recorderRef.current.stop();
     }
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -139,13 +146,15 @@ export default function VideoRecorder({
     }
   }, []);
 
-  const uploadVideo = useCallback(async (blob: Blob) => {
+  const uploadMedia = useCallback(async (blob: Blob, type: MediaType) => {
     setUploading(true);
     try {
-      const fileName = `${crypto.randomUUID()}.webm`;
+      const ext = type === "audio" ? "webm" : "webm";
+      const contentType = type === "audio" ? "audio/webm" : "video/webm";
+      const fileName = `${type}/${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("announcement-videos")
-        .upload(fileName, blob, { contentType: "video/webm", upsert: false });
+        .upload(fileName, blob, { contentType, upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -153,22 +162,24 @@ export default function VideoRecorder({
         .from("announcement-videos")
         .getPublicUrl(fileName);
 
-      onVideoReady(urlData.publicUrl);
-      toast.success("Video uploaded successfully!");
+      onMediaReady(urlData.publicUrl, type);
+      toast.success(`${type === "audio" ? "Audio" : "Video"} uploaded successfully!`);
     } catch (err: any) {
-      toast.error("Failed to upload video. Please try again.");
-      log.error("uploadVideo", `Upload failed: ${err.message}`, {}, err);
-      onVideoReady(null);
+      toast.error("Failed to upload. Please try again.");
+      log.error("uploadMedia", `Upload failed: ${err.message}`, {}, err);
+      onMediaReady(null, null);
     } finally {
       setUploading(false);
     }
-  }, [onVideoReady]);
+  }, [onMediaReady]);
 
-  const clearVideo = useCallback(() => {
+  const clearMedia = useCallback(() => {
     if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    onVideoReady(null);
-  }, [previewUrl, onVideoReady]);
+    setPreviewType(null);
+    setMediaType(null);
+    onMediaReady(null, null);
+  }, [previewUrl, onMediaReady]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -176,41 +187,74 @@ export default function VideoRecorder({
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const hasPreview = !!previewUrl && !recording;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Video className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">Video (optional)</span>
+        <span className="text-sm font-medium text-foreground">Media (optional — video or audio)</span>
       </div>
 
-      {/* Source mode toggle */}
-      {!recording && !previewUrl && (
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={sourceMode === "camera" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSourceMode("camera")}
-            className="gap-1.5"
-          >
-            <Camera className="h-3.5 w-3.5" />
-            Camera
-          </Button>
-          <Button
-            type="button"
-            variant={sourceMode === "screen" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSourceMode("screen")}
-            className="gap-1.5"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-            Screen
-          </Button>
+      {/* Mode selection — only when not recording and no preview */}
+      {!recording && !hasPreview && (
+        <div className="space-y-3">
+          {/* Video options */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Video</p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={videoSource === "camera" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVideoSource("camera")}
+                className="gap-1.5"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                Camera
+              </Button>
+              <Button
+                type="button"
+                variant={videoSource === "screen" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setVideoSource("screen")}
+                className="gap-1.5"
+              >
+                <Monitor className="h-3.5 w-3.5" />
+                Screen
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => startRecording("video")}
+                className="gap-1.5"
+              >
+                <Video className="h-3.5 w-3.5 text-destructive" />
+                Record Video
+              </Button>
+            </div>
+          </div>
+
+          {/* Audio option */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Audio</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => startRecording("audio")}
+              className="gap-1.5"
+            >
+              <Mic className="h-3.5 w-3.5 text-destructive" />
+              Record Audio
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Live preview during recording */}
-      {recording && (
+      {/* Live preview during video recording */}
+      {recording && mediaType === "video" && (
         <div className="relative rounded-lg overflow-hidden border border-destructive bg-black">
           <video
             ref={liveVideoRef}
@@ -226,12 +270,23 @@ export default function VideoRecorder({
         </div>
       )}
 
-      {/* Recorded preview */}
-      {previewUrl && !recording && (
+      {/* Live indicator during audio recording */}
+      {recording && mediaType === "audio" && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive bg-muted/50 p-4">
+          <div className="flex items-center gap-2 bg-destructive/90 text-destructive-foreground px-2.5 py-1 rounded-md text-xs font-semibold">
+            <span className="h-2 w-2 rounded-full bg-destructive-foreground animate-pulse" />
+            REC
+          </div>
+          <Mic className="h-5 w-5 text-destructive" />
+          <span className="text-sm font-medium text-foreground">{formatTime(elapsed)} / {formatTime(maxDuration)}</span>
+        </div>
+      )}
+
+      {/* Video preview */}
+      {hasPreview && previewType === "video" && (
         <div className="relative rounded-lg overflow-hidden border border-border bg-black">
           <video
-            ref={videoPreviewRef}
-            src={previewUrl}
+            src={previewUrl!}
             controls
             playsInline
             className="w-full aspect-video"
@@ -248,24 +303,41 @@ export default function VideoRecorder({
         </div>
       )}
 
+      {/* Audio preview */}
+      {hasPreview && previewType === "audio" && (
+        <div className="relative rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex items-center gap-3">
+            <Mic className="h-5 w-5 text-primary shrink-0" />
+            <audio
+              src={previewUrl!}
+              controls
+              className="w-full h-10"
+              aria-label="Recorded audio preview"
+            />
+          </div>
+          {uploading && (
+            <div className="absolute inset-0 rounded-lg bg-background/70 flex items-center justify-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Uploading…
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex items-center gap-2">
-        {!recording && !previewUrl && (
-          <Button type="button" variant="outline" size="sm" onClick={startRecording} className="gap-1.5">
-            <Video className="h-3.5 w-3.5 text-destructive" />
-            Start Recording
-          </Button>
-        )}
         {recording && (
           <Button type="button" variant="destructive" size="sm" onClick={stopRecording} className="gap-1.5">
             <Square className="h-3.5 w-3.5" />
             Stop Recording
           </Button>
         )}
-        {previewUrl && !recording && !uploading && (
-          <Button type="button" variant="ghost" size="sm" onClick={clearVideo} className="gap-1.5 text-destructive hover:text-destructive">
+        {hasPreview && !uploading && (
+          <Button type="button" variant="ghost" size="sm" onClick={clearMedia} className="gap-1.5 text-destructive hover:text-destructive">
             <Trash2 className="h-3.5 w-3.5" />
-            Remove Video
+            Remove {previewType === "audio" ? "Audio" : "Video"}
           </Button>
         )}
       </div>
