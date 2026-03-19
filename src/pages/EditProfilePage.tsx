@@ -163,21 +163,45 @@ export default function EditProfilePage() {
     }
   };
 
+  /* ── Push page context into the global header ── */
+  useLayoutEffect(() => {
+    setHeader({
+      breadcrumbs: [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Edit Profile" },
+      ],
+      title: "Edit Profile",
+      description: "Manage your profile information, training goals, and preferences.",
+    });
+    return () => setHeader(null);
+  }, [setHeader]);
+
   return (
-    <div className="container-app py-8 sm:py-12 max-w-3xl animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your profile information, training goals, and preferences.</p>
-      </div>
-
-      {errors.general && (
-        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
-          {errors.general}
+    <form
+      id="edit-profile-form"
+      onSubmit={handleSubmit}
+      noValidate
+      className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in"
+    >
+      <Tabs defaultValue="basic-info" className="flex flex-col flex-1 min-h-0">
+        {/* Sticky tabs */}
+        <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2">
+          {errors.general && (
+            <div className="mb-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
+              {errors.general}
+            </div>
+          )}
+          <TabsList>
+            <TabsTrigger value="basic-info" className="gap-1.5">Basic Info</TabsTrigger>
+            <TabsTrigger value="training-goals" className="gap-1.5">Training Goals</TabsTrigger>
+            <TabsTrigger value="preferences" className="gap-1.5">Preferences</TabsTrigger>
+            <TabsTrigger value="account" className="gap-1.5">Account</TabsTrigger>
+          </TabsList>
         </div>
-      )}
 
-      <form id="edit-profile-form" onSubmit={handleSubmit} noValidate>
-        <Tabs defaultValue="basic-info" className="w-full">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="container-app max-w-3xl py-6">
           <TabsList>
             <TabsTrigger value="basic-info" className="gap-1.5">Basic Info</TabsTrigger>
             <TabsTrigger value="training-goals" className="gap-1.5">Training Goals</TabsTrigger>
