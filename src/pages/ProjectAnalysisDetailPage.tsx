@@ -99,7 +99,6 @@ function computeReadinessScore(
 /* ── component ─────────────────────────────────────── */
 export default function ProjectAnalysisDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { setHeader } = usePageHeader();
