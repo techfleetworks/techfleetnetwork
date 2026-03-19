@@ -366,6 +366,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                       setMobileMenuOpen(false);
                     }}
                   >
+                    <UserPen className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
                   <Button
                     variant="outline"
                     className="w-full justify-start"
