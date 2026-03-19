@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { format } from "date-fns";
 import {
-  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2,
+  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,8 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import type { Announcement } from "@/services/announcement.service";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
+
+const VideoRecorder = lazy(() => import("@/components/VideoRecorder"));
 
 type ViewMode = "table" | "card";
 
