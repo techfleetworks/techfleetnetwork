@@ -99,14 +99,15 @@ export default function FirstStepsPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
 
-  // Re-build tasks when profile changes (e.g. discord added)
+  // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
+    if (!profileLoaded) return;
     setTasks((prev) => {
       const prevMap = new Map(prev.map((t) => [t.id, t.completed]));
       return taskDefs.map((t) => ({ ...t, completed: prevMap.get(t.id) || false }));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.discord_username]);
+  }, [profile?.discord_username, profileLoaded]);
 
   useEffect(() => {
     if (!user) return;
