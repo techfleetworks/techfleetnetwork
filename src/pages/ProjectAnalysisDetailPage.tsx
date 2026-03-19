@@ -329,77 +329,8 @@ export default function ProjectAnalysisDetailPage() {
 
   type EnrichedRow = (typeof enrichedRows)[number];
 
-  const colDefs: ColDef<EnrichedRow>[] = useMemo(() => [
-    {
-      headerName: "Applicant",
-      valueGetter: (p) => p.data?.profile?.display_name || `${p.data?.profile?.first_name ?? ""} ${p.data?.profile?.last_name ?? ""}`.trim() || p.data?.profile?.email || "Unknown",
-      flex: 1.5,
-      minWidth: 160,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Email",
-      valueGetter: (p) => p.data?.profile?.email ?? "",
-      flex: 1.5,
-      minWidth: 180,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Unique",
-      valueGetter: (p) => p.data?.isUnique ? "Yes" : "No",
-      width: 100,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      cellStyle: (p) => ({ color: p.value === "Yes" ? "hsl(var(--success))" : "hsl(var(--warning))" }),
-    },
-    {
-      headerName: "Team Hats",
-      valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
-      flex: 2,
-      minWidth: 200,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      wrapText: true,
-      autoHeight: true,
-    },
-    {
-      headerName: "Previous Phase",
-      valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No",
-      width: 130,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-    },
-    {
-      headerName: "Other Projects Applied",
-      valueGetter: (p) => {
-        const others = p.data?.otherProjects ?? [];
-        if (others.length === 0) return "None (unique)";
-        return others.map((o) => o.clientName).join(", ");
-      },
-      flex: 1.5,
-      minWidth: 180,
-      filter: "agTextColumnFilter",
-      floatingFilter: true,
-      wrapText: true,
-      autoHeight: true,
-    },
-    {
-      headerName: "Submitted",
-      valueGetter: (p) => p.data?.completed_at ?? p.data?.created_at,
-      valueFormatter: (p) => {
-        try { return new Date(p.value).toLocaleDateString(); } catch { return "—"; }
-      },
-      width: 120,
-      sort: "desc",
-    },
-  ], []);
 
-  const onGridReady = useCallback((e: GridReadyEvent) => {
-    gridApiRef.current = e.api;
-    e.api.sizeColumnsToFit();
-  }, []);
+
 
   /* ── loading / auth guards ──────────────────────── */
   if (adminLoading || projLoading) {
