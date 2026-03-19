@@ -176,10 +176,11 @@ export default function EditProfilePage() {
 
       <form id="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <Tabs defaultValue="basic-info" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-6">
+          <TabsList className="w-full grid grid-cols-4 mb-6">
             <TabsTrigger value="basic-info">Basic Info</TabsTrigger>
             <TabsTrigger value="training-goals">Training Goals</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
 
           {/* ── Tab 1: Basic Info ── */}
@@ -419,9 +420,14 @@ export default function EditProfilePage() {
                   </Label>
                 </div>
               </div>
+            </div>
+          </TabsContent>
 
+          {/* ── Tab 4: Account ── */}
+          <TabsContent value="account" className="space-y-6">
+            <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Password Reset */}
-              <div className="space-y-1.5 pt-2 border-t">
+              <div className="space-y-1.5">
                 <Label>Password</Label>
                 {isOAuth ? (
                   <div className="p-3 rounded-lg bg-muted/50 border border-border">
@@ -443,6 +449,7 @@ export default function EditProfilePage() {
               {/* Delete Account */}
               <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-destructive">Danger zone</Label>
+                <p className="text-xs text-muted-foreground mb-2">Once you delete your account, there is no going back. Please be certain.</p>
                 <Button
                   type="button"
                   variant="outline"
