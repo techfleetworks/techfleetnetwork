@@ -596,28 +596,7 @@ export default function ProjectAnalysisDetailPage() {
       )}
 
       {/* ── Applicants Table ─────────────────────── */}
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle>All Applicants</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {enrichedRows.length} completed {enrichedRows.length === 1 ? "application" : "applications"} for this project
-          </p>
-        </CardHeader>
-        <CardContent className="overflow-auto">
-          <div style={{ width: "100%", minWidth: 0, height: Math.min(600, 56 + enrichedRows.length * 48) }}>
-            <ThemedAgGrid<EnrichedRow>
-              rowData={enrichedRows}
-              columnDefs={colDefs}
-              onGridReady={onGridReady}
-              domLayout="normal"
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <ApplicantsTable rows={enrichedRows} />
       {/* ── Multi-project applicants side panel ── */}
       <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
         <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
