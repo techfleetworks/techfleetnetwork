@@ -258,8 +258,8 @@ export default function ProjectOpeningsPage() {
       </div>
     );
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((p) => <ProjectCard key={p.id} p={p} />)}
+      <div className="grid grid-cols-12 gap-4">
+        {items.map((p) => <div key={p.id} className="col-span-12 lg:col-span-6"><ProjectCard p={p} /></div>)}
       </div>
     );
   }
