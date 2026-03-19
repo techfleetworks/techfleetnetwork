@@ -235,7 +235,7 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Phase", colId: "phase", flex: 1, valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? "") },
       { headerName: "Project Status", colId: "project_status", flex: 1, valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? "") },
       { headerName: "Previous Participant?", colId: "previous_participant", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No" },
-      { headerName: "Other Active Apps", colId: "other_active_apps", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.otherApplyNowCount ?? 0 },
+      { headerName: "Active Apps", colId: "other_active_apps", flex: 1, minWidth: 140, valueGetter: (p) => p.data?.userApplyNowCount ?? 0, valueFormatter: (p) => `${p.data?.userApplyNowCount ?? 0} of ${p.data?.totalApplyNowProjects ?? 0}` },
       { headerName: "Date Submitted", colId: "date_submitted", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.completed_at, valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—" },
       { headerName: "Team Hats Interest", colId: "team_hats_interest", flex: 2, valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", ") },
 
