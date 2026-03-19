@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/use-admin";
@@ -12,9 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
-  Users, Target, Info, ArrowRight,
+  Users, Target, Info,
 } from "lucide-react";
-import { PROJECT_TYPES, PROJECT_PHASES, TEAM_HATS } from "@/data/project-constants";
+import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
 
 /* ── constants ─────────────────────────────────────── */
