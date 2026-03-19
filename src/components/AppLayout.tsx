@@ -189,6 +189,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, loading, signOut } = useAuth();
   const isMobile = useIsMobile();
   useAnnouncementRealtime();
+  useNotificationRealtime();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
