@@ -13,10 +13,14 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
-  Users, Target, Info, HelpCircle,
+  Users, Target, Info, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
@@ -142,6 +146,7 @@ export default function ProjectAnalysisDetailPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { setHeader } = usePageHeader();
   const gridApiRef = useRef<GridApi | null>(null);
+  const [multiProjectSheet, setMultiProjectSheet] = useState<{ hat: string } | null>(null);
 
   /* ── data fetching ──────────────────────────────── */
   const { data: project, isLoading: projLoading } = useQuery({
@@ -456,10 +461,16 @@ export default function ProjectAnalysisDetailPage() {
             <span className="text-xs text-muted-foreground">exclusive</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5" title="Applicants who selected this hat but also applied to other projects">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default"
+            title="Click to view multi-project applicants for this hat"
+            disabled={bd.shared === 0}
+            onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
+          >
             <span className="text-sm font-semibold text-warning">{bd.shared}</span>
             <span className="text-xs text-muted-foreground">multi-project</span>
-          </div>
+          </button>
           <span className="text-muted-foreground/40">|</span>
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-semibold text-foreground">{bd.total}</span>
@@ -607,6 +618,86 @@ export default function ProjectAnalysisDetailPage() {
           </div>
         </CardContent>
       </Card>
+      {/* ── Multi-project applicants side panel ── */}
+      <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
+        <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
+          <SheetHeader>
+            <SheetTitle className="break-words">
+              Multi-project Applicants — {multiProjectSheet?.hat}
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-6rem)] mt-4 pr-3">
+            <div className="space-y-4">
+              {(() => {
+                if (!multiProjectSheet || !completedApps || !analysis) return null;
+                const hat = multiProjectSheet.hat;
+                // Find applicants who selected this hat AND are multi-project
+                const sharedForHat = completedApps.filter(
+                  (app) =>
+                    app.team_hats_interest.includes(hat) &&
+                    !analysis.uniqueUserIds.has(app.user_id),
+                );
+                if (sharedForHat.length === 0) {
+                  return <p className="text-sm text-muted-foreground">No multi-project applicants for this hat.</p>;
+                }
+                return sharedForHat.map((app) => {
+                  const profile = profileMap.get(app.user_id);
+                  const name =
+                    profile?.display_name ||
+                    `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() ||
+                    profile?.email ||
+                    "Unknown";
+                  const otherProjects = analysis.userCrossProjectDetail.get(app.user_id) ?? [];
+                  return (
+                    <div key={app.id} className="rounded-md border bg-card p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{name}</p>
+                        {profile?.email && (
+                          <p className="text-xs text-muted-foreground">{profile.email}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Hats applied for on this project
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {app.team_hats_interest.map((h) => (
+                            <Badge
+                              key={h}
+                              variant={h === hat ? "default" : "outline"}
+                              className="text-xs"
+                            >
+                              {h}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <Separator />
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Also applied to
+                        </p>
+                        {otherProjects.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">No other projects found</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {otherProjects.map((op) => (
+                              <Badge key={op.projectId} variant="secondary" className="text-xs gap-1">
+                                <ExternalLink className="h-3 w-3" />
+                                {op.clientName}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
