@@ -326,8 +326,6 @@ export default function ProjectAnalysisDetailPage() {
     }));
   }, [completedApps, profileMap, analysis]);
 
-  type EnrichedRow = (typeof enrichedRows)[number];
-
 
 
 
