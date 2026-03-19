@@ -440,9 +440,9 @@ export default function DashboardPage() {
 
           case "network_activity":
           case "world_map": {
-            // Render the combined network section only once, at whichever comes first in order
-            const firstNetworkIdx = widgetOrder.findIndex((w) => w === "network_activity" || w === "world_map");
-            if (widgetOrder[firstNetworkIdx] !== widgetId) return null;
+            // Render the combined network section only once, at whichever comes last in order
+            const lastNetworkIdx = widgetOrder.reduce((acc, w, i) => (w === "network_activity" || w === "world_map") ? i : acc, -1);
+            if (widgetOrder[lastNetworkIdx] !== widgetId) return null;
             const showAny = isVisible("network_activity") || isVisible("world_map");
             return showAny ? (
               <section key="network" className="border-t pt-9">
