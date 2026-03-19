@@ -414,10 +414,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         <ProfileSetupDialog />
-        <ProfileEditPanel
-          open={profileEditOpen}
-          onOpenChange={setProfileEditOpen}
-        />
       </SidebarProvider>
     </PageHeaderProvider>
   );
