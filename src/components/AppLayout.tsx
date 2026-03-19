@@ -23,6 +23,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAnnouncementRealtime } from "@/hooks/use-announcement-realtime";
+import { useNotificationRealtime } from "@/hooks/use-notifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
