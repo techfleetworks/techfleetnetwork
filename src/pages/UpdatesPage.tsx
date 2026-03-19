@@ -30,7 +30,7 @@ import type { Announcement } from "@/services/announcement.service";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
 
-const VideoRecorder = lazy(() => import("@/components/VideoRecorder"));
+const MediaRecorder = lazy(() => import("@/components/VideoRecorder"));
 
 type ViewMode = "table" | "card";
 
