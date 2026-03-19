@@ -30,6 +30,7 @@ import { usePageHeader } from "@/contexts/PageHeaderContext";
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { setHeader } = usePageHeader();
 
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
 
