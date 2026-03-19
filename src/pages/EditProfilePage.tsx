@@ -120,6 +120,7 @@ export default function EditProfilePage() {
     setSaving(true);
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
+      setInitialized(false); // allow useEffect to re-sync form with fresh profile
       await refreshProfile();
       toast.success("Profile updated successfully");
     } catch (err: any) {
