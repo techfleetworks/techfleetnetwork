@@ -109,6 +109,45 @@ export default function EditProfilePage() {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
+
+      // Map fields to their tab and input id
+      const fieldToTab: Record<string, string> = {
+        firstName: "basic-info", lastName: "basic-info", country: "basic-info",
+        timezone: "basic-info", discordUsername: "basic-info", email: "basic-info",
+        interests: "training-goals", experience_areas: "training-goals",
+        education_background: "training-goals", professional_goals: "training-goals",
+      };
+      const fieldToId: Record<string, string> = {
+        firstName: "edit-firstName", lastName: "edit-lastName",
+        email: "edit-email", discordUsername: "edit-discordUsername",
+        professional_goals: "edit-professional-goals",
+      };
+
+      // Build human-readable labels for the toast
+      const fieldLabels: Record<string, string> = {
+        firstName: "First name", lastName: "Last name", country: "Country",
+        timezone: "Timezone", discordUsername: "Discord username", email: "Email",
+      };
+      const errorLabels = Object.keys(fieldErrors).map((f) => fieldLabels[f] || f);
+      toast.error("Please fix the following errors", {
+        description: errorLabels.join(", "),
+      });
+
+      // Switch to the tab containing the first error field and scroll to it
+      const firstField = Object.keys(fieldErrors)[0];
+      const targetTab = fieldToTab[firstField];
+      if (targetTab) {
+        setActiveTab(targetTab);
+        // Wait for tab content to render, then scroll
+        setTimeout(() => {
+          const targetId = fieldToId[firstField];
+          const el = targetId
+            ? document.getElementById(targetId)
+            : document.querySelector(`[aria-invalid="true"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (el && "focus" in el) (el as HTMLElement).focus();
+        }, 100);
+      }
       return;
     }
 
