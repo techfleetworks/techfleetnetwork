@@ -692,7 +692,7 @@ function ApplicantsTable({ rows }: { rows: EnrichedRow[] }) {
         <div style={{ width: "100%", minWidth: 0 }}>
           <ThemedAgGrid<EnrichedRow>
             gridId="analysis-applicants"
-            height={`${Math.min(560, 56 + rows.length * 48)}px`}
+            height="560px"
             rowData={rows}
             columnDefs={columnDefs}
             getRowId={(params) => params.data.id}
