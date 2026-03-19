@@ -199,6 +199,9 @@ export default function SubmittedApplicationsTab() {
     return map;
   }, [generalApps]);
 
+  const totalApplyNowProjects = (allApplyNowProjects ?? []).length;
+  const applyNowProjectIds = useMemo(() => new Set((allApplyNowProjects ?? []).map((p) => p.id)), [allApplyNowProjects]);
+
   const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
       const proj = projectMap.get(a.project_id);
@@ -207,20 +210,19 @@ export default function SubmittedApplicationsTab() {
       const genApp = generalAppMap.get(a.user_id);
       return { ...a, project: proj, client: cli, profile: prof, generalApp: genApp };
     });
+    // Count how many apply_now projects each user applied to
     const userApplyNowCounts = new Map<string, number>();
     for (const item of items) {
-      if (item.project?.project_status === "apply_now") {
+      if (applyNowProjectIds.has(item.project_id)) {
         userApplyNowCounts.set(item.user_id, (userApplyNowCounts.get(item.user_id) ?? 0) + 1);
       }
     }
     return items.map((item) => ({
       ...item,
-      otherApplyNowCount: item.project?.project_status === "apply_now"
-        ? (userApplyNowCounts.get(item.user_id) ?? 1) - 1
-        : userApplyNowCounts.get(item.user_id) ?? 0,
-      totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+      userApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+      totalApplyNowProjects,
     }));
-  }, [apps, projectMap, clientMap, profileMap, generalAppMap]);
+  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects]);
 
   // Build AG Grid columnDefs mapped by colId to the ALL_COLUMNS keys
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => {
