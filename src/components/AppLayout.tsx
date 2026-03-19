@@ -400,7 +400,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <DesktopHeader
               profile={profile}
               user={user}
-              onEditProfile={() => setProfileEditOpen(true)}
+              onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
             <main
