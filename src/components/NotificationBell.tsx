@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Video, Mic, Rocket, CheckCheck } from "lucide-react";
+import { Bell, Video, Mic, Rocket, CheckCheck, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,6 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useLatestAnnouncements,
@@ -32,6 +31,21 @@ import {
 } from "@/hooks/use-notifications";
 import { stripHtml } from "@/lib/html";
 import type { Announcement } from "@/services/announcement.service";
+
+/** Unified notification item used for the merged list */
+interface UnifiedItem {
+  id: string;
+  kind: "alert" | "announcement";
+  title: string;
+  bodyHtml: string;
+  date: Date;
+  read: boolean;
+  linkUrl?: string;
+  notificationType?: string;
+  videoUrl?: string | null;
+  audioUrl?: string | null;
+  raw: AppNotification | Announcement;
+}
 
 export function NotificationBell() {
   const { user } = useAuth();
@@ -51,23 +65,56 @@ export function NotificationBell() {
   const markNotifRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
+  // Build unified list sorted by date descending
   const unreadAnnouncements = announcements.filter((a) => !readIds.has(a.id));
   const totalUnread = unreadAnnouncements.length + unreadNotifCount;
 
-  const handleAnnouncementClick = (announcement: Announcement) => {
-    markAnnouncementRead.mutate(announcement.id);
-    setOpen(false);
-    setSelectedAnnouncement(announcement);
+  const unified: UnifiedItem[] = [
+    ...notifications.map((n): UnifiedItem => ({
+      id: n.id,
+      kind: "alert",
+      title: n.title,
+      bodyHtml: n.body_html,
+      date: new Date(n.created_at),
+      read: n.read,
+      linkUrl: n.link_url,
+      notificationType: n.notification_type,
+      raw: n,
+    })),
+    ...unreadAnnouncements.map((a): UnifiedItem => ({
+      id: a.id,
+      kind: "announcement",
+      title: a.title,
+      bodyHtml: a.body_html,
+      date: new Date(a.created_at),
+      read: false,
+      videoUrl: a.video_url,
+      audioUrl: a.audio_url,
+      raw: a,
+    })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const handleItemClick = (item: UnifiedItem) => {
+    if (item.kind === "announcement") {
+      markAnnouncementRead.mutate(item.id);
+      setOpen(false);
+      setSelectedAnnouncement(item.raw as Announcement);
+    } else {
+      const notif = item.raw as AppNotification;
+      if (!notif.read) markNotifRead.mutate(notif.id);
+      setOpen(false);
+      if (notif.link_url) {
+        navigate(notif.link_url);
+      } else {
+        setSelectedNotification(notif);
+      }
+    }
   };
 
-  const handleNotificationClick = (notif: AppNotification) => {
-    if (!notif.read) markNotifRead.mutate(notif.id);
-    setOpen(false);
-    if (notif.link_url) {
-      navigate(notif.link_url);
-    } else {
-      setSelectedNotification(notif);
-    }
+  const handleMarkAllRead = () => {
+    markAllRead.mutate();
+    // Also mark all visible announcements as read
+    unreadAnnouncements.forEach((a) => markAnnouncementRead.mutate(a.id));
   };
 
   return (
@@ -92,146 +139,83 @@ export function NotificationBell() {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-96 p-0" sideOffset={8}>
-          <Tabs defaultValue="alerts" className="w-full">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Notifications</h3>
-              <TabsList className="h-7">
-                <TabsTrigger value="alerts" className="text-xs px-2 py-0.5 gap-1">
-                  Alerts
-                  {unreadNotifCount > 0 && (
-                    <span className="bg-destructive text-destructive-foreground text-[10px] rounded-full px-1 min-w-3.5 h-3.5 flex items-center justify-center">
-                      {unreadNotifCount}
-                    </span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="updates" className="text-xs px-2 py-0.5 gap-1">
-                  Updates
-                  {unreadAnnouncements.length > 0 && (
-                    <span className="bg-destructive text-destructive-foreground text-[10px] rounded-full px-1 min-w-3.5 h-3.5 flex items-center justify-center">
-                      {unreadAnnouncements.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          <div className="px-4 py-3 border-b flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Notifications</h3>
+            {totalUnread > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {totalUnread} unread
+              </span>
+            )}
+          </div>
 
-            {/* Alerts tab — in-app notifications */}
-            <TabsContent value="alerts" className="mt-0">
-              <ScrollArea className="max-h-80">
-                {notifications.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-muted-foreground">
-                    No alerts yet
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {notifications.slice(0, 20).map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => handleNotificationClick(n)}
-                        className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            {n.notification_type === "project_opening" && (
-                              <Rocket className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Project opening" />
-                            )}
-                            <h4 className={`text-sm font-medium line-clamp-1 ${n.read ? "text-muted-foreground" : "text-foreground"}`}>
-                              {n.title}
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {!n.read && (
-                              <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-label="Unread" />
-                            )}
-                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                              {format(new Date(n.created_at), "MMM d")}
-                            </span>
-                          </div>
-                        </div>
-                        <div
-                          className="text-xs text-muted-foreground mt-0.5 line-clamp-2 [&_strong]:font-semibold"
-                          dangerouslySetInnerHTML={{ __html: stripHtml(n.body_html).slice(0, 120) }}
-                        />
-                        {n.link_url && (
-                          <span className="text-xs text-primary font-medium mt-1 inline-block">
-                            View Project →
-                          </span>
+          <ScrollArea className="max-h-80">
+            {unified.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                All caught up! 🎉
+              </div>
+            ) : (
+              <div className="divide-y">
+                {unified.slice(0, 30).map((item) => (
+                  <button
+                    key={`${item.kind}-${item.id}`}
+                    onClick={() => handleItemClick(item)}
+                    className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {item.kind === "alert" && item.notificationType === "project_opening" && (
+                          <Rocket className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Project opening" />
                         )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-              {notifications.some((n) => !n.read) && (
-                <div className="border-t px-4 py-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs gap-1.5"
-                    onClick={() => {
-                      markAllRead.mutate();
-                    }}
-                    disabled={markAllRead.isPending}
-                  >
-                    <CheckCheck className="h-3.5 w-3.5" />
-                    Mark all as read
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
+                        {item.kind === "announcement" && item.videoUrl && (
+                          <Video className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Video" />
+                        )}
+                        {item.kind === "announcement" && !item.videoUrl && item.audioUrl && (
+                          <Mic className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Audio" />
+                        )}
+                        {item.kind === "announcement" && !item.videoUrl && !item.audioUrl && (
+                          <Megaphone className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Announcement" />
+                        )}
+                        <h4 className={`text-sm font-medium line-clamp-1 ${item.read ? "text-muted-foreground" : "text-foreground"}`}>
+                          {item.title}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {!item.read && (
+                          <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-label="Unread" />
+                        )}
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          {format(item.date, "MMM d")}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      {stripHtml(item.bodyHtml).slice(0, 120)}
+                    </p>
+                    {item.kind === "alert" && item.linkUrl && (
+                      <span className="text-xs text-primary font-medium mt-1 inline-block">
+                        View Project →
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
 
-            {/* Updates tab — announcements */}
-            <TabsContent value="updates" className="mt-0">
-              <ScrollArea className="max-h-80">
-                {unreadAnnouncements.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-muted-foreground">
-                    All caught up! 🎉
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {unreadAnnouncements.map((a) => (
-                      <button
-                        key={a.id}
-                        onClick={() => handleAnnouncementClick(a)}
-                        className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            {a.video_url && <Video className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Video" />}
-                            {!a.video_url && a.audio_url && <Mic className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Audio" />}
-                            <h4 className="text-sm font-medium text-foreground line-clamp-1">
-                              {a.title}
-                            </h4>
-                          </div>
-                          <span className="text-[11px] text-muted-foreground whitespace-nowrap flex-shrink-0">
-                            {format(new Date(a.created_at), "MMM d")}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {stripHtml(a.body_html).slice(0, 100)}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-              {unreadAnnouncements.length > 0 && (
-                <div className="border-t px-4 py-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/updates");
-                    }}
-                  >
-                    View all updates
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          {totalUnread > 0 && (
+            <div className="border-t px-4 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs gap-1.5"
+                onClick={handleMarkAllRead}
+                disabled={markAllRead.isPending}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                Mark all as read
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
 
