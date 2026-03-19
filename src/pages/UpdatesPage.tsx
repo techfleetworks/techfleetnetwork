@@ -36,6 +36,7 @@ const MediaRecorder = lazy(() => import("@/components/VideoRecorder"));
 type ViewMode = "table" | "card";
 
 export default function UpdatesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
   const { data: announcements = [], isLoading: loading } = useAnnouncements();
@@ -47,6 +48,18 @@ export default function UpdatesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
+
+  // Auto-open announcement from email link
+  useEffect(() => {
+    const highlightId = searchParams.get("highlight");
+    if (highlightId && announcements.length > 0) {
+      const target = announcements.find((a) => a.id === highlightId);
+      if (target) {
+        selectAndMarkRead(target);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, announcements]);
 
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
