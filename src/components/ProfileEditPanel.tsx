@@ -49,11 +49,17 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
 
+  // Reset initialized flag when panel closes so it re-syncs on next open
   useEffect(() => {
-    if (open && profile) {
+    if (!open) setInitialized(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && !initialized && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
@@ -71,8 +77,9 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         education_background: profile.education_background || [],
       });
       setErrors({});
+      setInitialized(true);
     }
-  }, [open, profile, user]);
+  }, [open, profile, user, initialized]);
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
@@ -127,6 +134,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
 
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
+      setInitialized(false); // allow useEffect to re-sync form with fresh profile
       await refreshProfile();
       toast.success("Profile updated successfully");
       onOpenChange(false);

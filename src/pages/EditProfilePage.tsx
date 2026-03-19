@@ -50,9 +50,10 @@ export default function EditProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (profile) {
+    if (!initialized && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
@@ -70,8 +71,9 @@ export default function EditProfilePage() {
         education_background: profile.education_background || [],
       });
       setErrors({});
+      setInitialized(true);
     }
-  }, [profile, user]);
+  }, [profile, user, initialized]);
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
@@ -118,6 +120,7 @@ export default function EditProfilePage() {
     setSaving(true);
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
+      setInitialized(false); // allow useEffect to re-sync form with fresh profile
       await refreshProfile();
       toast.success("Profile updated successfully");
     } catch (err: any) {
