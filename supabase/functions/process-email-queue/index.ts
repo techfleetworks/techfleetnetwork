@@ -316,18 +316,17 @@ Deno.serve(async (req) => {
             ? await getOrCreateUnsubscribeToken(supabase, payload.to)
             : null
 
-        const requestPayload = {
+        const requestPayload: Record<string, unknown> = {
           to: payload.to,
           from: payload.from,
           sender_domain: payload.sender_domain,
           subject: payload.subject,
           html: payload.html,
-          text: payload.text,
+          text: payload.text || buildPlainText(payload.html),
           purpose: payload.purpose,
-          label: payload.label,
+          label: payload.label || payload.template_name,
           idempotency_key: payload.idempotency_key ?? payload.message_id,
           unsubscribe_token: payload.unsubscribe_token ?? unsubscribeToken,
-          message_id: payload.message_id,
         }
 
         await sendLovableEmail(
