@@ -262,7 +262,7 @@ export function GeneralApplicationTab() {
       >
         {activeApp.status === "completed" && <CheckCircle2 className="h-3 w-3" />}
         {activeApp.status === "completed"
-          ? `Completed${activeApp.completed_at ? ` ${format(new Date(activeApp.completed_at), "MMM d, yyyy")}` : ""}`
+          ? `Completed${(activeApp as Record<string, unknown>).completed_at ? ` ${format(new Date((activeApp as Record<string, unknown>).completed_at as string), "MMM d, yyyy")}` : ""}`
           : "Draft"}
       </Badge>
     ) : undefined;
