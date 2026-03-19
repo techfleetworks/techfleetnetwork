@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
-  Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper,
+  Loader2, CheckCircle2, Globe, User, ExternalLink,
+  PartyPopper, AlertTriangle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
