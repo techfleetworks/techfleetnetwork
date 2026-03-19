@@ -141,7 +141,10 @@ export function GeneralApplicationTab() {
   const formContainerRef = useRef<HTMLDivElement>(null);
   const initialLoadDone = useRef(false);
 
-  const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
+  useEffect(() => {
+    formContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [section]);
+
     setForm((prev) => ({ ...prev, [key]: value }));
     // Clear error for this field as user corrects it
     if (errors[key]) {
