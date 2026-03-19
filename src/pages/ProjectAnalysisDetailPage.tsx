@@ -451,14 +451,14 @@ export default function ProjectAnalysisDetailPage() {
           {isFoundational && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Foundational</Badge>}
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Applicants who selected this hat and ONLY applied to this project">
             <span className="text-sm font-semibold text-success">{bd.unique}</span>
-            <span className="text-xs text-muted-foreground">unique</span>
+            <span className="text-xs text-muted-foreground">exclusive</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Applicants who selected this hat but also applied to other projects">
             <span className="text-sm font-semibold text-warning">{bd.shared}</span>
-            <span className="text-xs text-muted-foreground">shared</span>
+            <span className="text-xs text-muted-foreground">multi-project</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
           <div className="flex items-center gap-1.5">
