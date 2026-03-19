@@ -439,12 +439,12 @@ export default function ProjectApplicationPage() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Title */}
+        {/* Title + Completion badge */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/project-openings")} aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               Project Application
             </h1>
@@ -452,20 +452,13 @@ export default function ProjectApplicationPage() {
               {client?.name} — {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
             </p>
           </div>
+          {isCompleted && existingApp?.completed_at && (
+            <Badge className="bg-success/10 text-success border-success/30 gap-1.5 shrink-0 whitespace-nowrap">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Submitted {format(new Date(existingApp.completed_at), "MMM d, yyyy")}
+            </Badge>
+          )}
         </div>
-
-        {/* Completion banner */}
-        {isCompleted && existingApp?.completed_at && (
-          <div className="rounded-lg border bg-success/10 border-success/30 p-3 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Application Submitted</p>
-              <p className="text-xs text-muted-foreground">
-                Submitted on {format(new Date(existingApp.completed_at), "MMMM d, yyyy 'at' h:mm a")}
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Step progress */}
         <StepProgressBar
