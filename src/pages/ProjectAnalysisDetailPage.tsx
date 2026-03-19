@@ -29,7 +29,7 @@ import {
   Users, Target, Info, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
-import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
+import type { ColDef } from "ag-grid-community";
 
 /* ── constants ─────────────────────────────────────── */
 const FOUNDATIONAL_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
