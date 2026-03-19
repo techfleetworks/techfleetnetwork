@@ -264,6 +264,9 @@ export default function UpdatesPage() {
               <Label>Content <span className="text-destructive">*</span></Label>
               <RichTextEditor content={newBody} onChange={setNewBody} placeholder="Write your announcement here..." />
             </div>
+            <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+              <VideoRecorder onVideoReady={setNewVideoUrl} />
+            </Suspense>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
