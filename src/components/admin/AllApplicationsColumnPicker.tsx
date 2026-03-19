@@ -32,7 +32,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { key: "phase", label: "Phase", group: "core" },
   { key: "project_status", label: "Project Status", group: "core" },
   { key: "previous_participant", label: "Previous Participant?", group: "core" },
-  { key: "other_active_apps", label: "Other Active Apps", group: "core" },
+  { key: "other_active_apps", label: "Active Apps", group: "core" },
   { key: "date_submitted", label: "Date Submitted", group: "core" },
   { key: "team_hats_interest", label: "Team Hats Interest", group: "core" },
 
