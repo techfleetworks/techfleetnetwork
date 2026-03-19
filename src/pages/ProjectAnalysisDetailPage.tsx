@@ -17,7 +17,13 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ThemedAgGrid } from "@/components/AgGrid";
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from "@/components/ui/table";
+import {
+  Pagination, PaginationContent, PaginationItem,
+  PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis,
+} from "@/components/ui/pagination";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
   Users, Target, Info, HelpCircle, ExternalLink,
