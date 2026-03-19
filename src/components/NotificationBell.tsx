@@ -88,9 +88,13 @@ export function NotificationBell() {
                     className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-sm font-medium text-foreground line-clamp-1">
-                        {a.title}
-                      </h4>
+                      <div className="flex items-center gap-1.5">
+                        {a.video_url && <Video className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Video" />}
+                        {!a.video_url && a.audio_url && <Mic className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Audio" />}
+                        <h4 className="text-sm font-medium text-foreground line-clamp-1">
+                          {a.title}
+                        </h4>
+                      </div>
                       <span className="text-[11px] text-muted-foreground whitespace-nowrap flex-shrink-0">
                         {format(new Date(a.created_at), "MMM d")}
                       </span>

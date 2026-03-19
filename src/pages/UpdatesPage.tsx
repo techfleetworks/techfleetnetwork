@@ -281,7 +281,13 @@ export default function UpdatesPage() {
               <RichTextEditor content={newBody} onChange={setNewBody} placeholder="Write your announcement here..." />
             </div>
             <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-              <VideoRecorder onVideoReady={setNewVideoUrl} />
+              <MediaRecorder
+                onMediaReady={(url, type) => {
+                  if (type === "video") { setNewVideoUrl(url); setNewAudioUrl(null); }
+                  else if (type === "audio") { setNewAudioUrl(url); setNewVideoUrl(null); }
+                  else { setNewVideoUrl(null); setNewAudioUrl(null); }
+                }}
+              />
             </Suspense>
           </div>
           <DialogFooter>
