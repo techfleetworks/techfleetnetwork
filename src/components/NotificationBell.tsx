@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, Video, Mic } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,9 +88,13 @@ export function NotificationBell() {
                     className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-sm font-medium text-foreground line-clamp-1">
-                        {a.title}
-                      </h4>
+                      <div className="flex items-center gap-1.5">
+                        {a.video_url && <Video className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Video" />}
+                        {!a.video_url && a.audio_url && <Mic className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Audio" />}
+                        <h4 className="text-sm font-medium text-foreground line-clamp-1">
+                          {a.title}
+                        </h4>
+                      </div>
                       <span className="text-[11px] text-muted-foreground whitespace-nowrap flex-shrink-0">
                         {format(new Date(a.created_at), "MMM d")}
                       </span>
@@ -130,7 +134,27 @@ export function NotificationBell() {
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6 py-4">
+          <ScrollArea className="flex-1 px-6 py-4 space-y-4">
+            {selectedAnnouncement?.video_url && (
+              <video
+                src={selectedAnnouncement.video_url}
+                controls
+                playsInline
+                className="w-full rounded-lg aspect-video bg-black mb-4"
+                aria-label="Announcement video"
+              />
+            )}
+            {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4 mb-4">
+                <Mic className="h-5 w-5 text-primary shrink-0" />
+                <audio
+                  src={selectedAnnouncement.audio_url}
+                  controls
+                  className="w-full h-10"
+                  aria-label="Announcement audio"
+                />
+              </div>
+            )}
             {selectedAnnouncement && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"

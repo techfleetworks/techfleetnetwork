@@ -1,7 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { format } from "date-fns";
 import {
-  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video,
+  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video, Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ import type { Announcement } from "@/services/announcement.service";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
 
-const VideoRecorder = lazy(() => import("@/components/VideoRecorder"));
+const MediaRecorder = lazy(() => import("@/components/VideoRecorder"));
 
 type ViewMode = "table" | "card";
 
@@ -50,6 +50,7 @@ export default function UpdatesPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   const [newVideoUrl, setNewVideoUrl] = useState<string | null>(null);
+  const [newAudioUrl, setNewAudioUrl] = useState<string | null>(null);
 
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
@@ -61,12 +62,13 @@ export default function UpdatesPage() {
     if (!newBody.trim() || newBody === "<p></p>") { toast.error("Announcement body is required."); return; }
     if (!user) return;
     try {
-      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl });
+      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl, audioUrl: newAudioUrl });
       toast.success("Announcement posted!");
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
       setNewVideoUrl(null);
+      setNewAudioUrl(null);
     } catch {
       toast.error("Failed to create announcement.");
     }
@@ -184,6 +186,9 @@ export default function UpdatesPage() {
                   {a.video_url && (
                     <Video className="h-4 w-4 text-primary shrink-0" aria-label="Has video" />
                   )}
+                  {!a.video_url && a.audio_url && (
+                    <Mic className="h-4 w-4 text-primary shrink-0" aria-label="Has audio" />
+                  )}
                 </div>
                 {isAdmin && (
                   <Button
@@ -228,6 +233,17 @@ export default function UpdatesPage() {
                   aria-label="Announcement video"
                 />
               )}
+              {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                  <Mic className="h-5 w-5 text-primary shrink-0" />
+                  <audio
+                    src={selectedAnnouncement.audio_url}
+                    controls
+                    className="w-full h-10"
+                    aria-label="Announcement audio"
+                  />
+                </div>
+              )}
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
@@ -265,7 +281,13 @@ export default function UpdatesPage() {
               <RichTextEditor content={newBody} onChange={setNewBody} placeholder="Write your announcement here..." />
             </div>
             <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-              <VideoRecorder onVideoReady={setNewVideoUrl} />
+              <MediaRecorder
+                onMediaReady={(url, type) => {
+                  if (type === "video") { setNewVideoUrl(url); setNewAudioUrl(null); }
+                  else if (type === "audio") { setNewAudioUrl(url); setNewVideoUrl(null); }
+                  else { setNewVideoUrl(null); setNewAudioUrl(null); }
+                }}
+              />
             </Suspense>
           </div>
           <DialogFooter>
