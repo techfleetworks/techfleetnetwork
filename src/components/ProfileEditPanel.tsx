@@ -77,8 +77,9 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         education_background: profile.education_background || [],
       });
       setErrors({});
+      setInitialized(true);
     }
-  }, [open, profile, user]);
+  }, [open, profile, user, initialized]);
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({

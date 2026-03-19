@@ -71,8 +71,9 @@ export default function EditProfilePage() {
         education_background: profile.education_background || [],
       });
       setErrors({});
+      setInitialized(true);
     }
-  }, [profile, user]);
+  }, [profile, user, initialized]);
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
