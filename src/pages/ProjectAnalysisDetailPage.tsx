@@ -510,11 +510,11 @@ export default function ProjectAnalysisDetailPage() {
             </div>
             <Separator />
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Unique (this project only)</span>
+              <span className="text-sm text-muted-foreground">Exclusive (this project only)</span>
               <span className="text-sm font-semibold text-success">{analysis?.uniqueApplicants ?? 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Also applied elsewhere</span>
+              <span className="text-sm text-muted-foreground">Multi-project (also applied elsewhere)</span>
               <span className="text-sm font-semibold text-warning">{analysis?.sharedApplicants ?? 0}</span>
             </div>
           </CardContent>
