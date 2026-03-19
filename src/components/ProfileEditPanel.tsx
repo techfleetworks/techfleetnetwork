@@ -49,11 +49,17 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
 
+  // Reset initialized flag when panel closes so it re-syncs on next open
   useEffect(() => {
-    if (open && profile) {
+    if (!open) setInitialized(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && !initialized && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
