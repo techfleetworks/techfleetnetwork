@@ -134,7 +134,27 @@ export function NotificationBell() {
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6 py-4">
+          <ScrollArea className="flex-1 px-6 py-4 space-y-4">
+            {selectedAnnouncement?.video_url && (
+              <video
+                src={selectedAnnouncement.video_url}
+                controls
+                playsInline
+                className="w-full rounded-lg aspect-video bg-black mb-4"
+                aria-label="Announcement video"
+              />
+            )}
+            {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4 mb-4">
+                <Mic className="h-5 w-5 text-primary shrink-0" />
+                <audio
+                  src={selectedAnnouncement.audio_url}
+                  controls
+                  className="w-full h-10"
+                  aria-label="Announcement audio"
+                />
+              </div>
+            )}
             {selectedAnnouncement && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
