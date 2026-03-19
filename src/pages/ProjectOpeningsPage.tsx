@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
-  Rocket, PlayCircle, Clock,
+  Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
+import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,11 @@ export default function ProjectOpeningsPage() {
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [view, setView] = useState<"card" | "table">("card");
+  const [stats, setStats] = useState<NetworkStats | null>(null);
+
+  useEffect(() => {
+    StatsService.getNetworkStats().then(setStats).catch(() => {});
+  }, []);
 
   const { data: projects = [], isLoading: projLoading } = useQuery({
     queryKey: ["project-openings-all"],
@@ -267,6 +273,57 @@ export default function ProjectOpeningsPage() {
         </p>
       </div>
 
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+          <div className="card-elevated p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
+              <Briefcase className="h-5 w-5 text-success" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-tight">{stats.projects_open_applications}</p>
+              <p className="text-xs text-muted-foreground">Open Applications</p>
+            </div>
+          </div>
+          <div className="card-elevated p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
+              <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-tight">{stats.projects_coming_soon}</p>
+              <p className="text-xs text-muted-foreground">Opening Soon</p>
+            </div>
+          </div>
+          <div className="card-elevated p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center flex-shrink-0">
+              <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-tight">{startingSoon.length}</p>
+              <p className="text-xs text-muted-foreground">Starting Soon</p>
+            </div>
+          </div>
+          <div className="card-elevated p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-tight">{stats.projects_live}</p>
+              <p className="text-xs text-muted-foreground">Live</p>
+            </div>
+          </div>
+          <div className="card-elevated p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground leading-tight">{stats.projects_previously_completed}</p>
+              <p className="text-xs text-muted-foreground">Previously Completed</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="client" className="w-full">
         <TabsList className="w-full sm:w-auto mb-6">
           <TabsTrigger value="client" className="flex-1 sm:flex-none">Client Project Openings</TabsTrigger>
@@ -321,16 +378,7 @@ export default function ProjectOpeningsPage() {
             />
           ) : (
             <div className="space-y-10">
-              {/* Coming Soon */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                  Coming Soon
-                </h3>
-                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are coming soon." />
-              </div>
-
-              {/* Open Applications */}
+              {/* Open Applications — first */}
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
@@ -339,10 +387,19 @@ export default function ProjectOpeningsPage() {
                 <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
               </div>
 
+              {/* Opening Soon — renamed, moved under Open Applications */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
+                  Opening Soon
+                </h3>
+                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." />
+              </div>
+
               {/* Starting Soon */}
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-warning" aria-hidden="true" />
+                  <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
                   Starting Soon
                 </h3>
                 <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
