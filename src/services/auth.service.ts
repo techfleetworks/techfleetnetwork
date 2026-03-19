@@ -20,7 +20,7 @@ export const AuthService = {
 
   async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
     return log.track("signUp", `Registering new user ${email}`, { email, firstName, lastName }, async () => {
-      const { data, error } = await supabase.auth.signUp({
+      const signUpPromise = supabase.auth.signUp({
         email,
         password,
         options: {
@@ -32,6 +32,13 @@ export const AuthService = {
           emailRedirectTo: redirectTo,
         },
       });
+
+      // Add a 30-second timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Sign-up request timed out. Please try again.")), 30_000)
+      );
+
+      const { data, error } = await Promise.race([signUpPromise, timeoutPromise]);
       if (error) {
         log.error("signUp", `Registration failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
         throw new Error("Unable to create account. Please try again or use a different email.");
