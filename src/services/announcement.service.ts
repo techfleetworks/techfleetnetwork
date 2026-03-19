@@ -33,9 +33,10 @@ export const AnnouncementService = {
     return this.list(limit);
   },
 
-  async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null): Promise<Announcement> {
+  async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
     const row: Record<string, unknown> = { title, body_html: bodyHtml, created_by: userId };
     if (videoUrl) row.video_url = videoUrl;
+    if (audioUrl) row.audio_url = audioUrl;
     const { data, error } = await supabase
       .from("announcements")
       .insert(row as any)
