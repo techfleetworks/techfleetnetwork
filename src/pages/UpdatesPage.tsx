@@ -1,7 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { format } from "date-fns";
 import {
-  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video,
+  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video, Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
