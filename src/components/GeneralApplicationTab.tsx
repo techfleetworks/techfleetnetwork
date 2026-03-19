@@ -249,6 +249,35 @@ export function GeneralApplicationTab() {
 
   const isCompleted = activeApp?.status === "completed";
 
+  /* ── push page context into the global header ──────────── */
+  const { setHeader } = usePageHeader();
+  useLayoutEffect(() => {
+    const statusBadge = activeApp ? (
+      <Badge
+        variant={activeApp.status === "completed" ? "default" : "secondary"}
+        className={cn(
+          "text-xs whitespace-nowrap",
+          activeApp.status === "completed" && "bg-success/10 text-success border-success/30 gap-1"
+        )}
+      >
+        {activeApp.status === "completed" && <CheckCircle2 className="h-3 w-3" />}
+        {activeApp.status === "completed"
+          ? `Completed${activeApp.completed_at ? ` ${format(new Date(activeApp.completed_at), "MMM d, yyyy")}` : ""}`
+          : "Draft"}
+      </Badge>
+    ) : undefined;
+
+    setHeader({
+      breadcrumbs: [
+        { label: "Applications", href: "/applications" },
+        { label: "General Application" },
+      ],
+      title: "General Application",
+      badge: statusBadge,
+    });
+    return () => setHeader(null);
+  }, [activeApp, setHeader]);
+
   const handleSave = async (markComplete = false) => {
     if (!activeApp) return;
     setSaving(true);
