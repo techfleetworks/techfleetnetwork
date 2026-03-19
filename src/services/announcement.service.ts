@@ -8,6 +8,7 @@ export interface Announcement {
   title: string;
   body_html: string;
   video_url: string | null;
+  audio_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
