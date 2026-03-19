@@ -78,6 +78,7 @@ export type Database = {
           id: string
           title: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           body_html?: string
@@ -86,6 +87,7 @@ export type Database = {
           id?: string
           title: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           body_html?: string
@@ -94,6 +96,7 @@ export type Database = {
           id?: string
           title?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
