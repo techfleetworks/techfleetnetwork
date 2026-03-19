@@ -22,6 +22,7 @@ import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext"
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAnnouncementRealtime } from "@/hooks/use-announcement-realtime";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
