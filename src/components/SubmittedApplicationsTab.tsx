@@ -165,6 +165,16 @@ export default function SubmittedApplicationsTab() {
     enabled: clientIds.length > 0,
   });
 
+  // Fetch total count of projects currently accepting applications
+  const { data: allApplyNowProjects } = useQuery({
+    queryKey: ["admin-all-apply-now-projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("id").eq("project_status", "apply_now");
+      if (error) throw error;
+      return (data ?? []) as { id: string }[];
+    },
+  });
+
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles-for-apps-full", apps?.map((a) => a.user_id)],
     queryFn: async () => {
