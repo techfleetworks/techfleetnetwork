@@ -451,14 +451,14 @@ export default function ProjectAnalysisDetailPage() {
           {isFoundational && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Foundational</Badge>}
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Applicants who selected this hat and ONLY applied to this project">
             <span className="text-sm font-semibold text-success">{bd.unique}</span>
-            <span className="text-xs text-muted-foreground">unique</span>
+            <span className="text-xs text-muted-foreground">exclusive</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Applicants who selected this hat but also applied to other projects">
             <span className="text-sm font-semibold text-warning">{bd.shared}</span>
-            <span className="text-xs text-muted-foreground">shared</span>
+            <span className="text-xs text-muted-foreground">multi-project</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
           <div className="flex items-center gap-1.5">
@@ -494,7 +494,7 @@ export default function ProjectAnalysisDetailPage() {
             <div className={`text-4xl font-bold ${scoreColor}`}>{score}%</div>
             <Progress value={score} className="mt-3 h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Based on <strong>unique</strong> applicants per foundational hat (50%), other roles (20%), unique applicant ratio (15%), and previous phase participation (15%).
+              Based on <strong>exclusive</strong> applicants per foundational hat — people who selected the hat <em>and</em> only applied to this project (50%), other roles (20%), exclusive applicant ratio (15%), and previous phase participation (15%).
             </p>
           </CardContent>
         </Card>
@@ -510,11 +510,11 @@ export default function ProjectAnalysisDetailPage() {
             </div>
             <Separator />
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Unique (this project only)</span>
+              <span className="text-sm text-muted-foreground">Exclusive (this project only)</span>
               <span className="text-sm font-semibold text-success">{analysis?.uniqueApplicants ?? 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Also applied elsewhere</span>
+              <span className="text-sm text-muted-foreground">Multi-project (also applied elsewhere)</span>
               <span className="text-sm font-semibold text-warning">{analysis?.sharedApplicants ?? 0}</span>
             </div>
           </CardContent>
@@ -554,8 +554,8 @@ export default function ProjectAnalysisDetailPage() {
             Foundational Hat Coverage
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Readiness is based on <strong>unique applicants</strong> (those who only applied to this project).
-            Ideal: {IDEAL_PER_HAT} unique per hat. Minimum: {MIN_PER_HAT}.
+            Readiness is based on <strong>exclusive applicants</strong> — people who selected this hat and did <em>not</em> apply to any other project.
+            Ideal: {IDEAL_PER_HAT} exclusive per hat. Minimum: {MIN_PER_HAT}. Multi-project applicants are shown but don't count toward readiness.
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -634,7 +634,7 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
               <span className="text-primary">{details.hatScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Scored per foundational hat based on <strong>unique</strong> applicants: ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats on this project.
+              Scored per foundational hat based on <strong>exclusive</strong> applicants (people who selected the hat and only applied to this project): ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats. Multi-project applicants are not counted.
             </p>
             <div className="space-y-1 pl-3 border-l-2 border-muted">
               {details.hatDetails.map((h) => (
