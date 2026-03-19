@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { format } from "date-fns";
 import {
-  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2,
+  Megaphone, Plus, Trash2, LayoutList, LayoutGrid, Loader2, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,8 @@ import type { Announcement } from "@/services/announcement.service";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
 
+const VideoRecorder = lazy(() => import("@/components/VideoRecorder"));
+
 type ViewMode = "table" | "card";
 
 export default function UpdatesPage() {
@@ -47,6 +49,7 @@ export default function UpdatesPage() {
 
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [newVideoUrl, setNewVideoUrl] = useState<string | null>(null);
 
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
@@ -58,11 +61,12 @@ export default function UpdatesPage() {
     if (!newBody.trim() || newBody === "<p></p>") { toast.error("Announcement body is required."); return; }
     if (!user) return;
     try {
-      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id });
+      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl });
       toast.success("Announcement posted!");
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
+      setNewVideoUrl(null);
     } catch {
       toast.error("Failed to create announcement.");
     }
@@ -173,9 +177,14 @@ export default function UpdatesPage() {
               className="card-elevated p-5 text-left hover:border-primary/40 transition-all group border border-white/50"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                  {a.title}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {a.title}
+                  </h3>
+                  {a.video_url && (
+                    <Video className="h-4 w-4 text-primary shrink-0" aria-label="Has video" />
+                  )}
+                </div>
                 {isAdmin && (
                   <Button
                     variant="ghost"
@@ -209,7 +218,16 @@ export default function UpdatesPage() {
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-1 min-h-0">
-            <div className="px-6 py-4">
+            <div className="px-6 py-4 space-y-4">
+              {selectedAnnouncement?.video_url && (
+                <video
+                  src={selectedAnnouncement.video_url}
+                  controls
+                  playsInline
+                  className="w-full rounded-lg aspect-video bg-black"
+                  aria-label="Announcement video"
+                />
+              )}
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
@@ -246,6 +264,9 @@ export default function UpdatesPage() {
               <Label>Content <span className="text-destructive">*</span></Label>
               <RichTextEditor content={newBody} onChange={setNewBody} placeholder="Write your announcement here..." />
             </div>
+            <Suspense fallback={<div className="h-20 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+              <VideoRecorder onVideoReady={setNewVideoUrl} />
+            </Suspense>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>

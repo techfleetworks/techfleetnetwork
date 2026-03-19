@@ -55,8 +55,8 @@ export function useCreateAnnouncement() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ title, bodyHtml, userId }: { title: string; bodyHtml: string; userId: string }) => {
-      const announcement = await AnnouncementService.create(title, bodyHtml, userId);
+    mutationFn: async ({ title, bodyHtml, userId, videoUrl }: { title: string; bodyHtml: string; userId: string; videoUrl?: string | null }) => {
+      const announcement = await AnnouncementService.create(title, bodyHtml, userId, videoUrl);
       // Fire-and-forget email notifications
       AnnouncementService.sendNotifications(announcement.id).catch(() => {});
       return announcement;

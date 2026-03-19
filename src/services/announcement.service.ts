@@ -7,6 +7,7 @@ export interface Announcement {
   id: string;
   title: string;
   body_html: string;
+  video_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -31,10 +32,12 @@ export const AnnouncementService = {
     return this.list(limit);
   },
 
-  async create(title: string, bodyHtml: string, userId: string): Promise<Announcement> {
+  async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null): Promise<Announcement> {
+    const row: Record<string, unknown> = { title, body_html: bodyHtml, created_by: userId };
+    if (videoUrl) row.video_url = videoUrl;
     const { data, error } = await supabase
       .from("announcements")
-      .insert({ title, body_html: bodyHtml, created_by: userId } as any)
+      .insert(row as any)
       .select()
       .single();
     if (error) {
