@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Loader2,
-  ChevronRight,
+  ArrowLeft,
   ArrowLeft,
   ArrowRight,
   Globe,
