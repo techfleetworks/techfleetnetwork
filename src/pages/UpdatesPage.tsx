@@ -62,12 +62,13 @@ export default function UpdatesPage() {
     if (!newBody.trim() || newBody === "<p></p>") { toast.error("Announcement body is required."); return; }
     if (!user) return;
     try {
-      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl });
+      await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl, audioUrl: newAudioUrl });
       toast.success("Announcement posted!");
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
       setNewVideoUrl(null);
+      setNewAudioUrl(null);
     } catch {
       toast.error("Failed to create announcement.");
     }
