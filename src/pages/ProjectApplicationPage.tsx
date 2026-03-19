@@ -525,6 +525,7 @@ export default function ProjectApplicationPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* ── STEP 1: Review General App ────────────────── */}
           {step === 1 && (
