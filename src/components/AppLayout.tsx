@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { ProfileEditPanel } from "./ProfileEditPanel";
+
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
@@ -182,7 +182,6 @@ const mobileNavLinks = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
@@ -249,7 +248,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
-        <ProfileEditPanel open={profileEditOpen} onOpenChange={setProfileEditOpen} />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -364,7 +362,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     variant="outline"
                     className="w-full justify-start"
                     onClick={() => {
-                      setProfileEditOpen(true);
+                      navigate("/profile/edit");
                       setMobileMenuOpen(false);
                     }}
                   >
@@ -388,10 +386,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
-        <ProfileEditPanel
-          open={profileEditOpen}
-          onOpenChange={setProfileEditOpen}
-        />
       </div>
     );
   }
@@ -409,7 +403,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <DesktopHeader
               profile={profile}
               user={user}
-              onEditProfile={() => setProfileEditOpen(true)}
+              onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
             <main
@@ -423,10 +417,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         <ProfileSetupDialog />
-        <ProfileEditPanel
-          open={profileEditOpen}
-          onOpenChange={setProfileEditOpen}
-        />
       </SidebarProvider>
     </PageHeaderProvider>
   );
