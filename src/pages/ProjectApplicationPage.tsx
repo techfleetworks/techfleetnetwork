@@ -421,9 +421,6 @@ export default function ProjectApplicationPage() {
     return Object.keys(errs2).length === 0 && Object.keys(errs3).length === 0;
   }, [validateStep2, validateStep3]);
 
-  /* ── helpers ───────────────────────────────────────────── */
-  const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
-  const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 
   if (projLoading || appLoading || !initialized) {
     return (
