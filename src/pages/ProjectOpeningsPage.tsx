@@ -188,7 +188,7 @@ export default function ProjectOpeningsPage() {
   /* ── Project Card ────────────────────────────────────────── */
   function ProjectCard({ p }: { p: EnrichedProject }) {
     return (
-      <Card className="flex flex-col cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
+      <Card className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div>
