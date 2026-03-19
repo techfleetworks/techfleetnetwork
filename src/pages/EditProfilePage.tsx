@@ -488,15 +488,18 @@ export default function EditProfilePage() {
               </div>
             </div>
           </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
         {/* Sticky save bar */}
-        <div className="mt-6">
-          <Button type="submit" className="w-full sm:w-auto" disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
-          </Button>
+        <div className="sticky bottom-0 z-30 bg-background border-t px-4 sm:px-6 py-3">
+          <div className="container-app max-w-3xl">
+            <Button type="submit" className="w-full sm:w-auto" disabled={saving}>
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
+          </div>
         </div>
-      </form>
+      </Tabs>
 
       {/* Delete account confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -527,6 +530,6 @@ export default function EditProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </form>
   );
 }
