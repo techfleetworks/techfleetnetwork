@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper, ChevronRight,
+  PartyPopper,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { MultiSelect } from "@/components/ui/multi-select";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -222,6 +219,37 @@ export default function ProjectApplicationPage() {
 
   const isCompleted = existingApp?.status === "completed";
 
+  /* ── helpers ───────────────────────────────────────────── */
+  const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
+  const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
+
+  /* ── push page context into the global header ──────────── */
+  const { setHeader } = usePageHeader();
+  const description = client?.name
+    ? `${client.name} — ${typeLabel(project?.project_type ?? "")} · ${phaseLabel(project?.phase ?? "")}`
+    : undefined;
+
+  useLayoutEffect(() => {
+    if (!project) return;
+    setHeader({
+      breadcrumbs: [
+        { label: "Project Openings", href: "/project-openings" },
+        { label: "Project Overview", href: `/project-openings/${projectId}` },
+        { label: "Create Application" },
+      ],
+      title: "Project Application",
+      description,
+      badge:
+        isCompleted && existingApp?.completed_at ? (
+          <Badge className="bg-success/10 text-success border-success/30 gap-1.5 whitespace-nowrap text-xs">
+            <CheckCircle2 className="h-3 w-3" />
+            Submitted {format(new Date(existingApp.completed_at), "MMM d, yyyy")}
+          </Badge>
+        ) : undefined,
+    });
+    return () => setHeader(null);
+  }, [project, client, isCompleted, existingApp?.completed_at, projectId, setHeader, description]);
+
   /* ── available team hats scoped to project ─────────────── */
   const availableHats = useMemo(
     () => (project?.team_hats ?? TEAM_HATS.map(String)).map((h) => ({ label: h, value: h })),
@@ -393,9 +421,6 @@ export default function ProjectApplicationPage() {
     return Object.keys(errs2).length === 0 && Object.keys(errs3).length === 0;
   }, [validateStep2, validateStep3]);
 
-  /* ── helpers ───────────────────────────────────────────── */
-  const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
-  const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 
   if (projLoading || appLoading || !initialized) {
     return (
@@ -420,46 +445,8 @@ export default function ProjectApplicationPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Fixed Header ──────────────────────────────────── */}
-      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-4 space-y-4 max-w-3xl w-full mx-auto">
-        {/* Breadcrumb */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/project-openings">Project Openings</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={`/project-openings/${projectId}`}>Project Overview</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Create Application</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        {/* Title + Completion badge */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/project-openings")} aria-label="Back">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              Project Application
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {client?.name} — {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
-            </p>
-          </div>
-          {isCompleted && existingApp?.completed_at && (
-            <Badge className="bg-success/10 text-success border-success/30 gap-1.5 shrink-0 whitespace-nowrap">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Submitted {format(new Date(existingApp.completed_at), "MMM d, yyyy")}
-            </Badge>
-          )}
-        </div>
-
+      {/* ── Fixed Header (step progress only) ────────────── */}
+      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
         {/* Step progress */}
         <StepProgressBar
           steps={STEP_LABELS.map((label, i) => {

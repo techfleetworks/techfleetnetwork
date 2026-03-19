@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -18,6 +18,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { ProfileEditPanel } from "./ProfileEditPanel";
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,6 +30,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
@@ -84,6 +89,81 @@ function ProfileDropdown({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/* ── Desktop header with optional page context ────────── */
+function DesktopHeader({
+  profile,
+  user,
+  onEditProfile,
+  onSignOut,
+}: {
+  profile: Profile | null;
+  user: User | null;
+  onEditProfile: () => void;
+  onSignOut: () => void;
+}) {
+  const { header } = usePageHeader();
+
+  return (
+    <header
+      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
+      role="banner"
+      style={{ minHeight: header ? undefined : "3rem" }}
+    >
+      {/* Left: page context */}
+      {header ? (
+        <div className="flex flex-col justify-center py-1.5 min-w-0 mr-4">
+          {header.breadcrumbs && header.breadcrumbs.length > 0 && (
+            <Breadcrumb>
+              <BreadcrumbList className="text-xs">
+                {header.breadcrumbs.map((crumb, i) => (
+                  <Fragment key={i}>
+                    {i > 0 && <BreadcrumbSeparator />}
+                    <BreadcrumbItem>
+                      {crumb.href ? (
+                        <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          <div className="flex items-center gap-2">
+            {header.title && (
+              <h1 className="text-sm font-semibold text-foreground truncate">{header.title}</h1>
+            )}
+            {header.description && (
+              <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                — {header.description}
+              </span>
+            )}
+            {header.badge && <div className="shrink-0">{header.badge}</div>}
+          </div>
+        </div>
+      ) : (
+        <div />
+      )}
+
+      {/* Right: controls */}
+      <div className="flex items-center gap-3 shrink-0">
+        <UniversalSearch />
+        <ThemeToggle />
+        <NotificationBell />
+        <div className="ml-1">
+          <ProfileDropdown
+            profile={profile}
+            user={user}
+            onEditProfile={onEditProfile}
+            onSignOut={onSignOut}
+          />
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -318,46 +398,36 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Desktop: sidebar layout
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background text-foreground">
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header
-            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
-            role="banner"
-          >
-            <div className="flex items-center gap-3">
-              <UniversalSearch />
-              <ThemeToggle />
-              <NotificationBell />
-              <div className="ml-1">
-                <ProfileDropdown
-                  profile={profile}
-                  user={user}
-                  onEditProfile={() => setProfileEditOpen(true)}
-                  onSignOut={handleSignOut}
-                />
-              </div>
-            </div>
-          </header>
-          <main
-            id="main-content"
-            className="flex-1"
-            role="main"
-            tabIndex={-1}
-          >
-            {children}
-          </main>
+    <PageHeaderProvider>
+      <SidebarProvider defaultOpen={true}>
+        <div className="min-h-screen flex w-full bg-background text-foreground">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <DesktopHeader
+              profile={profile}
+              user={user}
+              onEditProfile={() => setProfileEditOpen(true)}
+              onSignOut={handleSignOut}
+            />
+            <main
+              id="main-content"
+              className="flex-1"
+              role="main"
+              tabIndex={-1}
+            >
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-      <ProfileSetupDialog />
-      <ProfileEditPanel
-        open={profileEditOpen}
-        onOpenChange={setProfileEditOpen}
-      />
-    </SidebarProvider>
+        <ProfileSetupDialog />
+        <ProfileEditPanel
+          open={profileEditOpen}
+          onOpenChange={setProfileEditOpen}
+        />
+      </SidebarProvider>
+    </PageHeaderProvider>
   );
 }
