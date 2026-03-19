@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,14 +22,13 @@ import {
 } from "@/components/ui/table";
 import {
   Pagination, PaginationContent, PaginationItem,
-  PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis,
+  PaginationLink, PaginationPrevious, PaginationNext,
 } from "@/components/ui/pagination";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
-  Users, Target, Info, HelpCircle, ExternalLink,
+  Users, Target, Info, HelpCircle, ExternalLink, ChevronUp, ChevronDown,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
-import type { ColDef } from "ag-grid-community";
 
 /* ── constants ─────────────────────────────────────── */
 const FOUNDATIONAL_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
