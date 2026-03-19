@@ -186,6 +186,9 @@ export default function UpdatesPage() {
                   {a.video_url && (
                     <Video className="h-4 w-4 text-primary shrink-0" aria-label="Has video" />
                   )}
+                  {!a.video_url && a.audio_url && (
+                    <Mic className="h-4 w-4 text-primary shrink-0" aria-label="Has audio" />
+                  )}
                 </div>
                 {isAdmin && (
                   <Button
