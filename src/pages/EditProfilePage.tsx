@@ -202,12 +202,6 @@ export default function EditProfilePage() {
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto">
           <div className="container-app max-w-3xl py-6">
-          <TabsList>
-            <TabsTrigger value="basic-info" className="gap-1.5">Basic Info</TabsTrigger>
-            <TabsTrigger value="training-goals" className="gap-1.5">Training Goals</TabsTrigger>
-            <TabsTrigger value="preferences" className="gap-1.5">Preferences</TabsTrigger>
-            <TabsTrigger value="account" className="gap-1.5">Account</TabsTrigger>
-          </TabsList>
 
           {/* ── Tab 1: Basic Info ── */}
           <TabsContent value="basic-info" className="space-y-6">
