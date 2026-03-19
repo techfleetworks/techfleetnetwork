@@ -152,8 +152,20 @@ export default function EditProfilePage() {
     }
 
     if (!isOAuth) {
-      if (!form.email.trim()) { setErrors({ email: "Email is required" }); return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { setErrors({ email: "Please enter a valid email" }); return; }
+      if (!form.email.trim()) {
+        setErrors({ email: "Email is required" });
+        toast.error("Please fix the following errors", { description: "Email" });
+        setActiveTab("basic-info");
+        setTimeout(() => document.getElementById("edit-email")?.focus(), 100);
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        setErrors({ email: "Please enter a valid email" });
+        toast.error("Please fix the following errors", { description: "Email" });
+        setActiveTab("basic-info");
+        setTimeout(() => document.getElementById("edit-email")?.focus(), 100);
+        return;
+      }
     }
 
     setErrors({});
