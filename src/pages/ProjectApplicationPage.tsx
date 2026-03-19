@@ -675,7 +675,7 @@ export default function ProjectApplicationPage() {
           <div className="flex items-center gap-2">
             {step === 1 && (
               <Button onClick={() => navigate("/applications/general")} disabled={isSaving}>
-                Go to General Application
+                I Need to Edit My General Application
               </Button>
             )}
             {step > 1 && (
