@@ -618,6 +618,86 @@ export default function ProjectAnalysisDetailPage() {
           </div>
         </CardContent>
       </Card>
+      {/* ── Multi-project applicants side panel ── */}
+      <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
+        <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
+          <SheetHeader>
+            <SheetTitle className="break-words">
+              Multi-project Applicants — {multiProjectSheet?.hat}
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-6rem)] mt-4 pr-3">
+            <div className="space-y-4">
+              {(() => {
+                if (!multiProjectSheet || !completedApps || !analysis) return null;
+                const hat = multiProjectSheet.hat;
+                // Find applicants who selected this hat AND are multi-project
+                const sharedForHat = completedApps.filter(
+                  (app) =>
+                    app.team_hats_interest.includes(hat) &&
+                    !analysis.uniqueUserIds.has(app.user_id),
+                );
+                if (sharedForHat.length === 0) {
+                  return <p className="text-sm text-muted-foreground">No multi-project applicants for this hat.</p>;
+                }
+                return sharedForHat.map((app) => {
+                  const profile = profileMap.get(app.user_id);
+                  const name =
+                    profile?.display_name ||
+                    `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() ||
+                    profile?.email ||
+                    "Unknown";
+                  const otherProjects = analysis.userCrossProjectDetail.get(app.user_id) ?? [];
+                  return (
+                    <div key={app.id} className="rounded-md border bg-card p-4 space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{name}</p>
+                        {profile?.email && (
+                          <p className="text-xs text-muted-foreground">{profile.email}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Hats applied for on this project
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {app.team_hats_interest.map((h) => (
+                            <Badge
+                              key={h}
+                              variant={h === hat ? "default" : "outline"}
+                              className="text-xs"
+                            >
+                              {h}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <Separator />
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Also applied to
+                        </p>
+                        {otherProjects.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">No other projects found</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {otherProjects.map((op) => (
+                              <Badge key={op.projectId} variant="secondary" className="text-xs gap-1">
+                                <ExternalLink className="h-3 w-3" />
+                                {op.clientName}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
