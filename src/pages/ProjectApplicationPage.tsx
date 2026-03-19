@@ -223,6 +223,33 @@ export default function ProjectApplicationPage() {
 
   const isCompleted = existingApp?.status === "completed";
 
+  /* ── push page context into the global header ──────────── */
+  const { setHeader } = usePageHeader();
+  const description = client?.name
+    ? `${client.name} — ${typeLabel(project?.project_type ?? "")} · ${phaseLabel(project?.phase ?? "")}`
+    : undefined;
+
+  useLayoutEffect(() => {
+    if (!project) return;
+    setHeader({
+      breadcrumbs: [
+        { label: "Project Openings", href: "/project-openings" },
+        { label: "Project Overview", href: `/project-openings/${projectId}` },
+        { label: "Create Application" },
+      ],
+      title: "Project Application",
+      description,
+      badge:
+        isCompleted && existingApp?.completed_at ? (
+          <Badge className="bg-success/10 text-success border-success/30 gap-1.5 whitespace-nowrap text-xs">
+            <CheckCircle2 className="h-3 w-3" />
+            Submitted {format(new Date(existingApp.completed_at), "MMM d, yyyy")}
+          </Badge>
+        ) : undefined,
+    });
+    return () => setHeader(null);
+  }, [project, client, isCompleted, existingApp?.completed_at, projectId, setHeader, description]);
+
   /* ── available team hats scoped to project ─────────────── */
   const availableHats = useMemo(
     () => (project?.team_hats ?? TEAM_HATS.map(String)).map((h) => ({ label: h, value: h })),
