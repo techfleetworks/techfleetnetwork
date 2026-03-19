@@ -50,9 +50,10 @@ export default function EditProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (profile) {
+    if (!initialized && profile) {
       setForm({
         firstName: profile.first_name || "",
         lastName: profile.last_name || "",
