@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper, ChevronRight,
+  PartyPopper,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { MultiSelect } from "@/components/ui/multi-select";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
