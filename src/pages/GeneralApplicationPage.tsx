@@ -7,9 +7,5 @@ const GeneralApplicationTab = lazy(() =>
 );
 
 export default function GeneralApplicationPage() {
-  return (
-    <div className="container-app py-8 sm:py-12">
-      <GeneralApplicationTab />
-    </div>
-  );
+  return <GeneralApplicationTab />;
 }

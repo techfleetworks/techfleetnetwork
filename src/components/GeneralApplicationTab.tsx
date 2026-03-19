@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Loader2,
-  ChevronRight,
   ArrowLeft,
   ArrowRight,
   Globe,
@@ -39,6 +38,8 @@ import {
 } from "@/services/general-application.service";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePageHeader } from "@/contexts/PageHeaderContext";
+import { format } from "date-fns";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import {
@@ -139,6 +140,10 @@ export function GeneralApplicationTab() {
   const [showCelebration, setShowCelebration] = useState(false);
   const formContainerRef = useRef<HTMLDivElement>(null);
   const initialLoadDone = useRef(false);
+
+  useEffect(() => {
+    formContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [section]);
 
   const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -246,6 +251,33 @@ export function GeneralApplicationTab() {
   };
 
   const isCompleted = activeApp?.status === "completed";
+
+  /* ── push page context into the global header ──────────── */
+  const { setHeader } = usePageHeader();
+  useLayoutEffect(() => {
+    const statusBadge = activeApp ? (
+      <Badge
+        variant={activeApp.status === "completed" ? "default" : "secondary"}
+        className={cn(
+          "text-xs whitespace-nowrap",
+          activeApp.status === "completed" && "bg-success/10 text-success border-success/30 gap-1"
+        )}
+      >
+        {activeApp.status === "completed" && <CheckCircle2 className="h-3 w-3" />}
+        {activeApp.status === "completed" ? "Completed" : "Draft"}
+      </Badge>
+    ) : undefined;
+
+    setHeader({
+      breadcrumbs: [
+        { label: "Applications", href: "/applications" },
+        { label: "General Application" },
+      ],
+      title: "General Application",
+      badge: statusBadge,
+    });
+    return () => setHeader(null);
+  }, [activeApp, setHeader]);
 
   const handleSave = async (markComplete = false) => {
     if (!activeApp) return;
@@ -401,442 +433,417 @@ export function GeneralApplicationTab() {
 
   // ─── FORM VIEW ──────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
-        <Link to="/applications" className="text-muted-foreground hover:text-foreground transition-colors">
-          Applications
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
-        <span className="font-medium text-foreground truncate">
-          General Application
-        </span>
-        {activeApp && (
-          <Badge
-            variant={activeApp.status === "completed" ? "default" : "secondary"}
-            className={cn("ml-2", activeApp.status === "completed" && "bg-success/10 text-success border-success/30")}
-          >
-            {activeApp.status === "completed" ? "Completed" : "Draft"}
-          </Badge>
-        )}
-      </nav>
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+      {/* ── Sticky Progress Bar ────────────────────────────── */}
+      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
+        <StepProgressBar
+          steps={SECTION_TITLES.map((label, i) => {
+            const s = i + 1;
+            const fieldErrors = getFieldErrors(s);
+            const isComplete = Object.keys(fieldErrors).length === 0;
+            const hasAnyInput = getSectionHasInput(s);
+            return {
+              label,
+              hasError: sectionsTouched.has(s) && !isComplete,
+              status: isComplete && hasAnyInput ? "completed" as const : hasAnyInput ? "started" as const : "not_started" as const,
+            };
+          })}
+          currentStep={section}
+          onStepClick={(s) => { setErrors({}); setSection(s); }}
+        />
+      </div>
 
-      {/* Step progress */}
-      <StepProgressBar
-        steps={SECTION_TITLES.map((label, i) => {
-          const s = i + 1;
-          const fieldErrors = getFieldErrors(s);
-          const isComplete = Object.keys(fieldErrors).length === 0;
-          const hasAnyInput = getSectionHasInput(s);
-          return {
-            label,
-            hasError: sectionsTouched.has(s) && !isComplete,
-            status: isComplete && hasAnyInput ? "completed" as const : hasAnyInput ? "started" as const : "not_started" as const,
-          };
-        })}
-        currentStep={section}
-        onStepClick={(s) => { setErrors({}); setSection(s); }}
-      />
-
-      <div className="card-elevated p-6 space-y-6" ref={formContainerRef}>
-        {/* Error summary banner */}
-        {Object.keys(errors).length > 0 && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
-            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-destructive">
-                Please fix {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "error" : "errors"} to continue
-              </p>
-              <ul className="text-sm text-destructive/90 list-disc list-inside space-y-0.5">
-                {Object.values(errors).map((msg, i) => (
-                  <li key={i}>{msg}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Section {section}: {SECTION_TITLES[section - 1]}</h2>
-          {section === 2 && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Here are some questions that are stored in your profile. Feel free to update them while you're filling out the general application.
-            </p>
-          )}
-        </div>
-
-        {/* ─── SECTION 1: Basic Information ─── */}
-        {section === 1 && (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label className="text-base font-medium">
-                Tech Fleet project trainees are expected to commit 15 to 20 hours on project team training. This is flexible, and your team builds the schedule together based on their availability. Are you committed to contribute 15 to 20 hours a week during project training? <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex flex-col gap-2">
-                {["yes", "no", "not_sure"].map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => updateField("hours_commitment", val)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border-2 transition-all",
-                      form.hours_commitment === val ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="font-medium text-foreground">
-                      {val === "yes" ? "Yes" : val === "no" ? "No" : "I'm not sure"}
-                    </span>
-                  </button>
-                ))}
+      {/* ── Scrollable Content ─────────────────────────────── */}
+      <div ref={formContainerRef} className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
+          <div className="card-elevated p-6 space-y-6">
+            {/* Error summary banner */}
+            {Object.keys(errors).length > 0 && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex gap-3" role="alert" aria-live="assertive">
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-destructive">
+                    Please fix {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "error" : "errors"} to continue
+                  </p>
+                  <ul className="text-sm text-destructive/90 list-disc list-inside space-y-0.5">
+                    {Object.values(errors).map((msg, i) => (
+                      <li key={i}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-              {errors.hours_commitment && (
-                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                  <AlertCircle className="h-3 w-3" /> {errors.hours_commitment}
+            )}
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Section {section}: {SECTION_TITLES[section - 1]}</h2>
+              {section === 2 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Here are some questions that are stored in your profile. Feel free to update them while you're filling out the general application.
                 </p>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="app-portfolio">Portfolio URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
-              <Input
-                id="app-portfolio"
-                type="url"
-                value={form.portfolio_url}
-                onChange={(e) => updateField("portfolio_url", e.target.value)}
-                placeholder="https://yourportfolio.com"
-                maxLength={500}
-              />
-            </div>
+            {/* ─── SECTION 1: Basic Information ─── */}
+            {section === 1 && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">
+                    Tech Fleet project trainees are expected to commit 15 to 20 hours on project team training. This is flexible, and your team builds the schedule together based on their availability. Are you committed to contribute 15 to 20 hours a week during project training? <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex flex-col gap-2">
+                    {["yes", "no", "not_sure"].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => updateField("hours_commitment", val)}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border-2 transition-all",
+                          form.hours_commitment === val ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <span className="font-medium text-foreground">
+                          {val === "yes" ? "Yes" : val === "no" ? "No" : "I'm not sure"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.hours_commitment && (
+                    <p className="text-sm text-destructive flex items-center gap-1" role="alert">
+                      <AlertCircle className="h-3 w-3" /> {errors.hours_commitment}
+                    </p>
+                  )}
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="app-linkedin">LinkedIn URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
-              <Input
-                id="app-linkedin"
-                type="url"
-                value={form.linkedin_url}
-                onChange={(e) => updateField("linkedin_url", e.target.value)}
-                placeholder="https://linkedin.com/in/yourprofile"
-                maxLength={500}
-              />
-            </div>
-          </div>
-        )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="app-portfolio">Portfolio URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    id="app-portfolio"
+                    type="url"
+                    value={form.portfolio_url}
+                    onChange={(e) => updateField("portfolio_url", e.target.value)}
+                    placeholder="https://yourportfolio.com"
+                    maxLength={500}
+                  />
+                </div>
 
-        {/* ─── SECTION 2: Review and Update Profile ─── */}
-        {section === 2 && (
-          <div className="space-y-6">
-            {/* Location */}
-            <div className="space-y-1.5">
-              <Label>Location <span className="text-destructive">*</span></Label>
-              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={countryOpen}
-                    className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")}
-                    aria-invalid={!!errors.country}
-                  >
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    {form.country || "Select a country"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search countries..." />
-                    <CommandList>
-                      <CommandEmpty>No country found.</CommandEmpty>
-                      <CommandGroup>
-                        {COUNTRIES.map((c) => (
-                          <CommandItem key={c.code} value={c.name} onSelect={() => { updateField("country", c.name); setCountryOpen(false); }}>
-                            <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
-            </div>
-
-            {/* Discord */}
-            <div className="space-y-1.5">
-              <Label htmlFor="app-discord">Discord Username</Label>
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="app-discord"
-                  value={form.discord_username}
-                  onChange={(e) => updateField("discord_username", e.target.value)}
-                  placeholder="username"
-                  className="pl-10"
-                  maxLength={100}
-                />
-              </div>
-            </div>
-
-            {/* Timezone */}
-            <div className="space-y-1.5">
-              <Label>Timezone <span className="text-destructive">*</span></Label>
-              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={timezoneOpen}
-                    className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
-                    aria-invalid={!!errors.timezone}
-                  >
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search timezones..." />
-                    <CommandList>
-                      <CommandEmpty>No timezone found.</CommandEmpty>
-                      <CommandGroup>
-                        {TIMEZONES.map((tz) => (
-                          <CommandItem key={tz.value} value={tz.label} onSelect={() => { updateField("timezone", tz.value); setTimezoneOpen(false); }}>
-                            <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
-                            {tz.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
-            </div>
-
-            {/* Experience Areas */}
-            <div className="space-y-1.5">
-              <Label>In what areas do you want to gain experience on Tech Fleet's training programs? <span className="text-destructive">*</span></Label>
-              <MultiSelect
-                options={experienceOptions}
-                selected={form.experience_areas}
-                onChange={(v) => updateField("experience_areas", v)}
-                placeholder="Search and select areas..."
-                emptyMessage="No specializations found."
-                aria-label="Experience areas"
-                aria-invalid={!!errors.experience_areas}
-              />
-              {errors.experience_areas && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.experience_areas}</p>}
-            </div>
-
-            {/* Professional Goals */}
-            <div className="space-y-1.5">
-              <Label htmlFor="app-goals">Tell us more about the professional development goals you want to achieve <span className="text-destructive">*</span></Label>
-              <Textarea
-                id="app-goals"
-                value={form.professional_goals}
-                onChange={(e) => updateField("professional_goals", e.target.value)}
-                placeholder="Describe your professional development goals..."
-                className="min-h-[120px] resize-y"
-                maxLength={5000}
-                aria-invalid={!!errors.professional_goals}
-              />
-              <p className="text-xs text-muted-foreground text-right">{form.professional_goals.length} / 5,000</p>
-              {errors.professional_goals && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.professional_goals}</p>}
-            </div>
-
-            {/* Notify */}
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="app-notify"
-                checked={form.notify_training_opportunities}
-                onCheckedChange={(checked) => updateField("notify_training_opportunities", !!checked)}
-              />
-              <Label htmlFor="app-notify" className="text-sm leading-relaxed cursor-pointer">
-                Would you like us to notify you in the application when there are training opportunities that match your preferences?
-              </Label>
-            </div>
-
-            {/* Education */}
-            <div className="space-y-1.5">
-              <Label>What best describes your current or previous education? <span className="text-destructive">*</span></Label>
-              <MultiSelect
-                options={educationOptions}
-                selected={form.education_background}
-                onChange={(v) => updateField("education_background", v)}
-                placeholder="Search and select education..."
-                emptyMessage="No options found."
-                aria-label="Education background"
-                aria-invalid={!!errors.education_background}
-              />
-              {errors.education_background && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.education_background}</p>}
-            </div>
-          </div>
-        )}
-
-        {/* ─── SECTION 3: Previous Engagement ─── */}
-        {section === 3 && (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label className="text-base font-medium">
-                Have you previously engaged in Tech Fleet community before? <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex flex-col gap-2">
-                {["yes", "no"].map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => {
-                      updateField("previous_engagement", val);
-                      if (val === "no") updateField("previous_engagement_ways", []);
-                    }}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border-2 transition-all",
-                      form.previous_engagement === val ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="font-medium text-foreground">{val === "yes" ? "Yes" : "No"}</span>
-                  </button>
-                ))}
-              </div>
-              {errors.previous_engagement && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.previous_engagement}</p>}
-            </div>
-
-            {form.previous_engagement === "yes" && (
-              <div className="space-y-1.5">
-                <Label>In what ways have you previously engaged in the Tech Fleet community so far? <span className="text-destructive">*</span></Label>
-                <MultiSelect
-                  options={engagementOptions}
-                  selected={form.previous_engagement_ways}
-                  onChange={(v) => updateField("previous_engagement_ways", v)}
-                  placeholder="Search and select engagement types..."
-                  emptyMessage="No options found."
-                  aria-label="Previous engagement ways"
-                  aria-invalid={!!errors.previous_engagement_ways}
-                />
-                {errors.previous_engagement_ways && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.previous_engagement_ways}</p>}
+                <div className="space-y-1.5">
+                  <Label htmlFor="app-linkedin">LinkedIn URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    id="app-linkedin"
+                    type="url"
+                    value={form.linkedin_url}
+                    onChange={(e) => updateField("linkedin_url", e.target.value)}
+                    placeholder="https://linkedin.com/in/yourprofile"
+                    maxLength={500}
+                  />
+                </div>
               </div>
             )}
 
-            {form.previous_engagement === "yes" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="app-teammate-learnings">What have you learned about being a teammate after engaging in Tech Fleet so far?</Label>
-                <Textarea
-                  id="app-teammate-learnings"
-                  value={form.teammate_learnings}
-                  onChange={(e) => updateField("teammate_learnings", e.target.value)}
-                  placeholder="Share what you've learned about teamwork..."
-                  className="min-h-[120px] resize-y"
-                  maxLength={5000}
+            {/* ─── SECTION 2: Review and Update Profile ─── */}
+            {section === 2 && (
+              <div className="space-y-6">
+                {/* Location */}
+                <div className="space-y-1.5">
+                  <Label>Location <span className="text-destructive">*</span></Label>
+                  <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={countryOpen}
+                        className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")}
+                        aria-invalid={!!errors.country}
+                      >
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        {form.country || "Select a country"}
+                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search countries..." />
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup>
+                            {COUNTRIES.map((c) => (
+                              <CommandItem key={c.code} value={c.name} onSelect={() => { updateField("country", c.name); setCountryOpen(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
+                </div>
+
+                {/* Discord */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="app-discord">Discord Username</Label>
+                  <div className="relative">
+                    <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="app-discord"
+                      value={form.discord_username}
+                      onChange={(e) => updateField("discord_username", e.target.value)}
+                      placeholder="username"
+                      className="pl-10"
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+
+                {/* Timezone */}
+                <div className="space-y-1.5">
+                  <Label>Timezone <span className="text-destructive">*</span></Label>
+                  <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={timezoneOpen}
+                        className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")}
+                        aria-invalid={!!errors.timezone}
+                      >
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}
+                        <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search timezones..." />
+                        <CommandList>
+                          <CommandEmpty>No timezone found.</CommandEmpty>
+                          <CommandGroup>
+                            {TIMEZONES.map((tz) => (
+                              <CommandItem key={tz.value} value={tz.label} onSelect={() => { updateField("timezone", tz.value); setTimezoneOpen(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
+                                {tz.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
+                </div>
+
+                {/* Experience */}
+                <div className="space-y-1.5">
+                  <Label>Experience Areas <span className="text-destructive">*</span></Label>
+                  <MultiSelect
+                    options={experienceOptions}
+                    selected={form.experience_areas}
+                    onChange={(v) => updateField("experience_areas", v)}
+                    placeholder="Select areas of experience"
+                  />
+                  {errors.experience_areas && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.experience_areas}</p>}
+                </div>
+
+                {/* Education */}
+                <div className="space-y-1.5">
+                  <Label>Education Background <span className="text-destructive">*</span></Label>
+                  <MultiSelect
+                    options={educationOptions}
+                    selected={form.education_background}
+                    onChange={(v) => updateField("education_background", v)}
+                    placeholder="Select education background"
+                  />
+                  {errors.education_background && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.education_background}</p>}
+                </div>
+
+                {/* Professional Goals */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="app-goals" className="text-base font-semibold leading-relaxed">
+                    Professional Goals <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="app-goals"
+                    value={form.professional_goals}
+                    onChange={(e) => updateField("professional_goals", e.target.value)}
+                    className="min-h-[120px] resize-y"
+                    maxLength={5000}
+                    aria-invalid={!!errors.professional_goals}
+                    aria-describedby="app-goals-count"
+                  />
+                  <p id="app-goals-count" className="text-xs text-muted-foreground text-right">{form.professional_goals.length} / 5,000</p>
+                  {errors.professional_goals && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.professional_goals}</p>}
+                </div>
+
+                {/* Training notifications opt-in */}
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="app-notify-training"
+                    checked={form.notify_training_opportunities}
+                    onCheckedChange={(checked) => updateField("notify_training_opportunities", !!checked)}
+                  />
+                  <Label htmlFor="app-notify-training" className="text-sm leading-relaxed cursor-pointer">
+                    I'd like to receive notifications about new training opportunities
+                  </Label>
+                </div>
+              </div>
+            )}
+
+            {/* ─── SECTION 3: Engagement History ─── */}
+            {section === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">
+                    Have you previously engaged with Tech Fleet? <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex flex-col gap-2">
+                    {["yes", "no"].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => updateField("previous_engagement", val)}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border-2 transition-all",
+                          form.previous_engagement === val ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <span className="font-medium text-foreground">{val === "yes" ? "Yes" : "No"}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.previous_engagement && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.previous_engagement}</p>}
+                </div>
+
+                {form.previous_engagement === "yes" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>How have you engaged with Tech Fleet? <span className="text-destructive">*</span></Label>
+                      <MultiSelect
+                        options={engagementOptions}
+                        selected={form.previous_engagement_ways}
+                        onChange={(v) => updateField("previous_engagement_ways", v)}
+                        placeholder="Select engagement types"
+                      />
+                      {errors.previous_engagement_ways && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.previous_engagement_ways}</p>}
+                    </div>
+
+                    <LongFormQuestion
+                      id="teammate-learnings"
+                      label="What have you learned from your teammates at Tech Fleet?"
+                      value={form.teammate_learnings}
+                      onChange={(v) => updateField("teammate_learnings", v)}
+                      error={errors.teammate_learnings}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ─── SECTION 4: Agile Mindset ─── */}
+            {section === 4 && (
+              <div className="space-y-6">
+                <LongFormQuestion
+                  id="agile-waterfall"
+                  label="What is the difference between Agile and Waterfall methodologies? In your own words, why is Agile preferred in modern product development?"
+                  value={form.agile_vs_waterfall}
+                  onChange={(v) => updateField("agile_vs_waterfall", v)}
+                  error={errors.agile_vs_waterfall}
+                  required
                 />
-                <p className="text-xs text-muted-foreground text-right">{form.teammate_learnings.length} / 5,000</p>
+                <LongFormQuestion
+                  id="psych-safety"
+                  label="What does psychological safety mean to you? How would you contribute to creating a psychologically safe environment within your project team?"
+                  value={form.psychological_safety}
+                  onChange={(v) => updateField("psychological_safety", v)}
+                  error={errors.psychological_safety}
+                  required
+                />
+                <LongFormQuestion
+                  id="agile-philosophies"
+                  label="Which Agile philosophies or frameworks (e.g., Scrum, Kanban, Lean) resonate with you the most, and why?"
+                  value={form.agile_philosophies}
+                  onChange={(v) => updateField("agile_philosophies", v)}
+                  error={errors.agile_philosophies}
+                  required
+                />
+                <LongFormQuestion
+                  id="collab-challenges"
+                  label="Describe a time when you faced a challenge collaborating with others. How did you handle it, and what did you learn?"
+                  value={form.collaboration_challenges}
+                  onChange={(v) => updateField("collaboration_challenges", v)}
+                  error={errors.collaboration_challenges}
+                  required
+                />
+              </div>
+            )}
+
+            {/* ─── SECTION 5: Service Leadership ─── */}
+            {section === 5 && (
+              <div className="space-y-6">
+                <LongFormQuestion
+                  id="sl-definition"
+                  label="What does servant leadership mean to you?"
+                  value={form.servant_leadership_definition}
+                  onChange={(v) => updateField("servant_leadership_definition", v)}
+                  error={errors.servant_leadership_definition}
+                  required
+                />
+                <LongFormQuestion
+                  id="sl-actions"
+                  label="What actions would you take to demonstrate servant leadership within your project team?"
+                  value={form.servant_leadership_actions}
+                  onChange={(v) => updateField("servant_leadership_actions", v)}
+                  error={errors.servant_leadership_actions}
+                  required
+                />
+                <LongFormQuestion
+                  id="sl-challenges"
+                  label="What are some challenges you might face in practicing servant leadership, and how would you address them?"
+                  value={form.servant_leadership_challenges}
+                  onChange={(v) => updateField("servant_leadership_challenges", v)}
+                  error={errors.servant_leadership_challenges}
+                  required
+                />
+                <LongFormQuestion
+                  id="sl-situation"
+                  label="What would you do in a situation where a person on a team is not acting as a servant leader to you or to others?"
+                  value={form.servant_leadership_situation}
+                  onChange={(v) => updateField("servant_leadership_situation", v)}
+                  error={errors.servant_leadership_situation}
+                  required
+                />
               </div>
             )}
           </div>
-        )}
-
-        {/* ─── SECTION 4: Agile Questions ─── */}
-        {section === 4 && (
-          <div className="space-y-6">
-            <LongFormQuestion
-              id="agile-waterfall"
-              label="What's the difference between Agile and Waterfall methods?"
-              value={form.agile_vs_waterfall}
-              onChange={(v) => updateField("agile_vs_waterfall", v)}
-              error={errors.agile_vs_waterfall}
-              required
-            />
-            <LongFormQuestion
-              id="psych-safety"
-              label="How do you approach building psychologically safe environments on teams as a teammate?"
-              value={form.psychological_safety}
-              onChange={(v) => updateField("psychological_safety", v)}
-              error={errors.psychological_safety}
-              required
-            />
-            <LongFormQuestion
-              id="agile-philosophies"
-              label="How do you apply the Agile philosophies in your day-to-day work while working on teams?"
-              value={form.agile_philosophies}
-              onChange={(v) => updateField("agile_philosophies", v)}
-              error={errors.agile_philosophies}
-              required
-            />
-            <LongFormQuestion
-              id="collab-challenges"
-              label="What, if any, challenges have you faced while collaborating with different people teams? How have you tried to solve those challenges?"
-              value={form.collaboration_challenges}
-              onChange={(v) => updateField("collaboration_challenges", v)}
-              error={errors.collaboration_challenges}
-              required
-            />
-          </div>
-        )}
-
-        {/* ─── SECTION 5: Service Leadership ─── */}
-        {section === 5 && (
-          <div className="space-y-6">
-            <LongFormQuestion
-              id="sl-definition"
-              label="What is Service Leadership to you?"
-              value={form.servant_leadership_definition}
-              onChange={(v) => updateField("servant_leadership_definition", v)}
-              error={errors.servant_leadership_definition}
-              required
-            />
-            <LongFormQuestion
-              id="sl-actions"
-              label="In what ways would you / do you act as a Servant Leader to yourself and others on teams as a cross-functional teammate?"
-              value={form.servant_leadership_actions}
-              onChange={(v) => updateField("servant_leadership_actions", v)}
-              error={errors.servant_leadership_actions}
-              required
-            />
-            <LongFormQuestion
-              id="sl-challenges"
-              label="What challenges do you currently face in Servant Leadership that you are working on?"
-              value={form.servant_leadership_challenges}
-              onChange={(v) => updateField("servant_leadership_challenges", v)}
-              error={errors.servant_leadership_challenges}
-              required
-            />
-            <LongFormQuestion
-              id="sl-situation"
-              label="What would you do in a situation where a person on a team is not acting as a servant leader to you or to others?"
-              value={form.servant_leadership_situation}
-              onChange={(v) => updateField("servant_leadership_situation", v)}
-              error={errors.servant_leadership_situation}
-              required
-            />
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Navigation & Save */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {section > 1 && (
-            <Button variant="outline" onClick={handleBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Previous
+      {/* ── Sticky Footer CTAs ─────────────────────────────── */}
+      <div className="shrink-0 border-t bg-background px-4 sm:px-6 py-3">
+        <div className="max-w-3xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex gap-2">
+            {section > 1 && (
+              <Button variant="outline" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Previous
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving…" : isCompleted ? "Save Changes" : "Save Draft"}
             </Button>
-          )}
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving…" : isCompleted ? "Save Changes" : "Save Draft"}
-          </Button>
-          {section < TOTAL_SECTIONS ? (
-            <Button onClick={handleNext} disabled={saving}>
-              Next <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button onClick={() => handleSave(true)} disabled={saving || !canSubmit()}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              {saving ? "Submitting…" : isCompleted ? "Update Application" : "Submit Application"}
-            </Button>
-          )}
+            {section < TOTAL_SECTIONS ? (
+              <Button onClick={handleNext} disabled={saving}>
+                Next <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button onClick={() => handleSave(true)} disabled={saving || !canSubmit()}>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {saving ? "Submitting…" : isCompleted ? "Update Application" : "Submit Application"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
