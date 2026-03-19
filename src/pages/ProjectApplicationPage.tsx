@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
-  Loader2, ArrowLeft, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper,
+  Loader2, CheckCircle2, Globe, User, ExternalLink,
+  PartyPopper, AlertTriangle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { Button } from "@/components/ui/button";
@@ -442,6 +442,29 @@ export default function ProjectApplicationPage() {
   }
 
   const isSaving = saveMutation.isPending;
+
+  /* ── Gate: require completed general application ───────── */
+  const genAppComplete = genApp?.status === "completed";
+  if (!genAppComplete) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] px-4">
+        <div className="max-w-md w-full text-center space-y-6 card-elevated p-8 animate-fade-in">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-warning/10">
+            <AlertTriangle className="h-8 w-8 text-warning" />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">
+            Whoops! You haven't filled out the General App yet!
+          </h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            You need to enter some important information first before applying to projects. We can help you get there! Click on the button to finish the General Application and then we can get you going with Project Applications.
+          </p>
+          <Button onClick={() => navigate("/applications/general")} className="w-full">
+            Go to General Application
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
