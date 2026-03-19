@@ -146,6 +146,7 @@ export default function ProjectAnalysisDetailPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { setHeader } = usePageHeader();
   const gridApiRef = useRef<GridApi | null>(null);
+  const [multiProjectSheet, setMultiProjectSheet] = useState<{ hat: string } | null>(null);
 
   /* ── data fetching ──────────────────────────────── */
   const { data: project, isLoading: projLoading } = useQuery({
