@@ -97,8 +97,10 @@ interface EnrichedApp extends ProjectApp {
   client?: ClientRow;
   profile?: ProfileRow;
   generalApp?: GeneralApp;
-  otherApplyNowCount: number;
-  totalApplyNowCount: number;
+  /** How many apply_now projects this user applied to */
+  userApplyNowCount: number;
+  /** Total number of projects currently accepting applications */
+  totalApplyNowProjects: number;
 }
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
