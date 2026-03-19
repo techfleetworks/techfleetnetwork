@@ -92,6 +92,81 @@ function ProfileDropdown({
   );
 }
 
+/* ── Desktop header with optional page context ────────── */
+function DesktopHeader({
+  profile,
+  user,
+  onEditProfile,
+  onSignOut,
+}: {
+  profile: Profile | null;
+  user: User | null;
+  onEditProfile: () => void;
+  onSignOut: () => void;
+}) {
+  const { header } = usePageHeader();
+
+  return (
+    <header
+      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
+      role="banner"
+      style={{ minHeight: header ? undefined : "3rem" }}
+    >
+      {/* Left: page context */}
+      {header ? (
+        <div className="flex flex-col justify-center py-1.5 min-w-0 mr-4">
+          {header.breadcrumbs && header.breadcrumbs.length > 0 && (
+            <Breadcrumb>
+              <BreadcrumbList className="text-xs">
+                {header.breadcrumbs.map((crumb, i) => (
+                  <Fragment key={i}>
+                    {i > 0 && <BreadcrumbSeparator />}
+                    <BreadcrumbItem>
+                      {crumb.href ? (
+                        <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </Fragment>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          <div className="flex items-center gap-2">
+            {header.title && (
+              <h1 className="text-sm font-semibold text-foreground truncate">{header.title}</h1>
+            )}
+            {header.description && (
+              <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                — {header.description}
+              </span>
+            )}
+            {header.badge && <div className="shrink-0">{header.badge}</div>}
+          </div>
+        </div>
+      ) : (
+        <div />
+      )}
+
+      {/* Right: controls */}
+      <div className="flex items-center gap-3 shrink-0">
+        <UniversalSearch />
+        <ThemeToggle />
+        <NotificationBell />
+        <div className="ml-1">
+          <ProfileDropdown
+            profile={profile}
+            user={user}
+            onEditProfile={onEditProfile}
+            onSignOut={onSignOut}
+          />
+        </div>
+      </div>
+    </header>
+  );
+}
+
 interface AppLayoutProps {
   children: React.ReactNode;
 }
