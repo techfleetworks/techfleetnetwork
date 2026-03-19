@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
-  Rocket, PlayCircle, Clock,
+  Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
+import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
