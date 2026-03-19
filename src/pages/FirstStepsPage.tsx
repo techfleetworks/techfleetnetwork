@@ -80,11 +80,13 @@ const joinDiscordTask: Omit<Task, "completed"> = {
 };
 
 export default function FirstStepsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, profileLoaded } = useAuth();
   const queryClient = useQueryClient();
 
   // Build task list: include "join-discord" only if user has no discord username
+  // Wait for profile to load to avoid flashing wrong count
   const taskDefs = (() => {
+    if (!profileLoaded) return baseTasks; // default to 5 until profile is known
     const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
     if (hasDiscord) return baseTasks;
     const idx = baseTasks.findIndex((t) => t.id === "profile");
