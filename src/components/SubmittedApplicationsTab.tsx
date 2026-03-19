@@ -395,11 +395,11 @@ export default function SubmittedApplicationsTab() {
                     ? <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Previous Participant</>
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
                 </div>
-                {app.totalApplyNowCount > 1 && (
+                {app.userApplyNowCount > 0 && (
                   <div className="flex items-center gap-1.5 text-xs">
                     <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                     <span className="text-warning font-medium">
-                      {app.otherApplyNowCount} other active {app.otherApplyNowCount === 1 ? "application" : "applications"}
+                      {app.userApplyNowCount} of {app.totalApplyNowProjects} active {app.totalApplyNowProjects === 1 ? "project" : "projects"}
                     </span>
                   </div>
                 )}
