@@ -461,10 +461,16 @@ export default function ProjectAnalysisDetailPage() {
             <span className="text-xs text-muted-foreground">exclusive</span>
           </div>
           <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5" title="Applicants who selected this hat but also applied to other projects">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default"
+            title="Click to view multi-project applicants for this hat"
+            disabled={bd.shared === 0}
+            onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
+          >
             <span className="text-sm font-semibold text-warning">{bd.shared}</span>
             <span className="text-xs text-muted-foreground">multi-project</span>
-          </div>
+          </button>
           <span className="text-muted-foreground/40">|</span>
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-semibold text-foreground">{bd.total}</span>
