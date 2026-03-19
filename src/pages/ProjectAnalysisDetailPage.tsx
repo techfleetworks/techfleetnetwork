@@ -634,7 +634,7 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
               <span className="text-primary">{details.hatScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Scored per foundational hat based on <strong>unique</strong> applicants: ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats on this project.
+              Scored per foundational hat based on <strong>exclusive</strong> applicants (people who selected the hat and only applied to this project): ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats. Multi-project applicants are not counted.
             </p>
             <div className="space-y-1 pl-3 border-l-2 border-muted">
               {details.hatDetails.map((h) => (
