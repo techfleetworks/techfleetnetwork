@@ -46,6 +46,7 @@ const ClientsPage = lazy(() => import("./pages/ClientsPage"));
 const ProjectFormPage = lazy(() => import("./pages/ProjectFormPage"));
 const ProjectApplicationPage = lazy(() => import("./pages/ProjectApplicationPage"));
 const ProjectOpeningDetailPage = lazy(() => import("./pages/ProjectOpeningDetailPage"));
+const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 
 function RouteFallback() {
   return (
