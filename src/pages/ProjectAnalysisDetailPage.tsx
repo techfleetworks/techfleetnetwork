@@ -494,7 +494,7 @@ export default function ProjectAnalysisDetailPage() {
             <div className={`text-4xl font-bold ${scoreColor}`}>{score}%</div>
             <Progress value={score} className="mt-3 h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Based on <strong>unique</strong> applicants per foundational hat (50%), other roles (20%), unique applicant ratio (15%), and previous phase participation (15%).
+              Based on <strong>exclusive</strong> applicants per foundational hat — people who selected the hat <em>and</em> only applied to this project (50%), other roles (20%), exclusive applicant ratio (15%), and previous phase participation (15%).
             </p>
           </CardContent>
         </Card>
