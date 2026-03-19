@@ -145,6 +145,7 @@ export function GeneralApplicationTab() {
     formContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, [section]);
 
+  const updateField = <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     // Clear error for this field as user corrects it
     if (errors[key]) {
