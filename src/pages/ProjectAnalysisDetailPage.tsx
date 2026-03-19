@@ -401,10 +401,9 @@ export default function ProjectAnalysisDetailPage() {
 
   const score = analysis?.readinessScore ?? 0;
   let scoreColor = "text-destructive";
-  let scoreBg = "bg-destructive/10";
-  if (score >= 75) { scoreColor = "text-success"; scoreBg = "bg-success/10"; }
-  else if (score >= 50) { scoreColor = "text-warning"; scoreBg = "bg-warning/10"; }
-  else if (score >= 25) { scoreColor = "text-orange-500"; scoreBg = "bg-orange-500/10"; }
+  if (score >= 75) { scoreColor = "text-success"; }
+  else if (score >= 50) { scoreColor = "text-warning"; }
+  else if (score >= 25) { scoreColor = "text-orange-500"; }
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-8">
