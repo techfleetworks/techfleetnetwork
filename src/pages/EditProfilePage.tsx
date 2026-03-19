@@ -226,7 +226,7 @@ export default function EditProfilePage() {
       noValidate
       className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in"
     >
-      <Tabs defaultValue="basic-info" className="flex flex-col flex-1 min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         {/* Sticky tabs */}
         <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2">
           {errors.general && (
