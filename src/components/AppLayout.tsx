@@ -331,24 +331,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         </a>
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header
-            className="sticky top-0 z-40 h-12 flex items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
-            role="banner"
-          >
-            <div className="flex items-center gap-3">
-              <UniversalSearch />
-              <ThemeToggle />
-              <NotificationBell />
-              <div className="ml-1">
-                <ProfileDropdown
-                  profile={profile}
-                  user={user}
-                  onEditProfile={() => setProfileEditOpen(true)}
-                  onSignOut={handleSignOut}
-                />
-              </div>
-            </div>
-          </header>
+          <DesktopHeader
+            profile={profile}
+            user={user}
+            onEditProfile={() => setProfileEditOpen(true)}
+            onSignOut={handleSignOut}
+          />
           <main
             id="main-content"
             className="flex-1"
