@@ -386,7 +386,10 @@ export function GeneralApplicationTab() {
       try {
         const fields = gatherSaveFields();
         fields.current_section = nextSection;
-        fields.status = "draft";
+        // Preserve "completed" status — only set draft for non-completed apps
+        if (!isCompleted) {
+          fields.status = "draft";
+        }
         await GeneralApplicationService.save(activeApp.id, fields);
         await syncProfileFields();
         const updated = await GeneralApplicationService.fetch(activeApp.id);
