@@ -233,6 +233,17 @@ export default function UpdatesPage() {
                   aria-label="Announcement video"
                 />
               )}
+              {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                  <Mic className="h-5 w-5 text-primary shrink-0" />
+                  <audio
+                    src={selectedAnnouncement.audio_url}
+                    controls
+                    className="w-full h-10"
+                    aria-label="Announcement audio"
+                  />
+                </div>
+              )}
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
