@@ -13,10 +13,14 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import {
   Loader2, ShieldAlert, CheckCircle2, AlertTriangle, XCircle,
-  Users, Target, Info, HelpCircle,
+  Users, Target, Info, HelpCircle, ExternalLink,
 } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 import type { ColDef, GridReadyEvent, GridApi } from "ag-grid-community";
