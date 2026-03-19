@@ -97,8 +97,10 @@ interface EnrichedApp extends ProjectApp {
   client?: ClientRow;
   profile?: ProfileRow;
   generalApp?: GeneralApp;
-  otherApplyNowCount: number;
-  totalApplyNowCount: number;
+  /** How many apply_now projects this user applied to */
+  userApplyNowCount: number;
+  /** Total number of projects currently accepting applications */
+  totalApplyNowProjects: number;
 }
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
@@ -163,6 +165,16 @@ export default function SubmittedApplicationsTab() {
     enabled: clientIds.length > 0,
   });
 
+  // Fetch total count of projects currently accepting applications
+  const { data: allApplyNowProjects } = useQuery({
+    queryKey: ["admin-all-apply-now-projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("id").eq("project_status", "apply_now");
+      if (error) throw error;
+      return (data ?? []) as { id: string }[];
+    },
+  });
+
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles-for-apps-full", apps?.map((a) => a.user_id)],
     queryFn: async () => {
@@ -187,6 +199,9 @@ export default function SubmittedApplicationsTab() {
     return map;
   }, [generalApps]);
 
+  const totalApplyNowProjects = (allApplyNowProjects ?? []).length;
+  const applyNowProjectIds = useMemo(() => new Set((allApplyNowProjects ?? []).map((p) => p.id)), [allApplyNowProjects]);
+
   const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
       const proj = projectMap.get(a.project_id);
@@ -195,20 +210,19 @@ export default function SubmittedApplicationsTab() {
       const genApp = generalAppMap.get(a.user_id);
       return { ...a, project: proj, client: cli, profile: prof, generalApp: genApp };
     });
+    // Count how many apply_now projects each user applied to
     const userApplyNowCounts = new Map<string, number>();
     for (const item of items) {
-      if (item.project?.project_status === "apply_now") {
+      if (applyNowProjectIds.has(item.project_id)) {
         userApplyNowCounts.set(item.user_id, (userApplyNowCounts.get(item.user_id) ?? 0) + 1);
       }
     }
     return items.map((item) => ({
       ...item,
-      otherApplyNowCount: item.project?.project_status === "apply_now"
-        ? (userApplyNowCounts.get(item.user_id) ?? 1) - 1
-        : userApplyNowCounts.get(item.user_id) ?? 0,
-      totalApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+      userApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
+      totalApplyNowProjects,
     }));
-  }, [apps, projectMap, clientMap, profileMap, generalAppMap]);
+  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects]);
 
   // Build AG Grid columnDefs mapped by colId to the ALL_COLUMNS keys
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => {
@@ -221,7 +235,7 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Phase", colId: "phase", flex: 1, valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? "") },
       { headerName: "Project Status", colId: "project_status", flex: 1, valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? "") },
       { headerName: "Previous Participant?", colId: "previous_participant", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No" },
-      { headerName: "Other Active Apps", colId: "other_active_apps", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.otherApplyNowCount ?? 0 },
+      { headerName: "Active Apps", colId: "other_active_apps", flex: 1, minWidth: 140, valueGetter: (p) => p.data?.userApplyNowCount ?? 0, valueFormatter: (p) => `${p.data?.userApplyNowCount ?? 0} of ${p.data?.totalApplyNowProjects ?? 0}` },
       { headerName: "Date Submitted", colId: "date_submitted", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.completed_at, valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—" },
       { headerName: "Team Hats Interest", colId: "team_hats_interest", flex: 2, valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", ") },
 
@@ -381,11 +395,11 @@ export default function SubmittedApplicationsTab() {
                     ? <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Previous Participant</>
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
                 </div>
-                {app.totalApplyNowCount > 1 && (
+                {app.userApplyNowCount > 0 && (
                   <div className="flex items-center gap-1.5 text-xs">
                     <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                     <span className="text-warning font-medium">
-                      {app.otherApplyNowCount} other active {app.otherApplyNowCount === 1 ? "application" : "applications"}
+                      {app.userApplyNowCount} of {app.totalApplyNowProjects} active {app.totalApplyNowProjects === 1 ? "project" : "projects"}
                     </span>
                   </div>
                 )}
