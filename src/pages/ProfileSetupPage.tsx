@@ -128,6 +128,12 @@ export default function ProfileSetupPage() {
       const discordId = updatedProfile?.discord_user_id || undefined;
       DiscordNotifyService.profileCompleted(displayName, result.data.country, discordUser, discordId);
       DiscordNotifyService.taskCompleted(displayName, "profile", discordUser, discordId);
+
+      // If user doesn't have Discord, generate their personal invite (fire & forget)
+      if (!form.has_discord_account) {
+        supabase.functions.invoke("generate-discord-invite").catch(() => {});
+      }
+
       navigate("/courses/onboarding", { replace: true });
     } catch (err: any) {
       setErrors({ general: err.message });
