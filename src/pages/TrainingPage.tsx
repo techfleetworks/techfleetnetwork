@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -21,7 +20,7 @@ import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
-import { JourneyService } from "@/services/journey.service";
+import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
 
 interface CourseCard {
   id: string;
@@ -140,33 +139,17 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
 }
 
 export default function TrainingPage() {
-  const { user } = useAuth();
-  const [firstCompleted, setFirstCompleted] = useState(0);
-  const [agileCompleted, setAgileCompleted] = useState(0);
-  const [discordCompleted, setDiscordCompleted] = useState(0);
-  const [teamworkCompleted, setTeamworkCompleted] = useState(0);
-  const [projectTrainingCompleted, setProjectTrainingCompleted] = useState(0);
-  const [volunteerCompleted, setVolunteerCompleted] = useState(0);
-  const totalFirstSteps = 6;
+  const { user, profile } = useAuth();
+  const userId = user?.id;
 
-  useEffect(() => {
-    if (!user) return;
-    Promise.all([
-      JourneyService.getCompletedCount(user.id, "first_steps"),
-      JourneyService.getCompletedCount(user.id, "second_steps"),
-      JourneyService.getCompletedCount(user.id, "discord_learning"),
-      JourneyService.getCompletedCount(user.id, "third_steps"),
-      JourneyService.getCompletedCount(user.id, "project_training"),
-      JourneyService.getCompletedCount(user.id, "volunteer"),
-    ]).then(([first, second, discord, third, pt, vol]) => {
-      setFirstCompleted(first);
-      setAgileCompleted(second);
-      setDiscordCompleted(discord);
-      setTeamworkCompleted(third);
-      setProjectTrainingCompleted(pt);
-      setVolunteerCompleted(vol);
-    });
-  }, [user]);
+  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+
+  const { data: firstCompleted = 0 } = useCompletedCount(userId, "first_steps");
+  const { data: agileCompleted = 0 } = useCompletedCount(userId, "second_steps");
+  const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
+  const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
+  const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
+  const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
 
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
@@ -246,8 +229,6 @@ export default function TrainingPage() {
           Courses and learning paths to grow your skills and mindset.
         </p>
       </div>
-
-
 
       <Tabs defaultValue="core" className="w-full">
         <TabsList className="mb-6">
