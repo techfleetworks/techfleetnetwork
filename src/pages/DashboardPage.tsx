@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
 import { DashboardCustomizer } from "@/components/DashboardCustomizer";
+import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 import { DashboardEmptyState } from "@/components/DashboardEmptyState";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { useAuth } from "@/contexts/AuthContext";
@@ -289,6 +290,8 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      <DiscordInviteBanner />
 
       {widgetOrder.map((widgetId) => {
         switch (widgetId) {

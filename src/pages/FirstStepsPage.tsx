@@ -16,6 +16,7 @@ import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
+import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 
 interface Task {
   id: string;
@@ -231,6 +232,8 @@ export default function FirstStepsPage() {
           <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
+
+      <DiscordInviteBanner />
 
       <div className="space-y-3">
         {tasks.map((task) => {

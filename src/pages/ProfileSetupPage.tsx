@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock, Link as LinkIcon } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
@@ -33,6 +33,7 @@ export default function ProfileSetupPage() {
     experience_areas: [] as string[], professional_goals: "",
     notify_training_opportunities: false, notify_announcements: false,
     education_background: [] as string[],
+    has_discord_account: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -57,6 +58,7 @@ export default function ProfileSetupPage() {
         notify_training_opportunities: profile.notify_training_opportunities || false,
         notify_announcements: (profile as any).notify_announcements || false,
         education_background: profile.education_background || [],
+        has_discord_account: (profile as any).has_discord_account ?? true,
       });
       setInitialized(true);
     }
@@ -100,6 +102,7 @@ export default function ProfileSetupPage() {
       notify_training_opportunities: form.notify_training_opportunities,
       notify_announcements: form.notify_announcements,
       education_background: form.education_background,
+      has_discord_account: form.has_discord_account,
     });
 
     if (!result.success) {
@@ -125,6 +128,12 @@ export default function ProfileSetupPage() {
       const discordId = updatedProfile?.discord_user_id || undefined;
       DiscordNotifyService.profileCompleted(displayName, result.data.country, discordUser, discordId);
       DiscordNotifyService.taskCompleted(displayName, "profile", discordUser, discordId);
+
+      // If user doesn't have Discord, generate their personal invite (fire & forget)
+      if (!form.has_discord_account) {
+        supabase.functions.invoke("generate-discord-invite").catch(() => {});
+      }
+
       navigate("/courses/onboarding", { replace: true });
     } catch (err: any) {
       setErrors({ general: err.message });
@@ -271,16 +280,52 @@ export default function ProfileSetupPage() {
             {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
           </div>
 
-          {/* Discord */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-discord">Discord username</Label>
-            <div className="relative">
-              <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <Input id="setup-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} placeholder="username" className="pl-10" aria-invalid={!!errors.discordUsername} />
+          {/* Discord account detection */}
+          <div className="space-y-3">
+            <Label>Do you have a Discord account?</Label>
+            <p className="text-xs text-muted-foreground">Tech Fleet's community lives on Discord. Let us know if you already have an account.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, has_discord_account: true })}
+                className={cn(
+                  "flex-1 p-3 rounded-lg border transition-all text-sm font-medium",
+                  form.has_discord_account ? "border-primary bg-primary/5 text-foreground" : "border-border hover:border-primary/50 text-muted-foreground"
+                )}
+              >
+                Yes, I have one
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, has_discord_account: false, discordUsername: "" })}
+                className={cn(
+                  "flex-1 p-3 rounded-lg border transition-all text-sm font-medium",
+                  !form.has_discord_account ? "border-primary bg-primary/5 text-foreground" : "border-border hover:border-primary/50 text-muted-foreground"
+                )}
+              >
+                No, I'm new to Discord
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground">Tech Fleet's community lives on Discord. Enter your username if you have one.</p>
-            {errors.discordUsername && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.discordUsername}</p>}
           </div>
+
+          {/* Discord username — only if they have an account */}
+          {form.has_discord_account && (
+            <div className="space-y-1.5">
+              <Label htmlFor="setup-discord">Discord username</Label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="setup-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} placeholder="username" className="pl-10" aria-invalid={!!errors.discordUsername} />
+              </div>
+              <p className="text-xs text-muted-foreground">Enter your Discord username so we can connect with you.</p>
+              {errors.discordUsername && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.discordUsername}</p>}
+            </div>
+          )}
+
+          {!form.has_discord_account && (
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+              <p>No worries! After you complete your profile, we'll generate a <strong className="text-foreground">personal Discord invite link</strong> just for you.</p>
+            </div>
+          )}
 
           {/* Activity Interests */}
           <div className="space-y-3">

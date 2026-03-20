@@ -24,6 +24,8 @@ export interface Profile {
   notify_training_opportunities: boolean;
   notify_announcements: boolean;
   education_background: string[];
+  has_discord_account: boolean;
+  discord_invite_url: string;
 }
 
 export const ProfileService = {
@@ -31,7 +33,7 @@ export const ProfileService = {
     return log.track("fetch", `Fetching profile for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background")
+        .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background, has_discord_account, discord_invite_url")
         .eq("user_id", userId)
         .single();
       if (error) {
@@ -90,6 +92,7 @@ export const ProfileService = {
         notify_training_opportunities: input.notify_training_opportunities ?? false,
         notify_announcements: input.notify_announcements ?? false,
         education_background: input.education_background || [],
+        has_discord_account: input.has_discord_account ?? true,
       };
 
       if (email) {

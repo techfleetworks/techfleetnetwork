@@ -45,6 +45,7 @@ export const profileSchema = z.object({
   notify_training_opportunities: z.boolean().optional().default(false),
   notify_announcements: z.boolean().optional().default(false),
   education_background: z.array(z.string()).optional().default([]),
+  has_discord_account: z.boolean().optional().default(true),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
