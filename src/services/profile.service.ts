@@ -24,6 +24,8 @@ export interface Profile {
   notify_training_opportunities: boolean;
   notify_announcements: boolean;
   education_background: string[];
+  has_discord_account: boolean;
+  discord_invite_url: string;
 }
 
 export const ProfileService = {
