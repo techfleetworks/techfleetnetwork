@@ -58,6 +58,7 @@ export default function ProfileSetupPage() {
         notify_training_opportunities: profile.notify_training_opportunities || false,
         notify_announcements: (profile as any).notify_announcements || false,
         education_background: profile.education_background || [],
+        has_discord_account: (profile as any).has_discord_account ?? true,
       });
       setInitialized(true);
     }
