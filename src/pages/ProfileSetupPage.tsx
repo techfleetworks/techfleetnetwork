@@ -33,6 +33,7 @@ export default function ProfileSetupPage() {
     experience_areas: [] as string[], professional_goals: "",
     notify_training_opportunities: false, notify_announcements: false,
     education_background: [] as string[],
+    has_discord_account: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
