@@ -693,6 +693,8 @@ export type Database = {
           bio: string
           country: string
           created_at: string
+          discord_invite_created_at: string | null
+          discord_invite_url: string
           discord_user_id: string
           discord_username: string
           display_name: string
@@ -700,6 +702,7 @@ export type Database = {
           email: string
           experience_areas: string[]
           first_name: string
+          has_discord_account: boolean
           id: string
           interests: string[]
           last_name: string
@@ -720,6 +723,8 @@ export type Database = {
           bio?: string
           country?: string
           created_at?: string
+          discord_invite_created_at?: string | null
+          discord_invite_url?: string
           discord_user_id?: string
           discord_username?: string
           display_name?: string
@@ -727,6 +732,7 @@ export type Database = {
           email?: string
           experience_areas?: string[]
           first_name?: string
+          has_discord_account?: boolean
           id?: string
           interests?: string[]
           last_name?: string
@@ -747,6 +753,8 @@ export type Database = {
           bio?: string
           country?: string
           created_at?: string
+          discord_invite_created_at?: string | null
+          discord_invite_url?: string
           discord_user_id?: string
           discord_username?: string
           display_name?: string
@@ -754,6 +762,7 @@ export type Database = {
           email?: string
           experience_areas?: string[]
           first_name?: string
+          has_discord_account?: boolean
           id?: string
           interests?: string[]
           last_name?: string
