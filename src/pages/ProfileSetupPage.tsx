@@ -102,6 +102,7 @@ export default function ProfileSetupPage() {
       notify_training_opportunities: form.notify_training_opportunities,
       notify_announcements: form.notify_announcements,
       education_background: form.education_background,
+      has_discord_account: form.has_discord_account,
     });
 
     if (!result.success) {
