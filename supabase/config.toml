@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.public-project-detail]
 verify_jwt = false
+
+[functions.generate-discord-invite]
+verify_jwt = false
