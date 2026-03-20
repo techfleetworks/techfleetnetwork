@@ -175,7 +175,7 @@ export function NetworkActivity({ showMap = true, showActivity = true }: Network
             <div className="border-t pt-8">
               <div className="flex items-center gap-2 mb-1">
                 <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-                <h3 className="text-lg font-semibold text-foreground">Previous Week</h3>
+                <h3 className="text-lg font-semibold text-foreground">Past 7 Days</h3>
               </div>
               {stats.prev_week_start && stats.prev_week_end && (
                 <p className="text-sm text-muted-foreground mb-4">
