@@ -92,6 +92,7 @@ export const ProfileService = {
         notify_training_opportunities: input.notify_training_opportunities ?? false,
         notify_announcements: input.notify_announcements ?? false,
         education_background: input.education_background || [],
+        has_discord_account: input.has_discord_account ?? true,
       };
 
       if (email) {
