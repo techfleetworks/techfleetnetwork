@@ -1,0 +1,101 @@
+CREATE OR REPLACE FUNCTION public.get_network_stats()
+ RETURNS json
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  WITH rolling_window AS (
+    SELECT
+      (now() - interval '7 days')::date AS ws,
+      now()::date AS we
+  ),
+  phase_counts AS (
+    SELECT user_id, phase, count(*) AS cnt
+    FROM public.journey_progress
+    WHERE completed = true
+    GROUP BY user_id, phase
+  ),
+  core_active_users AS (
+    SELECT DISTINCT user_id FROM phase_counts
+    WHERE (phase = 'first_steps' AND cnt < 6)
+       OR (phase = 'second_steps' AND cnt < 25)
+       OR (phase = 'third_steps')
+  ),
+  badges_all AS (
+    SELECT count(*) AS total FROM phase_counts
+    WHERE (phase = 'first_steps' AND cnt >= 6)
+       OR (phase = 'second_steps' AND cnt >= 25)
+  ),
+  apps_completed AS (
+    SELECT count(*) AS total FROM public.general_applications
+    WHERE status = 'completed'
+  ),
+  rw_progress AS (
+    SELECT jp.user_id, jp.phase
+    FROM public.journey_progress jp, rolling_window
+    WHERE jp.completed = true
+      AND jp.completed_at >= rolling_window.ws::timestamp with time zone
+      AND jp.completed_at < (rolling_window.we + 1)::timestamp with time zone
+  ),
+  pre_rw_counts AS (
+    SELECT jp.user_id, jp.phase, count(*) AS cnt
+    FROM public.journey_progress jp, rolling_window
+    WHERE jp.completed = true
+      AND jp.completed_at < rolling_window.ws::timestamp with time zone
+    GROUP BY jp.user_id, jp.phase
+  ),
+  rw_badges AS (
+    SELECT count(*) AS total FROM (
+      SELECT pc.user_id FROM phase_counts pc
+      WHERE pc.phase = 'first_steps' AND pc.cnt >= 6
+        AND COALESCE((SELECT ppc.cnt FROM pre_rw_counts ppc WHERE ppc.user_id = pc.user_id AND ppc.phase = 'first_steps'), 0) < 6
+        AND EXISTS (SELECT 1 FROM rw_progress rw WHERE rw.user_id = pc.user_id AND rw.phase = 'first_steps')
+      UNION ALL
+      SELECT pc.user_id FROM phase_counts pc
+      WHERE pc.phase = 'second_steps' AND pc.cnt >= 25
+        AND COALESCE((SELECT ppc.cnt FROM pre_rw_counts ppc WHERE ppc.user_id = pc.user_id AND ppc.phase = 'second_steps'), 0) < 25
+        AND EXISTS (SELECT 1 FROM rw_progress rw WHERE rw.user_id = pc.user_id AND rw.phase = 'second_steps')
+    ) sub
+  ),
+  rw_apps AS (
+    SELECT count(*) AS total FROM public.general_applications ga, rolling_window
+    WHERE ga.status = 'completed'
+      AND ga.completed_at >= rolling_window.ws::timestamp with time zone
+      AND ga.completed_at < (rolling_window.we + 1)::timestamp with time zone
+  ),
+  project_counts AS (
+    SELECT
+      count(*) FILTER (WHERE project_status = 'apply_now') AS open_applications,
+      count(*) FILTER (WHERE project_status IN ('recruiting', 'team_onboarding')) AS coming_soon,
+      count(*) FILTER (WHERE project_status = 'project_in_progress') AS live,
+      count(*) FILTER (WHERE project_status = 'project_complete') AS previously_completed
+    FROM public.projects
+  )
+  SELECT json_build_object(
+    'total_signups', (SELECT count(*) FROM public.profiles),
+    'core_courses_active', (SELECT count(*) FROM core_active_users),
+    'beginner_courses_active', 0,
+    'advanced_courses_active', 0,
+    'applications_completed', (SELECT total FROM apps_completed),
+    'badges_earned', (SELECT total FROM badges_all),
+    'prev_week_start', (SELECT ws::text FROM rolling_window),
+    'prev_week_end', (SELECT we::text FROM rolling_window),
+    'prev_week_signups', (
+      SELECT count(*) FROM public.profiles, rolling_window
+      WHERE created_at >= rolling_window.ws::timestamp with time zone
+        AND created_at < (rolling_window.we + 1)::timestamp with time zone
+    ),
+    'prev_week_core_active', (
+      SELECT count(DISTINCT user_id) FROM rw_progress
+      WHERE phase IN ('first_steps','second_steps','third_steps')
+    ),
+    'prev_week_beginner_active', 0,
+    'prev_week_advanced_active', 0,
+    'prev_week_applications', (SELECT total FROM rw_apps),
+    'prev_week_badges', (SELECT total FROM rw_badges),
+    'projects_open_applications', (SELECT open_applications FROM project_counts),
+    'projects_coming_soon', (SELECT coming_soon FROM project_counts),
+    'projects_live', (SELECT live FROM project_counts),
+    'projects_previously_completed', (SELECT previously_completed FROM project_counts)
+  );
+$function$;
