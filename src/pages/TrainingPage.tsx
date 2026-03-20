@@ -21,6 +21,18 @@ import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
+export default function TrainingPage() {
+  const { user, profile } = useAuth();
+  const userId = user?.id;
+
+  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+
+  const { data: firstCompleted = 0 } = useCompletedCount(userId, "first_steps");
+  const { data: agileCompleted = 0 } = useCompletedCount(userId, "second_steps");
+  const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
+  const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
+  const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
+  const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
 
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
