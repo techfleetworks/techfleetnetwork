@@ -291,6 +291,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <DiscordInviteBanner />
+
       {widgetOrder.map((widgetId) => {
         switch (widgetId) {
           case "badges":

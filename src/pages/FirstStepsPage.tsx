@@ -233,6 +233,8 @@ export default function FirstStepsPage() {
         </div>
       </div>
 
+      <DiscordInviteBanner />
+
       <div className="space-y-3">
         {tasks.map((task) => {
           const Icon = task.icon;
