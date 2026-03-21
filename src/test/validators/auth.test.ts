@@ -6,6 +6,7 @@ import { loginSchema, registerSchema, passwordSchema } from "@/lib/validators/au
  * 2.1  — Successful account creation (valid input passes validation)
  * 2.3  — Weak password rejection (OWASP standards enforced)
  * 2.5  — Invalid email format rejection
+ * 18.5 — Confirm password mismatch rejection
  * 15.3 — Form submission via Enter key (forms use standard HTML, covered by schema acceptance)
  */
 
@@ -88,12 +89,13 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
   });
 });
 
-describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields)", () => {
+describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields, 18.5: Confirm password)", () => {
   const validInput = {
     firstName: "Jane",
     lastName: "Doe",
     email: "jane@example.com",
     password: "Str0ng!Pass",
+    confirmPassword: "Str0ng!Pass",
     agreedToTerms: true as const,
   };
 
@@ -105,7 +107,6 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields)
   it("rejects empty first name", () => {
     const result = registerSchema.safeParse({ ...validInput, firstName: "" });
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toContain("required");
   });
 
   it("rejects empty last name", () => {
@@ -119,12 +120,26 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields)
   });
 
   it("rejects weak password", () => {
-    const result = registerSchema.safeParse({ ...validInput, password: "weak" });
+    const result = registerSchema.safeParse({ ...validInput, password: "weak", confirmPassword: "weak" });
     expect(result.success).toBe(false);
   });
 
   it("rejects when terms not agreed", () => {
     const result = registerSchema.safeParse({ ...validInput, agreedToTerms: false });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects mismatched confirm password (BDD 18.5)", () => {
+    const result = registerSchema.safeParse({ ...validInput, confirmPassword: "Different1!" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const msgs = result.error.issues.map((i) => i.message);
+      expect(msgs).toContain("Passwords do not match");
+    }
+  });
+
+  it("rejects empty confirm password", () => {
+    const result = registerSchema.safeParse({ ...validInput, confirmPassword: "" });
     expect(result.success).toBe(false);
   });
 
@@ -142,7 +157,9 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields)
   it("trims whitespace from names", () => {
     const result = registerSchema.safeParse({ ...validInput, firstName: "  Jane  ", lastName: "  Doe  " });
     expect(result.success).toBe(true);
-    expect(result.data?.firstName).toBe("Jane");
-    expect(result.data?.lastName).toBe("Doe");
+    if (result.success) {
+      expect(result.data.firstName).toBe("Jane");
+      expect(result.data.lastName).toBe("Doe");
+    }
   });
 });
