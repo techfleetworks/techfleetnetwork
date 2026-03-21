@@ -2,15 +2,17 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2, User } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import { registerSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
+import { ValidatedField } from "@/components/ui/validated-field";
+import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -26,9 +28,34 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  const markTouched = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  // Real-time validation on change
+  useEffect(() => {
+    if (Object.keys(touched).length === 0) return;
+    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      // Only show errors for touched fields
+      const touchedErrors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(fieldErrors)) {
+        if (touched[k]) touchedErrors[k] = v;
+      }
+      setErrors(touchedErrors);
+    } else {
+      setErrors({});
+    }
+  }, [firstName, lastName, email, password, confirmPassword, agreedToTerms, touched]);
 
   useEffect(() => {
     if (redirectParam) {
@@ -38,6 +65,13 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Mark all fields as touched
+    const allTouched: Record<string, boolean> = {
+      firstName: true, lastName: true, email: true,
+      password: true, confirmPassword: true, agreedToTerms: true,
+    };
+    setTouched(allTouched);
+
     const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -46,6 +80,11 @@ export default function RegisterPage() {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
+      showFormErrors(fieldErrors, {
+        firstName: "First name", lastName: "Last name", email: "Email",
+        password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
+      });
+      scrollToFirstError();
       return;
     }
 
@@ -76,6 +115,11 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const vs = (field: string, value: string | boolean) =>
+    getFieldValidationState(errors[field], value, !!touched[field]);
+  const bc = (field: string, value: string | boolean) =>
+    validationBorderClass(vs(field, value));
 
   if (submitted) {
     return (
@@ -117,66 +161,56 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-4" noValidate>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label htmlFor="reg-firstName">First name</Label>
+              <ValidatedField id="reg-firstName" label="First name" required error={errors.firstName} value={firstName} touched={touched.firstName}>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input id="reg-firstName" type="text" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="pl-10" autoComplete="given-name" required aria-required="true" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "fn-error" : undefined} />
+                  <Input id="reg-firstName" type="text" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} onBlur={() => markTouched("firstName")} className={`pl-10 ${bc("firstName", firstName)}`} autoComplete="given-name" required aria-required="true" aria-invalid={!!errors.firstName} aria-describedby={errors.firstName ? "reg-firstName-error" : undefined} />
                 </div>
-                {errors.firstName && <p id="fn-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
-              </div>
+              </ValidatedField>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="reg-lastName">Last name</Label>
+              <ValidatedField id="reg-lastName" label="Last name" required error={errors.lastName} value={lastName} touched={touched.lastName}>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input id="reg-lastName" type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} className="pl-10" autoComplete="family-name" required aria-required="true" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "ln-error" : undefined} />
+                  <Input id="reg-lastName" type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} onBlur={() => markTouched("lastName")} className={`pl-10 ${bc("lastName", lastName)}`} autoComplete="family-name" required aria-required="true" aria-invalid={!!errors.lastName} aria-describedby={errors.lastName ? "reg-lastName-error" : undefined} />
                 </div>
-                {errors.lastName && <p id="ln-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
-              </div>
+              </ValidatedField>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="reg-email">Email address</Label>
+            <ValidatedField id="reg-email" label="Email address" required error={errors.email} value={email} touched={touched.email}>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} />
+                <Input id="reg-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} aria-describedby={errors.email ? "reg-email-error" : undefined} />
               </div>
-              {errors.email && <p id="email-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.email}</p>}
-            </div>
+            </ValidatedField>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="reg-password">Password</Label>
+            <ValidatedField id="reg-password" label="Password" required error={errors.password} value={password} touched={touched.password}>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="reg-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.password} aria-describedby="password-requirements" />
+                <Input id="reg-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => markTouched("password")} className={`pl-10 pr-10 ${bc("password", password)}`} autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.password} aria-describedby="password-requirements" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.password}</p>}
               <PasswordRequirementsList password={password} />
-            </div>
+            </ValidatedField>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="reg-confirmPassword">Confirm password</Label>
+            <ValidatedField id="reg-confirmPassword" label="Confirm password" required error={errors.confirmPassword} value={confirmPassword} touched={touched.confirmPassword}>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="reg-confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? "cp-error" : undefined} />
+                <Input id="reg-confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onBlur={() => markTouched("confirmPassword")} className={`pl-10 pr-10 ${bc("confirmPassword", confirmPassword)}`} autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? "reg-confirmPassword-error" : undefined} />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.confirmPassword && <p id="cp-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.confirmPassword}</p>}
-            </div>
+            </ValidatedField>
 
             <div className="flex items-start gap-2">
-              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked === true)} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
+              <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
                 I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Community Guidelines</a>
               </Label>
             </div>
-            {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.agreedToTerms}</p>}
+            {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account…" : "Create Account"}
