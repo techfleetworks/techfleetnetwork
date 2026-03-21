@@ -55,7 +55,12 @@ export default function EditProfilePage() {
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [activeTab, setActiveTab] = useState("basic-info");
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validTabs = ["basic-info", "training-goals", "preferences", "account"];
+  const [activeTab, setActiveTab] = useState(
+    tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
+  );
 
   useEffect(() => {
     if (!initialized && profile) {
