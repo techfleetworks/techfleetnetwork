@@ -19,7 +19,8 @@ test.describe("Registration Page (BDD 2.1, 2.3, 2.5)", () => {
     await expect(page.getByLabel(/first name/i)).toBeVisible();
     await expect(page.getByLabel(/last name/i)).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.getByLabel(/^password$/i)).toBeVisible();
+    await expect(page.getByLabel(/confirm password/i)).toBeVisible();
   });
 
   test("shows password requirements checklist", async ({ page }) => {
