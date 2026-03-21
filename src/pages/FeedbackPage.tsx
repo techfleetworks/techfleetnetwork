@@ -1,24 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
+import { useQuery } from "@/lib/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FEEDBACK_AREAS, FeedbackService } from "@/services/feedback.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { FEEDBACK_AREAS, FeedbackService, type Feedback } from "@/services/feedback.service";
 import { toast } from "sonner";
-import { Send, MessageSquarePlus } from "lucide-react";
-import { useEffect } from "react";
+import { Send, MessageSquarePlus, Loader2, CheckCircle2 } from "lucide-react";
+import { ThemedAgGrid } from "@/components/AgGrid";
+import type { ColDef, RowClickedEvent } from "ag-grid-community";
+import { format } from "date-fns";
+import FeedbackDetailPanel from "@/components/feedback/FeedbackDetailPanel";
+import { SectionEmptyState } from "@/components/SectionEmptyState";
 
-export default function FeedbackPage() {
+/* ── Member feedback form ──────────────────────────────── */
+function FeedbackForm() {
   const { user } = useAuth();
-  const { setHeader } = usePageHeader();
   const [area, setArea] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => { setHeader({ title: "Submit Feedback" }); return () => setHeader(null); }, [setHeader]);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const canSubmit = area !== "" && message.trim().length >= 10;
 
@@ -28,73 +34,194 @@ export default function FeedbackPage() {
     const ok = await FeedbackService.submit(user.id, user.email ?? "", area, message.trim());
     setSubmitting(false);
     if (ok) {
-      toast.success("Feedback submitted!", { description: "Thank you for helping us improve." });
       setArea("");
       setMessage("");
+      setShowSuccess(true);
     } else {
       toast.error("Failed to submit feedback. Please try again.");
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <MessageSquarePlus className="h-5 w-5 text-primary" />
-            <CardTitle>Share Your Feedback</CardTitle>
-          </div>
-          <CardDescription>
-            Help us improve Tech Fleet Network. Select the area your feedback is about and share your thoughts.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="feedback-area" className="text-base font-semibold">
-              System Area <span className="text-destructive">*</span>
-            </Label>
-            <Select value={area} onValueChange={setArea}>
-              <SelectTrigger id="feedback-area">
-                <SelectValue placeholder="Select the area of the platform" />
-              </SelectTrigger>
-              <SelectContent>
-                {FEEDBACK_AREAS.map((a) => (
-                  <SelectItem key={a} value={a}>{a}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <>
+      <div className="max-w-2xl mx-auto py-8 px-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageSquarePlus className="h-5 w-5 text-primary" />
+              <CardTitle>Share Your Feedback</CardTitle>
+            </div>
+            <CardDescription>
+              Help us improve Tech Fleet Network. Select the area your feedback is about and share your thoughts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="feedback-area" className="text-base font-semibold">
+                System Area <span className="text-destructive">*</span>
+              </Label>
+              <Select value={area} onValueChange={setArea}>
+                <SelectTrigger id="feedback-area">
+                  <SelectValue placeholder="Select the area of the platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FEEDBACK_AREAS.map((a) => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="feedback-message" className="text-base font-semibold">
-              Your Feedback <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="feedback-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Share your thoughts, suggestions, or report an issue…"
-              className="min-h-[160px] resize-y"
-              maxLength={5000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {message.length} / 5,000
-            </p>
-            {message.length > 0 && message.trim().length < 10 && (
-              <p className="text-sm text-destructive">Please write at least 10 characters.</p>
-            )}
-          </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="feedback-message" className="text-base font-semibold">
+                Your Feedback <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="feedback-message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Share your thoughts, suggestions, or report an issue…"
+                className="min-h-[160px] resize-y"
+                maxLength={5000}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {message.length} / 5,000
+              </p>
+              {message.length > 0 && message.trim().length < 10 && (
+                <p className="text-sm text-destructive">Please write at least 10 characters.</p>
+              )}
+            </div>
 
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            className="w-full"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {submitting ? "Submitting…" : "Submit Feedback"}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              onClick={handleSubmit}
+              disabled={!canSubmit || submitting}
+              className="w-full"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {submitting ? "Submitting…" : "Submit Feedback"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle2 className="h-6 w-6 text-success" aria-hidden="true" />
+            </div>
+            <DialogTitle className="text-xl">Feedback Submitted</DialogTitle>
+            <DialogDescription className="text-base leading-relaxed pt-2">
+              Thanks for your feedback. Your voice helps us improve the experience for Tech Fleet members. An admin will email you shortly. Please allow up to 5 business days to receive a response.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center pt-2">
+            <Button onClick={() => setShowSuccess(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ── Admin feedback table ──────────────────────────────── */
+function AdminFeedbackView() {
+  const [selected, setSelected] = useState<Feedback | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const { data: feedback = [], isLoading } = useQuery({
+    queryKey: ["admin-feedback"],
+    queryFn: () => FeedbackService.listAll(),
+  });
+
+  const columnDefs = useMemo<ColDef<Feedback>[]>(() => [
+    {
+      headerName: "Date",
+      field: "created_at",
+      width: 170,
+      valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy h:mm a") : "",
+      sort: "desc",
+    },
+    { headerName: "Email", field: "user_email", flex: 1, minWidth: 180 },
+    { headerName: "Area", field: "system_area", width: 180 },
+    {
+      headerName: "Message",
+      field: "message",
+      flex: 2,
+      minWidth: 250,
+      valueFormatter: (p) => {
+        const msg = p.value || "";
+        return msg.length > 80 ? msg.slice(0, 80) + "…" : msg;
+      },
+    },
+  ], []);
+
+  const onRowClicked = useCallback((e: RowClickedEvent<Feedback>) => {
+    if (e.data) {
+      setSelected(e.data);
+      setPanelOpen(true);
+    }
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (feedback.length === 0) {
+    return (
+      <div className="p-6">
+        <SectionEmptyState
+          icon={MessageSquarePlus}
+          title="No Feedback Yet"
+          description="When members submit feedback, it will appear here."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-4">
+      <ThemedAgGrid<Feedback>
+        gridId="admin-feedback"
+        height="calc(100vh - 200px)"
+        rowData={feedback}
+        columnDefs={columnDefs}
+        onRowClicked={onRowClicked}
+        getRowId={(params) => params.data.id}
+        exportFileName="feedback"
+        showExportCsv
+      />
+
+      <FeedbackDetailPanel
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        feedback={selected}
+      />
     </div>
   );
+}
+
+/* ── Main page — admin sees table, members see form ──── */
+export default function FeedbackPage() {
+  const { setHeader } = usePageHeader();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+
+  useEffect(() => {
+    setHeader({ title: isAdmin ? "Feedback" : "Submit Feedback" });
+    return () => setHeader(null);
+  }, [setHeader, isAdmin]);
+
+  if (adminLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return isAdmin ? <AdminFeedbackView /> : <FeedbackForm />;
 }

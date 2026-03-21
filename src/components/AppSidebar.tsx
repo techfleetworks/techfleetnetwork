@@ -143,10 +143,10 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/admin/feedback")}
+                    isActive={isActive("/feedback")}
                     tooltip="Feedback"
                   >
-                    <Link to="/admin/feedback">
+                    <Link to="/feedback">
                       <MessageSquarePlus className="h-4 w-4" />
                       <span>Feedback</span>
                     </Link>
