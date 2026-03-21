@@ -140,6 +140,18 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/feedback")}
+                    tooltip="Feedback"
+                  >
+                    <Link to="/admin/feedback">
+                      <MessageSquarePlus className="h-4 w-4" />
+                      <span>Feedback</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
