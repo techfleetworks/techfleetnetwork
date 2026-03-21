@@ -40,10 +40,44 @@ export default function ProfileSetupPage() {
     has_discord_account: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
+
+  const markTouched = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  // Real-time validation
+  useEffect(() => {
+    if (Object.keys(touched).length === 0) return;
+    const result = profileSchema.safeParse({
+      firstName: form.firstName, lastName: form.lastName, country: form.country,
+      timezone: form.timezone, discordUsername: form.discordUsername,
+      interests: form.interests, portfolio_url: form.portfolio_url,
+      linkedin_url: form.linkedin_url, experience_areas: form.experience_areas,
+      professional_goals: form.professional_goals,
+      notify_training_opportunities: form.notify_training_opportunities,
+      notify_announcements: form.notify_announcements,
+      education_background: form.education_background,
+      has_discord_account: form.has_discord_account,
+    });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      const touchedErrors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(fieldErrors)) {
+        if (touched[k]) touchedErrors[k] = v;
+      }
+      setErrors(touchedErrors);
+    } else {
+      setErrors({});
+    }
+  }, [form, touched]);
 
   useEffect(() => {
     if (!initialized && profile) {
