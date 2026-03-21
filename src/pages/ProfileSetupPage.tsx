@@ -115,6 +115,13 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Mark all required fields as touched
+    const allTouched: Record<string, boolean> = {
+      firstName: true, lastName: true, country: true, timezone: true,
+      discordUsername: true, email: true,
+    };
+    setTouched(allTouched);
+
     // Validate email for non-OAuth
     const fieldErrors: Record<string, string> = {};
     if (!isOAuth) {
@@ -123,6 +130,8 @@ export default function ProfileSetupPage() {
     }
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
+      showFormErrors(fieldErrors, { email: "Email" });
+      scrollToFirstError();
       return;
     }
 
@@ -150,6 +159,11 @@ export default function ProfileSetupPage() {
         if (!errs[field]) errs[field] = err.message;
       });
       setErrors(errs);
+      showFormErrors(errs, {
+        firstName: "First name", lastName: "Last name", country: "Country",
+        timezone: "Timezone", discordUsername: "Discord username",
+      });
+      scrollToFirstError();
       return;
     }
 
