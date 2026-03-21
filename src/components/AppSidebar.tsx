@@ -11,6 +11,7 @@ import {
   Activity,
   Megaphone,
   Building2,
+  MessageSquarePlus,
 } from "lucide-react";
 import {
   Sidebar,
