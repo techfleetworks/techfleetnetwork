@@ -6,20 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
+import { User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
-import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
+import { ValidatedField } from "@/components/ui/validated-field";
+import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+import { toast } from "sonner";
 
 export default function ProfileSetupPage() {
   const { user, profile, refreshProfile } = useAuth();
