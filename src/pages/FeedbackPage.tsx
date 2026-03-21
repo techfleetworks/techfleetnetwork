@@ -13,12 +13,12 @@ import { useEffect } from "react";
 
 export default function FeedbackPage() {
   const { user } = useAuth();
-  const { setTitle } = usePageHeader();
+  const { setHeader } = usePageHeader();
   const [area, setArea] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { setTitle("Submit Feedback"); }, [setTitle]);
+  useEffect(() => { setHeader({ title: "Submit Feedback" }); return () => setHeader(null); }, [setHeader]);
 
   const canSubmit = area !== "" && message.trim().length >= 10;
 

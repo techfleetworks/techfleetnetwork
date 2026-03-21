@@ -11,7 +11,7 @@ import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { MessageSquarePlus, Loader2 } from "lucide-react";
 
 export default function AdminFeedbackPage() {
-  const { setTitle } = usePageHeader();
+  const { setHeader } = usePageHeader();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [selected, setSelected] = useState<Feedback | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
