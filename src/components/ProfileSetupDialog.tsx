@@ -14,6 +14,7 @@ import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
