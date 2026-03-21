@@ -13,7 +13,7 @@ import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { EDUCATION_OPTIONS } from "@/lib/application-options";
-import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
+import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
