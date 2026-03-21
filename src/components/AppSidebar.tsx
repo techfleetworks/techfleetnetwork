@@ -38,6 +38,7 @@ const mainNav = [
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Fleety", href: "/chat", icon: Bot },
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
 ];
 
 export function AppSidebar() {
