@@ -10,14 +10,7 @@ import { RateLimitService } from "@/services/rate-limit.service";
 import { registerSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
-
-const passwordRequirements = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
-  { label: "One special character", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
-];
+import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -28,14 +21,15 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  // Store redirect for OAuth flows
   useEffect(() => {
     if (redirectParam) {
       sessionStorage.setItem("auth_redirect", redirectParam);
@@ -44,7 +38,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = registerSchema.safeParse({ firstName, lastName, email, password, agreedToTerms });
+    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
@@ -60,7 +54,6 @@ export default function RegisterPage() {
     setAuthError("");
 
     try {
-      // Rate limit check before signup attempt
       const rateCheck = await RateLimitService.check(result.data.email, "signup_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
@@ -161,17 +154,20 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <ul id="password-requirements" className="space-y-1 text-xs" aria-label="Password requirements">
-                {passwordRequirements.map(({ label, test }) => {
-                  const met = password.length > 0 && test(password);
-                  return (
-                    <li key={label} className={`flex items-center gap-1.5 ${met ? "text-success" : "text-muted-foreground"}`}>
-                      {met ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-                      {label}
-                    </li>
-                  );
-                })}
-              </ul>
+              {errors.password && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.password}</p>}
+              <PasswordRequirementsList password={password} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="reg-confirmPassword">Confirm password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input id="reg-confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? "cp-error" : undefined} />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p id="cp-error" className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.confirmPassword}</p>}
             </div>
 
             <div className="flex items-start gap-2">
@@ -194,13 +190,5 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
-  );
-}
-
-function Circle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-    </svg>
   );
 }

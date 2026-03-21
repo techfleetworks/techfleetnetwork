@@ -27,9 +27,13 @@ export const registerSchema = z.object({
   lastName: safeText("Last name", 100),
   email: z.string().trim().email("Invalid email address").max(255),
   password: passwordSchema,
+  confirmPassword: z.string().min(1, "Please confirm your password"),
   agreedToTerms: z.literal(true, {
     message: "You must agree to the terms and community guidelines.",
   }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

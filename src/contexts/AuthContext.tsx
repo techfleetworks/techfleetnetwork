@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const meta = currentUser.user_metadata;
     if (!meta) return;
 
-    const needsNameSync = !currentProfile.first_name && !currentProfile.last_name;
+    const needsNameSync = !currentProfile.first_name || !currentProfile.last_name;
     const needsEmailSync = !currentProfile.email && currentUser.email;
 
     if (!needsNameSync && !needsEmailSync) return;
