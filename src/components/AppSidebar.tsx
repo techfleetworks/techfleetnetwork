@@ -11,6 +11,7 @@ import {
   Activity,
   Megaphone,
   Building2,
+  MessageSquarePlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const mainNav = [
   { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Fleety", href: "/chat", icon: Bot },
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
 ];
 
 export function AppSidebar() {
@@ -135,6 +137,18 @@ export function AppSidebar() {
                     <Link to="/admin/activity-log">
                       <Activity className="h-4 w-4" />
                       <span>Activity Log</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/feedback")}
+                    tooltip="Feedback"
+                  >
+                    <Link to="/admin/feedback">
+                      <MessageSquarePlus className="h-4 w-4" />
+                      <span>Feedback</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
