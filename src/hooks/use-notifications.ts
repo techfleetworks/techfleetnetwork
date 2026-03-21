@@ -23,6 +23,7 @@ export function useUnreadNotificationCount() {
     queryKey: [...NOTIFICATIONS_KEY, "unread-count", user?.id],
     queryFn: () => NotificationService.unreadCount(user!.id),
     enabled: !!user,
+    refetchInterval: 30_000,
   });
 }
 
