@@ -11,7 +11,8 @@ import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle } from 
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
-import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { EDUCATION_OPTIONS } from "@/lib/application-options";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import type { AppFormData } from "@/lib/validators/general-application";
 
 const experienceOptions: MultiSelectOption[] = EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }));
