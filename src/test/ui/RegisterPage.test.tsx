@@ -18,11 +18,12 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     renderWithRouter(<RegisterPage />);
   });
 
-  it("18.1: renders first name, last name, email, password fields", () => {
+  it("18.1: renders first name, last name, email, password, and confirm password fields", () => {
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
   });
 
   it("18.1: renders terms checkbox", () => {
