@@ -11,10 +11,10 @@ import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle } from 
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
-import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { EDUCATION_OPTIONS } from "@/lib/application-options";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import type { AppFormData } from "@/lib/validators/general-application";
 
-const experienceOptions: MultiSelectOption[] = EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }));
 const educationOptions: MultiSelectOption[] = EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }));
 
 interface Props {
@@ -123,11 +123,10 @@ export function SectionProfile({ form, errors, updateField }: Props) {
       {/* Experience */}
       <div className="space-y-1.5">
         <Label>Experience Areas <span className="text-destructive">*</span></Label>
-        <MultiSelect
-          options={experienceOptions}
+        <ExperienceAreasSelect
           selected={form.experience_areas}
           onChange={(v) => updateField("experience_areas", v)}
-          placeholder="Select areas of experience"
+          aria-invalid={!!errors.experience_areas}
         />
         {errors.experience_areas && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.experience_areas}</p>}
       </div>

@@ -6,20 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
+import { User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
-import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
+import { ValidatedField } from "@/components/ui/validated-field";
+import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+import { toast } from "sonner";
 
 export default function ProfileSetupPage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -36,10 +40,44 @@ export default function ProfileSetupPage() {
     has_discord_account: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
+
+  const markTouched = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  // Real-time validation
+  useEffect(() => {
+    if (Object.keys(touched).length === 0) return;
+    const result = profileSchema.safeParse({
+      firstName: form.firstName, lastName: form.lastName, country: form.country,
+      timezone: form.timezone, discordUsername: form.discordUsername,
+      interests: form.interests, portfolio_url: form.portfolio_url,
+      linkedin_url: form.linkedin_url, experience_areas: form.experience_areas,
+      professional_goals: form.professional_goals,
+      notify_training_opportunities: form.notify_training_opportunities,
+      notify_announcements: form.notify_announcements,
+      education_background: form.education_background,
+      has_discord_account: form.has_discord_account,
+    });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      const touchedErrors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(fieldErrors)) {
+        if (touched[k]) touchedErrors[k] = v;
+      }
+      setErrors(touchedErrors);
+    } else {
+      setErrors({});
+    }
+  }, [form, touched]);
 
   useEffect(() => {
     if (!initialized && profile) {
@@ -77,6 +115,13 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Mark all required fields as touched
+    const allTouched: Record<string, boolean> = {
+      firstName: true, lastName: true, country: true, timezone: true,
+      discordUsername: true, email: true,
+    };
+    setTouched(allTouched);
+
     // Validate email for non-OAuth
     const fieldErrors: Record<string, string> = {};
     if (!isOAuth) {
@@ -85,6 +130,8 @@ export default function ProfileSetupPage() {
     }
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
+      showFormErrors(fieldErrors, { email: "Email" });
+      scrollToFirstError();
       return;
     }
 
@@ -112,6 +159,11 @@ export default function ProfileSetupPage() {
         if (!errs[field]) errs[field] = err.message;
       });
       setErrors(errs);
+      showFormErrors(errs, {
+        firstName: "First name", lastName: "Last name", country: "Country",
+        timezone: "Timezone", discordUsername: "Discord username",
+      });
+      scrollToFirstError();
       return;
     }
 
@@ -141,6 +193,9 @@ export default function ProfileSetupPage() {
       setSaving(false);
     }
   };
+
+  const bc = (field: string, value: string | string[] | boolean) =>
+    validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-2xl animate-fade-in">
@@ -175,8 +230,7 @@ export default function ProfileSetupPage() {
           )}
 
           {/* Email */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-email">Email {!isOAuth && <span className="text-destructive">*</span>}</Label>
+          <ValidatedField id="setup-email" label="Email" required={!isOAuth} error={errors.email} value={form.email} touched={touched.email}>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -184,46 +238,37 @@ export default function ProfileSetupPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })}
+                onBlur={() => markTouched("email")}
                 readOnly={!!isOAuth}
                 disabled={!!isOAuth}
-                className={cn("pl-10", isOAuth && "bg-muted/50")}
+                className={cn("pl-10", isOAuth && "bg-muted/50", bc("email", form.email))}
                 aria-invalid={!!errors.email}
               />
             </div>
             {isOAuth && <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>}
-            {errors.email && (
-              <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                <AlertCircle className="h-3 w-3" /> {errors.email}
-              </p>
-            )}
-          </div>
+          </ValidatedField>
 
           {/* First name */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-firstName">First name <span className="text-destructive">*</span></Label>
+          <ValidatedField id="setup-firstName" label="First name" required error={errors.firstName} value={form.firstName} touched={touched.firstName}>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <Input id="setup-firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jane" className="pl-10" required aria-invalid={!!errors.firstName} />
+              <Input id="setup-firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} onBlur={() => markTouched("firstName")} placeholder="Jane" className={cn("pl-10", bc("firstName", form.firstName))} required aria-invalid={!!errors.firstName} />
             </div>
-            {errors.firstName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
-          </div>
+          </ValidatedField>
 
           {/* Last name */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-lastName">Last name <span className="text-destructive">*</span></Label>
+          <ValidatedField id="setup-lastName" label="Last name" required error={errors.lastName} value={form.lastName} touched={touched.lastName}>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              <Input id="setup-lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className="pl-10" required aria-invalid={!!errors.lastName} />
+              <Input id="setup-lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} onBlur={() => markTouched("lastName")} placeholder="Doe" className={cn("pl-10", bc("lastName", form.lastName))} required aria-invalid={!!errors.lastName} />
             </div>
-            {errors.lastName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
-          </div>
+          </ValidatedField>
 
           {/* Country */}
-          <div className="space-y-1.5">
-            <Label>Country <span className="text-destructive">*</span></Label>
+          <ValidatedField id="setup-country" label="Country" required error={errors.country} value={form.country} touched={touched.country}>
             <Popover open={countryOpen} onOpenChange={setCountryOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={countryOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
+                <Button variant="outline" role="combobox" aria-expanded={countryOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground", bc("country", form.country))} aria-invalid={!!errors.country}>
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   {form.country || "Select a country"}
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
@@ -236,7 +281,7 @@ export default function ProfileSetupPage() {
                     <CommandEmpty>No country found.</CommandEmpty>
                     <CommandGroup>
                       {COUNTRIES.map((c) => (
-                        <CommandItem key={c.code} value={c.name} onSelect={() => { setForm({ ...form, country: c.name }); setCountryOpen(false); }}>
+                        <CommandItem key={c.code} value={c.name} onSelect={() => { setForm({ ...form, country: c.name }); setCountryOpen(false); markTouched("country"); }}>
                           <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
                           {c.name}
                         </CommandItem>
@@ -246,15 +291,13 @@ export default function ProfileSetupPage() {
                 </Command>
               </PopoverContent>
             </Popover>
-            {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
-          </div>
+          </ValidatedField>
 
           {/* Timezone */}
-          <div className="space-y-1.5">
-            <Label>Timezone <span className="text-destructive">*</span></Label>
+          <ValidatedField id="setup-timezone" label="Timezone" required error={errors.timezone} value={form.timezone} touched={touched.timezone}>
             <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
+                <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground", bc("timezone", form.timezone))} aria-invalid={!!errors.timezone}>
                   <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}
                   <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
@@ -267,7 +310,7 @@ export default function ProfileSetupPage() {
                     <CommandEmpty>No timezone found.</CommandEmpty>
                     <CommandGroup>
                       {TIMEZONES.map((tz) => (
-                        <CommandItem key={tz.value} value={tz.label} onSelect={() => { setForm({ ...form, timezone: tz.value }); setTimezoneOpen(false); }}>
+                        <CommandItem key={tz.value} value={tz.label} onSelect={() => { setForm({ ...form, timezone: tz.value }); setTimezoneOpen(false); markTouched("timezone"); }}>
                           <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
                           {tz.label}
                         </CommandItem>
@@ -277,8 +320,7 @@ export default function ProfileSetupPage() {
                 </Command>
               </PopoverContent>
             </Popover>
-            {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
-          </div>
+          </ValidatedField>
 
           {/* Discord account detection */}
           <div className="space-y-3">
@@ -310,15 +352,12 @@ export default function ProfileSetupPage() {
 
           {/* Discord username — only if they have an account */}
           {form.has_discord_account && (
-            <div className="space-y-1.5">
-              <Label htmlFor="setup-discord">Discord username</Label>
+            <ValidatedField id="setup-discord" label="Discord username" error={errors.discordUsername} value={form.discordUsername} touched={touched.discordUsername} description="Enter your Discord username so we can connect with you.">
               <div className="relative">
                 <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="setup-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} placeholder="username" className="pl-10" aria-invalid={!!errors.discordUsername} />
+                <Input id="setup-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} onBlur={() => markTouched("discordUsername")} placeholder="username" className={cn("pl-10", bc("discordUsername", form.discordUsername))} aria-invalid={!!errors.discordUsername} />
               </div>
-              <p className="text-xs text-muted-foreground">Enter your Discord username so we can connect with you.</p>
-              {errors.discordUsername && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.discordUsername}</p>}
-            </div>
+            </ValidatedField>
           )}
 
           {!form.has_discord_account && (
@@ -350,32 +389,26 @@ export default function ProfileSetupPage() {
           </div>
 
           {/* Portfolio & LinkedIn */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-portfolio">Portfolio URL</Label>
+          <ValidatedField id="setup-portfolio" label="Portfolio URL" value={form.portfolio_url}>
             <Input id="setup-portfolio" type="url" value={form.portfolio_url} onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })} placeholder="https://yourportfolio.com" maxLength={500} />
-          </div>
+          </ValidatedField>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-linkedin">LinkedIn URL</Label>
+          <ValidatedField id="setup-linkedin" label="LinkedIn URL" value={form.linkedin_url}>
             <Input id="setup-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
-          </div>
+          </ValidatedField>
 
           {/* Experience Areas */}
           <div className="space-y-1.5">
             <Label>Experience areas</Label>
             <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
-            <MultiSelect
-              options={EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }))}
+            <ExperienceAreasSelect
               selected={form.experience_areas}
               onChange={(v) => setForm({ ...form, experience_areas: v })}
-              placeholder="Search and select areas..."
-              aria-label="Experience areas"
             />
           </div>
 
           {/* Professional Goals */}
-          <div className="space-y-1.5">
-            <Label htmlFor="setup-goals">Professional development goals</Label>
+          <ValidatedField id="setup-goals" label="Professional development goals" value={form.professional_goals}>
             <Textarea
               id="setup-goals"
               value={form.professional_goals}
@@ -384,7 +417,7 @@ export default function ProfileSetupPage() {
               className="min-h-[100px] resize-y"
               maxLength={5000}
             />
-          </div>
+          </ValidatedField>
 
           {/* Education */}
           <div className="space-y-1.5">

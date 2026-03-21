@@ -12,8 +12,9 @@ import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
-import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
+import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
+import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -317,12 +318,9 @@ export function ProfileSetupDialog() {
             <div className="space-y-1.5">
               <Label>Experience areas</Label>
               <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
-              <MultiSelect
-                options={EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }))}
+              <ExperienceAreasSelect
                 selected={form.experience_areas}
                 onChange={(v) => setForm({ ...form, experience_areas: v })}
-                placeholder="Search and select areas..."
-                aria-label="Experience areas"
               />
             </div>
 

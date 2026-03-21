@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useMemo, type KeyboardEvent } from "react";
-import { X, Check, ChevronsUpDown, Search } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+import { X, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 export interface MultiSelectOption {
   value: string;
   label: string;
+  /** When true, this option appears greyed out and cannot be selected */
+  disabled?: boolean;
 }
 
 interface MultiSelectProps {
@@ -30,6 +32,7 @@ interface MultiSelectProps {
  * - Searchable by wildcard keyword (case-insensitive via cmdk)
  * - Displays selected items as removable badges/tags
  * - Allows zero to many selections
+ * - Supports per-option disabled state
  * - WCAG accessible with keyboard navigation
  */
 export function MultiSelect({
@@ -47,13 +50,17 @@ export function MultiSelect({
 
   const toggle = useCallback(
     (value: string) => {
+      // Don't toggle if the option is disabled
+      const option = options.find((o) => o.value === value);
+      if (option?.disabled) return;
+
       onChange(
         selected.includes(value)
           ? selected.filter((s) => s !== value)
           : [...selected, value]
       );
     },
-    [selected, onChange]
+    [selected, onChange, options]
   );
 
   const remove = useCallback(
@@ -80,8 +87,9 @@ export function MultiSelect({
             aria-invalid={ariaInvalid}
             disabled={disabled}
             className={cn(
-              "w-full justify-between font-normal min-h-10",
-              !selected.length && "text-muted-foreground"
+              "w-full justify-between font-normal min-h-10 transition-colors",
+              !selected.length && "text-muted-foreground",
+              ariaInvalid && "border-destructive focus-visible:ring-destructive/40"
             )}
           >
             <span className="truncate">
@@ -103,12 +111,16 @@ export function MultiSelect({
                     key={option.value}
                     value={option.label}
                     onSelect={() => toggle(option.value)}
+                    disabled={option.disabled}
+                    className={cn(option.disabled && "opacity-50 cursor-not-allowed")}
                   >
                     <div
                       className={cn(
                         "mr-2 h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center",
                         selected.includes(option.value)
                           ? "bg-primary border-primary text-primary-foreground"
+                          : option.disabled
+                          ? "border-muted-foreground/30"
                           : "border-primary"
                       )}
                       aria-hidden="true"

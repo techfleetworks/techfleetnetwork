@@ -10,12 +10,16 @@ import { loginSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { toast } from "sonner";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+import { ValidatedField } from "@/components/ui/validated-field";
+import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,12 +29,34 @@ export default function LoginPage() {
   const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
   const from = fromState || redirectParam || "/dashboard";
 
+  const markTouched = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  // Real-time validation
+  useEffect(() => {
+    if (Object.keys(touched).length === 0) return;
+    const result = loginSchema.safeParse({ email, password });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      const touchedErrors: Record<string, string> = {};
+      for (const [k, v] of Object.entries(fieldErrors)) {
+        if (touched[k]) touchedErrors[k] = v;
+      }
+      setErrors(touchedErrors);
+    } else {
+      setErrors({});
+    }
+  }, [email, password, touched]);
+
   // Show toast for admin confirmation redirect
   useEffect(() => {
     const adminConfirmed = searchParams.get("admin_confirmed");
     if (adminConfirmed === "true") {
       toast.success("Admin Role successfully confirmed!");
-      // Clean URL without reload
       const url = new URL(window.location.href);
       url.searchParams.delete("admin_confirmed");
       window.history.replaceState({}, "", url.pathname + url.search);
@@ -56,16 +82,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
-      setError(result.error.issues[0].message);
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      showFormErrors(fieldErrors, { email: "Email", password: "Password" });
+      scrollToFirstError();
       return;
     }
+    setErrors({});
     setError("");
     setLoading(true);
 
     try {
-      // Rate limit check before auth attempt
       const rateCheck = await RateLimitService.check(result.data.email, "login_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
@@ -81,6 +116,9 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const bc = (field: string, value: string) =>
+    validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
@@ -108,27 +146,26 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-4" noValidate>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email address</Label>
+            <ValidatedField id="email" label="Email address" required error={errors.email} value={email} touched={touched.email}>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" />
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} />
               </div>
-            </div>
+            </ValidatedField>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+            <ValidatedField id="password" label="Password" required error={errors.password} value={password} touched={touched.password}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span /> {/* spacer since label is in ValidatedField */}
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10" autoComplete="current-password" required aria-required="true" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => markTouched("password")} className={`pl-10 pr-10 ${bc("password", password)}`} autoComplete="current-password" required aria-required="true" aria-invalid={!!errors.password} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
+            </ValidatedField>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign In"}
