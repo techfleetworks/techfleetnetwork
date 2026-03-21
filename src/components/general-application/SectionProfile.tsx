@@ -123,11 +123,10 @@ export function SectionProfile({ form, errors, updateField }: Props) {
       {/* Experience */}
       <div className="space-y-1.5">
         <Label>Experience Areas <span className="text-destructive">*</span></Label>
-        <MultiSelect
-          options={experienceOptions}
+        <ExperienceAreasSelect
           selected={form.experience_areas}
           onChange={(v) => updateField("experience_areas", v)}
-          placeholder="Select areas of experience"
+          aria-invalid={!!errors.experience_areas}
         />
         {errors.experience_areas && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.experience_areas}</p>}
       </div>
