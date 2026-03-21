@@ -326,8 +326,18 @@ export default function ProjectOpeningsPage() {
 
       <Tabs defaultValue="client" className="w-full">
         <TabsList className="w-full sm:w-auto mb-6">
-          <TabsTrigger value="client" className="flex-1 sm:flex-none">Client Project Openings</TabsTrigger>
-          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none">Volunteer Openings</TabsTrigger>
+          <TabsTrigger value="client" className="flex-1 sm:flex-none gap-2">
+            Client Project Openings
+            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${openApplications.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
+              {openApplications.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none gap-2">
+            Volunteer Openings
+            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white bg-[#52525b]">
+              0
+            </span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="client">
