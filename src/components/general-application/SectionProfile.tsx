@@ -15,7 +15,6 @@ import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import type { AppFormData } from "@/lib/validators/general-application";
 
-const experienceOptions: MultiSelectOption[] = EXPERIENCE_AREAS.map((e) => ({ value: e, label: e }));
 const educationOptions: MultiSelectOption[] = EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }));
 
 interface Props {
