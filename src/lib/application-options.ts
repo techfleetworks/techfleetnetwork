@@ -4,6 +4,7 @@
  * Used in profile and general application forms.
  */
 export const EXPERIENCE_AREAS = [
+  "I'm not sure yet",
   "Accessibility Specialist",
   "AI User Experience",
   "Back-end Developer",
@@ -62,7 +63,6 @@ export const EXPERIENCE_AREAS = [
   "Visual Design",
   "Web Development",
   "Workshop Facilitation",
-  "I'm not sure yet",
 ] as const;
 
 export const EDUCATION_OPTIONS = [
