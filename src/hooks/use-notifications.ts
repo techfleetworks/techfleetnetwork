@@ -13,6 +13,7 @@ export function useNotifications(limit = 50) {
     queryKey: [...NOTIFICATIONS_KEY, user?.id, limit],
     queryFn: () => NotificationService.list(user!.id, limit),
     enabled: !!user,
+    refetchInterval: 30_000,
   });
 }
 
