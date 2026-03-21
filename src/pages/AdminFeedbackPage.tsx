@@ -16,7 +16,7 @@ export default function AdminFeedbackPage() {
   const [selected, setSelected] = useState<Feedback | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  useEffect(() => { setTitle("Feedback"); }, [setTitle]);
+  useEffect(() => { setHeader({ title: "Feedback" }); return () => setHeader(null); }, [setHeader]);
 
   const { data: feedback = [], isLoading } = useQuery({
     queryKey: ["admin-feedback"],
