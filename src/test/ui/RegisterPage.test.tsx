@@ -23,7 +23,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: /confirm password/i }).closest("div") || screen.getByLabelText(/confirm password/i, { selector: "input" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^confirm password$/i)).toBeInTheDocument();
   });
 
   it("18.1: renders terms checkbox", () => {
