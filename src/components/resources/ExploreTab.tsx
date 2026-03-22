@@ -304,6 +304,7 @@ export default function ExploreTab() {
                 onClick={() => {
                   setQuery("");
                   setResponseMarkdown("");
+                  setWebResults([]);
                 }}
                 aria-label="Reset search"
               >
