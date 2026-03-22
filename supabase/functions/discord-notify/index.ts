@@ -19,7 +19,8 @@ interface NotifyPayload {
     | "application_submitted"
     | "project_applied"
     | "feedback_submitted"
-    | "resource_explored";
+    | "resource_explored"
+    | "discord_verified";
   display_name?: string;
   discord_username?: string;
   discord_user_id?: string;
@@ -53,6 +54,8 @@ function buildActionText(payload: NotifyPayload): string {
       return `Submitted feedback about ${payload.feedback_area || "the platform"} 💬`;
     case "resource_explored":
       return `Explored resources: "${payload.search_query || "a topic"}" 🔍`;
+    case "discord_verified":
+      return `has verified their Discord account from the Tech Fleet Network Platform ✅🔗`;
     default:
       return "Performed an action on the platform 📢";
   }
@@ -92,6 +95,7 @@ const VALID_EVENTS = new Set([
   "project_applied",
   "feedback_submitted",
   "resource_explored",
+  "discord_verified",
 ]);
 
 serve(async (req) => {

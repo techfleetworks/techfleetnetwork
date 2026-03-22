@@ -25,6 +25,7 @@ import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { TOTAL_OBSERVER_LESSONS } from "@/data/observer-course";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
+import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
 
 interface CourseCard {
   id: string;
@@ -148,6 +149,7 @@ export default function TrainingPage() {
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
+  const { data: connectDiscordCompleted = 0 } = useCompletedCount(userId, "first_steps", CONNECT_DISCORD_TASK_IDS);
   const { data: firstCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: agileCompleted = 0 } = useCompletedCount(userId, "second_steps");
   const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
@@ -159,6 +161,16 @@ export default function TrainingPage() {
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
   const gettingStartedCourses: CourseCard[] = [
+    {
+      id: "connect-discord",
+      title: "Connect to Discord",
+      description: "Link your Discord account to the Tech Fleet Network platform.",
+      icon: Users,
+      href: "/courses/connect-discord",
+      totalTasks: TOTAL_CONNECT_DISCORD,
+      completedTasks: connectDiscordCompleted,
+      locked: false,
+    },
     {
       id: "onboarding",
       title: "Onboarding Steps",

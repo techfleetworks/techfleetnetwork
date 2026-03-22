@@ -14,7 +14,8 @@ interface NotifyPayload {
     | "application_submitted"
     | "project_applied"
     | "feedback_submitted"
-    | "resource_explored";
+    | "resource_explored"
+    | "discord_verified";
   display_name?: string;
   discord_username?: string;
   discord_user_id?: string;
@@ -167,6 +168,16 @@ export const DiscordNotifyService = {
       event: "resource_explored",
       display_name: displayName,
       search_query: searchQuery,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
+  discordVerified(displayName: string, discordUsername: string, discordUserId: string) {
+    log.info("discordVerified", `Discord verified by ${displayName}`, { displayName, discordUsername, discordUserId });
+    notify({
+      event: "discord_verified",
+      display_name: displayName,
       discord_username: discordUsername,
       discord_user_id: discordUserId,
     });
