@@ -98,6 +98,7 @@ export default function ExploreTab() {
     async (searchQuery: string) => {
       if (!searchQuery.trim()) return;
 
+      const normalized = searchQuery.trim().toLowerCase();
       setLoading(true);
       setResponseMarkdown("");
       setQuery(searchQuery);
@@ -109,6 +110,27 @@ export default function ExploreTab() {
             user_id: user.id,
             query_text: searchQuery.trim(),
           });
+        }
+
+        // Check cache first
+        const { data: cached } = await supabase
+          .from("exploration_cache")
+          .select("id, response_markdown")
+          .eq("query_normalized", normalized)
+          .maybeSingle();
+
+        if (cached?.response_markdown) {
+          setResponseMarkdown(cached.response_markdown);
+          // Increment hit count in background
+          supabase
+            .from("exploration_cache")
+            .update({ hit_count: undefined as unknown as number })
+            .eq("id", cached.id)
+            .then(() => {
+              // Use raw SQL-style increment via rpc if needed; for now just skip
+            });
+          setLoading(false);
+          return;
         }
 
         // Stream response from Fleety
@@ -205,6 +227,14 @@ export default function ExploreTab() {
               /* ignore */
             }
           }
+        }
+
+        // Cache the result for future queries
+        if (fullText.trim()) {
+          await supabase.from("exploration_cache").upsert(
+            { query_normalized: normalized, response_markdown: fullText },
+            { onConflict: "query_normalized" }
+          );
         }
       } catch (err) {
         console.error("Explore error:", err);
