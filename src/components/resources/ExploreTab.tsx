@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
