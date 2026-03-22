@@ -68,6 +68,39 @@ export default function ResetPasswordPage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const result = passwordSchema.safeParse(password);
+    if (!result.success) {
+      setError(result.error.issues[0].message);
+      return;
+    }
+    setError("");
+    setLoading(true);
+
+    try {
+      await AuthService.updatePassword(result.data);
+      setSuccess(true);
+      setTimeout(() => navigate("/login", { replace: true }), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
+          <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Password updated</h1>
+          <p className="text-muted-foreground">Redirecting you to sign in…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (checking) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
