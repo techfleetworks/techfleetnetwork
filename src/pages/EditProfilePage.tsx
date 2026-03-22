@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   User, Globe, MessageCircle, Check, ChevronsUpDown,
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
+  Link2, RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
