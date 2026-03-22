@@ -100,7 +100,7 @@ export default function ExploreTab() {
     async (searchQuery: string) => {
       if (!searchQuery.trim()) return;
 
-      const normalized = searchQuery.trim().toLowerCase();
+      const normalized = normalizeQueryKey(searchQuery) || searchQuery.trim().toLowerCase();
       setLoading(true);
       setResponseMarkdown("");
       setQuery(searchQuery);
