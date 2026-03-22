@@ -32,10 +32,10 @@ import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const communityNav = [
+  { label: "Announcements", href: "/updates", icon: Megaphone },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
-  { label: "Updates", href: "/updates", icon: Megaphone },
 ];
 
 const trainingNav = [
