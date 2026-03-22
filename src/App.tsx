@@ -51,6 +51,7 @@ const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDeta
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
+const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 
 function RouteFallback() {
   return (
