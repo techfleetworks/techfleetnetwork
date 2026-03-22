@@ -97,9 +97,9 @@ export function AppSidebar() {
           {collapsed && <SidebarTrigger className="shrink-0" />}
         </div>
 
-        {navSections.map((section) => (
-          <SidebarGroup key={section.label}>
-            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+        {navSections.map((section, sIdx) => (
+          <SidebarGroup key={section.label ?? `section-${sIdx}`}>
+            {section.label && <SidebarGroupLabel>{section.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map(({ label, href, icon: Icon }) => (
