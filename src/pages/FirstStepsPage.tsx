@@ -61,32 +61,21 @@ const baseTasks: Omit<Task, "completed">[] = [
     action: "https://guide.techfleet.org/resources/join-the-tech-fleet-figma-educational-space",
     external: true,
   },
+  {
+    id: "join-discord",
+    title: "Join Tech Fleet Discord",
+    description: "Join the Tech Fleet Discord community to connect with other members.",
+    icon: MessageSquare,
+    action: "https://discord.gg/tZpX8ZaqbY",
+    external: true,
+  },
 ];
-
-const joinDiscordTask: Omit<Task, "completed"> = {
-  id: "join-discord",
-  title: "Join Tech Fleet Discord",
-  description: "Sign up for the Tech Fleet Discord community at techfleet.org/join.",
-  icon: MessageSquare,
-  action: "https://techfleet.org/join",
-  external: true,
-};
 
 export default function FirstStepsPage() {
   const { user, profile, profileLoaded } = useAuth();
   const queryClient = useQueryClient();
 
-  // Build task list: include "join-discord" only if user has no discord username
-  // Wait for profile to load to avoid flashing wrong count
-  const taskDefs = (() => {
-    if (!profileLoaded) return baseTasks; // default to 5 until profile is known
-    const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
-    if (hasDiscord) return baseTasks;
-    const idx = baseTasks.findIndex((t) => t.id === "profile");
-    const copy = [...baseTasks];
-    copy.splice(idx + 1, 0, joinDiscordTask);
-    return copy;
-  })();
+  const taskDefs = baseTasks;
 
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
