@@ -142,6 +142,7 @@ export default function ExploreTab() {
           query={query}
           recommendations={parseRecommendations(responseMarkdown)}
           webResults={webResults}
+          onReset={reset}
         />
       )}
 

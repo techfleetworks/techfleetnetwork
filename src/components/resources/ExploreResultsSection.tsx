@@ -69,6 +69,18 @@ const ExploreResultsSection = memo(function ExploreResultsSection({
         <p className="text-sm text-muted-foreground">
           {totalCount} {totalCount === 1 ? "resource" : "resources"} found — here are the most relevant picks for you.
         </p>
+        {onReset && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 mt-2"
+            onClick={onReset}
+            aria-label="Reset search"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
+        )}
       </div>
 
       {/* Tech Fleet recommendations */}
