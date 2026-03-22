@@ -193,7 +193,7 @@ export default function ExploreTab() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  Recently Explored
+                  Your Recently Explored
                 </h3>
                 <Button
                   variant="ghost"
