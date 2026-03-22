@@ -1,21 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp, ExternalLink, BookOpen, Wrench } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import ReactMarkdown from "react-markdown";
+import ExploreResultsSection from "./ExploreResultsSection";
+import { parseRecommendations } from "@/lib/parse-explore-recommendations";
 
-interface RecommendationCard {
-  title: string;
-  type: "handbook" | "workshop" | "course" | "resource";
-  description: string;
-  reason: string;
-  link?: string;
-}
 
 interface PopularQuery {
   query_text: string;
@@ -29,9 +23,16 @@ const EXPLORE_SYSTEM_OVERRIDE = `The user is exploring Tech Fleet resources. Bas
 IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
 
 ### [Resource Name]
-**Type:** Handbook | Workshop | Course | Resource
+**Type:** Course | Template | User Guide | Project
 **Description:** A short summary of what this resource covers.
 **🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
+**Link:** The direct URL to the resource if known. Use the techfleet.org domain when available.
+
+Type mapping rules:
+- Training courses, learning paths → Course
+- Workshop templates, facilitation guides → Template
+- Handbooks, user guides, onboarding docs → User Guide
+- Project-related resources, tools → Project
 
 Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
 
@@ -253,18 +254,21 @@ export default function ExploreTab() {
         </CardContent>
       </Card>
 
-      {/* Results */}
-      {responseMarkdown && (
+      {/* Structured results */}
+      {responseMarkdown && !loading && (
+        <ExploreResultsSection
+          query={query}
+          recommendations={parseRecommendations(responseMarkdown)}
+        />
+      )}
+
+      {/* Streaming preview while loading */}
+      {responseMarkdown && loading && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Recommended Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 first:[&_h3]:mt-0 [&_p]:my-1 [&_ul]:my-1">
-              <ReactMarkdown>{responseMarkdown}</ReactMarkdown>
+          <CardContent className="py-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Fleety is finding resources…</span>
             </div>
           </CardContent>
         </Card>
