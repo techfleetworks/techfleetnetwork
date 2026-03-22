@@ -42,6 +42,7 @@ export default function ExploreTab() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [responseMarkdown, setResponseMarkdown] = useState("");
+  const [webResults, setWebResults] = useState<WebSearchResult[]>([]);
   const [popularQueries, setPopularQueries] = useState<PopularQuery[]>([]);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const [loadingPopular, setLoadingPopular] = useState(true);
