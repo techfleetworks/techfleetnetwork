@@ -14,7 +14,8 @@ interface NotifyPayload {
     | "application_submitted"
     | "project_applied"
     | "feedback_submitted"
-    | "resource_explored";
+    | "resource_explored"
+    | "discord_verified";
   display_name?: string;
   discord_username?: string;
   discord_user_id?: string;
