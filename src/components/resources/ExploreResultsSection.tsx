@@ -32,17 +32,15 @@ export default function ExploreResultsSection({ query, recommendations, webResul
 
   return (
     <section className="space-y-6" aria-label="Recommended resources">
-      {/* Header */}
-      <div className="space-y-1">
+      {/* Search context banner */}
+      <div className="rounded-lg bg-primary/5 border border-primary/15 px-5 py-4 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
-          <h2 className="text-base font-semibold text-foreground">Recommended Resources</h2>
-          <Badge variant="secondary" className="text-xs">
-            {totalCount} {totalCount === 1 ? "result" : "results"}
-          </Badge>
+          <h2 className="text-base font-semibold text-foreground">Results for:</h2>
         </div>
+        <p className="text-lg font-medium text-foreground leading-snug">&ldquo;{query}&rdquo;</p>
         <p className="text-sm text-muted-foreground">
-          Based on your interest in <span className="font-medium text-foreground">{query}</span>, here are the most relevant resources.
+          {totalCount} {totalCount === 1 ? "resource" : "resources"} found — here are the most relevant picks for you.
         </p>
       </div>
 
