@@ -11,13 +11,6 @@ import ExploreResultsSection from "./ExploreResultsSection";
 import type { RecommendationData } from "./ExploreRecommendationCard";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
 
-interface RecommendationCard {
-  title: string;
-  type: "handbook" | "workshop" | "course" | "resource";
-  description: string;
-  reason: string;
-  link?: string;
-}
 
 interface PopularQuery {
   query_text: string;
