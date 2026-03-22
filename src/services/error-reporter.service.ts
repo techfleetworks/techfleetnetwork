@@ -5,6 +5,11 @@
  * to the audit_log table via the write_audit_log RPC so admins can
  * review them in the Activity Log page.
  *
+ * Enterprise hardening:
+ * - Deduplication: identical errors within a window are reported once
+ * - Rate limiting: max N reports per minute to prevent flood at 100k users
+ * - Payload size capping: prevents oversized audit_log rows
+ *
  * PII is NOT stored in the error_message — only the error name, message,
  * and sanitised stack trace.
  */
@@ -14,8 +19,55 @@ import { supabase } from "@/integrations/supabase/client";
 /** Maximum error_message length stored in audit_log */
 const MAX_MSG_LENGTH = 2000;
 
+/** Max reports per minute per tab (prevents flood) */
+const MAX_REPORTS_PER_MINUTE = 10;
+
+/** Dedup window in ms — identical errors within this window are skipped */
+const DEDUP_WINDOW_MS = 60_000;
+
+let reportCount = 0;
+let reportWindowStart = Date.now();
+const recentErrors = new Map<string, number>(); // fingerprint → timestamp
+
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 3) + "..." : s;
+}
+
+/** Generate a short fingerprint for deduplication */
+function fingerprint(msg: string, source: string): string {
+  // Use first 200 chars of message + source as key
+  return `${source}::${msg.slice(0, 200)}`;
+}
+
+/** Check rate limit — returns true if the report should be sent */
+function checkRateLimit(): boolean {
+  const now = Date.now();
+  if (now - reportWindowStart > 60_000) {
+    reportCount = 0;
+    reportWindowStart = now;
+  }
+  if (reportCount >= MAX_REPORTS_PER_MINUTE) return false;
+  reportCount++;
+  return true;
+}
+
+/** Check dedup — returns true if this is a new error */
+function checkDedup(fp: string): boolean {
+  const now = Date.now();
+  const lastSeen = recentErrors.get(fp);
+  if (lastSeen && now - lastSeen < DEDUP_WINDOW_MS) return false;
+
+  recentErrors.set(fp, now);
+
+  // Housekeep: remove stale entries to prevent memory leak
+  if (recentErrors.size > 100) {
+    const cutoff = now - DEDUP_WINDOW_MS;
+    for (const [key, ts] of recentErrors) {
+      if (ts < cutoff) recentErrors.delete(key);
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -29,6 +81,10 @@ async function reportToAuditLog(
   source: string,
   userId?: string,
 ) {
+  const fp = fingerprint(errorMessage, source);
+  if (!checkDedup(fp)) return;
+  if (!checkRateLimit()) return;
+
   try {
     await supabase.rpc("write_audit_log", {
       p_event_type: "client_error",

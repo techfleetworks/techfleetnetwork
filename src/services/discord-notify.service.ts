@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { discordBreaker } from "@/lib/circuit-breaker";
 
 const log = createLogger("DiscordNotifyService");
 
@@ -28,7 +29,10 @@ async function notify(payload: NotifyPayload) {
       discordUsername: payload.discord_username,
     });
 
-    const { data, error } = await supabase.functions.invoke("discord-notify", { body: payload });
+    const { data, error } = await discordBreaker.executeWithFallback(
+      () => supabase.functions.invoke("discord-notify", { body: payload }),
+      { data: { success: false, reason: "circuit_open" }, error: null },
+    );
 
     if (error) {
       throw error;
@@ -119,9 +123,11 @@ export const DiscordNotifyService = {
   async resolveDiscordId(discordUsername: string): Promise<string | null> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {
-        const { data } = await supabase.functions.invoke("resolve-discord-id", {
-          body: { discord_username: discordUsername },
-        });
+        const { data } = await discordBreaker.execute(
+          () => supabase.functions.invoke("resolve-discord-id", {
+            body: { discord_username: discordUsername },
+          }),
+        );
         const result = data?.discord_user_id || null;
         if (result) {
           log.info("resolveDiscordId", `Resolved "${discordUsername}" to Discord ID ${result}`, { discordUsername, discordUserId: result });

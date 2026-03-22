@@ -63,6 +63,17 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+/** Max request body size (8 KB — sufficient for notification payloads) */
+const MAX_BODY_BYTES = 8 * 1024;
+
+const VALID_EVENTS = new Set([
+  "user_signed_up",
+  "profile_completed",
+  "task_completed",
+  "phase_completed",
+  "class_registered",
+]);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -72,9 +83,16 @@ serve(async (req) => {
   log.info("handler", `Request received [${requestId}]`, { requestId });
 
   try {
+    // A3: Enforce request body size limit
+    const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+    if (contentLength > MAX_BODY_BYTES) {
+      log.warn("handler", `Request body too large [${requestId}]: ${contentLength} bytes`, { requestId, contentLength });
+      return jsonResponse({ error: "Request body too large" }, 413);
+    }
+
     const payload: NotifyPayload = await req.json();
 
-    if (!payload?.event) {
+    if (!payload?.event || !VALID_EVENTS.has(payload.event)) {
       log.warn("handler", `Missing event in request payload [${requestId}]`, { requestId });
       return jsonResponse({ error: "Missing event" }, 400);
     }
