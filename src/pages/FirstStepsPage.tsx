@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, Users, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,14 +51,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     description: "Register for and attend the Tech Fleet onboarding session.",
     icon: Play,
     action: "https://techfleet.org/onboarding",
-    external: true,
-  },
-  {
-    id: "service-leadership",
-    title: "Sign Up for Service Leadership Class",
-    description: "Register for the next available service leadership session.",
-    icon: Users,
-    action: "https://techfleet.org/overview/current-classes",
     external: true,
   },
   {
