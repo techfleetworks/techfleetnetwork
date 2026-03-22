@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { BookOpen, Wrench, Loader2, Filter, X } from "lucide-react";
+import { BookOpen, Wrench, Loader2, Filter, X, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExploreTab from "@/components/resources/ExploreTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
