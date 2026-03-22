@@ -1,15 +1,18 @@
 import type { RecommendationData } from "@/components/resources/ExploreRecommendationCard";
 
-const VALID_TYPES = new Set(["course", "template", "user guide", "project"]);
+const VALID_TYPES = new Set(["course", "template", "user guide", "project", "web"]);
 
 function normaliseType(raw: string): RecommendationData["type"] {
   const lower = raw.trim().toLowerCase();
-  // Map legacy AI labels
+  // Map legacy / alternate AI labels
   if (lower === "handbook") return "user guide";
   if (lower === "workshop") return "template";
-  if (lower === "resource") return "course";
+  if (lower === "online") return "web";
+  if (lower === "resource") return "web";
+  if (lower === "external") return "web";
   if (VALID_TYPES.has(lower)) return lower as RecommendationData["type"];
-  return "course";
+  // Default to user guide (most common Tech Fleet content) rather than course
+  return "user guide";
 }
 
 function extractField(block: string, label: string): string {
