@@ -24,15 +24,47 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [validRecovery, setValidRecovery] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event from the auth URL hash
+    let settled = false;
+    const settle = (valid: boolean) => {
+      if (settled) return;
+      settled = true;
+      setValidRecovery(valid);
+      setChecking(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
-        setValidRecovery(true);
+        settle(true);
       }
     });
+
+    // Check if the URL hash contains a recovery token
+    const hash = window.location.hash;
+    const hasRecoveryInHash = hash.includes("type=recovery");
+
+    if (!hasRecoveryInHash) {
+      // No recovery hash — check for an existing session (link may have already been consumed)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        settle(!!session);
+      });
+    } else {
+      // Hash is present — Supabase SDK will process it asynchronously.
+      // Wait up to 5s for the PASSWORD_RECOVERY event before giving up.
+      const timeout = setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          settle(!!session);
+        });
+      }, 5000);
+      return () => {
+        clearTimeout(timeout);
+        subscription.unsubscribe();
+      };
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -64,6 +96,17 @@ export default function ResetPasswordPage() {
           <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Password updated</h1>
           <p className="text-muted-foreground">Redirecting you to sign in…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
+          <div className="h-8 w-8 mx-auto mb-4 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <p className="text-muted-foreground">Verifying your reset link…</p>
         </div>
       </div>
     );
