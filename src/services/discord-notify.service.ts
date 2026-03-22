@@ -173,6 +173,16 @@ export const DiscordNotifyService = {
     });
   },
 
+  discordVerified(displayName: string, discordUsername: string, discordUserId: string) {
+    log.info("discordVerified", `Discord verified by ${displayName}`, { displayName, discordUsername, discordUserId });
+    notify({
+      event: "discord_verified",
+      display_name: displayName,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
   async resolveDiscordId(discordUsername: string): Promise<string | null> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {

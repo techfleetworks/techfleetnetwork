@@ -95,6 +95,7 @@ const VALID_EVENTS = new Set([
   "project_applied",
   "feedback_submitted",
   "resource_explored",
+  "discord_verified",
 ]);
 
 serve(async (req) => {
