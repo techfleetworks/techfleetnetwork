@@ -69,9 +69,9 @@ export default function ExploreTab() {
           });
 
           const sorted = Array.from(queryUsers.entries())
-            .sort((a, b) => b[1].size - a[1].size)
+            .sort((a, b) => b[1].users.size - a[1].users.size)
             .slice(0, 6)
-            .map(([query_text, users]) => ({ query_text, count: users.size }));
+            .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
 
           setPopularQueries(sorted);
 
