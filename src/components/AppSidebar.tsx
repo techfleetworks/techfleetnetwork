@@ -144,6 +144,18 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
+                    isActive={isActive("/admin/roster")}
+                    tooltip="Project Roster"
+                  >
+                    <Link to="/admin/roster">
+                      <Users className="h-4 w-4" />
+                      <span>Project Roster</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive("/feedback")}
                     tooltip="Feedback"
                   >
