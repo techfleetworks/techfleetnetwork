@@ -1,0 +1,351 @@
+import { useState, useEffect, useCallback } from "react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp, ExternalLink, BookOpen, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+
+interface RecommendationCard {
+  title: string;
+  type: "handbook" | "workshop" | "course" | "resource";
+  description: string;
+  reason: string;
+  link?: string;
+}
+
+interface PopularQuery {
+  query_text: string;
+  count: number;
+}
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
+
+const EXPLORE_SYSTEM_OVERRIDE = `The user is exploring Tech Fleet resources. Based on what they want to accomplish, recommend specific handbooks, workshops, courses, and resources from the Tech Fleet knowledge base.
+
+IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
+
+### [Resource Name]
+**Type:** Handbook | Workshop | Course | Resource
+**Why this helps:** Brief explanation of why this resource is relevant to what the user wants to do.
+**Description:** A short summary of what this resource covers.
+
+Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
+
+export default function ExploreTab() {
+  const { user } = useAuth();
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [responseMarkdown, setResponseMarkdown] = useState("");
+  const [popularQueries, setPopularQueries] = useState<PopularQuery[]>([]);
+  const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  const [loadingPopular, setLoadingPopular] = useState(true);
+
+  // Fetch popular and recent queries
+  useEffect(() => {
+    async function loadQueries() {
+      try {
+        const { data, error } = await supabase
+          .from("exploration_queries")
+          .select("query_text, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // Count occurrences for popular
+          const countMap = new Map<string, number>();
+          data.forEach((row) => {
+            const normalized = row.query_text.trim().toLowerCase();
+            countMap.set(normalized, (countMap.get(normalized) || 0) + 1);
+          });
+
+          const sorted = Array.from(countMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([query_text, count]) => ({ query_text, count }));
+
+          setPopularQueries(sorted);
+
+          // Get recent unique queries (last 5)
+          const seen = new Set<string>();
+          const recents: string[] = [];
+          for (const row of data) {
+            const norm = row.query_text.trim();
+            if (!seen.has(norm.toLowerCase()) && recents.length < 5) {
+              seen.add(norm.toLowerCase());
+              recents.push(norm);
+            }
+          }
+          setRecentQueries(recents);
+        }
+      } catch {
+        // Silent fail for suggestions
+      } finally {
+        setLoadingPopular(false);
+      }
+    }
+    loadQueries();
+  }, []);
+
+  const explore = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) return;
+
+      setLoading(true);
+      setResponseMarkdown("");
+      setQuery(searchQuery);
+
+      try {
+        // Save the query
+        if (user) {
+          await supabase.from("exploration_queries").insert({
+            user_id: user.id,
+            query_text: searchQuery.trim(),
+          });
+        }
+
+        // Stream response from Fleety
+        const resp = await fetch(CHAT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [
+              { role: "system", content: EXPLORE_SYSTEM_OVERRIDE },
+              {
+                role: "user",
+                content: `I want to: ${searchQuery.trim()}\n\nPlease recommend the most relevant Tech Fleet resources, handbooks, workshops, and courses that will help me accomplish this.`,
+              },
+            ],
+          }),
+        });
+
+        if (!resp.ok) {
+          if (resp.status === 429) {
+            toast({ title: "Too many requests. Please wait a moment.", variant: "destructive" });
+            setLoading(false);
+            return;
+          }
+          if (resp.status === 402) {
+            toast({ title: "AI usage limit reached. Please try again later.", variant: "destructive" });
+            setLoading(false);
+            return;
+          }
+          throw new Error("Failed to get recommendations");
+        }
+
+        if (!resp.body) throw new Error("No response body");
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let textBuffer = "";
+        let fullText = "";
+        let streamDone = false;
+
+        while (!streamDone) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          textBuffer += decoder.decode(value, { stream: true });
+
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (line.startsWith(":") || line.trim() === "") continue;
+            if (!line.startsWith("data: ")) continue;
+
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") {
+              streamDone = true;
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) {
+                fullText += content;
+                setResponseMarkdown(fullText);
+              }
+            } catch {
+              textBuffer = line + "\n" + textBuffer;
+              break;
+            }
+          }
+        }
+
+        // Final flush
+        if (textBuffer.trim()) {
+          for (let raw of textBuffer.split("\n")) {
+            if (!raw) continue;
+            if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+            if (raw.startsWith(":") || raw.trim() === "") continue;
+            if (!raw.startsWith("data: ")) continue;
+            const jsonStr = raw.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) {
+                fullText += content;
+                setResponseMarkdown(fullText);
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Explore error:", err);
+        toast({ title: "Failed to get recommendations. Please try again.", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user],
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    explore(query);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search form */}
+      <Card className="border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3 mb-4">
+            <Sparkles className="h-6 w-6 text-primary shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">What are you trying to do?</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Describe your goal and Fleety will recommend the best resources, handbooks, and courses for you.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='e.g. "Learn how to facilitate a design sprint" or "Prepare for my first project"'
+              className="flex-1"
+              disabled={loading}
+              aria-label="Describe what you are trying to do"
+              maxLength={500}
+            />
+            <Button type="submit" disabled={loading || !query.trim()} className="gap-1.5 shrink-0">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              Explore
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Results */}
+      {responseMarkdown && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Recommended Resources
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 first:[&_h3]:mt-0 [&_p]:my-1 [&_ul]:my-1">
+              <ReactMarkdown>{responseMarkdown}</ReactMarkdown>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && !responseMarkdown && (
+        <Card>
+          <CardContent className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-sm">Fleety is finding the best resources for you…</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Suggestions section - show when no results */}
+      {!responseMarkdown && !loading && (
+        <div className="space-y-6">
+          {/* Popular explorations */}
+          {popularQueries.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Popular Explorations
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {popularQueries.map((pq) => (
+                  <button
+                    key={pq.query_text}
+                    onClick={() => {
+                      setQuery(pq.query_text);
+                      explore(pq.query_text);
+                    }}
+                    className="text-left rounded-lg border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all duration-200 group"
+                    aria-label={`Explore: ${pq.query_text}`}
+                  >
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors capitalize line-clamp-2">
+                      {pq.query_text}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Explored {pq.count} {pq.count === 1 ? "time" : "times"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent explorations */}
+          {recentQueries.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Recently Explored
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {recentQueries.map((rq) => (
+                  <Badge
+                    key={rq}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary/10 transition-colors capitalize"
+                    onClick={() => {
+                      setQuery(rq);
+                      explore(rq);
+                    }}
+                  >
+                    {rq}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state when nothing loaded yet */}
+          {!loadingPopular && popularQueries.length === 0 && recentQueries.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="text-sm">Be the first to explore! Type what you're trying to do above.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

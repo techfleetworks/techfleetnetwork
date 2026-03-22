@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { BookOpen, Wrench, Loader2, Filter, X } from "lucide-react";
+import { BookOpen, Wrench, Loader2, Filter, X, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExploreTab from "@/components/resources/ExploreTab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -99,9 +100,13 @@ export default function ResourcesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="handbooks" className="space-y-6">
+      <Tabs defaultValue="explore" className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <TabsList>
+            <TabsTrigger value="explore" className="gap-1.5">
+              <Sparkles className="h-4 w-4" />
+              Explore
+            </TabsTrigger>
             <TabsTrigger value="handbooks" className="gap-1.5">
               <BookOpen className="h-4 w-4" />
               Handbooks
@@ -160,6 +165,10 @@ export default function ResourcesPage() {
             )}
           </div>
         </div>
+
+        <TabsContent value="explore">
+          <ExploreTab />
+        </TabsContent>
 
         <TabsContent value="handbooks">
           {filteredHandbooks.length === 0 ? (
