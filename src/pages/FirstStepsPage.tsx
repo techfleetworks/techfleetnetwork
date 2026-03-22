@@ -254,6 +254,7 @@ export default function FirstStepsPage() {
                   onClick={() => {
                     if (task.panelAction && !task.completed) {
                       if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                      else if (task.panelId === "terms-conditions") setTermsOpen(true);
                       else setAgreementOpen(true);
                     } else {
                       toggleTask(task.id);
