@@ -3,6 +3,7 @@
  * persistence, and validation logic.
  */
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
