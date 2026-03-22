@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp, ExternalLink, BookOpen, Wrench } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import ReactMarkdown from "react-markdown";
+import ExploreResultsSection from "./ExploreResultsSection";
+import type { RecommendationData } from "./ExploreRecommendationCard";
+import { parseRecommendations } from "@/lib/parse-explore-recommendations";
 
 interface RecommendationCard {
   title: string;
