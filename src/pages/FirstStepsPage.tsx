@@ -167,13 +167,13 @@ export default function FirstStepsPage() {
     }
   };
 
-  const handleAgreementAccepted = async () => {
+  const handlePanelAccepted = async (taskId: string) => {
     if (!user) return;
-    setLoadingId("community-agreement");
+    setLoadingId(taskId);
     try {
-      await JourneyService.upsertTask(user.id, "first_steps", "community-agreement", true);
+      await JourneyService.upsertTask(user.id, "first_steps", taskId, true);
       setTasks((prev) =>
-        prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, completed: true } : t))
       );
       queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
       queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
@@ -181,15 +181,16 @@ export default function FirstStepsPage() {
       const name = getDisplayName();
       const discord = getDiscordUsername();
       const discordId = getDiscordUserId();
-      DiscordNotifyService.taskCompleted(name, "community-agreement", discord, discordId);
+      DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
 
-      const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
+      const newCompletedCount = tasks.filter((t) => t.id !== taskId ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
       }
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);
+      setPrivacyOpen(false);
     }
   };
 
