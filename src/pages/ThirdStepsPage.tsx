@@ -357,7 +357,7 @@ export default function ThirdStepsPage() {
         <div className="mt-8 card-elevated border-success/50 bg-success/5 p-6 text-center animate-fade-in">
           <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3" />
           <h2 className="text-xl font-bold text-foreground mb-2">
-            🎉 Teammate Handbook Complete!
+            🎉 Agile Cross-Functional Team Dynamics Complete!
           </h2>
           <p className="text-muted-foreground">
             You've completed all lessons. You've earned the Teammate badge!
