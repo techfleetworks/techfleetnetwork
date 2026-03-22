@@ -39,6 +39,16 @@ const baseTasks: Omit<Task, "completed">[] = [
     icon: ScrollText,
     action: "#",
     panelAction: true,
+    panelId: "community-agreement",
+  },
+  {
+    id: "privacy-policy",
+    title: "Agree to the Tech Fleet Privacy Policy",
+    description: "Read and accept the Tech Fleet Privacy Policy.",
+    icon: ShieldCheck,
+    action: "#",
+    panelAction: true,
+    panelId: "privacy-policy",
   },
   {
     id: "profile",
