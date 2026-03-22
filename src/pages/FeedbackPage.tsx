@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
-import { useQuery } from "@/lib/react-query";
+import { useQuery, useQueryClient } from "@/lib/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,11 +128,37 @@ function FeedbackForm() {
 function AdminFeedbackView() {
   const [selected, setSelected] = useState<Feedback | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: feedback = [], isLoading } = useQuery({
     queryKey: ["admin-feedback"],
     queryFn: () => FeedbackService.listAll(),
   });
+
+  /* ── inline feedback form state ── */
+  const [area, setArea] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = area !== "" && message.trim().length >= 10;
+
+  const handleAdminSubmit = async () => {
+    if (!user || !canSubmit) return;
+    setSubmitting(true);
+    const ok = await FeedbackService.submit(user.id, user.email ?? "", area, message.trim());
+    setSubmitting(false);
+    if (ok) {
+      setArea("");
+      setMessage("");
+      setFormOpen(false);
+      toast.success("Feedback submitted successfully.");
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+    } else {
+      toast.error("Failed to submit feedback. Please try again.");
+    }
+  };
 
   const columnDefs = useMemo<ColDef<Feedback>[]>(() => [
     {
@@ -173,11 +199,28 @@ function AdminFeedbackView() {
 
   if (feedback.length === 0) {
     return (
-      <div className="p-6">
+      <div className="p-6 space-y-4">
+        <div className="flex justify-end">
+          <Button onClick={() => setFormOpen(true)}>
+            <MessageSquarePlus className="h-4 w-4 mr-2" />
+            Add Feedback
+          </Button>
+        </div>
         <SectionEmptyState
           icon={MessageSquarePlus}
           title="No Feedback Yet"
           description="When members submit feedback, it will appear here."
+        />
+        <AdminFeedbackDialog
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          area={area}
+          setArea={setArea}
+          message={message}
+          setMessage={setMessage}
+          submitting={submitting}
+          canSubmit={canSubmit}
+          onSubmit={handleAdminSubmit}
         />
       </div>
     );
@@ -185,9 +228,16 @@ function AdminFeedbackView() {
 
   return (
     <div className="p-6 space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setFormOpen(true)}>
+          <MessageSquarePlus className="h-4 w-4 mr-2" />
+          Add Feedback
+        </Button>
+      </div>
+
       <ThemedAgGrid<Feedback>
         gridId="admin-feedback"
-        height="calc(100vh - 200px)"
+        height="calc(100vh - 240px)"
         rowData={feedback}
         columnDefs={columnDefs}
         onRowClicked={onRowClicked}
@@ -201,7 +251,95 @@ function AdminFeedbackView() {
         onOpenChange={setPanelOpen}
         feedback={selected}
       />
+
+      <AdminFeedbackDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        area={area}
+        setArea={setArea}
+        message={message}
+        setMessage={setMessage}
+        submitting={submitting}
+        canSubmit={canSubmit}
+        onSubmit={handleAdminSubmit}
+      />
     </div>
+  );
+}
+
+/* ── Admin feedback dialog ─────────────────────────────── */
+function AdminFeedbackDialog({
+  open, onOpenChange, area, setArea, message, setMessage, submitting, canSubmit, onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  area: string;
+  setArea: (v: string) => void;
+  message: string;
+  setMessage: (v: string) => void;
+  submitting: boolean;
+  canSubmit: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageSquarePlus className="h-5 w-5 text-primary" />
+            Add Feedback
+          </DialogTitle>
+          <DialogDescription>
+            Share your feedback about the platform as an admin.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="admin-feedback-area" className="text-sm font-semibold">
+              System Area <span className="text-destructive">*</span>
+            </Label>
+            <Select value={area} onValueChange={setArea}>
+              <SelectTrigger id="admin-feedback-area">
+                <SelectValue placeholder="Select the area of the platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {FEEDBACK_AREAS.map((a) => (
+                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-feedback-message" className="text-sm font-semibold">
+              Your Feedback <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="admin-feedback-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Share your thoughts, suggestions, or report an issue…"
+              className="min-h-[140px] resize-y"
+              maxLength={5000}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {message.length} / 5,000
+            </p>
+            {message.length > 0 && message.trim().length < 10 && (
+              <p className="text-sm text-destructive">Please write at least 10 characters.</p>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button onClick={onSubmit} disabled={!canSubmit || submitting}>
+            <Send className="h-4 w-4 mr-2" />
+            {submitting ? "Submitting…" : "Submit Feedback"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
