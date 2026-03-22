@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (profile?.discord_invite_url) {
-      logger.info("generate-discord-invite", `User ${user.id} already has invite URL`);
+      logger.info("check", `User ${user.id} already has invite URL`);
       return new Response(JSON.stringify({ invite_url: profile.discord_invite_url }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
