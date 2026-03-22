@@ -26,7 +26,7 @@ export default function ExploreRecommendationCard({ title, type, description, re
 
       {/* Title as link or plain text */}
       <div className="space-y-0.5">
-        <p className="text-sm font-semibold text-foreground leading-snug">{title}</p>
+        <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
       </div>
 
       {/* Description */}
