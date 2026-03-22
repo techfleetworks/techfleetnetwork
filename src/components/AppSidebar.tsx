@@ -12,6 +12,7 @@ import {
   Megaphone,
   Building2,
   MessageSquarePlus,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
