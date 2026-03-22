@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { logger } from "../_shared/logger.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const logger = createEdgeLogger("generate-discord-invite");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
