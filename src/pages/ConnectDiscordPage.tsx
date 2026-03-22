@@ -44,10 +44,10 @@ export default function ConnectDiscordPage() {
     (p) => p.task_id === TASK_ID && p.completed
   );
 
-  // Step state: "ask" → "no-discord" → invite flow, or "ask" → "yes-discord" → verify flow
-  const [step, setStep] = useState<"ask" | "no-discord" | "yes-discord">(
-    isAlreadyComplete ? "yes-discord" : "ask"
-  );
+  // Step state
+  const [step, setStep] = useState<
+    "ask" | "no-discord-choose" | "no-discord-no-account" | "no-discord-has-account" | "yes-discord"
+  >(isAlreadyComplete ? "yes-discord" : "ask");
 
   // Invite flow state
   const [inviteUrl, setInviteUrl] = useState<string>(
@@ -237,7 +237,7 @@ export default function ConnectDiscordPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setStep("no-discord")}
+                onClick={() => setStep("no-discord-choose")}
                 className="gap-2"
               >
                 No, I need an invite
@@ -246,8 +246,124 @@ export default function ConnectDiscordPage() {
           </div>
         )}
 
-        {/* Step 2a: No Discord — generate invite */}
-        {!verified && step === "no-discord" && (
+        {/* Step 1b: Choose whether they have a Discord account */}
+        {!verified && step === "no-discord-choose" && (
+          <div className="rounded-lg border bg-card p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">
+              Do you already have a Discord account?
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Discord is a free communication platform. If you don't have an account yet, we'll help you get set up.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={() => setStep("no-discord-has-account")} className="gap-2">
+                <Check className="h-4 w-4" />
+                Yes, I have Discord
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep("no-discord-no-account")}
+                className="gap-2"
+              >
+                No, I need to create one
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2a-i: No Discord account — setup guidance first */}
+        {!verified && step === "no-discord-no-account" && (
+          <div className="rounded-lg border bg-card p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-foreground">
+              Set up Discord first
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Discord is a free platform for text, voice, and video communication. Follow these steps to get started:
+            </p>
+
+            <ol className="list-decimal list-inside space-y-3 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Download Discord</strong> — Get the app for your device or use the web version.
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a
+                    href="https://discord.com/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Download Discord
+                  </a>
+                  <a
+                    href="https://discord.com/app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Use in Browser
+                  </a>
+                </div>
+              </li>
+              <li>
+                <strong className="text-foreground">Create your account</strong> — Pick a username and verify your email address.
+              </li>
+              <li>
+                <strong className="text-foreground">Come back here</strong> — Once your Discord account is ready, generate your personal invite link below.
+              </li>
+            </ol>
+
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-sm font-medium text-foreground">Ready? Generate your invite link:</p>
+              {inviteUrl ? (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <a
+                      href={inviteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open Discord Invite
+                    </a>
+                    <Button variant="outline" size="sm" onClick={copyToClipboard} className="gap-2">
+                      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copied ? "Copied!" : "Copy Link"}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    This is a single-use invite link valid for 7 days.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setStep("yes-discord")}
+                    className="gap-2 mt-2"
+                  >
+                    I've joined — Verify my username
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={generateInvite} disabled={generating} className="gap-2">
+                  {generating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4" />
+                      Get My Discord Invite
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2a-ii: Has Discord account — just generate invite */}
+        {!verified && step === "no-discord-has-account" && (
           <div className="rounded-lg border bg-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-foreground">
               Join Tech Fleet on Discord
@@ -377,7 +493,7 @@ export default function ConnectDiscordPage() {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setStep("no-discord")}
+                onClick={() => setStep("no-discord-choose")}
                 disabled={verifying}
               >
                 I need an invite instead
