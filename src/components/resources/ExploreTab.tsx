@@ -30,8 +30,8 @@ IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EAC
 
 ### [Resource Name]
 **Type:** Handbook | Workshop | Course | Resource
-**Why this helps:** Brief explanation of why this resource is relevant to what the user wants to do.
 **Description:** A short summary of what this resource covers.
+**🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
 
 Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
 
