@@ -22,7 +22,7 @@ export function UserDetailDialog({ user, onClose }: UserDetailDialogProps) {
       supabase.rpc("log_pii_access", {
         p_accessed_user_id: user.user_id,
         p_access_reason: "admin_user_detail_view",
-      }).catch(() => { /* swallow — never block UI for audit logging */ });
+      }).then(() => { /* audit logged */ }).catch(() => { /* swallow */ });
     }
   }, [user?.user_id]);
 
