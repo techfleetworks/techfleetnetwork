@@ -3,8 +3,10 @@ import { CheckCircle2, Circle, PartyPopper, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
+import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 
 interface ReadinessStep {
   label: string;
@@ -20,8 +22,10 @@ export function ReadinessChecklist() {
   const firstStepsTotal = useFirstStepsTotalForUser(profile);
   const { data: firstStepsCount = 0, isLoading: l1 } = useCompletedCount(userId, "first_steps");
   const { data: agileCount = 0, isLoading: l2 } = useCompletedCount(userId, "second_steps");
-  const { data: teamworkCount = 0, isLoading: l3 } = useCompletedCount(userId, "third_steps");
-  const { data: projectTrainingCount = 0, isLoading: l4 } = useCompletedCount(userId, "project_training");
+  const { data: discordCount = 0, isLoading: l3 } = useCompletedCount(userId, "discord_learning");
+  const { data: teamworkCount = 0, isLoading: l4 } = useCompletedCount(userId, "third_steps");
+  const { data: projectTrainingCount = 0, isLoading: l5 } = useCompletedCount(userId, "project_training");
+  const { data: volunteerCount = 0, isLoading: l6 } = useCompletedCount(userId, "volunteer");
 
   if (!user) return null;
 
@@ -33,22 +37,34 @@ export function ReadinessChecklist() {
       href: "/courses/onboarding",
     },
     {
-      label: "Finished Building an Agile Mindset",
+      label: "Finished Build an Agile Mindset",
       completed: agileCount >= TOTAL_AGILE_LESSONS,
       loading: l2,
       href: "/courses/agile-mindset",
     },
     {
-      label: "Finished Agile Teamwork Course",
-      completed: teamworkCount >= TOTAL_TEAMWORK_LESSONS,
+      label: "Finished Discord Learning Series",
+      completed: discordCount >= TOTAL_DISCORD_LESSONS,
       loading: l3,
+      href: "/courses/discord-learning",
+    },
+    {
+      label: "Finished Agile Cross-Functional Team Dynamics",
+      completed: teamworkCount >= TOTAL_TEAMWORK_LESSONS,
+      loading: l4,
       href: "/courses/agile-teamwork",
     },
     {
-      label: "Finished Join Project Training Course",
+      label: "Finished Join Project Training Teams",
       completed: projectTrainingCount >= TOTAL_PROJECT_TRAINING_LESSONS,
-      loading: l4,
+      loading: l5,
       href: "/courses/project-training",
+    },
+    {
+      label: "Finished Join Volunteer Teams",
+      completed: volunteerCount >= TOTAL_VOLUNTEER_LESSONS,
+      loading: l6,
+      href: "/courses/volunteer-teams",
     },
   ];
 
