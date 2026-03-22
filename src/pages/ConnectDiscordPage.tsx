@@ -156,7 +156,7 @@ export default function ConnectDiscordPage() {
       // Send Discord notification for verification
       DiscordNotifyService.discordVerified(
         displayName,
-        trimmed,
+        normalized,
         discordUserId
       );
 
