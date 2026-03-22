@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       throw new Error("Discord bot configuration is missing");
     }
 
-    // Get the first text channel in the guild to create the invite on
+    // Fetch guild channels, then try invite creation across likely onboarding channels first.
     const channelsRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
       headers: { Authorization: `Bot ${botToken}` },
     });
@@ -71,39 +71,62 @@ Deno.serve(async (req) => {
       const errText = await channelsRes.text();
       throw new Error(`Failed to fetch guild channels [${channelsRes.status}]: ${errText}`);
     }
+
     const channels = await channelsRes.json();
-    // Find text channel (type 0) — prefer one named "welcome" or "general", else first text channel
-    const textChannels = channels.filter((c: { type: number }) => c.type === 0);
-    const targetChannel =
-      textChannels.find((c: { name: string }) => c.name === "welcome") ||
-      textChannels.find((c: { name: string }) => c.name === "general") ||
-      textChannels[0];
+    const preferredChannelNames = new Set(["welcome", "general", "introductions", "start-here"]);
+    const textChannels = channels
+      .filter((channel: { id: string; type: number; name?: string }) => channel.type === 0)
+      .sort((a: { name?: string }, b: { name?: string }) => {
+        const aPreferred = preferredChannelNames.has(a.name ?? "") ? 0 : 1;
+        const bPreferred = preferredChannelNames.has(b.name ?? "") ? 0 : 1;
+        return aPreferred - bPreferred;
+      });
 
-    if (!targetChannel) {
-      throw new Error("No suitable text channel found in Discord server");
+    if (textChannels.length === 0) {
+      throw new Error("No text channels found in Discord server");
     }
 
-    // Create a unique invite: max 1 use, expires in 7 days
-    const inviteRes = await fetch(`https://discord.com/api/v10/channels/${targetChannel.id}/invites`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bot ${botToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        max_age: 604800, // 7 days in seconds
-        max_uses: 1,
-        unique: true,
-      }),
-    });
+    let inviteUrl = "";
+    const inviteErrors: string[] = [];
 
-    if (!inviteRes.ok) {
+    for (const channel of textChannels) {
+      const inviteRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/invites`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${botToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          max_age: 604800,
+          max_uses: 1,
+          unique: true,
+        }),
+      });
+
+      if (inviteRes.ok) {
+        const invite = await inviteRes.json();
+        inviteUrl = `https://discord.gg/${invite.code}`;
+        logger.info("create_invite", `Created invite in channel ${channel.name ?? channel.id}`, {
+          channelId: channel.id,
+          channelName: channel.name ?? null,
+        });
+        break;
+      }
+
       const errText = await inviteRes.text();
-      throw new Error(`Failed to create Discord invite [${inviteRes.status}]: ${errText}`);
+      inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: ${errText}`);
+      logger.warn("create_invite", `Invite creation failed for channel ${channel.name ?? channel.id}`, {
+        channelId: channel.id,
+        channelName: channel.name ?? null,
+        status: inviteRes.status,
+      });
     }
 
-    const invite = await inviteRes.json();
-    const inviteUrl = `https://discord.gg/${invite.code}`;
+    if (!inviteUrl) {
+      throw new Error(
+        `Failed to create Discord invite in any text channel. Check the bot's 'Create Invite' permission for at least one channel. ${inviteErrors.slice(0, 3).join(" | ")}`
+      );
+    }
 
     // Save invite URL to profile using service role
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
