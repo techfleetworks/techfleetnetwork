@@ -153,7 +153,7 @@ export default function TrainingPage() {
 
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
-  const coreCourses: CourseCard[] = [
+  const gettingStartedCourses: CourseCard[] = [
     {
       id: "onboarding",
       title: "Onboarding Steps",
@@ -164,6 +164,9 @@ export default function TrainingPage() {
       completedTasks: firstCompleted,
       locked: false,
     },
+  ];
+
+  const coreCourses: CourseCard[] = [
     {
       id: "agile-mindset",
       title: "Build an Agile Mindset",
@@ -230,8 +233,12 @@ export default function TrainingPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="core" className="w-full">
+      <Tabs defaultValue="getting-started" className="w-full">
         <TabsList className="mb-6">
+          <TabsTrigger value="getting-started" className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            Getting Started
+          </TabsTrigger>
           <TabsTrigger value="core" className="gap-2">
             <GraduationCap className="h-4 w-4" />
             Core Courses
@@ -245,6 +252,10 @@ export default function TrainingPage() {
             Advanced Courses
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="getting-started">
+          <CourseGrid courses={gettingStartedCourses} />
+        </TabsContent>
 
         <TabsContent value="core">
           <CourseGrid courses={coreCourses} />
