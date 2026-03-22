@@ -1100,6 +1100,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      export_my_data: { Args: never; Returns: Json }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
       has_role: {
@@ -1108,6 +1109,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_pii_access: {
+        Args: { p_access_reason?: string; p_accessed_user_id: string }
+        Returns: undefined
       }
       move_to_dlq: {
         Args: {
