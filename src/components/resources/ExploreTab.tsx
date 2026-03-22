@@ -305,7 +305,7 @@ export default function ExploreTab() {
                       {pq.query_text}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Explored {pq.count} {pq.count === 1 ? "time" : "times"}
+                      {pq.count} {pq.count === 1 ? "person" : "people"} also explored this
                     </p>
                   </button>
                 ))}
