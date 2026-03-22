@@ -344,6 +344,12 @@ export default function FirstStepsPage() {
         onAccepted={() => handlePanelAccepted("privacy-policy")}
         loading={loadingId === "privacy-policy"}
       />
+      <TermsConditionsPanel
+        open={termsOpen}
+        onOpenChange={setTermsOpen}
+        onAccepted={() => handlePanelAccepted("terms-conditions")}
+        loading={loadingId === "terms-conditions"}
+      />
     </div>
   );
 }
