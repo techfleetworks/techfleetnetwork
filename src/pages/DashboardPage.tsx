@@ -11,6 +11,7 @@ import {
   Heart,
   Lock,
   Megaphone,
+  MessageSquare,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
