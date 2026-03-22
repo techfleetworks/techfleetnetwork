@@ -206,11 +206,13 @@ export default function FirstStepsPage() {
       const name = getDisplayName();
       const discord = getDiscordUsername();
       const discordId = getDiscordUserId();
-      DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
 
+      // Send phase notification instead of task if all tasks are now complete
       const newCompletedCount = tasks.filter((t) => t.id !== taskId ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
+      } else {
+        DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
       }
     } catch (err: any) {
       console.error("[FirstSteps] handlePanelAccepted failed:", err);
