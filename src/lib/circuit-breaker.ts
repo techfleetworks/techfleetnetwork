@@ -156,3 +156,11 @@ export const edgeFunctionBreaker = new CircuitBreaker({
   cooldownMs: 30_000,
   windowMs: 60_000,
 });
+
+/** Firecrawl web search — non-critical, open quickly */
+export const firecrawlBreaker = new CircuitBreaker({
+  name: "Firecrawl",
+  failureThreshold: 3,
+  cooldownMs: 45_000,
+  windowMs: 60_000,
+});

@@ -19,6 +19,11 @@ describe("parseRecommendations", () => {
 **🌟 Why We Recommend:** This course helps you practice watching how teams work and sharing what you notice.
 **Link:** https://techfleet.org/observer`;
 
+  const noTypeSample = `### Resource A
+**Description:** Helps with testing.
+**🌟 Why We Recommend:** Great for beginners.
+**Link:** https://techfleet.org/resource-a`;
+
   it("parses correct number of recommendations", () => {
     const results = parseRecommendations(sampleMarkdown);
     expect(results).toHaveLength(3);
@@ -49,5 +54,28 @@ describe("parseRecommendations", () => {
 
   it("returns empty array for empty input", () => {
     expect(parseRecommendations("")).toEqual([]);
+  });
+
+  it("handles missing Type field gracefully (defaults to course)", () => {
+    const results = parseRecommendations(noTypeSample);
+    expect(results).toHaveLength(1);
+    expect(results[0].type).toBe("course");
+    expect(results[0].title).toBe("Resource A");
+  });
+
+  it("skips sections with no description or reason", () => {
+    const md = `### Noise Header
+Some random text that doesn't match the field pattern.`;
+    const results = parseRecommendations(md);
+    expect(results).toHaveLength(0);
+  });
+
+  it("handles malformed markdown gracefully", () => {
+    const md = `### 
+**Description:** 
+**🌟 Why We Recommend:** `;
+    // Should not throw
+    const results = parseRecommendations(md);
+    expect(Array.isArray(results)).toBe(true);
   });
 });

@@ -1,5 +1,14 @@
+/**
+ * ExploreRecommendationCard — individual recommendation card.
+ *
+ * Security: All text props are rendered via React's JSX text nodes
+ * (auto-escaped). Links are validated via isSafeUrl before rendering.
+ */
+
+import { memo } from "react";
 import { ExternalLink, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { isSafeUrl } from "@/lib/security";
 
 export interface RecommendationData {
   title: string;
@@ -9,8 +18,15 @@ export interface RecommendationData {
   link?: string;
 }
 
-export default function ExploreRecommendationCard({ title, type, description, reason, link }: RecommendationData) {
+const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
+  title,
+  type,
+  description,
+  reason,
+  link,
+}: RecommendationData) {
   const isOnline = type === "online";
+  const safeLink = link && isSafeUrl(link) ? link : undefined;
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col p-5 gap-3">
@@ -39,10 +55,10 @@ export default function ExploreRecommendationCard({ title, type, description, re
         </div>
       )}
 
-      {/* Link */}
-      {link && (
+      {/* Link — validated for safe protocols */}
+      {safeLink && (
         <a
-          href={link}
+          href={safeLink}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline pt-1"
@@ -54,4 +70,6 @@ export default function ExploreRecommendationCard({ title, type, description, re
       )}
     </div>
   );
-}
+});
+
+export default ExploreRecommendationCard;
