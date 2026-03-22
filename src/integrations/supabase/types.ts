@@ -393,6 +393,30 @@ export type Database = {
         }
         Relationships: []
       }
+      exploration_cache: {
+        Row: {
+          created_at: string
+          hit_count: number
+          id: string
+          query_normalized: string
+          response_markdown: string
+        }
+        Insert: {
+          created_at?: string
+          hit_count?: number
+          id?: string
+          query_normalized: string
+          response_markdown?: string
+        }
+        Update: {
+          created_at?: string
+          hit_count?: number
+          id?: string
+          query_normalized?: string
+          response_markdown?: string
+        }
+        Relationships: []
+      }
       exploration_queries: {
         Row: {
           created_at: string
