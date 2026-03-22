@@ -114,20 +114,21 @@ export async function loadPopularAndRecent(): Promise<PopularQueryData> {
       return { top5: [], all: [], recents: [] };
     }
 
-    // Count unique users per normalized query (fuzzy grouping)
-    const queryUsers = new Map<string, { users: Set<string>; displayText: string }>();
+    // Count total explorations per normalized query (fuzzy grouping)
+    // so repeated clicks and similar searches both increase the tally.
+    const queryCounts = new Map<string, { count: number; displayText: string }>();
     for (const row of data) {
       const key = normalizeQueryKey(row.query_text);
       if (!key) continue;
-      if (!queryUsers.has(key)) {
-        queryUsers.set(key, { users: new Set(), displayText: row.query_text.trim() });
+      if (!queryCounts.has(key)) {
+        queryCounts.set(key, { count: 0, displayText: row.query_text.trim() });
       }
-      queryUsers.get(key)!.users.add(row.user_id);
+      queryCounts.get(key)!.count += 1;
     }
 
-    const sorted = Array.from(queryUsers.entries())
-      .sort((a, b) => b[1].users.size - a[1].users.size)
-      .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
+    const sorted = Array.from(queryCounts.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([, entry]) => ({ query_text: entry.displayText, count: entry.count }));
 
     // Deduplicated recent queries
     const seenKeys = new Set<string>();
