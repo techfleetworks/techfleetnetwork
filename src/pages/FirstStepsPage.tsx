@@ -54,14 +54,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     external: true,
   },
   {
-    id: "service-leadership",
-    title: "Sign Up for Service Leadership Class",
-    description: "Register for the next available service leadership session.",
-    icon: Users,
-    action: "https://techfleet.org/overview/current-classes",
-    external: true,
-  },
-  {
     id: "figma-account",
     title: "Register for Figma Educational Account",
     description: "Join the Tech Fleet Figma educational workspace.",
