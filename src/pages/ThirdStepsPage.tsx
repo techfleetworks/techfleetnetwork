@@ -47,7 +47,7 @@ import {
 } from "@/data/teamwork-course";
 
 export default function ThirdStepsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<TeamworkLesson | null>(null);
