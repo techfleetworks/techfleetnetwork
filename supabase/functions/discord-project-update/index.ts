@@ -159,6 +159,8 @@ serve(async (req) => {
         : "• General updates";
 
       content = [
+        `<@&1083439364975112293>`,
+        "",
         `📝 **Project Updated — ${payload.client_name}**`,
         "",
         `**What changed:**`,
