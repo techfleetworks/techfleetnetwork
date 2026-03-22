@@ -11,6 +11,7 @@ import {
   Heart,
   Lightbulb,
   Rocket,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,7 @@ import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
+import { TOTAL_OBSERVER_LESSONS } from "@/data/observer-course";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 
@@ -151,6 +153,7 @@ export default function TrainingPage() {
   const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
   const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
+  const { data: observerCompleted = 0 } = useCompletedCount(userId, "observer");
 
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
@@ -186,6 +189,16 @@ export default function TrainingPage() {
       href: "/courses/discord-learning",
       totalTasks: TOTAL_DISCORD_LESSONS,
       completedTasks: discordCompleted,
+      locked: false,
+    },
+    {
+      id: "observer-course",
+      title: "Observer Course",
+      description: `${TOTAL_OBSERVER_LESSONS} lessons from the Observer Handbook on how to observe Tech Fleet project teams and prepare for apprenticeship.`,
+      icon: Eye,
+      href: "/courses/observer",
+      totalTasks: TOTAL_OBSERVER_LESSONS,
+      completedTasks: observerCompleted,
       locked: false,
     },
     {

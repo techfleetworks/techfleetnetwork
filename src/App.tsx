@@ -51,6 +51,7 @@ const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDeta
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
+const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 
 function RouteFallback() {
   return (
@@ -114,6 +115,7 @@ const App = () => (
                     <Route path="/courses/agile-teamwork" element={<ProtectedRoute><ThirdStepsPage /></ProtectedRoute>} />
                     <Route path="/courses/project-training" element={<ProtectedRoute><ProjectTrainingPage /></ProtectedRoute>} />
                     <Route path="/courses/volunteer-teams" element={<ProtectedRoute><VolunteerTeamsPage /></ProtectedRoute>} />
+                    <Route path="/courses/observer" element={<ProtectedRoute><ObserverCoursePage /></ProtectedRoute>} />
                     <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
                     <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
                     <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
