@@ -38,6 +38,9 @@ function FeedbackForm() {
       setArea("");
       setMessage("");
       setShowSuccess(true);
+      // Fire-and-forget Discord notification
+      const displayName = user.email?.split("@")[0] || "A member";
+      DiscordNotifyService.feedbackSubmitted(displayName, area);
     } else {
       toast.error("Failed to submit feedback. Please try again.");
     }

@@ -308,6 +308,13 @@ export default function ProjectApplicationPage() {
       queryClient.invalidateQueries({ queryKey: ["project-opening-app-stats"] });
       if (vars.submit) {
         setCelebrationOpen(true);
+        // Fire-and-forget Discord notification for project application
+        const profileData = userProfile as Record<string, string> | undefined;
+        const displayName = profileData?.display_name || profileData?.first_name || "A member";
+        const discord = profileData?.discord_username || undefined;
+        const discordId = profileData?.discord_user_id || undefined;
+        const projectName = client?.name ? `${client.name} (${typeLabel(project?.project_type ?? "")})` : "a project";
+        DiscordNotifyService.projectApplied(displayName, projectName, discord, discordId);
       } else {
         toast.success("Draft saved — you can resume anytime");
       }
