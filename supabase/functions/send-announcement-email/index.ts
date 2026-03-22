@@ -184,7 +184,62 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ sent: enqueued, total_recipients: recipients.length }), {
+    // --- Cross-post to Discord #platform-updates channel ---
+    let discordPosted = false;
+    const platformWebhook = Deno.env.get("DISCORD_PLATFORM_UPDATES_WEBHOOK");
+    if (platformWebhook) {
+      try {
+        const announcementUrl = `https://techfleetnetwork.lovable.app/updates?highlight=${announcement_id}`;
+        // Strip HTML tags for Discord message, keep it readable
+        const plainBody = announcement.body_html
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<\/p>/gi, "\n")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+
+        const discordContent = [
+          `📢 **${announcement.title}**`,
+          "",
+          plainBody.length > 1500 ? plainBody.substring(0, 1500) + "…" : plainBody,
+          "",
+          `🔗 [View on Tech Fleet Network](${announcementUrl})`,
+        ].join("\n");
+
+        const discordRes = await fetch(platformWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: discordContent,
+            allowed_mentions: { parse: [] },
+          }),
+        });
+
+        if (discordRes.ok) {
+          discordPosted = true;
+        } else {
+          const errText = await discordRes.text();
+          console.warn(`Discord webhook failed [${discordRes.status}]: ${errText.substring(0, 300)}`);
+        }
+        // Consume body if not already
+        if (!discordPosted) await discordRes.text().catch(() => {});
+      } catch (discordErr) {
+        console.warn("Discord cross-post failed (non-critical):", discordErr);
+      }
+    } else {
+      console.warn("DISCORD_PLATFORM_UPDATES_WEBHOOK not configured; skipping Discord cross-post");
+    }
+
+    return new Response(JSON.stringify({
+      sent: enqueued,
+      total_recipients: recipients.length,
+      discord_posted: discordPosted,
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
