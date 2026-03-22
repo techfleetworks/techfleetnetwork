@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import ExploreResultsSection from "./ExploreResultsSection";
+import ExploreResultsSection, { type WebSearchResult } from "./ExploreResultsSection";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 
@@ -42,6 +42,7 @@ export default function ExploreTab() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [responseMarkdown, setResponseMarkdown] = useState("");
+  const [webResults, setWebResults] = useState<WebSearchResult[]>([]);
   const [popularQueries, setPopularQueries] = useState<PopularQuery[]>([]);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const [loadingPopular, setLoadingPopular] = useState(true);
@@ -103,7 +104,20 @@ export default function ExploreTab() {
       const normalized = normalizeQueryKey(searchQuery) || searchQuery.trim().toLowerCase();
       setLoading(true);
       setResponseMarkdown("");
+      setWebResults([]);
       setQuery(searchQuery);
+
+      // Fire web search in parallel (non-blocking)
+      const webSearchPromise = supabase.functions
+        .invoke("firecrawl-search", { body: { query: searchQuery.trim(), limit: 3 } })
+        .then(({ data }) => {
+          if (data?.success && Array.isArray(data.results)) {
+            setWebResults(data.results);
+          }
+        })
+        .catch((err) => {
+          console.warn("Web search failed (non-critical):", err);
+        });
 
       try {
         // Save the query
@@ -290,6 +304,7 @@ export default function ExploreTab() {
                 onClick={() => {
                   setQuery("");
                   setResponseMarkdown("");
+                  setWebResults([]);
                 }}
                 aria-label="Reset search"
               >
@@ -306,6 +321,7 @@ export default function ExploreTab() {
         <ExploreResultsSection
           query={query}
           recommendations={parseRecommendations(responseMarkdown)}
+          webResults={webResults}
         />
       )}
 
