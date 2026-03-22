@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { CheckCircle2, Circle, PartyPopper, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
+import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
@@ -16,11 +17,11 @@ interface ReadinessStep {
 }
 
 export function ReadinessChecklist() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const userId = user?.id;
 
-  const firstStepsTotal = useFirstStepsTotalForUser(profile);
-  const { data: firstStepsCount = 0, isLoading: l1 } = useCompletedCount(userId, "first_steps");
+  const firstStepsTotal = TOTAL_FIRST_STEPS;
+  const { data: firstStepsCount = 0, isLoading: l1 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: agileCount = 0, isLoading: l2 } = useCompletedCount(userId, "second_steps");
   const { data: discordCount = 0, isLoading: l3 } = useCompletedCount(userId, "discord_learning");
   const { data: teamworkCount = 0, isLoading: l4 } = useCompletedCount(userId, "third_steps");

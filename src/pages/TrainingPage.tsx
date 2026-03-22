@@ -20,7 +20,8 @@ import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
-import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
+import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 
 interface CourseCard {
   id: string;
@@ -142,9 +143,9 @@ export default function TrainingPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
 
-  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+  const totalFirstSteps = TOTAL_FIRST_STEPS;
 
-  const { data: firstCompleted = 0 } = useCompletedCount(userId, "first_steps");
+  const { data: firstCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: agileCompleted = 0 } = useCompletedCount(userId, "second_steps");
   const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
   const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");

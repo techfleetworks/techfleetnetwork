@@ -22,7 +22,8 @@ import { DashboardEmptyState } from "@/components/DashboardEmptyState";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompletedCount, useFirstStepsTotalForUser } from "@/hooks/use-journey-progress";
+import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
@@ -131,9 +132,9 @@ export default function DashboardPage() {
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
-  const totalFirstSteps = useFirstStepsTotalForUser(profile);
+  const totalFirstSteps = TOTAL_FIRST_STEPS;
 
-  const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps");
+  const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
   const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
   const { data: thirdStepsCompleted = 0 } = useCompletedCount(userId, "third_steps");
