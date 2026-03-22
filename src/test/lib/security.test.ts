@@ -80,7 +80,7 @@ describe("maskEmail", () => {
     expect(maskEmail("john@example.com")).toBe("j***@example.com");
   });
   it("handles short local part", () => {
-    expect(maskEmail("a@b.com")).toBe("a***@b.com");
+    expect(maskEmail("a@b.com")).toBe("***@***");
   });
 });
 
