@@ -32,6 +32,19 @@ interface Task {
   panelId?: string;
 }
 
+/** Canonical list of first-steps task IDs — used by progress calculations. */
+export const FIRST_STEPS_TASK_IDS = [
+  "community-agreement",
+  "privacy-policy",
+  "terms-conditions",
+  "profile",
+  "onboarding-class",
+  "figma-account",
+  "join-discord",
+] as const;
+
+export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 7
+
 const baseTasks: Omit<Task, "completed">[] = [
   {
     id: "community-agreement",
