@@ -52,6 +52,15 @@ const baseTasks: Omit<Task, "completed">[] = [
     panelId: "privacy-policy",
   },
   {
+    id: "terms-conditions",
+    title: "Agree to the Tech Fleet Terms and Conditions",
+    description: "Read and accept the Tech Fleet Terms and Conditions.",
+    icon: FileText,
+    action: "#",
+    panelAction: true,
+    panelId: "terms-conditions",
+  },
+  {
     id: "profile",
     title: "Set Up Profile",
     description: "Fill in your name, country, and activity interests.",
