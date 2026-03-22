@@ -587,6 +587,13 @@ export default function EditProfilePage() {
                             });
                             if (res.error) throw new Error(res.error.message || "Verification failed");
                             if (res.data?.error) throw new Error(res.data.error);
+                            if (!res.data?.discord_user_id) {
+                              toast.warning("Discord account not found in the Tech Fleet server. Please make sure you've joined the server first.", {
+                                duration: 10000,
+                                position: "top-center",
+                              });
+                              return;
+                            }
                             await refreshProfile();
                             toast.success("Discord account linked successfully!", {
                               description: `Verified as ${form.discordUsername}`,
