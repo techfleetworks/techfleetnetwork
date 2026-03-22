@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   BookOpen,
-  Bot,
+  LifeBuoy,
   CalendarDays,
   ClipboardList,
   Handshake,
@@ -56,6 +56,67 @@ const navSections = [
   { label: "Support", items: supportNav },
 ];
 
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const location = useLocation();
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+
+  const isActive = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(href + "/");
+
+  if (!user) return null;
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarContent>
+        {/* Logo + collapse trigger */}
+        <div className="flex flex-col items-center px-4 py-4 gap-2">
+          <div className="flex items-center w-full justify-between">
+            <div className="flex items-center gap-2">
+              <img
+                src={techFleetLogo}
+                alt="Tech Fleet"
+                className="h-7 w-7 dark:invert shrink-0"
+                width={28}
+                height={28}
+              />
+              {!collapsed && (
+                <span className="font-bold text-sm text-sidebar-foreground truncate">
+                  Tech Fleet
+                </span>
+              )}
+            </div>
+            {!collapsed && <SidebarTrigger className="shrink-0" />}
+          </div>
+          {collapsed && <SidebarTrigger className="shrink-0" />}
+        </div>
+
+        {navSections.map((section) => (
+          <SidebarGroup key={section.label}>
+            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map(({ label, href, icon: Icon }) => (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(href)}
+                      tooltip={label}
+                    >
+                      <Link to={href}>
+                        <Icon className="h-4 w-4" />
+                        <span>{label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+
         {isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -64,12 +125,12 @@ const navSections = [
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/admin/users")}
-                    tooltip="User Admin"
+                    isActive={isActive("/admin/activity-log")}
+                    tooltip="Activity Log"
                   >
-                    <Link to="/admin/users">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>User Admin</span>
+                    <Link to="/admin/activity-log">
+                      <Activity className="h-4 w-4" />
+                      <span>Activity Log</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -88,24 +149,24 @@ const navSections = [
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/admin/activity-log")}
-                    tooltip="Activity Log"
-                  >
-                    <Link to="/admin/activity-log">
-                      <Activity className="h-4 w-4" />
-                      <span>Activity Log</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
                     isActive={isActive("/admin/roster")}
                     tooltip="Project Roster"
                   >
                     <Link to="/admin/roster">
                       <Users className="h-4 w-4" />
                       <span>Project Roster</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/users")}
+                    tooltip="User Admin"
+                  >
+                    <Link to="/admin/users">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>User Admin</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
