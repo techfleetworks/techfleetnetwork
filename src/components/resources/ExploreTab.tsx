@@ -282,6 +282,21 @@ export default function ExploreTab() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Explore
             </Button>
+            {responseMarkdown && !loading && (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 shrink-0"
+                onClick={() => {
+                  setQuery("");
+                  setResponseMarkdown("");
+                }}
+                aria-label="Reset search"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
