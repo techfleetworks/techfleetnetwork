@@ -1,26 +1,47 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { airtableBreaker } from "@/lib/circuit-breaker";
 
 const log = createLogger("GeneralApplicationService");
 
-/** Fire-and-forget sync to Airtable via edge function */
+/** Max length for free-text fields (OWASP A3 — injection prevention) */
+const MAX_TEXT_LENGTH = 10_000;
+
+/** Enforce max length on all string fields before persisting */
+function sanitizeFields(fields: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (typeof value === "string" && value.length > MAX_TEXT_LENGTH) {
+      result[key] = value.slice(0, MAX_TEXT_LENGTH);
+      log.warn("sanitizeFields", `Truncated field "${key}" from ${value.length} to ${MAX_TEXT_LENGTH} chars`);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/** Fire-and-forget sync to Airtable via edge function (with circuit breaker) */
 async function syncToAirtable(app: GeneralApplication): Promise<void> {
   try {
-    const { data, error } = await supabase.functions.invoke<{
-      success: boolean;
-      error?: string;
-      airtable_id?: string | null;
-    }>("sync-airtable", {
-      body: {
-        application_id: app.id,
-        email: app.email,
-        title: app.title,
-        about_yourself: app.about_yourself,
-        status: app.status,
-        created_at: app.created_at,
-        updated_at: app.updated_at,
-      },
-    });
+    const { data, error } = await airtableBreaker.executeWithFallback(
+      () => supabase.functions.invoke<{
+        success: boolean;
+        error?: string;
+        airtable_id?: string | null;
+      }>("sync-airtable", {
+        body: {
+          application_id: app.id,
+          email: app.email,
+          title: app.title,
+          about_yourself: app.about_yourself,
+          status: app.status,
+          created_at: app.created_at,
+          updated_at: app.updated_at,
+        },
+      }),
+      { data: { success: false, error: "circuit_open" }, error: null },
+    );
 
     if (error) {
       log.warn("syncToAirtable", `Airtable sync request failed: ${error.message}`, { appId: app.id }, error);
@@ -137,7 +158,7 @@ export const GeneralApplicationService = {
       };
       const { data, error } = await supabase
         .from("general_applications")
-        .insert(insertData as any)
+        .insert(sanitizeFields(insertData) as any)
         .select()
         .single();
       if (error) {
@@ -153,7 +174,7 @@ export const GeneralApplicationService = {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       const { error } = await supabase
         .from("general_applications")
-        .update(fields as any)
+        .update(sanitizeFields(fields as Record<string, unknown>) as any)
         .eq("id", id);
       if (error) {
         log.error("save", `Failed to save general app: ${error.message}`, { id }, error);
@@ -163,10 +184,10 @@ export const GeneralApplicationService = {
       const updated = await GeneralApplicationService.fetch(id);
       if (updated) {
         // Sync about_yourself → profile.professional_background (non-blocking)
-        if (fields.about_yourself !== undefined) {
+        if ((fields as Record<string, unknown>).about_yourself !== undefined) {
           syncToProfileBackground(updated.user_id, updated.about_yourself).catch(() => {});
         }
-        // Sync to Airtable (non-blocking)
+        // Sync to Airtable (non-blocking, circuit-breaker protected)
         syncToAirtable(updated).catch(() => {});
       }
     });

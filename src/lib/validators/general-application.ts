@@ -1,7 +1,15 @@
 /**
  * Validation rules for the General Application form.
  * Extracted for testability and reuse across components.
+ *
+ * OWASP A3: All free-text fields enforce max length to prevent
+ * oversized payloads and potential ReDoS/injection vectors.
  */
+
+/** Max length for short text fields */
+const MAX_SHORT = 500;
+/** Max length for long-form text fields */
+const MAX_LONG = 5000;
 
 export interface AppFormData {
   // Section 1
@@ -66,9 +74,34 @@ export const SECTION_TITLES = [
   "Service Leadership",
 ];
 
+/** Length limits for each text field — used in validation and UI */
+export const FIELD_MAX_LENGTHS: Partial<Record<keyof AppFormData, number>> = {
+  hours_commitment: MAX_SHORT,
+  portfolio_url: MAX_SHORT,
+  linkedin_url: MAX_SHORT,
+  professional_goals: MAX_LONG,
+  teammate_learnings: MAX_LONG,
+  agile_vs_waterfall: MAX_LONG,
+  psychological_safety: MAX_LONG,
+  agile_philosophies: MAX_LONG,
+  collaboration_challenges: MAX_LONG,
+  servant_leadership_definition: MAX_LONG,
+  servant_leadership_actions: MAX_LONG,
+  servant_leadership_challenges: MAX_LONG,
+  servant_leadership_situation: MAX_LONG,
+};
+
 /** Validate a specific section's required fields — returns a map of field → error message */
 export function getFieldErrors(form: AppFormData, section: number): Record<string, string> {
   const fieldErrors: Record<string, string> = {};
+
+  // Check length limits for all text fields in the form
+  for (const [key, maxLen] of Object.entries(FIELD_MAX_LENGTHS)) {
+    const value = form[key as keyof AppFormData];
+    if (typeof value === "string" && value.length > maxLen) {
+      fieldErrors[key] = `Must be under ${maxLen} characters (currently ${value.length})`;
+    }
+  }
 
   if (section === 1) {
     if (!form.hours_commitment) fieldErrors.hours_commitment = "Please select an option";
@@ -114,6 +147,12 @@ export function getSectionHasInput(form: AppFormData, section: number): boolean 
 
 /** Check if all sections pass validation (ready to submit) */
 export function canSubmit(form: AppFormData): boolean {
+  // Check all sections have no errors
+  for (let s = 1; s <= TOTAL_SECTIONS; s++) {
+    const errors = getFieldErrors(form, s);
+    if (Object.keys(errors).length > 0) return false;
+  }
+
   return !!(
     form.hours_commitment &&
     form.country.trim() &&

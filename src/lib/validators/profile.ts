@@ -9,6 +9,23 @@ const safeText = (label: string, max: number) =>
     .max(max, `${label} must be under ${max} characters`)
     .refine((val) => !/<script/i.test(val), `${label} contains invalid content`);
 
+/** Validate URL format (allow empty) */
+const safeUrl = (label: string, max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, `${label} must be under ${max} characters`)
+    .refine(
+      (val) => val === "" || /^https?:\/\/.+/.test(val),
+      `${label} must be a valid URL starting with http:// or https://`
+    )
+    .refine(
+      (val) => !/<script/i.test(val),
+      `${label} contains invalid content`
+    )
+    .optional()
+    .default("");
+
 export const ACTIVITY_OPTIONS = [
   "Get mentorship",
   "I'm not sure yet, still exploring",
@@ -36,15 +53,16 @@ export const profileSchema = z.object({
     .optional()
     .default(""),
   interests: z
-    .array(z.string())
+    .array(z.string().max(200))
+    .max(20, "Too many interests selected")
     .default([]),
-  portfolio_url: z.string().trim().max(500).optional().default(""),
-  linkedin_url: z.string().trim().max(500).optional().default(""),
-  experience_areas: z.array(z.string()).optional().default([]),
+  portfolio_url: safeUrl("Portfolio URL", 500),
+  linkedin_url: safeUrl("LinkedIn URL", 500),
+  experience_areas: z.array(z.string().max(200)).max(30).optional().default([]),
   professional_goals: z.string().trim().max(2000).optional().default(""),
   notify_training_opportunities: z.boolean().optional().default(false),
   notify_announcements: z.boolean().optional().default(false),
-  education_background: z.array(z.string()).optional().default([]),
+  education_background: z.array(z.string().max(200)).max(20).optional().default([]),
   has_discord_account: z.boolean().optional().default(true),
 });
 
