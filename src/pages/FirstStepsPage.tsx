@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
+import { PrivacyPolicyPanel } from "@/components/PrivacyPolicyPanel";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 
 interface Task {
@@ -27,6 +28,7 @@ interface Task {
   action: string;
   external?: boolean;
   panelAction?: boolean;
+  panelId?: string;
 }
 
 const baseTasks: Omit<Task, "completed">[] = [
@@ -37,6 +39,16 @@ const baseTasks: Omit<Task, "completed">[] = [
     icon: ScrollText,
     action: "#",
     panelAction: true,
+    panelId: "community-agreement",
+  },
+  {
+    id: "privacy-policy",
+    title: "Agree to the Tech Fleet Privacy Policy",
+    description: "Read and accept the Tech Fleet Privacy Policy.",
+    icon: ShieldCheck,
+    action: "#",
+    panelAction: true,
+    panelId: "privacy-policy",
   },
   {
     id: "profile",
@@ -80,6 +92,7 @@ export default function FirstStepsPage() {
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
@@ -154,13 +167,13 @@ export default function FirstStepsPage() {
     }
   };
 
-  const handleAgreementAccepted = async () => {
+  const handlePanelAccepted = async (taskId: string) => {
     if (!user) return;
-    setLoadingId("community-agreement");
+    setLoadingId(taskId);
     try {
-      await JourneyService.upsertTask(user.id, "first_steps", "community-agreement", true);
+      await JourneyService.upsertTask(user.id, "first_steps", taskId, true);
       setTasks((prev) =>
-        prev.map((t) => (t.id === "community-agreement" ? { ...t, completed: true } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, completed: true } : t))
       );
       queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
       queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
@@ -168,15 +181,16 @@ export default function FirstStepsPage() {
       const name = getDisplayName();
       const discord = getDiscordUsername();
       const discordId = getDiscordUserId();
-      DiscordNotifyService.taskCompleted(name, "community-agreement", discord, discordId);
+      DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
 
-      const newCompletedCount = tasks.filter((t) => t.id !== "community-agreement" ? t.completed : true).length;
+      const newCompletedCount = tasks.filter((t) => t.id !== taskId ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
       }
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);
+      setPrivacyOpen(false);
     }
   };
 
@@ -228,7 +242,8 @@ export default function FirstStepsPage() {
                   type="button"
                   onClick={() => {
                     if (task.panelAction && !task.completed) {
-                      setAgreementOpen(true);
+                      if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                      else setAgreementOpen(true);
                     } else {
                       toggleTask(task.id);
                     }
@@ -262,7 +277,10 @@ export default function FirstStepsPage() {
                         variant="outline"
                         size="sm"
                         disabled={task.completed}
-                        onClick={() => setAgreementOpen(true)}
+                        onClick={() => {
+                          if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                          else setAgreementOpen(true);
+                        }}
                       >
                         <Icon className="h-4 w-4 mr-1" />
                         Review
@@ -304,8 +322,14 @@ export default function FirstStepsPage() {
       <CommunityAgreementPanel
         open={agreementOpen}
         onOpenChange={setAgreementOpen}
-        onAccepted={handleAgreementAccepted}
+        onAccepted={() => handlePanelAccepted("community-agreement")}
         loading={loadingId === "community-agreement"}
+      />
+      <PrivacyPolicyPanel
+        open={privacyOpen}
+        onOpenChange={setPrivacyOpen}
+        onAccepted={() => handlePanelAccepted("privacy-policy")}
+        loading={loadingId === "privacy-policy"}
       />
     </div>
   );
