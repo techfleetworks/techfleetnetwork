@@ -291,6 +291,7 @@ export default function FirstStepsPage() {
                         disabled={task.completed}
                         onClick={() => {
                           if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                          else if (task.panelId === "terms-conditions") setTermsOpen(true);
                           else setAgreementOpen(true);
                         }}
                       >
