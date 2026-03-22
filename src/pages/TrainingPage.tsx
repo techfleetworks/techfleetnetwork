@@ -239,6 +239,31 @@ export default function TrainingPage() {
   const beginnerCourses: CourseCard[] = [];
   const advancedCourses: CourseCard[] = [];
 
+  const isTabComplete = (courses: CourseCard[]) =>
+    courses.length > 0 && courses.every((c) => c.totalTasks > 0 && c.completedTasks >= c.totalTasks);
+
+  const gettingStartedComplete = isTabComplete(gettingStartedCourses);
+  const coreComplete = isTabComplete(coreCourses);
+  const beginnerComplete = isTabComplete(beginnerCourses);
+  const advancedComplete = isTabComplete(advancedCourses);
+
+  /** Renders either a green check circle (all done) or a count badge */
+  const TabBadge = ({ complete, count }: { complete: boolean; count: number }) =>
+    complete ? (
+      <span
+        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-[#15803d] dark:bg-[#22c55e]"
+        aria-label="All courses completed"
+      >
+        <Check className="h-3 w-3 text-white dark:text-[#052e16]" strokeWidth={3} />
+      </span>
+    ) : (
+      <span
+        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${count > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}
+      >
+        {count}
+      </span>
+    );
+
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
@@ -253,30 +278,22 @@ export default function TrainingPage() {
           <TabsTrigger value="getting-started" className="gap-2">
             <ClipboardCheck className="h-4 w-4" />
             Getting Started
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${gettingStartedCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {gettingStartedCourses.length}
-            </span>
+            <TabBadge complete={gettingStartedComplete} count={gettingStartedCourses.length} />
           </TabsTrigger>
           <TabsTrigger value="core" className="gap-2">
             <GraduationCap className="h-4 w-4" />
             Core Courses
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${coreCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {coreCourses.length}
-            </span>
+            <TabBadge complete={coreComplete} count={coreCourses.length} />
           </TabsTrigger>
           <TabsTrigger value="beginner" className="gap-2">
             <Lightbulb className="h-4 w-4" />
             Beginner Courses
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${beginnerCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {beginnerCourses.length}
-            </span>
+            <TabBadge complete={beginnerComplete} count={beginnerCourses.length} />
           </TabsTrigger>
           <TabsTrigger value="advanced" className="gap-2">
             <Rocket className="h-4 w-4" />
             Advanced Courses
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${advancedCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {advancedCourses.length}
-            </span>
+            <TabBadge complete={advancedComplete} count={advancedCourses.length} />
           </TabsTrigger>
         </TabsList>
 
