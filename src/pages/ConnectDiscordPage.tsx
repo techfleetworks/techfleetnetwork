@@ -105,12 +105,26 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  const normalizeDiscordUsername = (raw: string): string => {
+    let name = raw.trim();
+    // Remove leading @ if present
+    if (name.startsWith("@")) {
+      name = name.slice(1);
+    }
+    // Ensure leading dot
+    if (!name.startsWith(".")) {
+      name = "." + name;
+    }
+    return name;
+  };
+
   const handleVerify = async () => {
     const trimmed = username.trim();
     if (!trimmed) {
       setVerifyError("Please enter your Discord username.");
       return;
     }
+    const normalized = normalizeDiscordUsername(trimmed);
     setVerifying(true);
     setVerifyError("");
 
