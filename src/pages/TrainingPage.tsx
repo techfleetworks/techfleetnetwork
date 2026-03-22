@@ -239,18 +239,30 @@ export default function TrainingPage() {
           <TabsTrigger value="getting-started" className="gap-2">
             <ClipboardCheck className="h-4 w-4" />
             Getting Started
+            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${gettingStartedCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
+              {gettingStartedCourses.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="core" className="gap-2">
             <GraduationCap className="h-4 w-4" />
             Core Courses
+            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${coreCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
+              {coreCourses.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="beginner" className="gap-2">
             <Lightbulb className="h-4 w-4" />
             Beginner Courses
+            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${beginnerCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
+              {beginnerCourses.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="advanced" className="gap-2">
             <Rocket className="h-4 w-4" />
             Advanced Courses
+            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${advancedCourses.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
+              {advancedCourses.length}
+            </span>
           </TabsTrigger>
         </TabsList>
 
