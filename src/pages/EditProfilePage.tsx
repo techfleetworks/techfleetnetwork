@@ -617,6 +617,7 @@ export default function EditProfilePage() {
                 )}
               </div>
 
+              <div className="space-y-1.5 pt-2 border-t">
                 <Label>Your Data</Label>
                 <p className="text-xs text-muted-foreground mb-2">Download a complete copy of all your data stored on this platform (GDPR / HIPAA Right of Access).</p>
                 <Button
