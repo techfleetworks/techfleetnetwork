@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import ExploreResultsSection from "./ExploreResultsSection";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
+import { normalizeQueryKey } from "@/lib/normalize-query";
 
 
 interface PopularQuery {
