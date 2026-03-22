@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   User, Globe, MessageCircle, Check, ChevronsUpDown,
-  Mail, Trash2, KeyRound, Clock,
+  Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
