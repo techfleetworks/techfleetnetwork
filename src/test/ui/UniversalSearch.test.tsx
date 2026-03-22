@@ -80,7 +80,7 @@ describe("Universal Search (BDD 38.1–38.15)", () => {
     const input = screen.getByPlaceholderText(/search courses/i);
     await userEvent.type(input, "agil");
     expect(screen.getByText("Build an Agile Mindset")).toBeInTheDocument();
-    expect(screen.getByText("Learn About Agile Teamwork")).toBeInTheDocument();
+    expect(screen.getByText("Agile Cross-Functional Team Dynamics")).toBeInTheDocument();
   });
 
   // 38.5 – Case-insensitive
