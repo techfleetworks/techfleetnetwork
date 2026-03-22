@@ -133,6 +133,8 @@ serve(async (req) => {
 
     if (payload.action === "created") {
       content = [
+        `<@&1083439364975112293>`,
+        "",
         `🆕 **New Project Created**`,
         "",
         `**Client:** ${payload.client_name}`,
