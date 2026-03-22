@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -24,16 +26,9 @@ const EXPLORE_SYSTEM_OVERRIDE = `The user is exploring Tech Fleet resources. Bas
 IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
 
 ### [Resource Name]
-**Type:** Course | Template | User Guide | Project
 **Description:** A short summary of what this resource covers.
 **🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
 **Link:** The direct URL to the resource if known. Use the techfleet.org domain when available.
-
-Type mapping rules:
-- Training courses, learning paths → Course
-- Workshop templates, facilitation guides → Template
-- Handbooks, user guides, onboarding docs → User Guide
-- Project-related resources, tools → Project
 
 Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
 
@@ -44,8 +39,10 @@ export default function ExploreTab() {
   const [responseMarkdown, setResponseMarkdown] = useState("");
   const [webResults, setWebResults] = useState<WebSearchResult[]>([]);
   const [popularQueries, setPopularQueries] = useState<PopularQuery[]>([]);
+  const [allPopularQueries, setAllPopularQueries] = useState<PopularQuery[]>([]);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const [loadingPopular, setLoadingPopular] = useState(true);
+  const [showAllPopular, setShowAllPopular] = useState(false);
 
   // Fetch popular and recent queries
   useEffect(() => {
@@ -71,10 +68,10 @@ export default function ExploreTab() {
 
           const sorted = Array.from(queryUsers.entries())
             .sort((a, b) => b[1].users.size - a[1].users.size)
-            .slice(0, 6)
             .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
 
-          setPopularQueries(sorted);
+          setAllPopularQueries(sorted);
+          setPopularQueries(sorted.slice(0, 5));
 
           // Get recent unique queries (last 5, deduplicated by fuzzy key)
           const seenKeys = new Set<string>();
@@ -339,13 +336,26 @@ export default function ExploreTab() {
       {/* Suggestions section - show when no results */}
       {!responseMarkdown && !loading && (
         <div className="space-y-6">
-          {/* Popular explorations */}
+          {/* Popular explorations - top 5 */}
           {popularQueries.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Popular Explorations
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Popular Explorations
+                </h3>
+                {allPopularQueries.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => setShowAllPopular(true)}
+                  >
+                    See All ({allPopularQueries.length})
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {popularQueries.map((pq) => (
                   <button
@@ -372,10 +382,21 @@ export default function ExploreTab() {
           {/* Recent explorations */}
           {recentQueries.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                Recently Explored
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Recently Explored
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => setRecentQueries([])}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {recentQueries.map((rq) => (
                   <Badge
@@ -403,6 +424,44 @@ export default function ExploreTab() {
           )}
         </div>
       )}
+
+      {/* All Popular side panel */}
+      <Sheet open={showAllPopular} onOpenChange={setShowAllPopular}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              All Popular Explorations
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-8rem)] mt-4 pr-2">
+            <div className="space-y-2">
+              {allPopularQueries.map((pq, idx) => (
+                <button
+                  key={pq.query_text}
+                  onClick={() => {
+                    setShowAllPopular(false);
+                    setQuery(pq.query_text);
+                    explore(pq.query_text);
+                  }}
+                  className="w-full text-left rounded-lg border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all duration-200 group flex items-center justify-between gap-3"
+                  aria-label={`Explore: ${pq.query_text}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-right">{idx + 1}</span>
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors capitalize break-words overflow-wrap-anywhere">
+                      {pq.query_text}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 text-xs">
+                    {pq.count}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
