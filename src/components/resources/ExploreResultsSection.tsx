@@ -28,7 +28,7 @@ export default function ExploreResultsSection({ query, recommendations }: Explor
 
       {/* Card grid: 1 col mobile/tablet, 2 col desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {recommendations.map((rec, idx) => (
+        {[...recommendations].sort((a, b) => a.title.localeCompare(b.title)).map((rec, idx) => (
           <ExploreRecommendationCard key={`${rec.title}-${idx}`} {...rec} />
         ))}
       </div>
