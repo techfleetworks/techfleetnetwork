@@ -325,24 +325,13 @@ export default function ExploreTab() {
         />
       )}
 
-      {/* Streaming preview while loading */}
-      {responseMarkdown && loading && (
+      {/* Loading state with query echo */}
+      {loading && (
         <Card>
-          <CardContent className="py-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Fleety is finding resources…</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Loading skeleton */}
-      {loading && !responseMarkdown && (
-        <Card>
-          <CardContent className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="text-sm">Fleety is finding the best resources for you…</p>
+          <CardContent className="py-8 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">Fleety is finding resources for:</p>
+            <p className="text-base font-semibold text-foreground">&ldquo;{query}&rdquo;</p>
           </CardContent>
         </Card>
       )}
