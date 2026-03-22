@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import ExploreResultsSection from "./ExploreResultsSection";
-import type { RecommendationData } from "./ExploreRecommendationCard";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
 
 
