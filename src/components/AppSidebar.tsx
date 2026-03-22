@@ -35,7 +35,6 @@ const communityNav = [
   { label: "Announcements", href: "/updates", icon: Megaphone },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/events", icon: CalendarDays },
-  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
 ];
 
 const trainingNav = [
@@ -46,6 +45,7 @@ const trainingNav = [
 ];
 
 const supportNav = [
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
   { label: "Get Help", href: "/chat", icon: LifeBuoy },
   { label: "Resources", href: "/resources", icon: BookOpen },
 ];
