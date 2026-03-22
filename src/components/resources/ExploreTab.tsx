@@ -336,13 +336,26 @@ export default function ExploreTab() {
       {/* Suggestions section - show when no results */}
       {!responseMarkdown && !loading && (
         <div className="space-y-6">
-          {/* Popular explorations */}
+          {/* Popular explorations - top 5 */}
           {popularQueries.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Popular Explorations
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Popular Explorations
+                </h3>
+                {allPopularQueries.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => setShowAllPopular(true)}
+                  >
+                    See All ({allPopularQueries.length})
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {popularQueries.map((pq) => (
                   <button
@@ -369,10 +382,21 @@ export default function ExploreTab() {
           {/* Recent explorations */}
           {recentQueries.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-3">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                Recently Explored
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Recently Explored
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => setRecentQueries([])}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {recentQueries.map((rq) => (
                   <Badge
@@ -400,6 +424,44 @@ export default function ExploreTab() {
           )}
         </div>
       )}
+
+      {/* All Popular side panel */}
+      <Sheet open={showAllPopular} onOpenChange={setShowAllPopular}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              All Popular Explorations
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-8rem)] mt-4 pr-2">
+            <div className="space-y-2">
+              {allPopularQueries.map((pq, idx) => (
+                <button
+                  key={pq.query_text}
+                  onClick={() => {
+                    setShowAllPopular(false);
+                    setQuery(pq.query_text);
+                    explore(pq.query_text);
+                  }}
+                  className="w-full text-left rounded-lg border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all duration-200 group flex items-center justify-between gap-3"
+                  aria-label={`Explore: ${pq.query_text}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs font-mono text-muted-foreground w-5 shrink-0 text-right">{idx + 1}</span>
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors capitalize break-words overflow-wrap-anywhere">
+                      {pq.query_text}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 text-xs">
+                    {pq.count}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
