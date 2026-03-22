@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
