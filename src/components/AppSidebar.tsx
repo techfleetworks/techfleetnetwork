@@ -34,6 +34,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 const mainNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Updates", href: "/updates", icon: Megaphone },
+  { label: "My Journey", href: "/my-journey", icon: Map },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Applications", href: "/applications", icon: ClipboardList },
