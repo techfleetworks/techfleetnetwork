@@ -393,6 +393,30 @@ export type Database = {
         }
         Relationships: []
       }
+      exploration_queries: {
+        Row: {
+          created_at: string
+          id: string
+          query_text: string
+          result_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query_text: string
+          result_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query_text?: string
+          result_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
