@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id);
 
     if (updateError) {
-      logger.error("generate-discord-invite", `Failed to save invite URL: ${updateError.message}`);
+      logger.error("save", `Failed to save invite URL: ${updateError.message}`);
       throw new Error("Failed to save invite link");
     }
 
