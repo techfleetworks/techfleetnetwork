@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "@/hooks/use-toast";
 import { reportError } from "@/services/error-reporter.service";
 import {
