@@ -44,10 +44,10 @@ export default function ConnectDiscordPage() {
     (p) => p.task_id === TASK_ID && p.completed
   );
 
-  // Step state: "ask" → "no-discord" → invite flow, or "ask" → "yes-discord" → verify flow
-  const [step, setStep] = useState<"ask" | "no-discord" | "yes-discord">(
-    isAlreadyComplete ? "yes-discord" : "ask"
-  );
+  // Step state
+  const [step, setStep] = useState<
+    "ask" | "no-discord-choose" | "no-discord-no-account" | "no-discord-has-account" | "yes-discord"
+  >(isAlreadyComplete ? "yes-discord" : "ask");
 
   // Invite flow state
   const [inviteUrl, setInviteUrl] = useState<string>(
