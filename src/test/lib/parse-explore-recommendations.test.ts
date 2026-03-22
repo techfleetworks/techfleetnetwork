@@ -56,10 +56,10 @@ describe("parseRecommendations", () => {
     expect(parseRecommendations("")).toEqual([]);
   });
 
-  it("handles missing Type field gracefully (defaults to course)", () => {
+  it("handles missing Type field gracefully (defaults to user guide)", () => {
     const results = parseRecommendations(noTypeSample);
     expect(results).toHaveLength(1);
-    expect(results[0].type).toBe("course");
+    expect(results[0].type).toBe("user guide");
     expect(results[0].title).toBe("Resource A");
   });
 
