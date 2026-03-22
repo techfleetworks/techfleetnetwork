@@ -30,15 +30,13 @@ const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col p-5 gap-3">
-      {/* Title + Online badge */}
+      {/* Title + type badge */}
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
-        {isOnline && (
-          <Badge variant="outline" className="shrink-0 gap-1 text-xs border-primary/40 text-primary">
-            <Globe className="h-3 w-3" />
-            Online
-          </Badge>
-        )}
+        <h2 className="text-lg font-semibold text-foreground leading-snug">{title}</h2>
+        <Badge variant="outline" className="shrink-0 gap-1 text-xs border-primary/40 text-primary capitalize">
+          {isOnline && <Globe className="h-3 w-3" />}
+          {type}
+        </Badge>
       </div>
 
       {/* Description */}
