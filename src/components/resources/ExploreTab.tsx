@@ -104,7 +104,20 @@ export default function ExploreTab() {
       const normalized = normalizeQueryKey(searchQuery) || searchQuery.trim().toLowerCase();
       setLoading(true);
       setResponseMarkdown("");
+      setWebResults([]);
       setQuery(searchQuery);
+
+      // Fire web search in parallel (non-blocking)
+      const webSearchPromise = supabase.functions
+        .invoke("firecrawl-search", { body: { query: searchQuery.trim(), limit: 3 } })
+        .then(({ data }) => {
+          if (data?.success && Array.isArray(data.results)) {
+            setWebResults(data.results);
+          }
+        })
+        .catch((err) => {
+          console.warn("Web search failed (non-critical):", err);
+        });
 
       try {
         // Save the query
