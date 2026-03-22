@@ -49,6 +49,7 @@ const ProjectOpeningDetailPage = lazy(() => import("./pages/ProjectOpeningDetail
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 
 function RouteFallback() {
   return (
