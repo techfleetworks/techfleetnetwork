@@ -92,6 +92,7 @@ export default function FirstStepsPage() {
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
