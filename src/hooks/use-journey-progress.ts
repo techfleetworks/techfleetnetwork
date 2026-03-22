@@ -10,7 +10,7 @@ export function useCompletedCount(
   validTaskIds?: readonly string[]
 ) {
   return useQuery({
-    queryKey: ["journey-completed", userId, phase],
+    queryKey: ["journey-completed", userId, phase, validTaskIds ? [...validTaskIds].sort().join(",") : "__all__"],
     queryFn: () => JourneyService.getCompletedCount(userId!, phase, validTaskIds),
     enabled: !!userId,
   });
