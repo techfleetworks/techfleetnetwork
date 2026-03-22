@@ -42,6 +42,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@/lib/react-query";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
 interface GenericCoursePageProps {
