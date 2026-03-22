@@ -13,6 +13,7 @@ import {
   Building2,
   MessageSquarePlus,
   Users,
+  Map,
 } from "lucide-react";
 import {
   Sidebar,
