@@ -52,6 +52,7 @@ const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
 const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
+const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
 
 function RouteFallback() {
   return (
