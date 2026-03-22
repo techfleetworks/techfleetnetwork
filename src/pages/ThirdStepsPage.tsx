@@ -211,7 +211,7 @@ export default function ThirdStepsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Learn About Agile Teamwork</BreadcrumbPage>
+              <BreadcrumbPage>Agile Cross-Functional Team Dynamics</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
