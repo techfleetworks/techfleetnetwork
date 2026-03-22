@@ -105,18 +105,32 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  const normalizeDiscordUsername = (raw: string): string => {
+    let name = raw.trim();
+    // Remove leading @ if present
+    if (name.startsWith("@")) {
+      name = name.slice(1);
+    }
+    // Ensure leading dot
+    if (!name.startsWith(".")) {
+      name = "." + name;
+    }
+    return name;
+  };
+
   const handleVerify = async () => {
     const trimmed = username.trim();
     if (!trimmed) {
       setVerifyError("Please enter your Discord username.");
       return;
     }
+    const normalized = normalizeDiscordUsername(trimmed);
     setVerifying(true);
     setVerifyError("");
 
     try {
       const discordUserId =
-        await DiscordNotifyService.resolveDiscordId(trimmed);
+        await DiscordNotifyService.resolveDiscordId(normalized);
 
       if (!discordUserId) {
         setVerifyError(
@@ -130,7 +144,7 @@ export default function ConnectDiscordPage() {
       await supabase
         .from("profiles")
         .update({
-          discord_username: trimmed,
+          discord_username: normalized,
           discord_user_id: discordUserId,
           has_discord_account: true,
         })
@@ -142,7 +156,7 @@ export default function ConnectDiscordPage() {
       // Send Discord notification for verification
       DiscordNotifyService.discordVerified(
         displayName,
-        trimmed,
+        normalized,
         discordUserId
       );
 
