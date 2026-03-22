@@ -43,6 +43,13 @@ KNOWLEDGE BASE:
 `;
 
 
+/** Max request body (64 KB — allows for conversation history) */
+const MAX_BODY_BYTES = 64 * 1024;
+/** Max messages in a single request to prevent abuse */
+const MAX_MESSAGES = 50;
+/** Max length per message content */
+const MAX_MESSAGE_LENGTH = 4000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,11 +59,54 @@ serve(async (req) => {
   log.info("handler", `Chat request received [${requestId}]`, { requestId });
 
   try {
+    // A3: Enforce request body size limit
+    const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+    if (contentLength > MAX_BODY_BYTES) {
+      log.warn("handler", `Request body too large [${requestId}]: ${contentLength} bytes`, { requestId, contentLength });
+      return new Response(
+        JSON.stringify({ error: "Request body too large" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages } = await req.json();
-    log.info("chat", `Processing ${messages?.length ?? 0} messages [${requestId}]`, {
+
+    // Input validation: messages must be an array with valid structure
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "messages must be a non-empty array" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (messages.length > MAX_MESSAGES) {
+      log.warn("handler", `Too many messages [${requestId}]: ${messages.length}`, { requestId });
+      return new Response(
+        JSON.stringify({ error: `Maximum ${MAX_MESSAGES} messages allowed per request` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate and sanitize each message
+    const validRoles = new Set(["user", "assistant", "system"]);
+    for (const msg of messages) {
+      if (!msg.role || !validRoles.has(msg.role)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid message role" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (typeof msg.content !== "string" || msg.content.length > MAX_MESSAGE_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: `Message content must be a string under ${MAX_MESSAGE_LENGTH} characters` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    log.info("chat", `Processing ${messages.length} messages [${requestId}]`, {
       requestId,
-      messageCount: messages?.length ?? 0,
-      lastUserMessage: messages?.[messages.length - 1]?.content?.substring(0, 100),
+      messageCount: messages.length,
+      lastUserMessage: messages[messages.length - 1]?.content?.substring(0, 100),
     });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

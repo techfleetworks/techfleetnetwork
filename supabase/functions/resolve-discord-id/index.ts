@@ -9,6 +9,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Max request body size (4 KB) */
+const MAX_BODY_BYTES = 4 * 1024;
+/** Max username length (Discord limit is 32) */
+const MAX_USERNAME_LENGTH = 32;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,8 +34,17 @@ serve(async (req) => {
   }
 
   try {
+    // A3: Enforce request body size limit
+    const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+    if (contentLength > MAX_BODY_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Request body too large" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { discord_username } = await req.json();
-    if (!discord_username) {
+    if (!discord_username || typeof discord_username !== "string" || discord_username.length > MAX_USERNAME_LENGTH) {
       log.warn("validate", `Missing discord_username in request body [${requestId}]`, { requestId });
       return new Response(
         JSON.stringify({ error: "discord_username is required" }),
