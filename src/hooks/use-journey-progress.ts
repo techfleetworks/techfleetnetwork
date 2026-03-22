@@ -21,13 +21,10 @@ export function useJourneyProgress(userId: string | undefined, phase: JourneyPha
 }
 
 /**
- * Returns the correct total number of first-steps tasks for this user.
- * Users who already have a Discord username skip "join-discord" (5 tasks),
- * otherwise they have 6 tasks.
+ * Returns the total number of first-steps tasks (now fixed at 5).
  */
 export function useFirstStepsTotalForUser(
-  profile: { discord_username?: string | null } | null | undefined
+  _profile?: { discord_username?: string | null } | null
 ): number {
-  const hasDiscord = profile?.discord_username && profile.discord_username.trim() !== "";
-  return hasDiscord ? 5 : 6;
+  return 5;
 }
