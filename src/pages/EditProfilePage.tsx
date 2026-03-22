@@ -543,6 +543,37 @@ export default function EditProfilePage() {
               </div>
 
               <div className="space-y-1.5 pt-2 border-t">
+                <Label>Your Data</Label>
+                <p className="text-xs text-muted-foreground mb-2">Download a complete copy of all your data stored on this platform (GDPR / HIPAA Right of Access).</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      toast.info("Preparing your data export…", { position: "top-center" });
+                      const { data, error } = await supabase.rpc("export_my_data");
+                      if (error) throw error;
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `techfleet-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      toast.success("Data export downloaded.", { position: "top-center" });
+                    } catch {
+                      toast.error("Failed to export data. Please try again.", { position: "top-center" });
+                    }
+                  }}
+                >
+                  Export My Data
+                </Button>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t">
                 <Label className="text-destructive">Danger zone</Label>
                 <p className="text-xs text-muted-foreground mb-2">Once you delete your account, there is no going back. Please be certain.</p>
                 <Button
