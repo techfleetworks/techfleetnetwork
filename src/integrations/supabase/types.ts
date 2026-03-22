@@ -878,6 +878,86 @@ export type Database = {
           },
         ]
       }
+      project_roster: {
+        Row: {
+          airtable_record_id: string
+          client_name: string
+          created_at: string
+          end_date: string | null
+          hours_contributed: number | null
+          id: string
+          linked_project_ids: string[]
+          member_email: string
+          member_name: string
+          member_role: string
+          mentor: string
+          performance_notes: string
+          phase: string
+          project_id: string | null
+          project_name: string
+          project_type: string
+          raw_airtable_data: Json | null
+          start_date: string | null
+          status: string
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          airtable_record_id: string
+          client_name?: string
+          created_at?: string
+          end_date?: string | null
+          hours_contributed?: number | null
+          id?: string
+          linked_project_ids?: string[]
+          member_email?: string
+          member_name?: string
+          member_role?: string
+          mentor?: string
+          performance_notes?: string
+          phase?: string
+          project_id?: string | null
+          project_name?: string
+          project_type?: string
+          raw_airtable_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          airtable_record_id?: string
+          client_name?: string
+          created_at?: string
+          end_date?: string | null
+          hours_contributed?: number | null
+          id?: string
+          linked_project_ids?: string[]
+          member_email?: string
+          member_name?: string
+          member_role?: string
+          mentor?: string
+          performance_notes?: string
+          phase?: string
+          project_id?: string | null
+          project_name?: string
+          project_type?: string
+          raw_airtable_data?: Json | null
+          start_date?: string | null
+          status?: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_roster_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           anticipated_end_date: string | null

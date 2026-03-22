@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-discord-invite]
 verify_jwt = false
+
+[functions.sync-airtable-roster]
+verify_jwt = false

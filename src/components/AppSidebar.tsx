@@ -12,6 +12,7 @@ import {
   Megaphone,
   Building2,
   MessageSquarePlus,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -137,6 +138,18 @@ export function AppSidebar() {
                     <Link to="/admin/activity-log">
                       <Activity className="h-4 w-4" />
                       <span>Activity Log</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/roster")}
+                    tooltip="Project Roster"
+                  >
+                    <Link to="/admin/roster">
+                      <Users className="h-4 w-4" />
+                      <span>Project Roster</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
