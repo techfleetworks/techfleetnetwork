@@ -19,10 +19,16 @@ export function UserDetailDialog({ user, onClose }: UserDetailDialogProps) {
   // HIPAA §164.312(b) — Log admin PII access
   useEffect(() => {
     if (user?.user_id) {
-      supabase.rpc("log_pii_access", {
-        p_accessed_user_id: user.user_id,
-        p_access_reason: "admin_user_detail_view",
-      }).then(() => { /* audit logged */ }).catch(() => { /* swallow */ });
+      void (async () => {
+        try {
+          await supabase.rpc("log_pii_access", {
+            p_accessed_user_id: user.user_id,
+            p_access_reason: "admin_user_detail_view",
+          });
+        } catch {
+          /* swallow — never block UI for audit logging */
+        }
+      })();
     }
   }, [user?.user_id]);
 
