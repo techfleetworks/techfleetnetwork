@@ -210,6 +210,8 @@ Deno.serve(async (req) => {
           .trim();
 
         const discordContent = [
+          `<@&1083439364975112293>`,
+          "",
           `📢 **${announcement.title}**`,
           "",
           plainBody.length > 1500 ? plainBody.substring(0, 1500) + "…" : plainBody,
@@ -222,7 +224,7 @@ Deno.serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             content: discordContent,
-            allowed_mentions: { parse: [] },
+            allowed_mentions: { roles: ["1083439364975112293"] },
           }),
         });
 

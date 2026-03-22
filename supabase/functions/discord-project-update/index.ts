@@ -133,6 +133,8 @@ serve(async (req) => {
 
     if (payload.action === "created") {
       content = [
+        `<@&1083439364975112293>`,
+        "",
         `🆕 **New Project Created**`,
         "",
         `**Client:** ${payload.client_name}`,
@@ -157,6 +159,8 @@ serve(async (req) => {
         : "• General updates";
 
       content = [
+        `<@&1083439364975112293>`,
+        "",
         `📝 **Project Updated — ${payload.client_name}**`,
         "",
         `**What changed:**`,
@@ -183,7 +187,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content,
-          allowed_mentions: { parse: [] },
+          allowed_mentions: { roles: ["1083439364975112293"] },
         }),
       });
 
