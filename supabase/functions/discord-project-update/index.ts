@@ -187,7 +187,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content,
-          allowed_mentions: { parse: [] },
+          allowed_mentions: { roles: ["1083439364975112293"] },
         }),
       });
 
