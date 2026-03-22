@@ -83,6 +83,17 @@ export function useExplore(): UseExploreReturn {
     return () => { cancelled = true; };
   }, []);
 
+  const refreshPopular = useCallback(() => {
+    loadPopularAndRecent()
+      .then((data: PopularQueryData) => {
+        if (!mountedRef.current) return;
+        setPopularQueries(data.top5);
+        setAllPopularQueries(data.all);
+        setRecentQueries(data.recents);
+      })
+      .catch(() => {});
+  }, []);
+
   const doExplore = useCallback(
     (searchQuery: string) => {
       if (!searchQuery.trim() || loading) return;
@@ -108,6 +119,10 @@ export function useExplore(): UseExploreReturn {
         },
         signal: controller.signal,
       })
+        .then(() => {
+          // Refresh popular counts after successful explore
+          if (mountedRef.current) refreshPopular();
+        })
         .catch((err) => {
           if (!mountedRef.current) return;
           if (err instanceof DOMException && err.name === "AbortError") return;
@@ -123,7 +138,7 @@ export function useExplore(): UseExploreReturn {
           if (mountedRef.current) setLoading(false);
         });
     },
-    [user, loading],
+    [user, loading, refreshPopular],
   );
 
   const reset = useCallback(() => {
