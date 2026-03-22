@@ -60,7 +60,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   },
   {
     id: "course-teamwork",
-    label: "Learn About Agile Teamwork",
+    label: "Agile Cross-Functional Team Dynamics",
     description:
       "Lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.",
     href: "/courses/agile-teamwork",

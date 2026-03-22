@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import badgeFirstSteps from "@/assets/badge-first-steps.png";
 import badgeSecondSteps from "@/assets/badge-second-steps.png";
+import badgeDiscordLearning from "@/assets/badge-discord-learning.png";
 import badgeThirdSteps from "@/assets/badge-third-steps.png";
-import badgeObserver from "@/assets/badge-observer.png";
+import badgeProjectTraining from "@/assets/badge-project-training.png";
+import badgeVolunteer from "@/assets/badge-volunteer.png";
 
 interface Badge {
   id: string;
@@ -16,11 +18,22 @@ interface Badge {
 interface BadgesDisplayProps {
   allFirstStepsDone: boolean;
   allSecondStepsDone: boolean;
+  allDiscordDone?: boolean;
   allThirdStepsDone?: boolean;
+  allProjectTrainingDone?: boolean;
+  allVolunteerDone?: boolean;
   communityBadgeCount?: number | null;
 }
 
-export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdStepsDone = false, communityBadgeCount }: BadgesDisplayProps) {
+export function BadgesDisplay({
+  allFirstStepsDone,
+  allSecondStepsDone,
+  allDiscordDone = false,
+  allThirdStepsDone = false,
+  allProjectTrainingDone = false,
+  allVolunteerDone = false,
+  communityBadgeCount,
+}: BadgesDisplayProps) {
   const badges: Badge[] = [
     {
       id: "first-steps",
@@ -33,26 +46,42 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
     {
       id: "agile-mindset",
       name: "Agile Mindset",
-      description: "Completed all 25 Agile lessons",
+      description: "Completed all Agile lessons",
       image: badgeSecondSteps,
       earned: allSecondStepsDone,
       href: "/courses/agile-mindset",
     },
     {
-      id: "teammate",
-      name: "Teammate",
-      description: "Completed the Teammate Handbook",
+      id: "discord-learning",
+      name: "Discord Learning",
+      description: "Completed Discord Learning Series",
+      image: badgeDiscordLearning,
+      earned: allDiscordDone,
+      href: "/courses/discord-learning",
+    },
+    {
+      id: "cross-functional",
+      name: "Cross-Functional",
+      description: "Completed Agile Cross-Functional Team Dynamics",
       image: badgeThirdSteps,
       earned: allThirdStepsDone,
       href: "/courses/agile-teamwork",
     },
     {
-      id: "observer",
-      name: "Observer",
-      description: "Completed Observe Project Teams",
-      image: badgeObserver,
-      earned: false,
-      href: "/courses/observer",
+      id: "project-training",
+      name: "Project Training",
+      description: "Completed Join Project Training Teams",
+      image: badgeProjectTraining,
+      earned: allProjectTrainingDone,
+      href: "/courses/project-training",
+    },
+    {
+      id: "volunteer",
+      name: "Volunteer",
+      description: "Completed Join Volunteer Teams",
+      image: badgeVolunteer,
+      earned: allVolunteerDone,
+      href: "/courses/volunteer-teams",
     },
   ];
 
@@ -63,7 +92,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
       <div className="mb-4">
         <div className="flex items-center gap-2">
           <h2 id="badges-heading" className="text-xl font-semibold text-foreground">
-            Beginner Badges Earned
+            Core Badges Earned
           </h2>
           <span className="text-sm text-muted-foreground">
             ({earnedCount}/{badges.length})
@@ -77,7 +106,7 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
         {badges.map((badge) => (
           <Link
             key={badge.id}
@@ -112,7 +141,6 @@ export function BadgesDisplay({ allFirstStepsDone, allSecondStepsDone, allThirdS
           </Link>
         ))}
       </div>
-
     </section>
   );
 }

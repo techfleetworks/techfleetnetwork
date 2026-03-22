@@ -375,7 +375,7 @@ export default function ThirdStepsPage() {
           <DialogHeader className="items-center">
             <div className="text-5xl mb-2">🎉</div>
             <DialogTitle className="text-xl">
-              Learn About Agile Teamwork Complete!
+              Agile Cross-Functional Team Dynamics Complete!
             </DialogTitle>
             <DialogDescription className="text-muted-foreground pt-2">
               You've completed all lessons in this course. Well done! You're ready for the next course.

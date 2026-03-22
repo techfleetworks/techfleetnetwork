@@ -69,7 +69,7 @@ const TASK_LABELS: Record<string, string> = {
 const PHASE_LABELS: Record<string, string> = {
   first_steps: "Onboarding Steps",
   second_steps: "Build an Agile Mindset",
-  third_steps: "Learn About Agile Teamwork",
+  third_steps: "Agile Cross-Functional Team Dynamics",
   observer: "Observe Project Teams",
   projects: "Apply for Projects",
 };

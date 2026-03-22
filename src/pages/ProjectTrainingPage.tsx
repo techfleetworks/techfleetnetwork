@@ -40,7 +40,7 @@ export default function ProjectTrainingPage() {
       prerequisite={{
         met: prereqMet,
         loaded: prereqLoaded,
-        courseName: "Learn About Agile Teamwork",
+        courseName: "Agile Cross-Functional Team Dynamics",
         courseHref: "/courses/agile-teamwork",
       }}
     />

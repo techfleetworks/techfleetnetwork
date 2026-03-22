@@ -186,7 +186,7 @@ export default function TrainingPage() {
     },
     {
       id: "agile-teamwork",
-      title: "Learn About Agile Teamwork",
+      title: "Agile Cross-Functional Team Dynamics",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
       icon: Users,
       href: "/courses/agile-teamwork",
@@ -203,7 +203,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted,
       locked: !allTeamworkDone,
-      prerequisiteLabel: "Learn About Agile Teamwork",
+      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
     },
     {
       id: "volunteer-teams",
@@ -214,7 +214,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
       completedTasks: volunteerCompleted,
       locked: !allTeamworkDone,
-      prerequisiteLabel: "Learn About Agile Teamwork",
+      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
     },
   ];
 

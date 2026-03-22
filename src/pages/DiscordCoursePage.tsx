@@ -20,7 +20,7 @@ export default function DiscordCoursePage() {
       totalLessons={TOTAL_DISCORD_LESSONS}
       completionMessage="🎉 Discord Learning Series Complete!"
       completionSubtext="You're ready to make the most of the Tech Fleet Discord community!"
-      nextCourse={{ title: "Learn About Agile Teamwork", href: "/courses/agile-teamwork" }}
+      nextCourse={{ title: "Agile Cross-Functional Team Dynamics", href: "/courses/agile-teamwork" }}
     />
   );
 }
