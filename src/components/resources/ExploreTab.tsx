@@ -68,10 +68,10 @@ export default function ExploreTab() {
 
           const sorted = Array.from(queryUsers.entries())
             .sort((a, b) => b[1].users.size - a[1].users.size)
-            .slice(0, 6)
             .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
 
-          setPopularQueries(sorted);
+          setAllPopularQueries(sorted);
+          setPopularQueries(sorted.slice(0, 5));
 
           // Get recent unique queries (last 5, deduplicated by fuzzy key)
           const seenKeys = new Set<string>();
