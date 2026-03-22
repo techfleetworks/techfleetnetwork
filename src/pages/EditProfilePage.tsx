@@ -550,25 +550,43 @@ export default function EditProfilePage() {
                 {profile?.discord_user_id ? (
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
                     <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">Discord linked</p>
                       <p className="text-xs text-muted-foreground truncate">
                         Connected as <strong>{profile.discord_username}</strong>
                       </p>
                     </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground flex-shrink-0"
+                      asChild
+                    >
+                      <Link to="/courses/connect-discord">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Re-link
+                      </Link>
+                    </Button>
                   </div>
                 ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground mb-2">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
                       Link your Discord account to automatically receive roles and channel access after joining the Tech Fleet Discord server.
                     </p>
-                    {!form.discordUsername?.trim() ? (
-                      <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
-                        <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-warning">
-                          Enter your Discord username in the Basic Info tab first, then come back here to verify.
-                        </p>
-                      </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      asChild
+                    >
+                      <Link to="/courses/connect-discord">
+                        <Link2 className="h-4 w-4" />
+                        Connect
+                      </Link>
+                    </Button>
+                  </div>
                     ) : (
                       <Button
                         type="button"
