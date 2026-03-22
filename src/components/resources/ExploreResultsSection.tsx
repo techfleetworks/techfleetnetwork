@@ -6,8 +6,9 @@
  */
 
 import { memo, useMemo } from "react";
-import { Sparkles, Globe } from "lucide-react";
+import { Sparkles, Globe, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import ExploreRecommendationCard, { type RecommendationData } from "./ExploreRecommendationCard";
 import { sanitizeText } from "@/lib/security";
 
@@ -21,12 +22,14 @@ interface ExploreResultsSectionProps {
   query: string;
   recommendations: RecommendationData[];
   webResults?: WebSearchResult[];
+  onReset?: () => void;
 }
 
 const ExploreResultsSection = memo(function ExploreResultsSection({
   query,
   recommendations,
   webResults = [],
+  onReset,
 }: ExploreResultsSectionProps) {
   const hasRecs = recommendations.length > 0;
   const hasWeb = webResults.length > 0;
