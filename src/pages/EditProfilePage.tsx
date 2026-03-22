@@ -205,8 +205,10 @@ export default function EditProfilePage() {
     setSaving(true);
     try {
       await ProfileService.update(user!.id, result.data, !isOAuth ? form.email.trim() : undefined);
-      setInitialized(false);
       await refreshProfile();
+      // Force form re-initialization from fresh profile on next render
+      setInitialized(false);
+      setTouched({});
       toast.success("Profile updated successfully", { duration: 5000, position: "top-center" });
     } catch (err: any) {
       setErrors({ general: err.message });
