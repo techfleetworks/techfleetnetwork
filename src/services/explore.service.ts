@@ -18,7 +18,6 @@ import { createLogger } from "@/services/logger.service";
 import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 import { sanitizeText, isSafeUrl } from "@/lib/security";
-import { reportError } from "@/services/error-reporter.service";
 import type { WebSearchResult } from "@/components/resources/ExploreResultsSection";
 
 const log = createLogger("ExploreService");
