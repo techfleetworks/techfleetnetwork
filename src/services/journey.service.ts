@@ -79,19 +79,25 @@ export const JourneyService = {
     });
   },
 
-  async getCompletedCount(userId: string, phase: JourneyPhase): Promise<number> {
+  async getCompletedCount(userId: string, phase: JourneyPhase, validTaskIds?: readonly string[]): Promise<number> {
     if (!VALID_PHASES.has(phase)) {
       log.error("getCompletedCount", `Invalid phase "${phase}" requested`, { userId, phase });
       throw new Error("Invalid phase");
     }
 
     return log.track("getCompletedCount", `Counting completed ${phase} tasks for user ${userId}`, { userId, phase }, async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("journey_progress")
         .select("task_id")
         .eq("user_id", userId)
         .eq("phase", phase)
         .eq("completed", true);
+
+      if (validTaskIds && validTaskIds.length > 0) {
+        query = query.in("task_id", [...validTaskIds]);
+      }
+
+      const { data } = await query;
       const count = data?.length ?? 0;
       log.debug("getCompletedCount", `User ${userId} has ${count} completed tasks in ${phase}`, { userId, phase, count });
       return count;
