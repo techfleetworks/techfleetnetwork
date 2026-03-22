@@ -195,15 +195,26 @@ export default function DashboardPage() {
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
+  const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allDiscordDone = discordCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
-  const allCoreCoursesDone = allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
+  const allCoreCoursesDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
   const coreCourses: CoreCourse[] = [
+    {
+      id: "connect-discord",
+      title: "Connect to Discord",
+      description: "Link your Discord account to the Tech Fleet Network platform.",
+      icon: MessageSquare,
+      href: "/courses/connect-discord",
+      totalTasks: TOTAL_CONNECT_DISCORD,
+      completedTasks: connectDiscordCompleted,
+      locked: false,
+    },
     {
       id: "onboarding",
       title: "Onboarding Steps",
