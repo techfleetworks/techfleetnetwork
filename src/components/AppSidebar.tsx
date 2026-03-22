@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   BookOpen,
-  Bot,
+  LifeBuoy,
   CalendarDays,
   ClipboardList,
   Handshake,
@@ -31,17 +31,29 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
-const mainNav = [
+const communityNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Updates", href: "/updates", icon: Megaphone },
-  { label: "My Journey", href: "/my-journey", icon: Map },
-  { label: "Courses", href: "/courses", icon: GraduationCap },
-  { label: "Project Openings", href: "/project-openings", icon: Handshake },
-  { label: "Applications", href: "/applications", icon: ClipboardList },
-  { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
-  { label: "Fleety", href: "/chat", icon: Bot },
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
+  { label: "Updates", href: "/updates", icon: Megaphone },
+];
+
+const trainingNav = [
+  { label: "Applications", href: "/applications", icon: ClipboardList },
+  { label: "Courses", href: "/courses", icon: GraduationCap },
+  { label: "My Journey", href: "/my-journey", icon: Map },
+  { label: "Project Openings", href: "/project-openings", icon: Handshake },
+];
+
+const supportNav = [
+  { label: "Get Help", href: "/chat", icon: LifeBuoy },
+  { label: "Resources", href: "/resources", icon: BookOpen },
+];
+
+const navSections = [
+  { label: "Community", items: communityNav },
+  { label: "Training", items: trainingNav },
+  { label: "Support", items: supportNav },
 ];
 
 export function AppSidebar() {
@@ -81,26 +93,29 @@ export function AppSidebar() {
           {collapsed && <SidebarTrigger className="shrink-0" />}
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map(({ label, href, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(href)}
-                    tooltip={label}
-                  >
-                    <Link to={href}>
-                      <Icon className="h-4 w-4" />
-                      <span>{label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navSections.map((section) => (
+          <SidebarGroup key={section.label}>
+            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map(({ label, href, icon: Icon }) => (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(href)}
+                      tooltip={label}
+                    >
+                      <Link to={href}>
+                        <Icon className="h-4 w-4" />
+                        <span>{label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
         {isAdmin && (
           <SidebarGroup>
@@ -110,12 +125,12 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/admin/users")}
-                    tooltip="User Admin"
+                    isActive={isActive("/admin/activity-log")}
+                    tooltip="Activity Log"
                   >
-                    <Link to="/admin/users">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>User Admin</span>
+                    <Link to="/admin/activity-log">
+                      <Activity className="h-4 w-4" />
+                      <span>Activity Log</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -134,24 +149,24 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/admin/activity-log")}
-                    tooltip="Activity Log"
-                  >
-                    <Link to="/admin/activity-log">
-                      <Activity className="h-4 w-4" />
-                      <span>Activity Log</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
                     isActive={isActive("/admin/roster")}
                     tooltip="Project Roster"
                   >
                     <Link to="/admin/roster">
                       <Users className="h-4 w-4" />
                       <span>Project Roster</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/users")}
+                    tooltip="User Admin"
+                  >
+                    <Link to="/admin/users">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>User Admin</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
