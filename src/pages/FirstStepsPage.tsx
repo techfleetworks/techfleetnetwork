@@ -242,7 +242,8 @@ export default function FirstStepsPage() {
                   type="button"
                   onClick={() => {
                     if (task.panelAction && !task.completed) {
-                      setAgreementOpen(true);
+                      if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                      else setAgreementOpen(true);
                     } else {
                       toggleTask(task.id);
                     }
