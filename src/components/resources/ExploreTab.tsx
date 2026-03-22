@@ -31,9 +31,16 @@ const EXPLORE_SYSTEM_OVERRIDE = `The user is exploring Tech Fleet resources. Bas
 IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
 
 ### [Resource Name]
-**Type:** Handbook | Workshop | Course | Resource
+**Type:** Course | Template | User Guide | Project
 **Description:** A short summary of what this resource covers.
 **🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
+**Link:** The direct URL to the resource if known. Use the techfleet.org domain when available.
+
+Type mapping rules:
+- Training courses, learning paths → Course
+- Workshop templates, facilitation guides → Template
+- Handbooks, user guides, onboarding docs → User Guide
+- Project-related resources, tools → Project
 
 Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
 
