@@ -18,7 +18,6 @@ import { createLogger } from "@/services/logger.service";
 import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 import { sanitizeText, isSafeUrl } from "@/lib/security";
-import { reportError } from "@/services/error-reporter.service";
 import type { WebSearchResult } from "@/components/resources/ExploreResultsSection";
 
 const log = createLogger("ExploreService");
@@ -44,9 +43,17 @@ const EXPLORE_SYSTEM_PROMPT = `The user is exploring Tech Fleet resources. Based
 IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
 
 ### [Resource Name]
+**Type:** One of: Course, User Guide, Template, Project, Web
 **Description:** A short summary of what this resource covers.
 **🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
 **Link:** The direct URL to the resource if known. Use the techfleet.org domain when available.
+
+CRITICAL — How to assign the Type:
+- "Course" — only for items from the Courses page of Tech Fleet Network, or Masterclass Openings / Current Classes on techfleet.org.
+- "User Guide" — any section of the User Guide at guide.techfleet.org (handbooks, policies, processes, etc.).
+- "Template" — workshop templates listed under Workshop Templates.
+- "Project" — projects listed under Project Openings.
+- "Web" — any external online resource not hosted by Tech Fleet.
 
 Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
 

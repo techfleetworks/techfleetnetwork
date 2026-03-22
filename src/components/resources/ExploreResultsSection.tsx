@@ -36,7 +36,7 @@ const ExploreResultsSection = memo(function ExploreResultsSection({
     () =>
       webResults.slice(0, 3).map((r) => ({
         title: sanitizeText(r.title || "Untitled"),
-        type: "online" as const,
+        type: "web" as const,
         description: sanitizeText(r.description || "External resource found via web search."),
         reason: "",
         link: r.url,

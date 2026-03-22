@@ -11,13 +11,12 @@ describe("ExploreRecommendationCard (BDD 27.1–27.4)", () => {
     link: "https://example.com",
   };
 
-  it("27.1: renders title, description, and reason (no category badge)", () => {
+  it("27.1: renders title, description, reason, and type badge", () => {
     render(<ExploreRecommendationCard {...baseProps} />);
     expect(screen.getByText("Agile Handbook")).toBeInTheDocument();
     expect(screen.getByText("A comprehensive guide.")).toBeInTheDocument();
     expect(screen.getByText("This helps you learn agile.")).toBeInTheDocument();
-    // Category badge should NOT be present
-    expect(screen.queryByText("user guide")).not.toBeInTheDocument();
+    expect(screen.getByText("user guide")).toBeInTheDocument();
   });
 
   it("27.2: renders external link when provided", () => {
@@ -32,24 +31,33 @@ describe("ExploreRecommendationCard (BDD 27.1–27.4)", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("27.33: no category badge is rendered", () => {
+  it("27.33: type badge is rendered for course type", () => {
     render(<ExploreRecommendationCard {...baseProps} type="course" />);
-    expect(screen.queryByText("course")).not.toBeInTheDocument();
+    expect(screen.getByText("course")).toBeInTheDocument();
   });
 
-  it("27.41: online type shows Online badge and Visit Source link", () => {
+  it("27.34: type badge is rendered for template type", () => {
+    render(<ExploreRecommendationCard {...baseProps} type="template" />);
+    expect(screen.getByText("template")).toBeInTheDocument();
+  });
+
+  it("27.35: type badge is rendered for project type", () => {
+    render(<ExploreRecommendationCard {...baseProps} type="project" />);
+    expect(screen.getByText("project")).toBeInTheDocument();
+  });
+
+  it("27.41: web type shows Web badge, Visit Source link, and hides Why We Recommend", () => {
     render(
       <ExploreRecommendationCard
         title="MDN Web Docs"
-        type="online"
+        type="web"
         description="Web development resources."
         reason=""
         link="https://developer.mozilla.org"
       />
     );
-    expect(screen.getByText("Online")).toBeInTheDocument();
+    expect(screen.getByText("web")).toBeInTheDocument();
     expect(screen.getByText("Visit Source")).toBeInTheDocument();
-    // Should NOT show "Why We Recommend" section
     expect(screen.queryByText(/Why We Recommend/)).not.toBeInTheDocument();
   });
 });

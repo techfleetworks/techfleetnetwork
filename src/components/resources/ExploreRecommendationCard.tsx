@@ -12,7 +12,7 @@ import { isSafeUrl } from "@/lib/security";
 
 export interface RecommendationData {
   title: string;
-  type: "course" | "template" | "user guide" | "project" | "online";
+  type: "course" | "template" | "user guide" | "project" | "web";
   description: string;
   reason: string;
   link?: string;
@@ -25,7 +25,7 @@ const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
   reason,
   link,
 }: RecommendationData) {
-  const isOnline = type === "online";
+  const isWeb = type === "web";
   const safeLink = link && isSafeUrl(link) ? link : undefined;
 
   return (
@@ -34,7 +34,7 @@ const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-lg font-semibold text-foreground leading-snug">{title}</h2>
         <Badge variant="outline" className="shrink-0 gap-1 text-xs border-primary/40 text-primary capitalize">
-          {isOnline && <Globe className="h-3 w-3" />}
+          {isWeb && <Globe className="h-3 w-3" />}
           {type}
         </Badge>
       </div>
@@ -45,8 +45,8 @@ const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
         <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
       </div>
 
-      {/* Why we recommend - only for non-online */}
-      {!isOnline && reason && (
+      {/* Why we recommend - only for non-web */}
+      {!isWeb && reason && (
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🌟 Why We Recommend</p>
           <p className="text-sm text-muted-foreground leading-relaxed">{reason}</p>
@@ -63,7 +63,7 @@ const ExploreRecommendationCard = memo(function ExploreRecommendationCard({
           aria-label={`Open ${title}`}
         >
           <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-          {isOnline ? "Visit Source" : "Open Resource"}
+          {isWeb ? "Visit Source" : "Open Resource"}
         </a>
       )}
     </div>
