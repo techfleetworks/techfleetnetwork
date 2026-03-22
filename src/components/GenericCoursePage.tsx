@@ -136,9 +136,14 @@ export default function GenericCoursePage({
   useEffect(() => {
     if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < totalLessons && completedCount === totalLessons) {
       setShowCompletionDialog(true);
+      // Fire-and-forget Discord notification for phase completion
+      const displayName = profile?.display_name || profile?.first_name || "A member";
+      const discord = profile?.discord_username || undefined;
+      const discordId = profile?.discord_user_id || undefined;
+      DiscordNotifyService.phaseCompleted(displayName, phase, discord, discordId);
     }
     prevCompletedCountRef.current = completedCount;
-  }, [completedCount, totalLessons]);
+  }, [completedCount, totalLessons, phase, profile]);
 
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;

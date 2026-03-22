@@ -96,9 +96,14 @@ export default function ThirdStepsPage() {
   useEffect(() => {
     if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < TOTAL_TEAMWORK_LESSONS && completedCount === TOTAL_TEAMWORK_LESSONS) {
       setShowCompletionDialog(true);
+      // Fire-and-forget Discord notification for phase completion
+      const displayName = profile?.display_name || profile?.first_name || "A member";
+      const discord = profile?.discord_username || undefined;
+      const discordId = profile?.discord_user_id || undefined;
+      DiscordNotifyService.phaseCompleted(displayName, "third_steps", discord, discordId);
     }
     prevCompletedCountRef.current = completedCount;
-  }, [completedCount]);
+  }, [completedCount, profile]);
 
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;
