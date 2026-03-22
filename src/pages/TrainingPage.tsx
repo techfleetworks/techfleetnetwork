@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   BookOpen,
+  Check,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
