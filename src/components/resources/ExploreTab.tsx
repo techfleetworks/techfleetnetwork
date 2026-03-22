@@ -320,6 +320,7 @@ export default function ExploreTab() {
         <ExploreResultsSection
           query={query}
           recommendations={parseRecommendations(responseMarkdown)}
+          webResults={webResults}
         />
       )}
 
