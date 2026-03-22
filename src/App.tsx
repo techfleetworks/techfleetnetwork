@@ -61,10 +61,24 @@ function RouteFallback() {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,   // 5 min — avoid refetching on every mount
-      gcTime: 10 * 60 * 1000,     // 10 min — keep cache warm
-      retry: 1,                    // Single retry for transient failures
-      refetchOnWindowFocus: false, // Prevent refetch storms on tab switch
+      staleTime: 5 * 60 * 1000,       // 5 min — avoid refetching on every mount
+      gcTime: 10 * 60 * 1000,         // 10 min — keep cache warm
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors (401/403) or validation errors (400)
+        if (error instanceof Error) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("unauthorized") || msg.includes("forbidden") || msg.includes("not authenticated")) {
+            return false;
+          }
+        }
+        return failureCount < 2;        // Up to 2 retries for transient failures
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15_000), // Exponential backoff, max 15s
+      refetchOnWindowFocus: false,     // Prevent refetch storms on tab switch
+      structuralSharing: true,         // Prevent unnecessary re-renders at scale
+    },
+    mutations: {
+      retry: false,                    // Never auto-retry mutations
     },
   },
 });
