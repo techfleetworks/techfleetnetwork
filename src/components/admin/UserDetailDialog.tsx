@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 import type { UserRow } from "./UserActionsDropdown";
 
 interface UserDetailDialogProps {
@@ -14,6 +16,16 @@ interface UserDetailDialogProps {
 }
 
 export function UserDetailDialog({ user, onClose }: UserDetailDialogProps) {
+  // HIPAA §164.312(b) — Log admin PII access
+  useEffect(() => {
+    if (user?.user_id) {
+      supabase.rpc("log_pii_access", {
+        p_accessed_user_id: user.user_id,
+        p_access_reason: "admin_user_detail_view",
+      }).catch(() => { /* swallow — never block UI for audit logging */ });
+    }
+  }, [user?.user_id]);
+
   if (!user) return null;
 
   const name =
