@@ -231,6 +231,20 @@ export default function ConnectDiscordPage() {
               </strong>{" "}
               is linked to your Tech Fleet Network profile.
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 mt-2"
+              onClick={() => {
+                setVerified(false);
+                setUsername("");
+                setVerifyError("");
+                setStep("yes-discord");
+              }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Re-link a different account
+            </Button>
           </div>
         )}
 
