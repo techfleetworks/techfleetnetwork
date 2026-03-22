@@ -31,6 +31,14 @@ interface Task {
 
 const baseTasks: Omit<Task, "completed">[] = [
   {
+    id: "community-agreement",
+    title: "Agree to the Community Member Agreement",
+    description: "Read and accept the Tech Fleet Community Collective Agreement.",
+    icon: ScrollText,
+    action: "#",
+    panelAction: true,
+  },
+  {
     id: "profile",
     title: "Set Up Profile",
     description: "Fill in your name, country, and activity interests.",
@@ -39,7 +47,7 @@ const baseTasks: Omit<Task, "completed">[] = [
   },
   {
     id: "onboarding-class",
-    title: "Complete Onboarding Class",
+    title: "Attend a Community Onboarding Meeting",
     description: "Register for and attend the Tech Fleet onboarding session.",
     icon: Play,
     action: "https://techfleet.org/onboarding",
@@ -60,14 +68,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     icon: Figma,
     action: "https://guide.techfleet.org/resources/join-the-tech-fleet-figma-educational-space",
     external: true,
-  },
-  {
-    id: "community-agreement",
-    title: "Agree to the Community Member Agreement",
-    description: "Read and accept the Tech Fleet Community Collective Agreement.",
-    icon: ScrollText,
-    action: "#",
-    panelAction: true,
   },
 ];
 
