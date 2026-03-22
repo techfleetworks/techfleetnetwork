@@ -314,7 +314,7 @@ export default function DashboardPage() {
             return isVisible("core_courses") && !allCoreCoursesDone ? (
               <section key="core_courses" aria-labelledby="core-courses-heading">
                 <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
-                  Core Courses
+                  Course Completion
                 </h2>
                 <div className="space-y-2">
                   {coreCourses.map((course) => (
