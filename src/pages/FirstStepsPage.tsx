@@ -322,8 +322,14 @@ export default function FirstStepsPage() {
       <CommunityAgreementPanel
         open={agreementOpen}
         onOpenChange={setAgreementOpen}
-        onAccepted={handleAgreementAccepted}
+        onAccepted={() => handlePanelAccepted("community-agreement")}
         loading={loadingId === "community-agreement"}
+      />
+      <PrivacyPolicyPanel
+        open={privacyOpen}
+        onOpenChange={setPrivacyOpen}
+        onAccepted={() => handlePanelAccepted("privacy-policy")}
+        loading={loadingId === "privacy-policy"}
       />
     </div>
   );
