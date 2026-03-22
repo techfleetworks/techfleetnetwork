@@ -137,7 +137,7 @@ export default function ConnectDiscordPage() {
         .eq("user_id", user!.id);
 
       // Mark task as complete
-      await JourneyService.toggleTask(user!.id, PHASE, TASK_ID, true);
+      await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
 
       // Send Discord notification for verification
       DiscordNotifyService.discordVerified(
