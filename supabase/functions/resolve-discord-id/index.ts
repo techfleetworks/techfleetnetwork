@@ -72,6 +72,14 @@ serve(async (req) => {
         username: cleanUsername,
         responseBody: errorText.substring(0, 500),
       });
+      // For 404 (unknown guild) or 403 (bot lacks access), return a graceful null
+      // so the client UI doesn't show a scary error — the user simply isn't found
+      if (res.status === 404 || res.status === 403) {
+        return new Response(
+          JSON.stringify({ discord_user_id: null, message: "Could not verify — guild not accessible" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
