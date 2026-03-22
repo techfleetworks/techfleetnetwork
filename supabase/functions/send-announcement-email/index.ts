@@ -210,6 +210,8 @@ Deno.serve(async (req) => {
           .trim();
 
         const discordContent = [
+          `<@&1083439364975112293>`,
+          "",
           `📢 **${announcement.title}**`,
           "",
           plainBody.length > 1500 ? plainBody.substring(0, 1500) + "…" : plainBody,
