@@ -164,15 +164,83 @@ export default function ProjectFormPage() {
     [form.current_phase_milestones, milestoneRefs],
   );
 
+  // Fire-and-forget Discord project update notification
+  const notifyProjectUpdate = useCallback(async (
+    action: "created" | "updated",
+    values: ProjectForm,
+    projectId: string,
+    changes?: string[],
+  ) => {
+    try {
+      const clientName = clientMap.get(values.client_id)?.name || "Unknown Client";
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await supabase.functions.invoke("discord-project-update", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: {
+          action,
+          project_id: projectId,
+          client_name: clientName,
+          project_type: values.project_type,
+          project_status: values.project_status,
+          phase: values.phase,
+          team_hats: values.team_hats,
+          timezone_range: values.timezone_range,
+          anticipated_start_date: values.anticipated_start_date,
+          anticipated_end_date: values.anticipated_end_date,
+          current_phase_milestones: values.current_phase_milestones,
+          changes,
+        },
+      });
+    } catch {
+      // non-critical — ignore
+    }
+  }, [clientMap]);
+
+  // Compute human-readable change descriptions for update diffs
+  const computeChanges = useCallback((oldData: any, newValues: ProjectForm): string[] => {
+    const changes: string[] = [];
+    const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label || v;
+    const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label || v;
+    const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label || v;
+
+    if (oldData.project_status !== newValues.project_status)
+      changes.push(`Status changed from **${statusLabel(oldData.project_status)}** → **${statusLabel(newValues.project_status)}**`);
+    if (oldData.phase !== newValues.phase)
+      changes.push(`Phase changed from **${phaseLabel(oldData.phase)}** → **${phaseLabel(newValues.phase)}**`);
+    if (oldData.project_type !== newValues.project_type)
+      changes.push(`Type changed from **${typeLabel(oldData.project_type)}** → **${typeLabel(newValues.project_type)}**`);
+    if (oldData.client_id !== newValues.client_id)
+      changes.push(`Client changed to **${clientMap.get(newValues.client_id)?.name || "Unknown"}**`);
+
+    const oldHats = (oldData.team_hats ?? []).sort().join(",");
+    const newHats = [...newValues.team_hats].sort().join(",");
+    if (oldHats !== newHats) changes.push(`Team roles updated to: ${newValues.team_hats.join(", ")}`);
+
+    const oldMilestones = (oldData.current_phase_milestones ?? []).sort().join(",");
+    const newMilestones = [...newValues.current_phase_milestones].sort().join(",");
+    if (oldMilestones !== newMilestones) changes.push(`Milestones updated`);
+
+    if (oldData.timezone_range !== newValues.timezone_range) changes.push(`Timezone range updated`);
+    if (oldData.anticipated_start_date !== newValues.anticipated_start_date) changes.push(`Start date updated`);
+    if (oldData.anticipated_end_date !== newValues.anticipated_end_date) changes.push(`End date updated`);
+    if (oldData.client_intake_url !== newValues.client_intake_url) changes.push(`Client intake URL updated`);
+    if (oldData.notion_repository_url !== newValues.notion_repository_url) changes.push(`Repository URL updated`);
+
+    return changes;
+  }, [clientMap]);
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (values: ProjectForm) => {
-      const { error } = await supabase.from("projects").insert({ ...values, created_by: user!.id } as any);
+      const { data, error } = await supabase.from("projects").insert({ ...values, created_by: user!.id } as any).select("id").single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Project created");
+      notifyProjectUpdate("created", values, data.id);
       navigate("/admin/clients?tab=projects");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -183,9 +251,11 @@ export default function ProjectFormPage() {
       const { error } = await supabase.from("projects").update(values as any).eq("id", id!);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Project updated");
+      const changes = existingProject ? computeChanges(existingProject, values) : [];
+      notifyProjectUpdate("updated", values, id!, changes);
       navigate("/admin/clients?tab=projects");
     },
     onError: (err: Error) => toast.error(err.message),
