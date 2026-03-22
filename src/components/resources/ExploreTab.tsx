@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+/**
+ * ExploreTab — enterprise-grade UI layer.
+ *
+ * All business logic is delegated to useExplore hook and ExploreService.
+ * This component handles only rendering and user interaction.
+ */
+
+import { memo, useCallback } from "react";
 import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,263 +13,83 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import ExploreResultsSection, { type WebSearchResult } from "./ExploreResultsSection";
+import ExploreResultsSection from "./ExploreResultsSection";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
-import { normalizeQueryKey } from "@/lib/normalize-query";
+import { useExplore } from "@/hooks/use-explore";
+import type { PopularQuery } from "@/services/explore.service";
 
+// ─── Sub-components (memoised to prevent unnecessary re-renders) ─────
 
-interface PopularQuery {
-  query_text: string;
-  count: number;
-}
+const PopularCard = memo(function PopularCard({
+  pq,
+  onExplore,
+}: {
+  pq: PopularQuery;
+  onExplore: (q: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onExplore(pq.query_text)}
+      className="text-left rounded-lg border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all duration-200 group"
+      aria-label={`Explore: ${pq.query_text}`}
+    >
+      <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors capitalize line-clamp-2">
+        {pq.query_text}
+      </p>
+      <p className="text-xs text-muted-foreground mt-1">
+        {pq.count} {pq.count === 1 ? "person" : "people"} also explored this
+      </p>
+    </button>
+  );
+});
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
+const RecentBadge = memo(function RecentBadge({
+  text,
+  onExplore,
+}: {
+  text: string;
+  onExplore: (q: string) => void;
+}) {
+  return (
+    <Badge
+      variant="secondary"
+      className="cursor-pointer hover:bg-primary/10 transition-colors capitalize"
+      onClick={() => onExplore(text)}
+    >
+      {text}
+    </Badge>
+  );
+});
 
-const EXPLORE_SYSTEM_OVERRIDE = `The user is exploring Tech Fleet resources. Based on what they want to accomplish, recommend specific handbooks, workshops, courses, and resources from the Tech Fleet knowledge base.
-
-IMPORTANT: Structure your response EXACTLY as a list of recommendations. For EACH recommendation use this format:
-
-### [Resource Name]
-**Description:** A short summary of what this resource covers.
-**🌟 Why We Recommend:** In 1-2 simple sentences written at a 6th grade reading level, explain why this resource will help the user based on what they typed. Use everyday language a 12-year-old would understand. Connect it directly to what the user said they want to do.
-**Link:** The direct URL to the resource if known. Use the techfleet.org domain when available.
-
-Provide 3-6 specific, actionable recommendations. Focus on resources that directly help the user accomplish their goal. Always prioritize the most relevant resources first.`;
+// ─── Main Component ──────────────────────────────────────────────────
 
 export default function ExploreTab() {
-  const { user } = useAuth();
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [responseMarkdown, setResponseMarkdown] = useState("");
-  const [webResults, setWebResults] = useState<WebSearchResult[]>([]);
-  const [popularQueries, setPopularQueries] = useState<PopularQuery[]>([]);
-  const [allPopularQueries, setAllPopularQueries] = useState<PopularQuery[]>([]);
-  const [recentQueries, setRecentQueries] = useState<string[]>([]);
-  const [loadingPopular, setLoadingPopular] = useState(true);
-  const [showAllPopular, setShowAllPopular] = useState(false);
+  const {
+    query,
+    setQuery,
+    loading,
+    responseMarkdown,
+    webResults,
+    popularQueries,
+    allPopularQueries,
+    recentQueries,
+    loadingPopular,
+    showAllPopular,
+    setShowAllPopular,
+    explore,
+    reset,
+    clearRecents,
+  } = useExplore();
 
-  // Fetch popular and recent queries
-  useEffect(() => {
-    async function loadQueries() {
-      try {
-        const { data, error } = await supabase
-          .from("exploration_queries")
-          .select("query_text, created_at, user_id")
-          .order("created_at", { ascending: false })
-          .limit(500);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          // Count unique users per normalized query (fuzzy grouping)
-          const queryUsers = new Map<string, { users: Set<string>; displayText: string }>();
-          data.forEach((row) => {
-            const key = normalizeQueryKey(row.query_text);
-            if (!key) return;
-            if (!queryUsers.has(key)) queryUsers.set(key, { users: new Set(), displayText: row.query_text.trim() });
-            queryUsers.get(key)!.users.add(row.user_id);
-          });
-
-          const sorted = Array.from(queryUsers.entries())
-            .sort((a, b) => b[1].users.size - a[1].users.size)
-            .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
-
-          setAllPopularQueries(sorted);
-          setPopularQueries(sorted.slice(0, 5));
-
-          // Get recent unique queries (last 5, deduplicated by fuzzy key)
-          const seenKeys = new Set<string>();
-          const recents: string[] = [];
-          for (const row of data) {
-            const key = normalizeQueryKey(row.query_text);
-            if (key && !seenKeys.has(key) && recents.length < 5) {
-              seenKeys.add(key);
-              recents.push(row.query_text.trim());
-            }
-          }
-          setRecentQueries(recents);
-        }
-      } catch {
-        // Silent fail for suggestions
-      } finally {
-        setLoadingPopular(false);
-      }
-    }
-    loadQueries();
-  }, []);
-
-  const explore = useCallback(
-    async (searchQuery: string) => {
-      if (!searchQuery.trim()) return;
-
-      const normalized = normalizeQueryKey(searchQuery) || searchQuery.trim().toLowerCase();
-      setLoading(true);
-      setResponseMarkdown("");
-      setWebResults([]);
-      setQuery(searchQuery);
-
-      // Fire web search in parallel (non-blocking)
-      const webSearchPromise = supabase.functions
-        .invoke("firecrawl-search", { body: { query: searchQuery.trim(), limit: 3 } })
-        .then(({ data }) => {
-          if (data?.success && Array.isArray(data.results)) {
-            setWebResults(data.results);
-          }
-        })
-        .catch((err) => {
-          console.warn("Web search failed (non-critical):", err);
-        });
-
-      try {
-        // Save the query
-        if (user) {
-          await supabase.from("exploration_queries").insert({
-            user_id: user.id,
-            query_text: searchQuery.trim(),
-          });
-        }
-
-        // Check cache first
-        const { data: cached } = await supabase
-          .from("exploration_cache")
-          .select("id, response_markdown")
-          .eq("query_normalized", normalized)
-          .maybeSingle();
-
-        if (cached?.response_markdown) {
-          setResponseMarkdown(cached.response_markdown);
-          // Increment hit count in background
-          supabase
-            .from("exploration_cache")
-            .update({ hit_count: undefined as unknown as number })
-            .eq("id", cached.id)
-            .then(() => {
-              // Use raw SQL-style increment via rpc if needed; for now just skip
-            });
-          setLoading(false);
-          return;
-        }
-
-        // Stream response from Fleety
-        const resp = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            messages: [
-              { role: "system", content: EXPLORE_SYSTEM_OVERRIDE },
-              {
-                role: "user",
-                content: `I want to: ${searchQuery.trim()}\n\nPlease recommend the most relevant Tech Fleet resources, handbooks, workshops, and courses that will help me accomplish this.`,
-              },
-            ],
-          }),
-        });
-
-        if (!resp.ok) {
-          if (resp.status === 429) {
-            toast({ title: "Too many requests. Please wait a moment.", variant: "destructive" });
-            setLoading(false);
-            return;
-          }
-          if (resp.status === 402) {
-            toast({ title: "AI usage limit reached. Please try again later.", variant: "destructive" });
-            setLoading(false);
-            return;
-          }
-          throw new Error("Failed to get recommendations");
-        }
-
-        if (!resp.body) throw new Error("No response body");
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let textBuffer = "";
-        let fullText = "";
-        let streamDone = false;
-
-        while (!streamDone) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          textBuffer += decoder.decode(value, { stream: true });
-
-          let newlineIndex: number;
-          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-            let line = textBuffer.slice(0, newlineIndex);
-            textBuffer = textBuffer.slice(newlineIndex + 1);
-
-            if (line.endsWith("\r")) line = line.slice(0, -1);
-            if (line.startsWith(":") || line.trim() === "") continue;
-            if (!line.startsWith("data: ")) continue;
-
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") {
-              streamDone = true;
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) {
-                fullText += content;
-                setResponseMarkdown(fullText);
-              }
-            } catch {
-              textBuffer = line + "\n" + textBuffer;
-              break;
-            }
-          }
-        }
-
-        // Final flush
-        if (textBuffer.trim()) {
-          for (let raw of textBuffer.split("\n")) {
-            if (!raw) continue;
-            if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-            if (raw.startsWith(":") || raw.trim() === "") continue;
-            if (!raw.startsWith("data: ")) continue;
-            const jsonStr = raw.slice(6).trim();
-            if (jsonStr === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) {
-                fullText += content;
-                setResponseMarkdown(fullText);
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-        }
-
-        // Cache the result for future queries
-        if (fullText.trim()) {
-          await supabase.from("exploration_cache").upsert(
-            { query_normalized: normalized, response_markdown: fullText },
-            { onConflict: "query_normalized" }
-          );
-        }
-      } catch (err) {
-        console.error("Explore error:", err);
-        toast({ title: "Failed to get recommendations. Please try again.", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      explore(query);
     },
-    [user],
+    [explore, query],
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    explore(query);
-  };
+  const hasResults = Boolean(responseMarkdown) && !loading;
 
   return (
     <div className="space-y-6">
@@ -293,16 +120,12 @@ export default function ExploreTab() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Explore
             </Button>
-            {responseMarkdown && !loading && (
+            {hasResults && (
               <Button
                 type="button"
                 variant="outline"
                 className="gap-1.5 shrink-0"
-                onClick={() => {
-                  setQuery("");
-                  setResponseMarkdown("");
-                  setWebResults([]);
-                }}
+                onClick={reset}
                 aria-label="Reset search"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -314,7 +137,7 @@ export default function ExploreTab() {
       </Card>
 
       {/* Structured results */}
-      {responseMarkdown && !loading && (
+      {hasResults && (
         <ExploreResultsSection
           query={query}
           recommendations={parseRecommendations(responseMarkdown)}
@@ -358,22 +181,7 @@ export default function ExploreTab() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {popularQueries.map((pq) => (
-                  <button
-                    key={pq.query_text}
-                    onClick={() => {
-                      setQuery(pq.query_text);
-                      explore(pq.query_text);
-                    }}
-                    className="text-left rounded-lg border bg-card p-3 hover:shadow-md hover:border-primary/30 transition-all duration-200 group"
-                    aria-label={`Explore: ${pq.query_text}`}
-                  >
-                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors capitalize line-clamp-2">
-                      {pq.query_text}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {pq.count} {pq.count === 1 ? "person" : "people"} also explored this
-                    </p>
-                  </button>
+                  <PopularCard key={pq.query_text} pq={pq} onExplore={explore} />
                 ))}
               </div>
             </div>
@@ -391,7 +199,7 @@ export default function ExploreTab() {
                   variant="ghost"
                   size="sm"
                   className="gap-1 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={() => setRecentQueries([])}
+                  onClick={clearRecents}
                 >
                   <X className="h-3.5 w-3.5" />
                   Clear
@@ -399,23 +207,13 @@ export default function ExploreTab() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {recentQueries.map((rq) => (
-                  <Badge
-                    key={rq}
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-primary/10 transition-colors capitalize"
-                    onClick={() => {
-                      setQuery(rq);
-                      explore(rq);
-                    }}
-                  >
-                    {rq}
-                  </Badge>
+                  <RecentBadge key={rq} text={rq} onExplore={explore} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Empty state when nothing loaded yet */}
+          {/* Empty state */}
           {!loadingPopular && popularQueries.length === 0 && recentQueries.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
@@ -441,7 +239,6 @@ export default function ExploreTab() {
                   key={pq.query_text}
                   onClick={() => {
                     setShowAllPopular(false);
-                    setQuery(pq.query_text);
                     explore(pq.query_text);
                   }}
                   className="w-full text-left rounded-lg border bg-card p-4 hover:shadow-md hover:border-primary/30 transition-all duration-200 group flex items-center justify-between gap-3"
