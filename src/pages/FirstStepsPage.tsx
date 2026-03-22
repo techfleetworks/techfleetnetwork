@@ -202,6 +202,7 @@ export default function FirstStepsPage() {
       setLoadingId(null);
       setAgreementOpen(false);
       setPrivacyOpen(false);
+      setTermsOpen(false);
     }
   };
 
