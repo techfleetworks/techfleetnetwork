@@ -1,6 +1,15 @@
+/**
+ * ExploreResultsSection — renders AI recommendations and web search results.
+ *
+ * Memoised to prevent re-renders when parent state changes unrelated to results.
+ * URL safety is enforced at the card level via isSafeUrl.
+ */
+
+import { memo, useMemo } from "react";
 import { Sparkles, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ExploreRecommendationCard, { type RecommendationData } from "./ExploreRecommendationCard";
+import { sanitizeText } from "@/lib/security";
 
 export interface WebSearchResult {
   title: string;
@@ -14,21 +23,36 @@ interface ExploreResultsSectionProps {
   webResults?: WebSearchResult[];
 }
 
-export default function ExploreResultsSection({ query, recommendations, webResults = [] }: ExploreResultsSectionProps) {
+const ExploreResultsSection = memo(function ExploreResultsSection({
+  query,
+  recommendations,
+  webResults = [],
+}: ExploreResultsSectionProps) {
   const hasRecs = recommendations.length > 0;
   const hasWeb = webResults.length > 0;
-  if (!hasRecs && !hasWeb) return null;
 
-  // Convert web results to RecommendationData format
-  const onlineCards: RecommendationData[] = webResults.slice(0, 3).map((r) => ({
-    title: r.title,
-    type: "online" as const,
-    description: r.description || "External resource found via web search.",
-    reason: "",
-    link: r.url,
-  }));
+  // Convert web results to card format with sanitisation
+  const onlineCards: RecommendationData[] = useMemo(
+    () =>
+      webResults.slice(0, 3).map((r) => ({
+        title: sanitizeText(r.title || "Untitled"),
+        type: "online" as const,
+        description: sanitizeText(r.description || "External resource found via web search."),
+        reason: "",
+        link: r.url,
+      })),
+    [webResults],
+  );
+
+  // Sort recommendations alphabetically (stable)
+  const sortedRecs = useMemo(
+    () => [...recommendations].sort((a, b) => a.title.localeCompare(b.title)),
+    [recommendations],
+  );
 
   const totalCount = recommendations.length + onlineCards.length;
+
+  if (!hasRecs && !hasWeb) return null;
 
   return (
     <section className="space-y-6" aria-label="Recommended resources">
@@ -47,7 +71,7 @@ export default function ExploreResultsSection({ query, recommendations, webResul
       {/* Tech Fleet recommendations */}
       {hasRecs && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...recommendations].sort((a, b) => a.title.localeCompare(b.title)).map((rec, idx) => (
+          {sortedRecs.map((rec, idx) => (
             <ExploreRecommendationCard key={`${rec.title}-${idx}`} {...rec} />
           ))}
         </div>
@@ -69,4 +93,6 @@ export default function ExploreResultsSection({ query, recommendations, webResul
       )}
     </section>
   );
-}
+});
+
+export default ExploreResultsSection;
