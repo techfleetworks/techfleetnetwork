@@ -198,6 +198,11 @@ export default function FirstStepsPage() {
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
       }
+    } catch (err: any) {
+      console.error("[FirstSteps] handlePanelAccepted failed:", err);
+      toast.error("Failed to update task", {
+        description: err?.message || "Please try again.",
+      });
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);

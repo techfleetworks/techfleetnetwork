@@ -26,6 +26,8 @@ const VALID_TASK_IDS = new Set([
   "user-guide",
   "figma-account",
   "community-agreement",
+  "privacy-policy",
+  "terms-conditions",
   ...ALL_AGILE_LESSON_IDS,
   ...ALL_TEAMWORK_LESSON_IDS,
   ...ALL_PROJECT_TRAINING_LESSON_IDS,
