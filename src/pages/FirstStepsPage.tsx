@@ -17,6 +17,7 @@ import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 import { PrivacyPolicyPanel } from "@/components/PrivacyPolicyPanel";
+import { TermsConditionsPanel } from "@/components/TermsConditionsPanel";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 
 interface Task {
