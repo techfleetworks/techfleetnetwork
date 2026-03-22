@@ -59,12 +59,13 @@ export default function ExploreTab() {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Count unique users per normalized query
-          const queryUsers = new Map<string, Set<string>>();
+          // Count unique users per normalized query (fuzzy grouping)
+          const queryUsers = new Map<string, { users: Set<string>; displayText: string }>();
           data.forEach((row) => {
-            const normalized = row.query_text.trim().toLowerCase();
-            if (!queryUsers.has(normalized)) queryUsers.set(normalized, new Set());
-            queryUsers.get(normalized)!.add(row.user_id);
+            const key = normalizeQueryKey(row.query_text);
+            if (!key) return;
+            if (!queryUsers.has(key)) queryUsers.set(key, { users: new Set(), displayText: row.query_text.trim() });
+            queryUsers.get(key)!.users.add(row.user_id);
           });
 
           const sorted = Array.from(queryUsers.entries())
