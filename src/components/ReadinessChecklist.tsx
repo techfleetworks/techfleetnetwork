@@ -68,7 +68,7 @@ export function ReadinessChecklist() {
     },
   ];
 
-  const allLoading = l1 || l2 || l3 || l4;
+  const allLoading = l1 || l2 || l3 || l4 || l5 || l6;
   const allComplete = !allLoading && steps.every((s) => s.completed);
 
   return (
