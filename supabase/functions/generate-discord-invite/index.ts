@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       p_changed_fields: ["discord_invite_url"],
     });
 
-    logger.info("generate-discord-invite", `Generated invite for user ${user.id}: ${inviteUrl}`);
+    logger.info("generate", `Generated invite for user ${user.id}: ${inviteUrl}`);
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
