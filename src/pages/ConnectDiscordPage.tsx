@@ -130,7 +130,7 @@ export default function ConnectDiscordPage() {
 
     try {
       const discordUserId =
-        await DiscordNotifyService.resolveDiscordId(trimmed);
+        await DiscordNotifyService.resolveDiscordId(normalized);
 
       if (!discordUserId) {
         setVerifyError(
@@ -144,7 +144,7 @@ export default function ConnectDiscordPage() {
       await supabase
         .from("profiles")
         .update({
-          discord_username: trimmed,
+          discord_username: normalized,
           discord_user_id: discordUserId,
           has_discord_account: true,
         })
