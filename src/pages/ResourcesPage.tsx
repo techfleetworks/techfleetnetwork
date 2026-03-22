@@ -166,6 +166,10 @@ export default function ResourcesPage() {
           </div>
         </div>
 
+        <TabsContent value="explore">
+          <ExploreTab />
+        </TabsContent>
+
         <TabsContent value="handbooks">
           {filteredHandbooks.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
