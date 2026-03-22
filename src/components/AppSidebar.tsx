@@ -31,76 +31,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
-const mainNav = [
+const communityNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Updates", href: "/updates", icon: Megaphone },
-  { label: "My Journey", href: "/my-journey", icon: Map },
-  { label: "Courses", href: "/courses", icon: GraduationCap },
-  { label: "Project Openings", href: "/project-openings", icon: Handshake },
-  { label: "Applications", href: "/applications", icon: ClipboardList },
-  { label: "Resources", href: "/resources", icon: BookOpen },
   { label: "Events", href: "/events", icon: CalendarDays },
-  { label: "Fleety", href: "/chat", icon: Bot },
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
+  { label: "Updates", href: "/updates", icon: Megaphone },
 ];
 
-export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  const location = useLocation();
-  const { user } = useAuth();
-  const { isAdmin } = useAdmin();
+const trainingNav = [
+  { label: "Applications", href: "/applications", icon: ClipboardList },
+  { label: "Courses", href: "/courses", icon: GraduationCap },
+  { label: "My Journey", href: "/my-journey", icon: Map },
+  { label: "Project Openings", href: "/project-openings", icon: Handshake },
+];
 
-  const isActive = (href: string) =>
-    location.pathname === href || location.pathname.startsWith(href + "/");
+const supportNav = [
+  { label: "Get Help", href: "/chat", icon: LifeBuoy },
+  { label: "Resources", href: "/resources", icon: BookOpen },
+];
 
-  if (!user) return null;
-
-  return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
-        {/* Logo + collapse trigger */}
-        <div className="flex flex-col items-center px-4 py-4 gap-2">
-          <div className="flex items-center w-full justify-between">
-            <div className="flex items-center gap-2">
-              <img
-                src={techFleetLogo}
-                alt="Tech Fleet"
-                className="h-7 w-7 dark:invert shrink-0"
-                width={28}
-                height={28}
-              />
-              {!collapsed && (
-                <span className="font-bold text-sm text-sidebar-foreground truncate">
-                  Tech Fleet
-                </span>
-              )}
-            </div>
-            {!collapsed && <SidebarTrigger className="shrink-0" />}
-          </div>
-          {collapsed && <SidebarTrigger className="shrink-0" />}
-        </div>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map(({ label, href, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(href)}
-                    tooltip={label}
-                  >
-                    <Link to={href}>
-                      <Icon className="h-4 w-4" />
-                      <span>{label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+const navSections = [
+  { label: "Community", items: communityNav },
+  { label: "Training", items: trainingNav },
+  { label: "Support", items: supportNav },
+];
 
         {isAdmin && (
           <SidebarGroup>
