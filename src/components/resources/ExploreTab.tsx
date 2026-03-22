@@ -50,24 +50,25 @@ export default function ExploreTab() {
       try {
         const { data, error } = await supabase
           .from("exploration_queries")
-          .select("query_text, created_at")
+          .select("query_text, created_at, user_id")
           .order("created_at", { ascending: false })
-          .limit(200);
+          .limit(500);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Count occurrences for popular
-          const countMap = new Map<string, number>();
+          // Count unique users per normalized query
+          const queryUsers = new Map<string, Set<string>>();
           data.forEach((row) => {
             const normalized = row.query_text.trim().toLowerCase();
-            countMap.set(normalized, (countMap.get(normalized) || 0) + 1);
+            if (!queryUsers.has(normalized)) queryUsers.set(normalized, new Set());
+            queryUsers.get(normalized)!.add(row.user_id);
           });
 
-          const sorted = Array.from(countMap.entries())
-            .sort((a, b) => b[1] - a[1])
+          const sorted = Array.from(queryUsers.entries())
+            .sort((a, b) => b[1].size - a[1].size)
             .slice(0, 6)
-            .map(([query_text, count]) => ({ query_text, count }));
+            .map(([query_text, users]) => ({ query_text, count: users.size }));
 
           setPopularQueries(sorted);
 
