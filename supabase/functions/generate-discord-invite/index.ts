@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { logger } from "../_shared/logger.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const logger = createEdgeLogger("generate-discord-invite");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,7 +49,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (profile?.discord_invite_url) {
-      logger.info("generate-discord-invite", `User ${user.id} already has invite URL`);
+      logger.info("check", `User ${user.id} already has invite URL`);
       return new Response(JSON.stringify({ invite_url: profile.discord_invite_url }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -117,7 +119,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id);
 
     if (updateError) {
-      logger.error("generate-discord-invite", `Failed to save invite URL: ${updateError.message}`);
+      logger.error("save", `Failed to save invite URL: ${updateError.message}`);
       throw new Error("Failed to save invite link");
     }
 
@@ -130,7 +132,7 @@ Deno.serve(async (req) => {
       p_changed_fields: ["discord_invite_url"],
     });
 
-    logger.info("generate-discord-invite", `Generated invite for user ${user.id}: ${inviteUrl}`);
+    logger.info("generate", `Generated invite for user ${user.id}: ${inviteUrl}`);
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
@@ -138,7 +140,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    logger.error("generate-discord-invite", `Error: ${message}`);
+    logger.error("handler", `Error: ${message}`);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
