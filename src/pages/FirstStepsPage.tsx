@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
 import { PrivacyPolicyPanel } from "@/components/PrivacyPolicyPanel";
+import { TermsConditionsPanel } from "@/components/TermsConditionsPanel";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 
 interface Task {
@@ -49,6 +50,15 @@ const baseTasks: Omit<Task, "completed">[] = [
     action: "#",
     panelAction: true,
     panelId: "privacy-policy",
+  },
+  {
+    id: "terms-conditions",
+    title: "Agree to the Tech Fleet Terms and Conditions",
+    description: "Read and accept the Tech Fleet Terms and Conditions.",
+    icon: FileText,
+    action: "#",
+    panelAction: true,
+    panelId: "terms-conditions",
   },
   {
     id: "profile",
@@ -93,6 +103,7 @@ export default function FirstStepsPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
@@ -243,6 +254,7 @@ export default function FirstStepsPage() {
                   onClick={() => {
                     if (task.panelAction && !task.completed) {
                       if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                      else if (task.panelId === "terms-conditions") setTermsOpen(true);
                       else setAgreementOpen(true);
                     } else {
                       toggleTask(task.id);
@@ -279,6 +291,7 @@ export default function FirstStepsPage() {
                         disabled={task.completed}
                         onClick={() => {
                           if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                          else if (task.panelId === "terms-conditions") setTermsOpen(true);
                           else setAgreementOpen(true);
                         }}
                       >
@@ -330,6 +343,12 @@ export default function FirstStepsPage() {
         onOpenChange={setPrivacyOpen}
         onAccepted={() => handlePanelAccepted("privacy-policy")}
         loading={loadingId === "privacy-policy"}
+      />
+      <TermsConditionsPanel
+        open={termsOpen}
+        onOpenChange={setTermsOpen}
+        onAccepted={() => handlePanelAccepted("terms-conditions")}
+        loading={loadingId === "terms-conditions"}
       />
     </div>
   );

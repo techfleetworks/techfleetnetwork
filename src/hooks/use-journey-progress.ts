@@ -21,10 +21,10 @@ export function useJourneyProgress(userId: string | undefined, phase: JourneyPha
 }
 
 /**
- * Returns the total number of first-steps tasks (fixed at 6).
+ * Returns the total number of first-steps tasks (fixed at 7).
  */
 export function useFirstStepsTotalForUser(
   _profile?: { discord_username?: string | null } | null
 ): number {
-  return 6;
+  return 7;
 }
