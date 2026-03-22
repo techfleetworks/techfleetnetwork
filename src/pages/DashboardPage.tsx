@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
+import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
 import { useLatestAnnouncements } from "@/hooks/use-announcements";
 import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
