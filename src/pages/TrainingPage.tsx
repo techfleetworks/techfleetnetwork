@@ -25,6 +25,7 @@ import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { TOTAL_OBSERVER_LESSONS } from "@/data/observer-course";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
+import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
 
 interface CourseCard {
   id: string;
