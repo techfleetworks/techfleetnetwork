@@ -192,6 +192,16 @@ export default function TrainingPage() {
       locked: false,
     },
     {
+      id: "observer-course",
+      title: "Observer Course",
+      description: `${TOTAL_OBSERVER_LESSONS} lessons from the Observer Handbook on how to observe Tech Fleet project teams and prepare for apprenticeship.`,
+      icon: Eye,
+      href: "/courses/observer",
+      totalTasks: TOTAL_OBSERVER_LESSONS,
+      completedTasks: observerCompleted,
+      locked: false,
+    },
+    {
       id: "agile-teamwork",
       title: "Agile Cross-Functional Team Dynamics",
       description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook covering team expectations, cross-functional work, and leadership.`,
