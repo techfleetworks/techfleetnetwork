@@ -36,4 +36,20 @@ describe("ExploreRecommendationCard (BDD 27.1–27.4)", () => {
     render(<ExploreRecommendationCard {...baseProps} type="course" />);
     expect(screen.queryByText("course")).not.toBeInTheDocument();
   });
+
+  it("27.41: online type shows Online badge and Visit Source link", () => {
+    render(
+      <ExploreRecommendationCard
+        title="MDN Web Docs"
+        type="online"
+        description="Web development resources."
+        reason=""
+        link="https://developer.mozilla.org"
+      />
+    );
+    expect(screen.getByText("Online")).toBeInTheDocument();
+    expect(screen.getByText("Visit Source")).toBeInTheDocument();
+    // Should NOT show "Why We Recommend" section
+    expect(screen.queryByText(/Why We Recommend/)).not.toBeInTheDocument();
+  });
 });
