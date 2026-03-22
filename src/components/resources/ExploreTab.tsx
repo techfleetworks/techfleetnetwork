@@ -120,18 +120,6 @@ export default function ExploreTab() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Explore
             </Button>
-            {hasResults && (
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5 shrink-0"
-                onClick={reset}
-                aria-label="Reset search"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </Button>
-            )}
           </form>
         </CardContent>
       </Card>
@@ -142,6 +130,7 @@ export default function ExploreTab() {
           query={query}
           recommendations={parseRecommendations(responseMarkdown)}
           webResults={webResults}
+          onReset={reset}
         />
       )}
 
