@@ -54,6 +54,7 @@ export default function EditProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [discordLinking, setDiscordLinking] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
