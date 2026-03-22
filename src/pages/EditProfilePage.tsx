@@ -582,7 +582,7 @@ export default function EditProfilePage() {
                             const { data: { session } } = await supabase.auth.getSession();
                             if (!session) throw new Error("Not authenticated");
                             const res = await supabase.functions.invoke("resolve-discord-id", {
-                              body: { username: form.discordUsername.trim() },
+                              body: { discord_username: form.discordUsername.trim() },
                               headers: { Authorization: `Bearer ${session.access_token}` },
                             });
                             if (res.error) throw new Error(res.error.message || "Verification failed");
