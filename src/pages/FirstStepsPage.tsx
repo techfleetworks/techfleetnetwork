@@ -103,6 +103,7 @@ export default function FirstStepsPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
