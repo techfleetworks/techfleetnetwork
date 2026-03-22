@@ -15,7 +15,11 @@ interface NotifyPayload {
     | "profile_completed"
     | "task_completed"
     | "phase_completed"
-    | "class_registered";
+    | "class_registered"
+    | "application_submitted"
+    | "project_applied"
+    | "feedback_submitted"
+    | "resource_explored";
   display_name?: string;
   discord_username?: string;
   discord_user_id?: string;
@@ -23,6 +27,10 @@ interface NotifyPayload {
   phase_name?: string;
   class_name?: string;
   country?: string;
+  project_name?: string;
+  application_type?: string;
+  feedback_area?: string;
+  search_query?: string;
 }
 
 function buildActionText(payload: NotifyPayload): string {
@@ -37,6 +45,14 @@ function buildActionText(payload: NotifyPayload): string {
       return `Completed all tasks in ${payload.phase_name || "a phase"} 🏆🚀`;
     case "class_registered":
       return `Registered for ${payload.class_name || "a class"} 📚`;
+    case "application_submitted":
+      return `Submitted their ${payload.application_type || "General"} Application 📝`;
+    case "project_applied":
+      return `Applied to project: ${payload.project_name || "a project"} 🚀`;
+    case "feedback_submitted":
+      return `Submitted feedback about ${payload.feedback_area || "the platform"} 💬`;
+    case "resource_explored":
+      return `Explored resources: "${payload.search_query || "a topic"}" 🔍`;
     default:
       return "Performed an action on the platform 📢";
   }
@@ -72,6 +88,10 @@ const VALID_EVENTS = new Set([
   "task_completed",
   "phase_completed",
   "class_registered",
+  "application_submitted",
+  "project_applied",
+  "feedback_submitted",
+  "resource_explored",
 ]);
 
 serve(async (req) => {

@@ -42,6 +42,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@/lib/react-query";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
 interface GenericCoursePageProps {
@@ -85,7 +86,7 @@ export default function GenericCoursePage({
   prerequisite,
   nextCourse,
 }: GenericCoursePageProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
@@ -135,9 +136,14 @@ export default function GenericCoursePage({
   useEffect(() => {
     if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < totalLessons && completedCount === totalLessons) {
       setShowCompletionDialog(true);
+      // Fire-and-forget Discord notification for phase completion
+      const displayName = profile?.display_name || profile?.first_name || "A member";
+      const discord = profile?.discord_username || undefined;
+      const discordId = profile?.discord_user_id || undefined;
+      DiscordNotifyService.phaseCompleted(displayName, phase, discord, discordId);
     }
     prevCompletedCountRef.current = completedCount;
-  }, [completedCount, totalLessons]);
+  }, [completedCount, totalLessons, phase, profile]);
 
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;

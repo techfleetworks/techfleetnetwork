@@ -37,6 +37,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   TEAMWORK_COURSE_SECTIONS,
   ALL_TEAMWORK_LESSON_IDS,
@@ -46,7 +47,7 @@ import {
 } from "@/data/teamwork-course";
 
 export default function ThirdStepsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<TeamworkLesson | null>(null);
@@ -95,9 +96,14 @@ export default function ThirdStepsPage() {
   useEffect(() => {
     if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < TOTAL_TEAMWORK_LESSONS && completedCount === TOTAL_TEAMWORK_LESSONS) {
       setShowCompletionDialog(true);
+      // Fire-and-forget Discord notification for phase completion
+      const displayName = profile?.display_name || profile?.first_name || "A member";
+      const discord = profile?.discord_username || undefined;
+      const discordId = profile?.discord_user_id || undefined;
+      DiscordNotifyService.phaseCompleted(displayName, "third_steps", discord, discordId);
     }
     prevCompletedCountRef.current = completedCount;
-  }, [completedCount]);
+  }, [completedCount, profile]);
 
   const toggleLesson = async (lessonId: string) => {
     if (!user || toggling) return;

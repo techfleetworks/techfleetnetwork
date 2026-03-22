@@ -10,7 +10,11 @@ interface NotifyPayload {
     | "profile_completed"
     | "task_completed"
     | "phase_completed"
-    | "class_registered";
+    | "class_registered"
+    | "application_submitted"
+    | "project_applied"
+    | "feedback_submitted"
+    | "resource_explored";
   display_name?: string;
   discord_username?: string;
   discord_user_id?: string;
@@ -18,6 +22,10 @@ interface NotifyPayload {
   phase_name?: string;
   class_name?: string;
   country?: string;
+  project_name?: string;
+  application_type?: string;
+  feedback_area?: string;
+  search_query?: string;
 }
 
 /** Fire-and-forget Discord notification — never throws */
@@ -115,6 +123,50 @@ export const DiscordNotifyService = {
       event: "class_registered",
       display_name: displayName,
       class_name: className,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
+  applicationSubmitted(displayName: string, applicationType: string, discordUsername?: string, discordUserId?: string) {
+    log.info("applicationSubmitted", `${applicationType} application submitted by ${displayName}`, { displayName, applicationType, discordUsername });
+    notify({
+      event: "application_submitted",
+      display_name: displayName,
+      application_type: applicationType,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
+  projectApplied(displayName: string, projectName: string, discordUsername?: string, discordUserId?: string) {
+    log.info("projectApplied", `Project application submitted by ${displayName} for "${projectName}"`, { displayName, projectName, discordUsername });
+    notify({
+      event: "project_applied",
+      display_name: displayName,
+      project_name: projectName,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
+  feedbackSubmitted(displayName: string, feedbackArea: string, discordUsername?: string, discordUserId?: string) {
+    log.info("feedbackSubmitted", `Feedback submitted by ${displayName} about "${feedbackArea}"`, { displayName, feedbackArea, discordUsername });
+    notify({
+      event: "feedback_submitted",
+      display_name: displayName,
+      feedback_area: feedbackArea,
+      discord_username: discordUsername,
+      discord_user_id: discordUserId,
+    });
+  },
+
+  resourceExplored(displayName: string, searchQuery: string, discordUsername?: string, discordUserId?: string) {
+    log.info("resourceExplored", `Resources explored by ${displayName}: "${searchQuery}"`, { displayName, searchQuery, discordUsername });
+    notify({
+      event: "resource_explored",
+      display_name: displayName,
+      search_query: searchQuery,
       discord_username: discordUsername,
       discord_user_id: discordUserId,
     });

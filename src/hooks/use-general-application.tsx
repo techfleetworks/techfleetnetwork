@@ -3,6 +3,7 @@
  * persistence, and validation logic.
  */
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
@@ -197,6 +198,11 @@ export function useGeneralApplication() {
 
       if (markComplete && !isCompleted) {
         setShowCelebration(true);
+        // Fire-and-forget Discord notification
+        const displayName = profile?.display_name || profile?.first_name || "A member";
+        const discord = profile?.discord_username || undefined;
+        const discordId = profile?.discord_user_id || undefined;
+        DiscordNotifyService.applicationSubmitted(displayName, "General", discord, discordId);
       } else {
         toast.success(markComplete ? "Application updated!" : "Progress saved");
       }

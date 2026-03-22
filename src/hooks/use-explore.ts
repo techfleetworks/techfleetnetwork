@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "@/hooks/use-toast";
 import { reportError } from "@/services/error-reporter.service";
 import {
@@ -121,7 +122,12 @@ export function useExplore(): UseExploreReturn {
       })
         .then(() => {
           // Refresh popular counts after successful explore
-          if (mountedRef.current) refreshPopular();
+          if (mountedRef.current) {
+            refreshPopular();
+            // Fire-and-forget Discord notification for resource exploration
+            const displayName = (user as any)?.user_metadata?.full_name || (user as any)?.email?.split("@")[0] || "A member";
+            DiscordNotifyService.resourceExplored(displayName, searchQuery);
+          }
         })
         .catch((err) => {
           if (!mountedRef.current) return;
