@@ -28,6 +28,7 @@ interface Task {
   action: string;
   external?: boolean;
   panelAction?: boolean;
+  panelId?: string;
 }
 
 const baseTasks: Omit<Task, "completed">[] = [
