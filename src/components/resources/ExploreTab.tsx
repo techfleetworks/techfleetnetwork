@@ -75,14 +75,14 @@ export default function ExploreTab() {
 
           setPopularQueries(sorted);
 
-          // Get recent unique queries (last 5)
-          const seen = new Set<string>();
+          // Get recent unique queries (last 5, deduplicated by fuzzy key)
+          const seenKeys = new Set<string>();
           const recents: string[] = [];
           for (const row of data) {
-            const norm = row.query_text.trim();
-            if (!seen.has(norm.toLowerCase()) && recents.length < 5) {
-              seen.add(norm.toLowerCase());
-              recents.push(norm);
+            const key = normalizeQueryKey(row.query_text);
+            if (key && !seenKeys.has(key) && recents.length < 5) {
+              seenKeys.add(key);
+              recents.push(row.query_text.trim());
             }
           }
           setRecentQueries(recents);
