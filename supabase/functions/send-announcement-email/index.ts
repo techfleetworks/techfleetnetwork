@@ -190,16 +190,22 @@ Deno.serve(async (req) => {
     if (platformWebhook) {
       try {
         const announcementUrl = `https://techfleetnetwork.lovable.app/updates?highlight=${announcement_id}`;
-        // Strip HTML tags for Discord message, keep it readable
+        // Strip HTML tags and decode entities for Discord plain-text
         const plainBody = announcement.body_html
           .replace(/<br\s*\/?>/gi, "\n")
-          .replace(/<\/p>/gi, "\n")
+          .replace(/<\/p>/gi, "\n\n")
+          .replace(/<\/li>/gi, "\n")
+          .replace(/<li[^>]*>/gi, "• ")
+          .replace(/<\/h[1-6]>/gi, "\n\n")
           .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;/gi, " ")
           .replace(/&amp;/g, "&")
           .replace(/&lt;/g, "<")
           .replace(/&gt;/g, ">")
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
+          .replace(/&#(\d+);/g, (_m, code) => String.fromCharCode(Number(code)))
+          .replace(/[ \t]+/g, " ")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
 
