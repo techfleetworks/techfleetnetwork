@@ -255,18 +255,21 @@ export default function ExploreTab() {
         </CardContent>
       </Card>
 
-      {/* Results */}
-      {responseMarkdown && (
+      {/* Structured results */}
+      {responseMarkdown && !loading && (
+        <ExploreResultsSection
+          query={query}
+          recommendations={parseRecommendations(responseMarkdown)}
+        />
+      )}
+
+      {/* Streaming preview while loading */}
+      {responseMarkdown && loading && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Recommended Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 first:[&_h3]:mt-0 [&_p]:my-1 [&_ul]:my-1">
-              <ReactMarkdown>{responseMarkdown}</ReactMarkdown>
+          <CardContent className="py-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Fleety is finding resources…</span>
             </div>
           </CardContent>
         </Card>
