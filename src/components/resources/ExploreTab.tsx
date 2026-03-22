@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import ExploreResultsSection from "./ExploreResultsSection";
 import { parseRecommendations } from "@/lib/parse-explore-recommendations";
+import { normalizeQueryKey } from "@/lib/normalize-query";
 
 
 interface PopularQuery {
@@ -58,29 +59,30 @@ export default function ExploreTab() {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Count unique users per normalized query
-          const queryUsers = new Map<string, Set<string>>();
+          // Count unique users per normalized query (fuzzy grouping)
+          const queryUsers = new Map<string, { users: Set<string>; displayText: string }>();
           data.forEach((row) => {
-            const normalized = row.query_text.trim().toLowerCase();
-            if (!queryUsers.has(normalized)) queryUsers.set(normalized, new Set());
-            queryUsers.get(normalized)!.add(row.user_id);
+            const key = normalizeQueryKey(row.query_text);
+            if (!key) return;
+            if (!queryUsers.has(key)) queryUsers.set(key, { users: new Set(), displayText: row.query_text.trim() });
+            queryUsers.get(key)!.users.add(row.user_id);
           });
 
           const sorted = Array.from(queryUsers.entries())
-            .sort((a, b) => b[1].size - a[1].size)
+            .sort((a, b) => b[1].users.size - a[1].users.size)
             .slice(0, 6)
-            .map(([query_text, users]) => ({ query_text, count: users.size }));
+            .map(([, entry]) => ({ query_text: entry.displayText, count: entry.users.size }));
 
           setPopularQueries(sorted);
 
-          // Get recent unique queries (last 5)
-          const seen = new Set<string>();
+          // Get recent unique queries (last 5, deduplicated by fuzzy key)
+          const seenKeys = new Set<string>();
           const recents: string[] = [];
           for (const row of data) {
-            const norm = row.query_text.trim();
-            if (!seen.has(norm.toLowerCase()) && recents.length < 5) {
-              seen.add(norm.toLowerCase());
-              recents.push(norm);
+            const key = normalizeQueryKey(row.query_text);
+            if (key && !seenKeys.has(key) && recents.length < 5) {
+              seenKeys.add(key);
+              recents.push(row.query_text.trim());
             }
           }
           setRecentQueries(recents);
@@ -98,7 +100,7 @@ export default function ExploreTab() {
     async (searchQuery: string) => {
       if (!searchQuery.trim()) return;
 
-      const normalized = searchQuery.trim().toLowerCase();
+      const normalized = normalizeQueryKey(searchQuery) || searchQuery.trim().toLowerCase();
       setLoading(true);
       setResponseMarkdown("");
       setQuery(searchQuery);
@@ -280,6 +282,21 @@ export default function ExploreTab() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Explore
             </Button>
+            {responseMarkdown && !loading && (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 shrink-0"
+                onClick={() => {
+                  setQuery("");
+                  setResponseMarkdown("");
+                }}
+                aria-label="Reset search"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 
 export interface RecommendationData {
@@ -9,25 +8,11 @@ export interface RecommendationData {
   link?: string;
 }
 
-const TYPE_STYLES: Record<RecommendationData["type"], string> = {
-  course: "bg-primary/10 text-primary border-primary/20",
-  template: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  "user guide": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  project: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
-};
-
-export default function ExploreRecommendationCard({ title, type, description, reason, link }: RecommendationData) {
+export default function ExploreRecommendationCard({ title, description, reason, link }: RecommendationData) {
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col p-5 gap-3">
-      {/* Category badge */}
-      <Badge variant="outline" className={`w-fit text-xs capitalize ${TYPE_STYLES[type] ?? ""}`}>
-        {type}
-      </Badge>
-
-      {/* Title as link or plain text */}
-      <div className="space-y-0.5">
-        <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
-      </div>
+      {/* Title */}
+      <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
 
       {/* Description */}
       <div className="space-y-1">
