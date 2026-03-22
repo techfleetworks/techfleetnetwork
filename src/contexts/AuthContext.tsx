@@ -92,10 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (_event === "SIGNED_IN") {
             if (!sessionStorage.getItem("session_started_at")) {
               sessionStorage.setItem("session_started_at", Date.now().toString());
-              // Notify Discord on first sign-in of this session
-              const meta = session.user.user_metadata;
-              const name = meta?.full_name || meta?.first_name || session.user.email || "Someone";
-              DiscordNotifyService.userSignedUp(name);
+
+              // Only notify Discord for brand-new accounts (created within last 2 minutes)
+              const createdAt = session.user.created_at ? new Date(session.user.created_at).getTime() : 0;
+              const isNewAccount = Date.now() - createdAt < 2 * 60 * 1000;
+              if (isNewAccount) {
+                const meta = session.user.user_metadata;
+                const name = meta?.full_name || meta?.first_name || session.user.email || "Someone";
+                DiscordNotifyService.userSignedUp(name);
+              }
 
               // Handle stored redirect from shared course links (OAuth flow)
               const storedRedirect = sessionStorage.getItem("auth_redirect");
