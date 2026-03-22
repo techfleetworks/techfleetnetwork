@@ -1,18 +1,29 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export interface RecommendationData {
   title: string;
-  type: "course" | "template" | "user guide" | "project";
+  type: "course" | "template" | "user guide" | "project" | "online";
   description: string;
   reason: string;
   link?: string;
 }
 
-export default function ExploreRecommendationCard({ title, description, reason, link }: RecommendationData) {
+export default function ExploreRecommendationCard({ title, type, description, reason, link }: RecommendationData) {
+  const isOnline = type === "online";
+
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col p-5 gap-3">
-      {/* Title */}
-      <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
+      {/* Title + Online badge */}
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="text-sm font-semibold text-foreground leading-snug">{title}</h2>
+        {isOnline && (
+          <Badge variant="outline" className="shrink-0 gap-1 text-xs border-primary/40 text-primary">
+            <Globe className="h-3 w-3" />
+            Online
+          </Badge>
+        )}
+      </div>
 
       {/* Description */}
       <div className="space-y-1">
@@ -20,11 +31,13 @@ export default function ExploreRecommendationCard({ title, description, reason, 
         <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
       </div>
 
-      {/* Why we recommend */}
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🌟 Why We Recommend</p>
-        <p className="text-sm text-muted-foreground leading-relaxed">{reason}</p>
-      </div>
+      {/* Why we recommend - only for non-online */}
+      {!isOnline && reason && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🌟 Why We Recommend</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{reason}</p>
+        </div>
+      )}
 
       {/* Link */}
       {link && (
@@ -36,7 +49,7 @@ export default function ExploreRecommendationCard({ title, description, reason, 
           aria-label={`Open ${title}`}
         >
           <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-          Open Resource
+          {isOnline ? "Visit Source" : "Open Resource"}
         </a>
       )}
     </div>
