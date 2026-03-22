@@ -493,7 +493,7 @@ export default function ConnectDiscordPage() {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setStep("no-discord")}
+                onClick={() => setStep("no-discord-choose")}
                 disabled={verifying}
               >
                 I need an invite instead
