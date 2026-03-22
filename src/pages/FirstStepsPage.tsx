@@ -277,7 +277,10 @@ export default function FirstStepsPage() {
                         variant="outline"
                         size="sm"
                         disabled={task.completed}
-                        onClick={() => setAgreementOpen(true)}
+                        onClick={() => {
+                          if (task.panelId === "privacy-policy") setPrivacyOpen(true);
+                          else setAgreementOpen(true);
+                        }}
                       >
                         <Icon className="h-4 w-4 mr-1" />
                         Review
