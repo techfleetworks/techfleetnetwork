@@ -31,9 +31,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
+const homeNav = [
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
+];
+
 const communityNav = [
   { label: "Announcements", href: "/updates", icon: Megaphone },
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Events", href: "/events", icon: CalendarDays },
 ];
 
@@ -51,6 +54,7 @@ const supportNav = [
 ];
 
 const navSections = [
+  { label: null, items: homeNav },
   { label: "Community", items: communityNav },
   { label: "Training", items: trainingNav },
   { label: "Support", items: supportNav },
