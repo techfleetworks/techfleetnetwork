@@ -50,6 +50,7 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
+const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
 
 function RouteFallback() {
   return (
