@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw } from "lucide-react";
+import { Search, Loader2, Sparkles, Clock, TrendingUp, RotateCcw, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
