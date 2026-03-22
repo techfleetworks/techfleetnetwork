@@ -11,12 +11,13 @@ describe("ExploreRecommendationCard (BDD 27.1–27.4)", () => {
     link: "https://example.com",
   };
 
-  it("27.1: renders title, type badge, description, and reason", () => {
+  it("27.1: renders title, description, and reason (no category badge)", () => {
     render(<ExploreRecommendationCard {...baseProps} />);
     expect(screen.getByText("Agile Handbook")).toBeInTheDocument();
-    expect(screen.getByText("user guide")).toBeInTheDocument();
     expect(screen.getByText("A comprehensive guide.")).toBeInTheDocument();
     expect(screen.getByText("This helps you learn agile.")).toBeInTheDocument();
+    // Category badge should NOT be present
+    expect(screen.queryByText("user guide")).not.toBeInTheDocument();
   });
 
   it("27.2: renders external link when provided", () => {
@@ -31,8 +32,8 @@ describe("ExploreRecommendationCard (BDD 27.1–27.4)", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("27.4: applies correct badge style for type", () => {
+  it("27.33: no category badge is rendered", () => {
     render(<ExploreRecommendationCard {...baseProps} type="course" />);
-    expect(screen.getByText("course")).toBeInTheDocument();
+    expect(screen.queryByText("course")).not.toBeInTheDocument();
   });
 });
