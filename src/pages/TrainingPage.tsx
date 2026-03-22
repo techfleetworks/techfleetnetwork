@@ -153,6 +153,7 @@ export default function TrainingPage() {
   const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
   const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
+  const { data: observerCompleted = 0 } = useCompletedCount(userId, "observer");
 
   const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
 
