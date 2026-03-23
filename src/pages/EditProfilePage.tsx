@@ -76,6 +76,7 @@ export default function EditProfilePage() {
         interests: profile.interests || [],
         portfolio_url: profile.portfolio_url || "",
         linkedin_url: profile.linkedin_url || "",
+        scheduling_url: (profile as any).scheduling_url || "",
         experience_areas: profile.experience_areas || [],
         professional_goals: profile.professional_goals || "",
         notify_training_opportunities: profile.notify_training_opportunities || false,
