@@ -46,6 +46,8 @@ interface Props {
   currentStatus: string;
   /** Invalidation query keys after status change */
   invalidateKeys?: string[][];
+  /** If provided, renders a labeled button instead of the icon-only trigger */
+  triggerLabel?: string;
 }
 
 export function ApplicantStatusDropdown({
