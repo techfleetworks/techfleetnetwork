@@ -201,7 +201,24 @@ export default function RosterApplicantDetailPage() {
           <h1 className="text-2xl font-bold text-foreground">{applicantName}</h1>
           <p className="text-sm text-muted-foreground">{clientName} — Applicant Details</p>
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <Button variant="outline" size="sm" className="gap-1.5 self-start" onClick={handleShare}>
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
+      </div>
+
+      {/* Application Status Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Application Status</p>
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {applicantStatusLabel((projApp.applicant_status as string) ?? "pending_review")}
+            </Badge>
+            <p className="text-xs text-muted-foreground mt-1">
+              Changing status to "Invite to Interview" will send an email and in-app notification to the applicant.
+            </p>
+          </div>
           <ApplicantStatusDropdown
             applicationId={applicationId!}
             applicantUserId={projApp.user_id as string}
@@ -209,20 +226,14 @@ export default function RosterApplicantDetailPage() {
             applicantEmail={(profile?.email as string) ?? ""}
             projectId={projectId!}
             currentStatus={(projApp.applicant_status as string) ?? "pending_review"}
+            triggerLabel="Change Status"
             invalidateKeys={[
               ["roster-app-detail", applicationId!],
               ["roster-project-apps", projectId!],
             ]}
           />
-          <Badge variant="outline" className="text-xs">
-            {applicantStatusLabel((projApp.applicant_status as string) ?? "pending_review")}
-          </Badge>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
-            <Share2 className="h-4 w-4" />
-            Share
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Next/Previous Navigation */}
       {totalCount > 1 && (
