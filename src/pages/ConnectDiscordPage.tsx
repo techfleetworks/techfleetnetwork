@@ -180,6 +180,9 @@ export default function ConnectDiscordPage() {
         queryKey: ["journey-progress", user!.id, PHASE],
       });
 
+      // Refresh profile so EditProfilePage stays in sync
+      await refreshProfile();
+
       setVerified(true);
       toast.success("Discord account verified and linked!");
     } catch (err: any) {
