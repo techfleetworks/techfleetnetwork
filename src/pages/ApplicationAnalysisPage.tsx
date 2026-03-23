@@ -93,7 +93,11 @@ export default function ApplicationAnalysisPage() {
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...projects].sort((a, b) => (a.clients?.name ?? "").localeCompare(b.clients?.name ?? "")).map((project) => {
+          {[...projects].sort((a, b) => {
+            const nameCompare = (a.clients?.name ?? "").localeCompare(b.clients?.name ?? "");
+            if (nameCompare !== 0) return nameCompare;
+            return a.phase.localeCompare(b.phase);
+          }).map((project) => {
             const count = appCounts?.get(project.id) ?? 0;
             return (
               <button
