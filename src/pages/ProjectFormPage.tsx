@@ -554,6 +554,15 @@ export default function ProjectFormPage() {
             {errors.notion_repository_url && <p className="text-xs text-destructive">{errors.notion_repository_url}</p>}
           </div>
         </div>
+
+        <Separator />
+
+        {/* Discord Role */}
+        <DiscordRolePicker
+          selectedRoleId={form.discord_role_id}
+          selectedRoleName={form.discord_role_name}
+          onSelect={(roleId, roleName) => setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))}
+        />
       </div>
 
       {/* Actions */}
