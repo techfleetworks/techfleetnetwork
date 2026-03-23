@@ -212,6 +212,21 @@ export default function RosterApplicantDetailPage() {
           <p className="text-sm text-muted-foreground">{clientName} — Applicant Details</p>
         </div>
         <div className="flex items-center gap-2 self-start">
+          <ApplicantStatusDropdown
+            applicationId={applicationId!}
+            applicantUserId={projApp.user_id as string}
+            applicantFirstName={(profile?.first_name as string) ?? ""}
+            applicantEmail={(profile?.email as string) ?? ""}
+            projectId={projectId!}
+            currentStatus={(projApp.applicant_status as string) ?? "pending_review"}
+            invalidateKeys={[
+              ["roster-app-detail", applicationId!],
+              ["roster-project-apps", projectId!],
+            ]}
+          />
+          <Badge variant="outline" className="text-xs">
+            {applicantStatusLabel((projApp.applicant_status as string) ?? "pending_review")}
+          </Badge>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
             Share
