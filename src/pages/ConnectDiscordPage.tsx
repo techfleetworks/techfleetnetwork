@@ -36,7 +36,7 @@ export const TOTAL_CONNECT_DISCORD = 1;
 export const CONNECT_DISCORD_TASK_IDS = [TASK_ID] as const;
 
 export default function ConnectDiscordPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: progress = [] } = useJourneyProgress(user?.id, PHASE);
