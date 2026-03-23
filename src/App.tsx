@@ -50,6 +50,8 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
+const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
+const RosterApplicantDetailPage = lazy(() => import("./pages/RosterApplicantDetailPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
 const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
