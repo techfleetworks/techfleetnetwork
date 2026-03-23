@@ -302,6 +302,17 @@ export default function RosterApplicantDetailPage() {
         </CardContent>
       </Card>
 
+      {/* SECTION: Discord Role Management */}
+      {project && (
+        <DiscordRoleAssignment
+          discordRoleId={(project.discord_role_id as string) ?? ""}
+          discordRoleName={(project.discord_role_name as string) ?? ""}
+          applicantDiscordUserId={(profile?.discord_user_id as string) ?? ""}
+          applicantDiscordUsername={(profile?.discord_username as string) ?? ""}
+          applicantName={applicantName}
+        />
+      )}
+
       {/* SECTION 2: General Application */}
       {genApp && (
         <Card>
