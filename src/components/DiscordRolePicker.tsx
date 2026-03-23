@@ -90,7 +90,13 @@ export function DiscordRolePicker({
         body: { action: "create", name },
       });
 
-      if (res.error) throw new Error(res.error.message || "Failed to create role");
+      if (res.error) {
+        const errBody = res.data?.error;
+        if (errBody === "Failed to create Discord role") {
+          throw new Error("Discord bot lacks 'Manage Roles' permission. Please check bot permissions in Discord server settings.");
+        }
+        throw new Error(res.error.message || "Failed to create role");
+      }
       const role = res.data?.role;
       if (!role) throw new Error("No role returned");
 
