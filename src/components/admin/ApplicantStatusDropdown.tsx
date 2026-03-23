@@ -126,7 +126,7 @@ export function ApplicantStatusDropdown({
 
         if (newStatus === "invited_to_interview") {
           const adminProfile = await ProfileService.fetch(user.id);
-          schedulingUrl = (adminProfile as Record<string, unknown>)?.scheduling_url as string | undefined;
+          schedulingUrl = (adminProfile as unknown as Record<string, unknown>)?.scheduling_url as string | undefined;
 
           if (!schedulingUrl) {
             toast.error("You need to set your scheduling link first", {
