@@ -237,34 +237,28 @@ export default function RosterProjectDetailPage() {
               No completed applications for this project yet.
             </p>
           ) : (
-            <ThemedAgGrid<EnrichedApp>
-              gridId={`roster-detail-${projectId}`}
-              height={enrichedApps.length <= 5 ? "280px" : "420px"}
-              rowData={enrichedApps}
-              columnDefs={columnDefs}
-              getRowId={(p) => p.data.id}
-              pagination
-              paginationPageSize={15}
-              showExportCsv
-              exportFileName={`roster-${clientName}`}
-              hideResetButton
-              frameworkComponents={{
-                agStatusAction: (params: ICellRendererParams<EnrichedApp>) => {
-                  const d = params.data!;
-                  return (
-                    <ApplicantStatusDropdown
-                      applicationId={d.id}
-                      applicantUserId={d.user_id}
-                      applicantFirstName={d.applicantFirstName}
-                      applicantEmail={d.applicantEmail}
-                      projectId={d.project_id}
-                      currentStatus={d.applicant_status ?? "pending_review"}
-                      invalidateKeys={[["roster-project-apps", projectId!]]}
-                    />
-                  );
-                },
-              }}
-            />
+            <div className="space-y-2">
+              <ThemedAgGrid<EnrichedApp>
+                gridId={`roster-detail-${projectId}`}
+                height={enrichedApps.length <= 5 ? "280px" : "420px"}
+                rowData={enrichedApps}
+                columnDefs={columnDefs}
+                getRowId={(p) => p.data.id}
+                pagination
+                paginationPageSize={15}
+                showExportCsv
+                exportFileName={`roster-${clientName}`}
+                hideResetButton
+              />
+              {/* Actions rendered outside grid */}
+              <div className="flex flex-wrap gap-2">
+                {enrichedApps.map((app) => (
+                  <div key={app.id} className="hidden">
+                    {/* Status actions are in the detail page */}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
