@@ -19,6 +19,7 @@ export interface Profile {
   interests: string[];
   portfolio_url: string;
   linkedin_url: string;
+  scheduling_url: string;
   experience_areas: string[];
   professional_goals: string;
   notify_training_opportunities: boolean;
