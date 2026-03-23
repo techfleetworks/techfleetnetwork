@@ -32,7 +32,7 @@ export function ProfileSetupDialog() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", country: "", timezone: "",
     discordUsername: "", interests: [] as string[],
-    portfolio_url: "", linkedin_url: "",
+    portfolio_url: "", linkedin_url: "", scheduling_url: "",
     experience_areas: [] as string[], professional_goals: "",
     notify_training_opportunities: false, notify_announcements: false,
     education_background: [] as string[],
@@ -64,6 +64,7 @@ export function ProfileSetupDialog() {
         interests: profile.interests || [],
         portfolio_url: profile.portfolio_url || "",
         linkedin_url: profile.linkedin_url || "",
+        scheduling_url: (profile as any).scheduling_url || "",
         experience_areas: profile.experience_areas || [],
         professional_goals: profile.professional_goals || "",
         notify_training_opportunities: profile.notify_training_opportunities || false,
@@ -111,6 +112,7 @@ export function ProfileSetupDialog() {
       interests: form.interests,
       portfolio_url: form.portfolio_url,
       linkedin_url: form.linkedin_url,
+      scheduling_url: form.scheduling_url,
       experience_areas: form.experience_areas,
       professional_goals: form.professional_goals,
       notify_training_opportunities: form.notify_training_opportunities,
@@ -312,6 +314,11 @@ export function ProfileSetupDialog() {
             <div className="space-y-1.5">
               <Label htmlFor="dialog-linkedin">LinkedIn URL</Label>
               <Input id="dialog-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-scheduling">Your Scheduling Link</Label>
+              <Input id="dialog-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
             </div>
 
             {/* Experience Areas */}

@@ -33,7 +33,7 @@ export default function ProfileSetupPage() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", country: "", timezone: "",
     discordUsername: "", interests: [] as string[],
-    portfolio_url: "", linkedin_url: "",
+    portfolio_url: "", linkedin_url: "", scheduling_url: "",
     experience_areas: [] as string[], professional_goals: "",
     notify_training_opportunities: false, notify_announcements: false,
     education_background: [] as string[],
@@ -56,7 +56,8 @@ export default function ProfileSetupPage() {
       firstName: form.firstName, lastName: form.lastName, country: form.country,
       timezone: form.timezone, discordUsername: form.discordUsername,
       interests: form.interests, portfolio_url: form.portfolio_url,
-      linkedin_url: form.linkedin_url, experience_areas: form.experience_areas,
+      linkedin_url: form.linkedin_url, scheduling_url: form.scheduling_url,
+      experience_areas: form.experience_areas,
       professional_goals: form.professional_goals,
       notify_training_opportunities: form.notify_training_opportunities,
       notify_announcements: form.notify_announcements,
@@ -91,6 +92,7 @@ export default function ProfileSetupPage() {
         interests: profile.interests || [],
         portfolio_url: profile.portfolio_url || "",
         linkedin_url: profile.linkedin_url || "",
+        scheduling_url: (profile as any).scheduling_url || "",
         experience_areas: profile.experience_areas || [],
         professional_goals: profile.professional_goals || "",
         notify_training_opportunities: profile.notify_training_opportunities || false,
@@ -144,6 +146,7 @@ export default function ProfileSetupPage() {
       interests: form.interests,
       portfolio_url: form.portfolio_url,
       linkedin_url: form.linkedin_url,
+      scheduling_url: form.scheduling_url,
       experience_areas: form.experience_areas,
       professional_goals: form.professional_goals,
       notify_training_opportunities: form.notify_training_opportunities,
@@ -395,6 +398,10 @@ export default function ProfileSetupPage() {
 
           <ValidatedField id="setup-linkedin" label="LinkedIn URL" value={form.linkedin_url}>
             <Input id="setup-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
+          </ValidatedField>
+
+          <ValidatedField id="setup-scheduling" label="Your Scheduling Link" value={form.scheduling_url}>
+            <Input id="setup-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
           </ValidatedField>
 
           {/* Experience Areas */}
