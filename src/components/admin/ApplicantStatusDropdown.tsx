@@ -58,6 +58,7 @@ export function ApplicantStatusDropdown({
   projectId,
   currentStatus,
   invalidateKeys = [],
+  triggerLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [changing, setChanging] = useState(false);
