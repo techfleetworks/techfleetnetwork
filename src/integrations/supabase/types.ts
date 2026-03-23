@@ -860,6 +860,7 @@ export type Database = {
       }
       project_applications: {
         Row: {
+          applicant_status: string
           client_project_knowledge: string
           completed_at: string | null
           created_at: string
@@ -880,6 +881,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          applicant_status?: string
           client_project_knowledge?: string
           completed_at?: string | null
           created_at?: string
@@ -900,6 +902,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          applicant_status?: string
           client_project_knowledge?: string
           completed_at?: string | null
           created_at?: string
