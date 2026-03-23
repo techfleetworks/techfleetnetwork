@@ -155,13 +155,17 @@ Deno.serve(async (req) => {
   }
 
   // Write audit log
-  await supabase.rpc('write_audit_log', {
-    p_event_type: `applicant_status_${newStatus}`,
-    p_table_name: 'project_applications',
-    p_record_id: applicationId,
-    p_user_id: user.id,
-    p_changed_fields: [applicantUserId, newStatus],
-  }).catch((e: unknown) => console.warn('Audit log write failed', e))
+  try {
+    await supabase.rpc('write_audit_log', {
+      p_event_type: `applicant_status_${newStatus}`,
+      p_table_name: 'project_applications',
+      p_record_id: applicationId,
+      p_user_id: user.id,
+      p_changed_fields: [applicantUserId, newStatus],
+    })
+  } catch (e) {
+    console.warn('Audit log write failed', e)
+  }
 
   // Send email for interview invites
   let emailSent = false
