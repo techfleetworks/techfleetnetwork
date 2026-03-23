@@ -55,6 +55,7 @@ const RosterApplicantDetailPage = lazy(() => import("./pages/RosterApplicantDeta
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
 const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
+const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 
 function RouteFallback() {
   return (
