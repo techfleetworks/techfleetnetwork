@@ -32,7 +32,7 @@ export function ProfileSetupDialog() {
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", country: "", timezone: "",
     discordUsername: "", interests: [] as string[],
-    portfolio_url: "", linkedin_url: "",
+    portfolio_url: "", linkedin_url: "", scheduling_url: "",
     experience_areas: [] as string[], professional_goals: "",
     notify_training_opportunities: false, notify_announcements: false,
     education_background: [] as string[],
