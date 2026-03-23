@@ -113,6 +113,8 @@ export default function ProjectFormPage() {
             anticipated_end_date: data.anticipated_end_date ?? null,
             client_intake_url: data.client_intake_url ?? "",
             notion_repository_url: data.notion_repository_url ?? "",
+            discord_role_id: (data as any).discord_role_id ?? "",
+            discord_role_name: (data as any).discord_role_name ?? "",
           });
           setInitialized(true);
         }
