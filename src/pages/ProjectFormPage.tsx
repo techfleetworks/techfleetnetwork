@@ -55,6 +55,8 @@ const projectSchema = z.object({
   anticipated_end_date: z.string().nullable(),
   client_intake_url: optionalUrl,
   notion_repository_url: optionalUrl,
+  discord_role_id: z.string().default(""),
+  discord_role_name: z.string().default(""),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
