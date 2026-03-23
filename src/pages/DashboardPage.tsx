@@ -12,8 +12,10 @@ import {
   Lock,
   Megaphone,
   MessageSquare,
+  PartyPopper,
   Users,
 } from "lucide-react";
+import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
@@ -326,16 +328,49 @@ export default function DashboardPage() {
             ) : null;
 
           case "core_courses":
-            return isVisible("core_courses") && !allCoreCoursesDone ? (
+            return isVisible("core_courses") ? (
               <section key="core_courses" aria-labelledby="core-courses-heading">
                 <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
                   Course Completion
                 </h2>
-                <div className="space-y-2">
-                  {coreCourses.map((course) => (
-                    <CoreCourseCard key={course.id} course={course} />
-                  ))}
-                </div>
+                {allCoreCoursesDone ? (
+                  <div className="card-elevated overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-center gap-6 p-6">
+                      <img
+                        src={celebrationImg}
+                        alt="Celebration — all core courses completed"
+                        className="w-32 h-32 sm:w-40 sm:h-40 object-contain flex-shrink-0"
+                        width={160}
+                        height={160}
+                        loading="lazy"
+                      />
+                      <div className="flex-1 text-center sm:text-left space-y-3">
+                        <div className="flex items-center gap-2 justify-center sm:justify-start">
+                          <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
+                          <h3 className="text-lg font-bold text-foreground">
+                            You finished the onboarding and core courses!
+                          </h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.
+                        </p>
+                        <Link
+                          to="/courses"
+                          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          Continue Courses
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {coreCourses.map((course) => (
+                      <CoreCourseCard key={course.id} course={course} />
+                    ))}
+                  </div>
+                )}
               </section>
             ) : null;
 
