@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { DiscordRolePicker } from "@/components/DiscordRolePicker";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +55,8 @@ const projectSchema = z.object({
   anticipated_end_date: z.string().nullable(),
   client_intake_url: optionalUrl,
   notion_repository_url: optionalUrl,
+  discord_role_id: z.string().default(""),
+  discord_role_name: z.string().default(""),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -70,6 +73,8 @@ const EMPTY_FORM: ProjectForm = {
   anticipated_end_date: null,
   client_intake_url: "",
   notion_repository_url: "",
+  discord_role_id: "",
+  discord_role_name: "",
 };
 
 export default function ProjectFormPage() {
@@ -108,6 +113,8 @@ export default function ProjectFormPage() {
             anticipated_end_date: data.anticipated_end_date ?? null,
             client_intake_url: data.client_intake_url ?? "",
             notion_repository_url: data.notion_repository_url ?? "",
+            discord_role_id: (data as any).discord_role_id ?? "",
+            discord_role_name: (data as any).discord_role_name ?? "",
           });
           setInitialized(true);
         }
@@ -139,6 +146,8 @@ export default function ProjectFormPage() {
       anticipated_end_date: (existingProject as any).anticipated_end_date ?? null,
       client_intake_url: (existingProject as any).client_intake_url ?? "",
       notion_repository_url: (existingProject as any).notion_repository_url ?? "",
+      discord_role_id: (existingProject as any).discord_role_id ?? "",
+      discord_role_name: (existingProject as any).discord_role_name ?? "",
     });
     setInitialized(true);
   }
@@ -545,6 +554,15 @@ export default function ProjectFormPage() {
             {errors.notion_repository_url && <p className="text-xs text-destructive">{errors.notion_repository_url}</p>}
           </div>
         </div>
+
+        <Separator />
+
+        {/* Discord Role */}
+        <DiscordRolePicker
+          selectedRoleId={form.discord_role_id}
+          selectedRoleName={form.discord_role_name}
+          onSelect={(roleId, roleName) => setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))}
+        />
       </div>
 
       {/* Actions */}
