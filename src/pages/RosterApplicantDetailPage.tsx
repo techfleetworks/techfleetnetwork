@@ -21,6 +21,7 @@ import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/componen
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
 import { ApplicantStatusDropdown, applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
+import { DiscordRoleAssignment } from "@/components/admin/DiscordRoleAssignment";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
