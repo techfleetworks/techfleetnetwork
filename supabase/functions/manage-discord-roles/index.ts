@@ -22,13 +22,29 @@ interface CreateAction {
   name: string;
 }
 
-type RequestBody = ListAction | CreateAction;
+interface AssignAction {
+  action: "assign";
+  discord_user_id: string;
+  role_id: string;
+}
+
+interface RemoveAction {
+  action: "remove";
+  discord_user_id: string;
+  role_id: string;
+}
+
+type RequestBody = ListAction | CreateAction | AssignAction | RemoveAction;
 
 function isValidAction(body: unknown): body is RequestBody {
   if (!body || typeof body !== "object") return false;
   const b = body as Record<string, unknown>;
   if (b.action === "list") return true;
   if (b.action === "create" && typeof b.name === "string" && b.name.trim().length > 0) return true;
+  if (b.action === "assign" && typeof b.discord_user_id === "string" && typeof b.role_id === "string" &&
+      b.discord_user_id.trim().length > 0 && b.role_id.trim().length > 0) return true;
+  if (b.action === "remove" && typeof b.discord_user_id === "string" && typeof b.role_id === "string" &&
+      b.discord_user_id.trim().length > 0 && b.role_id.trim().length > 0) return true;
   return false;
 }
 
@@ -63,7 +79,7 @@ serve(async (req) => {
     const body = await req.json();
     if (!isValidAction(body)) {
       return new Response(
-        JSON.stringify({ error: "Invalid request. Provide { action: 'list' } or { action: 'create', name: '...' }" }),
+        JSON.stringify({ error: "Invalid request. Provide { action: 'list' | 'create' | 'assign' | 'remove', ... }" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -88,12 +104,10 @@ serve(async (req) => {
 
       const roles = await res.json() as Array<{ id: string; name: string; color: number; position: number; managed: boolean }>;
 
-      // Filter out @everyone (position 0) and bot-managed roles; sort by name
       let filtered = roles
         .filter((r) => r.name !== "@everyone" && !r.managed)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-      // Wildcard search if provided
       if (body.search && typeof body.search === "string" && body.search.trim()) {
         const q = body.search.trim().toLowerCase();
         filtered = filtered.filter((r) => r.name.toLowerCase().includes(q));
@@ -130,9 +144,7 @@ serve(async (req) => {
         headers: { ...discordHeaders, "Content-Type": "application/json" },
         body: JSON.stringify({
           name: roleName,
-          // mentionable = true → "Allow anyone to mention this role"
           mentionable: true,
-          // No additional permissions — channel-level management only
           permissions: "0",
         }),
       });
@@ -152,6 +164,82 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ role: { id: role.id, name: role.name, color: role.color, position: role.position } }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ---------- ASSIGN ----------
+    if (body.action === "assign") {
+      const { discord_user_id, role_id } = body;
+      log.info("assign", `Assigning role ${role_id} to user ${discord_user_id} [${requestId}]`);
+
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discord_user_id}/roles/${role_id}`,
+        {
+          method: "PUT",
+          headers: discordHeaders,
+        },
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        log.error("assign", `Discord API error assigning role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+
+        const status = res.status;
+        let userMessage = "Failed to assign Discord role";
+        if (status === 403) userMessage = "Bot lacks permission to assign this role. Ensure the bot's role is higher than the target role in Discord server settings.";
+        if (status === 404) userMessage = "Discord user or role not found in this server.";
+        if (status === 429) userMessage = "Rate limited by Discord. Please try again shortly.";
+
+        return new Response(
+          JSON.stringify({ error: userMessage }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Discord returns 204 No Content on success
+      await res.text(); // consume body
+      log.info("assign", `Role ${role_id} assigned to user ${discord_user_id} [${requestId}]`);
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ---------- REMOVE ----------
+    if (body.action === "remove") {
+      const { discord_user_id, role_id } = body;
+      log.info("remove", `Removing role ${role_id} from user ${discord_user_id} [${requestId}]`);
+
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discord_user_id}/roles/${role_id}`,
+        {
+          method: "DELETE",
+          headers: discordHeaders,
+        },
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        log.error("remove", `Discord API error removing role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+
+        const status = res.status;
+        let userMessage = "Failed to remove Discord role";
+        if (status === 403) userMessage = "Bot lacks permission to remove this role.";
+        if (status === 404) userMessage = "Discord user or role not found in this server.";
+
+        return new Response(
+          JSON.stringify({ error: userMessage }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      await res.text(); // consume body
+      log.info("remove", `Role ${role_id} removed from user ${discord_user_id} [${requestId}]`);
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

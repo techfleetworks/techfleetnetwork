@@ -21,6 +21,7 @@ import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/componen
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
 import { ApplicantStatusDropdown, applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
+import { DiscordRoleAssignment } from "@/components/admin/DiscordRoleAssignment";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -300,6 +301,17 @@ export default function RosterApplicantDetailPage() {
           <ReadOnlyField label="Bio" value={(profile?.bio as string) ?? ""} />
         </CardContent>
       </Card>
+
+      {/* SECTION: Discord Role Management */}
+      {project && (
+        <DiscordRoleAssignment
+          discordRoleId={(project.discord_role_id as string) ?? ""}
+          discordRoleName={(project.discord_role_name as string) ?? ""}
+          applicantDiscordUserId={(profile?.discord_user_id as string) ?? ""}
+          applicantDiscordUsername={(profile?.discord_username as string) ?? ""}
+          applicantName={applicantName}
+        />
+      )}
 
       {/* SECTION 2: General Application */}
       {genApp && (
