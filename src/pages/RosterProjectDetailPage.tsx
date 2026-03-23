@@ -164,15 +164,6 @@ export default function RosterProjectDetailPage() {
         return btn;
       },
     },
-    {
-      headerName: "",
-      colId: "actions",
-      width: 50,
-      pinned: "right",
-      sortable: false,
-      filter: false,
-      cellRendererSelector: () => ({ component: "agStatusAction" }),
-    },
   ], [navigate, projectId]);
 
   const clientName = project?.clients?.name ?? "Project";
