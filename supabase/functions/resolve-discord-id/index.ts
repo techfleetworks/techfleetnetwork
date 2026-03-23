@@ -52,7 +52,7 @@ serve(async (req) => {
       );
     }
 
-    const cleanUsername = discord_username.replace(/^@/, "").toLowerCase();
+    const cleanUsername = discord_username.replace(/^[@.]+/, "").toLowerCase();
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" [${requestId}]`, {
       requestId,
       username: cleanUsername,
