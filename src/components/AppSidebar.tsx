@@ -154,11 +154,11 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive("/admin/roster")}
-                    tooltip="Project Roster"
+                    tooltip="Recruiting Center"
                   >
                     <Link to="/admin/roster">
                       <Users className="h-4 w-4" />
-                      <span>Project Roster</span>
+                      <span>Recruiting Center</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ClipboardList, FolderKanban, HeartHandshake, ArrowRight, CheckCircle2, Lock, BarChart3 } from "lucide-react";
+import { ClipboardList, FolderKanban, HeartHandshake, ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useQuery } from "@/lib/react-query";
@@ -18,18 +18,12 @@ const SubmittedApplicationsTab = lazy(() =>
   }))
 );
 
-const ApplicationAnalysisPage = lazy(() =>
-  import("@/pages/ApplicationAnalysisPage").then((m) => ({
-    default: m.default,
-  }))
-);
-
 export default function ApplicationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAdmin } = useAdmin();
-  const defaultTab = searchParams.get("tab") === "analysis" ? "analysis" : "yours";
+  const defaultTab = "yours";
   const [appStatus, setAppStatus] = useState<{ completed: boolean; completedAt: string | null }>({ completed: false, completedAt: null });
 
   useEffect(() => {
@@ -176,26 +170,6 @@ export default function ApplicationsPage() {
               </TooltipContent>
             </Tooltip>
           )}
-          {isAdmin ? (
-            <TabsTrigger value="analysis" className="gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Application Analysis
-            </TabsTrigger>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <TabsTrigger value="analysis" disabled className="gap-1.5 opacity-50 cursor-not-allowed">
-                    <Lock className="h-3.5 w-3.5" />
-                    Application Analysis
-                  </TabsTrigger>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Only available for administrators</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
         </TabsList>
         <TabsContent value="yours" className="mt-6">
           {yourApplicationsContent}
@@ -204,13 +178,6 @@ export default function ApplicationsPage() {
           <TabsContent value="all" className="mt-6">
             <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
               <SubmittedApplicationsTab />
-            </Suspense>
-          </TabsContent>
-        )}
-        {isAdmin && (
-          <TabsContent value="analysis" className="mt-6">
-            <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-              <ApplicationAnalysisPage />
             </Suspense>
           </TabsContent>
         )}
