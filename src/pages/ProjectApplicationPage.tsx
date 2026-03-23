@@ -478,6 +478,29 @@ export default function ProjectApplicationPage() {
 
       {/* ── Scrollable Content ────────────────────────────── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Soft notice if general app not completed */}
+        {!genAppComplete && (
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+            <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  You haven't completed the General Application yet
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  We recommend completing it first — admins review it alongside project applications.{" "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-medium"
+                    onClick={() => navigate("/applications/general")}
+                  >
+                    Go to General Application
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Project info card (step 1 only) */}
           {step === 1 && (
