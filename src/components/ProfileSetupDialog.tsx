@@ -112,6 +112,7 @@ export function ProfileSetupDialog() {
       interests: form.interests,
       portfolio_url: form.portfolio_url,
       linkedin_url: form.linkedin_url,
+      scheduling_url: form.scheduling_url,
       experience_areas: form.experience_areas,
       professional_goals: form.professional_goals,
       notify_training_opportunities: form.notify_training_opportunities,
