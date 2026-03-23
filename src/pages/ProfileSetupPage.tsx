@@ -400,6 +400,10 @@ export default function ProfileSetupPage() {
             <Input id="setup-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
           </ValidatedField>
 
+          <ValidatedField id="setup-scheduling" label="Your Scheduling Link" value={form.scheduling_url}>
+            <Input id="setup-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
+          </ValidatedField>
+
           {/* Experience Areas */}
           <div className="space-y-1.5">
             <Label>Experience areas</Label>

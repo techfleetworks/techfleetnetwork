@@ -428,6 +428,9 @@ export default function EditProfilePage() {
               <ValidatedField id="edit-linkedin" label="LinkedIn URL" value={form.linkedin_url} touched={touched.linkedin_url}>
                 <Input id="edit-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
               </ValidatedField>
+              <ValidatedField id="edit-scheduling" label="Your Scheduling Link" value={form.scheduling_url} touched={touched.scheduling_url}>
+                <Input id="edit-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
+              </ValidatedField>
             </div>
           </TabsContent>
 

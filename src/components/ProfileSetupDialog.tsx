@@ -316,6 +316,11 @@ export function ProfileSetupDialog() {
               <Input id="dialog-linkedin" type="url" value={form.linkedin_url} onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/yourprofile" maxLength={500} />
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="dialog-scheduling">Your Scheduling Link</Label>
+              <Input id="dialog-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
+            </div>
+
             {/* Experience Areas */}
             <div className="space-y-1.5">
               <Label>Experience areas</Label>
