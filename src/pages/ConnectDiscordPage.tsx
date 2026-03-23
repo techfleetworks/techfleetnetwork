@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   MessageSquare,
@@ -36,7 +36,7 @@ export const TOTAL_CONNECT_DISCORD = 1;
 export const CONNECT_DISCORD_TASK_IDS = [TASK_ID] as const;
 
 export default function ConnectDiscordPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: progress = [] } = useJourneyProgress(user?.id, PHASE);
@@ -44,10 +44,13 @@ export default function ConnectDiscordPage() {
     (p) => p.task_id === TASK_ID && p.completed
   );
 
+  // Source of truth: profile has a discord_user_id OR journey task is complete
+  const isLinked = !!(profile?.discord_user_id) || isAlreadyComplete;
+
   // Step state
   const [step, setStep] = useState<
     "ask" | "no-discord-choose" | "no-discord-no-account" | "no-discord-has-account" | "yes-discord"
-  >(isAlreadyComplete ? "yes-discord" : "ask");
+  >("ask");
 
   // Invite flow state
   const [inviteUrl, setInviteUrl] = useState<string>(
@@ -59,8 +62,17 @@ export default function ConnectDiscordPage() {
   // Verify flow state
   const [username, setUsername] = useState(profile?.discord_username || "");
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(isAlreadyComplete);
+  const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+
+  // Sync verified state when profile/progress loads
+  useEffect(() => {
+    if (isLinked) {
+      setVerified(true);
+      setStep("yes-discord");
+      if (profile?.discord_username) setUsername(profile.discord_username);
+    }
+  }, [isLinked, profile?.discord_username]);
 
   const displayName =
     profile?.display_name ||
@@ -167,6 +179,9 @@ export default function ConnectDiscordPage() {
       queryClient.invalidateQueries({
         queryKey: ["journey-progress", user!.id, PHASE],
       });
+
+      // Refresh profile so EditProfilePage stays in sync
+      await refreshProfile();
 
       setVerified(true);
       toast.success("Discord account verified and linked!");
