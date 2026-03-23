@@ -71,7 +71,7 @@ export function ApplicantStatusDropdown({
     setChanging(true);
 
     try {
-      // For "Invite to Interview", check admin's scheduling link
+      // For "Invite to Interview", check admin's scheduling link first
       if (newStatus === "invited_to_interview") {
         const adminProfile = await ProfileService.fetch(user.id);
         const schedulingUrl = (adminProfile as any)?.scheduling_url;
@@ -92,9 +92,8 @@ export function ApplicantStatusDropdown({
           return;
         }
 
-        // Find the project coordinator from the roster, fallback to admin
+        // Find coordinator name
         let coordinatorName = adminProfile?.display_name || `${adminProfile?.first_name ?? ""} ${adminProfile?.last_name ?? ""}`.trim() || "a Tech Fleet Project Coordinator";
-
         const { data: rosterCoordinator } = await supabase
           .from("project_roster")
           .select("member_name")
@@ -102,80 +101,57 @@ export function ApplicantStatusDropdown({
           .ilike("member_role", "%coordinator%")
           .limit(1)
           .maybeSingle();
-
         if (rosterCoordinator?.member_name) {
           coordinatorName = rosterCoordinator.member_name;
         }
 
-        // Update status first
-        const { error: updateError } = await supabase
-          .from("project_applications")
-          .update({ applicant_status: newStatus } as any)
-          .eq("id", applicationId);
-        if (updateError) throw updateError;
-
-        // Send in-app notification
-        const notifBody = `<p>You have been invited to interview by <strong>${coordinatorName}</strong>.</p><p>Schedule your interview: <a href="${schedulingUrl}">${schedulingUrl}</a></p>`;
-        await supabase.functions.invoke("send-announcement-email", {
-          // Reuse the notification insert via direct insert
-        }).catch(() => { /* non-critical */ });
-
-        // Insert in-app notification directly
-        const { error: notifError } = await supabase.rpc("write_audit_log", {
-          p_event_type: "interview_invited",
-          p_table_name: "project_applications",
-          p_record_id: applicationId,
-          p_user_id: user.id,
-          p_changed_fields: [applicantUserId, newStatus],
+        // Call edge function that handles status update + notification + email
+        const { data, error } = await supabase.functions.invoke("notify-applicant-status", {
+          body: {
+            applicationId,
+            applicantUserId,
+            applicantEmail,
+            applicantFirstName,
+            newStatus,
+            coordinatorName,
+            schedulingUrl,
+            projectId,
+          },
         });
-        if (notifError) log.warn("handleStatusChange", "Failed to write audit log", {}, notifError);
 
-        // Create in-app notification for the applicant (via edge function since notifications table is service-role only for inserts)
-        // We'll use a direct approach: invoke send-transactional-email which also handles notification
-        // First, check if applicant has email notifications enabled
-        const { data: applicantProfile } = await supabase
-          .from("profiles")
-          .select("notify_announcements, first_name")
-          .eq("user_id", applicantUserId)
-          .single();
+        if (error) throw error;
 
-        const shouldSendEmail = applicantProfile?.notify_announcements === true;
-
-        // Send interview invite email if user opted in
-        if (shouldSendEmail && applicantEmail) {
-          const idempotencyKey = `interview-invite-${applicationId}-${Date.now()}`;
-          const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "interview-invite",
-              recipientEmail: applicantEmail,
-              idempotencyKey,
-              templateData: {
-                firstName: applicantFirstName || applicantProfile?.first_name || undefined,
-                coordinatorName,
-                schedulingUrl,
-              },
-            },
-          });
-          if (emailError) {
-            log.warn("handleStatusChange", "Failed to send interview invite email", { applicationId }, emailError);
-          }
-        }
+        const result = data as { notificationCreated?: boolean; emailSent?: boolean } | null;
+        const parts: string[] = [];
+        if (result?.notificationCreated) parts.push("In-app notification sent");
+        if (result?.emailSent) parts.push("Email sent");
 
         toast.success(`Invited ${applicantFirstName || "applicant"} to interview`, {
-          description: shouldSendEmail ? "Email notification sent." : "In-app notification sent. Email notifications are disabled for this user.",
+          description: parts.length > 0 ? parts.join(". ") + "." : "Status updated.",
           duration: 5000,
           position: "top-center",
         });
       } else {
-        // For other statuses, just update
-        const { error: updateError } = await supabase
-          .from("project_applications")
-          .update({ applicant_status: newStatus } as any)
-          .eq("id", applicationId);
-        if (updateError) throw updateError;
+        // For other statuses, use the edge function too (handles notification + status update)
+        const { error } = await supabase.functions.invoke("notify-applicant-status", {
+          body: {
+            applicationId,
+            applicantUserId,
+            applicantEmail,
+            applicantFirstName,
+            newStatus,
+            coordinatorName: "",
+            projectId,
+          },
+        });
+        if (error) throw error;
 
         const label = APPLICANT_STATUSES.find((s) => s.value === newStatus)?.label ?? newStatus;
-        toast.success(`Status updated to "${label}"`, { duration: 3000, position: "top-center" });
+        toast.success(`Status updated to "${label}"`, {
+          description: "Applicant has been notified.",
+          duration: 3000,
+          position: "top-center",
+        });
       }
 
       // Invalidate queries
