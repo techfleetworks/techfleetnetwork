@@ -11,6 +11,7 @@
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { queueTransactionalEmail } from '../_shared/transactional-email.ts'
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -318,32 +319,34 @@ Deno.serve(async (req) => {
   if (newStatus === 'invited_to_interview' && applicantEmail && schedulingUrl) {
     const idempotencyKey = `interview-invite-${applicationId}`
     try {
-      const functionsUrl = `${supabaseUrl}/functions/v1/send-transactional-email`
-      const emailResp = await fetch(functionsUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceKey}`,
-          apikey: serviceKey,
+      const emailResult = await queueTransactionalEmail({
+        supabase,
+        templateName: 'interview-invite',
+        recipientEmail: applicantEmail,
+        idempotencyKey,
+        messageId: idempotencyKey,
+        templateData: {
+          firstName: applicantFirstName || undefined,
+          coordinatorName,
+          schedulingUrl,
         },
-        body: JSON.stringify({
-          templateName: 'interview-invite',
-          recipientEmail: applicantEmail,
-          idempotencyKey,
-          templateData: {
-            firstName: applicantFirstName || undefined,
-            coordinatorName,
-            schedulingUrl,
-          },
-        }),
       })
 
-      const emailBody = await emailResp.text() // always consume body
-      if (!emailResp.ok) {
-        console.error('Email send failed', { status: emailResp.status, body: emailBody.slice(0, 500) })
+      if (!emailResult.ok) {
+        console.error('Email queue failed', {
+          status: emailResult.status,
+          error: emailResult.error,
+          applicantEmail,
+          applicationId,
+        })
       } else {
-        emailSent = true
-        console.info('Interview email queued', { applicantEmail })
+        emailSent = !emailResult.suppressed
+        console.info('Interview email processed', {
+          applicantEmail,
+          queued: !emailResult.suppressed,
+          suppressed: emailResult.suppressed,
+          messageId: emailResult.messageId,
+        })
       }
     } catch (e) {
       console.error('Email send error', e)
