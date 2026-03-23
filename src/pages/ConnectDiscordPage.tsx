@@ -44,10 +44,13 @@ export default function ConnectDiscordPage() {
     (p) => p.task_id === TASK_ID && p.completed
   );
 
+  // Source of truth: profile has a discord_user_id OR journey task is complete
+  const isLinked = !!(profile?.discord_user_id) || isAlreadyComplete;
+
   // Step state
   const [step, setStep] = useState<
     "ask" | "no-discord-choose" | "no-discord-no-account" | "no-discord-has-account" | "yes-discord"
-  >(isAlreadyComplete ? "yes-discord" : "ask");
+  >("ask");
 
   // Invite flow state
   const [inviteUrl, setInviteUrl] = useState<string>(
@@ -59,8 +62,17 @@ export default function ConnectDiscordPage() {
   // Verify flow state
   const [username, setUsername] = useState(profile?.discord_username || "");
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(isAlreadyComplete);
+  const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+
+  // Sync verified state when profile/progress loads
+  useEffect(() => {
+    if (isLinked) {
+      setVerified(true);
+      setStep("yes-discord");
+      if (profile?.discord_username) setUsername(profile.discord_username);
+    }
+  }, [isLinked, profile?.discord_username]);
 
   const displayName =
     profile?.display_name ||
