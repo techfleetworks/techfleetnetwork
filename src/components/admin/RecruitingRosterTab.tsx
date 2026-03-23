@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, FolderKanban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, FolderKanban, BarChart3, ArrowRight, ArrowLeft } from "lucide-react";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { format } from "date-fns";
 import type { ColDef } from "ag-grid-community";
@@ -52,6 +53,7 @@ interface EnrichedApp extends AppRow {
 export default function RecruitingRosterTab() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const { data: projects, isLoading: projLoading } = useQuery({
     queryKey: ["roster-all-projects"],
@@ -65,6 +67,15 @@ export default function RecruitingRosterTab() {
     },
     enabled: !!user && isAdmin,
   });
+
+  const sortedProjects = useMemo(() => {
+    if (!projects) return [];
+    return [...projects].sort((a, b) => {
+      const nameCompare = (a.clients?.name ?? "").localeCompare(b.clients?.name ?? "");
+      if (nameCompare !== 0) return nameCompare;
+      return a.phase.localeCompare(b.phase);
+    });
+  }, [projects]);
 
   const { data: allApps, isLoading: appsLoading } = useQuery({
     queryKey: ["roster-all-project-apps"],
@@ -104,6 +115,14 @@ export default function RecruitingRosterTab() {
     return m;
   }, [profiles]);
 
+  const appCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const app of allApps ?? []) {
+      counts.set(app.project_id, (counts.get(app.project_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [allApps]);
+
   const appsByProject = useMemo(() => {
     const map = new Map<string, EnrichedApp[]>();
     for (const app of allApps ?? []) {
@@ -139,7 +158,7 @@ export default function RecruitingRosterTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-label="Loading" />
       </div>
     );
   }
@@ -154,61 +173,122 @@ export default function RecruitingRosterTab() {
     );
   }
 
+  // Detail view for a selected project
+  if (selectedProjectId) {
+    const project = sortedProjects.find((p) => p.id === selectedProjectId);
+    const apps = appsByProject.get(selectedProjectId) ?? [];
+
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedProjectId(null)}
+          className="gap-1.5"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to all projects
+        </Button>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                {project?.clients?.name ?? "Unknown Client"}
+                <span className="text-muted-foreground font-normal text-sm">
+                  — {typeLabel(project?.project_type ?? "")}
+                </span>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {phaseLabel(project?.phase ?? "")}
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {statusLabel(project?.project_status ?? "")}
+                </Badge>
+                <Badge variant="default" className="text-xs gap-1">
+                  <Users className="h-3 w-3" />
+                  {apps.length} {apps.length === 1 ? "applicant" : "applicants"}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {apps.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No completed applications for this project yet.
+              </p>
+            ) : (
+              <ThemedAgGrid<EnrichedApp>
+                gridId={`roster-${selectedProjectId}`}
+                height={apps.length <= 5 ? "240px" : "360px"}
+                rowData={apps}
+                columnDefs={columnDefs}
+                getRowId={(p) => p.data.id}
+                pagination
+                paginationPageSize={10}
+                showExportCsv
+                exportFileName={`roster-${project?.clients?.name ?? "project"}`}
+                hideResetButton
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Card grid view (matches Application Analysis layout)
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        All projects and their completed applicants.
-      </p>
+      <div>
+        <h2 className="text-xl font-bold text-foreground">Project Roster</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Select a project to view its completed applicants.
+        </p>
+      </div>
 
-      {projects.map((project) => {
-        const apps = appsByProject.get(project.id) ?? [];
-        return (
-          <Card key={project.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  {project.clients?.name ?? "Unknown Client"}
-                  <span className="text-muted-foreground font-normal text-sm">
-                    — {typeLabel(project.project_type)}
-                  </span>
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {phaseLabel(project.phase)}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    {statusLabel(project.project_status)}
-                  </Badge>
-                  <Badge variant="default" className="text-xs gap-1">
-                    <Users className="h-3 w-3" />
-                    {apps.length} {apps.length === 1 ? "applicant" : "applicants"}
-                  </Badge>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sortedProjects.map((project) => {
+          const count = appCounts.get(project.id) ?? 0;
+          return (
+            <button
+              key={project.id}
+              onClick={() => setSelectedProjectId(project.id)}
+              className="group rounded-lg border bg-card p-5 hover:shadow-md transition-shadow duration-200 flex flex-col text-left"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-4 w-4 text-primary" aria-hidden />
                 </div>
+                <Badge variant="secondary" className="text-xs">
+                  {phaseLabel(project.phase)}
+                </Badge>
               </div>
-            </CardHeader>
-            <CardContent>
-              {apps.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No completed applications for this project yet.
-                </p>
-              ) : (
-                <ThemedAgGrid<EnrichedApp>
-                  gridId={`roster-${project.id}`}
-                  height={apps.length <= 5 ? "240px" : "360px"}
-                  rowData={apps}
-                  columnDefs={columnDefs}
-                  getRowId={(p) => p.data.id}
-                  pagination
-                  paginationPageSize={10}
-                  showExportCsv
-                  exportFileName={`roster-${project.clients?.name ?? "project"}`}
-                  hideResetButton
-                />
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+
+              <h3 className="text-base font-semibold text-foreground mb-1">
+                {project.clients?.name ?? "Unknown Client"}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                {typeLabel(project.project_type)}
+              </p>
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-auto mb-3">
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  {count} {count === 1 ? "applicant" : "applicants"}
+                </span>
+                <span>{project.team_hats.length} hats</span>
+              </div>
+
+              <div className="flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                View Details
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
