@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, MessageSquare, ShieldCheck, FileText } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,10 +40,9 @@ export const FIRST_STEPS_TASK_IDS = [
   "profile",
   "onboarding-class",
   "figma-account",
-  "join-discord",
 ] as const;
 
-export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 7
+export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 6
 
 const baseTasks: Omit<Task, "completed">[] = [
   {
@@ -94,14 +93,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     description: "Join the Tech Fleet Figma educational workspace.",
     icon: Figma,
     action: "https://guide.techfleet.org/resources/join-the-tech-fleet-figma-educational-space",
-    external: true,
-  },
-  {
-    id: "join-discord",
-    title: "Join Tech Fleet Discord",
-    description: "Join the Tech Fleet Discord community to connect with other members.",
-    icon: MessageSquare,
-    action: "https://discord.gg/tZpX8ZaqbY",
     external: true,
   },
 ];
