@@ -172,29 +172,36 @@ Deno.serve(async (req) => {
   if (newStatus === 'invited_to_interview' && applicantEmail && schedulingUrl) {
     const idempotencyKey = `interview-invite-${applicationId}-${Date.now()}`
     try {
-      const { error: emailError } = await supabase.functions.invoke(
-        'send-transactional-email',
-        {
-          body: {
-            templateName: 'interview-invite',
-            recipientEmail: applicantEmail,
-            idempotencyKey,
-            templateData: {
-              firstName: applicantFirstName || undefined,
-              coordinatorName,
-              schedulingUrl,
-            },
+      // Use direct fetch instead of supabase.functions.invoke (edge-to-edge calls fail silently)
+      const functionsUrl = `${supabaseUrl}/functions/v1/send-transactional-email`
+      console.log('Calling send-transactional-email at', functionsUrl)
+      const emailResp = await fetch(functionsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+          'apikey': serviceKey,
+        },
+        body: JSON.stringify({
+          templateName: 'interview-invite',
+          recipientEmail: applicantEmail,
+          idempotencyKey,
+          templateData: {
+            firstName: applicantFirstName || undefined,
+            coordinatorName,
+            schedulingUrl,
           },
-        }
-      )
-      if (emailError) {
-        console.error('Email invocation error', emailError)
+        }),
+      })
+      const emailBody = await emailResp.text()
+      if (!emailResp.ok) {
+        console.error('Email send failed', emailResp.status, emailBody)
       } else {
         emailSent = true
-        console.log('Interview invite email sent to', applicantEmail)
+        console.log('Interview invite email queued for', applicantEmail, emailBody)
       }
     } catch (e) {
-      console.error('Email send failed', e)
+      console.error('Email send error', e)
     }
   }
 
