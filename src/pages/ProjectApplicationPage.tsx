@@ -451,28 +451,8 @@ export default function ProjectApplicationPage() {
 
   const isSaving = saveMutation.isPending;
 
-  /* ── Gate: require completed general application ───────── */
+  /* ── Soft notice: general application not yet completed ── */
   const genAppComplete = genApp?.status === "completed";
-  if (!genAppComplete) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] px-4">
-        <div className="max-w-md w-full text-center space-y-6 card-elevated p-8 animate-fade-in">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-warning/10">
-            <AlertTriangle className="h-8 w-8 text-warning" />
-          </div>
-          <h1 className="text-xl font-bold text-foreground">
-            Whoops! You haven't filled out the General App yet!
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            You need to enter some important information first before applying to projects. We can help you get there! Click on the button to finish the General Application and then we can get you going with Project Applications.
-          </p>
-          <Button onClick={() => navigate("/applications/general")} className="w-full">
-            Go to General Application
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
@@ -498,6 +478,29 @@ export default function ProjectApplicationPage() {
 
       {/* ── Scrollable Content ────────────────────────────── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Soft notice if general app not completed */}
+        {!genAppComplete && (
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+            <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  You haven't completed the General Application yet
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  We recommend completing it first — admins review it alongside project applications.{" "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-medium"
+                    onClick={() => navigate("/applications/general")}
+                  >
+                    Go to General Application
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Project info card (step 1 only) */}
           {step === 1 && (
