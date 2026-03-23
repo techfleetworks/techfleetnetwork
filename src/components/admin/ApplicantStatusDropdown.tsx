@@ -144,7 +144,7 @@ export function ApplicantStatusDropdown({
             return;
           }
 
-          const fallbackName = buildDisplayName(adminProfile as Record<string, unknown> | null);
+          const fallbackName = buildDisplayName(adminProfile as unknown as Record<string, unknown> | null);
           coordinatorName = await resolveCoordinatorName(projectId, fallbackName);
         }
 
