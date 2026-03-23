@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { format } from "date-fns";
-import type { ColDef } from "ag-grid-community";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
+import { ApplicantStatusDropdown, applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -34,6 +35,7 @@ interface AppRow {
   user_id: string;
   project_id: string;
   status: string;
+  applicant_status: string;
   team_hats_interest: string[];
   completed_at: string | null;
   created_at: string;
@@ -41,6 +43,7 @@ interface AppRow {
 
 interface EnrichedApp extends AppRow {
   applicantName: string;
+  applicantFirstName: string;
   applicantEmail: string;
   hats: string;
 }
@@ -78,7 +81,7 @@ export default function RosterProjectDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("id, user_id, project_id, status, team_hats_interest, completed_at, created_at")
+        .select("id, user_id, project_id, status, applicant_status, team_hats_interest, completed_at, created_at")
         .eq("project_id", projectId!)
         .eq("status", "completed");
       if (error) throw error;
@@ -118,6 +121,7 @@ export default function RosterProjectDetailPage() {
       return {
         ...app,
         applicantName: profile?.display_name || `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() || "Unknown",
+        applicantFirstName: profile?.first_name ?? "",
         applicantEmail: profile?.email ?? "",
         hats: app.team_hats_interest.join(", "),
       };
@@ -129,6 +133,14 @@ export default function RosterProjectDetailPage() {
     { headerName: "Email", field: "applicantEmail", flex: 2, minWidth: 180, filter: true },
     { headerName: "Hats of Interest", field: "hats", flex: 2.5, minWidth: 200, filter: true },
     {
+      headerName: "Status",
+      field: "applicant_status",
+      flex: 1.5,
+      minWidth: 140,
+      filter: true,
+      valueFormatter: (p) => applicantStatusLabel(p.value ?? "pending_review"),
+    },
+    {
       headerName: "Submitted",
       field: "completed_at",
       flex: 1.2,
@@ -138,16 +150,16 @@ export default function RosterProjectDetailPage() {
     {
       headerName: "",
       field: "id",
-      width: 130,
+      width: 80,
       pinned: "right",
       sortable: false,
       filter: false,
-      cellRenderer: (params: { data: EnrichedApp }) => {
+      cellRenderer: (params: ICellRendererParams<EnrichedApp>) => {
         const btn = document.createElement("button");
-        btn.textContent = "View Details";
+        btn.textContent = "View";
         btn.className = "text-sm font-medium text-primary hover:underline";
         btn.addEventListener("click", () => {
-          navigate(`/admin/roster/project/${projectId}/applicant/${params.data.id}`);
+          navigate(`/admin/roster/project/${projectId}/applicant/${params.data!.id}`);
         });
         return btn;
       },

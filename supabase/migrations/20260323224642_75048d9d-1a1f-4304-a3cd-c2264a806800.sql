@@ -1,0 +1,1 @@
+ALTER TABLE public.project_applications ADD COLUMN applicant_status text NOT NULL DEFAULT 'pending_review';
