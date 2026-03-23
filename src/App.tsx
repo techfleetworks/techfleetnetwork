@@ -50,6 +50,8 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
+const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
+const RosterApplicantDetailPage = lazy(() => import("./pages/RosterApplicantDetailPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
 const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
@@ -140,6 +142,8 @@ const App = () => (
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/admin/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/admin/roster" element={<ProtectedRoute><AdminRosterPage /></ProtectedRoute>} />
+                    <Route path="/admin/roster/project/:projectId" element={<ProtectedRoute><RosterProjectDetailPage /></ProtectedRoute>} />
+                    <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<ProtectedRoute><RosterApplicantDetailPage /></ProtectedRoute>} />
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
