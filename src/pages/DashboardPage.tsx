@@ -12,8 +12,10 @@ import {
   Lock,
   Megaphone,
   MessageSquare,
+  PartyPopper,
   Users,
 } from "lucide-react";
+import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { NetworkActivity } from "@/components/NetworkActivity";
