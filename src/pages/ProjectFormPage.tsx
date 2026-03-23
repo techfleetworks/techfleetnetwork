@@ -73,6 +73,8 @@ const EMPTY_FORM: ProjectForm = {
   anticipated_end_date: null,
   client_intake_url: "",
   notion_repository_url: "",
+  discord_role_id: "",
+  discord_role_name: "",
 };
 
 export default function ProjectFormPage() {
