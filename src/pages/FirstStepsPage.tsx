@@ -40,10 +40,9 @@ export const FIRST_STEPS_TASK_IDS = [
   "profile",
   "onboarding-class",
   "figma-account",
-  "join-discord",
 ] as const;
 
-export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 7
+export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 6
 
 const baseTasks: Omit<Task, "completed">[] = [
   {
