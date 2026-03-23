@@ -23,7 +23,7 @@ export default function ApplicationsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAdmin } = useAdmin();
-  const defaultTab = searchParams.get("tab") === "analysis" ? "analysis" : "yours";
+  const defaultTab = "yours";
   const [appStatus, setAppStatus] = useState<{ completed: boolean; completedAt: string | null }>({ completed: false, completedAt: null });
 
   useEffect(() => {
