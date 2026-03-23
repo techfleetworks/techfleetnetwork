@@ -197,14 +197,26 @@ export function ApplicantStatusDropdown({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
-          aria-label="Change applicant status"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+        {triggerLabel ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            aria-label="Change applicant status"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            {triggerLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            aria-label="Change applicant status"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-xs text-muted-foreground">Change Status</DropdownMenuLabel>
