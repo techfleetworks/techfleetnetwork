@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN scheduling_url text NOT NULL DEFAULT '';

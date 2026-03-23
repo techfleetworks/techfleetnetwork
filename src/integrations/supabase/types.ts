@@ -789,6 +789,7 @@ export type Database = {
           professional_background: string
           professional_goals: string
           profile_completed: boolean
+          scheduling_url: string
           timezone: string
           updated_at: string
           user_id: string
@@ -819,6 +820,7 @@ export type Database = {
           professional_background?: string
           professional_goals?: string
           profile_completed?: boolean
+          scheduling_url?: string
           timezone?: string
           updated_at?: string
           user_id: string
@@ -849,6 +851,7 @@ export type Database = {
           professional_background?: string
           professional_goals?: string
           profile_completed?: boolean
+          scheduling_url?: string
           timezone?: string
           updated_at?: string
           user_id?: string
