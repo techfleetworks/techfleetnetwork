@@ -88,6 +88,7 @@ export const ProfileService = {
         profile_completed: true,
         portfolio_url: input.portfolio_url || "",
         linkedin_url: input.linkedin_url || "",
+        scheduling_url: input.scheduling_url || "",
         experience_areas: input.experience_areas || [],
         professional_goals: input.professional_goals || "",
         notify_training_opportunities: input.notify_training_opportunities ?? false,
