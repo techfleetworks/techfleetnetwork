@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ClipboardList, FolderKanban, HeartHandshake, ArrowRight, CheckCircle2, Lock, BarChart3 } from "lucide-react";
+import { ClipboardList, FolderKanban, HeartHandshake, ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useQuery } from "@/lib/react-query";
@@ -14,12 +14,6 @@ import { lazy, Suspense } from "react";
 
 const SubmittedApplicationsTab = lazy(() =>
   import("@/components/SubmittedApplicationsTab").then((m) => ({
-    default: m.default,
-  }))
-);
-
-const ApplicationAnalysisPage = lazy(() =>
-  import("@/pages/ApplicationAnalysisPage").then((m) => ({
     default: m.default,
   }))
 );
