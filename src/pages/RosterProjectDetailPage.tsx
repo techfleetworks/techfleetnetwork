@@ -128,6 +128,19 @@ export default function RosterProjectDetailPage() {
     });
   }, [apps, profileMap]);
 
+  const ViewCellRenderer = useMemo(() => {
+    const Renderer = (params: ICellRendererParams<EnrichedApp>) => (
+      <button
+        className="text-sm font-medium text-primary hover:underline"
+        onClick={() => navigate(`/admin/roster/project/${projectId}/applicant/${params.data!.id}`)}
+      >
+        View
+      </button>
+    );
+    Renderer.displayName = "ViewCellRenderer";
+    return Renderer;
+  }, [navigate, projectId]);
+
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
     { headerName: "Applicant", field: "applicantName", flex: 2, minWidth: 150, filter: true },
     { headerName: "Email", field: "applicantEmail", flex: 2, minWidth: 180, filter: true },
@@ -154,17 +167,9 @@ export default function RosterProjectDetailPage() {
       pinned: "right",
       sortable: false,
       filter: false,
-      cellRenderer: (params: ICellRendererParams<EnrichedApp>) => {
-        const btn = document.createElement("button");
-        btn.textContent = "View";
-        btn.className = "text-sm font-medium text-primary hover:underline";
-        btn.addEventListener("click", () => {
-          navigate(`/admin/roster/project/${projectId}/applicant/${params.data!.id}`);
-        });
-        return btn;
-      },
+      cellRenderer: ViewCellRenderer,
     },
-  ], [navigate, projectId]);
+  ], [ViewCellRenderer]);
 
   const clientName = project?.clients?.name ?? "Project";
   const isLoading = adminLoading || projLoading || appsLoading;
