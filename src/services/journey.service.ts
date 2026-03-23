@@ -20,7 +20,7 @@ import { ALL_DISCORD_LESSON_IDS } from "@/data/discord-course";
 
 const VALID_TASK_IDS = new Set([
   "profile",
-  "join-discord",
+  
   "connect-discord",
   "onboarding-class",
   "service-leadership",

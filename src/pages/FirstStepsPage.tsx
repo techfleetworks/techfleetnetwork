@@ -95,14 +95,6 @@ const baseTasks: Omit<Task, "completed">[] = [
     action: "https://guide.techfleet.org/resources/join-the-tech-fleet-figma-educational-space",
     external: true,
   },
-  {
-    id: "join-discord",
-    title: "Join Tech Fleet Discord",
-    description: "Join the Tech Fleet Discord community to connect with other members.",
-    icon: MessageSquare,
-    action: "https://discord.gg/tZpX8ZaqbY",
-    external: true,
-  },
 ];
 
 export default function FirstStepsPage() {
