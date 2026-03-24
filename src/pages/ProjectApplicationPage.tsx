@@ -456,53 +456,39 @@ export default function ProjectApplicationPage() {
   /* ── Soft notice: general application not yet completed ── */
   const genAppComplete = genApp?.status === "completed";
 
+  /* Show dialog once when general app is not completed */
+  useEffect(() => {
+    if (!genAppDialogShown && genApp !== undefined && !genAppComplete && initialized) {
+      setGenAppDialogOpen(true);
+      setGenAppDialogShown(true);
+    }
+  }, [genApp, genAppComplete, initialized, genAppDialogShown]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Fixed Header (step progress only) ────────────── */}
-      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
-        {/* Step progress */}
-        <StepProgressBar
-          steps={STEP_LABELS.map((label, i) => {
-            const stepNum = i + 1;
-            const status = isCompleted || step > stepNum
-              ? "completed"
-              : step === stepNum
-                ? "started"
-                : "not_started";
-            return { label, status };
-          })}
-          currentStep={step}
-          onStepClick={(s) => {
-            if (isCompleted || s <= step) setStep(s);
-          }}
-        />
-      </div>
-
-      {/* ── Scrollable Content ────────────────────────────── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {/* Soft notice if general app not completed */}
-        {!genAppComplete && (
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
-            <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
-              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  You haven't completed the General Application yet
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  We recommend completing it first — admins review it alongside project applications.{" "}
-                  <button
-                    type="button"
-                    className="text-primary hover:underline font-medium"
-                    onClick={() => navigate("/applications/general")}
-                  >
-                    Go to General Application
-                  </button>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* General Application Warning Dialog */}
+      <Dialog open={genAppDialogOpen} onOpenChange={setGenAppDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              General Application Not Completed
+            </DialogTitle>
+            <DialogDescription>
+              We recommend completing your General Application first — admins review it alongside project applications.
+              You can still proceed with this project application if you prefer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setGenAppDialogOpen(false)}>
+              Continue Anyway
+            </Button>
+            <Button onClick={() => navigate("/applications/general")}>
+              Go to General Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {/* Project info card (step 1 only) */}
           {step === 1 && (
