@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@/lib/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -47,6 +48,7 @@ import {
 } from "@/data/teamwork-course";
 
 export default function ThirdStepsPage() {
+  const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
@@ -125,6 +127,8 @@ export default function ThirdStepsPage() {
         newCompleted ? next.add(lessonId) : next.delete(lessonId);
         return next;
       });
+      queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "third_steps"] });
+      queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "third_steps"] });
     } finally {
       setToggling(false);
     }
