@@ -489,7 +489,28 @@ export default function ProjectApplicationPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+      {/* ── Fixed Header (step progress only) ────────────── */}
+      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
+        <StepProgressBar
+          steps={STEP_LABELS.map((label, i) => {
+            const stepNum = i + 1;
+            const status = isCompleted || step > stepNum
+              ? "completed"
+              : step === stepNum
+                ? "started"
+                : "not_started";
+            return { label, status };
+          })}
+          currentStep={step}
+          onStepClick={(s) => {
+            if (isCompleted || s <= step) setStep(s);
+          }}
+        />
+      </div>
+
+      {/* ── Scrollable Content ────────────────────────────── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {/* Project info card (step 1 only) */}
           {step === 1 && (
           <Card>
