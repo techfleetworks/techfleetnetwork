@@ -253,7 +253,6 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Interests", colId: "p_interests", flex: 2, valueGetter: (p) => (p.data?.profile?.interests ?? []).join(", ") },
 
       // ── General Application ──
-      { headerName: "About Yourself", colId: "ga_about_yourself", flex: 2, valueGetter: (p) => truncate(p.data?.generalApp?.about_yourself ?? "") },
       { headerName: "Hours Commitment", colId: "ga_hours_commitment", flex: 1, valueGetter: (p) => p.data?.generalApp?.hours_commitment ?? "—" },
       { headerName: "Previous Engagement", colId: "ga_previous_engagement", flex: 1, valueGetter: (p) => p.data?.generalApp?.previous_engagement ?? "—" },
       { headerName: "Previous Engagement Ways", colId: "ga_previous_engagement_ways", flex: 2, valueGetter: (p) => (p.data?.generalApp?.previous_engagement_ways ?? []).join(", ") },

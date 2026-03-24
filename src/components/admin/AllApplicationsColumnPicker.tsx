@@ -50,7 +50,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { key: "p_interests", label: "Interests", group: "profile" },
 
   // General Application
-  { key: "ga_about_yourself", label: "About Yourself", group: "general_app" },
+  
   { key: "ga_hours_commitment", label: "Hours Commitment", group: "general_app" },
   { key: "ga_previous_engagement", label: "Previous Engagement", group: "general_app" },
   { key: "ga_previous_engagement_ways", label: "Previous Engagement Ways", group: "general_app" },

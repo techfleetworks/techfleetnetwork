@@ -339,7 +339,6 @@ export default function RosterApplicantDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReadOnlyField label="Tell us about yourself" value={(genApp.about_yourself as string) ?? ""} />
             <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
 
             <Separator className="my-2" />
