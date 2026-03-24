@@ -361,7 +361,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {mobileMenuOpen && (
             <div
               id="mobile-menu"
-              className="border-t animate-fade-in"
+              className="border-t animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto"
               role="menu"
             >
               <div className="container-app py-4 space-y-1">
