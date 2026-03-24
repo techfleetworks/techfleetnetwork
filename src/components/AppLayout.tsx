@@ -382,6 +382,30 @@ export function AppLayout({ children }: AppLayoutProps) {
                     {label}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <>
+                    <div className="pt-3 border-t">
+                      <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Admin</p>
+                    </div>
+                    {mobileAdminLinks.map(({ label, href, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        to={href}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                          isActive(href)
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        aria-current={isActive(href) ? "page" : undefined}
+                        role="menuitem"
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </Link>
+                    ))}
+                  </>
+                )}
                 <div className="pt-3 border-t space-y-2">
                   <Button
                     variant="outline"

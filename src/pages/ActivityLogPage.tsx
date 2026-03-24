@@ -260,7 +260,7 @@ export default function ActivityLogPage() {
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="space-y-6">
+    <div className="container-app py-8 sm:py-12 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Activity Log</h1>
         <p className="text-muted-foreground mt-1">
