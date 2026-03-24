@@ -26,6 +26,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -192,6 +193,13 @@ const mobileNavLinks = [
   { label: "My Journey", href: "/my-journey", icon: Map },
   { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
+];
+
+const mobileAdminLinks = [
+  { label: "Activity Log", href: "/admin/activity-log", icon: Activity },
+  { label: "Clients & Projects", href: "/admin/clients", icon: Building2 },
+  { label: "Recruiting Center", href: "/admin/roster", icon: Users },
+  { label: "User Admin", href: "/admin/users", icon: ShieldCheck },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
