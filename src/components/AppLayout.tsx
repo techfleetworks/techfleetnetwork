@@ -207,6 +207,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const isMobile = useIsMobile();
   useAnnouncementRealtime();
   useNotificationRealtime();
