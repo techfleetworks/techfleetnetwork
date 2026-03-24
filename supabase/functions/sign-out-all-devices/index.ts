@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("sign-out-all-devices");
