@@ -280,7 +280,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="container-app py-6 sm:py-8 max-w-4xl flex h-[calc(100vh-8rem)]">
+    <div className="container-app py-6 sm:py-8 max-w-4xl flex flex-col sm:flex-row h-[calc(100vh-5rem)] sm:h-[calc(100vh-8rem)]">
       {/* Conversation sidebar */}
       {user && (
         <div

@@ -12,12 +12,21 @@ import {
   Bot,
   CalendarDays,
   Megaphone,
+  ClipboardList,
+  Handshake,
+  Map,
+  MessageSquarePlus,
+  ShieldCheck,
+  Activity,
+  Building2,
+  Users,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -174,12 +183,23 @@ interface AppLayoutProps {
 }
 
 const mobileNavLinks = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Updates", href: "/updates", icon: Megaphone },
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Announcements", href: "/updates", icon: Megaphone },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
+  { label: "Guidance", href: "/chat", icon: Bot },
+  { label: "My Journey", href: "/my-journey", icon: Map },
+  { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
-  { label: "Fleety", href: "/chat", icon: Bot },
+];
+
+const mobileAdminLinks = [
+  { label: "Activity Log", href: "/admin/activity-log", icon: Activity },
+  { label: "Clients & Projects", href: "/admin/clients", icon: Building2 },
+  { label: "Recruiting Center", href: "/admin/roster", icon: Users },
+  { label: "User Admin", href: "/admin/users", icon: ShieldCheck },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -187,6 +207,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const isMobile = useIsMobile();
   useAnnouncementRealtime();
   useNotificationRealtime();
@@ -340,7 +361,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {mobileMenuOpen && (
             <div
               id="mobile-menu"
-              className="border-t animate-fade-in"
+              className="border-t animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto"
               role="menu"
             >
               <div className="container-app py-4 space-y-1">
@@ -361,6 +382,30 @@ export function AppLayout({ children }: AppLayoutProps) {
                     {label}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <>
+                    <div className="pt-3 border-t">
+                      <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Admin</p>
+                    </div>
+                    {mobileAdminLinks.map(({ label, href, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        to={href}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                          isActive(href)
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        aria-current={isActive(href) ? "page" : undefined}
+                        role="menuitem"
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </Link>
+                    ))}
+                  </>
+                )}
                 <div className="pt-3 border-t space-y-2">
                   <Button
                     variant="outline"

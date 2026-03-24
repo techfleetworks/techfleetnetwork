@@ -20,8 +20,8 @@ export default function ClientsPage() {
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Clients & Projects</h1>
+    <div className="container-app py-8 sm:py-12 space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Clients & Projects</h1>
 
       <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
         <TabsList>
