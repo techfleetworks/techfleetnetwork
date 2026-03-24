@@ -511,7 +511,7 @@ export default function ProjectApplicationPage() {
 
       {/* ── Scrollable Content ────────────────────────────── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          {/* Project info card (step 1 only) */}
+        <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {step === 1 && (
           <Card>
             <CardContent className="pt-4 space-y-2">
