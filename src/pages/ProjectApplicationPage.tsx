@@ -122,6 +122,8 @@ export default function ProjectApplicationPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
+  const [genAppDialogOpen, setGenAppDialogOpen] = useState(false);
+  const [genAppDialogShown, setGenAppDialogShown] = useState(false);
 
   /* ── fetch project info ────────────────────────────────── */
   const { data: project, isLoading: projLoading } = useQuery({

@@ -219,25 +219,21 @@ export default function ProjectOpeningsPage() {
               {p.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
             </div>
           </div>
-          {p.project_status === "apply_now" && (
-            <>
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground mb-1">Total Applications</p>
-                <p className="text-xs text-foreground pl-3 font-medium">{p.totalApps}</p>
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground mb-1">Total Applications</p>
+            <p className="text-xs text-foreground pl-3 font-medium">{p.totalApps}</p>
+          </div>
+          {p.team_hats.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground mb-1">Applications by Team Hat</p>
+              <div className="space-y-0.5 pl-3">
+                {p.team_hats.map((hat) => (
+                  <p key={hat} className="text-xs text-muted-foreground">
+                    <span className="text-foreground font-medium">{p.hatCounts[hat] ?? 0}</span> — {hat}
+                  </p>
+                ))}
               </div>
-              {Object.keys(p.hatCounts).length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Applications by Team Hat</p>
-                  <div className="space-y-0.5 pl-3">
-                    {p.team_hats.map((hat) => (
-                      <p key={hat} className="text-xs text-muted-foreground">
-                        <span className="text-foreground font-medium">{p.hatCounts[hat] ?? 0}</span> — {hat}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </CardContent>
         <CardFooter className="pt-3 border-t">
