@@ -12,6 +12,14 @@ import {
   Bot,
   CalendarDays,
   Megaphone,
+  ClipboardList,
+  Handshake,
+  Map,
+  MessageSquarePlus,
+  ShieldCheck,
+  Activity,
+  Building2,
+  Users,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -174,12 +182,16 @@ interface AppLayoutProps {
 }
 
 const mobileNavLinks = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Updates", href: "/updates", icon: Megaphone },
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Announcements", href: "/updates", icon: Megaphone },
+  { label: "Applications", href: "/applications", icon: ClipboardList },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
+  { label: "Guidance", href: "/chat", icon: Bot },
+  { label: "My Journey", href: "/my-journey", icon: Map },
+  { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
-  { label: "Fleety", href: "/chat", icon: Bot },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {

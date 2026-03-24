@@ -152,7 +152,7 @@ export function ThemedAgGrid<T = unknown>({
   return (
     <div className="flex flex-col gap-6">
       {showToolbar && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {gridId && !hideResetButton && (
             <Button variant="outline" size="sm" onClick={resetView} className="gap-1.5 text-xs h-9">
               <RotateCcw className="h-3.5 w-3.5" />
@@ -168,19 +168,21 @@ export function ThemedAgGrid<T = unknown>({
           {toolbarLeft}
         </div>
       )}
-      <div key={themeClass} className={themeClass} style={{ height, width: "100%" }}>
-        <AgGridReact<T>
-          defaultColDef={mergedColDef}
-          columnDefs={columnDefs}
-          animateRows
-          onGridReady={handleGridReady}
-          onSortChanged={handleSortChanged}
-          onFilterChanged={handleFilterChanged}
-          onColumnResized={handleColumnResized}
-          onColumnMoved={handleColumnMoved}
-          onColumnVisible={handleColumnVisible}
-          {...rest}
-        />
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div key={themeClass} className={themeClass} style={{ height, width: "100%", minWidth: "600px" }}>
+          <AgGridReact<T>
+            defaultColDef={mergedColDef}
+            columnDefs={columnDefs}
+            animateRows
+            onGridReady={handleGridReady}
+            onSortChanged={handleSortChanged}
+            onFilterChanged={handleFilterChanged}
+            onColumnResized={handleColumnResized}
+            onColumnMoved={handleColumnMoved}
+            onColumnVisible={handleColumnVisible}
+            {...rest}
+          />
+        </div>
       </div>
     </div>
   );
