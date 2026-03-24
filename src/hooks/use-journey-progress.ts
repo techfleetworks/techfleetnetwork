@@ -13,6 +13,7 @@ export function useCompletedCount(
     queryKey: ["journey-completed", userId, phase, validTaskIds ? [...validTaskIds].sort().join(",") : "__all__"],
     queryFn: () => JourneyService.getCompletedCount(userId!, phase, validTaskIds),
     enabled: !!userId,
+    staleTime: 0, // Always refetch on mount so completed courses reflect immediately
   });
 }
 
@@ -21,5 +22,6 @@ export function useJourneyProgress(userId: string | undefined, phase: JourneyPha
     queryKey: ["journey-progress", userId, phase],
     queryFn: () => JourneyService.getProgress(userId!, phase),
     enabled: !!userId,
+    staleTime: 0, // Always refetch on mount so completed courses reflect immediately
   });
 }
