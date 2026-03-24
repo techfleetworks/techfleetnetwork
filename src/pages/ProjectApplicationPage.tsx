@@ -568,10 +568,6 @@ export default function ProjectApplicationPage() {
                     <ReadOnlyField label="Hours Commitment" value={(genApp.hours_commitment as string) ?? ""} />
                   </div>
 
-                  <div className="rounded-lg border bg-card p-6 space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">About You</h3>
-                    <ReadOnlyField label="Tell us about yourself" value={(genApp.about_yourself as string) ?? ""} />
-                  </div>
 
                   <div className="rounded-lg border bg-card p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</h3>
