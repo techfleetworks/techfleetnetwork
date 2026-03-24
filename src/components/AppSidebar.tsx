@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   GraduationCap,
   BookOpen,
-  LifeBuoy,
   CalendarDays,
   ClipboardList,
   Handshake,
@@ -11,6 +10,7 @@ import {
   Activity,
   Megaphone,
   Building2,
+  MessageCircle,
   MessageSquarePlus,
   Users,
   Map,
@@ -38,6 +38,8 @@ const homeNav = [
 const communityNav = [
   { label: "Announcements", href: "/updates", icon: Megaphone },
   { label: "Events", href: "/events", icon: CalendarDays },
+  { label: "Guidance", href: "/chat", icon: MessageCircle },
+  { label: "Resources", href: "/resources", icon: BookOpen },
 ];
 
 const trainingNav = [
@@ -49,8 +51,6 @@ const trainingNav = [
 
 const supportNav = [
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
-  { label: "Get Help", href: "/chat", icon: LifeBuoy },
-  { label: "Resources", href: "/resources", icon: BookOpen },
 ];
 
 const navSections = [
