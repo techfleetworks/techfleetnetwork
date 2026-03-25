@@ -3,13 +3,14 @@ import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type {
   ColDef, GridReadyEvent, ColumnResizedEvent, SortChangedEvent,
   FilterChangedEvent, ColumnMovedEvent, ColumnVisibleEvent, GridApi,
+  CellClickedEvent,
 } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { useTheme } from "@/components/ThemeProvider";
 import { useGridState, type GridState } from "@/hooks/use-grid-state";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Download } from "lucide-react";
+import { RotateCcw, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -27,6 +28,8 @@ interface Props<T> extends AgGridReactProps<T> {
   exportFileName?: string;
   /** Callback to receive the grid API reference */
   onApiReady?: (api: GridApi<T>) => void;
+  /** Disable copy-on-click for cells (enabled by default) */
+  disableCellCopy?: boolean;
 }
 
 export function ThemedAgGrid<T = unknown>({
@@ -37,6 +40,7 @@ export function ThemedAgGrid<T = unknown>({
   showExportCsv,
   exportFileName,
   onApiReady,
+  disableCellCopy,
   defaultColDef,
   onGridReady: externalOnGridReady,
   onSortChanged: externalOnSortChanged,
@@ -139,6 +143,20 @@ export function ThemedAgGrid<T = unknown>({
     [saveCurrentState]
   );
 
+  const handleCellClicked = useCallback(
+    (event: CellClickedEvent<T>) => {
+      if (disableCellCopy) return;
+      const value = event.value;
+      if (value == null || value === "") return;
+      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      navigator.clipboard.writeText(text).then(
+        () => toast.success("Copied to clipboard", { description: text.length > 80 ? text.slice(0, 80) + "…" : text, duration: 1500 }),
+        () => {}
+      );
+    },
+    [disableCellCopy]
+  );
+
   const showToolbar = toolbarLeft || (gridId && !hideResetButton) || showExportCsv;
 
   if (gridId && !loaded) {
@@ -180,6 +198,8 @@ export function ThemedAgGrid<T = unknown>({
             onColumnResized={handleColumnResized}
             onColumnMoved={handleColumnMoved}
             onColumnVisible={handleColumnVisible}
+            onCellClicked={handleCellClicked}
+            tooltipShowDelay={300}
             {...rest}
           />
         </div>
