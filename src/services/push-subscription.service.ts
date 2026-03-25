@@ -24,6 +24,21 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+/** Get the active SW registration with a timeout to avoid hanging forever */
+async function getReadyRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
+  if (!navigator.serviceWorker?.controller && !navigator.serviceWorker?.getRegistration) {
+    return null;
+  }
+  try {
+    const result = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+    return result;
+  } catch {
+    return null;
+  }
+}
 
 export class PushSubscriptionService {
   /** Check if the browser supports push notifications */
