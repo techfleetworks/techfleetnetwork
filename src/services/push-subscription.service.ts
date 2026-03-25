@@ -74,7 +74,8 @@ export class PushSubscriptionService {
     if (permission !== "granted") return false;
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration();
+      if (!registration) return false;
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
