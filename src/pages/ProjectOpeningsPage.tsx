@@ -245,20 +245,7 @@ export default function ProjectOpeningsPage() {
     );
   }
 
-  /* ── Section renderer ────────────────────────────────────── */
-  function ProjectSection({ icon: Icon, items, emptyText }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string }) {
-    if (items.length === 0) return (
-      <div className="rounded-lg border bg-card p-6 text-center">
-        <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">{emptyText}</p>
-      </div>
-    );
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {items.map((p) => <div key={p.id}><ProjectCard p={p} /></div>)}
-      </div>
-    );
-  }
+
 
   return (
     <div className="container-app py-8 sm:py-12">
@@ -334,6 +321,33 @@ export default function ProjectOpeningsPage() {
         liveProjects={liveProjects}
       />
 
+    </div>
+  );
+}
+
+function ProjectSection({ icon: Icon, items, emptyText, navigate }: { icon: React.ElementType; items: any[]; emptyText: string; navigate: any }) {
+  if (items.length === 0) return (
+    <div className="rounded-lg border bg-card p-6 text-center">
+      <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+      <p className="text-sm text-muted-foreground">{emptyText}</p>
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {items.map((p: any) => (
+        <Card key={p.id} className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 text-sm">
+            <Badge variant="secondary" className="text-xs">{p.project_status}</Badge>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -415,28 +429,28 @@ function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, 
                 <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
                 Open Applications
               </h3>
-              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
+              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." navigate={navigate} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
                 Opening Soon
               </h3>
-              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." />
+              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." navigate={navigate} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
                 Starting Soon
               </h3>
-              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
+              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." navigate={navigate} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
                 Live Projects
               </h3>
-              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
+              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." navigate={navigate} />
             </div>
           </div>
         )}
