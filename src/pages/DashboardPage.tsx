@@ -176,6 +176,22 @@ export default function DashboardPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // Fetch general application status
+  const { data: generalApp } = useQuery({
+    queryKey: ["dashboard-general-app", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("id, status, completed_at, updated_at, current_section")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Combine project apps + projects + clients into a single query to avoid waterfall
   const { data: projectAppData } = useQuery({
     queryKey: ["dashboard-project-apps-combined", userId],
