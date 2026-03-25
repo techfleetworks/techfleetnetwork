@@ -11,9 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   User, Globe, MessageCircle, Check, ChevronsUpDown,
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
-  Link2, RefreshCw, Bell,
+  Link2, RefreshCw,
 } from "lucide-react";
-import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
