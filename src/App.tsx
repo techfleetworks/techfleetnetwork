@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { Suspense, lazy } from "react";
 
 // Eagerly loaded routes (critical path)
