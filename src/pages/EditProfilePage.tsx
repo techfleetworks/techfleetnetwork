@@ -531,6 +531,8 @@ export default function EditProfilePage() {
                     <p className="text-xs text-muted-foreground mt-0.5">Receive emails about announcements and, if combined with the above, training opportunity alerts.</p>
                   </div>
                 </div>
+                {/* Push Notifications */}
+                <PushNotificationToggle />
               </div>
             </div>
           </ResponsiveTabsContent>
