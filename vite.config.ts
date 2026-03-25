@@ -20,20 +20,34 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
   },
   optimizeDeps: {
-    include: ["@tanstack/react-query"],
+    include: ["@tanstack/react-query", "react", "react-dom", "react-router-dom"],
   },
   build: {
+    target: "es2020",
+    sourcemap: false,
     rollupOptions: {
       output: {
-        // Split vendor chunks for better caching
         manualChunks: {
           "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "ui-vendor": ["@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-popover"],
+          "query-vendor": ["@tanstack/react-query"],
+          "ui-vendor": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-select",
+          ],
+          "form-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "date-vendor": ["date-fns"],
           "d3-geo": ["d3-geo", "topojson-client"],
+          "supabase-vendor": ["@supabase/supabase-js"],
+          "chart-vendor": ["recharts"],
+          "editor-vendor": ["react-quill-new"],
         },
       },
     },
-    // Enable CSS code splitting
     cssCodeSplit: true,
+    chunkSizeWarningLimit: 500,
   },
 }));
