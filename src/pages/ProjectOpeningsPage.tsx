@@ -320,21 +320,19 @@ export default function ProjectOpeningsPage() {
         </div>
       )}
 
-      <ResponsiveTabs defaultValue="client" className="w-full">
-        <ResponsiveTabsList className="w-full sm:w-auto mb-6">
-          <ResponsiveTabsTrigger value="client" className="flex-1 sm:flex-none gap-2">
-            Client Project Openings
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${openApplications.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {openApplications.length}
-            </span>
-          </ResponsiveTabsTrigger>
-          <ResponsiveTabsTrigger value="volunteer" className="flex-1 sm:flex-none gap-2">
-            Volunteer Openings
-            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white bg-[#52525b]">
-              0
-            </span>
-          </ResponsiveTabsTrigger>
-        </ResponsiveTabsList>
+      <ProjectOpeningsTabs
+        openApplications={openApplications}
+        enrichedProjects={enrichedProjects}
+        projLoading={projLoading}
+        view={view}
+        setView={setView}
+        navigate={navigate}
+        isAdmin={isAdmin}
+        columnDefs={columnDefs}
+        comingSoon={comingSoon}
+        startingSoon={startingSoon}
+        liveProjects={liveProjects}
+      />
 
         <ResponsiveTabsContent value="client">
           {enrichedProjects.length > 0 && (
@@ -437,7 +435,32 @@ export default function ProjectOpeningsPage() {
             </a>
           </div>
         </ResponsiveTabsContent>
-      </ResponsiveTabs>
     </div>
   );
 }
+
+function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects }: any) {
+  const [tab, setTab] = useState("client");
+
+  const countBadge = (count: number) => (
+    <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-primary-foreground ${count > 0 ? "bg-primary" : "bg-muted-foreground"}`}>
+      {count}
+    </span>
+  );
+
+  const tabs: TabItem[] = [
+    {
+      value: "client",
+      label: <span className="flex items-center gap-2">Client Project Openings {countBadge(openApplications.length)}</span>,
+    },
+    {
+      value: "volunteer",
+      label: <span className="flex items-center gap-2">Volunteer Openings {countBadge(0)}</span>,
+    },
+  ];
+
+  return (
+    <ResponsiveTabs value={tab} onValueChange={setTab} className="w-full">
+      <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} className="mb-6" />
+
+      <ResponsiveTabsContent value="client">
