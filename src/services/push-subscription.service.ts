@@ -65,13 +65,14 @@ export class PushSubscriptionService {
 
   /**
    * Subscribe this browser/device to push notifications and save to DB.
-   * Returns true on success.
+   * Returns a status string for richer UX feedback.
    */
-  static async subscribe(userId: string): Promise<boolean> {
-    if (!this.isSupported()) return false;
+  static async subscribe(userId: string): Promise<"granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error"> {
+    if (!this.isSupported()) return "unsupported";
 
     const permission = await this.requestPermission();
-    if (permission !== "granted") return false;
+    if (permission === "denied") return "denied";
+    if (permission !== "granted") return "dismissed";
 
     try {
       const registration = await getReadyRegistration();
