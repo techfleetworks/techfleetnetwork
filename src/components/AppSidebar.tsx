@@ -67,8 +67,8 @@ export function AppSidebar() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
 
-  const isActive = (href: string) =>
-    location.pathname === href || location.pathname.startsWith(href + "/");
+  const isActive = useCallback((href: string) =>
+    location.pathname === href || location.pathname.startsWith(href + "/"), [location.pathname]);
 
   if (!user) return null;
 
@@ -181,4 +181,4 @@ export function AppSidebar() {
       </SidebarContent>
     </Sidebar>
   );
-}
+});
