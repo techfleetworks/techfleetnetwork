@@ -13,6 +13,7 @@ import {
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
   Link2, RefreshCw,
 } from "lucide-react";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
@@ -530,6 +531,8 @@ export default function EditProfilePage() {
                     <p className="text-xs text-muted-foreground mt-0.5">Receive emails about announcements and, if combined with the above, training opportunity alerts.</p>
                   </div>
                 </div>
+                {/* Push Notifications */}
+                <PushNotificationToggle />
               </div>
             </div>
           </ResponsiveTabsContent>

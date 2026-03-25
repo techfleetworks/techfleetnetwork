@@ -48,6 +48,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
+        // Import custom push handler into the generated service worker
+        importScripts: ["/sw-push.js"],
       },
       manifest: {
         name: "Tech Fleet Network",
