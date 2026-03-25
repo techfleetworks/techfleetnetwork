@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText, ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
@@ -10,6 +10,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@/lib/react-query";
 import { JourneyService } from "@/services/journey.service";
@@ -101,6 +108,8 @@ export default function FirstStepsPage() {
   const { user, profile, profileLoaded } = useAuth();
   const queryClient = useQueryClient();
 
+  const navigate = useNavigate();
+
   const taskDefs = baseTasks;
 
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
@@ -108,6 +117,8 @@ export default function FirstStepsPage() {
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const completionShownRef = useRef(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
@@ -169,6 +180,10 @@ export default function FirstStepsPage() {
         const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
         if (newCompletedCount === tasks.length) {
           DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
+          if (!completionShownRef.current) {
+            completionShownRef.current = true;
+            setShowCompletionDialog(true);
+          }
         } else {
           DiscordNotifyService.taskCompleted(name, id, discord, discordId);
         }
@@ -202,6 +217,10 @@ export default function FirstStepsPage() {
       const newCompletedCount = tasks.filter((t) => t.id !== taskId ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
+        if (!completionShownRef.current) {
+          completionShownRef.current = true;
+          setShowCompletionDialog(true);
+        }
       } else {
         DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
       }
@@ -363,6 +382,30 @@ export default function FirstStepsPage() {
         onAccepted={() => handlePanelAccepted("terms-conditions")}
         loading={loadingId === "terms-conditions"}
       />
+
+      {/* 🎉 Course completion popup */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Onboarding Steps Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've completed all onboarding tasks. You're ready for the next course!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/agile-mindset"); }}>
+              Continue to Build an Agile Mindset
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
