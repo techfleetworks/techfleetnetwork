@@ -60,7 +60,7 @@ const navSections = [
   { label: "Support", items: supportNav },
 ];
 
-export function AppSidebar() {
+export const AppSidebar = memo(function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
