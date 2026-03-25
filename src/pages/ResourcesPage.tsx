@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Wrench, Loader2, Sparkles } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import ExploreTab from "@/components/resources/ExploreTab";
 import ResourceCard from "@/components/resources/ResourceCard";
 import ResourceDetailPanel from "@/components/resources/ResourceDetailPanel";
@@ -14,6 +14,7 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedHandbook, setSelectedHandbook] = useState<Handbook | null>(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
+  const [tab, setTab] = useState("explore");
 
   useEffect(() => {
     async function load() {
@@ -42,13 +43,31 @@ export default function ResourcesPage() {
     <span
       className={`ml-1.5 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold leading-none ${
         count > 0
-          ? "bg-[hsl(221,83%,53%)] text-white"
+          ? "bg-primary text-primary-foreground"
           : "bg-muted text-muted-foreground"
       }`}
     >
       {count}
     </span>
   );
+
+  const resourceTabs: TabItem[] = [
+    {
+      value: "explore",
+      icon: <Sparkles className="h-4 w-4" />,
+      label: "Explore",
+    },
+    {
+      value: "handbooks",
+      icon: <BookOpen className="h-4 w-4" />,
+      label: <span className="flex items-center">Handbooks{countBadge(handbooks.length)}</span>,
+    },
+    {
+      value: "workshops",
+      icon: <Wrench className="h-4 w-4" />,
+      label: <span className="flex items-center">Workshop Templates{countBadge(workshops.length)}</span>,
+    },
+  ];
 
   return (
     <div className="container-app py-8 sm:py-12">
@@ -61,29 +80,14 @@ export default function ResourcesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="explore" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="explore" className="gap-1.5">
-            <Sparkles className="h-4 w-4" />
-            Explore
-          </TabsTrigger>
-          <TabsTrigger value="handbooks" className="gap-1.5">
-            <BookOpen className="h-4 w-4" />
-            Handbooks
-            {countBadge(handbooks.length)}
-          </TabsTrigger>
-          <TabsTrigger value="workshops" className="gap-1.5">
-            <Wrench className="h-4 w-4" />
-            Workshop Templates
-            {countBadge(workshops.length)}
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs value={tab} onValueChange={setTab} className="space-y-6">
+        <ResponsiveTabsList tabs={resourceTabs} value={tab} onValueChange={setTab} />
 
-        <TabsContent value="explore">
+        <ResponsiveTabsContent value="explore">
           <ExploreTab />
-        </TabsContent>
+        </ResponsiveTabsContent>
 
-        <TabsContent value="handbooks">
+        <ResponsiveTabsContent value="handbooks">
           {handbooks.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
               No handbooks available.
@@ -102,9 +106,9 @@ export default function ResourcesPage() {
               ))}
             </div>
           )}
-        </TabsContent>
+        </ResponsiveTabsContent>
 
-        <TabsContent value="workshops">
+        <ResponsiveTabsContent value="workshops">
           {workshops.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
               No workshops available.
@@ -123,8 +127,8 @@ export default function ResourcesPage() {
               ))}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
 
       <ResourceDetailPanel
         open={!!selectedHandbook}

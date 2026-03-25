@@ -1,9 +1,14 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { ClientsTab } from "@/components/clients/ClientsTab";
 import { ProjectsTab } from "@/components/clients/ProjectsTab";
+
+const clientTabs: TabItem[] = [
+  { value: "clients", label: "Clients" },
+  { value: "projects", label: "Projects" },
+];
 
 export default function ClientsPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -23,18 +28,15 @@ export default function ClientsPage() {
     <div className="container-app py-8 sm:py-12 space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Clients & Projects</h1>
 
-      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
-        <TabsList>
-          <TabsTrigger value="clients">Clients</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-        </TabsList>
-        <TabsContent value="clients">
+      <ResponsiveTabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
+        <ResponsiveTabsList tabs={clientTabs} value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })} />
+        <ResponsiveTabsContent value="clients">
           <ClientsTab />
-        </TabsContent>
-        <TabsContent value="projects">
+        </ResponsiveTabsContent>
+        <ResponsiveTabsContent value="projects">
           <ProjectsTab />
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
     </div>
   );
 }

@@ -1,7 +1,14 @@
+import { useState } from "react";
 import { Globe, Users } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
+
+const eventTabs: TabItem[] = [
+  { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
+  { value: "public", label: "Public Events", icon: <Globe className="h-4 w-4" /> },
+];
 
 export default function EventsPage() {
+  const [tab, setTab] = useState("community");
   const lumaSrc =
     "https://lu.ma/embed/community/comm-xiKNSR1G2cMEJBk/events?compact=true&lt=light";
   const calendarSrc =
@@ -10,27 +17,16 @@ export default function EventsPage() {
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          Events
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Events</h1>
         <p className="text-muted-foreground mt-1">
           Upcoming project meetings and community events across Tech Fleet.
         </p>
       </div>
 
-      <Tabs defaultValue="community" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="community" className="gap-2">
-            <Users className="h-4 w-4" />
-            Community Events
-          </TabsTrigger>
-          <TabsTrigger value="public" className="gap-2">
-            <Globe className="h-4 w-4" />
-            Public Events
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs value={tab} onValueChange={setTab} className="w-full">
+        <ResponsiveTabsList tabs={eventTabs} value={tab} onValueChange={setTab} className="mb-6" />
 
-        <TabsContent value="public">
+        <ResponsiveTabsContent value="public">
           <div className="rounded-lg border bg-card overflow-hidden">
             <iframe
               src={lumaSrc}
@@ -42,9 +38,9 @@ export default function EventsPage() {
               allowFullScreen
             />
           </div>
-        </TabsContent>
+        </ResponsiveTabsContent>
 
-        <TabsContent value="community">
+        <ResponsiveTabsContent value="community">
           <div className="rounded-lg border bg-card overflow-hidden">
             <iframe
               src={calendarSrc}
@@ -55,8 +51,8 @@ export default function EventsPage() {
               sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
     </div>
   );
 }

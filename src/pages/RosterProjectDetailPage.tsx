@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Loader2, ShieldAlert, FolderKanban, Users } from "lucide-react";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
@@ -21,6 +21,11 @@ const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
+const rosterTabs: TabItem[] = [
+  { value: "analysis", label: "Application Analysis" },
+  { value: "roster", label: "Project Roster" },
+];
+
 function TabFallback() {
   return (
     <div className="flex items-center justify-center py-12">
@@ -34,6 +39,7 @@ export default function RosterProjectDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const [tab, setTab] = useState("analysis");
 
   const { data: project, isLoading: projLoading } = useQuery({
     queryKey: ["roster-project-detail", projectId],
@@ -105,7 +111,6 @@ export default function RosterProjectDetailPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 max-w-6xl mx-auto space-y-6">
-      {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -120,7 +125,6 @@ export default function RosterProjectDetailPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -134,29 +138,19 @@ export default function RosterProjectDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="analysis">
-        <TabsList>
-          <TabsTrigger value="analysis" className="gap-1.5">
-            Application Analysis
-          </TabsTrigger>
-          <TabsTrigger value="roster">
-            Project Roster
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="analysis" className="mt-6">
+      <ResponsiveTabs value={tab} onValueChange={setTab}>
+        <ResponsiveTabsList tabs={rosterTabs} value={tab} onValueChange={setTab} />
+        <ResponsiveTabsContent value="analysis" className="mt-6">
           <Suspense fallback={<TabFallback />}>
             <ProjectAnalysisContent projectId={projectId!} />
           </Suspense>
-        </TabsContent>
-
-        <TabsContent value="roster" className="mt-6">
+        </ResponsiveTabsContent>
+        <ResponsiveTabsContent value="roster" className="mt-6">
           <Suspense fallback={<TabFallback />}>
             <ProjectRosterContent projectId={projectId!} />
           </Suspense>
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
     </div>
   );
 }

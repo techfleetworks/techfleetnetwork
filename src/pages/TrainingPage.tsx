@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
   Check,
-  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   GraduationCap,
@@ -15,7 +15,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
@@ -144,7 +144,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
 }
 
 export default function TrainingPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const userId = user?.id;
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
@@ -259,18 +259,17 @@ export default function TrainingPage() {
   const beginnerComplete = isTabComplete(beginnerCourses);
   const advancedComplete = isTabComplete(advancedCourses);
 
-  /** Renders either a green check circle (all done) or a count badge */
   const TabBadge = ({ complete, count }: { complete: boolean; count: number }) =>
     complete ? (
       <span
-        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-[#15803d] dark:bg-[#22c55e]"
+        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-success"
         aria-label="All courses completed"
       >
-        <Check className="h-3 w-3 text-white dark:text-[#052e16]" strokeWidth={3} />
+        <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
       </span>
     ) : (
       <span
-        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${count > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}
+        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-primary-foreground ${count > 0 ? "bg-primary" : "bg-muted-foreground"}`}
       >
         {count}
       </span>
@@ -285,46 +284,82 @@ export default function TrainingPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="getting-started" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="getting-started" className="gap-2">
-            <ClipboardCheck className="h-4 w-4" />
-            Getting Started
-            <TabBadge complete={gettingStartedComplete} count={gettingStartedCourses.length} />
-          </TabsTrigger>
-          <TabsTrigger value="core" className="gap-2">
-            <GraduationCap className="h-4 w-4" />
-            Core Courses
-            <TabBadge complete={coreComplete} count={coreCourses.length} />
-          </TabsTrigger>
-          <TabsTrigger value="beginner" className="gap-2">
-            <Lightbulb className="h-4 w-4" />
-            Beginner Courses
-            <TabBadge complete={beginnerComplete} count={beginnerCourses.length} />
-          </TabsTrigger>
-          <TabsTrigger value="advanced" className="gap-2">
-            <Rocket className="h-4 w-4" />
-            Advanced Courses
-            <TabBadge complete={advancedComplete} count={advancedCourses.length} />
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="getting-started">
-          <CourseGrid courses={gettingStartedCourses} />
-        </TabsContent>
-
-        <TabsContent value="core">
-          <CourseGrid courses={coreCourses} />
-        </TabsContent>
-
-        <TabsContent value="beginner">
-          <CourseGrid courses={beginnerCourses} />
-        </TabsContent>
-
-        <TabsContent value="advanced">
-          <CourseGrid courses={advancedCourses} />
-        </TabsContent>
-      </Tabs>
+      <TrainingTabs
+        gettingStartedCourses={gettingStartedCourses}
+        coreCourses={coreCourses}
+        beginnerCourses={beginnerCourses}
+        advancedCourses={advancedCourses}
+        gettingStartedComplete={gettingStartedComplete}
+        coreComplete={coreComplete}
+        beginnerComplete={beginnerComplete}
+        advancedComplete={advancedComplete}
+        TabBadge={TabBadge}
+      />
     </div>
+  );
+}
+
+function TrainingTabs({
+  gettingStartedCourses,
+  coreCourses,
+  beginnerCourses,
+  advancedCourses,
+  gettingStartedComplete,
+  coreComplete,
+  beginnerComplete,
+  advancedComplete,
+  TabBadge,
+}: {
+  gettingStartedCourses: CourseCard[];
+  coreCourses: CourseCard[];
+  beginnerCourses: CourseCard[];
+  advancedCourses: CourseCard[];
+  gettingStartedComplete: boolean;
+  coreComplete: boolean;
+  beginnerComplete: boolean;
+  advancedComplete: boolean;
+  TabBadge: React.FC<{ complete: boolean; count: number }>;
+}) {
+  const [tab, setTab] = useState("getting-started");
+
+  const tabs: TabItem[] = [
+    {
+      value: "getting-started",
+      icon: <ClipboardCheck className="h-4 w-4" />,
+      label: <span className="flex items-center gap-1.5">Getting Started <TabBadge complete={gettingStartedComplete} count={gettingStartedCourses.length} /></span>,
+    },
+    {
+      value: "core",
+      icon: <GraduationCap className="h-4 w-4" />,
+      label: <span className="flex items-center gap-1.5">Core Courses <TabBadge complete={coreComplete} count={coreCourses.length} /></span>,
+    },
+    {
+      value: "beginner",
+      icon: <Lightbulb className="h-4 w-4" />,
+      label: <span className="flex items-center gap-1.5">Beginner Courses <TabBadge complete={beginnerComplete} count={beginnerCourses.length} /></span>,
+    },
+    {
+      value: "advanced",
+      icon: <Rocket className="h-4 w-4" />,
+      label: <span className="flex items-center gap-1.5">Advanced Courses <TabBadge complete={advancedComplete} count={advancedCourses.length} /></span>,
+    },
+  ];
+
+  return (
+    <ResponsiveTabs value={tab} onValueChange={setTab} className="w-full">
+      <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} className="mb-6" />
+      <ResponsiveTabsContent value="getting-started">
+        <CourseGrid courses={gettingStartedCourses} />
+      </ResponsiveTabsContent>
+      <ResponsiveTabsContent value="core">
+        <CourseGrid courses={coreCourses} />
+      </ResponsiveTabsContent>
+      <ResponsiveTabsContent value="beginner">
+        <CourseGrid courses={beginnerCourses} />
+      </ResponsiveTabsContent>
+      <ResponsiveTabsContent value="advanced">
+        <CourseGrid courses={advancedCourses} />
+      </ResponsiveTabsContent>
+    </ResponsiveTabs>
   );
 }

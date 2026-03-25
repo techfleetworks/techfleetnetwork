@@ -9,7 +9,7 @@ import {
   Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -245,20 +245,7 @@ export default function ProjectOpeningsPage() {
     );
   }
 
-  /* ── Section renderer ────────────────────────────────────── */
-  function ProjectSection({ icon: Icon, items, emptyText }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string }) {
-    if (items.length === 0) return (
-      <div className="rounded-lg border bg-card p-6 text-center">
-        <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">{emptyText}</p>
-      </div>
-    );
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {items.map((p) => <div key={p.id}><ProjectCard p={p} /></div>)}
-      </div>
-    );
-  }
+
 
   return (
     <div className="container-app py-8 sm:py-12">
@@ -320,124 +307,169 @@ export default function ProjectOpeningsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="client" className="w-full">
-        <TabsList className="w-full sm:w-auto mb-6">
-          <TabsTrigger value="client" className="flex-1 sm:flex-none gap-2">
-            Client Project Openings
-            <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${openApplications.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
-              {openApplications.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none gap-2">
-            Volunteer Openings
-            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white bg-[#52525b]">
-              0
-            </span>
-          </TabsTrigger>
-        </TabsList>
+      <ProjectOpeningsTabs
+        openApplications={openApplications}
+        enrichedProjects={enrichedProjects}
+        projLoading={projLoading}
+        view={view}
+        setView={setView}
+        navigate={navigate}
+        isAdmin={isAdmin}
+        columnDefs={columnDefs}
+        comingSoon={comingSoon}
+        startingSoon={startingSoon}
+        liveProjects={liveProjects}
+      />
 
-        <TabsContent value="client">
-          {enrichedProjects.length > 0 && (
-            <div className="flex justify-end mb-4">
-              <div className="flex border rounded-md overflow-hidden">
-                <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view">
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view">
-                  <List className="h-4 w-4" />
-                </Button>
+    </div>
+  );
+}
+
+function ProjectSection({ icon: Icon, items, emptyText, navigate }: { icon: React.ElementType; items: any[]; emptyText: string; navigate: any }) {
+  if (items.length === 0) return (
+    <div className="rounded-lg border bg-card p-6 text-center">
+      <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+      <p className="text-sm text-muted-foreground">{emptyText}</p>
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {items.map((p: any) => (
+        <Card key={p.id} className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
               </div>
             </div>
-          )}
+          </CardHeader>
+          <CardContent className="flex-1 text-sm">
+            <Badge variant="secondary" className="text-xs">{p.project_status}</Badge>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
-          {projLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects }: any) {
+  const [tab, setTab] = useState("client");
+
+  const countBadge = (count: number) => (
+    <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-primary-foreground ${count > 0 ? "bg-primary" : "bg-muted-foreground"}`}>
+      {count}
+    </span>
+  );
+
+  const tabs: TabItem[] = [
+    {
+      value: "client",
+      label: <span className="flex items-center gap-2">Client Project Openings {countBadge(openApplications.length)}</span>,
+    },
+    {
+      value: "volunteer",
+      label: <span className="flex items-center gap-2">Volunteer Openings {countBadge(0)}</span>,
+    },
+  ];
+
+  return (
+    <ResponsiveTabs value={tab} onValueChange={setTab} className="w-full">
+      <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} className="mb-6" />
+
+      <ResponsiveTabsContent value="client">
+        {enrichedProjects.length > 0 && (
+          <div className="flex justify-end mb-4">
+            <div className="flex border rounded-md overflow-hidden">
+              <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view">
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view">
+                <List className="h-4 w-4" />
+              </Button>
             </div>
-          ) : enrichedProjects.length === 0 ? (
-            <div className="rounded-lg border bg-card p-8 text-center">
-              <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">No Openings Right Now</h2>
-              <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                There are no client projects currently available. Check back soon or visit the guide for more details.
-              </p>
-              <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings" target="_blank" rel="noopener noreferrer">
-                <Button variant="outline">
-                  <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
-                </Button>
-              </a>
-            </div>
-          ) : view === "table" ? (
-            <ThemedAgGrid<EnrichedProject>
-              gridId="project-openings"
-              height="400px"
-              rowData={enrichedProjects}
-              columnDefs={columnDefs}
-              getRowId={(params) => params.data.id}
-              onRowClicked={(params) => {
-                if (!params.data) return;
-                navigate(`/project-openings/${params.data.id}`);
-              }}
-              rowStyle={{ cursor: "pointer" }}
-              showExportCsv={isAdmin}
-              exportFileName="project-openings"
-            />
-          ) : (
-            <div className="space-y-10">
-              {/* Open Applications — first */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
-                  Open Applications
-                </h3>
-                <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
-              </div>
+          </div>
+        )}
 
-              {/* Opening Soon — renamed, moved under Open Applications */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
-                  Opening Soon
-                </h3>
-                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." />
-              </div>
-
-              {/* Starting Soon */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
-                  Starting Soon
-                </h3>
-                <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
-              </div>
-
-              {/* Live Projects */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
-                  Live Projects
-                </h3>
-                <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="volunteer">
+        {projLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : enrichedProjects.length === 0 ? (
           <div className="rounded-lg border bg-card p-8 text-center">
             <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">No Openings Right Now</h2>
             <p className="text-muted-foreground max-w-md mx-auto mb-4">
-              View current volunteer team opportunities to support Tech Fleet's mission and operations.
+              There are no client projects currently available. Check back soon or visit the guide for more details.
             </p>
-            <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings" target="_blank" rel="noopener noreferrer">
+            <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings" target="_blank" rel="noopener noreferrer">
               <Button variant="outline">
                 <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
               </Button>
             </a>
           </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+        ) : view === "table" ? (
+          <ThemedAgGrid<EnrichedProject>
+            gridId="project-openings"
+            height="400px"
+            rowData={enrichedProjects}
+            columnDefs={columnDefs}
+            getRowId={(params) => params.data.id}
+            onRowClicked={(params) => {
+              if (!params.data) return;
+              navigate(`/project-openings/${params.data.id}`);
+            }}
+            rowStyle={{ cursor: "pointer" }}
+            showExportCsv={isAdmin}
+            exportFileName="project-openings"
+          />
+        ) : (
+          <div className="space-y-10">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
+                Open Applications
+              </h3>
+              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." navigate={navigate} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
+                Opening Soon
+              </h3>
+              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." navigate={navigate} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
+                Starting Soon
+              </h3>
+              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." navigate={navigate} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
+                Live Projects
+              </h3>
+              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." navigate={navigate} />
+            </div>
+          </div>
+        )}
+      </ResponsiveTabsContent>
+
+      <ResponsiveTabsContent value="volunteer">
+        <div className="rounded-lg border bg-card p-8 text-center">
+          <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
+          <p className="text-muted-foreground max-w-md mx-auto mb-4">
+            View current volunteer team opportunities to support Tech Fleet's mission and operations.
+          </p>
+          <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline">
+              <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
+            </Button>
+          </a>
+        </div>
+      </ResponsiveTabsContent>
+    </ResponsiveTabs>
   );
 }

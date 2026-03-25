@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   User, Globe, MessageCircle, Check, ChevronsUpDown,
@@ -283,7 +283,7 @@ export default function EditProfilePage() {
       noValidate
       className="flex flex-col h-[calc(100dvh-3rem)] animate-fade-in"
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+      <ResponsiveTabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         {/* Sticky tabs */}
         <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2">
           {errors.general && (
@@ -291,12 +291,16 @@ export default function EditProfilePage() {
               {errors.general}
             </div>
           )}
-          <TabsList>
-            <TabsTrigger value="basic-info" className="gap-1.5">Basic Info</TabsTrigger>
-            <TabsTrigger value="training-goals" className="gap-1.5">Training Goals</TabsTrigger>
-            <TabsTrigger value="preferences" className="gap-1.5">Preferences</TabsTrigger>
-            <TabsTrigger value="account" className="gap-1.5">Account</TabsTrigger>
-          </TabsList>
+          <ResponsiveTabsList
+            tabs={[
+              { value: "basic-info", label: "Basic Info" },
+              { value: "training-goals", label: "Training Goals" },
+              { value: "preferences", label: "Preferences" },
+              { value: "account", label: "Account" },
+            ] as TabItem[]}
+            value={activeTab}
+            onValueChange={setActiveTab}
+          />
         </div>
 
         {/* Scrollable content area */}
@@ -304,7 +308,7 @@ export default function EditProfilePage() {
           <div className="container-app max-w-3xl py-6">
 
           {/* ── Tab 1: Basic Info ── */}
-          <TabsContent value="basic-info" className="space-y-6">
+          <ResponsiveTabsContent value="basic-info" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Avatar */}
               {user && (
@@ -432,10 +436,10 @@ export default function EditProfilePage() {
                 <Input id="edit-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
               </ValidatedField>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 2: Training Goals ── */}
-          <TabsContent value="training-goals" className="space-y-6">
+          <ResponsiveTabsContent value="training-goals" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Activity Interests */}
               <div className="space-y-3">
@@ -493,10 +497,10 @@ export default function EditProfilePage() {
                 />
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 3: Preferences ── */}
-          <TabsContent value="preferences" className="space-y-6">
+          <ResponsiveTabsContent value="preferences" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Notification preferences</Label>
@@ -528,10 +532,10 @@ export default function EditProfilePage() {
                 </div>
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 4: Account ── */}
-          <TabsContent value="account" className="space-y-6">
+          <ResponsiveTabsContent value="account" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-1.5">
                 <Label>Password</Label>
@@ -643,7 +647,7 @@ export default function EditProfilePage() {
                 </Button>
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
           </div>
         </div>
 
@@ -655,7 +659,7 @@ export default function EditProfilePage() {
             </Button>
           </div>
         </div>
-      </Tabs>
+      </ResponsiveTabs>
 
       {/* Delete account confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
