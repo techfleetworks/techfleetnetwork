@@ -293,12 +293,12 @@ export default function DashboardPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-9">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome back, {displayName} 👋</h1>
-          <p className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate">Welcome back, {displayName} 👋</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
         </div>
-        <div className="flex-shrink-0 pt-1">
+        <div className="flex-shrink-0">
           <DashboardCustomizer
             visibleWidgets={visibleWidgets}
             widgetOrder={widgetOrder}

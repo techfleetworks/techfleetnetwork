@@ -297,7 +297,7 @@ export default function ProjectFormPage() {
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="container-app py-8 sm:py-12 space-y-6 max-w-3xl mx-auto">
       {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
