@@ -53,6 +53,12 @@ function getErrorMessage(err: unknown): string {
   return "Unknown push notification error";
 }
 
+function stringifyPushContext(context: Record<string, unknown>): string {
+  return Object.entries(context)
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(" | ");
+}
+
 function getSubscriptionFailureMessage(err: unknown): string {
   const message = getErrorMessage(err);
 
@@ -109,6 +115,23 @@ async function clearExistingSubscription(registration: ServiceWorkerRegistration
   }
 }
 
+async function refreshServiceWorker(registration: ServiceWorkerRegistration): Promise<void> {
+  try {
+    await registration.update();
+  } catch {
+    // Best-effort only.
+  }
+}
+
+async function clearAllPushSubscriptions(): Promise<void> {
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => clearExistingSubscription(registration)));
+  } catch {
+    // Best-effort only.
+  }
+}
+
 export class PushSubscriptionService {
   /** Check if the browser supports push notifications */
   static isSupported(): boolean {
@@ -158,6 +181,13 @@ export class PushSubscriptionService {
         return { status: "no_sw", message };
       }
 
+      await refreshServiceWorker(registration);
+
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        await existingSubscription.unsubscribe();
+      }
+
       // Retry push subscription up to 2 times — AbortError from the push
       // service is often transient (browser/OS timing issue).
       let subscription: PushSubscription | null = null;
@@ -165,7 +195,8 @@ export class PushSubscriptionService {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           if (attempt > 0) {
-            await clearExistingSubscription(registration);
+            await refreshServiceWorker(registration);
+            await clearAllPushSubscriptions();
           }
 
           subscription = await registration.pushManager.subscribe({
@@ -184,7 +215,17 @@ export class PushSubscriptionService {
 
       if (!subscription) {
         console.error("Push subscribe failed after retries:", lastPushError);
-        reportError(lastPushError, "PushSubscriptionService.subscribe.pushManager", userId);
+        const diagnosticError = new Error(
+          `${getErrorMessage(lastPushError)} | ${stringifyPushContext({
+            permission,
+            online: navigator.onLine,
+            hasController: Boolean(navigator.serviceWorker.controller),
+            registrationScope: registration.scope,
+            existingSubscription: Boolean(existingSubscription),
+            displayModeStandalone: window.matchMedia("(display-mode: standalone)").matches,
+          })}`,
+        );
+        reportError(diagnosticError, "PushSubscriptionService.subscribe.pushManager", userId);
         return { status: "error", message: getSubscriptionFailureMessage(lastPushError) };
       }
 
