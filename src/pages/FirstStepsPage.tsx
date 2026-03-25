@@ -217,6 +217,10 @@ export default function FirstStepsPage() {
       const newCompletedCount = tasks.filter((t) => t.id !== taskId ? t.completed : true).length;
       if (newCompletedCount === tasks.length) {
         DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
+        if (!completionShownRef.current) {
+          completionShownRef.current = true;
+          setShowCompletionDialog(true);
+        }
       } else {
         DiscordNotifyService.taskCompleted(name, taskId, discord, discordId);
       }
