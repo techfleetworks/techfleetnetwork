@@ -15,7 +15,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";

@@ -1,7 +1,7 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { ClientsTab } from "@/components/clients/ClientsTab";
 import { ProjectsTab } from "@/components/clients/ProjectsTab";
 
