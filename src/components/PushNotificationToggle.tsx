@@ -151,7 +151,7 @@ export function PushNotificationToggle() {
       case "error":
       default:
         toast.error(result.message ?? "We couldn't enable push notifications right now.", {
-          description: "The app logged the detailed failure. If it keeps happening, use Reset Push below to rebuild notification setup.",
+          description: "The app logged the failure and resets broken local push state automatically when this browser error occurs.",
           duration: 7000,
         });
         break;

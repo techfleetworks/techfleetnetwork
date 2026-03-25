@@ -71,10 +71,15 @@ function getSubscriptionFailureMessage(err: unknown): string {
   }
 
   if (message.toLowerCase().includes("abort")) {
-    return "This device has a stale or invalid push registration. Please try again — the app will refresh the push setup automatically.";
+    return "This device has a broken local push registration. We reset it for you — please close and reopen the app, then enable push again.";
   }
 
   return "We couldn't finish enabling push notifications on this device.";
+}
+
+function isPushAbortError(err: unknown): boolean {
+  const message = getErrorMessage(err).toLowerCase();
+  return message.includes("registration failed") && message.includes("push service error");
 }
 
 async function getVapidPublicKey(): Promise<string | null> {
@@ -251,6 +256,11 @@ export class PushSubscriptionService {
           })}`,
         );
         reportError(diagnosticError, "PushSubscriptionService.subscribe.pushManager", userId);
+
+        if (isPushAbortError(lastPushError)) {
+          await this.resetPushState(userId);
+        }
+
         return { status: "error", message: getSubscriptionFailureMessage(lastPushError) };
       }
 
