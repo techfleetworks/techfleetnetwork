@@ -105,6 +105,7 @@ const App = () => (
               <AppLayout>
                 <IdleTimeoutGuard />
                 <PWAInstallPrompt />
+                <OfflineBanner />
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
