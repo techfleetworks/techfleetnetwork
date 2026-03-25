@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, type ReactNode } from "react";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
@@ -24,15 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     const data = await ProfileService.fetch(userId);
-    // Only update profile if we got data — never null-out an existing profile during re-fetches
     if (data) {
       setProfile(data);
     }
     setProfileLoaded(true);
     return data;
-  };
+  }, []);
 
   /** For Google OAuth users, sync their Google metadata to the profile if names are empty */
   const syncOAuthProfile = async (currentUser: User, currentProfile: Profile | null) => {
@@ -67,9 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
-  };
+  }, [user, fetchProfile]);
 
   useEffect(() => {
     const { data: { subscription } } = AuthService.onAuthStateChange(
@@ -139,21 +138,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await AuthService.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setProfileLoaded(false);
-  };
+  }, []);
 
-  const signOutAllDevices = async () => {
+  const signOutAllDevices = useCallback(async () => {
     await AuthService.signOutAllDevices();
     setUser(null);
     setSession(null);
     setProfile(null);
     setProfileLoaded(false);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile }}>
