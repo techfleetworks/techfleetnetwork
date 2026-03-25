@@ -24,6 +24,21 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+/** Get the active SW registration with a timeout to avoid hanging forever */
+async function getReadyRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
+  if (!navigator.serviceWorker?.controller && !navigator.serviceWorker?.getRegistration) {
+    return null;
+  }
+  try {
+    const result = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+    ]);
+    return result;
+  } catch {
+    return null;
+  }
+}
 
 export class PushSubscriptionService {
   /** Check if the browser supports push notifications */
@@ -59,7 +74,8 @@ export class PushSubscriptionService {
     if (permission !== "granted") return false;
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration();
+      if (!registration) return false;
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -92,7 +108,8 @@ export class PushSubscriptionService {
   /** Unsubscribe this browser/device from push notifications */
   static async unsubscribe(userId: string): Promise<boolean> {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration();
+      if (!registration) return false;
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -118,7 +135,8 @@ export class PushSubscriptionService {
   static async isSubscribed(): Promise<boolean> {
     if (!this.isSupported()) return false;
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration(3000);
+      if (!registration) return false;
       const subscription = await registration.pushManager.getSubscription();
       return !!subscription;
     } catch {
