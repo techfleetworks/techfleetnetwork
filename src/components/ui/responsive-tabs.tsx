@@ -99,9 +99,9 @@ function ResponsiveTabsList({ tabs, className, value, onValueChange }: Responsiv
             {tabs.map((tab) => {
               const isActive = tab.value === value;
               return (
-                <TabsPrimitive.Trigger
+                <button
                   key={tab.value}
-                  value={tab.value}
+                  type="button"
                   disabled={tab.disabled}
                   onClick={() => {
                     onValueChange?.(tab.value);
@@ -122,7 +122,7 @@ function ResponsiveTabsList({ tabs, className, value, onValueChange }: Responsiv
                 >
                   {tab.icon}
                   <span className="truncate">{tab.label}</span>
-                </TabsPrimitive.Trigger>
+                </button>
               );
             })}
           </div>
