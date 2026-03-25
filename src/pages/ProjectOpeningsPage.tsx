@@ -334,107 +334,6 @@ export default function ProjectOpeningsPage() {
         liveProjects={liveProjects}
       />
 
-        <ResponsiveTabsContent value="client">
-          {enrichedProjects.length > 0 && (
-            <div className="flex justify-end mb-4">
-              <div className="flex border rounded-md overflow-hidden">
-                <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view">
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view">
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {projLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : enrichedProjects.length === 0 ? (
-            <div className="rounded-lg border bg-card p-8 text-center">
-              <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">No Openings Right Now</h2>
-              <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                There are no client projects currently available. Check back soon or visit the guide for more details.
-              </p>
-              <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings" target="_blank" rel="noopener noreferrer">
-                <Button variant="outline">
-                  <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
-                </Button>
-              </a>
-            </div>
-          ) : view === "table" ? (
-            <ThemedAgGrid<EnrichedProject>
-              gridId="project-openings"
-              height="400px"
-              rowData={enrichedProjects}
-              columnDefs={columnDefs}
-              getRowId={(params) => params.data.id}
-              onRowClicked={(params) => {
-                if (!params.data) return;
-                navigate(`/project-openings/${params.data.id}`);
-              }}
-              rowStyle={{ cursor: "pointer" }}
-              showExportCsv={isAdmin}
-              exportFileName="project-openings"
-            />
-          ) : (
-            <div className="space-y-10">
-              {/* Open Applications — first */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
-                  Open Applications
-                </h3>
-                <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
-              </div>
-
-              {/* Opening Soon — renamed, moved under Open Applications */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
-                  Opening Soon
-                </h3>
-                <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." />
-              </div>
-
-              {/* Starting Soon */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
-                  Starting Soon
-                </h3>
-                <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
-              </div>
-
-              {/* Live Projects */}
-              <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
-                  Live Projects
-                </h3>
-                <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
-              </div>
-            </div>
-          )}
-        </ResponsiveTabsContent>
-
-        <ResponsiveTabsContent value="volunteer">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
-            <p className="text-muted-foreground max-w-md mx-auto mb-4">
-              View current volunteer team opportunities to support Tech Fleet's mission and operations.
-            </p>
-            <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings" target="_blank" rel="noopener noreferrer">
-              <Button variant="outline">
-                <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
-              </Button>
-            </a>
-          </div>
-        </ResponsiveTabsContent>
     </div>
   );
 }
@@ -464,3 +363,99 @@ function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, 
       <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} className="mb-6" />
 
       <ResponsiveTabsContent value="client">
+        {enrichedProjects.length > 0 && (
+          <div className="flex justify-end mb-4">
+            <div className="flex border rounded-md overflow-hidden">
+              <Button variant={view === "card" ? "default" : "ghost"} size="sm" onClick={() => setView("card")} aria-label="Card view">
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button variant={view === "table" ? "default" : "ghost"} size="sm" onClick={() => setView("table")} aria-label="Table view">
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {projLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : enrichedProjects.length === 0 ? (
+          <div className="rounded-lg border bg-card p-8 text-center">
+            <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">No Openings Right Now</h2>
+            <p className="text-muted-foreground max-w-md mx-auto mb-4">
+              There are no client projects currently available. Check back soon or visit the guide for more details.
+            </p>
+            <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/project-training-openings" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline">
+                <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
+              </Button>
+            </a>
+          </div>
+        ) : view === "table" ? (
+          <ThemedAgGrid<EnrichedProject>
+            gridId="project-openings"
+            height="400px"
+            rowData={enrichedProjects}
+            columnDefs={columnDefs}
+            getRowId={(params) => params.data.id}
+            onRowClicked={(params) => {
+              if (!params.data) return;
+              navigate(`/project-openings/${params.data.id}`);
+            }}
+            rowStyle={{ cursor: "pointer" }}
+            showExportCsv={isAdmin}
+            exportFileName="project-openings"
+          />
+        ) : (
+          <div className="space-y-10">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
+                Open Applications
+              </h3>
+              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
+                Opening Soon
+              </h3>
+              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
+                Starting Soon
+              </h3>
+              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
+                Live Projects
+              </h3>
+              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." />
+            </div>
+          </div>
+        )}
+      </ResponsiveTabsContent>
+
+      <ResponsiveTabsContent value="volunteer">
+        <div className="rounded-lg border bg-card p-8 text-center">
+          <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
+          <p className="text-muted-foreground max-w-md mx-auto mb-4">
+            View current volunteer team opportunities to support Tech Fleet's mission and operations.
+          </p>
+          <a href="https://guide.techfleet.org/training-openings/current-and-upcoming-program-openings/volunteer-project-openings" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline">
+              <ExternalLink className="h-4 w-4 mr-1.5" />View on Guide
+            </Button>
+          </a>
+        </div>
+      </ResponsiveTabsContent>
+    </ResponsiveTabs>
+  );
+}

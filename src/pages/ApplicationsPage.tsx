@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GeneralApplicationService } from "@/services/general-application.service";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { format } from "date-fns";
 import { lazy, Suspense } from "react";
 
