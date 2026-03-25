@@ -114,10 +114,31 @@ export class PushSubscriptionService {
         return { status: "no_sw", message };
       }
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!) as BufferSource,
-      });
+      // Retry push subscription up to 2 times — AbortError from the push
+      // service is often transient (browser/OS timing issue).
+      let subscription: PushSubscription | null = null;
+      let lastPushError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!) as BufferSource,
+          });
+          break; // success
+        } catch (pushErr) {
+          lastPushError = pushErr;
+          if (attempt < 2) {
+            // Brief backoff before retry
+            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          }
+        }
+      }
+
+      if (!subscription) {
+        console.error("Push subscribe failed after retries:", lastPushError);
+        reportError(lastPushError, "PushSubscriptionService.subscribe.pushManager", userId);
+        return { status: "error", message: getSubscriptionFailureMessage(lastPushError) };
+      }
 
       const json = subscription.toJSON();
       const endpoint = json.endpoint!;
