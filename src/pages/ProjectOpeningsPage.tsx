@@ -325,7 +325,7 @@ export default function ProjectOpeningsPage() {
   );
 }
 
-function ProjectSection({ icon: Icon, items, emptyText, navigate }: { icon: React.ElementType; items: any[]; emptyText: string; navigate: any }) {
+function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, phaseLabel, statusLabel }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string; navigate: (path: string) => void; typeLabel: (v: string) => string; phaseLabel: (v: string) => string; statusLabel: (v: string) => string }) {
   if (items.length === 0) return (
     <div className="rounded-lg border bg-card p-6 text-center">
       <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -333,20 +333,64 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate }: { icon: Reac
     </div>
   );
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {items.map((p: any) => (
-        <Card key={p.id} className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
+    <div className="grid grid-cols-12 gap-4">
+      {items.map((p) => (
+        <div key={p.id} className="col-span-12 xl:col-span-6">
+          <Card className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
+                </div>
+                <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 text-sm">
-            <Badge variant="secondary" className="text-xs">{p.project_status}</Badge>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-3 text-sm">
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-1">Your Status</p>
+                {p.userApplied ? (
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Applied
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Not Applied</Badge>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-1">Phase</p>
+                <Badge variant="secondary" className="text-xs">{phaseLabel(p.phase)}</Badge>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-1">Team Hats</p>
+                <div className="flex flex-wrap gap-1">
+                  {p.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-1">Total Applications</p>
+                <p className="text-xs text-foreground pl-3 font-medium">{p.totalApps}</p>
+              </div>
+              {p.team_hats.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">Applications by Team Hat</p>
+                  <div className="space-y-0.5 pl-3">
+                    {p.team_hats.map((hat) => (
+                      <p key={hat} className="text-xs text-muted-foreground">
+                        <span className="text-foreground font-medium">{p.hatCounts[hat] ?? 0}</span> — {hat}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="pt-3 border-t">
+              <Button variant="outline" className="w-full gap-2" onClick={(e) => { e.stopPropagation(); navigate(`/project-openings/${p.id}`); }}>
+                <Eye className="h-4 w-4" /> View
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       ))}
     </div>
   );
