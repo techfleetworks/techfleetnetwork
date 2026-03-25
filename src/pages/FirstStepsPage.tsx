@@ -382,6 +382,30 @@ export default function FirstStepsPage() {
         onAccepted={() => handlePanelAccepted("terms-conditions")}
         loading={loadingId === "terms-conditions"}
       />
+
+      {/* 🎉 Course completion popup */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Onboarding Steps Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've completed all onboarding tasks. You're ready for the next course!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/agile-mindset"); }}>
+              Continue to Build an Agile Mindset
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
