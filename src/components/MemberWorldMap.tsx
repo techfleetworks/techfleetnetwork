@@ -203,7 +203,7 @@ export function MemberWorldMap() {
       {data.length > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 flex-1">
-            {data.slice(0, 8).map((d) => (
+            {data.filter((d) => d.country !== "Not specified").slice(0, 8).map((d) => (
               <div
                 key={d.country}
                 className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/30 text-sm"
