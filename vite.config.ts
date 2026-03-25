@@ -48,12 +48,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
-        /* offline.html is precached and served as the offline fallback for navigation requests */
-        additionalManifestEntries: [
-          { url: "/offline.html", revision: "2" },
-        ],
       },
-      injectManifest: undefined,
       manifest: {
         name: "Tech Fleet Network",
         short_name: "Tech Fleet",
