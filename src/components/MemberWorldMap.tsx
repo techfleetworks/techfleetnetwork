@@ -46,7 +46,7 @@ export function MemberWorldMap() {
     });
   }, []);
 
-  // Load member distribution
+  // Load member distribution (includes empty-country count)
   useEffect(() => {
     const load = async () => {
       try {
@@ -61,23 +61,29 @@ export function MemberWorldMap() {
   }, []);
 
   // Map country name → count AND numeric id → count
-  const { countById, maxCount, totalMembers, countriesRepresented } = useMemo(() => {
+  const { countById, maxCount, totalMembers, countriesRepresented, unspecifiedCount } = useMemo(() => {
     const byId = new Map<string, number>();
     let max = 1;
     let total = 0;
+    let unspecified = 0;
 
     data.forEach((d) => {
+      total += d.count;
+      if (d.country === "Not specified") {
+        unspecified = d.count;
+        return;
+      }
       const id = COUNTRY_NAME_TO_ID[d.country];
       if (id) byId.set(id, d.count);
       if (d.count > max) max = d.count;
-      total += d.count;
     });
 
     return {
       countById: byId,
       maxCount: max,
       totalMembers: total,
-      countriesRepresented: data.length,
+      countriesRepresented: data.filter((d) => d.country !== "Not specified").length,
+      unspecifiedCount: unspecified,
     };
   }, [data]);
 
@@ -109,13 +115,18 @@ export function MemberWorldMap() {
           <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-foreground">Member Locations</h3>
         </div>
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
           <span>
             <strong className="text-foreground">{totalMembers}</strong> members
           </span>
           <span>
             <strong className="text-foreground">{countriesRepresented}</strong> countries
           </span>
+          {unspecifiedCount > 0 && (
+            <span>
+              <strong className="text-foreground">{unspecifiedCount}</strong> not specified
+            </span>
+          )}
         </div>
       </div>
 
@@ -192,7 +203,7 @@ export function MemberWorldMap() {
       {data.length > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 flex-1">
-            {data.slice(0, 8).map((d) => (
+            {data.filter((d) => d.country !== "Not specified").slice(0, 8).map((d) => (
               <div
                 key={d.country}
                 className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/30 text-sm"
