@@ -281,7 +281,7 @@ export default function EditProfilePage() {
       id="edit-profile-form"
       onSubmit={handleSubmit}
       noValidate
-      className="flex flex-col h-[calc(100vh-3rem)] animate-fade-in"
+      className="flex flex-col h-[calc(100dvh-3rem)] animate-fade-in"
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         {/* Sticky tabs */}

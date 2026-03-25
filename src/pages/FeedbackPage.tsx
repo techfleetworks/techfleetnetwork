@@ -202,15 +202,15 @@ function AdminFeedbackView() {
   }
 
   if (feedback.length === 0) {
-    return (
-      <div className="p-6 space-y-4">
-        <div className="flex justify-end">
-          <Button onClick={() => setFormOpen(true)}>
-            <MessageSquarePlus className="h-4 w-4 mr-2" />
-            Add Feedback
-          </Button>
-        </div>
-        <SectionEmptyState
+  return (
+    <div className="container-app py-8 sm:py-12 space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setFormOpen(true)}>
+          <MessageSquarePlus className="h-4 w-4 mr-2" />
+          Add Feedback
+        </Button>
+      </div>
+      <SectionEmptyState
           icon={MessageSquarePlus}
           title="No Feedback Yet"
           description="When members submit feedback, it will appear here."
@@ -231,7 +231,7 @@ function AdminFeedbackView() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="container-app py-8 sm:py-12 space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => setFormOpen(true)}>
           <MessageSquarePlus className="h-4 w-4 mr-2" />
