@@ -34,7 +34,19 @@ const updateSW = registerSW({
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     checkForUpdates();
-    window.setInterval(checkForUpdates, 60 * 1000);
+    const intervalId = window.setInterval(checkForUpdates, 60 * 1000);
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        window.clearInterval(intervalId);
+        window.removeEventListener("focus", checkForUpdates);
+        window.removeEventListener("online", checkForUpdates);
+        window.removeEventListener("pageshow", checkForUpdates);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      },
+      { once: true },
+    );
   },
 });
 
