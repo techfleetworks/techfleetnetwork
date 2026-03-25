@@ -25,6 +25,12 @@
   --ag-row-border-color: hsl(var(--border));
 }
 
+/* Clickable cells — copy on click */
+.ag-theme-alpine .ag-cell,
+.ag-theme-alpine-dark .ag-cell {
+  cursor: pointer;
+}
+
 /* Font-display fallback to prevent FOIT layout shifts */
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
