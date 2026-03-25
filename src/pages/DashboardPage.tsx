@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -18,11 +18,11 @@ import {
 import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
-import { NetworkActivity } from "@/components/NetworkActivity";
 import { DashboardCustomizer } from "@/components/DashboardCustomizer";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 import { DashboardEmptyState } from "@/components/DashboardEmptyState";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
@@ -39,6 +39,11 @@ import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
 import { useQuery } from "@/lib/react-query";
+
+// Lazy-load heavy components
+const NetworkActivity = lazy(() =>
+  import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
+);
 
 interface CoreCourse {
   id: string;
@@ -129,6 +134,22 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
   );
 });
 
+function DashboardSkeleton() {
+  return (
+    <div className="container-app py-8 sm:py-12 space-y-9">
+      <div>
+        <Skeleton className="h-8 w-64 mb-2" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
@@ -138,6 +159,7 @@ export default function DashboardPage() {
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
+  // Batch all journey progress queries — React Query deduplicates automatically
   const { data: connectDiscordCompleted = 0 } = useCompletedCount(userId, "first_steps", CONNECT_DISCORD_TASK_IDS);
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
@@ -146,54 +168,44 @@ export default function DashboardPage() {
   const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
   const { data: latestAnnouncements = [] } = useLatestAnnouncements(5);
+
+  // Share cache key with NetworkActivity component — no duplicate fetch
   const { data: stats } = useQuery({
     queryKey: ["network-stats"],
     queryFn: () => StatsService.getNetworkStats(),
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: myProjectApps = [] } = useQuery({
-    queryKey: ["dashboard-my-project-apps", userId],
+  // Combine project apps + projects + clients into a single query to avoid waterfall
+  const { data: projectAppData } = useQuery({
+    queryKey: ["dashboard-project-apps-combined", userId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: apps, error: appsErr } = await supabase
         .from("project_applications")
         .select("id, project_id, status, completed_at, updated_at, current_step, team_hats_interest")
         .eq("user_id", userId!)
         .order("updated_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+      if (appsErr) throw appsErr;
+      if (!apps || apps.length === 0) return { apps: [], projects: [], clients: [] };
+
+      const projectIds = [...new Set(apps.map((a) => a.project_id))];
+      const { data: projects } = await supabase
+        .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
+
+      const clientIds = [...new Set((projects ?? []).map((p) => p.client_id))];
+      const { data: clients } = clientIds.length > 0
+        ? await supabase.from("clients").select("id, name").in("id", clientIds)
+        : { data: [] };
+
+      return { apps: apps ?? [], projects: projects ?? [], clients: clients ?? [] };
     },
     enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const projectIds = useMemo(() => [...new Set(myProjectApps.map((a) => a.project_id))], [myProjectApps]);
-  const { data: dashProjects = [] } = useQuery({
-    queryKey: ["dashboard-projects-for-apps", projectIds],
-    queryFn: async () => {
-      if (projectIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: projectIds.length > 0,
-  });
-
-  const dashClientIds = useMemo(() => [...new Set(dashProjects.map((p) => p.client_id))], [dashProjects]);
-  const { data: dashClients = [] } = useQuery({
-    queryKey: ["dashboard-clients-for-apps", dashClientIds],
-    queryFn: async () => {
-      if (dashClientIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("clients").select("id, name").in("id", dashClientIds);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: dashClientIds.length > 0,
-  });
-
-  const dashProjectMap = useMemo(() => new Map(dashProjects.map((p) => [p.id, p])), [dashProjects]);
-  const dashClientMap = useMemo(() => new Map(dashClients.map((c) => [c.id, c])), [dashClients]);
+  const myProjectApps = projectAppData?.apps ?? [];
+  const dashProjectMap = useMemo(() => new Map((projectAppData?.projects ?? []).map((p) => [p.id, p])), [projectAppData?.projects]);
+  const dashClientMap = useMemo(() => new Map((projectAppData?.clients ?? []).map((c) => [c.id, c])), [projectAppData?.clients]);
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
@@ -206,7 +218,7 @@ export default function DashboardPage() {
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
   const allCoreCoursesDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
 
-  const coreCourses: CoreCourse[] = [
+  const coreCourses: CoreCourse[] = useMemo(() => [
     {
       id: "connect-discord",
       title: "Connect to Discord",
@@ -279,11 +291,10 @@ export default function DashboardPage() {
       locked: !allThirdStepsDone,
       prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
     },
-  ];
+  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, discordCompleted, thirdStepsCompleted, projectTrainingCompleted, volunteerCompleted, allThirdStepsDone, totalFirstSteps]);
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
-  // Count how many togglable sections are visible (excluding core_courses which is always structural)
   const togglableSectionsVisible = visibleWidgets.filter((w) => w !== "core_courses").length;
   const showEmptyState = !prefsLoading && isNewUser && togglableSectionsVisible === 0;
 
@@ -498,16 +509,17 @@ export default function DashboardPage() {
 
           case "network_activity":
           case "world_map": {
-            // Render the combined network section only once, at whichever comes last in order
             const lastNetworkIdx = widgetOrder.reduce((acc, w, i) => (w === "network_activity" || w === "world_map") ? i : acc, -1);
             if (widgetOrder[lastNetworkIdx] !== widgetId) return null;
             const showAny = isVisible("network_activity") || isVisible("world_map");
             return showAny ? (
               <section key="network" className="border-t pt-9">
-                <NetworkActivity
-                  showMap={isVisible("world_map")}
-                  showActivity={isVisible("network_activity")}
-                />
+                <Suspense fallback={<Skeleton className="h-[400px] rounded-lg" />}>
+                  <NetworkActivity
+                    showMap={isVisible("world_map")}
+                    showActivity={isVisible("network_activity")}
+                  />
+                </Suspense>
               </section>
             ) : null;
           }
