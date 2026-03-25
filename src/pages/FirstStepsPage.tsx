@@ -108,6 +108,8 @@ export default function FirstStepsPage() {
   const { user, profile, profileLoaded } = useAuth();
   const queryClient = useQueryClient();
 
+  const navigate = useNavigate();
+
   const taskDefs = baseTasks;
 
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
@@ -115,6 +117,8 @@ export default function FirstStepsPage() {
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const completionShownRef = useRef(false);
 
   // Re-build tasks when profile changes (e.g. discord added) or profile finishes loading
   useEffect(() => {
