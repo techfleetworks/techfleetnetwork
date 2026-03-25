@@ -6,13 +6,47 @@ import { installGlobalErrorReporter } from "@/services/error-reporter.service";
 
 installGlobalErrorReporter();
 
-registerSW({
+const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    window.location.reload();
+    void updateSW(true);
   },
   onOfflineReady() {
     // no-op
+  },
+  onRegistered(registration) {
+    if (!registration) return;
+
+    const checkForUpdates = () => {
+      if (!navigator.onLine) return;
+      void registration.update();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkForUpdates();
+      }
+    };
+
+    window.addEventListener("focus", checkForUpdates);
+    window.addEventListener("online", checkForUpdates);
+    window.addEventListener("pageshow", checkForUpdates);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    checkForUpdates();
+    const intervalId = window.setInterval(checkForUpdates, 60 * 1000);
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        window.clearInterval(intervalId);
+        window.removeEventListener("focus", checkForUpdates);
+        window.removeEventListener("online", checkForUpdates);
+        window.removeEventListener("pageshow", checkForUpdates);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      },
+      { once: true },
+    );
   },
 });
 

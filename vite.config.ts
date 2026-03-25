@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => ({
         "pwa-512x512.png",
       ],
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
