@@ -294,6 +294,17 @@ export class PushSubscriptionService {
     }
   }
 
+  /** Hard reset local push/service-worker state when the browser storage is corrupted. */
+  static async resetPushState(userId?: string): Promise<void> {
+    try {
+      await clearAllPushSubscriptions();
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (err) {
+      reportError(err, "PushSubscriptionService.resetPushState", userId);
+    }
+  }
+
   /** Check if the current device already has an active push subscription */
   static async isSubscribed(): Promise<boolean> {
     if (!this.isSupported()) return false;

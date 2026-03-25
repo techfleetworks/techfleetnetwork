@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { usePushNotifications, type SubscribeResult } from "@/hooks/use-push-notifications";
 import { toast } from "sonner";
+import { PushSubscriptionService } from "@/services/push-subscription.service";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +80,7 @@ function getUnblockInstructions(): { steps: string[]; tip: string } {
 }
 
 export function PushNotificationToggle() {
+  const { user } = useAuth();
   const {
     isSupported,
     isSubscribed,
@@ -148,11 +151,19 @@ export function PushNotificationToggle() {
       case "error":
       default:
         toast.error(result.message ?? "We couldn't enable push notifications right now.", {
-          description: "The app logged the detailed failure and will try to recover from stale push registrations automatically.",
+          description: "The app logged the detailed failure. If it keeps happening, use Reset Push below to rebuild notification setup.",
           duration: 7000,
         });
         break;
     }
+  };
+
+  const handleResetPush = async () => {
+    await PushSubscriptionService.resetPushState(user?.id);
+    toast.success("Push setup reset", {
+      description: "Close and reopen the app, then enable push notifications again.",
+      duration: 6000,
+    });
   };
 
   const instructions = getUnblockInstructions();
@@ -194,6 +205,15 @@ export function PushNotificationToggle() {
               : permission === "denied"
                 ? "How to Enable"
                 : "Enable Push"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 ml-2"
+            onClick={handleResetPush}
+            disabled={loading}
+          >
+            Reset Push
           </Button>
         </div>
       </div>
