@@ -409,15 +409,71 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
                     <FolderKanban className="h-5 w-5 text-primary" />
-                    My Project Applications
+                    My Applications
                   </h2>
                   <Link
-                    to="/applications/projects"
+                    to="/applications"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
                   >
                     View all <ChevronRight className="h-3 w-3" />
                   </Link>
                 </div>
+
+                {/* General Application card */}
+                {generalApp ? (
+                  <Link
+                    to="/applications/general"
+                    className="card-elevated p-4 hover:border-primary/40 transition-all block mb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <ClipboardCheck className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm text-foreground truncate">
+                            General Application
+                          </h3>
+                          {generalApp.status === "submitted" ? (
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Submitted
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                              <Clock className="h-3 w-3" />
+                              Draft
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {generalApp.status === "submitted" && generalApp.completed_at
+                            ? `Submitted ${format(new Date(generalApp.completed_at), "MMM d, yyyy")}`
+                            : `Section ${generalApp.current_section} of 5 · Updated ${format(new Date(generalApp.updated_at), "MMM d")}`}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/applications/general"
+                    className="card-elevated p-4 hover:border-primary/40 transition-all block mb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                        <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-foreground truncate">General Application</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Required before applying to projects</p>
+                      </div>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </Link>
+                )
+
                 {myProjectApps.length === 0 ? (
                   <SectionEmptyState
                     icon={FolderKanban}
