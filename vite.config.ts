@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
-        offlineFallbackPage: "offline.html",
+        /* offline.html is included via includeAssets; navigateFallback handles SPA routing */
       },
       manifest: {
         name: "Tech Fleet Network",
