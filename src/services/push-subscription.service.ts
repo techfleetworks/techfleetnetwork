@@ -8,6 +8,14 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { reportError } from "@/services/error-reporter.service";
+
+export type SubscribeResultStatus = "granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error";
+
+export interface SubscribeResult {
+  status: SubscribeResultStatus;
+  message?: string;
+}
 
 /** Base64URL-encoded VAPID public key — injected at build time or fetched from env */
 const VAPID_PUBLIC_KEY = "BKKwNJLzkMsT02HIao8kKKwedDemitCxREYD9HMkR0jLJWZd1lDGh51eBmUVd9tXqkxRYs7zuXCTGFDT6s3hGuI";
@@ -40,6 +48,30 @@ async function getReadyRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegi
   }
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err.trim()) return err;
+  return "Unknown push notification error";
+}
+
+function getSubscriptionFailureMessage(err: unknown): string {
+  const message = getErrorMessage(err);
+
+  if (message.toLowerCase().includes("permission")) {
+    return "Your browser blocked the notification request. Please review your notification permissions and try again.";
+  }
+
+  if (message.toLowerCase().includes("service worker") || message.toLowerCase().includes("registration")) {
+    return "Push notifications are not ready on this device yet. Refresh the page and try again.";
+  }
+
+  if (message.toLowerCase().includes("abort")) {
+    return "The notification setup was interrupted. Please try again.";
+  }
+
+  return "We couldn't finish enabling push notifications on this device.";
+}
+
 export class PushSubscriptionService {
   /** Check if the browser supports push notifications */
   static isSupported(): boolean {
@@ -67,16 +99,20 @@ export class PushSubscriptionService {
    * Subscribe this browser/device to push notifications and save to DB.
    * Returns a status string for richer UX feedback.
    */
-  static async subscribe(userId: string): Promise<"granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error"> {
-    if (!this.isSupported()) return "unsupported";
+  static async subscribe(userId: string): Promise<SubscribeResult> {
+    if (!this.isSupported()) return { status: "unsupported" };
 
     const permission = await this.requestPermission();
-    if (permission === "denied") return "denied";
-    if (permission !== "granted") return "dismissed";
+    if (permission === "denied") return { status: "denied" };
+    if (permission !== "granted") return { status: "dismissed" };
 
     try {
       const registration = await getReadyRegistration();
-      if (!registration) return "no_sw";
+      if (!registration) {
+        const message = "Push notifications are not ready because the app service worker is unavailable.";
+        reportError(new Error(message), "PushSubscriptionService.subscribe.registration", userId);
+        return { status: "no_sw", message };
+      }
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -94,14 +130,22 @@ export class PushSubscriptionService {
       );
 
       if (error) {
+        const detailedError = new Error(
+          `Failed to save push subscription: ${error.message}${error.code ? ` (code: ${error.code})` : ""}${error.details ? ` — ${error.details}` : ""}`,
+        );
         console.error("Failed to save push subscription:", error.message);
-        return "error";
+        reportError(detailedError, "PushSubscriptionService.subscribe.upsert", userId);
+        return {
+          status: "error",
+          message: "Your browser allowed notifications, but we couldn't save this device for alerts.",
+        };
       }
 
-      return "granted";
+      return { status: "granted" };
     } catch (err) {
       console.error("Push subscribe error:", err);
-      return "error";
+      reportError(err, "PushSubscriptionService.subscribe", userId);
+      return { status: "error", message: getSubscriptionFailureMessage(err) };
     }
   }
 
@@ -117,16 +161,22 @@ export class PushSubscriptionService {
         await subscription.unsubscribe();
 
         // Remove from database
-        await supabase
+        const { error } = await supabase
           .from("push_subscriptions")
           .delete()
           .eq("user_id", userId)
           .eq("endpoint", endpoint);
+
+        if (error) {
+          reportError(new Error(`Failed to delete push subscription: ${error.message}`), "PushSubscriptionService.unsubscribe.delete", userId);
+          return false;
+        }
       }
 
       return true;
     } catch (err) {
       console.error("Push unsubscribe error:", err);
+      reportError(err, "PushSubscriptionService.unsubscribe", userId);
       return false;
     }
   }
