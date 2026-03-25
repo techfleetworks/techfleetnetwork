@@ -10,7 +10,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /** Base64URL-encoded VAPID public key — injected at build time or fetched from env */
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+const VAPID_PUBLIC_KEY = "BKKwNJLzkMsT02HIao8kKKwedDemitCxREYD9HMkR0jLJWZd1lDGh51eBmUVd9tXqkxRYs7zuXCTGFDT6s3hGuI";
 
 /** Convert a base64url string to a Uint8Array (for applicationServerKey) */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
