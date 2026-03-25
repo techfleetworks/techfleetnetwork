@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
   Check,
-  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   GraduationCap,
@@ -144,7 +144,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
 }
 
 export default function TrainingPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const userId = user?.id;
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
@@ -259,18 +259,17 @@ export default function TrainingPage() {
   const beginnerComplete = isTabComplete(beginnerCourses);
   const advancedComplete = isTabComplete(advancedCourses);
 
-  /** Renders either a green check circle (all done) or a count badge */
   const TabBadge = ({ complete, count }: { complete: boolean; count: number }) =>
     complete ? (
       <span
-        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-[#15803d] dark:bg-[#22c55e]"
+        className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-success"
         aria-label="All courses completed"
       >
-        <Check className="h-3 w-3 text-white dark:text-[#052e16]" strokeWidth={3} />
+        <Check className="h-3 w-3 text-success-foreground" strokeWidth={3} />
       </span>
     ) : (
       <span
-        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${count > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}
+        className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-primary-foreground ${count > 0 ? "bg-primary" : "bg-muted-foreground"}`}
       >
         {count}
       </span>
