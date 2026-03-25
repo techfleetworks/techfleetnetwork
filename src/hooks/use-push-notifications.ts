@@ -5,9 +5,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { PushSubscriptionService } from "@/services/push-subscription.service";
+import { PushSubscriptionService, type SubscribeResult } from "@/services/push-subscription.service";
 
-export type SubscribeResult = "granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error";
+export type { SubscribeResult } from "@/services/push-subscription.service";
 
 export function usePushNotifications() {
   const { user } = useAuth();
@@ -24,11 +24,11 @@ export function usePushNotifications() {
   }, []);
 
   const subscribe = useCallback(async (): Promise<SubscribeResult> => {
-    if (!user) return "error";
+    if (!user) return { status: "error", message: "You need to be signed in to enable push notifications." };
     setLoading(true);
     try {
       const result = await PushSubscriptionService.subscribe(user.id);
-      setIsSubscribed(result === "granted");
+      setIsSubscribed(result.status === "granted");
       setPermission(PushSubscriptionService.getPermission());
       return result;
     } finally {

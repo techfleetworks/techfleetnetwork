@@ -124,7 +124,7 @@ export function PushNotificationToggle() {
 
     const result: SubscribeResult = await subscribe();
 
-    switch (result) {
+    switch (result.status) {
       case "granted":
         toast.success("Push notifications enabled! You'll receive alerts even when the app is closed.");
         break;
@@ -147,7 +147,10 @@ export function PushNotificationToggle() {
         break;
       case "error":
       default:
-        toast.error("Something went wrong. Please try again in a moment.");
+        toast.error(result.message ?? "We couldn't enable push notifications right now.", {
+          description: "The detailed failure was sent to the Activity Log for troubleshooting.",
+          duration: 7000,
+        });
         break;
     }
   };
