@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     const data = await ProfileService.fetch(userId);
+    // Only update profile if we got data — never null-out an existing profile during re-fetches
     if (data) {
       setProfile(data);
     }
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /** For Google OAuth users, sync their Google metadata to the profile if names are empty */
-  const syncOAuthProfile = async (currentUser: User, currentProfile: Profile | null) => {
+  const syncOAuthProfile = useCallback(async (currentUser: User, currentProfile: Profile | null) => {
     if (!currentProfile) return;
     const meta = currentUser.user_metadata;
     if (!meta) return;
@@ -48,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const lastName = meta.family_name || meta.last_name || "";
 
     if (!needsNameSync && needsEmailSync) {
-      // Only sync email
       try {
         await ProfileService.updateNames(currentUser.id, currentProfile.first_name, currentProfile.last_name, currentUser.email);
         await fetchProfile(currentUser.id);
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Non-critical
     }
-  };
+  }, [fetchProfile]);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
@@ -74,25 +74,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (_event, session) => {
         // For token refreshes, only update session/user if the user ID actually changed
-        // This prevents unnecessary re-renders that reset component state
         if (_event === "TOKEN_REFRESHED") {
           setSession((prev) => {
             if (prev?.access_token === session?.access_token) return prev;
             return session;
           });
-          // Don't re-set user or re-fetch profile on token refresh — user hasn't changed
           return;
         }
 
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Track session start on sign-in
           if (_event === "SIGNED_IN") {
             if (!sessionStorage.getItem("session_started_at")) {
               sessionStorage.setItem("session_started_at", Date.now().toString());
 
-              // Only notify Discord for brand-new accounts (created within last 2 minutes)
               const createdAt = session.user.created_at ? new Date(session.user.created_at).getTime() : 0;
               const isNewAccount = Date.now() - createdAt < 2 * 60 * 1000;
               if (isNewAccount) {
@@ -101,11 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 DiscordNotifyService.userSignedUp(name);
               }
 
-              // Handle stored redirect from shared course links (OAuth flow)
               const storedRedirect = sessionStorage.getItem("auth_redirect");
               if (storedRedirect) {
                 sessionStorage.removeItem("auth_redirect");
-                // Defer navigation to allow auth state to settle
                 setTimeout(() => {
                   window.location.replace(storedRedirect);
                 }, 100);
@@ -136,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile, syncOAuthProfile]);
 
   const signOut = useCallback(async () => {
     await AuthService.signOut();
@@ -154,8 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileLoaded(false);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile }),
+    [user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
