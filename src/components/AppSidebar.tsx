@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -60,15 +61,15 @@ const navSections = [
   { label: "Support", items: supportNav },
 ];
 
-export function AppSidebar() {
+export const AppSidebar = memo(function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
 
-  const isActive = (href: string) =>
-    location.pathname === href || location.pathname.startsWith(href + "/");
+  const isActive = useCallback((href: string) =>
+    location.pathname === href || location.pathname.startsWith(href + "/"), [location.pathname]);
 
   if (!user) return null;
 
@@ -181,4 +182,4 @@ export function AppSidebar() {
       </SidebarContent>
     </Sidebar>
   );
-}
+});
