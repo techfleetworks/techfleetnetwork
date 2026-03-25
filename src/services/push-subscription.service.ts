@@ -76,7 +76,7 @@ export class PushSubscriptionService {
 
     try {
       const registration = await getReadyRegistration();
-      if (!registration) return false;
+      if (!registration) return "no_sw";
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -88,7 +88,6 @@ export class PushSubscriptionService {
       const p256dh = json.keys?.p256dh ?? "";
       const auth = json.keys?.auth ?? "";
 
-      // Upsert to database (unique on user_id + endpoint)
       const { error } = await supabase.from("push_subscriptions").upsert(
         { user_id: userId, endpoint, p256dh, auth },
         { onConflict: "user_id,endpoint" },
@@ -96,13 +95,13 @@ export class PushSubscriptionService {
 
       if (error) {
         console.error("Failed to save push subscription:", error.message);
-        return false;
+        return "error";
       }
 
-      return true;
+      return "granted";
     } catch (err) {
       console.error("Push subscribe error:", err);
-      return false;
+      return "error";
     }
   }
 
