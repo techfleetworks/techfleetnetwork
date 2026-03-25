@@ -148,7 +148,7 @@ export function PushNotificationToggle() {
       case "error":
       default:
         toast.error(result.message ?? "We couldn't enable push notifications right now.", {
-          description: "The detailed failure was sent to the Activity Log for troubleshooting.",
+          description: "The app logged the detailed failure and will try to recover from stale push registrations automatically.",
           duration: 7000,
         });
         break;
