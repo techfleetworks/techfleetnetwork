@@ -320,23 +320,23 @@ export default function ProjectOpeningsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="client" className="w-full">
-        <TabsList className="w-full sm:w-auto mb-6">
-          <TabsTrigger value="client" className="flex-1 sm:flex-none gap-2">
+      <ResponsiveTabs defaultValue="client" className="w-full">
+        <ResponsiveTabsList className="w-full sm:w-auto mb-6">
+          <ResponsiveTabsTrigger value="client" className="flex-1 sm:flex-none gap-2">
             Client Project Openings
             <span className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white ${openApplications.length > 0 ? "bg-[#1d4ed8]" : "bg-[#52525b]"}`}>
               {openApplications.length}
             </span>
-          </TabsTrigger>
-          <TabsTrigger value="volunteer" className="flex-1 sm:flex-none gap-2">
+          </ResponsiveTabsTrigger>
+          <ResponsiveTabsTrigger value="volunteer" className="flex-1 sm:flex-none gap-2">
             Volunteer Openings
             <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold text-white bg-[#52525b]">
               0
             </span>
-          </TabsTrigger>
-        </TabsList>
+          </ResponsiveTabsTrigger>
+        </ResponsiveTabsList>
 
-        <TabsContent value="client">
+        <ResponsiveTabsContent value="client">
           {enrichedProjects.length > 0 && (
             <div className="flex justify-end mb-4">
               <div className="flex border rounded-md overflow-hidden">
@@ -421,9 +421,9 @@ export default function ProjectOpeningsPage() {
               </div>
             </div>
           )}
-        </TabsContent>
+        </ResponsiveTabsContent>
 
-        <TabsContent value="volunteer">
+        <ResponsiveTabsContent value="volunteer">
           <div className="rounded-lg border bg-card p-8 text-center">
             <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-lg font-semibold text-foreground mb-2">Volunteer Openings</h2>
@@ -436,8 +436,8 @@ export default function ProjectOpeningsPage() {
               </Button>
             </a>
           </div>
-        </TabsContent>
-      </Tabs>
+        </ResponsiveTabsContent>
+      </ResponsiveTabs>
     </div>
   );
 }

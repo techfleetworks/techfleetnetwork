@@ -308,7 +308,7 @@ export default function EditProfilePage() {
           <div className="container-app max-w-3xl py-6">
 
           {/* ── Tab 1: Basic Info ── */}
-          <TabsContent value="basic-info" className="space-y-6">
+          <ResponsiveTabsContent value="basic-info" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Avatar */}
               {user && (
@@ -436,10 +436,10 @@ export default function EditProfilePage() {
                 <Input id="edit-scheduling" type="url" value={form.scheduling_url} onChange={(e) => setForm({ ...form, scheduling_url: e.target.value })} placeholder="https://calendly.com/yourname" maxLength={500} />
               </ValidatedField>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 2: Training Goals ── */}
-          <TabsContent value="training-goals" className="space-y-6">
+          <ResponsiveTabsContent value="training-goals" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               {/* Activity Interests */}
               <div className="space-y-3">
@@ -497,10 +497,10 @@ export default function EditProfilePage() {
                 />
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 3: Preferences ── */}
-          <TabsContent value="preferences" className="space-y-6">
+          <ResponsiveTabsContent value="preferences" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Notification preferences</Label>
@@ -532,10 +532,10 @@ export default function EditProfilePage() {
                 </div>
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
 
           {/* ── Tab 4: Account ── */}
-          <TabsContent value="account" className="space-y-6">
+          <ResponsiveTabsContent value="account" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-1.5">
                 <Label>Password</Label>
@@ -647,7 +647,7 @@ export default function EditProfilePage() {
                 </Button>
               </div>
             </div>
-          </TabsContent>
+          </ResponsiveTabsContent>
           </div>
         </div>
 
@@ -659,7 +659,7 @@ export default function EditProfilePage() {
             </Button>
           </div>
         </div>
-      </Tabs>
+      </ResponsiveTabs>
 
       {/* Delete account confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
