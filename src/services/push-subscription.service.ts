@@ -17,8 +17,7 @@ export interface SubscribeResult {
   message?: string;
 }
 
-/** Base64URL-encoded VAPID public key — injected at build time or fetched from env */
-const VAPID_PUBLIC_KEY = "BKKwNJLzkMsT02HIao8kKKwedDemitCxREYD9HMkR0jLJWZd1lDGh51eBmUVd9tXqkxRYs7zuXCTGFDT6s3hGuI";
+let vapidPublicKeyCache: string | null = null;
 
 /** Convert a base64url string to a Uint8Array (for applicationServerKey) */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -66,10 +65,48 @@ function getSubscriptionFailureMessage(err: unknown): string {
   }
 
   if (message.toLowerCase().includes("abort")) {
-    return "The notification setup was interrupted. Please try again.";
+    return "This device has a stale or invalid push registration. Please try again — the app will refresh the push setup automatically.";
   }
 
   return "We couldn't finish enabling push notifications on this device.";
+}
+
+async function getVapidPublicKey(): Promise<string | null> {
+  if (vapidPublicKeyCache) return vapidPublicKeyCache;
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/push-config`, {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch push config (${response.status})`);
+    }
+
+    const data = await response.json();
+    vapidPublicKeyCache = typeof data.publicKey === "string" ? data.publicKey : null;
+    return vapidPublicKeyCache;
+  } catch (error) {
+    reportError(error, "PushSubscriptionService.getVapidPublicKey");
+    return null;
+  }
+}
+
+async function clearExistingSubscription(registration: ServiceWorkerRegistration): Promise<void> {
+  try {
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      await existingSubscription.unsubscribe();
+    }
+  } catch {
+    // Ignore cleanup failures; subscription retry still has a chance to succeed.
+  }
 }
 
 export class PushSubscriptionService {
@@ -78,8 +115,7 @@ export class PushSubscriptionService {
     return (
       "serviceWorker" in navigator &&
       "PushManager" in window &&
-      "Notification" in window &&
-      !!VAPID_PUBLIC_KEY
+      "Notification" in window
     );
   }
 
@@ -107,6 +143,14 @@ export class PushSubscriptionService {
     if (permission !== "granted") return { status: "dismissed" };
 
     try {
+      const vapidPublicKey = await getVapidPublicKey();
+      if (!vapidPublicKey) {
+        return {
+          status: "error",
+          message: "Push notifications are temporarily unavailable because the app could not load its notification configuration.",
+        };
+      }
+
       const registration = await getReadyRegistration();
       if (!registration) {
         const message = "Push notifications are not ready because the app service worker is unavailable.";
@@ -120,9 +164,13 @@ export class PushSubscriptionService {
       let lastPushError: unknown = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
+          if (attempt > 0) {
+            await clearExistingSubscription(registration);
+          }
+
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!) as BufferSource,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
           });
           break; // success
         } catch (pushErr) {
