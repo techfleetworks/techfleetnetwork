@@ -7,7 +7,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GeneralApplicationService } from "@/services/general-application.service";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { lazy, Suspense } from "react";
@@ -139,6 +139,15 @@ export default function ApplicationsPage() {
     </div>
   );
 
+  const [tab, setTab] = useState("yours");
+
+  const appTabs: TabItem[] = [
+    { value: "yours", label: "Your Applications" },
+    ...(isAdmin
+      ? [{ value: "all", label: "All Applications" }]
+      : [{ value: "all", label: "All Applications", disabled: true }]),
+  ];
+
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
@@ -150,38 +159,19 @@ export default function ApplicationsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue={defaultTab}>
-        <TabsList>
-          <TabsTrigger value="yours">Your Applications</TabsTrigger>
-          {isAdmin ? (
-            <TabsTrigger value="all">All Applications</TabsTrigger>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <TabsTrigger value="all" disabled className="gap-1.5 opacity-50 cursor-not-allowed">
-                    <Lock className="h-3.5 w-3.5" />
-                    All Applications
-                  </TabsTrigger>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Only available for administrators</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </TabsList>
-        <TabsContent value="yours" className="mt-6">
+      <ResponsiveTabs value={tab} onValueChange={(v) => { if (v === "all" && !isAdmin) return; setTab(v); }}>
+        <ResponsiveTabsList tabs={appTabs} value={tab} onValueChange={(v) => { if (v === "all" && !isAdmin) return; setTab(v); }} />
+        <ResponsiveTabsContent value="yours" className="mt-6">
           {yourApplicationsContent}
-        </TabsContent>
+        </ResponsiveTabsContent>
         {isAdmin && (
-          <TabsContent value="all" className="mt-6">
+          <ResponsiveTabsContent value="all" className="mt-6">
             <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
               <SubmittedApplicationsTab />
             </Suspense>
-          </TabsContent>
+          </ResponsiveTabsContent>
         )}
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   );
 }

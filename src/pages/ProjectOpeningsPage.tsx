@@ -9,7 +9,7 @@ import {
   Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
