@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { Suspense, lazy } from "react";
 
 // Eagerly loaded routes (critical path)
@@ -102,6 +103,7 @@ const App = () => (
             <ErrorBoundary>
               <AppLayout>
                 <IdleTimeoutGuard />
+                <PWAInstallPrompt />
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
