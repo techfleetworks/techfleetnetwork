@@ -115,13 +115,18 @@ export function MemberWorldMap() {
           <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-foreground">Member Locations</h3>
         </div>
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
           <span>
             <strong className="text-foreground">{totalMembers}</strong> members
           </span>
           <span>
             <strong className="text-foreground">{countriesRepresented}</strong> countries
           </span>
+          {unspecifiedCount > 0 && (
+            <span>
+              <strong className="text-foreground">{unspecifiedCount}</strong> not specified
+            </span>
+          )}
         </div>
       </div>
 
