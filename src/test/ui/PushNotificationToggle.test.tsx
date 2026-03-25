@@ -23,6 +23,12 @@ vi.mock("@/hooks/use-push-notifications", () => ({
   }),
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-id" },
+  }),
+}));
+
 describe("PushNotificationToggle UI (BDD PUSH-005)", () => {
   beforeEach(() => {
     subscribeMock.mockReset();
@@ -44,7 +50,7 @@ describe("PushNotificationToggle UI (BDD PUSH-005)", () => {
       expect(toast.error).toHaveBeenCalledWith(
         "Your browser allowed notifications, but we couldn't save this device for alerts.",
         expect.objectContaining({
-          description: "The detailed failure was sent to the Activity Log for troubleshooting.",
+          description: "The app logged the failure and resets broken local push state automatically when this browser error occurs.",
         }),
       );
     });

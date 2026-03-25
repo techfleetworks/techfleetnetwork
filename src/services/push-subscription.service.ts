@@ -71,10 +71,15 @@ function getSubscriptionFailureMessage(err: unknown): string {
   }
 
   if (message.toLowerCase().includes("abort")) {
-    return "This device has a stale or invalid push registration. Please try again — the app will refresh the push setup automatically.";
+    return "This device has a broken local push registration. We reset it for you — please close and reopen the app, then enable push again.";
   }
 
   return "We couldn't finish enabling push notifications on this device.";
+}
+
+function isPushAbortError(err: unknown): boolean {
+  const message = getErrorMessage(err).toLowerCase();
+  return message.includes("registration failed") && message.includes("push service error");
 }
 
 async function getVapidPublicKey(): Promise<string | null> {
@@ -132,6 +137,31 @@ async function clearAllPushSubscriptions(): Promise<void> {
   }
 }
 
+async function upsertSubscription(userId: string, subscription: PushSubscription): Promise<SubscribeResult> {
+  const json = subscription.toJSON();
+  const endpoint = json.endpoint!;
+  const p256dh = json.keys?.p256dh ?? "";
+  const auth = json.keys?.auth ?? "";
+
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    { user_id: userId, endpoint, p256dh, auth },
+    { onConflict: "user_id,endpoint" },
+  );
+
+  if (error) {
+    const detailedError = new Error(
+      `Failed to save push subscription: ${error.message}${error.code ? ` (code: ${error.code})` : ""}${error.details ? ` — ${error.details}` : ""}`,
+    );
+    reportError(detailedError, "PushSubscriptionService.subscribe.upsert", userId);
+    return {
+      status: "error",
+      message: "Your browser allowed notifications, but we couldn't save this device for alerts.",
+    };
+  }
+
+  return { status: "granted" };
+}
+
 export class PushSubscriptionService {
   /** Check if the browser supports push notifications */
   static isSupported(): boolean {
@@ -185,7 +215,7 @@ export class PushSubscriptionService {
 
       const existingSubscription = await registration.pushManager.getSubscription();
       if (existingSubscription) {
-        await existingSubscription.unsubscribe();
+        return await upsertSubscription(userId, existingSubscription);
       }
 
       // Retry push subscription up to 2 times — AbortError from the push
@@ -226,32 +256,15 @@ export class PushSubscriptionService {
           })}`,
         );
         reportError(diagnosticError, "PushSubscriptionService.subscribe.pushManager", userId);
+
+        if (isPushAbortError(lastPushError)) {
+          await this.resetPushState(userId);
+        }
+
         return { status: "error", message: getSubscriptionFailureMessage(lastPushError) };
       }
 
-      const json = subscription.toJSON();
-      const endpoint = json.endpoint!;
-      const p256dh = json.keys?.p256dh ?? "";
-      const auth = json.keys?.auth ?? "";
-
-      const { error } = await supabase.from("push_subscriptions").upsert(
-        { user_id: userId, endpoint, p256dh, auth },
-        { onConflict: "user_id,endpoint" },
-      );
-
-      if (error) {
-        const detailedError = new Error(
-          `Failed to save push subscription: ${error.message}${error.code ? ` (code: ${error.code})` : ""}${error.details ? ` — ${error.details}` : ""}`,
-        );
-        console.error("Failed to save push subscription:", error.message);
-        reportError(detailedError, "PushSubscriptionService.subscribe.upsert", userId);
-        return {
-          status: "error",
-          message: "Your browser allowed notifications, but we couldn't save this device for alerts.",
-        };
-      }
-
-      return { status: "granted" };
+      return await upsertSubscription(userId, subscription);
     } catch (err) {
       console.error("Push subscribe error:", err);
       reportError(err, "PushSubscriptionService.subscribe", userId);
@@ -288,6 +301,17 @@ export class PushSubscriptionService {
       console.error("Push unsubscribe error:", err);
       reportError(err, "PushSubscriptionService.unsubscribe", userId);
       return false;
+    }
+  }
+
+  /** Hard reset local push/service-worker state when the browser storage is corrupted. */
+  static async resetPushState(userId?: string): Promise<void> {
+    try {
+      await clearAllPushSubscriptions();
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (err) {
+      reportError(err, "PushSubscriptionService.resetPushState", userId);
     }
   }
 
