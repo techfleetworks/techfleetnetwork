@@ -7,6 +7,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PushSubscriptionService } from "@/services/push-subscription.service";
 
+export type SubscribeResult = "granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error";
+
 export function usePushNotifications() {
   const { user } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
@@ -21,12 +23,12 @@ export function usePushNotifications() {
     PushSubscriptionService.isSubscribed().then(setIsSubscribed);
   }, []);
 
-  const subscribe = useCallback(async () => {
-    if (!user) return false;
+  const subscribe = useCallback(async (): Promise<SubscribeResult> => {
+    if (!user) return "error";
     setLoading(true);
     try {
       const result = await PushSubscriptionService.subscribe(user.id);
-      setIsSubscribed(result);
+      setIsSubscribed(result === "granted");
       setPermission(PushSubscriptionService.getPermission());
       return result;
     } finally {
