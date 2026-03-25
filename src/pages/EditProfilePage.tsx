@@ -14,6 +14,7 @@ import {
   Link2, RefreshCw,
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
@@ -533,6 +534,12 @@ export default function EditProfilePage() {
                 </div>
                 {/* Push Notifications */}
                 <PushNotificationToggle />
+              </div>
+
+              {/* Install App */}
+              <div className="space-y-4 pt-2 border-t border-border">
+                <Label className="text-base font-semibold">App installation</Label>
+                <InstallAppCard />
               </div>
             </div>
           </ResponsiveTabsContent>
