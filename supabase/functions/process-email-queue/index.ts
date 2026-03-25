@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
       }
 
       try {
+        // Defensive: generate plain-text fallback if trigger-enqueued emails omit 'text'
+        const emailText = payload.text || (payload.subject ? String(payload.subject) : 'Notification from Tech Fleet');
+
         await sendLovableEmail(
           {
             run_id: payload.run_id,
@@ -254,7 +257,7 @@ Deno.serve(async (req) => {
             sender_domain: payload.sender_domain,
             subject: payload.subject,
             html: payload.html,
-            text: payload.text,
+            text: emailText,
             purpose: payload.purpose,
             label: payload.label,
             idempotency_key: payload.idempotency_key,
