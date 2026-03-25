@@ -61,23 +61,29 @@ export function MemberWorldMap() {
   }, []);
 
   // Map country name → count AND numeric id → count
-  const { countById, maxCount, totalMembers, countriesRepresented } = useMemo(() => {
+  const { countById, maxCount, totalMembers, countriesRepresented, unspecifiedCount } = useMemo(() => {
     const byId = new Map<string, number>();
     let max = 1;
     let total = 0;
+    let unspecified = 0;
 
     data.forEach((d) => {
+      total += d.count;
+      if (d.country === "Not specified") {
+        unspecified = d.count;
+        return;
+      }
       const id = COUNTRY_NAME_TO_ID[d.country];
       if (id) byId.set(id, d.count);
       if (d.count > max) max = d.count;
-      total += d.count;
     });
 
     return {
       countById: byId,
       maxCount: max,
       totalMembers: total,
-      countriesRepresented: data.length,
+      countriesRepresented: data.filter((d) => d.country !== "Not specified").length,
+      unspecifiedCount: unspecified,
     };
   }, [data]);
 
