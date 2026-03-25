@@ -108,7 +108,8 @@ export class PushSubscriptionService {
   /** Unsubscribe this browser/device from push notifications */
   static async unsubscribe(userId: string): Promise<boolean> {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration();
+      if (!registration) return false;
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -134,7 +135,8 @@ export class PushSubscriptionService {
   static async isSubscribed(): Promise<boolean> {
     if (!this.isSupported()) return false;
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getReadyRegistration(3000);
+      if (!registration) return false;
       const subscription = await registration.pushManager.getSubscription();
       return !!subscription;
     } catch {
