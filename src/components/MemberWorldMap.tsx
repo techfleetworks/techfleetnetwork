@@ -46,7 +46,7 @@ export function MemberWorldMap() {
     });
   }, []);
 
-  // Load member distribution
+  // Load member distribution (includes empty-country count)
   useEffect(() => {
     const load = async () => {
       try {
