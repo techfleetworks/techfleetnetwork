@@ -56,6 +56,9 @@ Deno.serve(async (req) => {
 
     const TABLE_NAME = "Masterclass Registration";
 
+    // --- Admin client for DB writes ---
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
     // --- Query Airtable by email ---
     const encodedTable = encodeURIComponent(TABLE_NAME);
     const filterFormula = encodeURIComponent(`{Email} = "${userEmail}"`);
