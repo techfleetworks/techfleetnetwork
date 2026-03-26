@@ -439,6 +439,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
         </header>
+        <AnnouncementBanner {...CURRENT_BANNER} />
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
@@ -463,6 +464,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
+            <AnnouncementBanner {...CURRENT_BANNER} />
             <main
               id="main-content"
               className="flex-1"
