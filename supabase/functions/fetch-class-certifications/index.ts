@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
     if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
 
-    const TABLE_NAME = "Masterclass Registration";
+    const TABLE_NAME = "Masterclass Registeration";
 
     // --- Admin client for DB writes ---
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
