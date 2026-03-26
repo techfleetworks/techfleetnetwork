@@ -36,7 +36,7 @@ function typeLabel(type: string): string {
 }
 
 export default function NotificationsPage() {
-  const { setPageHeader } = usePageHeader();
+  const { setHeader } = usePageHeader();
   const navigate = useNavigate();
   const { data: notifications = [], isLoading } = useNotifications(500);
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
@@ -44,15 +44,15 @@ export default function NotificationsPage() {
   const markAllRead = useMarkAllNotificationsRead();
 
   useEffect(() => {
-    setPageHeader({
+    setHeader({
       title: "Notifications",
       breadcrumbs: [
         { label: "Profile", href: "/profile/edit" },
         { label: "Notifications" },
       ],
     });
-    return () => setPageHeader(null);
-  }, [setPageHeader]);
+    return () => setHeader(null);
+  }, [setHeader]);
 
   const handleMarkAllRead = useCallback(() => {
     markAllRead.mutate();
