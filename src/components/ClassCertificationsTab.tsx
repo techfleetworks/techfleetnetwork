@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import type { ColDef } from "ag-grid-community";
 
 interface CertificationRow {
@@ -41,6 +42,54 @@ function buildColumnDefs(rows: CertificationRow[]): ColDef[] {
   }
 
   const cols: ColDef[] = [];
+
+  // Add certificate generation column first
+  cols.push({
+    headerName: "Certificate",
+    field: "__certificate",
+    minWidth: 160,
+    maxWidth: 180,
+    sortable: false,
+    filter: false,
+    cellRenderer: (params: { data: CertificationRow }) => {
+      const raw = params.data?.raw_data;
+      if (!raw) return null;
+
+      // Try to extract full name from common Airtable field names
+      const nameFields = [
+        "Contributor Name (from Contributor Record)",
+        "Contributor Name",
+        "Name",
+        "Full Name",
+        "Member Name",
+      ];
+      let fullName = "";
+      for (const f of nameFields) {
+        const val = (raw as Record<string, unknown>)[f];
+        if (val) {
+          fullName = Array.isArray(val) ? val[0] : String(val);
+          break;
+        }
+      }
+
+      const button = document.createElement("button");
+      button.className =
+        "inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors";
+      button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> PDF`;
+      button.onclick = async () => {
+        try {
+          toast.info("Generating certificate…");
+          await generateCertificatePdf(fullName || "Tech Fleet Member");
+          toast.success("Certificate downloaded!");
+        } catch (err) {
+          console.error("Certificate generation error:", err);
+          toast.error("Failed to generate certificate");
+        }
+      };
+      return button;
+    },
+  });
+
   for (const field of fieldSet) {
     cols.push({
       headerName: field,
