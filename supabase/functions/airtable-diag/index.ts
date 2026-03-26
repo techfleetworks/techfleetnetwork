@@ -8,50 +8,45 @@ Deno.serve(async (req) => {
 
   const PAT = Deno.env.get("AIRTABLE_PAT") ?? "";
   const BASE_ID = Deno.env.get("AIRTABLE_BASE_ID") ?? "";
-  const results: Record<string, unknown> = {
-    pat_prefix: PAT.slice(0, 10) + "...",
-    pat_length: PAT.length,
-    base_id: BASE_ID,
-  };
+  const results: Record<string, unknown> = {};
 
-  // Test 1: list bases (requires schema.bases:read)
+  // Try to list tables in the base via schema API
   try {
-    const r = await fetch("https://api.airtable.com/v0/meta/bases", {
+    const r = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE_ID}/tables`, {
       headers: { Authorization: `Bearer ${PAT}` },
     });
     const body = await r.text();
-    results.list_bases_status = r.status;
-    results.list_bases_body = body.slice(0, 800);
+    results.schema_status = r.status;
+    if (r.ok) {
+      const parsed = JSON.parse(body);
+      results.table_names = parsed.tables?.map((t: { name: string; id: string }) => ({ name: t.name, id: t.id }));
+    } else {
+      results.schema_body = body.slice(0, 500);
+    }
   } catch (e) {
-    results.list_bases_error = String(e);
+    results.schema_error = String(e);
   }
 
-  // Test 2: query Masterclass Registration table directly
-  try {
-    const table = encodeURIComponent("Masterclass Registration");
-    const url = `https://api.airtable.com/v0/${BASE_ID}/${table}?maxRecords=1`;
-    const r = await fetch(url, {
-      headers: { Authorization: `Bearer ${PAT}` },
-    });
-    const body = await r.text();
-    results.query_table_status = r.status;
-    results.query_table_body = body.slice(0, 800);
-  } catch (e) {
-    results.query_table_error = String(e);
-  }
+  // Also try common variations of the table name
+  const variations = [
+    "Masterclass Registration",
+    "Masterclass Registrations",
+    "masterclass registration",
+    "Class Registration",
+    "Class Registrations",
+  ];
 
-  // Test 3: query General Applications table (known working)
-  try {
-    const table = encodeURIComponent("General Applications");
-    const url = `https://api.airtable.com/v0/${BASE_ID}/${table}?maxRecords=1`;
-    const r = await fetch(url, {
-      headers: { Authorization: `Bearer ${PAT}` },
-    });
-    const body = await r.text();
-    results.query_general_apps_status = r.status;
-    results.query_general_apps_body = body.slice(0, 300);
-  } catch (e) {
-    results.query_general_apps_error = String(e);
+  for (const name of variations) {
+    try {
+      const table = encodeURIComponent(name);
+      const url = `https://api.airtable.com/v0/${BASE_ID}/${table}?maxRecords=1`;
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${PAT}` } });
+      results[`try_${name}`] = r.status;
+      if (r.ok) {
+        const body = await r.text();
+        results[`try_${name}_preview`] = body.slice(0, 200);
+      }
+    } catch (_) {}
   }
 
   return new Response(JSON.stringify(results, null, 2), {
