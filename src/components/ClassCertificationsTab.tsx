@@ -55,7 +55,6 @@ function buildColumnDefs(rows: CertificationRow[]): ColDef[] {
       const raw = params.data?.raw_data;
       if (!raw) return null;
 
-      // Try to extract full name from common Airtable field names
       const nameFields = [
         "Contributor Name (from Contributor Record)",
         "Contributor Name",
@@ -72,11 +71,7 @@ function buildColumnDefs(rows: CertificationRow[]): ColDef[] {
         }
       }
 
-      const button = document.createElement("button");
-      button.className =
-        "inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors";
-      button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> PDF`;
-      button.onclick = async () => {
+      const handleClick = async () => {
         try {
           toast.info("Generating certificate…");
           await generateCertificatePdf(fullName || "Tech Fleet Member");
@@ -86,7 +81,16 @@ function buildColumnDefs(rows: CertificationRow[]): ColDef[] {
           toast.error("Failed to generate certificate");
         }
       };
-      return button;
+
+      return (
+        <button
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          onClick={handleClick}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          PDF
+        </button>
+      );
     },
   });
 
