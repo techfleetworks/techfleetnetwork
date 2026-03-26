@@ -19,8 +19,9 @@ const updateSW = registerSW({
 
     const checkForUpdates = () => {
       if (!navigator.onLine) return;
+      if (!registration.active && !registration.installing && !registration.waiting) return;
       registration.update().catch(() => {
-        // Silently ignore SW fetch failures (network blips, offline, etc.)
+        // Silently ignore SW update failures (network blips, null worker, etc.)
       });
     };
 
