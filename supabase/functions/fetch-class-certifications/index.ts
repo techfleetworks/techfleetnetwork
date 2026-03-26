@@ -100,8 +100,7 @@ Deno.serve(async (req) => {
     const result = await airtableRes.json();
     const records = result.records ?? [];
 
-    // --- Upsert into DB using service role ---
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    // --- Upsert into DB ---
 
     let upserted = 0;
     for (const record of records) {
