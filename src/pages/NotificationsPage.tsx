@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { CheckCheck, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { AgGrid } from "@/components/AgGrid";
+import { ThemedAgGrid } from "@/components/AgGrid";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
   useNotifications,
@@ -172,7 +172,7 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <AgGrid
+      <ThemedAgGrid
         gridId="notifications"
         rowData={notifications}
         columnDefs={columnDefs}
@@ -181,7 +181,6 @@ export default function NotificationsPage() {
         pagination={true}
         paginationPageSize={25}
         getRowId={(params) => params.data.id}
-        rowClass="cursor-pointer"
       />
     </div>
   );
