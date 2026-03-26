@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
  * Generates a PDF certificate by rendering the SVG template
  * and overlaying the recipient's full name in the center.
  */
-export async function generateCertificatePdf(fullName: string): Promise<void> {
+export async function generateCertificatePdf(fullName: string, className?: string): Promise<void> {
   // SVG dimensions
   const svgWidth = 1728;
   const svgHeight = 1117;
@@ -43,13 +43,23 @@ export async function generateCertificatePdf(fullName: string): Promise<void> {
   ctx.scale(scale, scale);
   ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
 
-  // Draw the name centered on the canvas
-  const fontSize = Math.max(48, Math.min(72, 1200 / fullName.length));
-  ctx.font = `bold ${fontSize}px "Georgia", "Times New Roman", serif`;
+  // Draw the recipient name centered
+  const nameFontSize = Math.max(48, Math.min(72, 1200 / fullName.length));
+  ctx.font = `bold ${nameFontSize}px "Georgia", "Times New Roman", serif`;
   ctx.fillStyle = "#1a1a1a";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(fullName, svgWidth / 2, svgHeight / 2);
+
+  const centerY = className ? svgHeight / 2 - 30 : svgHeight / 2;
+  ctx.fillText(fullName, svgWidth / 2, centerY);
+
+  // Draw the class name below the recipient name
+  if (className) {
+    const classFontSize = Math.max(28, Math.min(40, 1000 / className.length));
+    ctx.font = `italic ${classFontSize}px "Georgia", "Times New Roman", serif`;
+    ctx.fillStyle = "#3f3f46";
+    ctx.fillText(className, svgWidth / 2, centerY + nameFontSize + 16);
+  }
 
   URL.revokeObjectURL(svgUrl);
 
