@@ -51,7 +51,7 @@ function useCertifications(userId: string | undefined) {
 }
 
 /** Dynamically generate AG Grid column defs from raw_data keys */
-function buildColumnDefs(rows: CertificationRow[]): ColDef[] {
+function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[] {
   const fieldSet = new Set<string>();
   for (const row of rows) {
     if (row.raw_data && typeof row.raw_data === "object") {
