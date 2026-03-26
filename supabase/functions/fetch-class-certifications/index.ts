@@ -74,9 +74,20 @@ Deno.serve(async (req) => {
         status: airtableRes.status,
         response: errBody,
       });
+
+      // Log to audit_log so admins can see it in Activity Log
+      await adminClient.rpc("write_audit_log", {
+        p_event_type: "client_error",
+        p_table_name: "class_certifications",
+        p_record_id: userId,
+        p_user_id: userId,
+        p_changed_fields: ["fetch-class-certifications", `Airtable ${airtableRes.status}`],
+        p_error_message: `Airtable query failed [${airtableRes.status}]: ${errBody.slice(0, 500)}`,
+      });
+
       return new Response(JSON.stringify({
         success: false,
-        error: `Airtable query failed [${airtableRes.status}]`,
+        error: `Airtable query failed [${airtableRes.status}]. Please ensure your Airtable token has access to the Masterclass Registration table.`,
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
