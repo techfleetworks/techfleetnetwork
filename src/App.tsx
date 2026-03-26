@@ -151,6 +151,7 @@ const App = () => (
                     <Route path="/admin/roster/project/:projectId" element={<ProtectedRoute><RosterProjectDetailPage /></ProtectedRoute>} />
                     <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<ProtectedRoute><RosterApplicantDetailPage /></ProtectedRoute>} />
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
+                    <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

@@ -202,20 +202,31 @@ export function NotificationBell() {
             )}
           </ScrollArea>
 
-          {totalUnread > 0 && (
-            <div className="border-t px-4 py-2">
+          <div className="border-t px-4 py-2 flex items-center gap-2">
+            {totalUnread > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-xs gap-1.5"
+                className="flex-1 text-xs gap-1.5"
                 onClick={handleMarkAllRead}
                 disabled={markAllRead.isPending}
               >
                 <CheckCheck className="h-3.5 w-3.5" />
                 Mark all as read
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => {
+                setOpen(false);
+                navigate("/profile/notifications");
+              }}
+            >
+              View all notifications
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
 
