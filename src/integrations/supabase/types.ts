@@ -240,6 +240,39 @@ export type Database = {
           },
         ]
       }
+      class_certifications: {
+        Row: {
+          airtable_record_id: string
+          created_at: string
+          email: string
+          id: string
+          raw_data: Json
+          synced_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          airtable_record_id: string
+          created_at?: string
+          email?: string
+          id?: string
+          raw_data?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          airtable_record_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          raw_data?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           created_at: string
