@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     // --- Query Airtable by email ---
     const encodedTable = encodeURIComponent(TABLE_NAME);
-    const filterFormula = encodeURIComponent(`{Email} = "${userEmail}"`);
+    const filterFormula = encodeURIComponent(`{Contributor Email Address (from Contributor Record)} = "${userEmail}"`);
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}?filterByFormula=${filterFormula}&pageSize=100`;
 
     const airtableRes = await fetch(airtableUrl, {
