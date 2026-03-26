@@ -73,18 +73,19 @@ function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[
       const raw = params.data?.raw_data;
       if (!raw) return null;
 
-      const nameFields = [
-        "Contributor Name (from Contributor Record)",
-        "Contributor Name",
-        "Name",
-        "Full Name",
-        "Member Name",
+      // Extract class name from raw_data
+      const classFields = [
+        "Class Name (from Class Record)",
+        "Class Name",
+        "Masterclass Name",
+        "Class",
+        "Course Name",
       ];
-      let fullName = "";
-      for (const f of nameFields) {
+      let className = "";
+      for (const f of classFields) {
         const val = (raw as Record<string, unknown>)[f];
         if (val) {
-          fullName = Array.isArray(val) ? val[0] : String(val);
+          className = Array.isArray(val) ? val[0] : String(val);
           break;
         }
       }
@@ -92,7 +93,7 @@ function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[
       const handleClick = async () => {
         try {
           toast.info("Generating certificate…");
-          await generateCertificatePdf(fullName || "Tech Fleet Member");
+          await generateCertificatePdf(profileName || "Tech Fleet Member", className || undefined);
           toast.success("Certificate downloaded!");
         } catch (err) {
           console.error("Certificate generation error:", err);
@@ -151,6 +152,7 @@ export function ClassCertificationsTab() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: rows = [], isLoading } = useCertifications(user?.id);
+  const { data: profileName = "" } = useProfileName(user?.id);
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = useCallback(async () => {
@@ -177,7 +179,7 @@ export function ClassCertificationsTab() {
     }
   }, [user, queryClient]);
 
-  const columnDefs = useMemo(() => buildColumnDefs(rows), [rows]);
+  const columnDefs = useMemo(() => buildColumnDefs(rows, profileName), [rows, profileName]);
 
   const hasRecords = rows.length > 0;
 
