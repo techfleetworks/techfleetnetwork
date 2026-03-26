@@ -48,8 +48,16 @@ import {
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
+import { AnnouncementBanner } from "./AnnouncementBanner";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
+
+const CURRENT_BANNER = {
+  id: "alpha-welcome-v1",
+  title: "Welcome to Tech Fleet Network Alpha Platform!",
+  message:
+    "We're excited to build the ship as we fly the ship, so they say. This is the platform that Tech Fleet members can use to onboard, get guidance, track progress, apply, and register for training opportunities. Our entire community rallies around this. Please enjoy what's here, and know that it's being built while you use it, so there will be bugs, and not everything is complete.\n\nPlease give us feedback in the Feedback section of the app!",
+} as const;
 
 function ProfileDropdown({
   profile,
@@ -431,6 +439,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
         </header>
+        <AnnouncementBanner {...CURRENT_BANNER} />
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
@@ -455,6 +464,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
+            <AnnouncementBanner {...CURRENT_BANNER} />
             <main
               id="main-content"
               className="flex-1"
