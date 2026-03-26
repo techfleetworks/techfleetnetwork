@@ -75,6 +75,7 @@ function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[
 
       // Extract class name from raw_data
       const classFields = [
+        "Registered For",
         "Class Name (from Class Record)",
         "Class Name",
         "Masterclass Name",
