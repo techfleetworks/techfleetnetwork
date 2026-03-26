@@ -168,25 +168,25 @@ export function ThemedAgGrid<T = unknown>({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       {showToolbar && (
         <div className="flex flex-wrap items-center gap-2">
           {gridId && !hideResetButton && (
-            <Button variant="outline" size="sm" onClick={resetView} className="gap-1.5 text-xs h-9">
-              <RotateCcw className="h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" onClick={resetView} className="gap-1.5 text-xs h-8 rounded-md border-border/50 hover:bg-accent/60">
+              <RotateCcw className="h-3 w-3" />
               Reset View
             </Button>
           )}
           {showExportCsv && (
-            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5 text-xs h-9">
-              <Download className="h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5 text-xs h-8 rounded-md border-border/50 hover:bg-accent/60">
+              <Download className="h-3 w-3" />
               Export CSV
             </Button>
           )}
           {toolbarLeft}
         </div>
       )}
-      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 rounded-lg border border-border/40 bg-card shadow-sm">
         <div key={themeClass} className={themeClass} style={{ height, width: "100%", minWidth: "600px" }}>
           <AgGridReact<T>
             defaultColDef={mergedColDef}

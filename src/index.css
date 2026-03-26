@@ -4,31 +4,81 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AG Grid theme token mapping */
+/* AG Grid modern theme mapping */
 .ag-theme-alpine,
 .ag-theme-alpine-dark {
   --ag-background-color: hsl(var(--background));
   --ag-foreground-color: hsl(var(--foreground));
-  --ag-header-background-color: hsl(var(--muted));
-  --ag-header-foreground-color: hsl(var(--foreground));
-  --ag-border-color: hsl(var(--border));
-  --ag-row-hover-color: hsl(var(--muted) / 0.5);
-  --ag-selected-row-background-color: hsl(var(--primary) / 0.1);
+  --ag-header-background-color: hsl(var(--card));
+  --ag-header-foreground-color: hsl(var(--muted-foreground));
+  --ag-border-color: hsl(var(--border) / 0.5);
+  --ag-row-hover-color: hsl(var(--accent) / 0.5);
+  --ag-selected-row-background-color: hsl(var(--primary) / 0.08);
   --ag-odd-row-background-color: transparent;
-  --ag-header-cell-hover-background-color: hsl(var(--accent));
+  --ag-header-cell-hover-background-color: hsl(var(--accent) / 0.6);
   --ag-range-selection-border-color: hsl(var(--primary));
   --ag-input-focus-border-color: hsl(var(--ring));
   --ag-card-shadow: none;
   --ag-font-family: inherit;
-  --ag-font-size: 0.875rem;
-  --ag-grid-size: 6px;
-  --ag-row-border-color: hsl(var(--border));
+  --ag-font-size: 0.8125rem;
+  --ag-grid-size: 5px;
+  --ag-row-border-color: hsl(var(--border) / 0.3);
+  --ag-header-height: 40px;
+  --ag-row-height: 44px;
+  --ag-border-radius: 0;
+  --ag-cell-horizontal-padding: 14px;
+  --ag-header-column-separator-display: none;
+  --ag-wrapper-border-radius: 0;
 }
 
-/* Clickable cells — copy on click */
+/* Modern header styling */
+.ag-theme-alpine .ag-header,
+.ag-theme-alpine-dark .ag-header {
+  border-bottom: 2px solid hsl(var(--border) / 0.6);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Clean cell styling with hover feedback */
 .ag-theme-alpine .ag-cell,
 .ag-theme-alpine-dark .ag-cell {
   cursor: pointer;
+  transition: background-color 0.15s ease;
+  line-height: 1.5;
+}
+
+/* Floating filter inputs */
+.ag-theme-alpine .ag-floating-filter-input,
+.ag-theme-alpine-dark .ag-floating-filter-input {
+  border-radius: 6px !important;
+}
+
+.ag-theme-alpine .ag-text-field-input,
+.ag-theme-alpine-dark .ag-text-field-input {
+  border-radius: 6px !important;
+  font-size: 0.8125rem;
+}
+
+/* Pagination bar */
+.ag-theme-alpine .ag-paging-panel,
+.ag-theme-alpine-dark .ag-paging-panel {
+  border-top: 1px solid hsl(var(--border) / 0.4);
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Row pinned styling */
+.ag-theme-alpine .ag-row-pinned,
+.ag-theme-alpine-dark .ag-row-pinned {
+  background-color: hsl(var(--card));
+}
+
+/* Remove outer border for cleaner card embed */
+.ag-theme-alpine .ag-root-wrapper,
+.ag-theme-alpine-dark .ag-root-wrapper {
+  border: none;
 }
 
 /* Font-display fallback to prevent FOIT layout shifts */
