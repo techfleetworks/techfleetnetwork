@@ -27,26 +27,20 @@ Deno.serve(async (req) => {
     results.schema_error = String(e);
   }
 
-  // Also try common variations of the table name
-  const variations = [
-    "Masterclass Registration",
-    "Masterclass Registrations",
-    "masterclass registration",
-    "Class Registration",
-    "Class Registrations",
-  ];
-
-  for (const name of variations) {
-    try {
-      const table = encodeURIComponent(name);
-      const url = `https://api.airtable.com/v0/${BASE_ID}/${table}?maxRecords=1`;
-      const r = await fetch(url, { headers: { Authorization: `Bearer ${PAT}` } });
-      results[`try_${name}`] = r.status;
-      if (r.ok) {
-        const body = await r.text();
-        results[`try_${name}_preview`] = body.slice(0, 200);
-      }
-    } catch (_) {}
+  // Fetch one record from Masterclass Registeration to see field names
+  try {
+    const table = encodeURIComponent("Masterclass Registeration");
+    const url = `https://api.airtable.com/v0/${BASE_ID}/${table}?maxRecords=1`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${PAT}` } });
+    if (r.ok) {
+      const body = await r.json();
+      const fields = body.records?.[0]?.fields ?? {};
+      results.sample_field_names = Object.keys(fields);
+    } else {
+      results.sample_status = r.status;
+    }
+  } catch (e) {
+    results.sample_error = String(e);
   }
 
   return new Response(JSON.stringify(results, null, 2), {
