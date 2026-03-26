@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.push-config]
 verify_jwt = false
+
+[functions.discord-interactions]
+verify_jwt = false
+
+[functions.register-fleety-command]
+verify_jwt = false
