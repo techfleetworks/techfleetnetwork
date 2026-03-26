@@ -9,6 +9,24 @@ import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import type { ColDef } from "ag-grid-community";
 
+/** Fetch the user's profile name */
+function useProfileName(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["profile-name", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, display_name")
+        .eq("user_id", userId!)
+        .single();
+      if (error) throw error;
+      const full = [data.first_name, data.last_name].filter(Boolean).join(" ");
+      return full || data.display_name || "";
+    },
+    enabled: !!userId,
+  });
+}
+
 interface CertificationRow {
   id: string;
   airtable_record_id: string;
