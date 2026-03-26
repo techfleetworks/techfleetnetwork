@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import type { ColDef } from "ag-grid-community";
 
 interface CertificationRow {
