@@ -143,9 +143,22 @@ async function getCurrentUserId(): Promise<string | undefined> {
  * Install global listeners for unhandled errors and unhandled promise
  * rejections. Call once at app startup.
  */
+/** Errors matching these patterns are expected browser/SW noise — skip logging */
+const SUPPRESSED_PATTERNS = [
+  "Lock broken by another request",
+  "newestWorker is null",
+  "Failed to update a ServiceWorker",
+  "An unknown error occurred when fetching the script",
+] as const;
+
+function isSuppressed(msg: string): boolean {
+  return SUPPRESSED_PATTERNS.some((p) => msg.includes(p));
+}
+
 export function installGlobalErrorReporter() {
   window.addEventListener("error", async (event) => {
     const msg = formatError(event.error ?? event.message);
+    if (isSuppressed(msg)) return;
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
       : "window.onerror";
@@ -155,6 +168,7 @@ export function installGlobalErrorReporter() {
 
   window.addEventListener("unhandledrejection", async (event) => {
     const msg = formatError(event.reason);
+    if (isSuppressed(msg)) return;
     const userId = await getCurrentUserId();
     reportToAuditLog(msg, "unhandledrejection", userId);
   });
