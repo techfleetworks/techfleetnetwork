@@ -51,9 +51,10 @@ export function AnnouncementBanner({ id, title, message }: BannerConfig) {
     <div
       role="status"
       aria-live="polite"
-      className="relative w-full bg-primary text-primary-foreground"
+      className="relative w-full"
+      style={{ backgroundColor: "hsl(220, 60%, 15%)", color: "hsl(0, 0%, 100%)" }}
     >
-      <div className="mx-auto flex items-start gap-3 px-4 py-3 sm:items-center sm:py-2.5 max-w-[1400px]">
+      <div className="flex items-start gap-3 px-4 py-3 sm:items-center sm:py-2.5 w-full">
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-0.5">
           <p className="text-sm font-semibold leading-snug">{title}</p>
