@@ -19,7 +19,9 @@ const updateSW = registerSW({
 
     const checkForUpdates = () => {
       if (!navigator.onLine) return;
-      void registration.update();
+      registration.update().catch(() => {
+        // Silently ignore SW fetch failures (network blips, offline, etc.)
+      });
     };
 
     const handleVisibilityChange = () => {
