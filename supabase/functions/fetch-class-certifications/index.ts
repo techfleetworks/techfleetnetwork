@@ -134,7 +134,9 @@ Deno.serve(async (req) => {
         const cohortRecord = await cohortRes.json();
         const cohortName = cohortRecord?.fields?.["Cohort Name"];
         if (typeof cohortName === "string" && cohortName.trim()) {
-          cohortNameMap[id] = cohortName.trim();
+          // Only keep the part before the first comma
+          const cleaned = cohortName.trim().split(",")[0].trim();
+          cohortNameMap[id] = cleaned;
         }
       }
 
