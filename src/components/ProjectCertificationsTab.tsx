@@ -52,6 +52,7 @@ function useProjectCertifications(userId: string | undefined) {
 
 /** Fields to check for the human-readable project name */
 const PROJECT_NAME_FIELDS = [
+  "Project Phase Name (from Project They Joined)",
   "Project They Joined",
   "Project Name",
   "Project",
