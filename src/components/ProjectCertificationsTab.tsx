@@ -1,0 +1,277 @@
+import { useState, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus, Briefcase } from "lucide-react";
+import { toast } from "sonner";
+import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
+import { useNavigate } from "react-router-dom";
+
+/** Fetch the user's profile name */
+function useProfileName(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["profile-name", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, display_name")
+        .eq("user_id", userId!)
+        .single();
+      if (error) throw error;
+      const full = [data.first_name, data.last_name].filter(Boolean).join(" ");
+      return full || data.display_name || "";
+    },
+    enabled: !!userId,
+  });
+}
+
+interface CertificationRow {
+  id: string;
+  airtable_record_id: string;
+  synced_at: string;
+  raw_data: Record<string, unknown>;
+}
+
+/** Fetch cached project certifications from the DB */
+function useProjectCertifications(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["project-certifications", userId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("project_certifications")
+        .select("id, airtable_record_id, synced_at, raw_data")
+        .order("synced_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as CertificationRow[];
+    },
+    enabled: !!userId,
+  });
+}
+
+/** Fields to check for the human-readable project name */
+const PROJECT_NAME_FIELDS = [
+  "Project They Joined",
+  "Project Name",
+  "Project",
+  "Name",
+];
+
+/** Extract project name from raw_data */
+function extractProjectName(raw: Record<string, unknown>): string {
+  for (const f of PROJECT_NAME_FIELDS) {
+    const val = raw[f];
+    if (!val) continue;
+    const str = Array.isArray(val) ? val.join(", ") : String(val);
+    if (/^rec[A-Za-z0-9]{10,}/.test(str)) continue;
+    if (str.trim()) return str;
+  }
+  return "";
+}
+
+/** Extract a month + year string from raw_data */
+function extractMonthYear(raw: Record<string, unknown>): string {
+  const dateFields = ["Created", "Date", "Start Date", "Registration Date", "created_at"];
+  for (const f of dateFields) {
+    const val = raw[f];
+    if (!val) continue;
+    const d = new Date(String(val));
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+  }
+  return "";
+}
+
+/** Extract the project phase from raw_data */
+function extractPhase(raw: Record<string, unknown>): string {
+  const phaseFields = ["Phase", "Project Phase", "phase"];
+  for (const f of phaseFields) {
+    const val = raw[f];
+    if (!val) continue;
+    const str = Array.isArray(val) ? val.join(", ") : String(val);
+    if (str.trim()) return str;
+  }
+  return "";
+}
+
+interface CertCardProps {
+  row: CertificationRow;
+  profileName: string;
+}
+
+function CertCard({ row, profileName }: CertCardProps) {
+  const [generating, setGenerating] = useState(false);
+  const projectName = useMemo(() => extractProjectName(row.raw_data), [row.raw_data]);
+  const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
+  const phase = useMemo(() => extractPhase(row.raw_data), [row.raw_data]);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      toast.info("Generating certificate…");
+      const certTitle = projectName || "Project Training";
+      await generateCertificatePdf(profileName || "Tech Fleet Member", certTitle);
+      toast.success("Certificate downloaded!");
+    } catch (err) {
+      console.error("Certificate generation error:", err);
+      toast.error("Failed to generate certificate");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col justify-between h-full">
+      <CardHeader className="pb-2">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Briefcase className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold leading-snug line-clamp-2">
+              {projectName || "Project"}
+            </CardTitle>
+            {phase && (
+              <p className="text-xs text-muted-foreground mt-1">{phase}</p>
+            )}
+            {monthYear && (
+              <p className="text-xs text-muted-foreground mt-0.5">{monthYear}</p>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-2">
+        <Button
+          size="sm"
+          className="w-full gap-2"
+          onClick={handleGenerate}
+          disabled={generating}
+        >
+          <FileDown className="h-4 w-4" />
+          {generating ? "Generating…" : "Get Certificate"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ProjectCertificationsTab() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: rows = [], isLoading } = useProjectCertifications(user?.id);
+  const { data: profileName = "" } = useProfileName(user?.id);
+  const [syncing, setSyncing] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleSync = useCallback(async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-project-certifications");
+      if (error) throw error;
+      if (data?.success) {
+        setHasSearched(true);
+        if (data.total_found === 0) {
+          toast.info("No records found", {
+            description: "No project roster entries were found for your email address.",
+          });
+        } else {
+          toast.success(`Found ${data.total_found} record(s)`, {
+            description: `${data.upserted} synced to your profile.`,
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ["project-certifications"] });
+      } else {
+        toast.error("Sync failed", { description: data?.error ?? "Unknown error" });
+      }
+    } catch (err) {
+      console.error("Project certification sync error:", err);
+      toast.error("Could not sync project certifications", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, queryClient]);
+
+  const hasRecords = rows.length > 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Project Certifications</h2>
+          <p className="text-sm text-muted-foreground">
+            Historical project roster records linked to your email address.
+          </p>
+        </div>
+        <Button
+          onClick={handleSync}
+          disabled={syncing}
+          className="gap-2"
+          variant={hasRecords ? "outline" : "default"}
+        >
+          {syncing ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {syncing ? "Searching…" : hasRecords ? "Refresh Records" : "Search My Records"}
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="card-elevated p-12 text-center">
+          <p className="text-muted-foreground text-sm">Loading project certifications…</p>
+        </div>
+      ) : !hasRecords && hasSearched ? (
+        <div className="card-elevated p-12 text-center space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <MailQuestion className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-semibold text-foreground">
+              No Records Found
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+              We couldn't find any project roster entries linked to your email address.
+              This may happen if you registered with a different email, or if your records
+              haven't been added to the system yet.
+            </p>
+          </div>
+          <div className="pt-2 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Think this is an error? Submit a support ticket and we'll look into it.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate("/feedback")}
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              Submit a Support Ticket
+            </Button>
+          </div>
+        </div>
+      ) : !hasRecords ? (
+        <div className="card-elevated p-12 text-center space-y-3">
+          <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
+          <p className="text-muted-foreground">
+            Click <strong>"Search My Records"</strong> to look up your historical project
+            roster entries.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {rows.map((row) => (
+            <CertCard key={row.id} row={row} profileName={profileName} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

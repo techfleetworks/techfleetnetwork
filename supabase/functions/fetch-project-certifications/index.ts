@@ -1,0 +1,198 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // --- Auth ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+    const userEmail = (claimsData.claims.email as string) ?? "";
+
+    if (!userEmail) {
+      return new Response(JSON.stringify({ error: "No email associated with account" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Env ---
+    const AIRTABLE_PAT = Deno.env.get("AIRTABLE_PAT");
+    if (!AIRTABLE_PAT) throw new Error("AIRTABLE_PAT is not configured");
+
+    const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
+    if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
+
+    const TABLE_NAME = "Project Trainee and Volunteer Roster";
+
+    // --- Admin client for DB writes ---
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // --- Query Airtable by email ---
+    const encodedTable = encodeURIComponent(TABLE_NAME);
+    const filterFormula = encodeURIComponent(`{Contributor Email Address (from Project Teammate)} = "${userEmail}"`);
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}?filterByFormula=${filterFormula}&pageSize=100`;
+
+    const airtableRes = await fetch(airtableUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_PAT}`,
+      },
+    });
+
+    if (!airtableRes.ok) {
+      const errBody = await airtableRes.text();
+      console.error("fetch-project-certifications Airtable query failed", {
+        status: airtableRes.status,
+        response: errBody,
+      });
+
+      await adminClient.rpc("write_audit_log", {
+        p_event_type: "client_error",
+        p_table_name: "project_certifications",
+        p_record_id: userId,
+        p_user_id: userId,
+        p_changed_fields: ["fetch-project-certifications", `Airtable ${airtableRes.status}`],
+        p_error_message: `Airtable query failed [${airtableRes.status}]: ${errBody.slice(0, 500)}`,
+      });
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Airtable query failed [${airtableRes.status}]. Please ensure your Airtable token has access to the Project Trainee and Volunteer Roster table.`,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const result = await airtableRes.json();
+    const records = result.records ?? [];
+
+    // --- Resolve linked "Project They Joined" IDs to project names ---
+    const projectIds = new Set<string>();
+    for (const record of records) {
+      const projField = record.fields?.["Project They Joined"];
+      if (Array.isArray(projField)) {
+        projField.forEach((id: string) => {
+          if (typeof id === "string" && id.trim()) projectIds.add(id);
+        });
+      }
+    }
+
+    const projectNameMap: Record<string, string> = {};
+    if (projectIds.size > 0) {
+      // Try to resolve from a Projects table in Airtable
+      const projectTable = encodeURIComponent("Projects");
+      const idArray = Array.from(projectIds);
+
+      for (const id of idArray) {
+        const projectUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${projectTable}/${id}`;
+        const projectRes = await fetch(projectUrl, {
+          headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
+        });
+
+        if (!projectRes.ok) {
+          console.error("Project lookup failed", {
+            projectId: id,
+            status: projectRes.status,
+            response: await projectRes.text(),
+          });
+          continue;
+        }
+
+        const projectRecord = await projectRes.json();
+        // Try common name fields
+        const projectName = projectRecord?.fields?.["Project Name"] 
+          ?? projectRecord?.fields?.["Name"]
+          ?? projectRecord?.fields?.["Project"];
+        if (typeof projectName === "string" && projectName.trim()) {
+          const cleaned = projectName.trim().split(",")[0].trim();
+          projectNameMap[id] = cleaned;
+        }
+      }
+
+      console.log("Resolved project names", {
+        requested: projectIds.size,
+        resolved: Object.keys(projectNameMap).length,
+      });
+    }
+
+    // --- Upsert into DB with resolved project names ---
+    let upserted = 0;
+    for (const record of records) {
+      const fields = { ...(record.fields ?? {}) };
+
+      // Replace "Project They Joined" record IDs with human-readable names
+      const projField = fields["Project They Joined"];
+      if (Array.isArray(projField)) {
+        fields["Project They Joined"] = projField.map((id: string) => projectNameMap[id] || id);
+      }
+
+      const { error: upsertErr } = await adminClient
+        .from("project_certifications")
+        .upsert(
+          {
+            user_id: userId,
+            email: userEmail,
+            airtable_record_id: record.id,
+            raw_data: fields,
+            synced_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,airtable_record_id" }
+        );
+
+      if (upsertErr) {
+        console.error("Upsert error for record", record.id, upsertErr);
+      } else {
+        upserted++;
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      total_found: records.length,
+      upserted,
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error: unknown) {
+    console.error("fetch-project-certifications error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
