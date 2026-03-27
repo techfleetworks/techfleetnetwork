@@ -50,15 +50,16 @@ export async function generateCertificatePdf(fullName: string, className?: strin
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  const centerY = className ? svgHeight / 2 - 30 : svgHeight / 2;
+  const nameClassGap = 40;
+  const centerY = className ? svgHeight / 2 - 40 : svgHeight / 2;
   ctx.fillText(fullName, svgWidth / 2, centerY);
 
-  // Draw the class name below the recipient name
+  // Draw the class name below the recipient name with generous spacing
   if (className) {
     const classFontSize = Math.max(28, Math.min(40, 1000 / className.length));
     ctx.font = `italic ${classFontSize}px "Georgia", "Times New Roman", serif`;
     ctx.fillStyle = "#3f3f46";
-    ctx.fillText(className, svgWidth / 2, centerY + nameFontSize + 16);
+    ctx.fillText(className, svgWidth / 2, centerY + nameFontSize + nameClassGap);
   }
 
   URL.revokeObjectURL(svgUrl);
