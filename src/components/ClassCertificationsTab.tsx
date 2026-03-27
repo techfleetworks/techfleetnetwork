@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Search, FileDown } from "lucide-react";
+import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
+import { useNavigate } from "react-router-dom";
+import type { ColDef } from "ag-grid-community";
 import type { ColDef } from "ag-grid-community";
 
 /** Fetch the user's profile name */
