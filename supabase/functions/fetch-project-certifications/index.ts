@@ -6,6 +6,52 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TABLE_NAME = "Project Trainee and Volunteer Roster";
+const PROJECT_EMAIL_FIELD = "{Contributor Email Address (from Project Teammate)}";
+
+function escapeAirtableFormulaValue(value: string) {
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').trim();
+}
+
+async function fetchAllAirtableRecords(
+  baseId: string,
+  tableName: string,
+  filterFormula: string,
+  pat: string,
+) {
+  const encodedTable = encodeURIComponent(tableName);
+  const records: Array<{ id: string; fields?: Record<string, unknown> }> = [];
+  let offset: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      filterByFormula: filterFormula,
+      pageSize: "100",
+    });
+
+    if (offset) params.set("offset", offset);
+
+    const airtableUrl = `https://api.airtable.com/v0/${baseId}/${encodedTable}?${params.toString()}`;
+    const airtableRes = await fetch(airtableUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${pat}`,
+      },
+    });
+
+    if (!airtableRes.ok) {
+      const errBody = await airtableRes.text();
+      throw new Error(`Airtable query failed [${airtableRes.status}]: ${errBody.slice(0, 500)}`);
+    }
+
+    const result = await airtableRes.json();
+    records.push(...(result.records ?? []));
+    offset = result.offset;
+  } while (offset);
+
+  return records;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -54,50 +100,67 @@ Deno.serve(async (req) => {
     const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
     if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
 
-    const TABLE_NAME = "Project Trainee and Volunteer Roster";
-
     // --- Admin client for DB writes ---
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // --- Query Airtable by email ---
-    const encodedTable = encodeURIComponent(TABLE_NAME);
-    const filterFormula = encodeURIComponent(`LOWER({Contributor Email Address (from Project Teammate)}) = LOWER("${userEmail}")`);
-    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}?filterByFormula=${filterFormula}&pageSize=100`;
-
-    const airtableRes = await fetch(airtableUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_PAT}`,
+    // --- Query Airtable by email with fallback matching for lookup/array fields ---
+    const escapedEmail = escapeAirtableFormulaValue(userEmail);
+    const filterStrategies = [
+      {
+        name: "exact-arrayjoin-match",
+        formula: `LOWER(TRIM(ARRAYJOIN(${PROJECT_EMAIL_FIELD}, ''))) = LOWER("${escapedEmail}")`,
       },
-    });
+      {
+        name: "contains-arrayjoin-match",
+        formula: `FIND(',' & LOWER("${escapedEmail}") & ',', ',' & LOWER(ARRAYJOIN(${PROJECT_EMAIL_FIELD}, ',')) & ',') > 0`,
+      },
+    ];
 
-    if (!airtableRes.ok) {
-      const errBody = await airtableRes.text();
-      console.error("fetch-project-certifications Airtable query failed", {
-        status: airtableRes.status,
-        response: errBody,
-      });
+    let records: Array<{ id: string; fields?: Record<string, unknown> }> = [];
+    let usedStrategy = filterStrategies[0].name;
+
+    try {
+      for (const strategy of filterStrategies) {
+        const found = await fetchAllAirtableRecords(
+          AIRTABLE_BASE_ID,
+          TABLE_NAME,
+          strategy.formula,
+          AIRTABLE_PAT,
+        );
+
+        if (found.length > 0) {
+          records = found;
+          usedStrategy = strategy.name;
+          break;
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown Airtable error";
+      console.error("fetch-project-certifications Airtable query failed", { message, userEmail });
 
       await adminClient.rpc("write_audit_log", {
         p_event_type: "client_error",
         p_table_name: "project_certifications",
         p_record_id: userId,
         p_user_id: userId,
-        p_changed_fields: ["fetch-project-certifications", `Airtable ${airtableRes.status}`],
-        p_error_message: `Airtable query failed [${airtableRes.status}]: ${errBody.slice(0, 500)}`,
+        p_changed_fields: ["fetch-project-certifications", "Airtable query failed"],
+        p_error_message: message,
       });
 
       return new Response(JSON.stringify({
         success: false,
-        error: `Airtable query failed [${airtableRes.status}]. Please ensure your Airtable token has access to the Project Trainee and Volunteer Roster table.`,
+        error: "Airtable query failed. Please ensure your Airtable token has access to the Project Trainee and Volunteer Roster table.",
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const result = await airtableRes.json();
-    const records = result.records ?? [];
+    console.log("Project certification lookup result", {
+      userEmail,
+      strategy: usedStrategy,
+      totalFound: records.length,
+    });
 
     // --- Resolve linked "Project They Joined" IDs to project names ---
     const projectIds = new Set<string>();
