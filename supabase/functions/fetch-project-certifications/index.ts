@@ -162,6 +162,23 @@ Deno.serve(async (req) => {
       totalFound: records.length,
     });
 
+    // --- Audit: log the search attempt with full details ---
+    await adminClient.rpc("write_audit_log", {
+      p_event_type: records.length > 0 ? "project_cert_sync_started" : "project_cert_sync_no_results",
+      p_table_name: "project_certifications",
+      p_record_id: userId,
+      p_user_id: userId,
+      p_changed_fields: [
+        `email:${userEmail}`,
+        `strategy:${usedStrategy}`,
+        `airtable_records_found:${records.length}`,
+        `table:${TABLE_NAME}`,
+      ],
+      p_error_message: records.length === 0
+        ? `No Airtable records found for email "${userEmail}" using strategies: ${filterStrategies.map(s => s.name).join(", ")}`
+        : null,
+    });
+
     // --- Resolve linked "Project They Joined" IDs to project names ---
     const projectIds = new Set<string>();
     for (const record of records) {
@@ -211,8 +228,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- Audit: log project name resolution results ---
+    if (projectIds.size > 0) {
+      const unresolvedIds = Array.from(projectIds).filter(id => !projectNameMap[id]);
+      if (unresolvedIds.length > 0) {
+        await adminClient.rpc("write_audit_log", {
+          p_event_type: "project_cert_name_resolution_partial",
+          p_table_name: "project_certifications",
+          p_record_id: userId,
+          p_user_id: userId,
+          p_changed_fields: [
+            `resolved:${Object.keys(projectNameMap).length}/${projectIds.size}`,
+            ...unresolvedIds.slice(0, 5).map(id => `unresolved:${id}`),
+          ],
+        });
+      }
+    }
+
     // --- Upsert into DB with resolved project names ---
     let upserted = 0;
+    let upsertErrors = 0;
     for (const record of records) {
       const fields = { ...(record.fields ?? {}) };
 
@@ -237,10 +272,27 @@ Deno.serve(async (req) => {
 
       if (upsertErr) {
         console.error("Upsert error for record", record.id, upsertErr);
+        upsertErrors++;
       } else {
         upserted++;
       }
     }
+
+    // --- Audit: log sync completion summary ---
+    await adminClient.rpc("write_audit_log", {
+      p_event_type: "project_cert_sync_completed",
+      p_table_name: "project_certifications",
+      p_record_id: userId,
+      p_user_id: userId,
+      p_changed_fields: [
+        `email:${userEmail}`,
+        `strategy:${usedStrategy}`,
+        `airtable_found:${records.length}`,
+        `upserted:${upserted}`,
+        `upsert_errors:${upsertErrors}`,
+        `projects_resolved:${Object.keys(projectNameMap).length}`,
+      ],
+    });
 
     return new Response(JSON.stringify({
       success: true,

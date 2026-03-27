@@ -100,6 +100,23 @@ Deno.serve(async (req) => {
     const result = await airtableRes.json();
     const records = result.records ?? [];
 
+    // --- Audit: log the search attempt with full details ---
+    await adminClient.rpc("write_audit_log", {
+      p_event_type: records.length > 0 ? "class_cert_sync_started" : "class_cert_sync_no_results",
+      p_table_name: "class_certifications",
+      p_record_id: userId,
+      p_user_id: userId,
+      p_changed_fields: [
+        `email:${userEmail}`,
+        `airtable_records_found:${records.length}`,
+        `table:${TABLE_NAME}`,
+        `filter:Contributor Email Address (from Contributor Record)`,
+      ],
+      p_error_message: records.length === 0
+        ? `No Airtable records found for email "${userEmail}" in Masterclass Registeration table`
+        : null,
+    });
+
     // --- Resolve linked "Registered For" IDs to Cohort Names ---
     const cohortIds = new Set<string>();
     for (const record of records) {
@@ -146,9 +163,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- Audit: log cohort name resolution results ---
+    if (cohortIds.size > 0) {
+      const unresolvedIds = Array.from(cohortIds).filter(id => !cohortNameMap[id]);
+      if (unresolvedIds.length > 0) {
+        await adminClient.rpc("write_audit_log", {
+          p_event_type: "class_cert_name_resolution_partial",
+          p_table_name: "class_certifications",
+          p_record_id: userId,
+          p_user_id: userId,
+          p_changed_fields: [
+            `resolved:${Object.keys(cohortNameMap).length}/${cohortIds.size}`,
+            ...unresolvedIds.slice(0, 5).map(id => `unresolved:${id}`),
+          ],
+        });
+      }
+    }
+
     // --- Upsert into DB with resolved cohort names ---
 
     let upserted = 0;
+    let upsertErrors = 0;
     for (const record of records) {
       const fields = { ...(record.fields ?? {}) };
 
@@ -173,10 +208,26 @@ Deno.serve(async (req) => {
 
       if (upsertErr) {
         console.error("Upsert error for record", record.id, upsertErr);
+        upsertErrors++;
       } else {
         upserted++;
       }
     }
+
+    // --- Audit: log sync completion summary ---
+    await adminClient.rpc("write_audit_log", {
+      p_event_type: "class_cert_sync_completed",
+      p_table_name: "class_certifications",
+      p_record_id: userId,
+      p_user_id: userId,
+      p_changed_fields: [
+        `email:${userEmail}`,
+        `airtable_found:${records.length}`,
+        `upserted:${upserted}`,
+        `upsert_errors:${upsertErrors}`,
+        `cohorts_resolved:${Object.keys(cohortNameMap).length}`,
+      ],
+    });
 
     return new Response(JSON.stringify({
       success: true,
