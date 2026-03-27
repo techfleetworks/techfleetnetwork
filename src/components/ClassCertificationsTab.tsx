@@ -87,7 +87,10 @@ function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[
       for (const f of classFields) {
         const val = (raw as Record<string, unknown>)[f];
         if (val) {
-          className = Array.isArray(val) ? val[0] : String(val);
+          className = Array.isArray(val) ? val.join(", ") : String(val);
+          if (className && !className.startsWith("rec")) break;
+          // If it looks like an Airtable record ID, skip and try next field
+          if (/^rec[A-Za-z0-9]{10,}/.test(className)) { className = ""; continue; }
           break;
         }
       }
