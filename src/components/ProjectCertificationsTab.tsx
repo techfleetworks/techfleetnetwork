@@ -54,9 +54,6 @@ function useProjectCertifications(userId: string | undefined) {
 const PROJECT_NAME_FIELDS = [
   "Project Phase Name (from Project They Joined)",
   "Project They Joined",
-  "Project Name",
-  "Project",
-  "Name",
 ];
 
 /** Extract project name from raw_data */
@@ -65,10 +62,17 @@ function extractProjectName(raw: Record<string, unknown>): string {
     const val = raw[f];
     if (!val) continue;
     const str = Array.isArray(val) ? val.join(", ") : String(val);
+    // Skip Airtable record IDs (e.g. recXXXXXXXXXXXX)
     if (/^rec[A-Za-z0-9]{10,}/.test(str)) continue;
     if (str.trim()) return str;
   }
-  return "";
+  // Fallback: use "Teammate Type of Project" if available
+  const typeVal = raw["Teammate Type of Project"];
+  if (typeVal) {
+    const typeStr = Array.isArray(typeVal) ? typeVal.join(", ") : String(typeVal);
+    if (typeStr.trim()) return typeStr;
+  }
+  return "Project Training";
 }
 
 /** Extract a month + year string from raw_data */
