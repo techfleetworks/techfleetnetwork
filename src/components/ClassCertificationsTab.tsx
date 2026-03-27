@@ -2,13 +2,12 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ThemedAgGrid } from "@/components/AgGrid";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import { useNavigate } from "react-router-dom";
-import type { ColDef } from "ag-grid-community";
 
 /** Fetch the user's profile name */
 function useProfileName(userId: string | undefined) {
@@ -51,106 +50,96 @@ function useCertifications(userId: string | undefined) {
   });
 }
 
-/** Dynamically generate AG Grid column defs from raw_data keys */
-function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[] {
-  const fieldSet = new Set<string>();
-  for (const row of rows) {
-    if (row.raw_data && typeof row.raw_data === "object") {
-      Object.keys(row.raw_data).forEach((k) => fieldSet.add(k));
+/** Fields to check for the human-readable class/cohort name */
+const CLASS_NAME_FIELDS = [
+  "Registered For",
+  "Class Name (from Class Record)",
+  "Class Name",
+  "Masterclass Name",
+  "Class",
+  "Course Name",
+];
+
+/** Extract cohort name from raw_data */
+function extractClassName(raw: Record<string, unknown>): string {
+  for (const f of CLASS_NAME_FIELDS) {
+    const val = raw[f];
+    if (!val) continue;
+    const str = Array.isArray(val) ? val.join(", ") : String(val);
+    if (/^rec[A-Za-z0-9]{10,}/.test(str)) continue;
+    if (str.trim()) return str;
+  }
+  return "";
+}
+
+/** Extract a month + year string from raw_data */
+function extractMonthYear(raw: Record<string, unknown>): string {
+  const dateFields = ["Created", "Date", "Start Date", "Registration Date", "created_at"];
+  for (const f of dateFields) {
+    const val = raw[f];
+    if (!val) continue;
+    const d = new Date(String(val));
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     }
   }
+  return "";
+}
 
-  const cols: ColDef[] = [];
+interface CertCardProps {
+  row: CertificationRow;
+  profileName: string;
+}
 
-  // Add certificate generation column first
-  cols.push({
-    headerName: "Certificate",
-    field: "__certificate",
-    minWidth: 160,
-    maxWidth: 180,
-    sortable: false,
-    filter: false,
-    cellRenderer: (params: { data: CertificationRow }) => {
-      const raw = params.data?.raw_data;
-      if (!raw) return null;
+function CertCard({ row, profileName }: CertCardProps) {
+  const [generating, setGenerating] = useState(false);
+  const className = useMemo(() => extractClassName(row.raw_data), [row.raw_data]);
+  const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
 
-      // Extract class name from raw_data
-      const classFields = [
-        "Registered For",
-        "Class Name (from Class Record)",
-        "Class Name",
-        "Masterclass Name",
-        "Class",
-        "Course Name",
-      ];
-      let className = "";
-      for (const f of classFields) {
-        const val = (raw as Record<string, unknown>)[f];
-        if (val) {
-          className = Array.isArray(val) ? val.join(", ") : String(val);
-          if (className && !className.startsWith("rec")) break;
-          // If it looks like an Airtable record ID, skip and try next field
-          if (/^rec[A-Za-z0-9]{10,}/.test(className)) { className = ""; continue; }
-          break;
-        }
-      }
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      toast.info("Generating certificate…");
+      await generateCertificatePdf(profileName || "Tech Fleet Member", className || undefined);
+      toast.success("Certificate downloaded!");
+    } catch (err) {
+      console.error("Certificate generation error:", err);
+      toast.error("Failed to generate certificate");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
-      const handleClick = async () => {
-        try {
-          toast.info("Generating certificate…");
-          await generateCertificatePdf(profileName || "Tech Fleet Member", className || undefined);
-          toast.success("Certificate downloaded!");
-        } catch (err) {
-          console.error("Certificate generation error:", err);
-          toast.error("Failed to generate certificate");
-        }
-      };
-
-      return (
-        <button
-          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          onClick={handleClick}
+  return (
+    <Card className="flex flex-col justify-between h-full">
+      <CardHeader className="pb-2">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <GraduationCap className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold leading-snug line-clamp-2">
+              {className || "Masterclass"}
+            </CardTitle>
+            {monthYear && (
+              <p className="text-xs text-muted-foreground mt-1">{monthYear}</p>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-2">
+        <Button
+          size="sm"
+          className="w-full gap-2"
+          onClick={handleGenerate}
+          disabled={generating}
         >
-          <FileDown className="h-3.5 w-3.5" />
-          PDF
-        </button>
-      );
-    },
-  });
-
-  for (const field of fieldSet) {
-    cols.push({
-      headerName: field,
-      field: field,
-      valueGetter: (params) => {
-        const raw = params.data?.raw_data?.[field];
-        if (raw == null) return "";
-        if (Array.isArray(raw)) return raw.join(", ");
-        if (typeof raw === "object") return JSON.stringify(raw);
-        return String(raw);
-      },
-      minWidth: 140,
-    });
-  }
-
-  // Add synced timestamp
-  cols.push({
-    headerName: "Last Synced",
-    field: "synced_at",
-    minWidth: 160,
-    valueFormatter: (params) => {
-      if (!params.value) return "";
-      return new Date(params.value).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    },
-  });
-
-  return cols;
+          <FileDown className="h-4 w-4" />
+          {generating ? "Generating…" : "Get Certificate"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function ClassCertificationsTab() {
@@ -192,8 +181,6 @@ export function ClassCertificationsTab() {
       setSyncing(false);
     }
   }, [user, queryClient]);
-
-  const columnDefs = useMemo(() => buildColumnDefs(rows, profileName), [rows, profileName]);
 
   const hasRecords = rows.length > 0;
 
@@ -264,16 +251,11 @@ export function ClassCertificationsTab() {
           </p>
         </div>
       ) : (
-        <ThemedAgGrid
-          gridId="class-certifications"
-          height="500px"
-          columnDefs={columnDefs}
-          rowData={rows}
-          showExportCsv
-          exportFileName="class-certifications"
-          pagination
-          paginationPageSize={25}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {rows.map((row) => (
+            <CertCard key={row.id} row={row} profileName={profileName} />
+          ))}
+        </div>
       )}
     </div>
   );
