@@ -28,6 +28,7 @@ interface ProjectApp {
   id: string;
   project_id: string;
   status: string;
+  applicant_status: string;
   current_step: number;
   completed_at: string | null;
   created_at: string;
@@ -36,9 +37,37 @@ interface ProjectApp {
   team_hats_interest: string[];
 }
 
+/** Statuses that indicate the applicant should see a status page instead of the application editor. */
+const STATUS_PAGE_STATUSES = new Set([
+  "invited_to_interview",
+  "interview_accepted",
+  "picked_for_team",
+  "not_selected",
+  "active_participant",
+  "left_the_project",
+]);
+
+const APPLICANT_STATUS_LABELS: Record<string, string> = {
+  pending_review: "Pending Review",
+  invited_to_interview: "Invited to Interview",
+  interview_accepted: "Interview Accepted",
+  picked_for_team: "Picked for Team",
+  not_selected: "Not Selected",
+  active_participant: "Active Participant",
+  left_the_project: "Left the Project",
+};
+
 interface EnrichedApp extends ProjectApp {
   project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] };
   client?: { id: string; name: string };
+}
+
+/** Returns the correct route for a given application based on its status. */
+function getAppRoute(app: EnrichedApp): string {
+  if (app.status === "completed" && STATUS_PAGE_STATUSES.has(app.applicant_status)) {
+    return `/applications/projects/${app.id}/status`;
+  }
+  return `/project-openings/${app.project_id}/apply`;
 }
 
 export default function MyProjectApplicationsPage() {
