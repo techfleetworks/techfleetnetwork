@@ -73,26 +73,26 @@ export async function generateCertificatePdf(fullName: string, className?: strin
 
   const centerX = svgWidth / 2;
 
+  // Use the same font size formula for both class name and person's name
+  const sharedFontSize = Math.max(44, Math.min(64, 2200 / Math.max(fullName.length, (className ?? "").length)));
+
   if (className) {
-    // --- Class name: big, bold ---
-    const classFontSize = Math.max(44, Math.min(64, 2200 / className.length));
-    ctx.font = `bold ${classFontSize}px "${fontFamily}", sans-serif`;
+    // --- Class name: bold ---
+    ctx.font = `bold ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#1a1a1a";
 
     const classY = svgHeight * 0.32;
     ctx.fillText(className, centerX, classY);
 
-    // --- Person's name: below, medium weight ---
-    const nameFontSize = Math.max(36, Math.min(56, 1600 / fullName.length));
-    ctx.font = `400 ${nameFontSize}px "${fontFamily}", sans-serif`;
+    // --- Person's name: same size, regular weight ---
+    ctx.font = `400 ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#3f3f46";
 
-    const nameY = classY + classFontSize + 36;
+    const nameY = classY + sharedFontSize + 36;
     ctx.fillText(fullName, centerX, nameY);
   } else {
     // No class name — just show the person's name centered
-    const nameFontSize = Math.max(48, Math.min(72, 1800 / fullName.length));
-    ctx.font = `bold ${nameFontSize}px "${fontFamily}", sans-serif`;
+    ctx.font = `bold ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#1a1a1a";
     ctx.fillText(fullName, centerX, svgHeight * 0.36);
   }
