@@ -77,24 +77,28 @@ export async function generateCertificatePdf(fullName: string, className?: strin
   const sharedFontSize = Math.max(44, Math.min(64, 2200 / Math.max(fullName.length, (className ?? "").length)));
 
   if (className) {
-    // --- Class name: bold ---
+    // Total block height: two lines of text + gap between them
+    const gap = 40;
+    const blockHeight = sharedFontSize * 2 + gap;
+    // Center the block vertically on the canvas
+    const blockTop = (svgHeight - blockHeight) / 2;
+
+    // --- Class name: bold, top of centered block ---
     ctx.font = `bold ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#1a1a1a";
-
-    const classY = svgHeight * 0.32;
+    const classY = blockTop + sharedFontSize / 2;
     ctx.fillText(className, centerX, classY);
 
-    // --- Person's name: same size, regular weight ---
+    // --- Person's name: regular weight, below class name ---
     ctx.font = `400 ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#3f3f46";
-
-    const nameY = classY + sharedFontSize + 36;
+    const nameY = classY + sharedFontSize + gap;
     ctx.fillText(fullName, centerX, nameY);
   } else {
-    // No class name — just show the person's name centered
+    // No class name — person's name dead center
     ctx.font = `bold ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#1a1a1a";
-    ctx.fillText(fullName, centerX, svgHeight * 0.36);
+    ctx.fillText(fullName, centerX, svgHeight / 2);
   }
 
   URL.revokeObjectURL(svgUrl);
