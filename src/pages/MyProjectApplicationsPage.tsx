@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@/lib/react-query";
+import { useQuery, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
@@ -75,6 +75,28 @@ export default function MyProjectApplicationsPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const [view, setView] = useState<"card" | "table">("card");
+  const queryClient = useQueryClient();
+
+  /* ── realtime subscription for live status updates ── */
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`my-apps-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_applications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["my-project-applications", user.id] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   const { data: apps, isLoading } = useQuery({
     queryKey: ["my-project-applications", user?.id],
