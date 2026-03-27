@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import { useNavigate } from "react-router-dom";
 import type { ColDef } from "ag-grid-community";
-import type { ColDef } from "ag-grid-community";
 
 /** Fetch the user's profile name */
 function useProfileName(userId: string | undefined) {
