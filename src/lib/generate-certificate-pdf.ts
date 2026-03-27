@@ -22,14 +22,14 @@ async function loadLato(): Promise<string> {
 
 /**
  * Generates a PDF certificate by rendering the SVG template
- * and overlaying the class name and recipient name.
+ * and overlaying the certificate title and recipient name.
  *
  * Layout (top to bottom, centered):
- *   1. Class name — large, bold Lato
+ *   1. Certificate title — large, bold Lato
  *   2. Gap
  *   3. Person's name — medium, regular Lato
  */
-export async function generateCertificatePdf(fullName: string, className?: string): Promise<void> {
+export async function generateCertificatePdf(fullName: string, certificateTitle?: string): Promise<void> {
   const svgWidth = 1728;
   const svgHeight = 1117;
 
@@ -73,21 +73,21 @@ export async function generateCertificatePdf(fullName: string, className?: strin
 
   const centerX = svgWidth / 2;
 
-  // Use the same font size formula for both class name and person's name
-  const sharedFontSize = Math.max(44, Math.min(64, 2200 / Math.max(fullName.length, (className ?? "").length)));
+  const normalizedTitle = (certificateTitle ?? "").trim();
+  const sharedFontSize = Math.max(44, Math.min(64, 2200 / Math.max(fullName.length, normalizedTitle.length)));
 
-  if (className) {
+  if (normalizedTitle) {
     // Total block height: two lines of text + gap between them
     const gap = 40;
     const blockHeight = sharedFontSize * 2 + gap;
     // Center the block vertically on the canvas
     const blockTop = (svgHeight - blockHeight) / 2;
 
-    // --- Class name: bold, top of centered block ---
+    // --- Title: bold, top of centered block ---
     ctx.font = `bold ${sharedFontSize}px "${fontFamily}", sans-serif`;
     ctx.fillStyle = "#1a1a1a";
     const classY = blockTop + sharedFontSize / 2;
-    ctx.fillText(className, centerX, classY);
+    ctx.fillText(normalizedTitle, centerX, classY);
 
     // --- Person's name: regular weight, below class name ---
     ctx.font = `400 ${sharedFontSize}px "${fontFamily}", sans-serif`;
