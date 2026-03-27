@@ -50,29 +50,39 @@ function useProjectCertifications(userId: string | undefined) {
   });
 }
 
-/** Fields to check for the human-readable project name */
-const PROJECT_NAME_FIELDS = [
-  "Project Phase Name (from Project They Joined)",
-  "Project They Joined",
-];
+function readFieldValue(raw: Record<string, unknown>, field: string): string {
+  const value = raw[field];
+  if (!value) return "";
+
+  const text = Array.isArray(value)
+    ? value.map((entry) => String(entry).trim()).filter(Boolean).join(", ")
+    : String(value).trim();
+
+  return text;
+}
+
+function isValidProjectTitle(value: string, profileName: string): boolean {
+  if (!value) return false;
+  if (/@/.test(value)) return false;
+  if (/^rec[A-Za-z0-9]{10,}(?:\s*,\s*rec[A-Za-z0-9]{10,})*$/.test(value)) return false;
+  if (profileName && value.toLowerCase() === profileName.toLowerCase()) return false;
+  if (profileName && value.toLowerCase().includes(profileName.toLowerCase())) return false;
+  return true;
+}
 
 /** Extract project name from raw_data */
-function extractProjectName(raw: Record<string, unknown>): string {
-  for (const f of PROJECT_NAME_FIELDS) {
-    const val = raw[f];
-    if (!val) continue;
-    const str = Array.isArray(val) ? val.join(", ") : String(val);
-    // Skip Airtable record IDs (e.g. recXXXXXXXXXXXX)
-    if (/^rec[A-Za-z0-9]{10,}/.test(str)) continue;
-    if (str.trim()) return str;
+function extractProjectName(raw: Record<string, unknown>, profileName: string): string {
+  const preferredTitle = readFieldValue(raw, "Project Phase Name (from Project They Joined)");
+  if (isValidProjectTitle(preferredTitle, profileName)) {
+    return preferredTitle;
   }
-  // Fallback: use "Teammate Type of Project" if available
-  const typeVal = raw["Teammate Type of Project"];
-  if (typeVal) {
-    const typeStr = Array.isArray(typeVal) ? typeVal.join(", ") : String(typeVal);
-    if (typeStr.trim()) return typeStr;
+
+  const resolvedProject = readFieldValue(raw, "Project They Joined");
+  if (isValidProjectTitle(resolvedProject, profileName)) {
+    return resolvedProject;
   }
-  return "Project Training";
+
+  return "Project Certification";
 }
 
 /** Extract a month + year string from raw_data */
@@ -108,7 +118,7 @@ interface CertCardProps {
 
 function CertCard({ row, profileName }: CertCardProps) {
   const [generating, setGenerating] = useState(false);
-  const projectName = useMemo(() => extractProjectName(row.raw_data), [row.raw_data]);
+  const projectName = useMemo(() => extractProjectName(row.raw_data, profileName), [row.raw_data, profileName]);
   const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
   const phase = useMemo(() => extractPhase(row.raw_data), [row.raw_data]);
 
@@ -116,7 +126,7 @@ function CertCard({ row, profileName }: CertCardProps) {
     setGenerating(true);
     try {
       toast.info("Generating certificate…");
-      const certTitle = projectName || "Project Training";
+      const certTitle = projectName || "Project Certification";
       await generateCertificatePdf(profileName || "Tech Fleet Member", certTitle);
       toast.success("Certificate downloaded!");
     } catch (err) {
@@ -136,7 +146,7 @@ function CertCard({ row, profileName }: CertCardProps) {
           </div>
           <div className="min-w-0">
             <CardTitle className="text-sm font-semibold leading-snug line-clamp-2">
-              {projectName || "Project"}
+              {projectName || "Project Certification"}
             </CardTitle>
             {phase && (
               <p className="text-xs text-muted-foreground mt-1">{phase}</p>
