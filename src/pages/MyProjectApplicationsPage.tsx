@@ -137,7 +137,7 @@ export default function MyProjectApplicationsPage() {
       minWidth: 140,
     },
     {
-      headerName: "Status",
+      headerName: "App Status",
       field: "status",
       cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
         const d = p.data;
@@ -146,8 +146,15 @@ export default function MyProjectApplicationsPage() {
         if (d.status === "draft") return "In Progress";
         return d.status;
       },
-      flex: 1,
-      minWidth: 100,
+      flex: 0.8,
+      minWidth: 90,
+    },
+    {
+      headerName: "Applicant Status",
+      field: "applicant_status",
+      valueGetter: (p) => APPLICANT_STATUS_LABELS[p.data?.applicant_status ?? "pending_review"] ?? p.data?.applicant_status,
+      flex: 1.2,
+      minWidth: 130,
     },
     {
       headerName: "Type",
@@ -192,15 +199,16 @@ export default function MyProjectApplicationsPage() {
       maxWidth: 100,
       cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
         if (!p.data) return null;
-        const isCompleted = p.data.status === "completed";
+        const route = getAppRoute(p.data);
+        const isStatusPage = route.includes("/status");
         return (
           <Button
             variant="outline"
             size="sm"
             className="gap-1 h-7 text-xs"
-            onClick={() => navigate(`/project-openings/${p.data!.project_id}/apply`)}
+            onClick={() => navigate(route)}
           >
-            {isCompleted ? "View" : "Continue"}
+            {isStatusPage ? "Status" : p.data.status === "completed" ? "View" : "Continue"}
             <ExternalLink className="h-3 w-3" />
           </Button>
         );
@@ -294,7 +302,7 @@ export default function MyProjectApplicationsPage() {
           rowData={enriched}
           columnDefs={columnDefs}
           onRowClicked={(e) => {
-            if (e.data) navigate(`/project-openings/${e.data.project_id}/apply`);
+            if (e.data) navigate(getAppRoute(e.data));
           }}
           showExportCsv={isAdmin}
           exportFileName="my-project-applications"
@@ -304,12 +312,15 @@ export default function MyProjectApplicationsPage() {
           {enriched.map((app) => {
             const isCompleted = app.status === "completed";
             const isDraft = app.status === "draft";
+            const route = getAppRoute(app);
+            const hasStatusUpdate = isCompleted && STATUS_PAGE_STATUSES.has(app.applicant_status);
+            const statusLabel2 = APPLICANT_STATUS_LABELS[app.applicant_status] ?? app.applicant_status;
 
             return (
               <Card
                 key={app.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/project-openings/${app.project_id}/apply`)}
+                onClick={() => navigate(route)}
               >
                 <CardContent className="pt-5 space-y-3">
                   {/* Client & Status */}
@@ -317,7 +328,16 @@ export default function MyProjectApplicationsPage() {
                     <p className="text-base font-semibold text-foreground">
                       {app.client?.name ?? "Unknown Client"}
                     </p>
-                    {isCompleted ? (
+                    {hasStatusUpdate ? (
+                      <Badge className={`gap-1 shrink-0 ${
+                        app.applicant_status === "invited_to_interview" ? "bg-primary/10 text-primary border-primary/30" :
+                        app.applicant_status === "picked_for_team" || app.applicant_status === "interview_accepted" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
+                        app.applicant_status === "not_selected" ? "bg-destructive/10 text-destructive border-destructive/30" :
+                        "bg-muted text-muted-foreground border-border"
+                      }`}>
+                        {statusLabel2}
+                      </Badge>
+                    ) : isCompleted ? (
                       <Badge className="bg-success/10 text-success border-success/30 gap-1 shrink-0">
                         <CheckCircle2 className="h-3 w-3" />
                         Submitted
@@ -360,8 +380,8 @@ export default function MyProjectApplicationsPage() {
                     </p>
                   ) : null}
 
-                  <Button variant="outline" size="sm" className="w-full gap-1">
-                    {isCompleted ? "View & Edit" : "Continue Application"}
+                  <Button variant={hasStatusUpdate && app.applicant_status === "invited_to_interview" ? "default" : "outline"} size="sm" className="w-full gap-1">
+                    {hasStatusUpdate ? (app.applicant_status === "invited_to_interview" ? "Accept Invitation" : "View Status") : isCompleted ? "View & Edit" : "Continue Application"}
                     <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
                 </CardContent>
