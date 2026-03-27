@@ -152,10 +152,12 @@ function buildColumnDefs(rows: CertificationRow[], profileName: string): ColDef[
 
 export function ClassCertificationsTab() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: rows = [], isLoading } = useCertifications(user?.id);
   const { data: profileName = "" } = useProfileName(user?.id);
   const [syncing, setSyncing] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSync = useCallback(async () => {
     if (!user) return;
@@ -164,9 +166,16 @@ export function ClassCertificationsTab() {
       const { data, error } = await supabase.functions.invoke("fetch-class-certifications");
       if (error) throw error;
       if (data?.success) {
-        toast.success(`Found ${data.total_found} record(s)`, {
-          description: `${data.upserted} synced to your profile.`,
-        });
+        setHasSearched(true);
+        if (data.total_found === 0) {
+          toast.info("No records found", {
+            description: "No masterclass registrations were found for your email address.",
+          });
+        } else {
+          toast.success(`Found ${data.total_found} record(s)`, {
+            description: `${data.upserted} synced to your profile.`,
+          });
+        }
         queryClient.invalidateQueries({ queryKey: ["class-certifications"] });
       } else {
         toast.error("Sync failed", { description: data?.error ?? "Unknown error" });
@@ -213,12 +222,42 @@ export function ClassCertificationsTab() {
         <div className="card-elevated p-12 text-center">
           <p className="text-muted-foreground text-sm">Loading certifications…</p>
         </div>
+      ) : !hasRecords && hasSearched ? (
+        <div className="card-elevated p-12 text-center space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <MailQuestion className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-semibold text-foreground">
+              No Records Found
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+              We couldn't find any masterclass registrations linked to your email address.
+              This may happen if you registered with a different email, or if your records
+              haven't been added to the system yet.
+            </p>
+          </div>
+          <div className="pt-2 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Think this is an error? Submit a support ticket and we'll look into it.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate("/feedback")}
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              Submit a Support Ticket
+            </Button>
+          </div>
+        </div>
       ) : !hasRecords ? (
         <div className="card-elevated p-12 text-center space-y-3">
           <Search className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-muted-foreground">
             Click <strong>"Search My Records"</strong> to look up your historical masterclass
-            registrations from Airtable.
+            registrations.
           </p>
         </div>
       ) : (
