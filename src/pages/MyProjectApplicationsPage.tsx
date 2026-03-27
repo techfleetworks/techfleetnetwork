@@ -64,7 +64,8 @@ interface EnrichedApp extends ProjectApp {
 
 /** Returns the correct route for a given application based on its status. */
 function getAppRoute(app: EnrichedApp): string {
-  if (app.status === "completed" && STATUS_PAGE_STATUSES.has(app.applicant_status)) {
+  // All completed (submitted) applications go to the status page
+  if (app.status === "completed") {
     return `/applications/projects/${app.id}/status`;
   }
   return `/project-openings/${app.project_id}/apply`;
