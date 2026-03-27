@@ -965,6 +965,39 @@ export type Database = {
           },
         ]
       }
+      project_certifications: {
+        Row: {
+          airtable_record_id: string
+          created_at: string
+          email: string
+          id: string
+          raw_data: Json
+          synced_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          airtable_record_id: string
+          created_at?: string
+          email?: string
+          id?: string
+          raw_data?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          airtable_record_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          raw_data?: Json
+          synced_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       project_roster: {
         Row: {
           airtable_record_id: string

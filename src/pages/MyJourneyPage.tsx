@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
+import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 
 export default function MyJourneyPage() {
   return (
@@ -15,6 +16,7 @@ export default function MyJourneyPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="certifications">Class Certifications</TabsTrigger>
+          <TabsTrigger value="project-certifications">Project Certifications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -27,6 +29,10 @@ export default function MyJourneyPage() {
 
         <TabsContent value="certifications">
           <ClassCertificationsTab />
+        </TabsContent>
+
+        <TabsContent value="project-certifications">
+          <ProjectCertificationsTab />
         </TabsContent>
       </Tabs>
     </div>
