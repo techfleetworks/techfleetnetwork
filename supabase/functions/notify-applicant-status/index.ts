@@ -21,13 +21,14 @@ const MAX_PAYLOAD_BYTES = 32_768 // 32 KiB
 const VALID_STATUSES = new Set([
   'pending_review',
   'invited_to_interview',
+  'interview_accepted',
   'picked_for_team',
   'not_selected',
   'active_participant',
   'left_the_project',
 ] as const)
 
-type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
+type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_accepted' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -73,6 +74,12 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
       return html
     },
     type: 'interview_invite',
+    linkUrl: '',
+  },
+  interview_accepted: {
+    title: '✅ Interview Accepted',
+    bodyFn: () => '<p>The applicant has accepted the interview invitation.</p>',
+    type: 'interview_accepted',
     linkUrl: '',
   },
   picked_for_team: {
@@ -314,10 +321,12 @@ Deno.serve(async (req) => {
     console.warn('Audit log failed (non-critical)', e)
   }
 
-  /* ---- 4. Email — interview invite only (non-blocking) ---- */
+  /* ---- 4. Email — interview invite (non-blocking) ---- */
+  /* Uses a unique idempotency key per invocation so re-invites always send a fresh email */
   let emailSent = false
   if (newStatus === 'invited_to_interview' && applicantEmail && schedulingUrl) {
-    const idempotencyKey = `interview-invite-${applicationId}`
+    const timestamp = Date.now()
+    const idempotencyKey = `interview-invite-${applicationId}-${timestamp}`
     try {
       const emailResult = await queueTransactionalEmail({
         supabase,
