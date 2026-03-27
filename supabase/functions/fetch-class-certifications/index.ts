@@ -105,38 +105,43 @@ Deno.serve(async (req) => {
     for (const record of records) {
       const regFor = record.fields?.["Registered For"];
       if (Array.isArray(regFor)) {
-        regFor.forEach((id: string) => cohortIds.add(id));
+        regFor.forEach((id: string) => {
+          if (typeof id === "string" && id.trim()) cohortIds.add(id);
+        });
       }
     }
 
     const cohortNameMap: Record<string, string> = {};
     if (cohortIds.size > 0) {
-      // Airtable allows fetching specific records by ID via filterByFormula OR via GET record
-      // Batch lookup using RECORD_ID() formula
       const cohortTable = encodeURIComponent("Masterclass Cohorts");
       const idArray = Array.from(cohortIds);
 
-      // Fetch in batches of 50 to avoid URL length limits
-      for (let i = 0; i < idArray.length; i += 50) {
-        const batch = idArray.slice(i, i + 50);
-        const orClauses = batch.map((id) => `RECORD_ID()='${id}'`).join(",");
-        const formula = encodeURIComponent(`OR(${orClauses})`);
-        const cohortUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${cohortTable}?filterByFormula=${formula}&fields%5B%5D=${encodeURIComponent("Cohort Name")}`;
-
+      for (const id of idArray) {
+        const cohortUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${cohortTable}/${id}`;
         const cohortRes = await fetch(cohortUrl, {
           headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
         });
 
-        if (cohortRes.ok) {
-          const cohortData = await cohortRes.json();
-          for (const rec of cohortData.records ?? []) {
-            const name = rec.fields?.["Cohort Name"];
-            if (name) cohortNameMap[rec.id] = String(name);
-          }
-        } else {
-          console.error("Cohort lookup failed", cohortRes.status, await cohortRes.text());
+        if (!cohortRes.ok) {
+          console.error("Cohort lookup failed", {
+            cohortId: id,
+            status: cohortRes.status,
+            response: await cohortRes.text(),
+          });
+          continue;
+        }
+
+        const cohortRecord = await cohortRes.json();
+        const cohortName = cohortRecord?.fields?.["Cohort Name"];
+        if (typeof cohortName === "string" && cohortName.trim()) {
+          cohortNameMap[id] = cohortName.trim();
         }
       }
+
+      console.log("Resolved cohort names", {
+        requested: cohortIds.size,
+        resolved: Object.keys(cohortNameMap).length,
+      });
     }
 
     // --- Upsert into DB with resolved cohort names ---
