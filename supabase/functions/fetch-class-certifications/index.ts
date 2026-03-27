@@ -100,10 +100,57 @@ Deno.serve(async (req) => {
     const result = await airtableRes.json();
     const records = result.records ?? [];
 
-    // --- Upsert into DB ---
+    // --- Resolve linked "Registered For" IDs to Cohort Names ---
+    const cohortIds = new Set<string>();
+    for (const record of records) {
+      const regFor = record.fields?.["Registered For"];
+      if (Array.isArray(regFor)) {
+        regFor.forEach((id: string) => cohortIds.add(id));
+      }
+    }
+
+    const cohortNameMap: Record<string, string> = {};
+    if (cohortIds.size > 0) {
+      // Airtable allows fetching specific records by ID via filterByFormula OR via GET record
+      // Batch lookup using RECORD_ID() formula
+      const cohortTable = encodeURIComponent("Masterclass Cohorts");
+      const idArray = Array.from(cohortIds);
+
+      // Fetch in batches of 50 to avoid URL length limits
+      for (let i = 0; i < idArray.length; i += 50) {
+        const batch = idArray.slice(i, i + 50);
+        const orClauses = batch.map((id) => `RECORD_ID()='${id}'`).join(",");
+        const formula = encodeURIComponent(`OR(${orClauses})`);
+        const cohortUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${cohortTable}?filterByFormula=${formula}&fields%5B%5D=${encodeURIComponent("Cohort Name")}`;
+
+        const cohortRes = await fetch(cohortUrl, {
+          headers: { Authorization: `Bearer ${AIRTABLE_PAT}` },
+        });
+
+        if (cohortRes.ok) {
+          const cohortData = await cohortRes.json();
+          for (const rec of cohortData.records ?? []) {
+            const name = rec.fields?.["Cohort Name"];
+            if (name) cohortNameMap[rec.id] = String(name);
+          }
+        } else {
+          console.error("Cohort lookup failed", cohortRes.status, await cohortRes.text());
+        }
+      }
+    }
+
+    // --- Upsert into DB with resolved cohort names ---
 
     let upserted = 0;
     for (const record of records) {
+      const fields = { ...(record.fields ?? {}) };
+
+      // Replace "Registered For" record IDs with human-readable cohort names
+      const regFor = fields["Registered For"];
+      if (Array.isArray(regFor)) {
+        fields["Registered For"] = regFor.map((id: string) => cohortNameMap[id] || id);
+      }
+
       const { error: upsertErr } = await adminClient
         .from("class_certifications")
         .upsert(
@@ -111,7 +158,7 @@ Deno.serve(async (req) => {
             user_id: userId,
             email: userEmail,
             airtable_record_id: record.id,
-            raw_data: record.fields ?? {},
+            raw_data: fields,
             synced_at: new Date().toISOString(),
           },
           { onConflict: "user_id,airtable_record_id" }
