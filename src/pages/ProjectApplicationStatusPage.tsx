@@ -93,6 +93,28 @@ export default function ProjectApplicationStatusPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  /* ── realtime subscription ──────────────────────────────── */
+  useEffect(() => {
+    if (!applicationId) return;
+    const channel = supabase
+      .channel(`app-status-${applicationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_applications",
+          filter: `id=eq.${applicationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["my-project-app-status", applicationId] });
+          queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [applicationId, queryClient]);
+
   /* ── fetch application ──────────────────────────────────── */
   const { data: app, isLoading: appLoading } = useQuery({
     queryKey: ["my-project-app-status", applicationId],
