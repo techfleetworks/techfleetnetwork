@@ -56,6 +56,50 @@ const MAX_MESSAGE_LENGTH = 4000;
 const WEB_SEARCH_TIMEOUT_MS = 5000;
 
 /**
+ * Trusted, reputable domains for web search results.
+ * Only results from these domains will be returned by Firecrawl.
+ */
+const TRUSTED_DOMAINS = [
+  "harvard.edu",
+  "hbr.org",
+  "atlassian.com",
+  "scrumalliance.org",
+  "scrum.org",
+  "agilealliance.org",
+  "nngroup.com",
+  "interaction-design.org",
+  "smashingmagazine.com",
+  "uxdesign.cc",
+  "medium.com",
+  "wikipedia.org",
+  "coursera.org",
+  "edx.org",
+  "linkedin.com/pulse",
+  "thoughtworks.com",
+  "martinfowler.com",
+  "mckinsey.com",
+  "deloitte.com",
+  "productplan.com",
+  "mindtheproduct.com",
+  "svpg.com",
+  "leanagile.pm",
+  "figma.com",
+  "miro.com",
+  "notion.so",
+  "asana.com",
+  "monday.com",
+  "pmi.org",
+  "aiga.org",
+  "designcouncil.org.uk",
+  "gov.uk",
+  "digital.gov",
+  "18f.gsa.gov",
+  "usability.gov",
+  "w3.org",
+  "developer.mozilla.org",
+];
+
+/**
  * Keywords that indicate the user wants practical/how-to guidance,
  * triggering a web search for supplementary tips.
  */
@@ -122,7 +166,8 @@ async function searchWebForTips(query: string): Promise<{ context: string; sourc
       },
       body: JSON.stringify({
         query,
-        limit: 5,
+        limit: 8,
+        search_domain_filter: TRUSTED_DOMAINS,
         scrapeOptions: { formats: ["markdown"] },
       }),
       signal: controller.signal,
