@@ -22,13 +22,14 @@ const VALID_STATUSES = new Set([
   'pending_review',
   'invited_to_interview',
   'interview_accepted',
+  'interview_scheduled',
   'picked_for_team',
   'not_selected',
   'active_participant',
   'left_the_project',
 ] as const)
 
-type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_accepted' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
+type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_accepted' | 'interview_scheduled' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -80,6 +81,12 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
     title: '✅ Interview Accepted',
     bodyFn: () => '<p>The applicant has accepted the interview invitation.</p>',
     type: 'interview_accepted',
+    linkUrl: '',
+  },
+  interview_scheduled: {
+    title: '📅 Interview Scheduled',
+    bodyFn: () => '<p>The applicant has indicated they have scheduled their interview.</p>',
+    type: 'interview_scheduled',
     linkUrl: '',
   },
   picked_for_team: {
