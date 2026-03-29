@@ -8,12 +8,16 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
   XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
-  Trophy, Star, Sparkles,
+  Trophy, Star, Sparkles, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
@@ -326,6 +330,7 @@ export default function ProjectApplicationStatusPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [invitePanelOpen, setInvitePanelOpen] = useState(false);
 
   /* ── realtime subscription ──────────────────────────────── */
   useEffect(() => {
@@ -400,6 +405,25 @@ export default function ProjectApplicationStatusPage() {
   const StatusIcon = config.icon;
   const clientName = client?.name ?? "Project";
   const isActiveTeammate = applicantStatus === "active_participant";
+
+  /* ── fetch interview invite notification ─────────────────── */
+  const showInviteStatuses = ["invited_to_interview", "interview_accepted", "picked_for_team", "active_participant"];
+  const { data: interviewNotification } = useQuery({
+    queryKey: ["interview-invite-notification", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("notification_type", "interview_invite")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && showInviteStatuses.includes(applicantStatus),
+  });
 
   /* ── build timeline ─────────────────────────────────────── */
   const timelineSteps = useMemo(() => buildTimeline(applicantStatus), [applicantStatus]);
@@ -505,6 +529,45 @@ export default function ProjectApplicationStatusPage() {
           <StatusTimeline steps={timelineSteps} />
         </CardContent>
       </Card>
+
+      {/* View Interview Invitation Button — shown for relevant statuses */}
+      {interviewNotification && showInviteStatuses.includes(applicantStatus) && (
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => setInvitePanelOpen(true)}
+        >
+          <Mail className="h-4 w-4" />
+          View Interview Invitation
+        </Button>
+      )}
+
+      {/* Interview Invitation Side Panel */}
+      <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              <Calendar className="h-5 w-5 text-primary" />
+              {interviewNotification?.title ?? "Interview Invitation"}
+            </SheetTitle>
+            <SheetDescription>
+              {interviewNotification
+                ? `Received ${format(new Date(interviewNotification.created_at), "MMM d, yyyy 'at' h:mm a")}`
+                : "Interview details"}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+            {interviewNotification?.body_html ? (
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: interviewNotification.body_html }}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">No invitation details available.</p>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* Accept Invitation CTA */}
       {applicantStatus === "invited_to_interview" && (
