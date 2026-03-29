@@ -45,6 +45,7 @@ interface ProjectDetail {
   anticipated_end_date?: string | null;
   client_intake_url?: string;
   notion_repository_url?: string;
+  coordinator_id?: string | null;
 }
 
 interface ClientDetail {
@@ -68,6 +69,7 @@ interface ApiResponse {
   client: ClientDetail | null;
   milestoneData: MilestoneData;
   applicationCount: number;
+  coordinatorName: string | null;
 }
 
 /* ── Pill list component ─────────────────────────────────── */
@@ -218,7 +220,7 @@ export default function ProjectOpeningDetailPage() {
     );
   }
 
-  const { project, client, milestoneData, applicationCount } = data;
+  const { project, client, milestoneData, applicationCount, coordinatorName } = data;
 
   const hasDateRange = project.anticipated_start_date || project.anticipated_end_date;
 
