@@ -655,7 +655,7 @@ export default function ProjectApplicationStatusPage() {
         <CardContent className="pt-6 space-y-6">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Submission Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-3 text-sm">
               {app.completed_at && (
                 <div>
                   <p className="text-muted-foreground">Submitted</p>
