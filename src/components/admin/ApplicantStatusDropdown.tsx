@@ -26,6 +26,7 @@ export const APPLICANT_STATUSES = [
   { value: "pending_review", label: "Pending Review" },
   { value: "invited_to_interview", label: "Invite to Interview" },
   { value: "interview_accepted", label: "Interview Accepted" },
+  { value: "interview_scheduled", label: "Interview Scheduled" },
   { value: "picked_for_team", label: "Picked for Team" },
   { value: "not_selected", label: "Not Selected" },
   { value: "active_participant", label: "Active Participant" },
@@ -39,6 +40,7 @@ const SELECTABLE_STATUSES = APPLICANT_STATUSES.filter((s) => s.value !== "pendin
 
 const STATUS_ICONS: Record<string, typeof Calendar> = {
   invited_to_interview: Calendar,
+  interview_scheduled: Calendar,
   picked_for_team: UserCheck,
   not_selected: UserX,
   active_participant: Users,
