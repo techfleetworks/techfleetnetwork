@@ -149,6 +149,25 @@ export default function ProjectApplicationPage() {
     enabled: !!project?.client_id,
   });
 
+  /* ── fetch coordinator name ─────────────────────────────── */
+  const { data: coordProfile } = useQuery({
+    queryKey: ["coordinator-for-app", project?.coordinator_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name")
+        .eq("user_id", project!.coordinator_id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!project?.coordinator_id,
+  });
+
+  const coordinatorName = coordProfile
+    ? (coordProfile.display_name || [coordProfile.first_name, coordProfile.last_name].filter(Boolean).join(" ") || null)
+    : null;
+
   /* ── fetch user's general application ──────────────────── */
   const { data: genApp } = useQuery({
     queryKey: ["general-app-for-review", user?.id],
