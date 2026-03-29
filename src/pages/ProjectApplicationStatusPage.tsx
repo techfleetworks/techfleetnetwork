@@ -262,7 +262,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
 
 /* ── Timeline Component ───────────────────────────────────── */
 
-function StatusTimeline({ steps }: { steps: TimelineStep[] }) {
+function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onViewInvite?: () => void }) {
   return (
     <div className="relative pl-20 space-y-0" role="list" aria-label="Application progress timeline">
       {steps.map((step, idx) => {
@@ -279,6 +279,8 @@ function StatusTimeline({ steps }: { steps: TimelineStep[] }) {
           step.status === "completed" ? "bg-success/40" :
           step.status === "failed" ? "bg-destructive/30" :
           "bg-border";
+
+        const showInviteButton = step.key === "interview" && step.status !== "upcoming" && onViewInvite;
 
         return (
           <div key={step.key} className="relative pb-8 last:pb-0" role="listitem">
@@ -315,6 +317,17 @@ function StatusTimeline({ steps }: { steps: TimelineStep[] }) {
                 }`}>
                   {step.description}
                 </p>
+              )}
+              {showInviteButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 gap-1.5 text-xs"
+                  onClick={onViewInvite}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  View Interview Invitation
+                </Button>
               )}
             </div>
           </div>
@@ -560,21 +573,12 @@ export default function ProjectApplicationStatusPage() {
           <CardTitle className="text-lg">Your Progress</CardTitle>
         </CardHeader>
         <CardContent>
-          <StatusTimeline steps={timelineSteps} />
+          <StatusTimeline
+            steps={timelineSteps}
+            onViewInvite={showInviteStatuses.includes(applicantStatus) ? () => setInvitePanelOpen(true) : undefined}
+          />
         </CardContent>
       </Card>
-
-      {/* View Interview Invitation Button — shown for relevant statuses */}
-      {showInviteStatuses.includes(applicantStatus) && (
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setInvitePanelOpen(true)}
-        >
-          <Mail className="h-4 w-4" />
-          View Interview Invitation
-        </Button>
-      )}
 
       {/* Interview Invitation Side Panel */}
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
