@@ -298,7 +298,7 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
             </div>
 
             {/* Content */}
-            <div className="space-y-1">
+            <div className="space-y-1 ml-6">
               <div className="flex items-center gap-2">
                 <h4 className={`text-sm font-semibold ${
                   step.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
