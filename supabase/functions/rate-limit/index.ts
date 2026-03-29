@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const statusCode = result.allowed ? 200 : 429;
+    const statusCode = 200;
     return new Response(JSON.stringify(result), {
       status: statusCode,
       headers: {
