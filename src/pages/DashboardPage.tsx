@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, lazy, Suspense } from "react";
+import { memo, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -38,7 +38,7 @@ import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
-import { useQuery } from "@/lib/react-query";
+import { useQuery, useQueryClient } from "@/lib/react-query";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
   const customizerRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
@@ -218,6 +219,27 @@ export default function DashboardPage() {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Realtime: invalidate project apps cache when applicant_status changes
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("dashboard-project-apps-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_applications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-project-apps-combined", userId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, queryClient]);
 
   const myProjectApps = projectAppData?.apps ?? [];
   const dashProjectMap = useMemo(() => new Map((projectAppData?.projects ?? []).map((p) => [p.id, p])), [projectAppData?.projects]);
