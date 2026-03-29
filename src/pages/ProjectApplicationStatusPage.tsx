@@ -690,6 +690,117 @@ export default function ProjectApplicationStatusPage() {
         </CardContent>
       </Card>
 
+      {/* ── Profile Information ──────────────────────────────── */}
+      {profile && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <User className="h-5 w-5 text-primary" />
+              Your Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ReadOnlyField label="Name" value={`${(profile.first_name as string) ?? ""} ${(profile.last_name as string) ?? ""}`.trim() || (profile.display_name as string) || "—"} />
+            <ReadOnlyField label="Email" value={(profile.email as string) ?? "—"} />
+            <ReadOnlyField label="Country" value={(profile.country as string) || "—"} />
+            <ReadOnlyField label="Timezone" value={(profile.timezone as string) || "—"} />
+            {(profile.discord_username as string) && (
+              <ReadOnlyField label="Discord" value={profile.discord_username as string} />
+            )}
+            {(profile.linkedin_url as string) && (
+              <ReadOnlyLinkField label="LinkedIn" href={profile.linkedin_url as string} linkText="Profile" />
+            )}
+            {(profile.portfolio_url as string) && (
+              <ReadOnlyLinkField label="Portfolio" href={profile.portfolio_url as string} linkText="View" />
+            )}
+            <ReadOnlyArrayField label="Experience Areas" items={(profile.experience_areas as string[]) ?? []} />
+            <ReadOnlyArrayField label="Education Background" items={(profile.education_background as string[]) ?? []} />
+            <ReadOnlyArrayField label="Interests" items={(profile.interests as string[]) ?? []} />
+            <ReadOnlyField label="Professional Background" value={(profile.professional_background as string) ?? ""} />
+            <ReadOnlyField label="Professional Goals" value={(profile.professional_goals as string) ?? ""} />
+            <ReadOnlyField label="Bio" value={(profile.bio as string) ?? ""} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── General Application ──────────────────────────────── */}
+      {genApp && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5 text-primary" />
+              General Application
+            </CardTitle>
+            {genApp.completed_at && (
+              <p className="text-xs text-muted-foreground">
+                Completed {format(new Date(genApp.completed_at as string), "MMMM d, yyyy")}
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
+
+            <Separator className="my-2" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
+            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
+            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
+            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
+
+            <Separator className="my-2" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
+            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
+            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
+            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
+            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
+
+            <Separator className="my-2" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
+            <ReadOnlyField label="Servant Leadership Definition" value={(genApp.servant_leadership_definition as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Actions" value={(genApp.servant_leadership_actions as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Challenges" value={(genApp.servant_leadership_challenges as string) ?? ""} />
+            <ReadOnlyField label="Servant Leadership Situation" value={(genApp.servant_leadership_situation as string) ?? ""} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Project Application Responses ─────────────────────── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            Project Application — {clientName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ReadOnlyArrayField label="Team Hats of Interest" items={(app.team_hats_interest as string[]) ?? []} />
+
+          <Separator className="my-2" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            {(app.participated_previous_phase as boolean) ? "Previous Phase Experience" : "Prior Engagement"}
+          </p>
+
+          {(app.participated_previous_phase as boolean) ? (
+            <>
+              <ReadOnlyField label="What team position did you join in the previous phase?" value={(app.previous_phase_position as string) ?? ""} />
+              <ReadOnlyField label="What did you learn in the previous phase?" value={(app.previous_phase_learnings as string) ?? ""} />
+              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(app.previous_phase_help_teammates as string) ?? ""} />
+            </>
+          ) : (
+            <ReadOnlyField
+              label="How has your prior engagement in Tech Fleet prepared you for this team role?"
+              value={(app.prior_engagement_preparation as string) ?? ""}
+            />
+          )}
+
+          <Separator className="my-2" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
+          <ReadOnlyField label="Why are you passionate about being on this project?" value={(app.passion_for_project as string) ?? ""} />
+          <ReadOnlyField label="What do you know about the client and the project?" value={(app.client_project_knowledge as string) ?? ""} />
+          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(app.cross_functional_contribution as string) ?? ""} />
+          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(app.project_success_contribution as string) ?? ""} />
+        </CardContent>
+      </Card>
+
       {/* Bottom nav */}
       <div className="flex justify-between pb-8">
         <Button variant="outline" onClick={() => navigate("/applications/projects")} className="gap-1.5">
