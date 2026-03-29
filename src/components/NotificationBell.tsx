@@ -103,11 +103,7 @@ export function NotificationBell() {
       const notif = item.raw as AppNotification;
       if (!notif.read) markNotifRead.mutate(notif.id);
       setOpen(false);
-      if (notif.link_url) {
-        navigate(notif.link_url);
-      } else {
-        setSelectedNotification(notif);
-      }
+      setSelectedNotification(notif);
     }
   };
 
