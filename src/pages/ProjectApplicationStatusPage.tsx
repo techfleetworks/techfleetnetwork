@@ -207,7 +207,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
   if (!visible) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/5 via-primary/5 to-success/10 p-8 text-center space-y-4">
+    <div className="relative overflow-hidden rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/5 via-primary/5 to-success/10 p-8 text-center space-y-6">
       {/* Decorative elements */}
       <div className="absolute top-2 left-4 text-success/20 animate-pulse">
         <Sparkles className="h-6 w-6" />
