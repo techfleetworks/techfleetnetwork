@@ -273,7 +273,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
 
 /* ── Timeline Component ───────────────────────────────────── */
 
-function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onViewInvite?: () => void }) {
+function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus }: { steps: TimelineStep[]; onViewInvite?: () => void; onMarkScheduled?: () => void; applicantStatus?: string }) {
   return (
     <div className="relative pl-10 space-y-0" role="list" aria-label="Application progress timeline">
       {steps.map((step, idx) => {
@@ -292,6 +292,7 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
           "bg-border";
 
         const showInviteButton = step.key === "interview" && step.status !== "upcoming" && onViewInvite;
+        const showScheduleButton = step.key === "interview" && step.status !== "upcoming" && onMarkScheduled && applicantStatus !== "interview_scheduled" && applicantStatus !== "picked_for_team" && applicantStatus !== "active_participant" && applicantStatus !== "left_the_project";
 
         return (
           <div key={step.key} className="relative pb-8 last:pb-0" role="listitem">
@@ -329,16 +330,31 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
                   {step.description}
                 </p>
               )}
-              {showInviteButton && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="mt-2 gap-1.5 text-xs"
-                  onClick={onViewInvite}
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  View Interview Invitation
-                </Button>
+              {(showInviteButton || showScheduleButton) && (
+                <div className="flex items-center gap-2 mt-2">
+                  {showInviteButton && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={onViewInvite}
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      View Interview Invitation
+                    </Button>
+                  )}
+                  {showScheduleButton && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={onMarkScheduled}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      I have Scheduled
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
