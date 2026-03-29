@@ -758,6 +758,12 @@ export default function ProjectApplicationStatusPage() {
                   <Badge variant="outline" className="text-xs">{phaseLabel(project.phase)}</Badge>
                   <Badge variant="outline" className="text-xs">{statusLabel(project.project_status)}</Badge>
                 </div>
+                {coordinatorName && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Project Coordinator</p>
+                    <p className="text-sm text-foreground font-medium">{coordinatorName}</p>
+                  </div>
+                )}
                 {client?.mission && (
                   <p className="text-sm text-muted-foreground">{client.mission}</p>
                 )}
