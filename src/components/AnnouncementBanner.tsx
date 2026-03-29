@@ -22,50 +22,53 @@ export interface BannerConfig {
   message: string;
 }
 
-/** Read dismissed banner IDs from dashboard_preferences JSON */
+const BANNER_DISMISSALS_GRID_ID = "announcement_banner_dismissals";
+
+/** Read dismissed banner IDs from dedicated persisted state */
 async function fetchDismissedBanners(userId: string): Promise<string[]> {
   const { data } = await supabase
-    .from("dashboard_preferences")
-    .select("visible_widgets")
+    .from("grid_view_states")
+    .select("state")
     .eq("user_id", userId)
+    .eq("grid_id", BANNER_DISMISSALS_GRID_ID)
     .maybeSingle();
 
-  if (!data?.visible_widgets) return [];
-  const widgets = data.visible_widgets as Record<string, unknown>;
-  const dismissed = widgets?.dismissed_banners;
+  const state = data?.state as Record<string, unknown> | null | undefined;
+  const dismissed = state?.dismissed_banners;
   return Array.isArray(dismissed) ? dismissed : [];
 }
 
 async function persistDismissal(userId: string, bannerId: string): Promise<void> {
-  // Fetch current prefs
   const { data: existing } = await supabase
-    .from("dashboard_preferences")
-    .select("visible_widgets")
+    .from("grid_view_states")
+    .select("state")
     .eq("user_id", userId)
+    .eq("grid_id", BANNER_DISMISSALS_GRID_ID)
     .maybeSingle();
 
-  const currentWidgets = (existing?.visible_widgets as Record<string, unknown>) ?? {};
-  const currentDismissed: string[] = Array.isArray(currentWidgets.dismissed_banners)
-    ? currentWidgets.dismissed_banners
+  const currentState = (existing?.state as Record<string, unknown> | null | undefined) ?? {};
+  const currentDismissed: string[] = Array.isArray(currentState.dismissed_banners)
+    ? currentState.dismissed_banners
     : [];
 
   if (currentDismissed.includes(bannerId)) return;
 
-  const updatedWidgets = {
-    ...currentWidgets,
+  const updatedState = {
+    ...currentState,
     dismissed_banners: [...currentDismissed, bannerId],
   };
 
-  if (existing) {
-    await supabase
-      .from("dashboard_preferences")
-      .update({ visible_widgets: updatedWidgets })
-      .eq("user_id", userId);
-  } else {
-    await supabase
-      .from("dashboard_preferences")
-      .insert({ user_id: userId, visible_widgets: updatedWidgets, widget_order: [] });
-  }
+  await supabase
+    .from("grid_view_states")
+    .upsert(
+      {
+        user_id: userId,
+        grid_id: BANNER_DISMISSALS_GRID_ID,
+        state: updatedState,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,grid_id" },
+    );
 }
 
 export function AnnouncementBanner({ id, title, message }: BannerConfig) {
