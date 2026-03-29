@@ -3,13 +3,25 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 
-const maybeSingle = vi.fn();
-const upsert = vi.fn();
-const eqState = vi.fn(() => ({ maybeSingle }));
-const eqGrid = vi.fn(() => ({ eq: eqState, maybeSingle }));
-const select = vi.fn(() => ({ eq: eqGrid }));
-const from = vi.fn(() => ({ select, upsert }));
-const setQueryData = vi.fn();
+const {
+  maybeSingle,
+  upsert,
+  eqState,
+  eqGrid,
+  select,
+  from,
+  setQueryData,
+} = vi.hoisted(() => {
+  const maybeSingle = vi.fn();
+  const upsert = vi.fn();
+  const eqState = vi.fn(() => ({ maybeSingle }));
+  const eqGrid = vi.fn(() => ({ eq: eqState, maybeSingle }));
+  const select = vi.fn(() => ({ eq: eqGrid }));
+  const from = vi.fn(() => ({ select, upsert }));
+  const setQueryData = vi.fn();
+
+  return { maybeSingle, upsert, eqState, eqGrid, select, from, setQueryData };
+});
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "user-1" } }),
