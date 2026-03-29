@@ -222,7 +222,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
         <Sparkles className="h-5 w-5" />
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center mb-2">
         <div className="h-20 w-20 rounded-full bg-success/15 border-2 border-success/30 flex items-center justify-center">
           <Trophy className="h-10 w-10 text-success" />
         </div>
