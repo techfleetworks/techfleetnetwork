@@ -334,7 +334,9 @@ export default function DashboardPage() {
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
-  const togglableSectionsVisible = visibleWidgets.filter((w) => w !== "core_courses").length;
+  const safeVisibleWidgets = Array.isArray(visibleWidgets) ? visibleWidgets : [];
+  const safeWidgetOrder = Array.isArray(widgetOrder) ? widgetOrder : [];
+  const togglableSectionsVisible = safeVisibleWidgets.filter((w) => w !== "core_courses").length;
   const showEmptyState = !prefsLoading && isNewUser && togglableSectionsVisible === 0;
 
   const handleOpenCustomizer = () => {
@@ -360,7 +362,7 @@ export default function DashboardPage() {
 
       <DiscordInviteBanner />
 
-      {widgetOrder.map((widgetId) => {
+      {safeWidgetOrder.map((widgetId) => {
         switch (widgetId) {
           case "badges":
             return isVisible("badges") ? (
