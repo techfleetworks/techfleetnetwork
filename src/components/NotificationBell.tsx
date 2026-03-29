@@ -54,6 +54,11 @@ export function NotificationBell() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
 
+  const openDetailAfterPopoverCloses = (cb: () => void) => {
+    setOpen(false);
+    window.setTimeout(cb, 0);
+  };
+
   // Announcements
   const { data: announcements = [] } = useLatestAnnouncements(20);
   const { data: readIds = new Set<string>() } = useAnnouncementReadIds();
@@ -97,13 +102,17 @@ export function NotificationBell() {
   const handleItemClick = (item: UnifiedItem) => {
     if (item.kind === "announcement") {
       markAnnouncementRead.mutate(item.id);
-      setOpen(false);
-      setSelectedAnnouncement(item.raw as Announcement);
+      openDetailAfterPopoverCloses(() => {
+        setSelectedNotification(null);
+        setSelectedAnnouncement(item.raw as Announcement);
+      });
     } else {
       const notif = item.raw as AppNotification;
       if (!notif.read) markNotifRead.mutate(notif.id);
-      setOpen(false);
-      setSelectedNotification(notif);
+      openDetailAfterPopoverCloses(() => {
+        setSelectedAnnouncement(null);
+        setSelectedNotification(notif);
+      });
     }
   };
 
