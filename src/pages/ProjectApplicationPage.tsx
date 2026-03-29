@@ -555,6 +555,12 @@ export default function ProjectApplicationPage() {
                   </div>
                 </div>
               )}
+              {coordinatorName && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Project Coordinator</p>
+                  <p className="text-sm text-foreground font-medium">{coordinatorName}</p>
+                </div>
+              )}
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
                 <div className="flex flex-wrap gap-1">
