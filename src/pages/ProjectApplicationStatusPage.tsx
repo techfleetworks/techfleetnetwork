@@ -264,7 +264,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
 
 function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onViewInvite?: () => void }) {
   return (
-    <div className="relative pl-20 space-y-0" role="list" aria-label="Application progress timeline">
+    <div className="relative pl-10 space-y-0" role="list" aria-label="Application progress timeline">
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1;
         const StepIcon = step.icon;
