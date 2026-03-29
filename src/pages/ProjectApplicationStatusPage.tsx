@@ -320,7 +320,7 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
               )}
               {showInviteButton && (
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   className="mt-2 gap-1.5 text-xs"
                   onClick={onViewInvite}
