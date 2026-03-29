@@ -198,7 +198,7 @@ export default function DashboardPage() {
     queryFn: async () => {
       const { data: apps, error: appsErr } = await supabase
         .from("project_applications")
-        .select("id, project_id, status, completed_at, updated_at, current_step, team_hats_interest")
+        .select("id, project_id, status, applicant_status, completed_at, updated_at, current_step, team_hats_interest")
         .eq("user_id", userId!)
         .order("updated_at", { ascending: false });
       if (appsErr) throw appsErr;
