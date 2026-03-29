@@ -38,7 +38,7 @@ import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
-import { useQuery } from "@/lib/react-query";
+import { useQuery, useQueryClient } from "@/lib/react-query";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
