@@ -400,6 +400,24 @@ export default function ProjectApplicationStatusPage() {
     enabled: !!project?.client_id,
   });
 
+  /* ── fetch interview invite notification ─────────────────── */
+  const { data: interviewNotification } = useQuery({
+    queryKey: ["interview-invite-notification", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("notification_type", "interview_invite")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && ["invited_to_interview", "interview_accepted", "picked_for_team", "active_participant"].includes(applicantStatus),
+  });
+
   const applicantStatus = (app?.applicant_status as string) ?? "pending_review";
   const config = STATUS_CONFIG[applicantStatus] ?? STATUS_CONFIG.pending_review;
   const StatusIcon = config.icon;
