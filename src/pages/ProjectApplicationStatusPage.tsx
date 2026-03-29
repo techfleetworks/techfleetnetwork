@@ -157,12 +157,15 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
   // Interview step
   const interviewCompleted = currentOrder >= 1;
   const interviewActive = applicantStatus === "pending_review";
+  const isScheduled = applicantStatus === "interview_scheduled";
   steps.push({
     key: "interview",
     label: "Invited for Interview",
     icon: Calendar,
     status: interviewCompleted ? "completed" : interviewActive ? "upcoming" : "upcoming",
-    description: interviewCompleted
+    description: isScheduled
+      ? "You've scheduled your interview. The coordinator has been notified."
+      : interviewCompleted
       ? "You were invited and completed the interview process."
       : "Awaiting interview invitation from the coordinator.",
   });
