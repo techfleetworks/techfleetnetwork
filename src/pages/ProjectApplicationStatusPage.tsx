@@ -263,7 +263,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
 
 function StatusTimeline({ steps }: { steps: TimelineStep[] }) {
   return (
-    <div className="relative pl-8 space-y-0" role="list" aria-label="Application progress timeline">
+    <div className="relative pl-14 space-y-0" role="list" aria-label="Application progress timeline">
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1;
         const StepIcon = step.icon;
