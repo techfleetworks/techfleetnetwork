@@ -25,6 +25,29 @@ const DEFAULT_ORDER: DashboardWidgetId[] = ALL_WIDGETS.map((w) => w.id);
 /** Default visible widgets for brand-new users */
 const DEFAULT_VISIBLE: DashboardWidgetId[] = ["core_courses", "latest_updates"];
 
+const VALID_WIDGET_IDS = new Set<DashboardWidgetId>(DEFAULT_ORDER);
+
+const extractWidgetList = (value: unknown): DashboardWidgetId[] | null => {
+  let rawValues: unknown[] | null = null;
+
+  if (Array.isArray(value)) {
+    rawValues = value;
+  } else if (value && typeof value === "object") {
+    const indexedEntries = Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => /^\d+$/.test(key))
+      .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+    rawValues = indexedEntries.length > 0 ? indexedEntries.map(([, item]) => item) : null;
+  }
+
+  if (!rawValues) return null;
+
+  return rawValues.filter(
+    (item): item is DashboardWidgetId =>
+      typeof item === "string" && VALID_WIDGET_IDS.has(item as DashboardWidgetId),
+  );
+};
+
 interface Prefs {
   visibleWidgets: DashboardWidgetId[];
   widgetOrder: DashboardWidgetId[];
@@ -46,14 +69,18 @@ export function useDashboardPreferences() {
         .maybeSingle();
       if (!row) return { visibleWidgets: DEFAULT_VISIBLE, widgetOrder: DEFAULT_ORDER, isNew: true };
 
-      const visible = Array.isArray(row.visible_widgets) ? (row.visible_widgets as DashboardWidgetId[]) : DEFAULT_VISIBLE;
-      let order = Array.isArray(row.widget_order) ? (row.widget_order as DashboardWidgetId[]) : DEFAULT_ORDER;
+      const visible = extractWidgetList(row.visible_widgets) ?? DEFAULT_VISIBLE;
+      const storedOrder = extractWidgetList(row.widget_order);
+      let order = storedOrder ? Array.from(new Set(storedOrder)) : DEFAULT_ORDER;
 
-      // Ensure all known widget IDs are present in the order array
       const missing = DEFAULT_ORDER.filter((id) => !order.includes(id));
       if (missing.length > 0) order = [...order, ...missing];
 
-      return { visibleWidgets: visible, widgetOrder: order, isNew: false };
+      return {
+        visibleWidgets: Array.from(new Set(visible)).filter((id) => order.includes(id)),
+        widgetOrder: order,
+        isNew: false,
+      };
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
