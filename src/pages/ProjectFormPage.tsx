@@ -503,6 +503,19 @@ export default function ProjectFormPage() {
           </Select>
         </div>
 
+        {/* Project Coordinator */}
+        <div className="space-y-1.5">
+          <Label htmlFor="coordinator-select">Project Coordinator</Label>
+          <Select value={form.coordinator_id ?? "__none__"} onValueChange={(v) => setForm((f) => ({ ...f, coordinator_id: v === "__none__" ? null : v }))}>
+            <SelectTrigger id="coordinator-select"><SelectValue placeholder="Select a coordinator" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No coordinator assigned</SelectItem>
+              {adminUsers.map((a) => <SelectItem key={a.user_id} value={a.user_id}>{a.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Only admins can be assigned as project coordinators.</p>
+        </div>
+
         {/* Current Phase Milestones */}
         <div className="space-y-1.5">
           <Label>Current Phase Milestones <span className="text-destructive">*</span></Label>
