@@ -331,8 +331,6 @@ export default function ProjectApplicationStatusPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [invitePanelOpen, setInvitePanelOpen] = useState(false);
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   /* ── realtime subscription ──────────────────────────────── */
   useEffect(() => {
