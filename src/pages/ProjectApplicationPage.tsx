@@ -57,6 +57,7 @@ interface ProjectInfo {
   project_status: string;
   team_hats: string[];
   current_phase_milestones: string[];
+  coordinator_id?: string | null;
 }
 
 interface ClientInfo {
