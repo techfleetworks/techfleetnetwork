@@ -293,7 +293,7 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
             )}
 
             {/* Icon circle */}
-            <div className={`absolute left-[-28px] top-1 h-8 w-8 rounded-full flex items-center justify-center ${iconBg} transition-all duration-300`}>
+            <div className={`absolute left-[-28px] top-1 h-8 w-8 rounded-full flex items-start justify-start ${iconBg} transition-all duration-300`}>
               <StepIcon className="h-4 w-4" />
             </div>
 
