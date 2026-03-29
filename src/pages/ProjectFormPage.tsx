@@ -57,6 +57,7 @@ const projectSchema = z.object({
   notion_repository_url: optionalUrl,
   discord_role_id: z.string().default(""),
   discord_role_name: z.string().default(""),
+  coordinator_id: z.string().nullable(),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -75,6 +76,7 @@ const EMPTY_FORM: ProjectForm = {
   notion_repository_url: "",
   discord_role_id: "",
   discord_role_name: "",
+  coordinator_id: null,
 };
 
 export default function ProjectFormPage() {
@@ -115,6 +117,7 @@ export default function ProjectFormPage() {
             notion_repository_url: data.notion_repository_url ?? "",
             discord_role_id: (data as any).discord_role_id ?? "",
             discord_role_name: (data as any).discord_role_name ?? "",
+            coordinator_id: (data as any).coordinator_id ?? null,
           });
           setInitialized(true);
         }
@@ -148,6 +151,7 @@ export default function ProjectFormPage() {
       notion_repository_url: (existingProject as any).notion_repository_url ?? "",
       discord_role_id: (existingProject as any).discord_role_id ?? "",
       discord_role_name: (existingProject as any).discord_role_name ?? "",
+      coordinator_id: (existingProject as any).coordinator_id ?? null,
     });
     setInitialized(true);
   }
