@@ -573,21 +573,12 @@ export default function ProjectApplicationStatusPage() {
           <CardTitle className="text-lg">Your Progress</CardTitle>
         </CardHeader>
         <CardContent>
-          <StatusTimeline steps={timelineSteps} />
+          <StatusTimeline
+            steps={timelineSteps}
+            onViewInvite={showInviteStatuses.includes(applicantStatus) ? () => setInvitePanelOpen(true) : undefined}
+          />
         </CardContent>
       </Card>
-
-      {/* View Interview Invitation Button — shown for relevant statuses */}
-      {showInviteStatuses.includes(applicantStatus) && (
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setInvitePanelOpen(true)}
-        >
-          <Mail className="h-4 w-4" />
-          View Interview Invitation
-        </Button>
-      )}
 
       {/* Interview Invitation Side Panel */}
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
