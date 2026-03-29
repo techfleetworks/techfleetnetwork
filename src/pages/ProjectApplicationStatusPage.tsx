@@ -287,8 +287,8 @@ function StatusTimeline({ steps, onViewInvite }: { steps: TimelineStep[]; onView
             {/* Vertical connector line */}
             {!isLast && (
               <div
-                className={`absolute left-[-20px] top-10 w-0.5 ${lineColor}`}
-                style={{ height: "calc(100% - 16px)" }}
+                className={`absolute left-[-20px] top-[20px] w-0.5 ${lineColor}`}
+                style={{ height: "calc(100% - 12px)" }}
               />
             )}
 
