@@ -531,7 +531,7 @@ export default function ProjectApplicationStatusPage() {
       </Card>
 
       {/* View Interview Invitation Button — shown for relevant statuses */}
-      {interviewNotification && showInviteStatuses.includes(applicantStatus) && (
+      {showInviteStatuses.includes(applicantStatus) && (
         <Button
           variant="outline"
           className="w-full gap-2"
