@@ -487,11 +487,59 @@ export default function DashboardPage() {
                       const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
                       const isCompleted = app.status === "completed";
                       const isDraft = app.status === "draft";
+                      const applicantStatus = (app as any).applicant_status as string | undefined;
+
+                      // Route completed apps to status page, drafts to editor
+                      const appHref = isCompleted
+                        ? `/applications/projects/${app.id}/status`
+                        : `/project-openings/${app.project_id}/apply`;
+
+                      // Determine badge based on applicant_status from Recruiting Center
+                      const getStatusBadge = () => {
+                        if (isDraft) {
+                          return (
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
+                              <Clock className="h-3 w-3" />
+                              In Progress
+                            </Badge>
+                          );
+                        }
+                        if (!isCompleted) return null;
+                        switch (applicantStatus) {
+                          case "invited_to_interview":
+                          case "interview_accepted":
+                            return (
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs flex-shrink-0 gap-1">
+                                🎉 Interview
+                              </Badge>
+                            );
+                          case "not_selected":
+                            return (
+                              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs flex-shrink-0 gap-1">
+                                Not Selected
+                              </Badge>
+                            );
+                          case "selected":
+                            return (
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Selected
+                              </Badge>
+                            );
+                          default:
+                            return (
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Submitted
+                              </Badge>
+                            );
+                        }
+                      };
 
                       return (
                         <Link
                           key={app.id}
-                          to={`/project-openings/${app.project_id}/apply`}
+                          to={appHref}
                           className="card-elevated p-4 hover:border-primary/40 transition-all block"
                         >
                           <div className="flex items-center gap-3">
@@ -503,17 +551,7 @@ export default function DashboardPage() {
                                 <h3 className="font-semibold text-sm text-foreground truncate">
                                   {clientName}
                                 </h3>
-                                {isCompleted ? (
-                                  <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    Submitted
-                                  </Badge>
-                                ) : isDraft ? (
-                                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    In Progress
-                                  </Badge>
-                                ) : null}
+                                {getStatusBadge()}
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 {isCompleted && app.completed_at
