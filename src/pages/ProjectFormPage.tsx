@@ -57,6 +57,7 @@ const projectSchema = z.object({
   notion_repository_url: optionalUrl,
   discord_role_id: z.string().default(""),
   discord_role_name: z.string().default(""),
+  coordinator_id: z.string().nullable(),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -75,6 +76,7 @@ const EMPTY_FORM: ProjectForm = {
   notion_repository_url: "",
   discord_role_id: "",
   discord_role_name: "",
+  coordinator_id: null,
 };
 
 export default function ProjectFormPage() {
@@ -115,6 +117,7 @@ export default function ProjectFormPage() {
             notion_repository_url: data.notion_repository_url ?? "",
             discord_role_id: (data as any).discord_role_id ?? "",
             discord_role_name: (data as any).discord_role_name ?? "",
+            coordinator_id: (data as any).coordinator_id ?? null,
           });
           setInitialized(true);
         }
@@ -148,6 +151,7 @@ export default function ProjectFormPage() {
       notion_repository_url: (existingProject as any).notion_repository_url ?? "",
       discord_role_id: (existingProject as any).discord_role_id ?? "",
       discord_role_name: (existingProject as any).discord_role_name ?? "",
+      coordinator_id: (existingProject as any).coordinator_id ?? null,
     });
     setInitialized(true);
   }
@@ -163,6 +167,32 @@ export default function ProjectFormPage() {
   });
 
   const activeClients = useMemo(() => clients.filter((c) => c.status === "active"), [clients]);
+
+  // Fetch admins for coordinator picker
+  const { data: adminUsers = [] } = useQuery({
+    queryKey: ["admin-users-for-coordinator"],
+    queryFn: async () => {
+      // Get all admin user_ids
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      if (rolesError) throw rolesError;
+      const adminIds = (roles ?? []).map((r) => r.user_id);
+      if (adminIds.length === 0) return [];
+      // Get profiles for those admins
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, first_name, last_name, email")
+        .in("user_id", adminIds);
+      if (profilesError) throw profilesError;
+      return (profiles ?? []).map((p) => ({
+        user_id: p.user_id,
+        label: p.display_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unknown",
+      })).sort((a, b) => a.label.localeCompare(b.label));
+    },
+    enabled: isAdmin,
+  });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
 
@@ -471,6 +501,19 @@ export default function ProjectFormPage() {
             <SelectTrigger id="project-status"><SelectValue /></SelectTrigger>
             <SelectContent>{PROJECT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
+        </div>
+
+        {/* Project Coordinator */}
+        <div className="space-y-1.5">
+          <Label htmlFor="coordinator-select">Project Coordinator</Label>
+          <Select value={form.coordinator_id ?? "__none__"} onValueChange={(v) => setForm((f) => ({ ...f, coordinator_id: v === "__none__" ? null : v }))}>
+            <SelectTrigger id="coordinator-select"><SelectValue placeholder="Select a coordinator" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No coordinator assigned</SelectItem>
+              {adminUsers.map((a) => <SelectItem key={a.user_id} value={a.user_id}>{a.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Only admins can be assigned as project coordinators.</p>
         </div>
 
         {/* Current Phase Milestones */}

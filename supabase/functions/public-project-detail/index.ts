@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // Fetch project
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url")
+      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url, coordinator_id")
       .eq("id", projectId)
       .neq("project_status", "project_complete")
       .maybeSingle();
@@ -92,12 +92,28 @@ Deno.serve(async (req) => {
       .eq("project_id", projectId)
       .eq("status", "completed");
 
+    // Fetch coordinator name if set
+    let coordinatorName: string | null = null;
+    if (project.coordinator_id) {
+      const { data: coordProfile } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name")
+        .eq("user_id", project.coordinator_id)
+        .single();
+      if (coordProfile) {
+        coordinatorName = coordProfile.display_name ||
+          [coordProfile.first_name, coordProfile.last_name].filter(Boolean).join(" ") ||
+          null;
+      }
+    }
+
     return new Response(
       JSON.stringify({
         project,
         client,
         milestoneData,
         applicationCount: appCount ?? 0,
+        coordinatorName,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

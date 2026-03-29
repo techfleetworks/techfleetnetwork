@@ -1084,6 +1084,7 @@ export type Database = {
           anticipated_start_date: string | null
           client_id: string
           client_intake_url: string
+          coordinator_id: string | null
           created_at: string
           created_by: string
           current_phase_milestones: string[]
@@ -1103,6 +1104,7 @@ export type Database = {
           anticipated_start_date?: string | null
           client_id: string
           client_intake_url?: string
+          coordinator_id?: string | null
           created_at?: string
           created_by: string
           current_phase_milestones?: string[]
@@ -1122,6 +1124,7 @@ export type Database = {
           anticipated_start_date?: string | null
           client_id?: string
           client_intake_url?: string
+          coordinator_id?: string | null
           created_at?: string
           created_by?: string
           current_phase_milestones?: string[]

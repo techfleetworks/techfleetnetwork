@@ -57,6 +57,7 @@ interface ProjectInfo {
   project_status: string;
   team_hats: string[];
   current_phase_milestones: string[];
+  coordinator_id?: string | null;
 }
 
 interface ClientInfo {
@@ -147,6 +148,25 @@ export default function ProjectApplicationPage() {
     },
     enabled: !!project?.client_id,
   });
+
+  /* ── fetch coordinator name ─────────────────────────────── */
+  const { data: coordProfile } = useQuery({
+    queryKey: ["coordinator-for-app", project?.coordinator_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name")
+        .eq("user_id", project!.coordinator_id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!project?.coordinator_id,
+  });
+
+  const coordinatorName = coordProfile
+    ? (coordProfile.display_name || [coordProfile.first_name, coordProfile.last_name].filter(Boolean).join(" ") || null)
+    : null;
 
   /* ── fetch user's general application ──────────────────── */
   const { data: genApp } = useQuery({
@@ -533,6 +553,12 @@ export default function ProjectApplicationPage() {
                     <User className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{client.primary_contact}</span>
                   </div>
+                </div>
+              )}
+              {coordinatorName && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Project Coordinator</p>
+                  <p className="text-sm text-foreground font-medium">{coordinatorName}</p>
                 </div>
               )}
               <div>
