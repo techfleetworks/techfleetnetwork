@@ -68,6 +68,10 @@ function getAppRoute(app: EnrichedApp): string {
   if (app.status === "completed") {
     return `/applications/projects/${app.id}/status`;
   }
+  // If applicant_status is beyond pending_review, also go to status page (no editing)
+  if (STATUS_PAGE_STATUSES.has(app.applicant_status)) {
+    return `/applications/projects/${app.id}/status`;
+  }
   return `/project-openings/${app.project_id}/apply`;
 }
 
@@ -404,7 +408,7 @@ export default function MyProjectApplicationsPage() {
                   ) : null}
 
                   <Button variant={hasStatusUpdate && app.applicant_status === "invited_to_interview" ? "default" : "outline"} size="sm" className="w-full gap-1">
-                    {hasStatusUpdate ? (app.applicant_status === "invited_to_interview" ? "Accept Invitation" : "View Status") : isCompleted ? "View & Edit" : "Continue Application"}
+                    {hasStatusUpdate ? (app.applicant_status === "invited_to_interview" ? "Accept Invitation" : "View Status") : isCompleted ? "View Status" : "Continue Application"}
                     <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
                 </CardContent>

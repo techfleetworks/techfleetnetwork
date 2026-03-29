@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
   XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
+  Trophy, Star, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,7 @@ const STATUS_CONFIG: Record<string, {
     description: "You've accepted the interview invitation. The project coordinator will follow up with you shortly.",
   },
   picked_for_team: {
-    label: "Picked for Team",
+    label: "Selected for Team",
     icon: UserCheck,
     variant: "success",
     description: "Congratulations! You've been selected to join the project team. Check your notifications for next steps.",
@@ -58,10 +59,10 @@ const STATUS_CONFIG: Record<string, {
     description: "Unfortunately, you were not selected for this project at this time. We encourage you to apply to other project openings.",
   },
   active_participant: {
-    label: "Active Participant",
+    label: "Active Teammate",
     icon: Users,
     variant: "success",
-    description: "You're an active participant on this project. Keep up the great work!",
+    description: "You're an active teammate on this project. Keep up the great work!",
   },
   left_the_project: {
     label: "Left the Project",
@@ -85,7 +86,240 @@ function getStatusBadgeClasses(variant: string): string {
   }
 }
 
-/* ── component ────────────────────────────────────────────── */
+/* ── Timeline Step type ───────────────────────────────────── */
+
+interface TimelineStep {
+  key: string;
+  label: string;
+  icon: typeof Clock;
+  status: "completed" | "active" | "upcoming" | "failed";
+  description?: string;
+}
+
+/** Build the timeline steps based on the current applicant status */
+function buildTimeline(applicantStatus: string): TimelineStep[] {
+  // Define the "happy path" order
+  const NOT_SELECTED_STATUSES = new Set(["not_selected"]);
+  const isNotSelected = NOT_SELECTED_STATUSES.has(applicantStatus);
+
+  // Map statuses to a numeric order for comparison
+  const STATUS_ORDER: Record<string, number> = {
+    pending_review: 0,
+    invited_to_interview: 1,
+    interview_accepted: 1.5,
+    picked_for_team: 2,
+    active_participant: 3,
+    not_selected: -1,
+    left_the_project: -2,
+  };
+
+  const currentOrder = STATUS_ORDER[applicantStatus] ?? 0;
+
+  function stepStatus(stepOrder: number): "completed" | "active" | "upcoming" {
+    if (currentOrder >= stepOrder) return "completed";
+    if (Math.floor(currentOrder) === stepOrder - 1 && currentOrder > stepOrder - 1) return "completed"; // fractional
+    return "upcoming";
+  }
+
+  const steps: TimelineStep[] = [
+    {
+      key: "submitted",
+      label: "Application Submitted",
+      icon: CheckCircle2,
+      status: "completed",
+      description: "Your application has been submitted and received.",
+    },
+  ];
+
+  if (isNotSelected) {
+    steps.push({
+      key: "not_selected",
+      label: "Not Selected",
+      icon: XCircle,
+      status: "failed",
+      description: "You were not selected for this project. We encourage you to apply to other openings.",
+    });
+    return steps;
+  }
+
+  // Interview step
+  const interviewCompleted = currentOrder >= 1;
+  const interviewActive = applicantStatus === "pending_review";
+  steps.push({
+    key: "interview",
+    label: "Invited for Interview",
+    icon: Calendar,
+    status: interviewCompleted ? "completed" : interviewActive ? "upcoming" : "upcoming",
+    description: interviewCompleted
+      ? "You were invited and completed the interview process."
+      : "Awaiting interview invitation from the coordinator.",
+  });
+
+  // Selected for Team
+  const selectedCompleted = currentOrder >= 2;
+  steps.push({
+    key: "selected",
+    label: "Selected for Team",
+    icon: UserCheck,
+    status: selectedCompleted ? "completed" : currentOrder >= 1 ? "upcoming" : "upcoming",
+    description: selectedCompleted
+      ? "You've been selected to join the project team!"
+      : "Pending team selection after interview.",
+  });
+
+  // Active Teammate
+  const activeCompleted = currentOrder >= 3;
+  steps.push({
+    key: "active",
+    label: "Active Teammate",
+    icon: Users,
+    status: activeCompleted ? "completed" : currentOrder >= 2 ? "upcoming" : "upcoming",
+    description: activeCompleted
+      ? "You're actively contributing to the project team!"
+      : "You'll become an active teammate once onboarding is complete.",
+  });
+
+  // Now mark the current step as "active" instead of "completed"
+  // Find the last completed step and mark it active if it matches current status
+  const currentStepMap: Record<string, string> = {
+    pending_review: "submitted",
+    invited_to_interview: "interview",
+    interview_accepted: "interview",
+    picked_for_team: "selected",
+    active_participant: "active",
+  };
+  const activeKey = currentStepMap[applicantStatus];
+  if (activeKey) {
+    const idx = steps.findIndex((s) => s.key === activeKey);
+    if (idx >= 0 && steps[idx].status === "completed") {
+      steps[idx].status = "active";
+    }
+  }
+
+  return steps;
+}
+
+/* ── Active Teammate Celebration ──────────────────────────── */
+
+function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
+  const [visible, setVisible] = useState(true);
+
+  if (!visible) return null;
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/5 via-primary/5 to-success/10 p-8 text-center space-y-4">
+      {/* Decorative elements */}
+      <div className="absolute top-2 left-4 text-success/20 animate-pulse">
+        <Sparkles className="h-6 w-6" />
+      </div>
+      <div className="absolute top-4 right-6 text-primary/20 animate-pulse delay-300">
+        <Star className="h-5 w-5" />
+      </div>
+      <div className="absolute bottom-3 left-8 text-success/15 animate-pulse delay-500">
+        <Star className="h-4 w-4" />
+      </div>
+      <div className="absolute bottom-4 right-4 text-primary/15 animate-pulse delay-700">
+        <Sparkles className="h-5 w-5" />
+      </div>
+
+      <div className="flex justify-center">
+        <div className="h-20 w-20 rounded-full bg-success/15 border-2 border-success/30 flex items-center justify-center">
+          <Trophy className="h-10 w-10 text-success" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+          <PartyPopper className="h-6 w-6 text-success" />
+          Congratulations!
+          <PartyPopper className="h-6 w-6 text-success" />
+        </h2>
+        <p className="text-lg font-medium text-foreground">
+          You're an Active Teammate on <span className="text-primary font-semibold">{clientName}</span>!
+        </p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          You've made it through the entire application process and are now contributing to your project team.
+          Keep up the amazing work — your dedication makes a difference!
+        </p>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground"
+        onClick={() => setVisible(false)}
+      >
+        Dismiss
+      </Button>
+    </div>
+  );
+}
+
+/* ── Timeline Component ───────────────────────────────────── */
+
+function StatusTimeline({ steps }: { steps: TimelineStep[] }) {
+  return (
+    <div className="relative pl-8 space-y-0" role="list" aria-label="Application progress timeline">
+      {steps.map((step, idx) => {
+        const isLast = idx === steps.length - 1;
+        const StepIcon = step.icon;
+
+        const iconBg =
+          step.status === "completed" ? "bg-success text-success-foreground" :
+          step.status === "active" ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
+          step.status === "failed" ? "bg-destructive text-destructive-foreground" :
+          "bg-muted text-muted-foreground";
+
+        const lineColor =
+          step.status === "completed" ? "bg-success/40" :
+          step.status === "failed" ? "bg-destructive/30" :
+          "bg-border";
+
+        return (
+          <div key={step.key} className="relative pb-8 last:pb-0" role="listitem">
+            {/* Vertical connector line */}
+            {!isLast && (
+              <div
+                className={`absolute left-[-20px] top-10 w-0.5 ${lineColor}`}
+                style={{ height: "calc(100% - 16px)" }}
+              />
+            )}
+
+            {/* Icon circle */}
+            <div className={`absolute left-[-28px] top-1 h-8 w-8 rounded-full flex items-center justify-center ${iconBg} transition-all duration-300`}>
+              <StepIcon className="h-4 w-4" />
+            </div>
+
+            {/* Content */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h4 className={`text-sm font-semibold ${
+                  step.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
+                }`}>
+                  {step.label}
+                </h4>
+                {step.status === "active" && (
+                  <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/30">
+                    Current
+                  </Badge>
+                )}
+              </div>
+              {step.description && (
+                <p className={`text-xs ${
+                  step.status === "upcoming" ? "text-muted-foreground/60" : "text-muted-foreground"
+                }`}>
+                  {step.description}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── main component ───────────────────────────────────────── */
 
 export default function ProjectApplicationStatusPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
@@ -165,6 +399,10 @@ export default function ProjectApplicationStatusPage() {
   const config = STATUS_CONFIG[applicantStatus] ?? STATUS_CONFIG.pending_review;
   const StatusIcon = config.icon;
   const clientName = client?.name ?? "Project";
+  const isActiveTeammate = applicantStatus === "active_participant";
+
+  /* ── build timeline ─────────────────────────────────────── */
+  const timelineSteps = useMemo(() => buildTimeline(applicantStatus), [applicantStatus]);
 
   /* ── accept invitation mutation ─────────────────────────── */
   const acceptMutation = useMutation({
@@ -243,76 +481,77 @@ export default function ProjectApplicationStatusPage() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/applications/projects")} aria-label="Back to Project Applications">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
+            <Badge className={`gap-1 ${getStatusBadgeClasses(config.variant)}`}>
+              <StatusIcon className="h-3 w-3" />
+              {config.label}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">Application Status</p>
         </div>
       </div>
 
-      {/* Status Card */}
+      {/* Active Teammate Celebration */}
+      {isActiveTeammate && <ActiveTeammateCelebration clientName={clientName} />}
+
+      {/* Timeline Card */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <StatusIcon className="h-5 w-5 text-primary" />
-            Application Status
-          </CardTitle>
+          <CardTitle className="text-lg">Your Progress</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Status badge */}
-          <div className="flex flex-col items-center gap-4 py-6">
-            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${getStatusBadgeClasses(config.variant)}`}>
-              <StatusIcon className="h-8 w-8" />
-            </div>
-            <Badge className={`text-sm px-4 py-1.5 gap-1.5 ${getStatusBadgeClasses(config.variant)}`}>
-              {config.label}
-            </Badge>
-            <p className="text-sm text-muted-foreground text-center max-w-md">
-              {config.description}
+        <CardContent>
+          <StatusTimeline steps={timelineSteps} />
+        </CardContent>
+      </Card>
+
+      {/* Accept Invitation CTA */}
+      {applicantStatus === "invited_to_interview" && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6 text-center space-y-4">
+            <PartyPopper className="h-8 w-8 text-primary mx-auto" />
+            <h3 className="text-lg font-semibold text-foreground">
+              You've been invited to interview!
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Please schedule your interview using the scheduling link in your notification email, 
+              then click the button below to confirm your acceptance.
             </p>
-          </div>
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={handleAccept}
+              disabled={acceptMutation.isPending}
+            >
+              {acceptMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Accept Interview Invitation
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Accept Invitation CTA */}
-          {applicantStatus === "invited_to_interview" && (
-            <div className="border border-primary/20 bg-primary/5 rounded-lg p-6 text-center space-y-4">
-              <PartyPopper className="h-8 w-8 text-primary mx-auto" />
-              <h3 className="text-lg font-semibold text-foreground">
-                You've been invited to interview!
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Please schedule your interview using the scheduling link in your notification email, 
-                then click the button below to confirm your acceptance.
-              </p>
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={handleAccept}
-                disabled={acceptMutation.isPending}
-              >
-                {acceptMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                Accept Interview Invitation
-              </Button>
-            </div>
-          )}
+      {applicantStatus === "interview_accepted" && (
+        <Card className="border-success/20 bg-success/5">
+          <CardContent className="pt-6 text-center space-y-3">
+            <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Interview Invitation Accepted
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              You've confirmed your interview. The coordinator will reach out with further details.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-          {applicantStatus === "interview_accepted" && (
-            <div className="border border-success/20 bg-success/5 rounded-lg p-6 text-center space-y-3">
-              <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
-              <h3 className="text-lg font-semibold text-foreground">
-                Interview Invitation Accepted
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                You've confirmed your interview. The coordinator will reach out with further details.
-              </p>
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Submission details */}
+      {/* Submission & Project Details */}
+      <Card>
+        <CardContent className="pt-6 space-y-6">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Submission Details</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -335,7 +574,6 @@ export default function ProjectApplicationStatusPage() {
             </div>
           </div>
 
-          {/* Project details */}
           {project && (
             <>
               <Separator />
