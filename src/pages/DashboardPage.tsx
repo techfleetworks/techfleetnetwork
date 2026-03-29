@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const { user, profile } = useAuth();
   const userId = user?.id;
   const customizerRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
