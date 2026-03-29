@@ -2,8 +2,8 @@
  * AnnouncementBanner
  *
  * Full-width, dismissible banner shown at the top of the authenticated layout.
- * Once dismissed, the banner ID is stored in localStorage so it never reappears
- * for that user/browser. Supports multiple banners over time by changing the id.
+ * Dismissal is persisted server-side (dashboard_preferences) so it stays
+ * dismissed across browsers/devices and logins.
  *
  * Accessibility: role="status", aria-live, close button with label.
  */
@@ -11,6 +11,9 @@
 import { useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@/lib/react-query";
 
 export interface BannerConfig {
   /** Unique id — changing this resets dismissal state for all users */
@@ -19,33 +22,82 @@ export interface BannerConfig {
   message: string;
 }
 
-const STORAGE_PREFIX = "tf_banner_dismissed_";
+/** Read dismissed banner IDs from dashboard_preferences JSON */
+async function fetchDismissedBanners(userId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("dashboard_preferences")
+    .select("visible_widgets")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-function isDismissed(id: string): boolean {
-  try {
-    return localStorage.getItem(`${STORAGE_PREFIX}${id}`) === "1";
-  } catch {
-    return false;
-  }
+  if (!data?.visible_widgets) return [];
+  const widgets = data.visible_widgets as Record<string, unknown>;
+  const dismissed = widgets?.dismissed_banners;
+  return Array.isArray(dismissed) ? dismissed : [];
 }
 
-function dismiss(id: string): void {
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}${id}`, "1");
-  } catch {
-    /* storage full — degrade gracefully */
+async function persistDismissal(userId: string, bannerId: string): Promise<void> {
+  // Fetch current prefs
+  const { data: existing } = await supabase
+    .from("dashboard_preferences")
+    .select("visible_widgets")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const currentWidgets = (existing?.visible_widgets as Record<string, unknown>) ?? {};
+  const currentDismissed: string[] = Array.isArray(currentWidgets.dismissed_banners)
+    ? currentWidgets.dismissed_banners
+    : [];
+
+  if (currentDismissed.includes(bannerId)) return;
+
+  const updatedWidgets = {
+    ...currentWidgets,
+    dismissed_banners: [...currentDismissed, bannerId],
+  };
+
+  if (existing) {
+    await supabase
+      .from("dashboard_preferences")
+      .update({ visible_widgets: updatedWidgets })
+      .eq("user_id", userId);
+  } else {
+    await supabase
+      .from("dashboard_preferences")
+      .insert({ user_id: userId, visible_widgets: updatedWidgets, widget_order: [] });
   }
 }
 
 export function AnnouncementBanner({ id, title, message }: BannerConfig) {
-  const [visible, setVisible] = useState(() => !isDismissed(id));
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [dismissing, setDismissing] = useState(false);
 
-  const handleDismiss = useCallback(() => {
-    dismiss(id);
-    setVisible(false);
-  }, [id]);
+  const { data: dismissedBanners = [], isLoading } = useQuery({
+    queryKey: ["dismissed-banners", user?.id],
+    queryFn: () => fetchDismissedBanners(user!.id),
+    enabled: !!user,
+    staleTime: Infinity,
+  });
 
-  if (!visible) return null;
+  const isDismissed = dismissedBanners.includes(id);
+
+  const handleDismiss = useCallback(async () => {
+    if (!user) return;
+    setDismissing(true);
+    try {
+      await persistDismissal(user.id, id);
+      queryClient.setQueryData(
+        ["dismissed-banners", user.id],
+        [...dismissedBanners, id],
+      );
+    } catch {
+      /* degrade gracefully */
+    }
+    setDismissing(false);
+  }, [id, user, dismissedBanners, queryClient]);
+
+  if (!user || isLoading || isDismissed || dismissing) return null;
 
   return (
     <div
