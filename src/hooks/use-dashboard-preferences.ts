@@ -46,8 +46,8 @@ export function useDashboardPreferences() {
         .maybeSingle();
       if (!row) return { visibleWidgets: DEFAULT_VISIBLE, widgetOrder: DEFAULT_ORDER, isNew: true };
 
-      const visible = (row.visible_widgets as DashboardWidgetId[]) ?? DEFAULT_VISIBLE;
-      let order = (row.widget_order as DashboardWidgetId[] | null) ?? DEFAULT_ORDER;
+      const visible = Array.isArray(row.visible_widgets) ? (row.visible_widgets as DashboardWidgetId[]) : DEFAULT_VISIBLE;
+      let order = Array.isArray(row.widget_order) ? (row.widget_order as DashboardWidgetId[]) : DEFAULT_ORDER;
 
       // Ensure all known widget IDs are present in the order array
       const missing = DEFAULT_ORDER.filter((id) => !order.includes(id));
