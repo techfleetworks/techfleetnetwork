@@ -313,6 +313,17 @@ export default function ProjectOpeningDetailPage() {
           <DetailRow label="Project Type" value={typeLabel(project.project_type)} />
           <DetailRow label="Current Phase" value={phaseLabel(project.phase)} />
           <DetailRow label="Status" value={statusLabel(project.project_status)} />
+          {coordinatorName && (
+            <DetailRow
+              label="Project Coordinator"
+              value={
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium text-foreground">{coordinatorName}</span>
+                </span>
+              }
+            />
+          )}
           <DetailRow
             label="Applications Submitted"
             value={
