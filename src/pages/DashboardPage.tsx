@@ -529,8 +529,8 @@ export default function DashboardPage() {
                         }
                         if (!isCompleted) return null;
                         switch (applicantStatus) {
-                          case "invited_to_interview":
-                          case "interview_accepted":
+                        case "invited_to_interview":
+                        case "interview_scheduled":
                             return (
                               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs flex-shrink-0 gap-1">
                                 🎉 Interview

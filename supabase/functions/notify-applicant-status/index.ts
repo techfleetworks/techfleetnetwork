@@ -21,7 +21,6 @@ const MAX_PAYLOAD_BYTES = 32_768 // 32 KiB
 const VALID_STATUSES = new Set([
   'pending_review',
   'invited_to_interview',
-  'interview_accepted',
   'interview_scheduled',
   'picked_for_team',
   'not_selected',
@@ -29,7 +28,7 @@ const VALID_STATUSES = new Set([
   'left_the_project',
 ] as const)
 
-type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_accepted' | 'interview_scheduled' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
+type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_scheduled' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -75,12 +74,6 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
       return html
     },
     type: 'interview_invite',
-    linkUrl: '',
-  },
-  interview_accepted: {
-    title: '✅ Interview Accepted',
-    bodyFn: () => '<p>The applicant has accepted the interview invitation.</p>',
-    type: 'interview_accepted',
     linkUrl: '',
   },
   interview_scheduled: {

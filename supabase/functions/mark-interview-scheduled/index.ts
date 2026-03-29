@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: JSON_HEADERS })
   }
 
-  const validFromStatuses = ['invited_to_interview', 'interview_accepted']
+  const validFromStatuses = ['invited_to_interview']
   if (!validFromStatuses.includes(application.applicant_status)) {
     return new Response(JSON.stringify({ error: 'Cannot mark as scheduled from current status' }), { status: 400, headers: JSON_HEADERS })
   }
@@ -93,23 +93,35 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Failed to update status' }), { status: 500, headers: JSON_HEADERS })
   }
 
-  // Find the admin who changed status to invited_to_interview from audit_log
-  const { data: auditEntries } = await supabase
-    .from('audit_log')
-    .select('user_id, changed_fields')
-    .eq('table_name', 'project_applications')
-    .eq('record_id', applicationId)
-    .in('event_type', ['applicant_status_invited_to_interview', 'project_application_status_changed'])
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  // Find the admin user_id — look for status change entries from a non-applicant user
+  // Find the project coordinator from the projects table
   let adminUserId: string | null = null
-  if (auditEntries) {
-    for (const entry of auditEntries) {
-      if (entry.user_id && entry.user_id !== user.id) {
-        adminUserId = entry.user_id
-        break
+  if (application.project_id) {
+    const { data: project } = await supabase
+      .from('projects')
+      .select('coordinator_id')
+      .eq('id', application.project_id)
+      .single()
+    if (project?.coordinator_id) {
+      adminUserId = project.coordinator_id
+    }
+  }
+
+  // Fallback: search audit log for the admin who sent the invite
+  if (!adminUserId) {
+    const { data: auditEntries } = await supabase
+      .from('audit_log')
+      .select('user_id')
+      .eq('table_name', 'project_applications')
+      .eq('record_id', applicationId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (auditEntries) {
+      for (const entry of auditEntries) {
+        if (entry.user_id && entry.user_id !== user.id) {
+          adminUserId = entry.user_id
+          break
+        }
       }
     }
   }

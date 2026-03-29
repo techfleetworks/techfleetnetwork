@@ -40,7 +40,7 @@ interface ProjectApp {
 /** Statuses that indicate the applicant should see a status page instead of the application editor. */
 const STATUS_PAGE_STATUSES = new Set([
   "invited_to_interview",
-  "interview_accepted",
+  "interview_scheduled",
   "picked_for_team",
   "not_selected",
   "active_participant",
@@ -50,7 +50,7 @@ const STATUS_PAGE_STATUSES = new Set([
 const APPLICANT_STATUS_LABELS: Record<string, string> = {
   pending_review: "Pending Review",
   invited_to_interview: "Invited to Interview",
-  interview_accepted: "Interview Accepted",
+  interview_scheduled: "Interview Scheduled",
   picked_for_team: "Picked for Team",
   not_selected: "Not Selected",
   active_participant: "Active Participant",
@@ -358,7 +358,7 @@ export default function MyProjectApplicationsPage() {
                     {hasStatusUpdate ? (
                       <Badge className={`gap-1 shrink-0 ${
                         app.applicant_status === "invited_to_interview" ? "bg-primary/10 text-primary border-primary/30" :
-                        app.applicant_status === "picked_for_team" || app.applicant_status === "interview_accepted" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
+                        app.applicant_status === "picked_for_team" || app.applicant_status === "interview_scheduled" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
                         app.applicant_status === "not_selected" ? "bg-destructive/10 text-destructive border-destructive/30" :
                         "bg-muted text-muted-foreground border-border"
                       }`}>

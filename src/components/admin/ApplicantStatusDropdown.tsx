@@ -25,7 +25,6 @@ const log = createLogger("ApplicantStatusDropdown");
 export const APPLICANT_STATUSES = [
   { value: "pending_review", label: "Pending Review" },
   { value: "invited_to_interview", label: "Invite to Interview" },
-  { value: "interview_accepted", label: "Interview Accepted" },
   { value: "interview_scheduled", label: "Interview Scheduled" },
   { value: "picked_for_team", label: "Picked for Team" },
   { value: "not_selected", label: "Not Selected" },
