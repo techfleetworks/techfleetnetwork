@@ -530,6 +530,45 @@ export default function ProjectApplicationStatusPage() {
         </CardContent>
       </Card>
 
+      {/* View Interview Invitation Button — shown for relevant statuses */}
+      {interviewNotification && showInviteStatuses.includes(applicantStatus) && (
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => setInvitePanelOpen(true)}
+        >
+          <Mail className="h-4 w-4" />
+          View Interview Invitation
+        </Button>
+      )}
+
+      {/* Interview Invitation Side Panel */}
+      <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              <Calendar className="h-5 w-5 text-primary" />
+              {interviewNotification?.title ?? "Interview Invitation"}
+            </SheetTitle>
+            <SheetDescription>
+              {interviewNotification
+                ? `Received ${format(new Date(interviewNotification.created_at), "MMM d, yyyy 'at' h:mm a")}`
+                : "Interview details"}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+            {interviewNotification?.body_html ? (
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: interviewNotification.body_html }}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">No invitation details available.</p>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
       {/* Accept Invitation CTA */}
       {applicantStatus === "invited_to_interview" && (
         <Card className="border-primary/20 bg-primary/5">
