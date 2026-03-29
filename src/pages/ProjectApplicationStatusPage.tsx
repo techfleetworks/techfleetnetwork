@@ -401,6 +401,39 @@ export default function ProjectApplicationStatusPage() {
     enabled: !!project?.client_id,
   });
 
+  /* ── fetch own profile ──────────────────────────────────── */
+  const { data: profile } = useQuery({
+    queryKey: ["my-profile-for-app-status", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      if (error) throw error;
+      return data as Record<string, unknown>;
+    },
+    enabled: !!user,
+  });
+
+  /* ── fetch general application ──────────────────────────── */
+  const { data: genApp } = useQuery({
+    queryKey: ["my-gen-app-for-status", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("general_applications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("status", "submitted")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Record<string, unknown> | null;
+    },
+    enabled: !!user,
+  });
+
   const applicantStatus = (app?.applicant_status as string) ?? "pending_review";
   const config = STATUS_CONFIG[applicantStatus] ?? STATUS_CONFIG.pending_review;
   const StatusIcon = config.icon;
