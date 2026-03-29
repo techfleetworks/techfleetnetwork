@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
   XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
-  Trophy, Star, Sparkles, Mail,
+  Trophy, Star, Sparkles, Mail, User, Briefcase, GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
+import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 
 /* ── status display config ─────────────────────────────────── */
 
