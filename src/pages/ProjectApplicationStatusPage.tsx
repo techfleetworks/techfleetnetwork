@@ -45,12 +45,6 @@ const STATUS_CONFIG: Record<string, {
     variant: "info",
     description: "You've been invited to an interview! Please schedule your interview using the link provided in your notification, then accept this invitation below to confirm.",
   },
-  interview_accepted: {
-    label: "Interview Accepted",
-    icon: CheckCircle2,
-    variant: "success",
-    description: "You've accepted the interview invitation. The project coordinator will follow up with you shortly.",
-  },
   interview_scheduled: {
     label: "Interview Scheduled",
     icon: Calendar,
@@ -117,8 +111,7 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
   const STATUS_ORDER: Record<string, number> = {
     pending_review: 0,
     invited_to_interview: 1,
-    interview_accepted: 1.5,
-    interview_scheduled: 1.7,
+    interview_scheduled: 1.5,
     picked_for_team: 2,
     active_participant: 3,
     not_selected: -1,
@@ -199,7 +192,6 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
   const currentStepMap: Record<string, string> = {
     pending_review: "submitted",
     invited_to_interview: "interview",
-    interview_accepted: "interview",
     interview_scheduled: "interview",
     picked_for_team: "selected",
     active_participant: "active",
@@ -500,7 +492,7 @@ export default function ProjectApplicationStatusPage() {
   const isActiveTeammate = applicantStatus === "active_participant";
 
   /* ── fetch interview invite notification ─────────────────── */
-  const showInviteStatuses = ["invited_to_interview", "interview_accepted", "interview_scheduled", "picked_for_team", "active_participant"];
+  const showInviteStatuses = ["invited_to_interview", "interview_scheduled", "picked_for_team", "active_participant"];
   const { data: interviewNotification } = useQuery({
     queryKey: ["interview-invite-notification", user?.id],
     queryFn: async () => {
@@ -521,33 +513,6 @@ export default function ProjectApplicationStatusPage() {
   /* ── build timeline ─────────────────────────────────────── */
   const timelineSteps = useMemo(() => buildTimeline(applicantStatus), [applicantStatus]);
 
-  /* ── accept invitation mutation ─────────────────────────── */
-  const acceptMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("project_applications")
-        .update({ applicant_status: "interview_accepted" })
-        .eq("id", applicationId!)
-        .eq("user_id", user!.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Interview invitation accepted!", {
-        description: "The project coordinator has been notified.",
-        position: "top-center",
-      });
-      queryClient.invalidateQueries({ queryKey: ["my-project-app-status", applicationId] });
-      queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
-      queryClient.invalidateQueries({ queryKey: ["my-project-apps-count"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to accept invitation", { description: err.message });
-    },
-  });
-
-  const handleAccept = useCallback(() => {
-    acceptMutation.mutate();
-  }, [acceptMutation]);
 
   /* ── mark interview scheduled mutation ──────────────────── */
   const scheduleMutation = useMutation({
@@ -680,7 +645,7 @@ export default function ProjectApplicationStatusPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Accept Invitation CTA */}
+      {/* Schedule Interview CTA */}
       {applicantStatus === "invited_to_interview" && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6 text-center space-y-4">
@@ -690,35 +655,21 @@ export default function ProjectApplicationStatusPage() {
             </h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               Please schedule your interview using the scheduling link in your notification email, 
-              then click the button below to confirm your acceptance.
+              then click the button below to let the coordinator know you've scheduled it.
             </p>
             <Button
               size="lg"
               className="gap-2"
-              onClick={handleAccept}
-              disabled={acceptMutation.isPending}
+              onClick={handleMarkScheduled}
+              disabled={scheduleMutation.isPending}
             >
-              {acceptMutation.isPending ? (
+              {scheduleMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <CheckCircle2 className="h-4 w-4" />
+                <Calendar className="h-4 w-4" />
               )}
-              Accept Interview Invitation
+              I have Scheduled
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {applicantStatus === "interview_accepted" && (
-        <Card className="border-success/20 bg-success/5">
-          <CardContent className="pt-6 text-center space-y-3">
-            <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
-            <h3 className="text-lg font-semibold text-foreground">
-              Interview Invitation Accepted
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              You've confirmed your interview. The coordinator will reach out with further details.
-            </p>
           </CardContent>
         </Card>
       )}
