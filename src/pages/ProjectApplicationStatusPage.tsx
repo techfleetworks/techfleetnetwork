@@ -481,7 +481,7 @@ export default function ProjectApplicationStatusPage() {
   const isActiveTeammate = applicantStatus === "active_participant";
 
   /* ── fetch interview invite notification ─────────────────── */
-  const showInviteStatuses = ["invited_to_interview", "interview_accepted", "picked_for_team", "active_participant"];
+  const showInviteStatuses = ["invited_to_interview", "interview_accepted", "interview_scheduled", "picked_for_team", "active_participant"];
   const { data: interviewNotification } = useQuery({
     queryKey: ["interview-invite-notification", user?.id],
     queryFn: async () => {
@@ -529,6 +529,63 @@ export default function ProjectApplicationStatusPage() {
   const handleAccept = useCallback(() => {
     acceptMutation.mutate();
   }, [acceptMutation]);
+
+  /* ── mark interview scheduled mutation ──────────────────── */
+  const scheduleMutation = useMutation({
+    mutationFn: async () => {
+      // Update status
+      const { error } = await supabase
+        .from("project_applications")
+        .update({ applicant_status: "interview_scheduled" })
+        .eq("id", applicationId!)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+
+      // Find the admin who sent the interview invite notification
+      // We look at audit_log for the status change to invited_to_interview
+      const { data: auditEntry } = await supabase
+        .from("audit_log")
+        .select("user_id")
+        .eq("table_name", "project_applications")
+        .eq("record_id", applicationId!)
+        .eq("event_type", "project_application_status_changed")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      // Find the entry where changed_fields contains invited_to_interview
+      const inviteEntry = auditEntry?.find(e => e.user_id && e.user_id !== user!.id);
+      const adminUserId = inviteEntry?.user_id;
+
+      if (adminUserId) {
+        const displayName = profile?.display_name as string || profile?.first_name as string || "An applicant";
+        // Send in-app notification to the admin
+        const { error: fnError } = await supabase.functions.invoke("notify-applicant-status", {
+          body: {
+            admin_user_id: adminUserId,
+            applicant_name: displayName,
+            client_name: clientName,
+            application_id: applicationId,
+          },
+        });
+        if (fnError) console.error("Failed to notify admin:", fnError);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Interview marked as scheduled!", {
+        description: "The project coordinator has been notified.",
+        position: "top-center",
+      });
+      queryClient.invalidateQueries({ queryKey: ["my-project-app-status", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
+    },
+    onError: (err: Error) => {
+      toast.error("Failed to update status", { description: err.message });
+    },
+  });
+
+  const handleMarkScheduled = useCallback(() => {
+    scheduleMutation.mutate();
+  }, [scheduleMutation]);
 
   /* ── loading / not found states ─────────────────────────── */
   if (appLoading) {
@@ -603,6 +660,8 @@ export default function ProjectApplicationStatusPage() {
           <StatusTimeline
             steps={timelineSteps}
             onViewInvite={showInviteStatuses.includes(applicantStatus) ? () => setInvitePanelOpen(true) : undefined}
+            onMarkScheduled={showInviteStatuses.includes(applicantStatus) ? handleMarkScheduled : undefined}
+            applicantStatus={applicantStatus}
           />
         </CardContent>
       </Card>
