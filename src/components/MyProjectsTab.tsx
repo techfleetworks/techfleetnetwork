@@ -315,7 +315,7 @@ export function MyProjectsTab() {
       <SectionEmptyState
         title="No Active Projects"
         description="Once you're selected as an active teammate on a project, it will appear here with full project details."
-        icon="folder"
+        icon={FolderKanban}
       />
     );
   }
