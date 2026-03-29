@@ -51,6 +51,12 @@ const STATUS_CONFIG: Record<string, {
     variant: "success",
     description: "You've accepted the interview invitation. The project coordinator will follow up with you shortly.",
   },
+  interview_scheduled: {
+    label: "Interview Scheduled",
+    icon: Calendar,
+    variant: "info",
+    description: "You've indicated that your interview has been scheduled. The project coordinator has been notified.",
+  },
   picked_for_team: {
     label: "Selected for Team",
     icon: UserCheck,
@@ -112,6 +118,7 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
     pending_review: 0,
     invited_to_interview: 1,
     interview_accepted: 1.5,
+    interview_scheduled: 1.7,
     picked_for_team: 2,
     active_participant: 3,
     not_selected: -1,
@@ -190,6 +197,7 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
     pending_review: "submitted",
     invited_to_interview: "interview",
     interview_accepted: "interview",
+    interview_scheduled: "interview",
     picked_for_team: "selected",
     active_participant: "active",
   };
