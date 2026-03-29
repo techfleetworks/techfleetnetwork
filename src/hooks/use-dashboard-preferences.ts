@@ -112,12 +112,20 @@ export function useDashboardPreferences() {
     onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  const visibleWidgets = data?.visibleWidgets ?? DEFAULT_VISIBLE;
-  const widgetOrder = data?.widgetOrder ?? DEFAULT_ORDER;
+  const visibleWidgets = extractWidgetList(data?.visibleWidgets) ?? DEFAULT_VISIBLE;
+  const widgetOrder = Array.from(
+    new Set([...(extractWidgetList(data?.widgetOrder) ?? []), ...DEFAULT_ORDER]),
+  ) as DashboardWidgetId[];
   const isNewUser = data?.isNew ?? true;
 
-  const persist = (visible: DashboardWidgetId[], order: DashboardWidgetId[]) =>
-    mutation.mutate({ visibleWidgets: visible, widgetOrder: order });
+  const persist = (visible: DashboardWidgetId[], order: DashboardWidgetId[]) => {
+    const normalizedVisible = extractWidgetList(visible) ?? DEFAULT_VISIBLE;
+    const normalizedOrder = Array.from(
+      new Set([...(extractWidgetList(order) ?? []), ...DEFAULT_ORDER]),
+    ) as DashboardWidgetId[];
+
+    mutation.mutate({ visibleWidgets: normalizedVisible, widgetOrder: normalizedOrder });
+  };
 
   const isVisible = (id: DashboardWidgetId) => visibleWidgets.includes(id);
 
