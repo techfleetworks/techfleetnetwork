@@ -19,6 +19,7 @@ IMPORTANT RULES:
 4. Do not discuss topics outside of Tech Fleet, even if the user insists.
 5. When a user asks HOW to complete a deliverable, workshop activity, milestone, team hat responsibility, or any practical task mentioned in the knowledge base, you SHOULD supplement your answer with practical tips, best practices, and step-by-step guidance. Use the WEB SEARCH RESULTS provided below to enrich your answer with real-world techniques and industry best practices.
 6. Always clearly distinguish between official Tech Fleet processes (from the knowledge base) and supplementary tips (from web search). Use a section like "💡 Practical Tips" for web-sourced advice.
+7. Web search results come ONLY from vetted, reputable sources (academic institutions, industry-leading organizations like NNGroup, Scrum Alliance, Atlassian, PMI, SVPG, AIGA, government digital services, etc.). Treat these as credible supplementary material. Do NOT speculate or add advice beyond what the KB and web sources provide.
 
 FORMATTING RULES — follow these strictly:
 1. Use clear markdown formatting: headings (##), bullet points, bold for key terms, and numbered lists where appropriate.
@@ -54,6 +55,50 @@ const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 4000;
 /** Firecrawl search timeout in ms */
 const WEB_SEARCH_TIMEOUT_MS = 5000;
+
+/**
+ * Trusted, reputable domains for web search results.
+ * Only results from these domains will be returned by Firecrawl.
+ */
+const TRUSTED_DOMAINS = [
+  "harvard.edu",
+  "hbr.org",
+  "atlassian.com",
+  "scrumalliance.org",
+  "scrum.org",
+  "agilealliance.org",
+  "nngroup.com",
+  "interaction-design.org",
+  "smashingmagazine.com",
+  "uxdesign.cc",
+  "medium.com",
+  "wikipedia.org",
+  "coursera.org",
+  "edx.org",
+  "linkedin.com/pulse",
+  "thoughtworks.com",
+  "martinfowler.com",
+  "mckinsey.com",
+  "deloitte.com",
+  "productplan.com",
+  "mindtheproduct.com",
+  "svpg.com",
+  "leanagile.pm",
+  "figma.com",
+  "miro.com",
+  "notion.so",
+  "asana.com",
+  "monday.com",
+  "pmi.org",
+  "aiga.org",
+  "designcouncil.org.uk",
+  "gov.uk",
+  "digital.gov",
+  "18f.gsa.gov",
+  "usability.gov",
+  "w3.org",
+  "developer.mozilla.org",
+];
 
 /**
  * Keywords that indicate the user wants practical/how-to guidance,
@@ -122,7 +167,8 @@ async function searchWebForTips(query: string): Promise<{ context: string; sourc
       },
       body: JSON.stringify({
         query,
-        limit: 5,
+        limit: 8,
+        search_domain_filter: TRUSTED_DOMAINS,
         scrapeOptions: { formats: ["markdown"] },
       }),
       signal: controller.signal,
