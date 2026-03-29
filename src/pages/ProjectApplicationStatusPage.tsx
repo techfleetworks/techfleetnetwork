@@ -207,7 +207,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
   if (!visible) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/5 via-primary/5 to-success/10 p-8 text-center space-y-4">
+    <div className="relative overflow-hidden rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/5 via-primary/5 to-success/10 p-8 text-center space-y-6">
       {/* Decorative elements */}
       <div className="absolute top-2 left-4 text-success/20 animate-pulse">
         <Sparkles className="h-6 w-6" />
@@ -222,7 +222,7 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
         <Sparkles className="h-5 w-5" />
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center mb-2">
         <div className="h-20 w-20 rounded-full bg-success/15 border-2 border-success/30 flex items-center justify-center">
           <Trophy className="h-10 w-10 text-success" />
         </div>
