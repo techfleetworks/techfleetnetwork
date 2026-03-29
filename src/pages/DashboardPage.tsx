@@ -541,11 +541,24 @@ export default function DashboardPage() {
                                 Not Selected
                               </Badge>
                             );
-                          case "selected":
+                          case "picked_for_team":
                             return (
                               <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Selected
+                                Selected for Team
+                              </Badge>
+                            );
+                          case "active_participant":
+                            return (
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
+                                <Trophy className="h-3 w-3" />
+                                Active Teammate
+                              </Badge>
+                            );
+                          case "left_the_project":
+                            return (
+                              <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs flex-shrink-0 gap-1">
+                                Left Project
                               </Badge>
                             );
                           default:
