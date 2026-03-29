@@ -167,6 +167,32 @@ export default function ProjectFormPage() {
   });
 
   const activeClients = useMemo(() => clients.filter((c) => c.status === "active"), [clients]);
+
+  // Fetch admins for coordinator picker
+  const { data: adminUsers = [] } = useQuery({
+    queryKey: ["admin-users-for-coordinator"],
+    queryFn: async () => {
+      // Get all admin user_ids
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      if (rolesError) throw rolesError;
+      const adminIds = (roles ?? []).map((r) => r.user_id);
+      if (adminIds.length === 0) return [];
+      // Get profiles for those admins
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, first_name, last_name, email")
+        .in("user_id", adminIds);
+      if (profilesError) throw profilesError;
+      return (profiles ?? []).map((p) => ({
+        user_id: p.user_id,
+        label: p.display_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unknown",
+      })).sort((a, b) => a.label.localeCompare(b.label));
+    },
+    enabled: isAdmin,
+  });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
 
