@@ -220,6 +220,27 @@ export default function DashboardPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Realtime: invalidate project apps cache when applicant_status changes
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel("dashboard-project-apps-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_applications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-project-apps-combined", userId] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, queryClient]);
+
   const myProjectApps = projectAppData?.apps ?? [];
   const dashProjectMap = useMemo(() => new Map((projectAppData?.projects ?? []).map((p) => [p.id, p])), [projectAppData?.projects]);
   const dashClientMap = useMemo(() => new Map((projectAppData?.clients ?? []).map((c) => [c.id, c])), [projectAppData?.clients]);
