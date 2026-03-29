@@ -400,7 +400,14 @@ export default function ProjectApplicationStatusPage() {
     enabled: !!project?.client_id,
   });
 
+  const applicantStatus = (app?.applicant_status as string) ?? "pending_review";
+  const config = STATUS_CONFIG[applicantStatus] ?? STATUS_CONFIG.pending_review;
+  const StatusIcon = config.icon;
+  const clientName = client?.name ?? "Project";
+  const isActiveTeammate = applicantStatus === "active_participant";
+
   /* ── fetch interview invite notification ─────────────────── */
+  const showInviteStatuses = ["invited_to_interview", "interview_accepted", "picked_for_team", "active_participant"];
   const { data: interviewNotification } = useQuery({
     queryKey: ["interview-invite-notification", user?.id],
     queryFn: async () => {
@@ -415,14 +422,8 @@ export default function ProjectApplicationStatusPage() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && ["invited_to_interview", "interview_accepted", "picked_for_team", "active_participant"].includes(applicantStatus),
+    enabled: !!user && showInviteStatuses.includes(applicantStatus),
   });
-
-  const applicantStatus = (app?.applicant_status as string) ?? "pending_review";
-  const config = STATUS_CONFIG[applicantStatus] ?? STATUS_CONFIG.pending_review;
-  const StatusIcon = config.icon;
-  const clientName = client?.name ?? "Project";
-  const isActiveTeammate = applicantStatus === "active_participant";
 
   /* ── build timeline ─────────────────────────────────────── */
   const timelineSteps = useMemo(() => buildTimeline(applicantStatus), [applicantStatus]);
