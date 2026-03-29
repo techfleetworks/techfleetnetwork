@@ -417,7 +417,7 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id")
+        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id")
         .eq("id", app!.project_id as string)
         .single();
       if (error) throw error;
@@ -425,6 +425,25 @@ export default function ProjectApplicationStatusPage() {
     },
     enabled: !!app?.project_id,
   });
+
+  /* ── fetch coordinator name ─────────────────────────────── */
+  const { data: coordinatorProfile } = useQuery({
+    queryKey: ["coordinator-profile", (project as any)?.coordinator_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name")
+        .eq("user_id", (project as any).coordinator_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!(project as any)?.coordinator_id,
+  });
+
+  const coordinatorName = coordinatorProfile
+    ? (coordinatorProfile.display_name || [coordinatorProfile.first_name, coordinatorProfile.last_name].filter(Boolean).join(" ") || null)
+    : null;
 
   /* ── fetch client ───────────────────────────────────────── */
   const { data: client } = useQuery({
