@@ -424,7 +424,7 @@ export default function ProjectApplicationStatusPage() {
         .from("general_applications")
         .select("*")
         .eq("user_id", user!.id)
-        .eq("status", "submitted")
+        .eq("status", "completed")
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
