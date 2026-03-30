@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationService, type AppNotification } from "@/services/notification.service";
@@ -9,20 +9,20 @@ const NOTIFICATIONS_KEY = ["notifications"] as const;
 
 /**
  * Adaptive polling interval for notification queries.
- * Starts at 30s; if the tab is in the background, backs off to 120s.
- * At 100k users this reduces server load by ~4x for inactive tabs.
+ * Uses React state so interval changes trigger re-renders (fixes stale ref bug).
+ * Backs off to 4× base interval when the tab is hidden.
  */
 function useAdaptiveInterval(baseMs: number): number {
-  const hidden = useRef(false);
+  const [hidden, setHidden] = useState(document.hidden);
+
+  const handler = useCallback(() => setHidden(document.hidden), []);
 
   useEffect(() => {
-    const handler = () => { hidden.current = document.hidden; };
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
-  }, []);
+  }, [handler]);
 
-  // Double the interval for hidden tabs to reduce polling load
-  return hidden.current ? baseMs * 4 : baseMs;
+  return hidden ? baseMs * 4 : baseMs;
 }
 
 export function useNotifications(limit = 50) {

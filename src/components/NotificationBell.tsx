@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Video, Mic, Rocket, CheckCheck, Megaphone } from "lucide-react";
 import { format } from "date-fns";
@@ -30,6 +30,7 @@ import {
   type AppNotification,
 } from "@/hooks/use-notifications";
 import { stripHtml } from "@/lib/html";
+import { sanitizeHtml } from "@/lib/security";
 import type { Announcement } from "@/services/announcement.service";
 
 /** Unified notification item used for the merged list */
@@ -74,7 +75,7 @@ export function NotificationBell() {
   const unreadAnnouncements = announcements.filter((a) => !readIds.has(a.id));
   const totalUnread = unreadAnnouncements.length + unreadNotifCount;
 
-  const unified: UnifiedItem[] = [
+  const unified: UnifiedItem[] = useMemo(() => [
     ...notifications.map((n): UnifiedItem => ({
       id: n.id,
       kind: "alert",
@@ -97,7 +98,7 @@ export function NotificationBell() {
       audioUrl: a.audio_url,
       raw: a,
     })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()), [notifications, unreadAnnouncements]);
 
   const handleItemClick = (item: UnifiedItem) => {
     if (item.kind === "announcement") {
@@ -268,7 +269,7 @@ export function NotificationBell() {
             {selectedAnnouncement && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
               />
             )}
           </ScrollArea>
@@ -288,7 +289,7 @@ export function NotificationBell() {
             {selectedNotification && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedNotification.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedNotification.body_html) }}
               />
             )}
             {selectedNotification?.link_url && (

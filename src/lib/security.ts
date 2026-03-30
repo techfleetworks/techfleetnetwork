@@ -170,3 +170,28 @@ export function safeJsonParse<T = unknown>(json: string): T {
     return value;
   }) as T;
 }
+
+// ─── HTML Sanitization (DOMPurify) ──────────────────────────────────
+
+import DOMPurify from "dompurify";
+
+/**
+ * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
+ * Strips scripts, event handlers, and dangerous attributes while
+ * keeping safe formatting tags.
+ */
+export function sanitizeHtml(dirty: string): string {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      "p", "br", "strong", "b", "em", "i", "u", "s", "a",
+      "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
+      "blockquote", "pre", "code", "hr", "img", "div", "span",
+      "table", "thead", "tbody", "tr", "th", "td",
+    ],
+    ALLOWED_ATTR: [
+      "href", "target", "rel", "src", "alt", "class", "style",
+      "width", "height", "colspan", "rowspan",
+    ],
+    ALLOW_DATA_ATTR: false,
+  });
+}
