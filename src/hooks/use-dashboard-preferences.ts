@@ -112,10 +112,17 @@ export function useDashboardPreferences() {
     onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  const visibleWidgets = extractWidgetList(data?.visibleWidgets) ?? DEFAULT_VISIBLE;
-  const widgetOrder = Array.from(
-    new Set([...(extractWidgetList(data?.widgetOrder) ?? []), ...DEFAULT_ORDER]),
-  ) as DashboardWidgetId[];
+  // Self-healing: always coerce to arrays regardless of what cache/DB returns
+  const visibleWidgets: DashboardWidgetId[] = (() => {
+    const raw = data?.visibleWidgets;
+    if (Array.isArray(raw)) return extractWidgetList(raw) ?? DEFAULT_VISIBLE;
+    return extractWidgetList(raw) ?? DEFAULT_VISIBLE;
+  })();
+  const widgetOrder: DashboardWidgetId[] = (() => {
+    const raw = data?.widgetOrder;
+    const extracted = Array.isArray(raw) ? extractWidgetList(raw) : extractWidgetList(raw);
+    return Array.from(new Set([...(extracted ?? []), ...DEFAULT_ORDER]));
+  })();
   const isNewUser = data?.isNew ?? true;
 
   const persist = (visible: DashboardWidgetId[], order: DashboardWidgetId[]) => {
