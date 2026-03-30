@@ -120,7 +120,7 @@ export default function ChatPage() {
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Load conversations list
   useEffect(() => {
