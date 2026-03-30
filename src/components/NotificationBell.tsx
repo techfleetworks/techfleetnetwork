@@ -269,7 +269,7 @@ export function NotificationBell() {
             {selectedAnnouncement && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
               />
             )}
           </ScrollArea>
@@ -289,7 +289,7 @@ export function NotificationBell() {
             {selectedNotification && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: selectedNotification.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedNotification.body_html) }}
               />
             )}
             {selectedNotification?.link_url && (
