@@ -75,7 +75,7 @@ export function NotificationBell() {
   const unreadAnnouncements = announcements.filter((a) => !readIds.has(a.id));
   const totalUnread = unreadAnnouncements.length + unreadNotifCount;
 
-  const unified: UnifiedItem[] = [
+  const unified: UnifiedItem[] = useMemo(() => [
     ...notifications.map((n): UnifiedItem => ({
       id: n.id,
       kind: "alert",
@@ -98,7 +98,7 @@ export function NotificationBell() {
       audioUrl: a.audio_url,
       raw: a,
     })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()), [notifications, unreadAnnouncements]);
 
   const handleItemClick = (item: UnifiedItem) => {
     if (item.kind === "announcement") {
