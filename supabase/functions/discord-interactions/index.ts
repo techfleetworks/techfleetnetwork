@@ -132,28 +132,65 @@ async function getAIResponse(question: string, knowledgeCtx: string): Promise<st
   return data.choices?.[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
 }
 
+/** Split content into chunks that fit Discord's message limit, breaking at newlines when possible */
+function splitMessage(content: string): string[] {
+  if (content.length <= MAX_DISCORD_LENGTH) return [content];
+
+  const chunks: string[] = [];
+  let remaining = content;
+
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_DISCORD_LENGTH) {
+      chunks.push(remaining);
+      break;
+    }
+
+    // Try to break at a newline within the limit
+    let breakIdx = remaining.lastIndexOf("\n", MAX_DISCORD_LENGTH);
+    if (breakIdx < MAX_DISCORD_LENGTH * 0.3) {
+      // If newline break is too early, try a space
+      breakIdx = remaining.lastIndexOf(" ", MAX_DISCORD_LENGTH);
+    }
+    if (breakIdx < MAX_DISCORD_LENGTH * 0.3) {
+      // Hard break as last resort
+      breakIdx = MAX_DISCORD_LENGTH;
+    }
+
+    chunks.push(remaining.substring(0, breakIdx));
+    remaining = remaining.substring(breakIdx).trimStart();
+  }
+
+  return chunks;
+}
+
 async function postFollowup(
   applicationId: string,
   interactionToken: string,
   content: string,
 ): Promise<void> {
-  const truncated =
-    content.length > MAX_DISCORD_LENGTH
-      ? content.substring(0, MAX_DISCORD_LENGTH) + "\n\n*…response truncated*"
-      : content;
+  const chunks = splitMessage(content);
+  const baseUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
 
-  const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: truncated }),
-  });
+  for (let i = 0; i < chunks.length; i++) {
+    const url = i === 0 ? baseUrl : baseUrl; // all go to same webhook
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: chunks[i] }),
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    log.error("followup", `Failed to post followup [${res.status}]: ${text.substring(0, 300)}`);
-  } else {
-    await res.text(); // consume body
+    if (!res.ok) {
+      const text = await res.text();
+      log.error("followup", `Failed to post followup part ${i + 1}/${chunks.length} [${res.status}]: ${text.substring(0, 300)}`);
+      break;
+    } else {
+      await res.text(); // consume body
+    }
+
+    // Small delay between chunks to respect rate limits
+    if (i < chunks.length - 1) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
 }
 
