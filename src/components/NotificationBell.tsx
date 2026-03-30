@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Video, Mic, Rocket, CheckCheck, Megaphone } from "lucide-react";
 import { format } from "date-fns";
@@ -30,6 +30,7 @@ import {
   type AppNotification,
 } from "@/hooks/use-notifications";
 import { stripHtml } from "@/lib/html";
+import { sanitizeHtml } from "@/lib/security";
 import type { Announcement } from "@/services/announcement.service";
 
 /** Unified notification item used for the merged list */
