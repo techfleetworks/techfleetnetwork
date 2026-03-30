@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
-  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   Clock,
@@ -13,8 +12,8 @@ import {
   Megaphone,
   MessageSquare,
   PartyPopper,
-  Trophy,
   Users,
+  CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
