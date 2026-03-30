@@ -47,12 +47,12 @@ WORKSHOP IMAGE RULES — follow these strictly:
 KNOWLEDGE BASE:
 `;
 
-/** Max request body (64 KB — allows for conversation history) */
-const MAX_BODY_BYTES = 64 * 1024;
+/** Max request body (256 KB — allows for longer messages + conversation history) */
+const MAX_BODY_BYTES = 256 * 1024;
 /** Max messages in a single request to prevent abuse */
 const MAX_MESSAGES = 50;
 /** Max length per message content */
-const MAX_MESSAGE_LENGTH = 4000;
+const MAX_MESSAGE_LENGTH = 20_000;
 /** Firecrawl search timeout in ms */
 const WEB_SEARCH_TIMEOUT_MS = 5000;
 

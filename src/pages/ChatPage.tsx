@@ -461,17 +461,40 @@ export default function ChatPage() {
         </div>
 
         {/* Input */}
-        <form onSubmit={send} className="flex gap-2">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about Tech Fleet..."
-            disabled={isLoading}
-            className="flex-1"
-            autoComplete="off"
-            aria-label="Type your question"
-          />
+        <form onSubmit={send} className="flex gap-2 items-end">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+              value={input}
+              onChange={(e) => {
+                if (e.target.value.length <= 20000) setInput(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.trim() && !isLoading) send(e);
+                }
+              }}
+              placeholder="Ask about Tech Fleet..."
+              disabled={isLoading}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none min-h-[40px] max-h-[200px]"
+              rows={1}
+              autoComplete="off"
+              aria-label="Type your question"
+              maxLength={20000}
+              style={{ height: "auto", overflow: "auto" }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = Math.min(el.scrollHeight, 200) + "px";
+              }}
+            />
+            {input.length > 15000 && (
+              <p className="text-xs text-muted-foreground text-right mt-0.5">
+                {input.length.toLocaleString()} / 20,000
+              </p>
+            )}
+          </div>
           <Button type="submit" disabled={isLoading || !input.trim()} size="icon" aria-label="Send message">
             <Send className="h-4 w-4" />
           </Button>
