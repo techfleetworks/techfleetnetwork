@@ -518,60 +518,7 @@ export default function DashboardPage() {
                         ? `/applications/projects/${app.id}/status`
                         : `/project-openings/${app.project_id}/apply`;
 
-                      // Determine badge based on applicant_status from Recruiting Center
-                      const getStatusBadge = () => {
-                        if (isDraft) {
-                          return (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                              <Clock className="h-3 w-3" />
-                              In Progress
-                            </Badge>
-                          );
-                        }
-                        if (!isCompleted) return null;
-                        switch (applicantStatus) {
-                        case "invited_to_interview":
-                        case "interview_scheduled":
-                            return (
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs flex-shrink-0 gap-1">
-                                🎉 Interview
-                              </Badge>
-                            );
-                          case "not_selected":
-                            return (
-                              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs flex-shrink-0 gap-1">
-                                Not Selected
-                              </Badge>
-                            );
-                          case "picked_for_team":
-                            return (
-                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Selected for Team
-                              </Badge>
-                            );
-                          case "active_participant":
-                            return (
-                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                                <Trophy className="h-3 w-3" />
-                                Active Teammate
-                              </Badge>
-                            );
-                          case "left_the_project":
-                            return (
-                              <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs flex-shrink-0 gap-1">
-                                Left Project
-                              </Badge>
-                            );
-                          default:
-                            return (
-                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Submitted
-                              </Badge>
-                            );
-                        }
-                      };
+                      // Badge rendered by shared component
 
                       return (
                         <Link
@@ -588,7 +535,7 @@ export default function DashboardPage() {
                                 <h3 className="font-semibold text-sm text-foreground truncate">
                                   {clientName}
                                 </h3>
-                                {getStatusBadge()}
+                                <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 {isCompleted && app.completed_at
