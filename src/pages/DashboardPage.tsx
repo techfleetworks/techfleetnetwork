@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
+import { ApplicationStatusBadge } from "@/components/ApplicationStatusBadge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { DashboardCustomizer } from "@/components/DashboardCustomizer";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
