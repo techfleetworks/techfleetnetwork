@@ -307,51 +307,84 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
   function HatRow({ hat }: { hat: string }) {
     const isFoundational = FOUNDATIONAL_HATS.includes(hat);
     const bd = analysis?.hatBreakdowns.get(hat) ?? { unique: 0, shared: 0, total: 0 };
+    const fillPercent = Math.min(Math.round((bd.unique / IDEAL_PER_HAT) * 100), 100);
+
+    let statusLabel: string;
     let statusIcon: ReactNode;
     let statusColor: string;
+    let barColor: string;
     if (bd.unique >= IDEAL_PER_HAT) {
+      statusLabel = "Ready";
       statusIcon = <CheckCircle2 className="h-4 w-4" />;
       statusColor = "text-success";
+      barColor = "bg-success";
     } else if (bd.unique >= MIN_PER_HAT) {
+      statusLabel = "Almost there";
       statusIcon = <AlertTriangle className="h-4 w-4" />;
       statusColor = "text-warning";
+      barColor = "bg-warning";
     } else if (bd.unique >= 1) {
+      statusLabel = "Needs more";
       statusIcon = <AlertTriangle className="h-4 w-4" />;
       statusColor = "text-orange-500";
+      barColor = "bg-orange-500";
     } else {
+      statusLabel = "No applicants";
       statusIcon = <XCircle className="h-4 w-4" />;
       statusColor = "text-destructive";
+      barColor = "bg-destructive";
     }
 
     return (
-      <div className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50">
-        <div className="flex items-center gap-2">
-          <span className={statusColor}>{statusIcon}</span>
-          <span className="text-sm font-medium text-foreground">{hat}</span>
-          {isFoundational && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Foundational</Badge>}
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5" title="Applicants who selected this hat and ONLY applied to this project">
-            <span className="text-sm font-semibold text-success">{bd.unique}</span>
-            <span className="text-xs text-muted-foreground">exclusive</span>
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        {/* Header row: hat name + status badge */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">{hat}</span>
+            {isFoundational && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">Core Role</Badge>
+            )}
           </div>
-          <span className="text-muted-foreground/40">|</span>
+          <Badge variant="outline" className={`${statusColor} border-current/20 text-xs gap-1`}>
+            {statusIcon}
+            {statusLabel}
+          </Badge>
+        </div>
+
+        {/* Visual progress bar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Dedicated applicants</span>
+            <span className="font-medium text-foreground">{bd.unique} of {IDEAL_PER_HAT} ideal</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${fillPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stats row with clear labels */}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1.5" title="Applicants who ONLY applied to this project for this role">
+            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-success/15 text-success font-bold">{bd.unique}</span>
+            <span className="text-muted-foreground">dedicated</span>
+          </div>
           <button
             type="button"
             className="flex items-center gap-1.5 hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default"
-            title="Click to view multi-project applicants for this hat"
+            title="Also applied to other projects — click to see details"
             disabled={bd.shared === 0}
             onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
           >
-            <span className="text-sm font-semibold text-warning">{bd.shared}</span>
-            <span className="text-xs text-muted-foreground">multi-project</span>
+            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-warning/15 text-warning font-bold">{bd.shared}</span>
+            <span className="text-muted-foreground">also applied elsewhere</span>
           </button>
-          <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-semibold text-foreground">{bd.total}</span>
-            <span className="text-xs text-muted-foreground">total</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="font-semibold text-foreground">{bd.total}</span>
+            <span className="text-muted-foreground">total</span>
           </div>
-          <span className="text-xs text-muted-foreground ml-1">/ {IDEAL_PER_HAT} ideal</span>
         </div>
       </div>
     );
@@ -380,7 +413,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <div className={`text-4xl font-bold ${scoreColor}`}>{score}%</div>
             <Progress value={score} className="mt-3 h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Based on <strong>exclusive</strong> applicants per foundational hat — people who selected the hat <em>and</em> only applied to this project (50%), other roles (20%), exclusive applicant ratio (15%), and previous phase participation (15%).
+              Combines core role staffing (50%), additional roles (20%), applicant dedication (15%), and returning members (15%).
             </p>
           </CardContent>
         </Card>
@@ -437,16 +470,22 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            Foundational Hat Coverage
+            Core Role Staffing
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Readiness is based on <strong>exclusive applicants</strong> — people who selected this hat and did <em>not</em> apply to any other project.
-            Ideal: {IDEAL_PER_HAT} exclusive per hat. Minimum: {MIN_PER_HAT}. Multi-project applicants are shown but don't count toward readiness.
-          </p>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Are there enough <strong>dedicated</strong> applicants for each core role? A "dedicated" applicant only applied to <em>this</em> project — making them more likely to join if accepted.
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> <strong>Ready</strong> = {IDEAL_PER_HAT}+ dedicated</span>
+              <span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" /> <strong>Almost</strong> = {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} dedicated</span>
+              <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-destructive" /> <strong>Gap</strong> = 0 dedicated</span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {foundationalHats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No foundational hats configured for this project.</p>
+            <p className="text-sm text-muted-foreground">No core roles configured for this project.</p>
           ) : (
             foundationalHats.map((hat) => <HatRow key={hat} hat={hat} />)
           )}
@@ -458,13 +497,13 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              Other Role Coverage
+              Additional Roles
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Important but not foundational. Still valuable for recruiting decisions.
+              Supporting roles that strengthen the team. Not weighted as heavily in the readiness score, but still important for well-rounded recruiting.
             </p>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {otherHats.map((hat) => <HatRow key={hat} hat={hat} />)}
           </CardContent>
         </Card>
@@ -635,17 +674,17 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
         <div className="space-y-5 text-sm">
           <section className="space-y-2">
             <div className="flex justify-between font-medium">
-              <span>Foundational Hat Coverage (50% weight)</span>
+              <span>Core Role Staffing <span className="text-muted-foreground font-normal">(50% of score)</span></span>
               <span className="text-primary">{details.hatScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Scored per foundational hat based on <strong>exclusive</strong> applicants: ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats.
+              Do we have enough dedicated applicants for each core role? {IDEAL_PER_HAT}+ dedicated = full marks, {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} = partial, 1 = minimal, 0 = gap.
             </p>
-            <div className="space-y-1 pl-3 border-l-2 border-muted">
+            <div className="space-y-1.5 pl-3 border-l-2 border-muted">
               {details.hatDetails.map((h) => (
                 <div key={h.hat} className="flex justify-between text-xs">
-                  <span>{h.hat} — {h.uniqueCount} unique</span>
-                  <span className="text-muted-foreground">{Math.round(h.subScore * 100)}%</span>
+                  <span>{h.hat} — <strong>{h.uniqueCount}</strong> dedicated</span>
+                  <span className={h.subScore >= 1 ? "text-success font-medium" : h.subScore >= 0.6 ? "text-warning font-medium" : "text-muted-foreground"}>{Math.round(h.subScore * 100)}%</span>
                 </div>
               ))}
             </div>
@@ -653,43 +692,46 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Other Role Coverage (20% weight)</span>
+              <span>Additional Roles <span className="text-muted-foreground font-normal">(20% of score)</span></span>
               <span className="text-primary">{details.otherScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {details.otherHatsCount === 0
-                ? "No other hats on this project — full marks."
-                : `${details.otherHatsFilled} of ${details.otherHatsCount} other roles have at least 1 unique applicant.`}
+                ? "No additional roles on this project — full marks automatically."
+                : `${details.otherHatsFilled} of ${details.otherHatsCount} additional roles have at least 1 dedicated applicant.`}
             </p>
           </section>
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Unique Applicant Ratio (15% weight)</span>
+              <span>Applicant Dedication <span className="text-muted-foreground font-normal">(15% of score)</span></span>
               <span className="text-primary">{details.uniqueScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Percentage of applicants who only applied to this project.
+              What percentage of applicants <em>only</em> applied to this project? Higher = more committed pool.
             </p>
           </section>
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Previous Phase Participation (15% weight)</span>
+              <span>Returning Members <span className="text-muted-foreground font-normal">(15% of score)</span></span>
               <span className="text-primary">{details.prevScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {details.isPhase1
-                ? "Phase 1 project — automatically scored at 100%."
-                : "Percentage of applicants who participated in the previous phase."}
+                ? "Phase 1 project — no prior phase exists, so this is automatically 100%."
+                : "What percentage of applicants participated in the previous phase? Returning members reduce ramp-up time."}
             </p>
           </section>
           <Separator />
-          <div className="flex justify-between font-semibold text-base">
-            <span>Final Score</span>
-            <span className="text-primary">
-              ({details.hatScore}% × 0.5) + ({details.otherScore}% × 0.2) + ({details.uniqueScore}% × 0.15) + ({details.prevScore}% × 0.15) = {score}%
-            </span>
+          <div className="rounded-md bg-muted/50 p-3">
+            <div className="flex justify-between font-semibold text-base">
+              <span>Overall Readiness</span>
+              <span className="text-primary">{score}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ({details.hatScore}% × 0.5) + ({details.otherScore}% × 0.2) + ({details.uniqueScore}% × 0.15) + ({details.prevScore}% × 0.15)
+            </p>
           </div>
         </div>
       </DialogContent>
