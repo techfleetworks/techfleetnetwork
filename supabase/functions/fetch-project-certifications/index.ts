@@ -174,9 +174,7 @@ Deno.serve(async (req) => {
         `airtable_records_found:${records.length}`,
         `table:${TABLE_NAME}`,
       ],
-      p_error_message: records.length === 0
-        ? `No Airtable records found for email "${userEmail}" using strategies: ${filterStrategies.map(s => s.name).join(", ")}`
-        : null,
+      p_error_message: null,
     });
 
     // --- Resolve linked "Project They Joined" IDs to project names ---
