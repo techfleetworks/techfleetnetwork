@@ -470,16 +470,22 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            Foundational Hat Coverage
+            Core Role Staffing
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Readiness is based on <strong>exclusive applicants</strong> — people who selected this hat and did <em>not</em> apply to any other project.
-            Ideal: {IDEAL_PER_HAT} exclusive per hat. Minimum: {MIN_PER_HAT}. Multi-project applicants are shown but don't count toward readiness.
-          </p>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Are there enough <strong>dedicated</strong> applicants for each core role? A "dedicated" applicant only applied to <em>this</em> project — making them more likely to join if accepted.
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> <strong>Ready</strong> = {IDEAL_PER_HAT}+ dedicated</span>
+              <span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" /> <strong>Almost</strong> = {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} dedicated</span>
+              <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-destructive" /> <strong>Gap</strong> = 0 dedicated</span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {foundationalHats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No foundational hats configured for this project.</p>
+            <p className="text-sm text-muted-foreground">No core roles configured for this project.</p>
           ) : (
             foundationalHats.map((hat) => <HatRow key={hat} hat={hat} />)
           )}
