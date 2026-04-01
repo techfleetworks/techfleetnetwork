@@ -112,9 +112,7 @@ Deno.serve(async (req) => {
         `table:${TABLE_NAME}`,
         `filter:Contributor Email Address (from Contributor Record)`,
       ],
-      p_error_message: records.length === 0
-        ? `No Airtable records found for email "${userEmail}" in Masterclass Registeration table`
-        : null,
+      p_error_message: null,
     });
 
     // --- Resolve linked "Registered For" IDs to Cohort Names ---

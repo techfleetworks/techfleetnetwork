@@ -149,6 +149,7 @@ const SUPPRESSED_PATTERNS = [
   "newestWorker is null",
   "Failed to update a ServiceWorker",
   "An unknown error occurred when fetching the script",
+  "Extension context invalidated",
 ] as const;
 
 function isSuppressed(msg: string): boolean {
