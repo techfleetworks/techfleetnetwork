@@ -674,17 +674,17 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
         <div className="space-y-5 text-sm">
           <section className="space-y-2">
             <div className="flex justify-between font-medium">
-              <span>Foundational Hat Coverage (50% weight)</span>
+              <span>Core Role Staffing <span className="text-muted-foreground font-normal">(50% of score)</span></span>
               <span className="text-primary">{details.hatScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Scored per foundational hat based on <strong>exclusive</strong> applicants: ≥{IDEAL_PER_HAT} = 100%, ≥{MIN_PER_HAT} = 60%, ≥1 = 30%, 0 = 0%. Averaged across all foundational hats.
+              Do we have enough dedicated applicants for each core role? {IDEAL_PER_HAT}+ dedicated = full marks, {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} = partial, 1 = minimal, 0 = gap.
             </p>
-            <div className="space-y-1 pl-3 border-l-2 border-muted">
+            <div className="space-y-1.5 pl-3 border-l-2 border-muted">
               {details.hatDetails.map((h) => (
                 <div key={h.hat} className="flex justify-between text-xs">
-                  <span>{h.hat} — {h.uniqueCount} unique</span>
-                  <span className="text-muted-foreground">{Math.round(h.subScore * 100)}%</span>
+                  <span>{h.hat} — <strong>{h.uniqueCount}</strong> dedicated</span>
+                  <span className={h.subScore >= 1 ? "text-success font-medium" : h.subScore >= 0.6 ? "text-warning font-medium" : "text-muted-foreground"}>{Math.round(h.subScore * 100)}%</span>
                 </div>
               ))}
             </div>
@@ -692,43 +692,46 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Other Role Coverage (20% weight)</span>
+              <span>Additional Roles <span className="text-muted-foreground font-normal">(20% of score)</span></span>
               <span className="text-primary">{details.otherScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {details.otherHatsCount === 0
-                ? "No other hats on this project — full marks."
-                : `${details.otherHatsFilled} of ${details.otherHatsCount} other roles have at least 1 unique applicant.`}
+                ? "No additional roles on this project — full marks automatically."
+                : `${details.otherHatsFilled} of ${details.otherHatsCount} additional roles have at least 1 dedicated applicant.`}
             </p>
           </section>
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Unique Applicant Ratio (15% weight)</span>
+              <span>Applicant Dedication <span className="text-muted-foreground font-normal">(15% of score)</span></span>
               <span className="text-primary">{details.uniqueScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Percentage of applicants who only applied to this project.
+              What percentage of applicants <em>only</em> applied to this project? Higher = more committed pool.
             </p>
           </section>
           <Separator />
           <section className="space-y-1">
             <div className="flex justify-between font-medium">
-              <span>Previous Phase Participation (15% weight)</span>
+              <span>Returning Members <span className="text-muted-foreground font-normal">(15% of score)</span></span>
               <span className="text-primary">{details.prevScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {details.isPhase1
-                ? "Phase 1 project — automatically scored at 100%."
-                : "Percentage of applicants who participated in the previous phase."}
+                ? "Phase 1 project — no prior phase exists, so this is automatically 100%."
+                : "What percentage of applicants participated in the previous phase? Returning members reduce ramp-up time."}
             </p>
           </section>
           <Separator />
-          <div className="flex justify-between font-semibold text-base">
-            <span>Final Score</span>
-            <span className="text-primary">
-              ({details.hatScore}% × 0.5) + ({details.otherScore}% × 0.2) + ({details.uniqueScore}% × 0.15) + ({details.prevScore}% × 0.15) = {score}%
-            </span>
+          <div className="rounded-md bg-muted/50 p-3">
+            <div className="flex justify-between font-semibold text-base">
+              <span>Overall Readiness</span>
+              <span className="text-primary">{score}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ({details.hatScore}% × 0.5) + ({details.otherScore}% × 0.2) + ({details.uniqueScore}% × 0.15) + ({details.prevScore}% × 0.15)
+            </p>
           </div>
         </div>
       </DialogContent>
