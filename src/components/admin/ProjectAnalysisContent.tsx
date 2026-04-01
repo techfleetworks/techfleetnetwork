@@ -413,7 +413,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <div className={`text-4xl font-bold ${scoreColor}`}>{score}%</div>
             <Progress value={score} className="mt-3 h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Based on <strong>exclusive</strong> applicants per foundational hat — people who selected the hat <em>and</em> only applied to this project (50%), other roles (20%), exclusive applicant ratio (15%), and previous phase participation (15%).
+              Combines core role staffing (50%), additional roles (20%), applicant dedication (15%), and returning members (15%).
             </p>
           </CardContent>
         </Card>
