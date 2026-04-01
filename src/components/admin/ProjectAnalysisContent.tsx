@@ -307,51 +307,84 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
   function HatRow({ hat }: { hat: string }) {
     const isFoundational = FOUNDATIONAL_HATS.includes(hat);
     const bd = analysis?.hatBreakdowns.get(hat) ?? { unique: 0, shared: 0, total: 0 };
+    const fillPercent = Math.min(Math.round((bd.unique / IDEAL_PER_HAT) * 100), 100);
+
+    let statusLabel: string;
     let statusIcon: ReactNode;
     let statusColor: string;
+    let barColor: string;
     if (bd.unique >= IDEAL_PER_HAT) {
+      statusLabel = "Ready";
       statusIcon = <CheckCircle2 className="h-4 w-4" />;
       statusColor = "text-success";
+      barColor = "bg-success";
     } else if (bd.unique >= MIN_PER_HAT) {
+      statusLabel = "Almost there";
       statusIcon = <AlertTriangle className="h-4 w-4" />;
       statusColor = "text-warning";
+      barColor = "bg-warning";
     } else if (bd.unique >= 1) {
+      statusLabel = "Needs more";
       statusIcon = <AlertTriangle className="h-4 w-4" />;
       statusColor = "text-orange-500";
+      barColor = "bg-orange-500";
     } else {
+      statusLabel = "No applicants";
       statusIcon = <XCircle className="h-4 w-4" />;
       statusColor = "text-destructive";
+      barColor = "bg-destructive";
     }
 
     return (
-      <div className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50">
-        <div className="flex items-center gap-2">
-          <span className={statusColor}>{statusIcon}</span>
-          <span className="text-sm font-medium text-foreground">{hat}</span>
-          {isFoundational && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Foundational</Badge>}
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5" title="Applicants who selected this hat and ONLY applied to this project">
-            <span className="text-sm font-semibold text-success">{bd.unique}</span>
-            <span className="text-xs text-muted-foreground">exclusive</span>
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        {/* Header row: hat name + status badge */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">{hat}</span>
+            {isFoundational && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">Core Role</Badge>
+            )}
           </div>
-          <span className="text-muted-foreground/40">|</span>
+          <Badge variant="outline" className={`${statusColor} border-current/20 text-xs gap-1`}>
+            {statusIcon}
+            {statusLabel}
+          </Badge>
+        </div>
+
+        {/* Visual progress bar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Dedicated applicants</span>
+            <span className="font-medium text-foreground">{bd.unique} of {IDEAL_PER_HAT} ideal</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${fillPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stats row with clear labels */}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1.5" title="Applicants who ONLY applied to this project for this role">
+            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-success/15 text-success font-bold">{bd.unique}</span>
+            <span className="text-muted-foreground">dedicated</span>
+          </div>
           <button
             type="button"
             className="flex items-center gap-1.5 hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default"
-            title="Click to view multi-project applicants for this hat"
+            title="Also applied to other projects — click to see details"
             disabled={bd.shared === 0}
             onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
           >
-            <span className="text-sm font-semibold text-warning">{bd.shared}</span>
-            <span className="text-xs text-muted-foreground">multi-project</span>
+            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-warning/15 text-warning font-bold">{bd.shared}</span>
+            <span className="text-muted-foreground">also applied elsewhere</span>
           </button>
-          <span className="text-muted-foreground/40">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-semibold text-foreground">{bd.total}</span>
-            <span className="text-xs text-muted-foreground">total</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="font-semibold text-foreground">{bd.total}</span>
+            <span className="text-muted-foreground">total</span>
           </div>
-          <span className="text-xs text-muted-foreground ml-1">/ {IDEAL_PER_HAT} ideal</span>
         </div>
       </div>
     );
