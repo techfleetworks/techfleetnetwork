@@ -497,13 +497,13 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              Other Role Coverage
+              Additional Roles
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Important but not foundational. Still valuable for recruiting decisions.
+              Supporting roles that strengthen the team. Not weighted as heavily in the readiness score, but still important for well-rounded recruiting.
             </p>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {otherHats.map((hat) => <HatRow key={hat} hat={hat} />)}
           </CardContent>
         </Card>
