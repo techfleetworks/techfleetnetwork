@@ -37,6 +37,7 @@ import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 
 // Lazy-load heavy components
