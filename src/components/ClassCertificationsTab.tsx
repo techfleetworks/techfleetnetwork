@@ -50,30 +50,50 @@ function useCertifications(userId: string | undefined) {
   });
 }
 
-/** Fields to check for the human-readable class/cohort name */
-const CLASS_NAME_FIELDS = [
-  "Registered For",
-  "Class Name (from Class Record)",
-  "Class Name",
-  "Masterclass Name",
-  "Class",
-  "Course Name",
-];
+/** Extract cohort name from raw_data.
+ *  Strategy:
+ *   1. Parse `Masterclass Attendee Unique ID` which has the format
+ *      "1756 - Amanda Wolf - Service Leadership Masterclass - September 2025, ..."
+ *      → take the segment after "Name - " and strip the trailing " - Month Year".
+ *   2. Fall back to `Registered For` first element (if not an Airtable ID).
+ *   3. Fall back to other class-name fields.
+ */
+const MONTH_PATTERN = /\s*-\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/i;
 
-/** Extract cohort name from raw_data */
 function extractClassName(raw: Record<string, unknown>): string {
+  // Strategy 1: Parse from Unique ID — most reliable source
+  const uid = raw["Masterclass Attendee Unique ID"];
+  if (uid && typeof uid === "string") {
+    // Format: "1756 - Amanda Wolf - Service Leadership Masterclass - September 2025, ..."
+    // Split on " - " to get segments: [id, name, ...class parts]
+    const parts = uid.split(" - ");
+    if (parts.length >= 3) {
+      // Rejoin everything after the person's name (index 2+), take before first comma
+      const classRaw = parts.slice(2).join(" - ").split(",")[0].trim();
+      const cleaned = classRaw.replace(MONTH_PATTERN, "").trim();
+      if (cleaned && !/^rec[A-Za-z0-9]{10,}/.test(cleaned)) return cleaned;
+    }
+  }
+
+  // Strategy 2: Registered For (first element only)
+  const CLASS_NAME_FIELDS = [
+    "Registered For",
+    "Class Name (from Class Record)",
+    "Class Name",
+    "Masterclass Name",
+    "Class",
+    "Course Name",
+  ];
+
   for (const f of CLASS_NAME_FIELDS) {
     const val = raw[f];
     if (!val) continue;
-    // Take ONLY the first element if it's an array (Airtable linked records)
     const rawStr = Array.isArray(val) ? String(val[0] ?? "") : String(val);
-    // Strip everything after the first comma (duplicate cohort names)
-    let cleaned = rawStr.split(",")[0].trim();
-    // Strip trailing date suffix like " - October 2025" or " - February 2026"
-    cleaned = cleaned.replace(/\s*-\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/i, "").trim();
+    const cleaned = rawStr.split(",")[0].trim().replace(MONTH_PATTERN, "").trim();
     if (/^rec[A-Za-z0-9]{10,}/.test(cleaned)) continue;
     if (cleaned) return cleaned;
   }
+
   return "";
 }
 
