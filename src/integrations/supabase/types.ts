@@ -244,6 +244,7 @@ export type Database = {
         Row: {
           airtable_record_id: string
           created_at: string
+          display_title: string
           email: string
           id: string
           raw_data: Json
@@ -254,6 +255,7 @@ export type Database = {
         Insert: {
           airtable_record_id: string
           created_at?: string
+          display_title?: string
           email?: string
           id?: string
           raw_data?: Json
@@ -264,6 +266,7 @@ export type Database = {
         Update: {
           airtable_record_id?: string
           created_at?: string
+          display_title?: string
           email?: string
           id?: string
           raw_data?: Json
@@ -969,6 +972,7 @@ export type Database = {
         Row: {
           airtable_record_id: string
           created_at: string
+          display_title: string
           email: string
           id: string
           raw_data: Json
@@ -979,6 +983,7 @@ export type Database = {
         Insert: {
           airtable_record_id: string
           created_at?: string
+          display_title?: string
           email?: string
           id?: string
           raw_data?: Json
@@ -989,6 +994,7 @@ export type Database = {
         Update: {
           airtable_record_id?: string
           created_at?: string
+          display_title?: string
           email?: string
           id?: string
           raw_data?: Json
