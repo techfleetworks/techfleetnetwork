@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
+import { extractProjectTitleFallback } from "@/lib/cert-title-utils";
 import { useNavigate } from "react-router-dom";
 
 /** Fetch the user's profile name */
