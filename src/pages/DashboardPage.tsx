@@ -336,6 +336,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <WelcomeDialog />
       <DiscordInviteBanner />
 
       {widgetOrder.map((widgetId) => {
