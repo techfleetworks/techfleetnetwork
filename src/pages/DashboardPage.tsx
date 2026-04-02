@@ -270,7 +270,8 @@ export default function DashboardPage() {
       href: "/courses/onboarding",
       totalTasks: totalFirstSteps,
       completedTasks: firstStepsCompleted,
-      locked: false,
+      locked: !allConnectDiscordDone,
+      prerequisiteLabel: "Connect to Discord",
     },
     {
       id: "agile-mindset",
@@ -280,27 +281,8 @@ export default function DashboardPage() {
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: secondStepsCompleted,
-      locked: false,
-    },
-    {
-      id: "discord-learning",
-      title: "Discord Learning Series",
-      description: `${TOTAL_DISCORD_LESSONS} lessons on getting started and interacting in Tech Fleet Discord.`,
-      icon: Users,
-      href: "/courses/discord-learning",
-      totalTasks: TOTAL_DISCORD_LESSONS,
-      completedTasks: discordCompleted,
-      locked: false,
-    },
-    {
-      id: "agile-teamwork",
-      title: "Agile Cross-Functional Team Dynamics",
-      description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook.`,
-      icon: Users,
-      href: "/courses/agile-teamwork",
-      totalTasks: TOTAL_TEAMWORK_LESSONS,
-      completedTasks: thirdStepsCompleted,
-      locked: false,
+      locked: !allFirstStepsDone,
+      prerequisiteLabel: "Onboarding Steps",
     },
     {
       id: "project-training",
@@ -310,8 +292,8 @@ export default function DashboardPage() {
       href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted,
-      locked: !allThirdStepsDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
+      locked: !allSecondStepsDone,
+      prerequisiteLabel: "Build an Agile Mindset",
     },
     {
       id: "volunteer-teams",
@@ -321,10 +303,10 @@ export default function DashboardPage() {
       href: "/courses/volunteer-teams",
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
       completedTasks: volunteerCompleted,
-      locked: !allThirdStepsDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
+      locked: !allSecondStepsDone,
+      prerequisiteLabel: "Build an Agile Mindset",
     },
-  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, discordCompleted, thirdStepsCompleted, projectTrainingCompleted, volunteerCompleted, allThirdStepsDone, totalFirstSteps]);
+  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, projectTrainingCompleted, volunteerCompleted, allConnectDiscordDone, allFirstStepsDone, allSecondStepsDone, totalFirstSteps]);
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
