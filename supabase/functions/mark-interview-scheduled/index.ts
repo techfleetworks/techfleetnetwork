@@ -155,25 +155,45 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Send notification to admin
+  // Send notification to admin(s)
+  const safeApplicantName = escapeHtml(applicantName)
+  const safeClientName = escapeHtml(clientName)
+  const notificationPayload = {
+    title: `📅 Interview Scheduled — ${applicantName}`,
+    body_html: `<p><strong>${safeApplicantName}</strong> has indicated they have scheduled their interview for the <strong>${safeClientName}</strong> project.</p>`,
+    notification_type: 'interview_scheduled',
+    link_url: `/admin/roster`,
+    read: false,
+  }
+
   if (adminUserId) {
-    const safeApplicantName = escapeHtml(applicantName)
-    const safeClientName = escapeHtml(clientName)
+    // Notify the specific coordinator / admin who invited
     try {
-      await supabase.from('notifications').insert({
-        user_id: adminUserId,
-        title: `📅 Interview Scheduled — ${applicantName}`,
-        body_html: `<p><strong>${safeApplicantName}</strong> has indicated they have scheduled their interview for the <strong>${safeClientName}</strong> project.</p>`,
-        notification_type: 'interview_scheduled',
-        link_url: `/admin/roster`,
-        read: false,
-      })
+      await supabase.from('notifications').insert({ ...notificationPayload, user_id: adminUserId })
       console.info('Admin notification sent', { adminUserId, applicantName, clientName })
     } catch (e) {
       console.error('Failed to create admin notification', e)
     }
   } else {
-    console.warn('Could not find admin who sent interview invite', { applicationId })
+    // Fallback: notify ALL admins so no one misses it
+    console.warn('No specific admin found — notifying all admins', { applicationId })
+    try {
+      const { data: adminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+      if (adminRoles && adminRoles.length > 0) {
+        const rows = adminRoles.map((r) => ({ ...notificationPayload, user_id: r.user_id }))
+        const { error: insertErr } = await supabase.from('notifications').insert(rows)
+        if (insertErr) {
+          console.error('Failed to notify admins', insertErr)
+        } else {
+          console.info('All admins notified', { count: rows.length, applicantName })
+        }
+      }
+    } catch (e) {
+      console.error('Fallback admin notification failed', e)
+    }
   }
 
   // Audit log
