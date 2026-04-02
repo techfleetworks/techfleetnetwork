@@ -560,6 +560,30 @@ export default function ConnectDiscordPage() {
           </div>
         )}
       </div>
+
+      {/* Completion dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Connect to Discord Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've successfully connected your Discord account. You're ready for the next step!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/onboarding"); }}>
+              Continue to Onboarding Steps
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
