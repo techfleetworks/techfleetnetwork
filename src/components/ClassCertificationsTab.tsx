@@ -65,9 +65,12 @@ function extractClassName(raw: Record<string, unknown>): string {
   for (const f of CLASS_NAME_FIELDS) {
     const val = raw[f];
     if (!val) continue;
-    // Take the first element if array, then strip everything after the first comma
+    // Take ONLY the first element if it's an array (Airtable linked records)
     const rawStr = Array.isArray(val) ? String(val[0] ?? "") : String(val);
-    const cleaned = rawStr.split(",")[0].trim();
+    // Strip everything after the first comma (duplicate cohort names)
+    let cleaned = rawStr.split(",")[0].trim();
+    // Strip trailing date suffix like " - October 2025" or " - February 2026"
+    cleaned = cleaned.replace(/\s*-\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/i, "").trim();
     if (/^rec[A-Za-z0-9]{10,}/.test(cleaned)) continue;
     if (cleaned) return cleaned;
   }
