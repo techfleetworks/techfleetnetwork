@@ -330,7 +330,7 @@ function TrainingTabs({
     {
       value: "getting-started",
       icon: <ClipboardCheck className="h-4 w-4" />,
-      label: <span className="flex items-center gap-1.5">Getting Started <TabBadge complete={gettingStartedComplete} count={gettingStartedCourses.length} /></span>,
+      label: <span className="flex items-center gap-1.5">Onboard to Tech Fleet <TabBadge complete={gettingStartedComplete} count={gettingStartedCourses.length} /></span>,
     },
     {
       value: "core",
