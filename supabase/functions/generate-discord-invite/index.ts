@@ -73,23 +73,29 @@ Deno.serve(async (req) => {
     }
 
     const channels = await channelsRes.json();
-    const preferredChannelNames = new Set(["welcome", "general", "introductions", "start-here"]);
-    const textChannels = channels
-      .filter((channel: { id: string; type: number; name?: string }) => channel.type === 0)
-      .sort((a: { name?: string }, b: { name?: string }) => {
-        const aPreferred = preferredChannelNames.has(a.name ?? "") ? 0 : 1;
-        const bPreferred = preferredChannelNames.has(b.name ?? "") ? 0 : 1;
-        return aPreferred - bPreferred;
-      });
+    // Prioritise channels the bot is most likely to have permissions on
+    const preferredNames = ["welcome", "general", "introductions", "start-here", "👋welcome"];
+    const textChannels = channels.filter(
+      (c: { type: number }) => c.type === 0,
+    ) as { id: string; type: number; name?: string }[];
 
-    if (textChannels.length === 0) {
+    // Build a short list: preferred channels first, then first 3 others as fallback
+    const preferred = textChannels.filter((c) =>
+      preferredNames.some((n) => (c.name ?? "").toLowerCase().includes(n)),
+    );
+    const others = textChannels.filter(
+      (c) => !preferred.includes(c),
+    ).slice(0, 3);
+    const candidates = [...preferred, ...others];
+
+    if (candidates.length === 0) {
       throw new Error("No text channels found in Discord server");
     }
 
     let inviteUrl = "";
     const inviteErrors: string[] = [];
 
-    for (const channel of textChannels) {
+    for (const channel of candidates) {
       const inviteRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/invites`, {
         method: "POST",
         headers: {
@@ -124,7 +130,7 @@ Deno.serve(async (req) => {
 
     if (!inviteUrl) {
       throw new Error(
-        `Failed to create Discord invite in any text channel. Check the bot's 'Create Invite' permission for at least one channel. ${inviteErrors.slice(0, 3).join(" | ")}`
+        `Failed to create Discord invite. Grant the bot 'Create Invite' permission on at least one of: ${preferredNames.join(", ")}. Errors: ${inviteErrors.join(" | ")}`,
       );
     }
 
