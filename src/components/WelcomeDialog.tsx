@@ -56,7 +56,7 @@ const slides = [
     ),
   },
   {
-    icon: Users,
+    image: welcomeSlide3,
     title: "Who We Help",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
