@@ -169,7 +169,7 @@ export default function ProjectApplicationPage() {
     : null;
 
   /* ── fetch user's general application ──────────────────── */
-  const { data: genApp } = useQuery({
+  const { data: genApp, isSuccess: genAppLoaded } = useQuery({
     queryKey: ["general-app-for-review", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
