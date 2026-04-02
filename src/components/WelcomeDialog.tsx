@@ -8,7 +8,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Rocket, Users, BookOpen, Briefcase, Heart, ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import welcomeSlide1 from "@/assets/welcome-slide-1.png";
+import welcomeSlide2 from "@/assets/welcome-slide-2.png";
+import welcomeSlide3 from "@/assets/welcome-slide-3.png";
+import welcomeSlide4 from "@/assets/welcome-slide-4.png";
+import welcomeSlide5 from "@/assets/welcome-slide-5.png";
 
 const WELCOME_KEY_PREFIX = "tf_welcome_shown_";
 
