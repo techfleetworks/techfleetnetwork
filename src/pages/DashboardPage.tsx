@@ -12,7 +12,7 @@ import {
   Megaphone,
   MessageSquare,
   PartyPopper,
-  Users,
+  
   CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-celebration.png";
@@ -34,8 +34,6 @@ import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
-import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
-import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
@@ -165,8 +163,6 @@ export default function DashboardPage() {
   const { data: connectDiscordCompleted = 0 } = useCompletedCount(userId, "first_steps", CONNECT_DISCORD_TASK_IDS);
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
-  const { data: discordCompleted = 0 } = useCompletedCount(userId, "discord_learning");
-  const { data: thirdStepsCompleted = 0 } = useCompletedCount(userId, "third_steps");
   const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
   const { data: latestAnnouncements = [] } = useLatestAnnouncements(5);
@@ -251,11 +247,9 @@ export default function DashboardPage() {
   const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
-  const allDiscordDone = discordCompleted >= TOTAL_DISCORD_LESSONS;
-  const allThirdStepsDone = thirdStepsCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
-  const allCoreCoursesDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allDiscordDone && allThirdStepsDone && allProjectTrainingDone && allVolunteerDone;
+  const allOnboardingDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allProjectTrainingDone && allVolunteerDone;
 
   const coreCourses: CoreCourse[] = useMemo(() => [
     {
@@ -276,7 +270,8 @@ export default function DashboardPage() {
       href: "/courses/onboarding",
       totalTasks: totalFirstSteps,
       completedTasks: firstStepsCompleted,
-      locked: false,
+      locked: !allConnectDiscordDone,
+      prerequisiteLabel: "Connect to Discord",
     },
     {
       id: "agile-mindset",
@@ -286,27 +281,8 @@ export default function DashboardPage() {
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: secondStepsCompleted,
-      locked: false,
-    },
-    {
-      id: "discord-learning",
-      title: "Discord Learning Series",
-      description: `${TOTAL_DISCORD_LESSONS} lessons on getting started and interacting in Tech Fleet Discord.`,
-      icon: Users,
-      href: "/courses/discord-learning",
-      totalTasks: TOTAL_DISCORD_LESSONS,
-      completedTasks: discordCompleted,
-      locked: false,
-    },
-    {
-      id: "agile-teamwork",
-      title: "Agile Cross-Functional Team Dynamics",
-      description: `${TOTAL_TEAMWORK_LESSONS} lessons from the Teammate Handbook.`,
-      icon: Users,
-      href: "/courses/agile-teamwork",
-      totalTasks: TOTAL_TEAMWORK_LESSONS,
-      completedTasks: thirdStepsCompleted,
-      locked: false,
+      locked: !allFirstStepsDone,
+      prerequisiteLabel: "Onboarding Steps",
     },
     {
       id: "project-training",
@@ -316,8 +292,8 @@ export default function DashboardPage() {
       href: "/courses/project-training",
       totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
       completedTasks: projectTrainingCompleted,
-      locked: !allThirdStepsDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
+      locked: !allSecondStepsDone,
+      prerequisiteLabel: "Build an Agile Mindset",
     },
     {
       id: "volunteer-teams",
@@ -327,10 +303,10 @@ export default function DashboardPage() {
       href: "/courses/volunteer-teams",
       totalTasks: TOTAL_VOLUNTEER_LESSONS,
       completedTasks: volunteerCompleted,
-      locked: !allThirdStepsDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
+      locked: !allSecondStepsDone,
+      prerequisiteLabel: "Build an Agile Mindset",
     },
-  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, discordCompleted, thirdStepsCompleted, projectTrainingCompleted, volunteerCompleted, allThirdStepsDone, totalFirstSteps]);
+  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, projectTrainingCompleted, volunteerCompleted, allConnectDiscordDone, allFirstStepsDone, allSecondStepsDone, totalFirstSteps]);
 
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
@@ -369,8 +345,6 @@ export default function DashboardPage() {
                 <BadgesDisplay
                   allFirstStepsDone={allFirstStepsDone}
                   allSecondStepsDone={allSecondStepsDone}
-                  allDiscordDone={allDiscordDone}
-                  allThirdStepsDone={allThirdStepsDone}
                   allProjectTrainingDone={allProjectTrainingDone}
                   allVolunteerDone={allVolunteerDone}
                   communityBadgeCount={communityBadgeCount}
@@ -382,9 +356,9 @@ export default function DashboardPage() {
             return isVisible("core_courses") ? (
               <section key="core_courses" aria-labelledby="core-courses-heading">
                 <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
-                  Course Completion
+                  Onboard to Tech Fleet
                 </h2>
-                {allCoreCoursesDone ? (
+                {allOnboardingDone ? (
                   <div className="card-elevated overflow-hidden">
                     <div className="flex flex-col sm:flex-row items-stretch">
                       <div className="sm:w-48 md:w-56 flex-shrink-0 bg-primary/5">

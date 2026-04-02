@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   MessageSquare,
   ExternalLink,
@@ -8,6 +8,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -20,6 +21,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +46,9 @@ export const CONNECT_DISCORD_TASK_IDS = [TASK_ID] as const;
 export default function ConnectDiscordPage() {
   const { user, profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const completionShownRef = useRef(false);
 
   const { data: progress = [] } = useJourneyProgress(user?.id, PHASE);
   const isAlreadyComplete = progress.some(
@@ -185,6 +196,10 @@ export default function ConnectDiscordPage() {
 
       setVerified(true);
       toast.success("Discord account verified and linked!");
+      if (!completionShownRef.current) {
+        completionShownRef.current = true;
+        setShowCompletionDialog(true);
+      }
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
@@ -545,6 +560,30 @@ export default function ConnectDiscordPage() {
           </div>
         )}
       </div>
+
+      {/* Completion dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="text-5xl mb-2">🎉</div>
+            <DialogTitle className="text-xl">
+              Connect to Discord Complete!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2">
+              You've successfully connected your Discord account. You're ready for the next step!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => { setShowCompletionDialog(false); navigate("/courses/onboarding"); }}>
+              Continue to Onboarding Steps
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            <Button variant="outline" onClick={() => setShowCompletionDialog(false)}>
+              Stay on This Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
