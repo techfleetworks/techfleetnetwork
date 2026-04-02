@@ -181,11 +181,9 @@ export default function TrainingPage() {
       href: "/courses/onboarding",
       totalTasks: totalFirstSteps,
       completedTasks: firstCompleted,
-      locked: false,
+      locked: !allConnectDiscordDone,
+      prerequisiteLabel: "Connect to Discord",
     },
-  ];
-
-  const coreCourses: CourseCard[] = [
     {
       id: "agile-mindset",
       title: "Build an Agile Mindset",
@@ -194,8 +192,34 @@ export default function TrainingPage() {
       href: "/courses/agile-mindset",
       totalTasks: TOTAL_AGILE_LESSONS,
       completedTasks: agileCompleted,
-      locked: false,
+      locked: !allFirstStepsDone,
+      prerequisiteLabel: "Onboarding Steps",
     },
+    {
+      id: "project-training",
+      title: "Join Project Training Teams",
+      description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.`,
+      icon: Briefcase,
+      href: "/courses/project-training",
+      totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
+      completedTasks: projectTrainingCompleted,
+      locked: !allAgileDone,
+      prerequisiteLabel: "Build an Agile Mindset",
+    },
+    {
+      id: "volunteer-teams",
+      title: "Join Volunteer Teams",
+      description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.`,
+      icon: Heart,
+      href: "/courses/volunteer-teams",
+      totalTasks: TOTAL_VOLUNTEER_LESSONS,
+      completedTasks: volunteerCompleted,
+      locked: !allAgileDone,
+      prerequisiteLabel: "Build an Agile Mindset",
+    },
+  ];
+
+  const coreCourses: CourseCard[] = [
     {
       id: "discord-learning",
       title: "Discord Learning Series",
@@ -225,28 +249,6 @@ export default function TrainingPage() {
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
       locked: false,
-    },
-    {
-      id: "project-training",
-      title: "Join Project Training Teams",
-      description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on how apprenticeship training works, working with nonprofit clients, and building case studies.`,
-      icon: Briefcase,
-      href: "/courses/project-training",
-      totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
-      completedTasks: projectTrainingCompleted,
-      locked: !allTeamworkDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
-    },
-    {
-      id: "volunteer-teams",
-      title: "Join Volunteer Teams",
-      description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet, team dynamics, and finding your volunteer role.`,
-      icon: Heart,
-      href: "/courses/volunteer-teams",
-      totalTasks: TOTAL_VOLUNTEER_LESSONS,
-      completedTasks: volunteerCompleted,
-      locked: !allTeamworkDone,
-      prerequisiteLabel: "Agile Cross-Functional Team Dynamics",
     },
   ];
 
