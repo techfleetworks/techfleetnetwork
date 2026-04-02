@@ -43,7 +43,7 @@ function useProjectCertifications(userId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("project_certifications")
-        .select("id, airtable_record_id, synced_at, raw_data")
+        .select("id, airtable_record_id, synced_at, display_title, raw_data")
         .order("synced_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as CertificationRow[];
