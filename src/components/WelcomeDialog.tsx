@@ -8,13 +8,18 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Rocket, Users, BookOpen, Briefcase, Heart, ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import welcomeSlide1 from "@/assets/welcome-slide-1.png";
+import welcomeSlide2 from "@/assets/welcome-slide-2.png";
+import welcomeSlide3 from "@/assets/welcome-slide-3.png";
+import welcomeSlide4 from "@/assets/welcome-slide-4.png";
+import welcomeSlide5 from "@/assets/welcome-slide-5.png";
 
 const WELCOME_KEY_PREFIX = "tf_welcome_shown_";
 
 const slides = [
   {
-    icon: Rocket,
+    image: welcomeSlide1,
     title: "Welcome to Tech Fleet! 🎉",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
@@ -31,7 +36,7 @@ const slides = [
     ),
   },
   {
-    icon: Heart,
+    image: welcomeSlide2,
     title: "What We Care About",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
@@ -51,7 +56,7 @@ const slides = [
     ),
   },
   {
-    icon: Users,
+    image: welcomeSlide3,
     title: "Who We Help",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
@@ -73,7 +78,7 @@ const slides = [
     ),
   },
   {
-    icon: Briefcase,
+    image: welcomeSlide4,
     title: "What You Can Do Here",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
@@ -93,7 +98,7 @@ const slides = [
     ),
   },
   {
-    icon: BookOpen,
+    image: welcomeSlide5,
     title: "Here's How to Get Started",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
@@ -137,7 +142,6 @@ export function WelcomeDialog() {
   };
 
   const slide = slides[currentSlide];
-  const SlideIcon = slide.icon;
   const isLast = currentSlide === slides.length - 1;
   const isFirst = currentSlide === 0;
 
@@ -145,9 +149,12 @@ export function WelcomeDialog() {
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); }}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto" aria-labelledby="welcome-title" aria-describedby="welcome-desc">
         <DialogHeader className="items-center text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
-            <SlideIcon className="h-6 w-6 text-primary" aria-hidden="true" />
-          </div>
+          <img
+            src={slide.image}
+            alt=""
+            className="mx-auto h-32 w-32 object-contain mb-2"
+            aria-hidden="true"
+          />
           <DialogTitle id="welcome-title" className="text-xl">{slide.title}</DialogTitle>
           <DialogDescription id="welcome-desc" className="sr-only">
             Welcome information about Tech Fleet
