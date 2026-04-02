@@ -52,39 +52,30 @@ function useProjectCertifications(userId: string | undefined) {
   });
 }
 
-function readFieldValue(raw: Record<string, unknown>, field: string): string {
-  const value = raw[field];
-  if (!value) return "";
-
-  const text = Array.isArray(value)
-    ? value.map((entry) => String(entry).trim()).filter(Boolean).join(", ")
-    : String(value).trim();
-
-  return text;
+/** Extract a month + year string from raw_data */
+function extractMonthYear(raw: Record<string, unknown>): string {
+  const dateFields = ["Created", "Date", "Start Date", "Registration Date", "created_at"];
+  for (const f of dateFields) {
+    const val = raw[f];
+    if (!val) continue;
+    const d = new Date(String(val));
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+  }
+  return "";
 }
 
-function isValidProjectTitle(value: string, profileName: string): boolean {
-  if (!value) return false;
-  if (/@/.test(value)) return false;
-  if (/^rec[A-Za-z0-9]{10,}(?:\s*,\s*rec[A-Za-z0-9]{10,})*$/.test(value)) return false;
-  if (profileName && value.toLowerCase() === profileName.toLowerCase()) return false;
-  if (profileName && value.toLowerCase().includes(profileName.toLowerCase())) return false;
-  return true;
-}
-
-/** Extract project name from raw_data */
-function extractProjectName(raw: Record<string, unknown>, profileName: string): string {
-  const preferredTitle = readFieldValue(raw, "Project Phase Name (from Project They Joined)");
-  if (isValidProjectTitle(preferredTitle, profileName)) {
-    return preferredTitle;
+/** Extract the project phase from raw_data */
+function extractPhase(raw: Record<string, unknown>): string {
+  const phaseFields = ["Phase", "Project Phase", "phase"];
+  for (const f of phaseFields) {
+    const val = raw[f];
+    if (!val) continue;
+    const str = Array.isArray(val) ? String(val[0] ?? "") : String(val);
+    if (str.trim()) return str;
   }
-
-  const resolvedProject = readFieldValue(raw, "Project They Joined");
-  if (isValidProjectTitle(resolvedProject, profileName)) {
-    return resolvedProject;
-  }
-
-  return "Project Certification";
+  return "";
 }
 
 /** Extract a month + year string from raw_data */
