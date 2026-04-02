@@ -34,8 +34,6 @@ import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
-import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
-import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { format } from "date-fns";
