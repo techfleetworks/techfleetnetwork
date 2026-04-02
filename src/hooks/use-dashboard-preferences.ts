@@ -23,7 +23,7 @@ export const ALL_WIDGETS: { id: DashboardWidgetId; label: string }[] = [
 const DEFAULT_ORDER: DashboardWidgetId[] = ALL_WIDGETS.map((w) => w.id);
 
 /** Default visible widgets for brand-new users */
-const DEFAULT_VISIBLE: DashboardWidgetId[] = ["core_courses", "latest_updates"];
+const DEFAULT_VISIBLE: DashboardWidgetId[] = ALL_WIDGETS.map((w) => w.id);
 
 const VALID_WIDGET_IDS = new Set<DashboardWidgetId>(DEFAULT_ORDER);
 
