@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Search, FileDown, MailQuestion, MessageSquarePlus, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
+import { extractProjectTitleFallback } from "@/lib/cert-title-utils";
 import { useNavigate } from "react-router-dom";
 
 /** Fetch the user's profile name */
@@ -31,6 +32,7 @@ interface CertificationRow {
   id: string;
   airtable_record_id: string;
   synced_at: string;
+  display_title: string;
   raw_data: Record<string, unknown>;
 }
 
@@ -41,48 +43,13 @@ function useProjectCertifications(userId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("project_certifications")
-        .select("id, airtable_record_id, synced_at, raw_data")
+        .select("id, airtable_record_id, synced_at, display_title, raw_data")
         .order("synced_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as CertificationRow[];
     },
     enabled: !!userId,
   });
-}
-
-function readFieldValue(raw: Record<string, unknown>, field: string): string {
-  const value = raw[field];
-  if (!value) return "";
-
-  const text = Array.isArray(value)
-    ? value.map((entry) => String(entry).trim()).filter(Boolean).join(", ")
-    : String(value).trim();
-
-  return text;
-}
-
-function isValidProjectTitle(value: string, profileName: string): boolean {
-  if (!value) return false;
-  if (/@/.test(value)) return false;
-  if (/^rec[A-Za-z0-9]{10,}(?:\s*,\s*rec[A-Za-z0-9]{10,})*$/.test(value)) return false;
-  if (profileName && value.toLowerCase() === profileName.toLowerCase()) return false;
-  if (profileName && value.toLowerCase().includes(profileName.toLowerCase())) return false;
-  return true;
-}
-
-/** Extract project name from raw_data */
-function extractProjectName(raw: Record<string, unknown>, profileName: string): string {
-  const preferredTitle = readFieldValue(raw, "Project Phase Name (from Project They Joined)");
-  if (isValidProjectTitle(preferredTitle, profileName)) {
-    return preferredTitle;
-  }
-
-  const resolvedProject = readFieldValue(raw, "Project They Joined");
-  if (isValidProjectTitle(resolvedProject, profileName)) {
-    return resolvedProject;
-  }
-
-  return "Project Certification";
 }
 
 /** Extract a month + year string from raw_data */
@@ -105,7 +72,7 @@ function extractPhase(raw: Record<string, unknown>): string {
   for (const f of phaseFields) {
     const val = raw[f];
     if (!val) continue;
-    const str = Array.isArray(val) ? val.join(", ") : String(val);
+    const str = Array.isArray(val) ? String(val[0] ?? "") : String(val);
     if (str.trim()) return str;
   }
   return "";
@@ -118,7 +85,11 @@ interface CertCardProps {
 
 function CertCard({ row, profileName }: CertCardProps) {
   const [generating, setGenerating] = useState(false);
-  const projectName = useMemo(() => extractProjectName(row.raw_data, profileName), [row.raw_data, profileName]);
+  // Use pre-computed display_title from DB; fall back to client-side extraction for legacy rows
+  const projectName = useMemo(
+    () => row.display_title || extractProjectTitleFallback(row.raw_data, profileName),
+    [row.display_title, row.raw_data, profileName],
+  );
   const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
   const phase = useMemo(() => extractPhase(row.raw_data), [row.raw_data]);
 

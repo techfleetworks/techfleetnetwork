@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { extractProjectDisplayTitle } from "../_shared/cert-title-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -255,6 +256,9 @@ Deno.serve(async (req) => {
         fields["Project They Joined"] = projField.map((id: string) => projectNameMap[id] || id);
       }
 
+      // Compute display_title server-side so UI never parses raw data
+      const displayTitle = extractProjectDisplayTitle(fields);
+
       const { error: upsertErr } = await adminClient
         .from("project_certifications")
         .upsert(
@@ -263,6 +267,7 @@ Deno.serve(async (req) => {
             email: userEmail,
             airtable_record_id: record.id,
             raw_data: fields,
+            display_title: displayTitle,
             synced_at: new Date().toISOString(),
           },
           { onConflict: "user_id,airtable_record_id" }

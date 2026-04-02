@@ -1,0 +1,2 @@
+ALTER TABLE public.class_certifications ADD COLUMN IF NOT EXISTS display_title text NOT NULL DEFAULT '';
+ALTER TABLE public.project_certifications ADD COLUMN IF NOT EXISTS display_title text NOT NULL DEFAULT '';
