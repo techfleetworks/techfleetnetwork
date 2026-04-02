@@ -32,6 +32,7 @@ interface CertificationRow {
   id: string;
   airtable_record_id: string;
   synced_at: string;
+  display_title: string;
   raw_data: Record<string, unknown>;
 }
 
