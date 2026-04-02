@@ -348,19 +348,21 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     }
 
     return (
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        {/* Hat name */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-foreground">{hat}</span>
-          <Badge variant="outline" className={`${statusColor} border-current/20 text-xs gap-1 ml-auto`}>
-            {statusIcon}
-            {statusLabel}
-          </Badge>
+      <div className="w-full sm:w-1/2 rounded-lg border bg-card p-5 space-y-3">
+        {/* Primary: Hat name — largest text */}
+        <h4 className="text-base font-bold text-foreground leading-tight">{hat}</h4>
+
+        {/* Secondary: Status badge directly under name */}
+        <div className={`flex items-center gap-1.5 ${statusColor}`}>
+          {statusIcon}
+          <span className="text-sm font-semibold">{statusLabel}</span>
         </div>
 
-        {/* Applicant counts — stacked single column */}
-        <div className="space-y-1 text-sm">
-          <p className="text-muted-foreground">
+        <Separator />
+
+        {/* Tertiary: Application breakdown */}
+        <div className="space-y-1.5 text-sm text-muted-foreground">
+          <p>
             <span className="font-semibold text-success">{bd.unique}</span>{" "}
             applied to only <span className="font-medium text-foreground">{clientName}</span>
           </p>
@@ -373,13 +375,13 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <span className="font-semibold text-warning">{bd.shared}</span>{" "}
             applied to other projects
           </button>
-          <p className="text-muted-foreground">
+          <p>
             <span className="font-semibold text-foreground">{bd.total}</span> total applicants
           </p>
         </div>
 
-        {/* Progress bar at the bottom */}
-        <div className="space-y-1">
+        {/* Progress bar */}
+        <div className="space-y-1 pt-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{bd.unique} of {READY_THRESHOLD} needed to be ready</span>
           </div>
