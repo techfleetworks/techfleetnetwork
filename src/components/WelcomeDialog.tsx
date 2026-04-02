@@ -78,7 +78,7 @@ const slides = [
     ),
   },
   {
-    icon: Briefcase,
+    image: welcomeSlide4,
     title: "What You Can Do Here",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
