@@ -52,53 +52,6 @@ function useCertifications(userId: string | undefined) {
   });
 }
 
-/** Extract cohort name from raw_data.
- *  Strategy:
- *   1. Parse `Masterclass Attendee Unique ID` which has the format
- *      "1756 - Amanda Wolf - Service Leadership Masterclass - September 2025, ..."
- *      → take the segment after "Name - " and strip the trailing " - Month Year".
- *   2. Fall back to `Registered For` first element (if not an Airtable ID).
- *   3. Fall back to other class-name fields.
- */
-const MONTH_PATTERN = /\s*-\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/i;
-
-function extractClassName(raw: Record<string, unknown>): string {
-  // Strategy 1: Parse from Unique ID — most reliable source
-  const uid = raw["Masterclass Attendee Unique ID"];
-  if (uid && typeof uid === "string") {
-    // Format: "1756 - Amanda Wolf - Service Leadership Masterclass - September 2025, ..."
-    // Split on " - " to get segments: [id, name, ...class parts]
-    const parts = uid.split(" - ");
-    if (parts.length >= 3) {
-      // Rejoin everything after the person's name (index 2+), take before first comma
-      const classRaw = parts.slice(2).join(" - ").split(",")[0].trim();
-      const cleaned = classRaw.replace(MONTH_PATTERN, "").trim();
-      if (cleaned && !/^rec[A-Za-z0-9]{10,}/.test(cleaned)) return cleaned;
-    }
-  }
-
-  // Strategy 2: Registered For (first element only)
-  const CLASS_NAME_FIELDS = [
-    "Registered For",
-    "Class Name (from Class Record)",
-    "Class Name",
-    "Masterclass Name",
-    "Class",
-    "Course Name",
-  ];
-
-  for (const f of CLASS_NAME_FIELDS) {
-    const val = raw[f];
-    if (!val) continue;
-    const rawStr = Array.isArray(val) ? String(val[0] ?? "") : String(val);
-    const cleaned = rawStr.split(",")[0].trim().replace(MONTH_PATTERN, "").trim();
-    if (/^rec[A-Za-z0-9]{10,}/.test(cleaned)) continue;
-    if (cleaned) return cleaned;
-  }
-
-  return "";
-}
-
 /** Extract a month + year string from raw_data */
 function extractMonthYear(raw: Record<string, unknown>): string {
   const dateFields = ["Created", "Date", "Start Date", "Registration Date", "created_at"];
@@ -120,7 +73,11 @@ interface CertCardProps {
 
 function CertCard({ row, profileName }: CertCardProps) {
   const [generating, setGenerating] = useState(false);
-  const className = useMemo(() => extractClassName(row.raw_data), [row.raw_data]);
+  // Use pre-computed display_title from DB; fall back to client-side extraction for legacy rows
+  const className = useMemo(
+    () => row.display_title || extractClassTitleFallback(row.raw_data),
+    [row.display_title, row.raw_data],
+  );
   const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
 
   const handleGenerate = async () => {
