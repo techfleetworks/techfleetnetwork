@@ -19,7 +19,7 @@ const WELCOME_KEY_PREFIX = "tf_welcome_shown_";
 
 const slides = [
   {
-    icon: Rocket,
+    image: welcomeSlide1,
     title: "Welcome to Tech Fleet! 🎉",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
