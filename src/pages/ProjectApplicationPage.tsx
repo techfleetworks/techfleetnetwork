@@ -451,15 +451,15 @@ export default function ProjectApplicationPage() {
     return Object.keys(errs2).length === 0 && Object.keys(errs3).length === 0;
   }, [validateStep2, validateStep3]);
 
-  const genAppComplete = genApp?.status === "completed";
+  const genAppComplete = genApp?.status === "completed" || genApp?.status === "submitted";
 
-  /* Show dialog once when general app is not completed */
+  /* Show dialog once when general app is not completed — only after query has resolved */
   useEffect(() => {
-    if (!genAppDialogShown && genApp !== undefined && !genAppComplete && initialized) {
+    if (!genAppDialogShown && genAppLoaded && !genAppComplete && initialized) {
       setGenAppDialogOpen(true);
       setGenAppDialogShown(true);
     }
-  }, [genApp, genAppComplete, initialized, genAppDialogShown]);
+  }, [genAppLoaded, genAppComplete, initialized, genAppDialogShown]);
 
   if (projLoading || appLoading || !initialized) {
     return (
