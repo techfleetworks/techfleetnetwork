@@ -196,6 +196,10 @@ export default function ConnectDiscordPage() {
 
       setVerified(true);
       toast.success("Discord account verified and linked!");
+      if (!completionShownRef.current) {
+        completionShownRef.current = true;
+        setShowCompletionDialog(true);
+      }
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
