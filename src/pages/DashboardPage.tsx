@@ -345,8 +345,6 @@ export default function DashboardPage() {
                 <BadgesDisplay
                   allFirstStepsDone={allFirstStepsDone}
                   allSecondStepsDone={allSecondStepsDone}
-                  allDiscordDone={allDiscordDone}
-                  allThirdStepsDone={allThirdStepsDone}
                   allProjectTrainingDone={allProjectTrainingDone}
                   allVolunteerDone={allVolunteerDone}
                   communityBadgeCount={communityBadgeCount}
