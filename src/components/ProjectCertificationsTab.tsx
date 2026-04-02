@@ -111,7 +111,11 @@ interface CertCardProps {
 
 function CertCard({ row, profileName }: CertCardProps) {
   const [generating, setGenerating] = useState(false);
-  const projectName = useMemo(() => extractProjectName(row.raw_data, profileName), [row.raw_data, profileName]);
+  // Use pre-computed display_title from DB; fall back to client-side extraction for legacy rows
+  const projectName = useMemo(
+    () => row.display_title || extractProjectTitleFallback(row.raw_data, profileName),
+    [row.display_title, row.raw_data, profileName],
+  );
   const monthYear = useMemo(() => extractMonthYear(row.raw_data), [row.raw_data]);
   const phase = useMemo(() => extractPhase(row.raw_data), [row.raw_data]);
 
