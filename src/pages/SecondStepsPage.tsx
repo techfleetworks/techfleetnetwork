@@ -21,7 +21,7 @@ export default function SecondStepsPage() {
       totalLessons={TOTAL_AGILE_LESSONS}
       completionMessage="🎉 Agile Handbook Complete!"
       completionSubtext="You've completed all lessons. You're ready for the next phase!"
-      nextCourse={{ title: "Agile Cross-Functional Team Dynamics", href: "/courses/agile-teamwork" }}
+      nextCourse={{ title: "Join Project Training Teams", href: "/courses/project-training" }}
     />
   );
 }

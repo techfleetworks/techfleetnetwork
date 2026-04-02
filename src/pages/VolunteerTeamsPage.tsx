@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { JourneyService } from "@/services/journey.service";
-import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
+import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import {
   VOLUNTEER_TEAMS_SECTIONS,
   ALL_VOLUNTEER_LESSONS,
@@ -17,8 +17,8 @@ export default function VolunteerTeamsPage() {
 
   useEffect(() => {
     if (!user) return;
-    JourneyService.getCompletedCount(user.id, "third_steps").then((count) => {
-      setPrereqMet(count >= TOTAL_TEAMWORK_LESSONS);
+    JourneyService.getCompletedCount(user.id, "second_steps").then((count) => {
+      setPrereqMet(count >= TOTAL_AGILE_LESSONS);
       setPrereqLoaded(true);
     });
   }, [user]);
@@ -39,8 +39,8 @@ export default function VolunteerTeamsPage() {
       prerequisite={{
         met: prereqMet,
         loaded: prereqLoaded,
-        courseName: "Agile Cross-Functional Team Dynamics",
-        courseHref: "/courses/agile-teamwork",
+        courseName: "Build an Agile Mindset",
+        courseHref: "/courses/agile-mindset",
       }}
     />
   );
