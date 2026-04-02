@@ -259,6 +259,9 @@ Deno.serve(async (req) => {
         fields["Registered For"] = regFor.map((id: string) => cohortNameMap[id] || id);
       }
 
+      // Compute display_title server-side so UI never parses raw data
+      const displayTitle = extractClassDisplayTitle(fields);
+
       const { error: upsertErr } = await adminClient
         .from("class_certifications")
         .upsert(
@@ -267,6 +270,7 @@ Deno.serve(async (req) => {
             email: userEmail,
             airtable_record_id: record.id,
             raw_data: fields,
+            display_title: displayTitle,
             synced_at: new Date().toISOString(),
           },
           { onConflict: "user_id,airtable_record_id" }
