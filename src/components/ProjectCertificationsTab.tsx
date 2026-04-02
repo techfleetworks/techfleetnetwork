@@ -78,32 +78,6 @@ function extractPhase(raw: Record<string, unknown>): string {
   return "";
 }
 
-/** Extract a month + year string from raw_data */
-function extractMonthYear(raw: Record<string, unknown>): string {
-  const dateFields = ["Created", "Date", "Start Date", "Registration Date", "created_at"];
-  for (const f of dateFields) {
-    const val = raw[f];
-    if (!val) continue;
-    const d = new Date(String(val));
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    }
-  }
-  return "";
-}
-
-/** Extract the project phase from raw_data */
-function extractPhase(raw: Record<string, unknown>): string {
-  const phaseFields = ["Phase", "Project Phase", "phase"];
-  for (const f of phaseFields) {
-    const val = raw[f];
-    if (!val) continue;
-    const str = Array.isArray(val) ? val.join(", ") : String(val);
-    if (str.trim()) return str;
-  }
-  return "";
-}
-
 interface CertCardProps {
   row: CertificationRow;
   profileName: string;
