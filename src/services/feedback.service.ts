@@ -33,20 +33,25 @@ export type FeedbackArea = (typeof FEEDBACK_AREAS)[number];
 
 export const FeedbackService = {
   async submit(userId: string, email: string, systemArea: string, message: string): Promise<boolean> {
-    const { error } = await supabase
-      .from("feedback" as any)
-      .insert({ user_id: userId, user_email: email, system_area: systemArea, message } as any);
+    try {
+      const { error } = await supabase
+        .from("feedback")
+        .insert({ user_id: userId, user_email: email, system_area: systemArea, message });
 
-    if (error) {
-      log.warn("submit", `Failed to submit feedback: ${error.message}`, { userId }, error);
+      if (error) {
+        log.warn("submit", `Failed to submit feedback: ${error.message} (code: ${error.code}, details: ${error.details}, hint: ${error.hint})`, { userId }, error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      log.warn("submit", `Unexpected error submitting feedback: ${err instanceof Error ? err.message : String(err)}`, { userId });
       return false;
     }
-    return true;
   },
 
   async listAll(): Promise<Feedback[]> {
     const { data, error } = await supabase
-      .from("feedback" as any)
+      .from("feedback")
       .select("id, user_id, user_email, system_area, message, created_at")
       .order("created_at", { ascending: false });
 
