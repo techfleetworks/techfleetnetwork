@@ -65,9 +65,11 @@ function extractClassName(raw: Record<string, unknown>): string {
   for (const f of CLASS_NAME_FIELDS) {
     const val = raw[f];
     if (!val) continue;
-    const str = Array.isArray(val) ? val.join(", ") : String(val);
-    if (/^rec[A-Za-z0-9]{10,}/.test(str)) continue;
-    if (str.trim()) return str;
+    // Take the first element if array, then strip everything after the first comma
+    const rawStr = Array.isArray(val) ? String(val[0] ?? "") : String(val);
+    const cleaned = rawStr.split(",")[0].trim();
+    if (/^rec[A-Za-z0-9]{10,}/.test(cleaned)) continue;
+    if (cleaned) return cleaned;
   }
   return "";
 }
