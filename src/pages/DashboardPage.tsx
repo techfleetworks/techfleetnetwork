@@ -12,7 +12,7 @@ import {
   Megaphone,
   MessageSquare,
   PartyPopper,
-  Users,
+  
   CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-celebration.png";
