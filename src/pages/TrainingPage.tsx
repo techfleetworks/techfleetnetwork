@@ -158,7 +158,9 @@ export default function TrainingPage() {
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
   const { data: observerCompleted = 0 } = useCompletedCount(userId, "observer");
 
-  const allTeamworkDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
+  const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
+  const allFirstStepsDone = firstCompleted >= TOTAL_FIRST_STEPS;
+  const allAgileDone = agileCompleted >= TOTAL_AGILE_LESSONS;
 
   const gettingStartedCourses: CourseCard[] = [
     {
