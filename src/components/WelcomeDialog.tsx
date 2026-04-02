@@ -98,7 +98,7 @@ const slides = [
     ),
   },
   {
-    icon: BookOpen,
+    image: welcomeSlide5,
     title: "Here's How to Get Started",
     content: (
       <div className="space-y-3 text-sm text-muted-foreground text-left">
