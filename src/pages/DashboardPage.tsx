@@ -356,9 +356,9 @@ export default function DashboardPage() {
             return isVisible("core_courses") ? (
               <section key="core_courses" aria-labelledby="core-courses-heading">
                 <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
-                  Course Completion
+                  Onboard to Tech Fleet
                 </h2>
-                {allCoreCoursesDone ? (
+                {allOnboardingDone ? (
                   <div className="card-elevated overflow-hidden">
                     <div className="flex flex-col sm:flex-row items-stretch">
                       <div className="sm:w-48 md:w-56 flex-shrink-0 bg-primary/5">
