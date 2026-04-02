@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-
+import { extractClassDisplayTitle } from "../_shared/cert-title-utils.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
