@@ -25,9 +25,9 @@ import {
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 /* ── constants ─────────────────────────────────────── */
-const FOUNDATIONAL_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
+const CORE_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
 const IDEAL_PER_HAT = 4;
-const MIN_PER_HAT = 2;
+const READY_THRESHOLD = 2;
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -89,24 +89,24 @@ function computeReadinessScore(
   prevPhaseRatio: number,
   phase: string,
 ): { score: number; details: ScoreDetails } {
-  const foundationalPresent = FOUNDATIONAL_HATS.filter((h) => projectHats.includes(h));
+  const corePresent = CORE_HATS.filter((h) => projectHats.includes(h));
   let hatScore = 0;
   const hatDetails: { hat: string; uniqueCount: number; subScore: number }[] = [];
-  if (foundationalPresent.length > 0) {
-    const perHatScores = foundationalPresent.map((h) => {
+  if (corePresent.length > 0) {
+    const perHatScores = corePresent.map((h) => {
       const bd = hatBreakdowns.get(h);
       const uniqueCount = bd?.unique ?? 0;
       let subScore = 0;
       if (uniqueCount >= IDEAL_PER_HAT) subScore = 1;
-      else if (uniqueCount >= MIN_PER_HAT) subScore = 0.6;
+      else if (uniqueCount >= READY_THRESHOLD) subScore = 0.6;
       else if (uniqueCount >= 1) subScore = 0.3;
       hatDetails.push({ hat: h, uniqueCount, subScore });
       return subScore;
     });
-    hatScore = perHatScores.reduce((s, v) => s + v, 0) / foundationalPresent.length;
+    hatScore = perHatScores.reduce((s, v) => s + v, 0) / corePresent.length;
   }
 
-  const otherHats = projectHats.filter((h) => !FOUNDATIONAL_HATS.includes(h));
+  const otherHats = projectHats.filter((h) => !CORE_HATS.includes(h));
   let otherScore = 1;
   if (otherHats.length > 0) {
     const filled = otherHats.filter((h) => (hatBreakdowns.get(h)?.unique ?? 0) >= 1).length;
@@ -130,6 +130,18 @@ function computeReadinessScore(
       isPhase1: phase === "phase_1",
     },
   };
+}
+
+/* ── Readiness helpers ─────────────────────────────── */
+function getOverallReadiness(coreHats: string[], hatBreakdowns: Map<string, HatBreakdown>) {
+  if (coreHats.length === 0) return { ready: true, label: "Ready to recruit", color: "text-success", icon: <CheckCircle2 className="h-5 w-5" /> };
+
+  const allReady = coreHats.every((h) => (hatBreakdowns.get(h)?.unique ?? 0) >= READY_THRESHOLD);
+  const someReady = coreHats.some((h) => (hatBreakdowns.get(h)?.unique ?? 0) >= 1);
+
+  if (allReady) return { ready: true, label: "Ready to recruit", color: "text-success", icon: <CheckCircle2 className="h-5 w-5" /> };
+  if (someReady) return { ready: false, label: "Almost ready", color: "text-warning", icon: <AlertTriangle className="h-5 w-5" /> };
+  return { ready: false, label: "Not ready", color: "text-destructive", icon: <XCircle className="h-5 w-5" /> };
 }
 
 /* ── main component ────────────────────────────────── */
@@ -300,36 +312,36 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     );
   }
 
+  const clientName = project.clients?.name ?? "this project";
   const isPhase1 = project.phase === "phase_1";
-  const foundationalHats = project.team_hats.filter((h) => FOUNDATIONAL_HATS.includes(h));
-  const otherHats = project.team_hats.filter((h) => !FOUNDATIONAL_HATS.includes(h));
+  const coreHats = project.team_hats.filter((h) => CORE_HATS.includes(h));
+  const otherHats = project.team_hats.filter((h) => !CORE_HATS.includes(h));
+
+  const overallReadiness = analysis
+    ? getOverallReadiness(coreHats, analysis.hatBreakdowns)
+    : { ready: false, label: "Not ready", color: "text-destructive", icon: <XCircle className="h-5 w-5" /> };
 
   function HatRow({ hat }: { hat: string }) {
-    const isFoundational = FOUNDATIONAL_HATS.includes(hat);
     const bd = analysis?.hatBreakdowns.get(hat) ?? { unique: 0, shared: 0, total: 0 };
-    const fillPercent = Math.min(Math.round((bd.unique / IDEAL_PER_HAT) * 100), 100);
+    const fillPercent = Math.min(Math.round((bd.unique / READY_THRESHOLD) * 100), 100);
 
     let statusLabel: string;
     let statusIcon: ReactNode;
     let statusColor: string;
     let barColor: string;
-    if (bd.unique >= IDEAL_PER_HAT) {
-      statusLabel = "Ready";
+
+    if (bd.unique >= READY_THRESHOLD) {
+      statusLabel = "Ready to recruit";
       statusIcon = <CheckCircle2 className="h-4 w-4" />;
       statusColor = "text-success";
       barColor = "bg-success";
-    } else if (bd.unique >= MIN_PER_HAT) {
-      statusLabel = "Almost there";
+    } else if (bd.unique >= 1) {
+      statusLabel = "Almost ready";
       statusIcon = <AlertTriangle className="h-4 w-4" />;
       statusColor = "text-warning";
       barColor = "bg-warning";
-    } else if (bd.unique >= 1) {
-      statusLabel = "Needs more";
-      statusIcon = <AlertTriangle className="h-4 w-4" />;
-      statusColor = "text-orange-500";
-      barColor = "bg-orange-500";
     } else {
-      statusLabel = "No applicants";
+      statusLabel = "Not ready";
       statusIcon = <XCircle className="h-4 w-4" />;
       statusColor = "text-destructive";
       barColor = "bg-destructive";
@@ -337,25 +349,39 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
 
     return (
       <div className="rounded-lg border bg-card p-4 space-y-3">
-        {/* Header row: hat name + status badge */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">{hat}</span>
-            {isFoundational && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">Core Role</Badge>
-            )}
-          </div>
-          <Badge variant="outline" className={`${statusColor} border-current/20 text-xs gap-1`}>
+        {/* Hat name */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-foreground">{hat}</span>
+          <Badge variant="outline" className={`${statusColor} border-current/20 text-xs gap-1 ml-auto`}>
             {statusIcon}
             {statusLabel}
           </Badge>
         </div>
 
-        {/* Visual progress bar */}
+        {/* Applicant counts — stacked single column */}
+        <div className="space-y-1 text-sm">
+          <p className="text-muted-foreground">
+            <span className="font-semibold text-success">{bd.unique}</span>{" "}
+            applied to only <span className="font-medium text-foreground">{clientName}</span>
+          </p>
+          <button
+            type="button"
+            className="text-muted-foreground hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default text-left"
+            disabled={bd.shared === 0}
+            onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
+          >
+            <span className="font-semibold text-warning">{bd.shared}</span>{" "}
+            applied to other projects
+          </button>
+          <p className="text-muted-foreground">
+            <span className="font-semibold text-foreground">{bd.total}</span> total applicants
+          </p>
+        </div>
+
+        {/* Progress bar at the bottom */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Dedicated applicants</span>
-            <span className="font-medium text-foreground">{bd.unique} of {IDEAL_PER_HAT} ideal</span>
+            <span>{bd.unique} of {READY_THRESHOLD} needed to be ready</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
@@ -364,108 +390,91 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             />
           </div>
         </div>
-
-        {/* Stats row with clear labels */}
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5" title="Applicants who ONLY applied to this project for this role">
-            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-success/15 text-success font-bold">{bd.unique}</span>
-            <span className="text-muted-foreground">dedicated</span>
-          </div>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 hover:underline underline-offset-2 focus-visible:outline-2 outline-ring rounded-sm disabled:opacity-50 disabled:cursor-default"
-            title="Also applied to other projects — click to see details"
-            disabled={bd.shared === 0}
-            onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
-          >
-            <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded bg-warning/15 text-warning font-bold">{bd.shared}</span>
-            <span className="text-muted-foreground">also applied elsewhere</span>
-          </button>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="font-semibold text-foreground">{bd.total}</span>
-            <span className="text-muted-foreground">total</span>
-          </div>
-        </div>
       </div>
     );
   }
-
-  const score = analysis?.readinessScore ?? 0;
-  let scoreColor = "text-destructive";
-  if (score >= 75) scoreColor = "text-success";
-  else if (score >= 50) scoreColor = "text-warning";
-  else if (score >= 25) scoreColor = "text-orange-500";
 
   const details = analysis?.scoreDetails;
 
   return (
     <div className="space-y-8">
-      {/* ── Readiness Score ──────────────────────── */}
-      <div className="grid sm:grid-cols-3 gap-4">
-        <Card className="sm:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Recruitment Readiness
-              <ScoreBreakdownDialog score={score} details={details} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-4xl font-bold ${scoreColor}`}>{score}%</div>
-            <Progress value={score} className="mt-3 h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              Combines core role staffing (50%), additional roles (20%), applicant dedication (15%), and returning members (15%).
-            </p>
-          </CardContent>
-        </Card>
-
+      {/* ── Readiness Status ─────────────────────── */}
+      <div className="space-y-4">
+        {/* Big readiness indicator */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Applicant Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total Applicants</span>
-              <span className="text-sm font-semibold">{analysis?.totalApplicants ?? 0}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Exclusive (this project only)</span>
-              <span className="text-sm font-semibold text-success">{analysis?.uniqueApplicants ?? 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Multi-project (also applied elsewhere)</span>
-              <span className="text-sm font-semibold text-warning">{analysis?.sharedApplicants ?? 0}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Previous Phase Participation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isPhase1 ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Info className="h-4 w-4 shrink-0" />
-                <span className="text-sm">Not applicable — this is a Phase 1 project with no prior phase.</span>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className={overallReadiness.color}>
+                {overallReadiness.icon}
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Participated in previous phase</span>
-                  <span className="text-sm font-semibold">{analysis?.prevPhaseApplicants ?? 0} of {analysis?.totalApplicants ?? 0}</span>
-                </div>
-                <Progress value={(analysis?.prevPhaseRatio ?? 0) * 100} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  Applicants with prior phase experience bring continuity and reduce ramp-up time.
+              <div>
+                <p className={`text-xl font-bold ${overallReadiness.color}`}>
+                  {overallReadiness.label}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {overallReadiness.ready
+                    ? `Every core role has at least ${READY_THRESHOLD} applicants who only applied to ${clientName}. You're good to go.`
+                    : `Some core roles still need at least ${READY_THRESHOLD} applicants who only applied to ${clientName}.`}
                 </p>
               </div>
-            )}
+              <div className="ml-auto">
+                <ScoreBreakdownDialog score={analysis?.readinessScore ?? 0} details={details} clientName={clientName} />
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Stats cards — stacked on mobile */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Applicant Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total Applicants</span>
+                <span className="text-sm font-semibold">{analysis?.totalApplicants ?? 0}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Applied only to {clientName}</span>
+                <span className="text-sm font-semibold text-success">{analysis?.uniqueApplicants ?? 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Applied to other projects too</span>
+                <span className="text-sm font-semibold text-warning">{analysis?.sharedApplicants ?? 0}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Previous Phase Participation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isPhase1 ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Info className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">Not applicable — this is a Phase 1 project with no prior phase.</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Participated in previous phase</span>
+                    <span className="text-sm font-semibold">{analysis?.prevPhaseApplicants ?? 0} of {analysis?.totalApplicants ?? 0}</span>
+                  </div>
+                  <Progress value={(analysis?.prevPhaseRatio ?? 0) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Applicants with prior phase experience bring continuity and reduce ramp-up time.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* ── Hat Coverage ─────────────────────────── */}
+      {/* ── Core Role Staffing ───────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -474,20 +483,20 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
           </CardTitle>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Are there enough <strong>dedicated</strong> applicants for each core role? A "dedicated" applicant only applied to <em>this</em> project — making them more likely to join if accepted.
+              Each core role needs at least <strong>{READY_THRESHOLD} applicants</strong> who only applied to {clientName} to be considered ready.
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> <strong>Ready</strong> = {IDEAL_PER_HAT}+ dedicated</span>
-              <span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" /> <strong>Almost</strong> = {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} dedicated</span>
-              <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-destructive" /> <strong>Gap</strong> = 0 dedicated</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> <strong>Ready to recruit</strong> = {READY_THRESHOLD}+ applicants</span>
+              <span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" /> <strong>Almost ready</strong> = 1 applicant</span>
+              <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5 text-destructive" /> <strong>Not ready</strong> = 0 applicants</span>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {foundationalHats.length === 0 ? (
+          {coreHats.length === 0 ? (
             <p className="text-sm text-muted-foreground">No core roles configured for this project.</p>
           ) : (
-            foundationalHats.map((hat) => <HatRow key={hat} hat={hat} />)
+            coreHats.map((hat) => <HatRow key={hat} hat={hat} />)
           )}
         </CardContent>
       </Card>
@@ -510,14 +519,14 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
       )}
 
       {/* ── Applicants Table ─────────────────────── */}
-      <ApplicantsTable rows={enrichedRows} />
+      <ApplicantsTable rows={enrichedRows} clientName={clientName} />
 
       {/* ── Multi-project applicants side panel ── */}
       <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
         <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
           <SheetHeader>
             <SheetTitle className="break-words">
-              Multi-project Applicants — {multiProjectSheet?.hat}
+              Applicants who also applied elsewhere — {multiProjectSheet?.hat}
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-6rem)] mt-4 pr-3">
@@ -531,7 +540,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
                     !analysis.uniqueUserIds.has(app.user_id),
                 );
                 if (sharedForHat.length === 0) {
-                  return <p className="text-sm text-muted-foreground">No multi-project applicants for this hat.</p>;
+                  return <p className="text-sm text-muted-foreground">No applicants applied to other projects for this role.</p>;
                 }
                 return sharedForHat.map((app) => {
                   const profile = profileMap.get(app.user_id);
@@ -551,7 +560,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
                       </div>
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-1">
-                          Hats applied for on this project
+                          Roles applied for on {clientName}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {app.team_hats_interest.map((h) => (
@@ -602,15 +611,15 @@ interface EnrichedRow {
   isUnique: boolean;
 }
 
-function ApplicantsTable({ rows }: { rows: EnrichedRow[] }) {
+function ApplicantsTable({ rows, clientName }: { rows: EnrichedRow[]; clientName: string }) {
   const getName = useCallback((p?: ProfileRow) =>
     p?.display_name || `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim() || p?.email || "Unknown", []);
 
   const columnDefs = useMemo<ColDef<EnrichedRow>[]>(() => [
     { headerName: "Applicant", flex: 2, minWidth: 140, valueGetter: (params) => getName(params.data?.profile) },
     { headerName: "Email", flex: 2, minWidth: 160, valueGetter: (params) => params.data?.profile?.email ?? "—" },
-    { headerName: "Exclusive", flex: 1, minWidth: 90, valueGetter: (params) => params.data?.isUnique ? "Yes" : "No" },
-    { headerName: "Team Hats", flex: 2, minWidth: 160, valueGetter: (params) => (params.data?.team_hats_interest ?? []).join(", ") },
+    { headerName: `Only ${clientName}`, flex: 1, minWidth: 90, valueGetter: (params) => params.data?.isUnique ? "Yes" : "No" },
+    { headerName: "Roles", flex: 2, minWidth: 160, valueGetter: (params) => (params.data?.team_hats_interest ?? []).join(", ") },
     { headerName: "Prev. Phase", flex: 1, minWidth: 100, valueGetter: (params) => params.data?.participated_previous_phase ? "Yes" : "No" },
     {
       headerName: "Other Projects", flex: 2, minWidth: 140,
@@ -627,7 +636,7 @@ function ApplicantsTable({ rows }: { rows: EnrichedRow[] }) {
         try { return format(new Date(params.value), "MMM d, yyyy"); } catch { return "—"; }
       },
     },
-  ], [getName]);
+  ], [getName, clientName]);
 
   return (
     <Card className="overflow-hidden">
@@ -657,19 +666,20 @@ function ApplicantsTable({ rows }: { rows: EnrichedRow[] }) {
 }
 
 /* ── Score Breakdown Dialog ───────────────────────── */
-function ScoreBreakdownDialog({ score, details }: { score: number; details?: ScoreDetails }) {
+function ScoreBreakdownDialog({ score, details, clientName }: { score: number; details?: ScoreDetails; clientName: string }) {
   if (!details) return null;
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" aria-label="How is this score calculated?">
-          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+          <HelpCircle className="h-3.5 w-3.5" />
+          Score details
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Recruitment Readiness Score — {score}%</DialogTitle>
+          <DialogTitle>Recruitment Readiness — Score Breakdown</DialogTitle>
         </DialogHeader>
         <div className="space-y-5 text-sm">
           <section className="space-y-2">
@@ -678,13 +688,13 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
               <span className="text-primary">{details.hatScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Do we have enough dedicated applicants for each core role? {IDEAL_PER_HAT}+ dedicated = full marks, {MIN_PER_HAT}–{IDEAL_PER_HAT - 1} = partial, 1 = minimal, 0 = gap.
+              Do we have enough applicants who only applied to {clientName} for each core role? {READY_THRESHOLD}+ = ready, 1 = almost, 0 = not ready.
             </p>
             <div className="space-y-1.5 pl-3 border-l-2 border-muted">
               {details.hatDetails.map((h) => (
                 <div key={h.hat} className="flex justify-between text-xs">
-                  <span>{h.hat} — <strong>{h.uniqueCount}</strong> dedicated</span>
-                  <span className={h.subScore >= 1 ? "text-success font-medium" : h.subScore >= 0.6 ? "text-warning font-medium" : "text-muted-foreground"}>{Math.round(h.subScore * 100)}%</span>
+                  <span>{h.hat} — <strong>{h.uniqueCount}</strong> applied only to {clientName}</span>
+                  <span className={h.subScore >= 0.6 ? "text-success font-medium" : h.subScore >= 0.3 ? "text-warning font-medium" : "text-muted-foreground"}>{Math.round(h.subScore * 100)}%</span>
                 </div>
               ))}
             </div>
@@ -698,7 +708,7 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
             <p className="text-xs text-muted-foreground">
               {details.otherHatsCount === 0
                 ? "No additional roles on this project — full marks automatically."
-                : `${details.otherHatsFilled} of ${details.otherHatsCount} additional roles have at least 1 dedicated applicant.`}
+                : `${details.otherHatsFilled} of ${details.otherHatsCount} additional roles have at least 1 applicant who only applied to ${clientName}.`}
             </p>
           </section>
           <Separator />
@@ -708,7 +718,7 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
               <span className="text-primary">{details.uniqueScore}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              What percentage of applicants <em>only</em> applied to this project? Higher = more committed pool.
+              What percentage of applicants <em>only</em> applied to {clientName}? Higher = more committed pool.
             </p>
           </section>
           <Separator />
@@ -726,7 +736,7 @@ function ScoreBreakdownDialog({ score, details }: { score: number; details?: Sco
           <Separator />
           <div className="rounded-md bg-muted/50 p-3">
             <div className="flex justify-between font-semibold text-base">
-              <span>Overall Readiness</span>
+              <span>Overall Score</span>
               <span className="text-primary">{score}%</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
