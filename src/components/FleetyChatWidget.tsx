@@ -198,6 +198,14 @@ export function FleetyChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
+    // Create or reuse conversation
+    let convoId = activeConvoId;
+    if (!convoId && user) {
+      convoId = await createConversation(text);
+      if (convoId) setActiveConvoId(convoId);
+    }
+    if (convoId) await saveMessage(convoId, "user", text);
+
     let assistantSoFar = "";
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
@@ -214,7 +222,13 @@ export function FleetyChatWidget() {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsLoading(false),
+        onDone: async () => {
+          setIsLoading(false);
+          if (convoId && assistantSoFar) {
+            await saveMessage(convoId, "assistant", assistantSoFar);
+            await loadConversations();
+          }
+        },
       });
     } catch (e: any) {
       console.error(e);
