@@ -508,8 +508,8 @@ export default function ProjectApplicationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Fixed Header (step progress only) ────────────── */}
-      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
+      <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
+        <div className="max-w-3xl w-full mx-auto">
         <StepProgressBar
           steps={STEP_LABELS.map((label, i) => {
             const stepNum = i + 1;
