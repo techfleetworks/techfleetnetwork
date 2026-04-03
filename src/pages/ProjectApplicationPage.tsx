@@ -483,7 +483,7 @@ export default function ProjectApplicationPage() {
   const isSaving = saveMutation.isPending;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative">
       {/* General Application Warning Dialog */}
       <Dialog open={genAppDialogOpen} onOpenChange={setGenAppDialogOpen}>
         <DialogContent>
@@ -508,8 +508,8 @@ export default function ProjectApplicationPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Fixed Header (step progress only) ────────────── */}
-      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
+      <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
+        <div className="max-w-3xl w-full mx-auto">
         <StepProgressBar
           steps={STEP_LABELS.map((label, i) => {
             const stepNum = i + 1;
@@ -525,10 +525,11 @@ export default function ProjectApplicationPage() {
             if (isCompleted || s <= step) setStep(s);
           }}
         />
+        </div>
       </div>
 
-      {/* ── Scrollable Content ────────────────────────────── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      {/* ── Content ────────────────────────────── */}
+      <div ref={scrollRef}>
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {step === 1 && (
           <Card>
@@ -734,7 +735,7 @@ export default function ProjectApplicationPage() {
       </div>
 
       {/* ── Sticky Footer Actions ─────────────────────────── */}
-      <div className="shrink-0 border-t bg-background px-4 sm:px-6 py-3">
+      <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
         <div className="max-w-3xl w-full mx-auto flex items-center justify-between gap-3">
           {/* Left side */}
           <div className="flex items-center gap-2">

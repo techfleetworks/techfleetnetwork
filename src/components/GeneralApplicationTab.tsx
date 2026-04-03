@@ -50,9 +50,10 @@ export function GeneralApplicationTab() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative">
       {/* ── Sticky Progress Bar ────────────────────────────── */}
-      <div className="shrink-0 border-b bg-background px-4 sm:px-6 py-3 max-w-3xl w-full mx-auto">
+      <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
+        <div className="max-w-3xl w-full mx-auto">
         <StepProgressBar
           steps={SECTION_TITLES.map((label, i) => {
             const s = i + 1;
@@ -68,10 +69,11 @@ export function GeneralApplicationTab() {
           currentStep={section}
           onStepClick={(s) => { setErrors({}); setSection(s); }}
         />
+        </div>
       </div>
 
-      {/* ── Scrollable Content ─────────────────────────────── */}
-      <div ref={formContainerRef} className="flex-1 overflow-y-auto">
+      {/* ── Content ─────────────────────────────── */}
+      <div ref={formContainerRef}>
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
           <div className="card-elevated p-6 space-y-6">
             {/* Error summary banner */}
@@ -110,7 +112,7 @@ export function GeneralApplicationTab() {
       </div>
 
       {/* ── Sticky Footer CTAs ─────────────────────────────── */}
-      <div className="shrink-0 border-t bg-background px-4 sm:px-6 py-3">
+      <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
         <div className="max-w-3xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
             {section > 1 && (
