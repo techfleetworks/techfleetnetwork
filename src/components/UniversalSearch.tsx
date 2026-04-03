@@ -126,7 +126,7 @@ const SEARCH_ITEMS: SearchItem[] = [
     description:
       "View the latest announcements and updates from the Tech Fleet team.",
     href: "/updates",
-    group: "Updates",
+    group: "Community Updates",
   },
 ];
 

@@ -25,7 +25,7 @@ export const FEEDBACK_AREAS = [
   "Project Openings",
   "Projects and Courses",
   "Resources",
-  "Updates",
+  "Community Updates",
   "User Admin",
 ] as const;
 
