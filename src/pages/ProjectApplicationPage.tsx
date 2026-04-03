@@ -735,7 +735,7 @@ export default function ProjectApplicationPage() {
       </div>
 
       {/* ── Sticky Footer Actions ─────────────────────────── */}
-      <div className="shrink-0 border-t bg-background px-4 sm:px-6 py-3">
+      <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
         <div className="max-w-3xl w-full mx-auto flex items-center justify-between gap-3">
           {/* Left side */}
           <div className="flex items-center gap-2">
