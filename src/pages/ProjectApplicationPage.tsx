@@ -726,6 +726,7 @@ export default function ProjectApplicationPage() {
                 </Label>
                  <Textarea id="cross-functional" value={crossFunctional} onChange={(e) => setCrossFunctional(e.target.value)} rows={4} maxLength={5000} aria-describedby="cross-functional-count" />
                  <p id="cross-functional-count" className="text-xs text-muted-foreground text-right">{crossFunctional.length} / 5,000</p>
+                 {errors.cross_functional_contribution && <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>}
               </div>
 
               <div className="space-y-1.5">
