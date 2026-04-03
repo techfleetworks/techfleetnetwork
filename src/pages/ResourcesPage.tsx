@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Wrench, Loader2, Sparkles } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { BookOpen, Wrench, Loader2, Sparkles, MessageCircle } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import ExploreTab from "@/components/resources/ExploreTab";
 import ResourceCard from "@/components/resources/ResourceCard";
@@ -7,6 +8,7 @@ import ResourceDetailPanel from "@/components/resources/ResourceDetailPanel";
 import { fetchHandbooks, handbookCategoryColors, type Handbook } from "@/data/handbooks";
 import { fetchWorkshops, workshopCategoryColors, type Workshop } from "@/data/workshops";
 import { toast } from "@/hooks/use-toast";
+import fleetyIcon from "@/assets/fleety-icon.png";
 
 export default function ResourcesPage() {
   const [handbooks, setHandbooks] = useState<Handbook[]>([]);
