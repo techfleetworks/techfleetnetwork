@@ -281,6 +281,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          logo_url: string
           mission: string
           name: string
           primary_contact: string
@@ -293,6 +294,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          logo_url?: string
           mission?: string
           name: string
           primary_contact?: string
@@ -305,6 +307,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          logo_url?: string
           mission?: string
           name?: string
           primary_contact?: string

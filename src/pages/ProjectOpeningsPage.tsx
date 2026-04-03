@@ -32,6 +32,7 @@ interface OpenProject {
 interface ClientInfo {
   id: string;
   name: string;
+  logo_url?: string;
 }
 
 interface ProjectAppStat {
@@ -41,6 +42,7 @@ interface ProjectAppStat {
 
 interface EnrichedProject extends OpenProject {
   clientName: string;
+  clientLogoUrl?: string;
   totalApps: number;
   hatCounts: Record<string, number>;
   userApplied: boolean;
@@ -77,14 +79,14 @@ export default function ProjectOpeningsPage() {
     queryKey: ["project-opening-clients", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
-      const { data, error } = await supabase.from("clients").select("id, name").in("id", clientIds);
+      const { data, error } = await supabase.from("clients").select("id, name, logo_url").in("id", clientIds);
       if (error) throw error;
       return (data ?? []) as ClientInfo[];
     },
     enabled: clientIds.length > 0,
   });
 
-  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
   const { data: appStats = [] } = useQuery({
@@ -139,9 +141,11 @@ export default function ProjectOpeningsPage() {
   const enrichedProjects = useMemo<EnrichedProject[]>(() =>
     projects.map((p) => {
       const stats = statsMap.get(p.id);
+      const client = clientMap.get(p.client_id);
       return {
         ...p,
-        clientName: clientMap.get(p.client_id) ?? "Client",
+        clientName: client?.name ?? "Client",
+        clientLogoUrl: client?.logo_url || undefined,
         totalApps: stats?.total ?? 0,
         hatCounts: stats?.hatCounts ?? {},
         userApplied: appliedProjectIds.has(p.id),
@@ -282,9 +286,18 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
           <Card className="flex flex-col h-full cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/project-openings/${p.id}`)}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <CardTitle className="text-lg leading-tight">{p.clientName}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  {p.clientLogoUrl ? (
+                    <img src={p.clientLogoUrl} alt={`${p.clientName} logo`} className="h-10 w-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                      <Handshake className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg leading-tight truncate">{p.clientName}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
+                  </div>
                 </div>
                 <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
               </div>

@@ -16,19 +16,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
@@ -39,6 +38,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { StepProgressBar } from "@/components/StepProgressBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@/lib/react-query";
@@ -57,14 +57,12 @@ interface GenericCoursePageProps {
   totalLessons: number;
   completionMessage: string;
   completionSubtext: string;
-  /** If set, the course is locked until this prerequisite is met */
   prerequisite?: {
     met: boolean;
     loaded: boolean;
     courseName: string;
     courseHref: string;
   };
-  /** Next sequential course to navigate to after completion */
   nextCourse?: {
     title: string;
     href: string;
@@ -136,7 +134,6 @@ export default function GenericCoursePage({
   useEffect(() => {
     if (prevCompletedCountRef.current !== null && prevCompletedCountRef.current < totalLessons && completedCount === totalLessons) {
       setShowCompletionDialog(true);
-      // Fire-and-forget Discord notification for phase completion
       const displayName = profile?.display_name || profile?.first_name || "A member";
       const discord = profile?.discord_username || undefined;
       const discordId = profile?.discord_user_id || undefined;
@@ -243,7 +240,6 @@ export default function GenericCoursePage({
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
-        // Fallback for insecure contexts
         const input = document.createElement("input");
         input.value = shareUrl;
         document.body.appendChild(input);
@@ -277,6 +273,24 @@ export default function GenericCoursePage({
       </Button>
     );
   };
+
+  // Build step progress bar data from sections
+  const stepProgressData = useMemo(() => {
+    return sections.map((section, idx) => {
+      const { done, total } = sectionProgress(idx);
+      const status: "not_started" | "started" | "completed" =
+        done === total ? "completed" : done > 0 ? "started" : "not_started";
+      return { label: section.title, status };
+    });
+  }, [sections, completedSet]);
+
+  // Determine the current active section (first incomplete)
+  const currentSectionStep = useMemo(() => {
+    const idx = sections.findIndex((section) =>
+      section.lessons.some((l) => !completedSet.has(l.id))
+    );
+    return idx >= 0 ? idx + 1 : sections.length;
+  }, [sections, completedSet]);
 
   // Prerequisite gate
   if (prerequisite && prerequisite.loaded && !prerequisite.met) {
@@ -357,26 +371,19 @@ export default function GenericCoursePage({
         </div>
       </div>
 
-      {/* Overall progress */}
+      {/* Step Progress Bar — same style as onboarding welcome */}
       <div className="mb-8">
-        <div className="flex items-center justify-between text-sm mb-2">
+        <div className="flex items-center justify-between text-sm mb-4">
           <span className="text-muted-foreground">
             {completedCount} of {totalLessons} lessons completed
           </span>
           <span className="font-medium text-foreground">{Math.round(progress)}%</span>
         </div>
-        <div
-          className="h-2 bg-muted rounded-full overflow-hidden"
-          role="progressbar"
-          aria-valuenow={progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+        <StepProgressBar
+          steps={stepProgressData}
+          currentStep={currentSectionStep}
+          onStepClick={(step) => toggleSection(step - 1)}
+        />
       </div>
 
       {/* Sections */}
@@ -538,13 +545,13 @@ export default function GenericCoursePage({
         </DialogContent>
       </Dialog>
 
-      {/* Lesson detail panel */}
-      <Sheet
+      {/* Lesson detail popup — 80% width dialog */}
+      <Dialog
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}
       >
-        <SheetContent className="w-full sm:max-w-xl overflow-hidden flex flex-col">
-          <SheetHeader className="pb-4 border-b border-border">
+        <DialogContent className="w-[90vw] max-w-[80%] max-h-[85vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
             {selectedLesson && (
               <p className="text-xs text-muted-foreground">
                 Lesson{" "}
@@ -552,21 +559,18 @@ export default function GenericCoursePage({
                 of {totalLessons}
               </p>
             )}
-            <SheetTitle className="text-base leading-snug pr-6">
+            <DialogTitle className="text-base leading-snug pr-6">
               {selectedLesson?.title}
-            </SheetTitle>
-            <SheetDescription className="sr-only">
+            </DialogTitle>
+            <DialogDescription className="sr-only">
               Lesson details for {selectedLesson?.title}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-2 -mr-2">
+          <ScrollArea className="flex-1 px-6">
             <div className="space-y-4 py-4">
               {selectedLesson?.youtubeId && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Video Version
-                  </p>
                   <AspectRatio ratio={16 / 9}>
                     <iframe
                       src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}`}
@@ -588,16 +592,30 @@ export default function GenericCoursePage({
                 </div>
               )}
 
-              {selectedLesson?.content && (
+              {/* Text version: collapsed accordion if there's a video, otherwise shown directly */}
+              {selectedLesson?.content && selectedLesson?.youtubeId ? (
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="text-version" className="border rounded-lg">
+                    <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                      Text Version
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-3">
+                        {renderContent(selectedLesson.content)}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              ) : selectedLesson?.content ? (
                 <div className="space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {selectedLesson.youtubeId ? "Text Version" : "Lesson Content"}
+                    Lesson Content
                   </p>
                   <div className="space-y-3">
                     {renderContent(selectedLesson.content)}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               <div className="pt-2">
                 <a
@@ -627,7 +645,7 @@ export default function GenericCoursePage({
                   : null;
 
               return (
-                <div className="pt-4 border-t border-border space-y-3 shrink-0">
+                <div className="px-6 py-4 border-t border-border space-y-3 shrink-0">
                   <Button
                     className="w-full"
                     variant={
@@ -676,8 +694,8 @@ export default function GenericCoursePage({
                 </div>
               );
             })()}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
