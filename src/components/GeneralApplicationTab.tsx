@@ -17,6 +17,7 @@ import {
   SectionEngagement,
   SectionAgile,
   SectionLeadership,
+  SectionReview,
 } from "@/components/general-application";
 
 export function GeneralApplicationTab() {

@@ -152,6 +152,7 @@ export function getSectionHasInput(form: AppFormData, section: number): boolean 
   if (section === 3) return !!form.previous_engagement;
   if (section === 4) return !!(form.agile_vs_waterfall || form.psychological_safety || form.agile_philosophies || form.collaboration_challenges);
   if (section === 5) return !!(form.servant_leadership_definition || form.servant_leadership_actions || form.servant_leadership_challenges || form.servant_leadership_situation);
+  if (section === 6) return true; // Review section always counts as "has input"
   return false;
 }
 
