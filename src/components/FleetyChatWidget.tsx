@@ -87,6 +87,8 @@ async function streamChat({
   onDone();
 }
 
+type Conversation = { id: string; title: string; updated_at: string };
+
 export function FleetyChatWidget() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -94,6 +96,9 @@ export function FleetyChatWidget() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -110,6 +115,62 @@ export function FleetyChatWidget() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Load conversations on mount
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("chat_conversations")
+      .select("id, title, updated_at")
+      .order("updated_at", { ascending: false });
+    if (data) setConversations(data);
+  }, [user]);
+
+  useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (!activeConvoId) { setMessages([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("conversation_id", activeConvoId)
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data as Msg[]);
+    })();
+  }, [activeConvoId]);
+
+  const createConversation = async (firstMessage: string): Promise<string | null> => {
+    if (!user) return null;
+    const title = firstMessage.length > 50 ? firstMessage.slice(0, 50) + "…" : firstMessage;
+    const { data, error } = await supabase
+      .from("chat_conversations")
+      .insert({ user_id: user.id, title })
+      .select("id")
+      .single();
+    if (error || !data) return null;
+    await loadConversations();
+    return data.id;
+  };
+
+  const saveMessage = async (convoId: string, role: string, content: string) => {
+    await supabase.from("chat_messages").insert({ conversation_id: convoId, role, content });
+    await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", convoId);
+  };
+
+  const deleteConversation = async (convoId: string) => {
+    await supabase.from("chat_conversations").delete().eq("id", convoId);
+    if (activeConvoId === convoId) { setActiveConvoId(null); setMessages([]); }
+    await loadConversations();
+  };
+
+  const startNewChat = () => {
+    setActiveConvoId(null);
+    setMessages([]);
+    setShowHistory(false);
+    inputRef.current?.focus();
+  };
 
   const toggleSpeak = useCallback((index: number, text: string) => {
     const synth = window.speechSynthesis;
