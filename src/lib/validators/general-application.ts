@@ -158,8 +158,9 @@ export function getSectionHasInput(form: AppFormData, section: number): boolean 
 
 /** Check if all sections pass validation (ready to submit) */
 export function canSubmit(form: AppFormData): boolean {
-  // Check all sections have no errors
-  for (let s = 1; s <= TOTAL_SECTIONS; s++) {
+  // Check content sections (1-5) have no errors; section 6 (review) has no fields
+  const CONTENT_SECTIONS = 5;
+  for (let s = 1; s <= CONTENT_SECTIONS; s++) {
     const errors = getFieldErrors(form, s);
     if (Object.keys(errors).length > 0) return false;
   }
