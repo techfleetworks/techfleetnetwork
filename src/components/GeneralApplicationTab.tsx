@@ -54,7 +54,7 @@ export function GeneralApplicationTab() {
     <div className="relative">
       {/* ── Sticky Progress Bar ────────────────────────────── */}
       <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
-        <div className="max-w-3xl w-full mx-auto">
+        <div className="max-w-4xl w-full mx-auto">
         <StepProgressBar
           steps={SECTION_TITLES.map((label, i) => {
             const s = i + 1;
