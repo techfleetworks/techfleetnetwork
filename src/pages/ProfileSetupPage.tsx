@@ -186,7 +186,17 @@ export default function ProfileSetupPage() {
 
       // If user doesn't have Discord, generate their personal invite (fire & forget)
       if (!form.has_discord_account) {
-        supabase.functions.invoke("generate-discord-invite").catch(() => {});
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          supabase.functions
+            .invoke("generate-discord-invite", {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            })
+            .catch(() => {});
+        }
       }
 
       navigate("/courses/onboarding", { replace: true });

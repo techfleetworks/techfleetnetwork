@@ -1,4 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import {
+  getInviteChannelCandidates,
+  type DiscordInviteChannel,
+} from "../_shared/discord-invite-utils.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const logger = createEdgeLogger("generate-discord-invite");
@@ -63,7 +67,8 @@ Deno.serve(async (req) => {
       throw new Error("Discord bot configuration is missing");
     }
 
-    // Fetch guild channels, then try invite creation across likely onboarding channels first.
+    // Fetch guild channels and try the most likely onboarding channels first,
+    // while still falling back across every text channel deterministically.
     const channelsRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
       headers: { Authorization: `Bot ${botToken}` },
     });
@@ -73,24 +78,18 @@ Deno.serve(async (req) => {
     }
 
     const channels = await channelsRes.json();
-    // Prioritise channels the bot is most likely to have permissions on
-    const preferredNames = ["welcome", "general", "introductions", "start-here", "👋welcome"];
-    const textChannels = channels.filter(
-      (c: { type: number }) => c.type === 0,
-    ) as { id: string; type: number; name?: string }[];
-
-    // Build a short list: preferred channels first, then first 3 others as fallback
-    const preferred = textChannels.filter((c) =>
-      preferredNames.some((n) => (c.name ?? "").toLowerCase().includes(n)),
+    const candidates = getInviteChannelCandidates(
+      channels as DiscordInviteChannel[],
     );
-    const others = textChannels.filter(
-      (c) => !preferred.includes(c),
-    ).slice(0, 3);
-    const candidates = [...preferred, ...others];
 
     if (candidates.length === 0) {
       throw new Error("No text channels found in Discord server");
     }
+
+    logger.info("candidate_channels", `Prepared ${candidates.length} invite channel candidates`, {
+      candidateCount: candidates.length,
+      topCandidates: candidates.slice(0, 10).map((channel) => channel.name ?? channel.id),
+    });
 
     let inviteUrl = "";
     const inviteErrors: string[] = [];
@@ -130,7 +129,7 @@ Deno.serve(async (req) => {
 
     if (!inviteUrl) {
       throw new Error(
-        `Failed to create Discord invite. Grant the bot 'Create Invite' permission on at least one of: ${preferredNames.join(", ")}. Errors: ${inviteErrors.join(" | ")}`,
+        `Failed to create Discord invite. The bot could not create an invite in any of the ${candidates.length} candidate text channels. This usually means a channel-level override is still denying "Create Invite" for the bot or its role. Errors: ${inviteErrors.slice(0, 12).join(" | ")}`,
       );
     }
 
