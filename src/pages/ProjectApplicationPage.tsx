@@ -667,21 +667,24 @@ export default function ProjectApplicationPage() {
 
               {participatedPrev ? (
                 <div className="space-y-4 pl-1 border-l-2 border-primary/20 ml-2 pl-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} />
-                    {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} />
-                    {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} />
-                    {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
-                  </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} maxLength={5000} aria-describedby="prev-position-count" />
+                     <p id="prev-position-count" className="text-xs text-muted-foreground text-right">{prevPosition.length} / 5,000</p>
+                     {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
+                   </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-learnings-count" />
+                     <p id="prev-learnings-count" className="text-xs text-muted-foreground text-right">{prevLearnings.length} / 5,000</p>
+                     {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
+                   </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-help-count" />
+                     <p id="prev-help-count" className="text-xs text-muted-foreground text-right">{prevHelpTeammates.length} / 5,000</p>
+                     {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
+                   </div>
                 </div>
               ) : (
                 <div className="space-y-1.5">
