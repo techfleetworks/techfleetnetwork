@@ -171,10 +171,14 @@ export function useGeneralApplication() {
         country: form.country,
         timezone: form.timezone,
         discord_username: form.discord_username,
+        has_discord_account: form.has_discord_account,
         experience_areas: form.experience_areas,
         professional_goals: form.professional_goals,
         notify_training_opportunities: form.notify_training_opportunities,
+        notify_announcements: form.notify_announcements,
         education_background: form.education_background,
+        interests: form.interests,
+        scheduling_url: form.scheduling_url,
       });
       await refreshProfile();
     } catch {
