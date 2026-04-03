@@ -57,6 +57,11 @@ export default function ResourcesPage() {
 
   const resourceTabs: TabItem[] = [
     {
+      value: "guidance",
+      icon: <img src={fleetyIcon} alt="" className="h-4 w-4 rounded-full" width={16} height={16} aria-hidden="true" />,
+      label: "Guidance",
+    },
+    {
       value: "explore",
       icon: <Sparkles className="h-4 w-4" />,
       label: "Explore",
