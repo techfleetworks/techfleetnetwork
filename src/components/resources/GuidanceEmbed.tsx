@@ -197,7 +197,7 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
               {msg.role === "assistant" ? (
                 <div>
                   <div className="fleety-prose">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{msg.content}</ReactMarkdown>
                   </div>
                   {!isLoading && msg.content.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-border/50">
