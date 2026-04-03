@@ -692,7 +692,7 @@ export default function ProjectApplicationStatusPage() {
                 : "Interview details"}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+          <ScrollArea className="h-[calc(100vh-14rem)] pr-4">
             {interviewNotification?.body_html ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
@@ -702,6 +702,20 @@ export default function ProjectApplicationStatusPage() {
               <p className="text-muted-foreground text-sm">No invitation details available.</p>
             )}
           </ScrollArea>
+          {applicantStatus === "invited_to_interview" && (
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm text-muted-foreground mb-3">
+                Once you've scheduled your interview, let the coordinator know:
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => { handleMarkScheduled(); setInvitePanelOpen(false); }}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                I have Scheduled
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
