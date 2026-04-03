@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Bot, User, Loader2, Volume2, VolumeX } from "lucide-react";
+import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ReactMarkdown from "react-markdown";
@@ -87,6 +87,8 @@ async function streamChat({
   onDone();
 }
 
+type Conversation = { id: string; title: string; updated_at: string };
+
 export function FleetyChatWidget() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -94,6 +96,9 @@ export function FleetyChatWidget() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -110,6 +115,62 @@ export function FleetyChatWidget() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Load conversations on mount
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("chat_conversations")
+      .select("id, title, updated_at")
+      .order("updated_at", { ascending: false });
+    if (data) setConversations(data);
+  }, [user]);
+
+  useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (!activeConvoId) { setMessages([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("conversation_id", activeConvoId)
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data as Msg[]);
+    })();
+  }, [activeConvoId]);
+
+  const createConversation = async (firstMessage: string): Promise<string | null> => {
+    if (!user) return null;
+    const title = firstMessage.length > 50 ? firstMessage.slice(0, 50) + "…" : firstMessage;
+    const { data, error } = await supabase
+      .from("chat_conversations")
+      .insert({ user_id: user.id, title })
+      .select("id")
+      .single();
+    if (error || !data) return null;
+    await loadConversations();
+    return data.id;
+  };
+
+  const saveMessage = async (convoId: string, role: string, content: string) => {
+    await supabase.from("chat_messages").insert({ conversation_id: convoId, role, content });
+    await supabase.from("chat_conversations").update({ updated_at: new Date().toISOString() }).eq("id", convoId);
+  };
+
+  const deleteConversation = async (convoId: string) => {
+    await supabase.from("chat_conversations").delete().eq("id", convoId);
+    if (activeConvoId === convoId) { setActiveConvoId(null); setMessages([]); }
+    await loadConversations();
+  };
+
+  const startNewChat = () => {
+    setActiveConvoId(null);
+    setMessages([]);
+    setShowHistory(false);
+    inputRef.current?.focus();
+  };
 
   const toggleSpeak = useCallback((index: number, text: string) => {
     const synth = window.speechSynthesis;
@@ -137,6 +198,14 @@ export function FleetyChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
+    // Create or reuse conversation
+    let convoId = activeConvoId;
+    if (!convoId && user) {
+      convoId = await createConversation(text);
+      if (convoId) setActiveConvoId(convoId);
+    }
+    if (convoId) await saveMessage(convoId, "user", text);
+
     let assistantSoFar = "";
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
@@ -153,7 +222,13 @@ export function FleetyChatWidget() {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsLoading(false),
+        onDone: async () => {
+          setIsLoading(false);
+          if (convoId && assistantSoFar) {
+            await saveMessage(convoId, "assistant", assistantSoFar);
+            await loadConversations();
+          }
+        },
       });
     } catch (e: any) {
       console.error(e);
@@ -199,11 +274,51 @@ export function FleetyChatWidget() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:w-[440px] p-0 flex flex-col">
           <SheetHeader className="px-4 py-3 border-b shrink-0">
-            <SheetTitle className="flex items-center gap-2">
-              <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
-              Fleety
+            <SheetTitle className="flex items-center gap-2 justify-between">
+              <span className="flex items-center gap-2">
+                <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
+                Fleety
+              </span>
+              <span className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowHistory(!showHistory)} aria-label="Toggle history">
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startNewChat} aria-label="New chat">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </span>
             </SheetTitle>
           </SheetHeader>
+
+          {/* History panel */}
+          {showHistory && (
+            <div className="border-b max-h-48 overflow-y-auto p-2 space-y-0.5 shrink-0">
+              {conversations.length === 0 && (
+                <p className="text-xs text-muted-foreground p-2 text-center">No conversations yet</p>
+              )}
+              {conversations.map((c) => (
+                <div
+                  key={c.id}
+                  className={`group flex items-center gap-1.5 rounded-md px-2 py-1.5 cursor-pointer text-sm transition-colors ${
+                    activeConvoId === c.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  onClick={() => { setActiveConvoId(c.id); setShowHistory(false); }}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-xs">{c.title}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Delete conversation"
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Messages */}
           <div
