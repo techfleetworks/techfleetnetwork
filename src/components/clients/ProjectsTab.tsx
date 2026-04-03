@@ -165,9 +165,18 @@ export function ProjectsTab() {
               <Card key={p.id} className="flex flex-col">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <CardTitle className="text-lg leading-tight">{client?.name ?? "Unknown"}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)} · {phaseLabel(p.phase)}</p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {client?.logo_url ? (
+                        <img src={client.logo_url} alt={`${client.name} logo`} className="h-10 w-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <FolderKanban className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <CardTitle className="text-lg leading-tight truncate">{client?.name ?? "Unknown"}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)} · {phaseLabel(p.phase)}</p>
+                      </div>
                     </div>
                     <Badge className={statusBadgeColor(p.project_status)}>{statusLabel(p.project_status)}</Badge>
                   </div>
