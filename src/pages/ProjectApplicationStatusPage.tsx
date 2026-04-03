@@ -618,6 +618,66 @@ export default function ProjectApplicationStatusPage() {
         </CardContent>
       </Card>
 
+      {/* What to Expect Timeline — shown for early-stage applicants */}
+      {["pending_review", "invited_to_interview", "interview_scheduled"].includes(applicantStatus) && (
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              What to Expect
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-5">
+              Here's a general timeline of what happens after you submit your application:
+            </p>
+            <div className="relative pl-8 space-y-6">
+              {/* Vertical connector line */}
+              <div className="absolute left-[11px] top-1 bottom-1 w-0.5 bg-border" aria-hidden="true" />
+
+              {/* Week 1–2 */}
+              <div className="relative flex gap-4">
+                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
+                  <Mail className="h-3 w-3 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Week 1–2: Interview Invitation</p>
+                  <p className="text-sm text-muted-foreground">
+                    You'll hear back from a coordinator about scheduling an interview. Keep an eye on your notifications!
+                  </p>
+                </div>
+              </div>
+
+              {/* Week 3–4 */}
+              <div className="relative flex gap-4">
+                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
+                  <Briefcase className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Week 3–4: Recruitment & Interviews</p>
+                  <p className="text-sm text-muted-foreground">
+                    The coordinator will conduct interviews and recruit trainees for the project team.
+                  </p>
+                </div>
+              </div>
+
+              {/* Week 5–6 */}
+              <div className="relative flex gap-4">
+                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
+                  <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Week 5–6: Team Selection & Onboarding</p>
+                  <p className="text-sm text-muted-foreground">
+                    The team gets selected and starts onboarding together. You'll be notified if you're selected!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Interview Invitation Side Panel */}
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
         <SheetContent className="sm:max-w-lg">
