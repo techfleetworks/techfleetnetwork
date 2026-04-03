@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
 
     if (!inviteUrl) {
       throw new Error(
-        `Failed to create Discord invite. Grant the bot 'Create Invite' permission on at least one of: ${preferredNames.join(", ")}. Errors: ${inviteErrors.join(" | ")}`,
+        `Failed to create Discord invite. The bot could not create an invite in any of the ${candidates.length} candidate text channels. This usually means a channel-level override is still denying "Create Invite" for the bot or its role. Errors: ${inviteErrors.slice(0, 12).join(" | ")}`,
       );
     }
 
