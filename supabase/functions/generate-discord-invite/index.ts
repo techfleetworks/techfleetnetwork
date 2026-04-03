@@ -1,4 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import {
+  getInviteChannelCandidates,
+  type DiscordInviteChannel,
+} from "../_shared/discord-invite-utils.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const logger = createEdgeLogger("generate-discord-invite");
