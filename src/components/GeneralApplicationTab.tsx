@@ -129,7 +129,7 @@ export function GeneralApplicationTab() {
 
       {/* ── Sticky Footer CTAs ─────────────────────────────── */}
       <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
-        <div className="max-w-3xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-4xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
             {section > 1 && (
               <Button variant="outline" onClick={handleBack}>
