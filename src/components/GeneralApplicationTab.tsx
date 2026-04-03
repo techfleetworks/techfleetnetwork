@@ -75,7 +75,7 @@ export function GeneralApplicationTab() {
 
       {/* ── Content ─────────────────────────────── */}
       <div ref={formContainerRef}>
-        <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-6">
           <div className="card-elevated p-6 space-y-6">
             {/* Error summary banner */}
             {Object.keys(errors).length > 0 && (
