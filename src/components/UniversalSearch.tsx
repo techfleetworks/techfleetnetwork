@@ -25,7 +25,7 @@ type SearchGroup =
   | "Courses"
   | "Applications"
   | "Project Training"
-  | "Updates"
+  | "Community Updates"
   | "Clients"
   | "Projects"
   | "Members";
