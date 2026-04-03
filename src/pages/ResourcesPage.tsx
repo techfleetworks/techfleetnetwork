@@ -92,6 +92,10 @@ export default function ResourcesPage() {
       <ResponsiveTabs value={tab} onValueChange={setTab} className="space-y-6">
         <ResponsiveTabsList tabs={resourceTabs} value={tab} onValueChange={setTab} />
 
+        <ResponsiveTabsContent value="guidance">
+          <GuidanceEmbed initialQuery={searchParams.get("q") || undefined} />
+        </ResponsiveTabsContent>
+
         <ResponsiveTabsContent value="explore">
           <ExploreTab />
         </ResponsiveTabsContent>

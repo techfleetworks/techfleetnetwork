@@ -49,6 +49,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
+import { FleetyChatWidget } from "./FleetyChatWidget";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
