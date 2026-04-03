@@ -16,7 +16,9 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedHandbook, setSelectedHandbook] = useState<Handbook | null>(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
-  const [tab, setTab] = useState("explore");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "guidance";
+  const [tab, setTab] = useState(initialTab);
 
   useEffect(() => {
     async function load() {
