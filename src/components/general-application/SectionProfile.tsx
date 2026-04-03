@@ -7,12 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
+import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle, Link as LinkIcon, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
+import { ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { Separator } from "@/components/ui/separator";
 import type { AppFormData } from "@/lib/validators/general-application";
 
 const educationOptions: MultiSelectOption[] = EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }));
@@ -23,10 +25,17 @@ interface Props {
   updateField: <K extends keyof AppFormData>(key: K, value: AppFormData[K]) => void;
 }
 
-/** Section 2: Profile Review — location, discord, experience, education, goals */
+/** Section 2: Profile Review — location, discord, experience, education, goals, interests, preferences */
 export function SectionProfile({ form, errors, updateField }: Props) {
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
+
+  const toggleInterest = (interest: string) => {
+    const next = form.interests.includes(interest)
+      ? form.interests.filter((i) => i !== interest)
+      : [...form.interests, interest];
+    updateField("interests", next);
+  };
 
   return (
     <div className="space-y-6">
@@ -67,22 +76,6 @@ export function SectionProfile({ form, errors, updateField }: Props) {
         {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
       </div>
 
-      {/* Discord */}
-      <div className="space-y-1.5">
-        <Label htmlFor="app-discord">Discord Username</Label>
-        <div className="relative">
-          <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <Input
-            id="app-discord"
-            value={form.discord_username}
-            onChange={(e) => updateField("discord_username", e.target.value)}
-            placeholder="username"
-            className="pl-10"
-            maxLength={100}
-          />
-        </div>
-      </div>
-
       {/* Timezone */}
       <div className="space-y-1.5">
         <Label>Timezone <span className="text-destructive">*</span></Label>
@@ -119,6 +112,55 @@ export function SectionProfile({ form, errors, updateField }: Props) {
         </Popover>
         {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
       </div>
+
+      {/* Discord Connection */}
+      <div className="space-y-1.5">
+        <Label>Do you have a Discord account?</Label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="has_discord"
+              checked={form.has_discord_account}
+              onChange={() => updateField("has_discord_account", true)}
+              className="accent-primary"
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="radio"
+              name="has_discord"
+              checked={!form.has_discord_account}
+              onChange={() => {
+                updateField("has_discord_account", false);
+                updateField("discord_username", "");
+              }}
+              className="accent-primary"
+            />
+            No
+          </label>
+        </div>
+      </div>
+
+      {form.has_discord_account && (
+        <div className="space-y-1.5">
+          <Label htmlFor="app-discord">Discord Username</Label>
+          <div className="relative">
+            <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="app-discord"
+              value={form.discord_username}
+              onChange={(e) => updateField("discord_username", e.target.value)}
+              placeholder="username"
+              className="pl-10"
+              maxLength={100}
+            />
+          </div>
+        </div>
+      )}
+
+      <Separator />
 
       {/* Experience */}
       <div className="space-y-1.5">
@@ -161,16 +203,87 @@ export function SectionProfile({ form, errors, updateField }: Props) {
         {errors.professional_goals && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.professional_goals}</p>}
       </div>
 
-      {/* Training notifications opt-in */}
-      <div className="flex items-start gap-3">
-        <Checkbox
-          id="app-notify-training"
-          checked={form.notify_training_opportunities}
-          onCheckedChange={(checked) => updateField("notify_training_opportunities", !!checked)}
-        />
-        <Label htmlFor="app-notify-training" className="text-sm leading-relaxed cursor-pointer">
-          I'd like to receive notifications about new training opportunities
-        </Label>
+      {/* Scheduling URL */}
+      <div className="space-y-1.5">
+        <Label htmlFor="app-scheduling-url">Scheduling Link</Label>
+        <p className="text-xs text-muted-foreground">Share your scheduling link (e.g., Calendly) for interview coordination</p>
+        <div className="relative">
+          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <Input
+            id="app-scheduling-url"
+            value={form.scheduling_url}
+            onChange={(e) => updateField("scheduling_url", e.target.value)}
+            placeholder="https://calendly.com/your-link"
+            className="pl-10"
+            maxLength={500}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Activity Interests */}
+      <div className="space-y-3">
+        <Label>Activity Interests</Label>
+        <p className="text-xs text-muted-foreground">What kinds of activities do you want to do in Tech Fleet?</p>
+        {ACTIVITY_OPTIONS.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => toggleInterest(option)}
+            className={cn(
+              "w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3",
+              form.interests.includes(option)
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
+            )}
+          >
+            <div
+              className={cn(
+                "h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center",
+                form.interests.includes(option)
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "border-primary"
+              )}
+              aria-hidden="true"
+            >
+              {form.interests.includes(option) && (
+                <Check className="h-3 w-3" />
+              )}
+            </div>
+            <span className="text-sm">{option}</span>
+          </button>
+        ))}
+      </div>
+
+      <Separator />
+
+      {/* Notification Preferences */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-base font-semibold">Notification Preferences</Label>
+        </div>
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="app-notify-training"
+            checked={form.notify_training_opportunities}
+            onCheckedChange={(checked) => updateField("notify_training_opportunities", !!checked)}
+          />
+          <Label htmlFor="app-notify-training" className="text-sm leading-relaxed cursor-pointer">
+            I'd like to receive notifications about new training opportunities
+          </Label>
+        </div>
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="app-notify-announcements"
+            checked={form.notify_announcements}
+            onCheckedChange={(checked) => updateField("notify_announcements", !!checked)}
+          />
+          <Label htmlFor="app-notify-announcements" className="text-sm leading-relaxed cursor-pointer">
+            I'd like to receive email notifications about announcements
+          </Label>
+        </div>
       </div>
     </div>
   );

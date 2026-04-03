@@ -20,10 +20,14 @@ export interface AppFormData {
   country: string;
   timezone: string;
   discord_username: string;
+  has_discord_account: boolean;
   experience_areas: string[];
   professional_goals: string;
   notify_training_opportunities: boolean;
+  notify_announcements: boolean;
   education_background: string[];
+  interests: string[];
+  scheduling_url: string;
   // Section 3
   previous_engagement: string;
   previous_engagement_ways: string[];
@@ -47,10 +51,14 @@ export const EMPTY_FORM: AppFormData = {
   country: "",
   timezone: "",
   discord_username: "",
+  has_discord_account: true,
   experience_areas: [],
   professional_goals: "",
   notify_training_opportunities: false,
+  notify_announcements: false,
   education_background: [],
+  interests: [],
+  scheduling_url: "",
   previous_engagement: "",
   previous_engagement_ways: [],
   teammate_learnings: "",
@@ -79,6 +87,7 @@ export const FIELD_MAX_LENGTHS: Partial<Record<keyof AppFormData, number>> = {
   hours_commitment: MAX_SHORT,
   portfolio_url: MAX_SHORT,
   linkedin_url: MAX_SHORT,
+  scheduling_url: MAX_SHORT,
   professional_goals: MAX_LONG,
   teammate_learnings: MAX_LONG,
   agile_vs_waterfall: MAX_LONG,
