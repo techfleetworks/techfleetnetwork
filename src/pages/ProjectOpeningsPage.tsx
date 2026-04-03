@@ -32,6 +32,7 @@ interface OpenProject {
 interface ClientInfo {
   id: string;
   name: string;
+  logo_url?: string;
 }
 
 interface ProjectAppStat {
