@@ -141,9 +141,11 @@ export default function ProjectOpeningsPage() {
   const enrichedProjects = useMemo<EnrichedProject[]>(() =>
     projects.map((p) => {
       const stats = statsMap.get(p.id);
+      const client = clientMap.get(p.client_id);
       return {
         ...p,
-        clientName: clientMap.get(p.client_id) ?? "Client",
+        clientName: client?.name ?? "Client",
+        clientLogoUrl: client?.logo_url || undefined,
         totalApps: stats?.total ?? 0,
         hatCounts: stats?.hatCounts ?? {},
         userApplied: appliedProjectIds.has(p.id),
