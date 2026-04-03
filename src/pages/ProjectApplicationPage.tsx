@@ -525,10 +525,11 @@ export default function ProjectApplicationPage() {
             if (isCompleted || s <= step) setStep(s);
           }}
         />
+        </div>
       </div>
 
-      {/* ── Scrollable Content ────────────────────────────── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      {/* ── Content ────────────────────────────── */}
+      <div ref={scrollRef}>
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
           {step === 1 && (
           <Card>
