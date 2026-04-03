@@ -667,29 +667,33 @@ export default function ProjectApplicationPage() {
 
               {participatedPrev ? (
                 <div className="space-y-4 pl-1 border-l-2 border-primary/20 ml-2 pl-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} />
-                    {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} />
-                    {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
-                    <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} />
-                    {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
-                  </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} maxLength={5000} aria-describedby="prev-position-count" />
+                     <p id="prev-position-count" className="text-xs text-muted-foreground text-right">{prevPosition.length} / 5,000</p>
+                     {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
+                   </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-learnings-count" />
+                     <p id="prev-learnings-count" className="text-xs text-muted-foreground text-right">{prevLearnings.length} / 5,000</p>
+                     {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
+                   </div>
+                   <div className="space-y-1.5">
+                     <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
+                     <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-help-count" />
+                     <p id="prev-help-count" className="text-xs text-muted-foreground text-right">{prevHelpTeammates.length} / 5,000</p>
+                     {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
+                   </div>
                 </div>
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="prior-prep">
                     How has your prior engagement (either in projects, in classes, or observing) in Tech Fleet community prepared you for this team role? <span className="text-destructive">*</span>
                   </Label>
-                  <Textarea id="prior-prep" value={priorPreparation} onChange={(e) => setPriorPreparation(e.target.value)} rows={4} />
-                  {errors.prior_engagement_preparation && <p className="text-xs text-destructive">{errors.prior_engagement_preparation}</p>}
+                   <Textarea id="prior-prep" value={priorPreparation} onChange={(e) => setPriorPreparation(e.target.value)} rows={4} maxLength={5000} aria-describedby="prior-prep-count" />
+                   <p id="prior-prep-count" className="text-xs text-muted-foreground text-right">{priorPreparation.length} / 5,000</p>
+                   {errors.prior_engagement_preparation && <p className="text-xs text-destructive">{errors.prior_engagement_preparation}</p>}
                 </div>
               )}
             </div>
@@ -702,32 +706,36 @@ export default function ProjectApplicationPage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="passion">Why are you passionate about being on this project? <span className="text-destructive">*</span></Label>
-                <Textarea id="passion" value={passion} onChange={(e) => setPassion(e.target.value)} rows={4} />
-                {errors.passion_for_project && <p className="text-xs text-destructive">{errors.passion_for_project}</p>}
+                 <Textarea id="passion" value={passion} onChange={(e) => setPassion(e.target.value)} rows={4} maxLength={5000} aria-describedby="passion-count" />
+                 <p id="passion-count" className="text-xs text-muted-foreground text-right">{passion.length} / 5,000</p>
+                 {errors.passion_for_project && <p className="text-xs text-destructive">{errors.passion_for_project}</p>}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="client-knowledge">
                   What do you know about the client and the project that you're applying to? Tell us about it. <span className="text-destructive">*</span>
                 </Label>
-                <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} />
-                {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
+                 <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} maxLength={5000} aria-describedby="client-knowledge-count" />
+                 <p id="client-knowledge-count" className="text-xs text-muted-foreground text-right">{clientKnowledge.length} / 5,000</p>
+                 {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="cross-functional">
                   How would you like to contribute to cross-functional teamwork on the team? <span className="text-destructive">*</span>
                 </Label>
-                <Textarea id="cross-functional" value={crossFunctional} onChange={(e) => setCrossFunctional(e.target.value)} rows={4} />
-                {errors.cross_functional_contribution && <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>}
+                 <Textarea id="cross-functional" value={crossFunctional} onChange={(e) => setCrossFunctional(e.target.value)} rows={4} maxLength={5000} aria-describedby="cross-functional-count" />
+                 <p id="cross-functional-count" className="text-xs text-muted-foreground text-right">{crossFunctional.length} / 5,000</p>
+                 {errors.cross_functional_contribution && <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="success-contribution">
                   How will you contribute to this project's successful outcomes as an apprentice or a co-lead and as a teammate? <span className="text-destructive">*</span>
                 </Label>
-                <Textarea id="success-contribution" value={successContribution} onChange={(e) => setSuccessContribution(e.target.value)} rows={4} />
-                {errors.project_success_contribution && <p className="text-xs text-destructive">{errors.project_success_contribution}</p>}
+                 <Textarea id="success-contribution" value={successContribution} onChange={(e) => setSuccessContribution(e.target.value)} rows={4} maxLength={5000} aria-describedby="success-contribution-count" />
+                 <p id="success-contribution-count" className="text-xs text-muted-foreground text-right">{successContribution.length} / 5,000</p>
+                 {errors.project_success_contribution && <p className="text-xs text-destructive">{errors.project_success_contribution}</p>}
               </div>
             </div>
           )}
