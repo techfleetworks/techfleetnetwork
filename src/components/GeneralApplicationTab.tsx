@@ -54,7 +54,7 @@ export function GeneralApplicationTab() {
     <div className="relative">
       {/* ── Sticky Progress Bar ────────────────────────────── */}
       <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
-        <div className="max-w-3xl w-full mx-auto">
+        <div className="max-w-4xl w-full mx-auto">
         <StepProgressBar
           steps={SECTION_TITLES.map((label, i) => {
             const s = i + 1;
@@ -75,7 +75,7 @@ export function GeneralApplicationTab() {
 
       {/* ── Content ─────────────────────────────── */}
       <div ref={formContainerRef}>
-        <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-6">
           <div className="card-elevated p-6 space-y-6">
             {/* Error summary banner */}
             {Object.keys(errors).length > 0 && (
@@ -129,7 +129,7 @@ export function GeneralApplicationTab() {
 
       {/* ── Sticky Footer CTAs ─────────────────────────────── */}
       <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
-        <div className="max-w-3xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-4xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
             {section > 1 && (
               <Button variant="outline" onClick={handleBack}>
