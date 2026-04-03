@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
   Building2, Plus, Pencil, Trash2, Loader2,
-  LayoutGrid, List, Globe, User, ExternalLink,
+  LayoutGrid, List, Globe, User, ExternalLink, Upload, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +44,30 @@ export interface Client extends ClientForm {
   created_by: string;
   created_at: string;
   updated_at: string;
+  logo_url: string;
 }
 
 const EMPTY_FORM: ClientForm = {
   name: "", website: "", mission: "", project_summary: "", status: "active", primary_contact: "",
 };
+
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+
+async function uploadClientLogo(clientId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
+  const path = `${clientId}/logo.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("client-logos")
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage.from("client-logos").getPublicUrl(path);
+  // Append cache-buster to force reload after update
+  return `${data.publicUrl}?t=${Date.now()}`;
+}
 
 export function ClientsTab() {
   const { user } = useAuth();
@@ -59,6 +78,10 @@ export function ClientsTab() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof ClientForm, string>>>({});
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -70,10 +93,41 @@ export function ClientsTab() {
     },
   });
 
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Please upload a PNG, JPG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      toast.error("Image must be under 2MB.");
+      return;
+    }
+    setLogoFile(file);
+    setRemoveLogo(false);
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setRemoveLogo(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const createMutation = useMutation({
     mutationFn: async (values: ClientForm) => {
-      const { error } = await supabase.from("clients").insert({ ...values, created_by: user!.id } as any);
+      const { data, error } = await supabase.from("clients").insert({ ...values, created_by: user!.id } as any).select("id").single();
       if (error) throw error;
+      const clientId = (data as any).id as string;
+
+      if (logoFile) {
+        const logoUrl = await uploadClientLogo(clientId, logoFile);
+        await supabase.from("clients").update({ logo_url: logoUrl } as any).eq("id", clientId);
+      }
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); toast.success("Client created"); closeDialog(); },
     onError: (err: Error) => toast.error(err.message),
@@ -81,7 +135,18 @@ export function ClientsTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: ClientForm }) => {
-      const { error } = await supabase.from("clients").update(values as any).eq("id", id);
+      let logoUrl: string | undefined;
+
+      if (logoFile) {
+        logoUrl = await uploadClientLogo(id, logoFile);
+      } else if (removeLogo) {
+        logoUrl = "";
+      }
+
+      const updatePayload: any = { ...values };
+      if (logoUrl !== undefined) updatePayload.logo_url = logoUrl;
+
+      const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); toast.success("Client updated"); closeDialog(); },
@@ -97,12 +162,35 @@ export function ClientsTab() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const closeDialog = useCallback(() => { setDialogOpen(false); setEditingClient(null); setForm(EMPTY_FORM); setErrors({}); }, []);
-  const openCreate = useCallback(() => { setEditingClient(null); setForm(EMPTY_FORM); setErrors({}); setDialogOpen(true); }, []);
+  const closeDialog = useCallback(() => {
+    setDialogOpen(false);
+    setEditingClient(null);
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setLogoFile(null);
+    setLogoPreview(null);
+    setRemoveLogo(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const openCreate = useCallback(() => {
+    setEditingClient(null);
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setLogoFile(null);
+    setLogoPreview(null);
+    setRemoveLogo(false);
+    setDialogOpen(true);
+  }, []);
+
   const openEdit = useCallback((client: Client) => {
     setEditingClient(client);
     setForm({ name: client.name, website: client.website, mission: client.mission, project_summary: client.project_summary, status: client.status, primary_contact: client.primary_contact });
-    setErrors({}); setDialogOpen(true);
+    setErrors({});
+    setLogoFile(null);
+    setLogoPreview(client.logo_url || null);
+    setRemoveLogo(false);
+    setDialogOpen(true);
   }, []);
 
   const handleSubmit = useCallback(() => {
@@ -186,6 +274,8 @@ export function ClientsTab() {
 
   if (isLoading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
+  const currentLogoDisplay = logoPreview && !removeLogo ? logoPreview : null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -226,7 +316,20 @@ export function ClientsTab() {
             <Card key={c.id} className="flex flex-col">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg leading-tight">{c.name}</CardTitle>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {c.logo_url ? (
+                      <img
+                        src={c.logo_url}
+                        alt={`${c.name} logo`}
+                        className="h-10 w-10 rounded-lg object-cover border border-border flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <CardTitle className="text-lg leading-tight truncate">{c.name}</CardTitle>
+                  </div>
                   {statusBadge(c.status)}
                 </div>
               </CardHeader>
@@ -256,6 +359,53 @@ export function ClientsTab() {
             <DialogDescription>{editingClient ? "Update the client record below." : "Fill out the form to create a new client."}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Logo upload */}
+            <div className="space-y-1.5">
+              <Label>Client Logo</Label>
+              <div className="flex items-center gap-4">
+                {currentLogoDisplay ? (
+                  <div className="relative">
+                    <img
+                      src={currentLogoDisplay}
+                      alt="Client logo preview"
+                      className="h-16 w-16 rounded-lg object-cover border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={clearLogo}
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                      aria-label="Remove logo"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-16 w-16 rounded-lg bg-muted border-2 border-dashed border-border flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-1.5" />
+                    {currentLogoDisplay ? "Change" : "Upload"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WebP · Max 2MB</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  onChange={handleLogoSelect}
+                  className="hidden"
+                  aria-label="Upload client logo"
+                />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="client-name">Client Name <span className="text-destructive">*</span></Label>
               <Input id="client-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} maxLength={200} aria-invalid={!!errors.name} />
