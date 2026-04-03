@@ -735,6 +735,7 @@ export default function ProjectApplicationPage() {
                 </Label>
                  <Textarea id="success-contribution" value={successContribution} onChange={(e) => setSuccessContribution(e.target.value)} rows={4} maxLength={5000} aria-describedby="success-contribution-count" />
                  <p id="success-contribution-count" className="text-xs text-muted-foreground text-right">{successContribution.length} / 5,000</p>
+                 {errors.project_success_contribution && <p className="text-xs text-destructive">{errors.project_success_contribution}</p>}
               </div>
             </div>
           )}
