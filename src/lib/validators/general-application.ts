@@ -20,10 +20,14 @@ export interface AppFormData {
   country: string;
   timezone: string;
   discord_username: string;
+  has_discord_account: boolean;
   experience_areas: string[];
   professional_goals: string;
   notify_training_opportunities: boolean;
+  notify_announcements: boolean;
   education_background: string[];
+  interests: string[];
+  scheduling_url: string;
   // Section 3
   previous_engagement: string;
   previous_engagement_ways: string[];
