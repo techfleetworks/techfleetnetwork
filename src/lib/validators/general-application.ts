@@ -72,7 +72,7 @@ export const EMPTY_FORM: AppFormData = {
   servant_leadership_situation: "",
 };
 
-export const TOTAL_SECTIONS = 5;
+export const TOTAL_SECTIONS = 6;
 
 export const SECTION_TITLES = [
   "Intro",
@@ -80,6 +80,7 @@ export const SECTION_TITLES = [
   "Engagement",
   "Agile",
   "Service Leadership",
+  "Review",
 ];
 
 /** Length limits for each text field — used in validation and UI */
