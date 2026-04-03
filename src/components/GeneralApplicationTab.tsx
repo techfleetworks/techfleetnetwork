@@ -69,10 +69,11 @@ export function GeneralApplicationTab() {
           currentStep={section}
           onStepClick={(s) => { setErrors({}); setSection(s); }}
         />
+        </div>
       </div>
 
-      {/* ── Scrollable Content ─────────────────────────────── */}
-      <div ref={formContainerRef} className="flex-1 overflow-y-auto">
+      {/* ── Content ─────────────────────────────── */}
+      <div ref={formContainerRef}>
         <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
           <div className="card-elevated p-6 space-y-6">
             {/* Error summary banner */}
