@@ -79,7 +79,7 @@ export default function ProjectOpeningsPage() {
     queryKey: ["project-opening-clients", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
-      const { data, error } = await supabase.from("clients").select("id, name").in("id", clientIds);
+      const { data, error } = await supabase.from("clients").select("id, name, logo_url").in("id", clientIds);
       if (error) throw error;
       return (data ?? []) as ClientInfo[];
     },
