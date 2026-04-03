@@ -693,6 +693,7 @@ export default function ProjectApplicationPage() {
                   </Label>
                    <Textarea id="prior-prep" value={priorPreparation} onChange={(e) => setPriorPreparation(e.target.value)} rows={4} maxLength={5000} aria-describedby="prior-prep-count" />
                    <p id="prior-prep-count" className="text-xs text-muted-foreground text-right">{priorPreparation.length} / 5,000</p>
+                   {errors.prior_engagement_preparation && <p className="text-xs text-destructive">{errors.prior_engagement_preparation}</p>}
                 </div>
               )}
             </div>
