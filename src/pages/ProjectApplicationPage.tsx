@@ -717,6 +717,7 @@ export default function ProjectApplicationPage() {
                 </Label>
                  <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} maxLength={5000} aria-describedby="client-knowledge-count" />
                  <p id="client-knowledge-count" className="text-xs text-muted-foreground text-right">{clientKnowledge.length} / 5,000</p>
+                 {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
               </div>
 
               <div className="space-y-1.5">
