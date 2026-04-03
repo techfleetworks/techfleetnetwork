@@ -86,7 +86,7 @@ export default function ProjectOpeningsPage() {
     enabled: clientIds.length > 0,
   });
 
-  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
   const { data: appStats = [] } = useQuery({
