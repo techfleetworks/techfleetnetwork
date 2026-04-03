@@ -708,6 +708,7 @@ export default function ProjectApplicationPage() {
                 <Label htmlFor="passion">Why are you passionate about being on this project? <span className="text-destructive">*</span></Label>
                  <Textarea id="passion" value={passion} onChange={(e) => setPassion(e.target.value)} rows={4} maxLength={5000} aria-describedby="passion-count" />
                  <p id="passion-count" className="text-xs text-muted-foreground text-right">{passion.length} / 5,000</p>
+                 {errors.passion_for_project && <p className="text-xs text-destructive">{errors.passion_for_project}</p>}
               </div>
 
               <div className="space-y-1.5">
