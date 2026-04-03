@@ -87,6 +87,7 @@ export const FIELD_MAX_LENGTHS: Partial<Record<keyof AppFormData, number>> = {
   hours_commitment: MAX_SHORT,
   portfolio_url: MAX_SHORT,
   linkedin_url: MAX_SHORT,
+  scheduling_url: MAX_SHORT,
   professional_goals: MAX_LONG,
   teammate_learnings: MAX_LONG,
   agile_vs_waterfall: MAX_LONG,
