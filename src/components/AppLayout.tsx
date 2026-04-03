@@ -478,6 +478,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         <ProfileSetupDialog />
+        <FleetyChatWidget />
       </SidebarProvider>
     </PageHeaderProvider>
   );
