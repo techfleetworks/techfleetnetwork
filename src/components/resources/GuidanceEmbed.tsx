@@ -1,0 +1,280 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Loader2, Volume2, VolumeX, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
+import fleetyIcon from "@/assets/fleety-icon.png";
+
+type Msg = { role: "user" | "assistant"; content: string };
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
+
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+}: {
+  messages: Msg[];
+  onDelta: (deltaText: string) => void;
+  onDone: () => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!resp.ok) {
+    const errData = await resp.json().catch(() => ({}));
+    throw new Error(errData.error || `Request failed (${resp.status})`);
+  }
+  if (!resp.body) throw new Error("No response stream");
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let textBuffer = "";
+  let streamDone = false;
+
+  while (!streamDone) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    textBuffer += decoder.decode(value, { stream: true });
+    let newlineIndex: number;
+    while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+      let line = textBuffer.slice(0, newlineIndex);
+      textBuffer = textBuffer.slice(newlineIndex + 1);
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") { streamDone = true; break; }
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {
+        textBuffer = line + "\n" + textBuffer;
+        break;
+      }
+    }
+  }
+
+  if (textBuffer.trim()) {
+    for (let raw of textBuffer.split("\n")) {
+      if (!raw) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (raw.startsWith(":") || raw.trim() === "") continue;
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch { /* ignore */ }
+    }
+  }
+  onDone();
+}
+
+interface GuidanceEmbedProps {
+  initialQuery?: string;
+}
+
+export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState(initialQuery ?? "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  useEffect(() => { return () => { window.speechSynthesis.cancel(); }; }, []);
+
+  const toggleSpeak = useCallback((index: number, text: string) => {
+    const synth = window.speechSynthesis;
+    if (speakingIdx === index) { synth.cancel(); setSpeakingIdx(null); return; }
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text.replace(/[#*_`[\]()]/g, ""));
+    utterance.rate = 0.95;
+    utterance.onend = () => setSpeakingIdx(null);
+    utterance.onerror = () => setSpeakingIdx(null);
+    setSpeakingIdx(index);
+    synth.speak(utterance);
+  }, [speakingIdx]);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+
+    const userMsg: Msg = { role: "user", content: text };
+    setInput("");
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+
+    let assistantSoFar = "";
+    const upsertAssistant = (nextChunk: string) => {
+      assistantSoFar += nextChunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar }];
+      });
+    };
+
+    try {
+      await streamChat({
+        messages: [...messages, userMsg],
+        onDelta: (chunk) => upsertAssistant(chunk),
+        onDone: () => setIsLoading(false),
+      });
+    } catch (e: any) {
+      console.error(e);
+      setIsLoading(false);
+      toast.error(e.message || "Failed to get a response.");
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[60vh] min-h-[400px] rounded-lg border bg-card overflow-hidden">
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5"
+        role="log"
+        aria-label="Fleety guidance conversation"
+        aria-live="polite"
+      >
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-12">
+            <img src={fleetyIcon} alt="" className="h-16 w-16 opacity-40 mb-4" width={64} height={64} aria-hidden="true" />
+            <h2 className="text-lg font-medium text-muted-foreground">Hi! I'm Fleety</h2>
+            <p className="text-sm text-muted-foreground/70 mt-1 max-w-md">
+              I can answer questions about Tech Fleet's community, team practices, workshops, handbooks, and onboarding process.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2 justify-center">
+              {[
+                "What is Tech Fleet?",
+                "How do I get started?",
+                "What workshops are available?",
+                "Tell me about team practices",
+              ].map((q) => (
+                <button
+                  key={q}
+                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                  className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "assistant" && (
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mt-1">
+                <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
+              </div>
+            )}
+            <div className={`max-w-[85%] rounded-lg ${
+              msg.role === "user"
+                ? "bg-primary text-primary-foreground px-4 py-3"
+                : "bg-muted/30 border border-border px-5 py-4"
+            }`}>
+              {msg.role === "assistant" ? (
+                <div>
+                  <div className="fleety-prose">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </div>
+                  {!isLoading && msg.content.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSpeak(i, msg.content)}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                        aria-label={speakingIdx === i ? "Stop reading aloud" : "Read aloud"}
+                      >
+                        {speakingIdx === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        {speakingIdx === i ? "Stop reading" : "Read aloud"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              )}
+            </div>
+            {msg.role === "user" && (
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center mt-1">
+                <User className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+          <div className="flex gap-3 justify-start">
+            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
+            </div>
+            <div className="bg-muted/30 border border-border rounded-lg px-4 py-3">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <form onSubmit={send} className="border-t p-4 flex gap-2 items-end shrink-0">
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={input}
+            onChange={(e) => { if (e.target.value.length <= 20000) setInput(e.target.value); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (input.trim() && !isLoading) send(e);
+              }
+            }}
+            placeholder="Ask about Tech Fleet..."
+            disabled={isLoading}
+            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none min-h-[40px] max-h-[200px]"
+            rows={1}
+            autoComplete="off"
+            aria-label="Type your question"
+            maxLength={20000}
+            style={{ height: "auto", overflow: "auto" }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = Math.min(el.scrollHeight, 200) + "px";
+            }}
+          />
+          {input.length > 15000 && (
+            <p className="text-xs text-muted-foreground text-right mt-0.5">
+              {input.length.toLocaleString()} / 20,000
+            </p>
+          )}
+        </div>
+        <Button type="submit" disabled={isLoading || !input.trim()} size="icon" aria-label="Send message">
+          <Send className="h-4 w-4" />
+        </Button>
+      </form>
+    </div>
+  );
+}
