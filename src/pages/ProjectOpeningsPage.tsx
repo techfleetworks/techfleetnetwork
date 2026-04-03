@@ -42,6 +42,7 @@ interface ProjectAppStat {
 
 interface EnrichedProject extends OpenProject {
   clientName: string;
+  clientLogoUrl?: string;
   totalApps: number;
   hatCounts: Record<string, number>;
   userApplied: boolean;
