@@ -4,6 +4,7 @@ import {
   Search, GraduationCap, ClipboardList, Handshake, Megaphone,
   Building2, FolderKanban, Users,
 } from "lucide-react";
+import fleetyIcon from "@/assets/fleety-icon.png";
 import {
   CommandDialog,
   CommandEmpty,
@@ -372,6 +373,43 @@ export function UniversalSearch() {
           <CommandEmpty>
             {searching ? "Searching…" : "No results found."}
           </CommandEmpty>
+          {/* Ask Fleety option — always visible */}
+          <CommandGroup heading="Fleety">
+            <CommandItem
+              value={`Ask Fleety ${query}`}
+              onSelect={() => {
+                setOpen(false);
+                setQuery("");
+                const openFleety = (window as any).__openFleetyWidget;
+                if (openFleety && query.trim()) {
+                  openFleety(query.trim());
+                } else {
+                  navigate("/resources?tab=guidance" + (query.trim() ? `&q=${encodeURIComponent(query.trim())}` : ""));
+                }
+              }}
+              className="flex items-start gap-3 py-2.5"
+            >
+              <img
+                src={fleetyIcon}
+                alt=""
+                className="h-5 w-5 mt-0.5 shrink-0 rounded-full"
+                width={20}
+                height={20}
+                aria-hidden="true"
+              />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground">
+                  Ask Fleety the Helper Bot
+                </span>
+                <span className="text-xs text-muted-foreground line-clamp-1">
+                  {query.trim()
+                    ? `Ask Fleety: "${query.trim()}"`
+                    : "Get guidance from Fleety, your Tech Fleet AI assistant"}
+                </span>
+              </div>
+            </CommandItem>
+          </CommandGroup>
+
           {Object.entries(grouped).map(([group, items]) => {
             const Icon = GROUP_ICONS[group as SearchGroup] ?? Search;
             return (

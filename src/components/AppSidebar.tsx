@@ -11,7 +11,7 @@ import {
   Activity,
   Megaphone,
   Building2,
-  MessageCircle,
+  
   MessageSquarePlus,
   Users,
   Map,
@@ -39,7 +39,6 @@ const homeNav = [
 const communityNav = [
   { label: "Announcements", href: "/updates", icon: Megaphone },
   { label: "Events", href: "/events", icon: CalendarDays },
-  { label: "Guidance", href: "/chat", icon: MessageCircle },
   { label: "Resources", href: "/resources", icon: BookOpen },
 ];
 

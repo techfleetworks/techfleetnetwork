@@ -49,6 +49,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
+import { FleetyChatWidget } from "./FleetyChatWidget";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
@@ -197,7 +198,7 @@ const mobileNavLinks = [
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
-  { label: "Guidance", href: "/chat", icon: MessageCircle },
+  { label: "Guidance", href: "/resources?tab=guidance", icon: MessageCircle },
   { label: "My Journey", href: "/my-journey", icon: Map },
   { label: "Project Openings", href: "/project-openings", icon: Handshake },
   { label: "Resources", href: "/resources", icon: BookOpen },
@@ -444,6 +445,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
+        <FleetyChatWidget />
       </div>
     );
   }
@@ -476,6 +478,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         <ProfileSetupDialog />
+        <FleetyChatWidget />
       </SidebarProvider>
     </PageHeaderProvider>
   );

@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BookOpen, Wrench, Loader2, Sparkles } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import ExploreTab from "@/components/resources/ExploreTab";
+import GuidanceEmbed from "@/components/resources/GuidanceEmbed";
 import ResourceCard from "@/components/resources/ResourceCard";
 import ResourceDetailPanel from "@/components/resources/ResourceDetailPanel";
 import { fetchHandbooks, handbookCategoryColors, type Handbook } from "@/data/handbooks";
 import { fetchWorkshops, workshopCategoryColors, type Workshop } from "@/data/workshops";
 import { toast } from "@/hooks/use-toast";
+import fleetyIcon from "@/assets/fleety-icon.png";
 
 export default function ResourcesPage() {
   const [handbooks, setHandbooks] = useState<Handbook[]>([]);
@@ -14,7 +17,9 @@ export default function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedHandbook, setSelectedHandbook] = useState<Handbook | null>(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
-  const [tab, setTab] = useState("explore");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "guidance";
+  const [tab, setTab] = useState(initialTab);
 
   useEffect(() => {
     async function load() {
@@ -53,6 +58,11 @@ export default function ResourcesPage() {
 
   const resourceTabs: TabItem[] = [
     {
+      value: "guidance",
+      icon: <img src={fleetyIcon} alt="" className="h-4 w-4 rounded-full" width={16} height={16} aria-hidden="true" />,
+      label: "Guidance",
+    },
+    {
       value: "explore",
       icon: <Sparkles className="h-4 w-4" />,
       label: "Explore",
@@ -82,6 +92,10 @@ export default function ResourcesPage() {
 
       <ResponsiveTabs value={tab} onValueChange={setTab} className="space-y-6">
         <ResponsiveTabsList tabs={resourceTabs} value={tab} onValueChange={setTab} />
+
+        <ResponsiveTabsContent value="guidance">
+          <GuidanceEmbed initialQuery={searchParams.get("q") || undefined} />
+        </ResponsiveTabsContent>
 
         <ResponsiveTabsContent value="explore">
           <ExploreTab />
