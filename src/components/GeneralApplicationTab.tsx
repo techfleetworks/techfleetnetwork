@@ -95,10 +95,19 @@ export function GeneralApplicationTab() {
             )}
 
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Section {section}: {SECTION_TITLES[section - 1]}</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                {section === TOTAL_SECTIONS
+                  ? "Review Your Application"
+                  : `Section ${section}: ${SECTION_TITLES[section - 1]}`}
+              </h2>
               {section === 2 && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Here are some questions that are stored in your profile. Feel free to update them while you're filling out the general application.
+                </p>
+              )}
+              {section === TOTAL_SECTIONS && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Review all your answers below. Click Edit on any section to make changes before submitting.
                 </p>
               )}
             </div>
@@ -108,6 +117,12 @@ export function GeneralApplicationTab() {
             {section === 3 && <SectionEngagement form={form} errors={errors} updateField={updateField} />}
             {section === 4 && <SectionAgile form={form} errors={errors} updateField={updateField} />}
             {section === 5 && <SectionLeadership form={form} errors={errors} updateField={updateField} />}
+            {section === TOTAL_SECTIONS && (
+              <SectionReview
+                form={form}
+                onEditSection={(s) => { setErrors({}); setSection(s); }}
+              />
+            )}
           </div>
         </div>
       </div>
