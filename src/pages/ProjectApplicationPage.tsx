@@ -713,8 +713,8 @@ export default function ProjectApplicationPage() {
                 <Label htmlFor="client-knowledge">
                   What do you know about the client and the project that you're applying to? Tell us about it. <span className="text-destructive">*</span>
                 </Label>
-                <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} />
-                {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
+                 <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} maxLength={5000} aria-describedby="client-knowledge-count" />
+                 <p id="client-knowledge-count" className="text-xs text-muted-foreground text-right">{clientKnowledge.length} / 5,000</p>
               </div>
 
               <div className="space-y-1.5">
