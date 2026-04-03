@@ -4,6 +4,7 @@ import {
   Search, GraduationCap, ClipboardList, Handshake, Megaphone,
   Building2, FolderKanban, Users,
 } from "lucide-react";
+import fleetyIcon from "@/assets/fleety-icon.png";
 import {
   CommandDialog,
   CommandEmpty,
