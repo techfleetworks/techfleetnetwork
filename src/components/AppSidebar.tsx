@@ -11,7 +11,7 @@ import {
   Activity,
   Megaphone,
   Building2,
-  MessageCircle,
+  
   MessageSquarePlus,
   Users,
   Map,
