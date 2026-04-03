@@ -363,7 +363,7 @@ export function FleetyChatWidget() {
                   {msg.role === "assistant" ? (
                     <div>
                       <div className="fleety-prose prose-sm">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{msg.content}</ReactMarkdown>
                       </div>
                       {!isLoading && msg.content.length > 0 && (
                         <div className="mt-2 pt-1 border-t border-border/50">
