@@ -136,7 +136,7 @@ const GROUP_ICONS: Record<SearchGroup, React.ElementType> = {
   Courses: GraduationCap,
   Applications: ClipboardList,
   "Project Training": Handshake,
-  Updates: Megaphone,
+  "Community Updates": Megaphone,
   Clients: Building2,
   Projects: FolderKanban,
   Members: Users,
