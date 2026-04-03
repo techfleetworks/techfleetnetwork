@@ -290,6 +290,36 @@ export function FleetyChatWidget() {
             </SheetTitle>
           </SheetHeader>
 
+          {/* History panel */}
+          {showHistory && (
+            <div className="border-b max-h-48 overflow-y-auto p-2 space-y-0.5 shrink-0">
+              {conversations.length === 0 && (
+                <p className="text-xs text-muted-foreground p-2 text-center">No conversations yet</p>
+              )}
+              {conversations.map((c) => (
+                <div
+                  key={c.id}
+                  className={`group flex items-center gap-1.5 rounded-md px-2 py-1.5 cursor-pointer text-sm transition-colors ${
+                    activeConvoId === c.id
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  onClick={() => { setActiveConvoId(c.id); setShowHistory(false); }}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-xs">{c.title}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Delete conversation"
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Messages */}
           <div
             ref={scrollRef}
