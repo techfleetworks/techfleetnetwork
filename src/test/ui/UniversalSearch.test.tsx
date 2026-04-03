@@ -128,6 +128,13 @@ describe("Universal Search (BDD 38.1–38.15)", () => {
     expect(screen.getByText("Volunteer Applications")).toBeInTheDocument();
   });
 
+  // 38.12b – Ask Fleety always visible
+  it("38.12b: always shows 'Ask Fleety the Helper Bot' option", async () => {
+    renderSearch();
+    await userEvent.click(screen.getByRole("button", { name: /search/i }));
+    expect(screen.getByText("Ask Fleety the Helper Bot")).toBeInTheDocument();
+  });
+
   // 38.15 – Accessibility
   it("38.15: search button has accessible aria-label", () => {
     renderSearch();
