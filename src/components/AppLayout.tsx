@@ -445,6 +445,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
+        <FleetyChatWidget />
       </div>
     );
   }
