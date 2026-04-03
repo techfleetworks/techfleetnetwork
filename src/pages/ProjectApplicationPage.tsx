@@ -483,7 +483,7 @@ export default function ProjectApplicationPage() {
   const isSaving = saveMutation.isPending;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative">
       {/* General Application Warning Dialog */}
       <Dialog open={genAppDialogOpen} onOpenChange={setGenAppDialogOpen}>
         <DialogContent>
