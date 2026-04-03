@@ -274,9 +274,19 @@ export function FleetyChatWidget() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:w-[440px] p-0 flex flex-col">
           <SheetHeader className="px-4 py-3 border-b shrink-0">
-            <SheetTitle className="flex items-center gap-2">
-              <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
-              Fleety
+            <SheetTitle className="flex items-center gap-2 justify-between">
+              <span className="flex items-center gap-2">
+                <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
+                Fleety
+              </span>
+              <span className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowHistory(!showHistory)} aria-label="Toggle history">
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startNewChat} aria-label="New chat">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </span>
             </SheetTitle>
           </SheetHeader>
 
