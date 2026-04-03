@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BookOpen, Wrench, Loader2, Sparkles, MessageCircle } from "lucide-react";
+import { BookOpen, Wrench, Loader2, Sparkles } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import ExploreTab from "@/components/resources/ExploreTab";
+import GuidanceEmbed from "@/components/resources/GuidanceEmbed";
 import ResourceCard from "@/components/resources/ResourceCard";
 import ResourceDetailPanel from "@/components/resources/ResourceDetailPanel";
 import { fetchHandbooks, handbookCategoryColors, type Handbook } from "@/data/handbooks";
