@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        inlineWorkboxRuntime: true,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
