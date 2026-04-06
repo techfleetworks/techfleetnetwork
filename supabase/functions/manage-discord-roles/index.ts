@@ -49,6 +49,24 @@ function isValidAction(body: unknown): body is RequestBody {
   return false;
 }
 
+async function logDiscordError(action: string, status: number, errorText: string, requestId: string) {
+  try {
+    const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const url = Deno.env.get("SUPABASE_URL");
+    if (srk && url) {
+      const ac = createClient(url, srk);
+      await ac.rpc("write_audit_log", {
+        p_event_type: "discord_bot_error",
+        p_table_name: "discord_integration",
+        p_record_id: `manage-discord-roles:${action}`,
+        p_user_id: "00000000-0000-0000-0000-000000000000",
+        p_error_message: `[${action}] HTTP ${status} — ${errorText}`.substring(0, 4000),
+        p_changed_fields: [`request_id:${requestId}`, `http_status:${status}`],
+      });
+    }
+  } catch { /* swallow */ }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
