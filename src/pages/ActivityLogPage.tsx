@@ -83,6 +83,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   email_suppressed: { label: "Email Suppressed", variant: "secondary" },
   email_bounced: { label: "Email Bounced", variant: "destructive" },
   email_complained: { label: "Email Complained", variant: "destructive" },
+  // Discord integration events
+  discord_invite_generated: { label: "Discord Invite Generated", variant: "default" },
+  discord_bot_error: { label: "Discord Bot Error", variant: "destructive" },
 };
 
 const PAGE_SIZE = 50;
