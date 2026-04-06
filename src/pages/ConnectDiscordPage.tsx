@@ -44,46 +44,55 @@ export const TOTAL_CONNECT_DISCORD = 1;
 export const CONNECT_DISCORD_TASK_IDS = [TASK_ID] as const;
 
 export default function ConnectDiscordPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, profileLoaded, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const completionShownRef = useRef(false);
 
-  const { data: progress = [] } = useJourneyProgress(user?.id, PHASE);
-  const isAlreadyComplete = progress.some(
+  const { data: progress, isLoading: progressLoading } = useJourneyProgress(user?.id, PHASE);
+  const isAlreadyComplete = (progress ?? []).some(
     (p) => p.task_id === TASK_ID && p.completed
   );
 
   // Source of truth: profile has a discord_user_id OR journey task is complete
   const isLinked = !!(profile?.discord_user_id) || isAlreadyComplete;
 
-  // Step state
+  // Whether initial data is ready — prevent flash of incorrect state
+  const dataReady = profileLoaded && !progressLoading;
+
+  // Step state — initialise based on profile data once ready
   const [step, setStep] = useState<
     "ask" | "no-discord-choose" | "no-discord-no-account" | "no-discord-has-account" | "yes-discord"
   >("ask");
 
   // Invite flow state
-  const [inviteUrl, setInviteUrl] = useState<string>(
-    (profile as any)?.discord_invite_url || ""
-  );
+  const [inviteUrl, setInviteUrl] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Verify flow state
-  const [username, setUsername] = useState(profile?.discord_username || "");
+  const [username, setUsername] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
 
-  // Sync verified state when profile/progress loads
+  // Track whether we've done the initial sync from DB state
+  const initialSyncDone = useRef(false);
+
+  // Sync verified state ONCE when profile/progress first loads — not on every re-render
   useEffect(() => {
+    if (!dataReady || initialSyncDone.current) return;
+    initialSyncDone.current = true;
+
+    if (profile?.discord_invite_url) setInviteUrl(profile.discord_invite_url);
+    if (profile?.discord_username) setUsername(profile.discord_username);
+
     if (isLinked) {
       setVerified(true);
       setStep("yes-discord");
-      if (profile?.discord_username) setUsername(profile.discord_username);
     }
-  }, [isLinked, profile?.discord_username]);
+  }, [dataReady, isLinked, profile?.discord_username, profile?.discord_invite_url]);
 
   const displayName =
     profile?.display_name ||
