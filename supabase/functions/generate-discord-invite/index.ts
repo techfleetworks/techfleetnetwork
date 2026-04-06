@@ -14,7 +14,6 @@ const corsHeaders = {
 };
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-const COMMUNITY_ROLE_ID = "1083439364975112293";
 const MAX_ONBOARDING_CANDIDATES = 12;
 const ONBOARDING_CHANNEL_HINTS = [
   "welcome",
@@ -160,7 +159,6 @@ Deno.serve(async (req) => {
     logger.info("candidate_channels", `Prepared ${candidates.length} onboarding invite channel candidates`, {
       candidateCount: candidates.length,
       topCandidates: candidates.map((channel) => channel.name ?? channel.id),
-      communityRoleId: COMMUNITY_ROLE_ID,
     });
 
     let inviteUrl = "";
@@ -177,7 +175,6 @@ Deno.serve(async (req) => {
           max_age: 604800,
           max_uses: 1,
           unique: true,
-          role_ids: [COMMUNITY_ROLE_ID],
         }),
       });
 
@@ -191,7 +188,6 @@ Deno.serve(async (req) => {
             channelId: channel.id,
             channelName: channel.name ?? null,
             status: inviteRes.status,
-            communityRoleId: COMMUNITY_ROLE_ID,
           });
           continue;
         }
@@ -200,7 +196,6 @@ Deno.serve(async (req) => {
         logger.info("create_invite", `Created onboarding invite in channel ${channel.name ?? channel.id}`, {
           channelId: channel.id,
           channelName: channel.name ?? null,
-          communityRoleId: COMMUNITY_ROLE_ID,
         });
         break;
       }
@@ -211,7 +206,6 @@ Deno.serve(async (req) => {
         channelId: channel.id,
         channelName: channel.name ?? null,
         status: inviteRes.status,
-        communityRoleId: COMMUNITY_ROLE_ID,
       });
     }
 
@@ -227,7 +221,6 @@ Deno.serve(async (req) => {
         changedFields: [
           `guild_id:${guildId}`,
           `candidate_channels:${candidates.length}`,
-          `community_role_id:${COMMUNITY_ROLE_ID}`,
           `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
           `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
         ],
@@ -245,13 +238,11 @@ Deno.serve(async (req) => {
       tableName: "profiles",
       changedFields: [
         "invite_type:onboarding",
-        `community_role_id:${COMMUNITY_ROLE_ID}`,
         `candidate_channels:${candidates.length}`,
       ],
     });
 
     logger.info("generate", `Generated fresh onboarding invite for user ${user.id}`, {
-      communityRoleId: COMMUNITY_ROLE_ID,
       candidateCount: candidates.length,
     });
 
