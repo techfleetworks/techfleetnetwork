@@ -12,9 +12,8 @@ import { toast } from "sonner";
  */
 export function DiscordInviteBanner() {
   const { user, profile } = useAuth();
-  const [inviteUrl, setInviteUrl] = useState<string>(
-    (profile as any)?.discord_invite_url || ""
-  );
+  // Never load a stored invite — invites are single-use and ephemeral
+  const [inviteUrl, setInviteUrl] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
