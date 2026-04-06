@@ -165,6 +165,23 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     logger.error("handler", `Error: ${message}`);
+
+    // Persist error to audit_log for Activity Log visibility
+    try {
+      const srkFallback = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const urlFallback = Deno.env.get("SUPABASE_URL");
+      if (srkFallback && urlFallback) {
+        const ac = createClient(urlFallback, srkFallback);
+        await ac.rpc("write_audit_log", {
+          p_event_type: "discord_bot_error",
+          p_table_name: "discord_integration",
+          p_record_id: "generate-discord-invite",
+          p_user_id: "00000000-0000-0000-0000-000000000000",
+          p_error_message: message.substring(0, 4000),
+        });
+      }
+    } catch { /* swallow audit failures */ }
+
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
