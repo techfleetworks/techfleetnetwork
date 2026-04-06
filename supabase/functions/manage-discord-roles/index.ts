@@ -115,6 +115,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("list", `Discord API error [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("list", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to fetch Discord roles" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
