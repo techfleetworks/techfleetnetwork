@@ -134,6 +134,8 @@ export default function ProjectFormPage() {
       return data;
     },
     enabled: isEditing && !initialized,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   if (existingProject && !initialized) {
