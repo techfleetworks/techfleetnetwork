@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("manage-discord-roles");
@@ -250,6 +251,22 @@ serve(async (req) => {
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     const message = err instanceof Error ? err.message : "Unknown error";
+
+    try {
+      const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const url = Deno.env.get("SUPABASE_URL");
+      if (srk && url) {
+        const ac = createClient(url, srk);
+        await ac.rpc("write_audit_log", {
+          p_event_type: "discord_bot_error",
+          p_table_name: "discord_integration",
+          p_record_id: "manage-discord-roles",
+          p_user_id: "00000000-0000-0000-0000-000000000000",
+          p_error_message: message.substring(0, 4000),
+        });
+      }
+    } catch { /* swallow */ }
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
