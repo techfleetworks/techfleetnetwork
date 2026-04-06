@@ -216,6 +216,15 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  // Show loading until profile and journey progress are ready
+  if (!dataReady) {
+    return (
+      <div className="container-app py-8 sm:py-12 max-w-2xl flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="container-app py-8 sm:py-12 max-w-2xl">
       <Breadcrumb className="mb-6">
