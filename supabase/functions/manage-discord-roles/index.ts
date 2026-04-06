@@ -172,6 +172,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("create", `Discord API error creating role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("create", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to create Discord role" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -203,6 +204,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("assign", `Discord API error assigning role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("assign", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to assign Discord role";
