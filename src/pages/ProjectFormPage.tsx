@@ -296,6 +296,8 @@ export default function ProjectFormPage() {
     },
     onSuccess: (_, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-init", id] });
       toast.success("Project updated");
       const changes = existingProject ? computeChanges(existingProject, values) : [];
       notifyProjectUpdate("updated", values, id!, changes);
