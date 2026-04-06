@@ -80,19 +80,19 @@ export default function ConnectDiscordPage() {
   // Track whether we've done the initial sync from DB state
   const initialSyncDone = useRef(false);
 
-  // Sync verified state ONCE when profile/progress first loads — not on every re-render
+  // Sync verified state ONCE when profile/progress first loads — not on every re-render.
+  // Never load a stored invite URL — invites are single-use and ephemeral.
   useEffect(() => {
     if (!dataReady || initialSyncDone.current) return;
     initialSyncDone.current = true;
 
-    if (profile?.discord_invite_url) setInviteUrl(profile.discord_invite_url);
     if (profile?.discord_username) setUsername(profile.discord_username);
 
     if (isLinked) {
       setVerified(true);
       setStep("yes-discord");
     }
-  }, [dataReady, isLinked, profile?.discord_username, profile?.discord_invite_url]);
+  }, [dataReady, isLinked, profile?.discord_username]);
 
   const displayName =
     profile?.display_name ||
