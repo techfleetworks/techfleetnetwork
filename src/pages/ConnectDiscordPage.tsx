@@ -39,6 +39,7 @@ import { toast } from "sonner";
 
 const TASK_ID = "connect-discord";
 const PHASE = "first_steps" as const;
+const COMMUNITY_ROLE_ID = "1083439364975112293";
 
 export const TOTAL_CONNECT_DISCORD = 1;
 export const CONNECT_DISCORD_TASK_IDS = [TASK_ID] as const;
@@ -139,15 +140,34 @@ export default function ConnectDiscordPage() {
 
   const normalizeDiscordUsername = (raw: string): string => {
     let name = raw.trim();
-    // Remove leading @ if present
     if (name.startsWith("@")) {
       name = name.slice(1);
     }
-    // Ensure leading dot
     if (!name.startsWith(".")) {
       name = "." + name;
     }
     return name;
+  };
+
+  const assignCommunityRole = async (discordUserId: string) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) throw new Error("Not authenticated");
+
+    const res = await supabase.functions.invoke("manage-discord-roles", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: {
+        action: "assign",
+        discord_user_id: discordUserId,
+        role_id: COMMUNITY_ROLE_ID,
+      },
+    });
+
+    if (res.error) {
+      throw new Error(res.error.message || "Failed to assign the Community role");
+    }
   };
 
   const handleVerify = async () => {
@@ -172,7 +192,6 @@ export default function ConnectDiscordPage() {
         return;
       }
 
-      // Save discord info to profile
       await supabase
         .from("profiles")
         .update({
@@ -182,17 +201,22 @@ export default function ConnectDiscordPage() {
         })
         .eq("user_id", user!.id);
 
-      // Mark task as complete
       await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
 
-      // Send Discord notification for verification
+      let communityRoleAssigned = false;
+      try {
+        await assignCommunityRole(discordUserId);
+        communityRoleAssigned = true;
+      } catch {
+        communityRoleAssigned = false;
+      }
+
       DiscordNotifyService.discordVerified(
         displayName,
         normalized,
         discordUserId
       );
 
-      // Invalidate queries
       queryClient.invalidateQueries({
         queryKey: ["journey-completed", user!.id, PHASE],
       });
@@ -200,11 +224,17 @@ export default function ConnectDiscordPage() {
         queryKey: ["journey-progress", user!.id, PHASE],
       });
 
-      // Refresh profile so EditProfilePage stays in sync
       await refreshProfile();
 
       setVerified(true);
-      toast.success("Discord account verified and linked!");
+      if (communityRoleAssigned) {
+        toast.success("Discord account verified, linked, and added to Community!");
+      } else {
+        toast.success("Discord account verified and linked!", {
+          description:
+            "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
+        });
+      }
       if (!completionShownRef.current) {
         completionShownRef.current = true;
         setShowCompletionDialog(true);
