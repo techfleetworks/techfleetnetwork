@@ -114,9 +114,32 @@ Deno.serve(async (req) => {
     }
 
     if (!inviteUrl) {
-      throw new Error(
-        `Failed to create Discord invite. The bot could not create an invite in any of the ${candidates.length} candidate text channels. Errors: ${inviteErrors.slice(0, 12).join(" | ")}`,
-      );
+      const errorSummary = `Discord bot failed to create invite in any of ${candidates.length} text channels. Top errors: ${inviteErrors.slice(0, 12).join(" | ")}`;
+
+      // Write verbose error to audit_log so admins see it in the Activity Log
+      const serviceRoleKeyErr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (serviceRoleKeyErr) {
+        try {
+          const adminClientErr = createClient(supabaseUrl!, serviceRoleKeyErr);
+          await adminClientErr.rpc("write_audit_log", {
+            p_event_type: "discord_bot_error",
+            p_table_name: "discord_integration",
+            p_record_id: user!.id,
+            p_user_id: user!.id,
+            p_error_message: errorSummary.substring(0, 4000),
+            p_changed_fields: [
+              `guild_id:${guildId}`,
+              `candidate_channels:${candidates.length}`,
+              `top_channels:${candidates.slice(0, 5).map(c => c.name ?? c.id).join(",")}`,
+              `all_status_codes:${[...new Set(inviteErrors.map(e => e.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
+            ],
+          });
+        } catch (auditErr) {
+          logger.warn("audit_log", "Failed to write Discord error to audit log", { error: String(auditErr) });
+        }
+      }
+
+      throw new Error(errorSummary);
     }
 
     // Audit log only — do NOT persist the invite URL to the profile.
