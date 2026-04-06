@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("resolve-discord-id");
@@ -72,6 +73,24 @@ serve(async (req) => {
         username: cleanUsername,
         responseBody: errorText.substring(0, 500),
       });
+
+      // Log to audit_log for Activity Log visibility
+      try {
+        const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        const url = Deno.env.get("SUPABASE_URL");
+        if (srk && url) {
+          const ac = createClient(url, srk);
+          await ac.rpc("write_audit_log", {
+            p_event_type: "discord_bot_error",
+            p_table_name: "discord_integration",
+            p_record_id: `resolve-discord-id:${requestId}`,
+            p_user_id: "00000000-0000-0000-0000-000000000000",
+            p_error_message: `[resolve] HTTP ${res.status} for username "${cleanUsername}" — ${errorText.substring(0, 500)}`,
+            p_changed_fields: [`username:${cleanUsername}`, `http_status:${res.status}`],
+          });
+        }
+      } catch { /* swallow */ }
+
       // For 404 (unknown guild) or 403 (bot lacks access), return a graceful null
       // so the client UI doesn't show a scary error — the user simply isn't found
       if (res.status === 404 || res.status === 403) {
@@ -121,6 +140,22 @@ serve(async (req) => {
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     const message = err instanceof Error ? err.message : "Unknown error";
+
+    try {
+      const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const url = Deno.env.get("SUPABASE_URL");
+      if (srk && url) {
+        const ac = createClient(url, srk);
+        await ac.rpc("write_audit_log", {
+          p_event_type: "discord_bot_error",
+          p_table_name: "discord_integration",
+          p_record_id: "resolve-discord-id",
+          p_user_id: "00000000-0000-0000-0000-000000000000",
+          p_error_message: message.substring(0, 4000),
+        });
+      }
+    } catch { /* swallow */ }
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("manage-discord-roles");
@@ -46,6 +47,24 @@ function isValidAction(body: unknown): body is RequestBody {
   if (b.action === "remove" && typeof b.discord_user_id === "string" && typeof b.role_id === "string" &&
       b.discord_user_id.trim().length > 0 && b.role_id.trim().length > 0) return true;
   return false;
+}
+
+async function logDiscordError(action: string, status: number, errorText: string, requestId: string) {
+  try {
+    const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const url = Deno.env.get("SUPABASE_URL");
+    if (srk && url) {
+      const ac = createClient(url, srk);
+      await ac.rpc("write_audit_log", {
+        p_event_type: "discord_bot_error",
+        p_table_name: "discord_integration",
+        p_record_id: `manage-discord-roles:${action}`,
+        p_user_id: "00000000-0000-0000-0000-000000000000",
+        p_error_message: `[${action}] HTTP ${status} — ${errorText}`.substring(0, 4000),
+        p_changed_fields: [`request_id:${requestId}`, `http_status:${status}`],
+      });
+    }
+  } catch { /* swallow */ }
 }
 
 serve(async (req) => {
@@ -96,6 +115,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("list", `Discord API error [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("list", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to fetch Discord roles" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -152,6 +172,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("create", `Discord API error creating role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("create", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to create Discord role" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -183,6 +204,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("assign", `Discord API error assigning role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("assign", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to assign Discord role";
@@ -222,6 +244,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("remove", `Discord API error removing role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("remove", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to remove Discord role";
@@ -250,6 +273,22 @@ serve(async (req) => {
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     const message = err instanceof Error ? err.message : "Unknown error";
+
+    try {
+      const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const url = Deno.env.get("SUPABASE_URL");
+      if (srk && url) {
+        const ac = createClient(url, srk);
+        await ac.rpc("write_audit_log", {
+          p_event_type: "discord_bot_error",
+          p_table_name: "discord_integration",
+          p_record_id: "manage-discord-roles",
+          p_user_id: "00000000-0000-0000-0000-000000000000",
+          p_error_message: message.substring(0, 4000),
+        });
+      }
+    } catch { /* swallow */ }
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
