@@ -3,8 +3,8 @@
  *
  * Atomically updates an applicant's status, creates an in-app notification,
  * writes an audit log entry, and optionally triggers a transactional email
- * (interview invite). Each side-effect is isolated so partial failures
- * don't block the primary status update from succeeding.
+ * (interview invite). When status is "picked_for_team", automatically assigns
+ * the project's Discord role or notifies the applicant to connect Discord.
  *
  * Security: JWT verification + admin role check (SECURITY DEFINER has_role).
  * Payload: Zod-validated, size-limited (32 KiB), XSS-sanitized.
@@ -202,6 +202,41 @@ function validatePayload(raw: unknown): { ok: true; data: ValidatedPayload } | {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Discord role assignment helper                                     */
+/* ------------------------------------------------------------------ */
+
+async function assignDiscordRole(discordUserId: string, roleId: string): Promise<{ ok: boolean; error?: string }> {
+  const botToken = Deno.env.get('DISCORD_BOT_TOKEN')
+  const guildId = Deno.env.get('DISCORD_GUILD_ID')
+
+  if (!botToken || !guildId) {
+    return { ok: false, error: 'Discord bot not configured' }
+  }
+
+  try {
+    const res = await fetch(
+      `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bot ${botToken}` },
+      },
+    )
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('Discord role assignment failed', { status: res.status, error: errorText.substring(0, 500) })
+      return { ok: false, error: `Discord API ${res.status}` }
+    }
+
+    await res.text() // consume body
+    return { ok: true }
+  } catch (e) {
+    console.error('Discord role assignment error', e)
+    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main handler                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -322,7 +357,6 @@ Deno.serve(async (req) => {
   }
 
   /* ---- 4. Email — interview invite (non-blocking) ---- */
-  /* Uses a unique idempotency key per invocation so re-invites always send a fresh email */
   let emailSent = false
   if (newStatus === 'invited_to_interview' && applicantEmail && schedulingUrl) {
     const timestamp = Date.now()
@@ -362,10 +396,82 @@ Deno.serve(async (req) => {
     }
   }
 
+  /* ---- 5. Discord role assignment for picked_for_team (non-blocking) ---- */
+  let discordRoleAssigned = false
+  let discordMissing = false
+
+  if (newStatus === 'picked_for_team') {
+    try {
+      // Fetch project Discord role
+      const { data: projectData } = await supabase
+        .from('projects')
+        .select('discord_role_id, discord_role_name')
+        .eq('id', projectId)
+        .single()
+
+      const discordRoleId = projectData?.discord_role_id as string | undefined
+      const discordRoleName = projectData?.discord_role_name as string | undefined
+
+      if (discordRoleId) {
+        // Fetch applicant profile for Discord info
+        const { data: applicantProfile } = await supabase
+          .from('profiles')
+          .select('discord_user_id, discord_username')
+          .eq('user_id', applicantUserId)
+          .single()
+
+        const applicantDiscordUserId = applicantProfile?.discord_user_id as string | undefined
+
+        if (applicantDiscordUserId) {
+          // Assign Discord role automatically
+          const result = await assignDiscordRole(applicantDiscordUserId, discordRoleId)
+          if (result.ok) {
+            discordRoleAssigned = true
+            console.info('Discord role assigned', {
+              applicantUserId,
+              discordUserId: applicantDiscordUserId,
+              roleId: discordRoleId,
+              roleName: discordRoleName,
+            })
+          } else {
+            console.error('Discord role assignment failed', {
+              applicantUserId,
+              error: result.error,
+            })
+          }
+        } else {
+          // Applicant doesn't have Discord connected — send them a notification
+          discordMissing = true
+          try {
+            await supabase.from('notifications').insert({
+              user_id: applicantUserId,
+              title: '⚠️ Connect Your Discord Account',
+              body_html:
+                '<p>Congratulations on being selected for a project team! To receive your team role and access project channels, please connect your Discord account to your profile.</p>' +
+                '<p><a href="/training/connect-discord">Connect Discord Now</a></p>',
+              notification_type: 'discord_connect_required',
+              link_url: '/training/connect-discord',
+              read: false,
+            })
+            console.info('Discord connect notification sent', { applicantUserId })
+          } catch (notifErr) {
+            console.error('Failed to send Discord connect notification', notifErr)
+          }
+        }
+      } else {
+        console.warn('Project has no Discord role configured', { projectId })
+      }
+    } catch (e) {
+      console.error('Discord role assignment flow error', e)
+    }
+  }
+
   /* ---- Response ---- */
   return jsonResponse({
     success: true,
     notificationCreated,
     emailSent,
+    discordRoleAssigned,
+    discordMissing,
   })
 })
