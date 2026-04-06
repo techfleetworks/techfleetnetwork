@@ -244,6 +244,7 @@ serve(async (req) => {
       if (!res.ok) {
         const errorText = await res.text();
         log.error("remove", `Discord API error removing role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("remove", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to remove Discord role";
