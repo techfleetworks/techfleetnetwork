@@ -150,6 +150,32 @@ export function ApplicantStatusDropdown({
           coordinatorName = await resolveCoordinatorName(projectId, fallbackName);
         }
 
+        /* -- Pre-flight: "picked_for_team" requires a Discord role on the project -- */
+        if (newStatus === "picked_for_team") {
+          const { data: projectData } = await supabase
+            .from("projects")
+            .select("discord_role_id, discord_role_name")
+            .eq("id", projectId)
+            .single();
+
+          if (!projectData?.discord_role_id) {
+            toast.error("Discord role required", {
+              description:
+                "This project does not have a Discord role assigned. Please add one in the project settings before selecting teammates.",
+              duration: 10000,
+              position: "top-center",
+              action: {
+                label: "Edit Project",
+                onClick: () => {
+                  window.location.href = `/admin/clients/project/${projectId}`;
+                },
+              },
+            });
+            setChanging(false);
+            return;
+          }
+        }
+
         /* -- Invoke edge function -- */
         const { data, error } = await supabase.functions.invoke("notify-applicant-status", {
           body: {
@@ -167,7 +193,12 @@ export function ApplicantStatusDropdown({
         if (error) throw error;
 
         /* -- Success toast -- */
-        const result = data as { notificationCreated?: boolean; emailSent?: boolean } | null;
+        const result = data as {
+          notificationCreated?: boolean;
+          emailSent?: boolean;
+          discordRoleAssigned?: boolean;
+          discordMissing?: boolean;
+        } | null;
 
         if (newStatus === "invited_to_interview") {
           const parts: string[] = [];
@@ -176,6 +207,15 @@ export function ApplicantStatusDropdown({
           toast.success(`Invited ${applicantFirstName || "applicant"} to interview`, {
             description: parts.length > 0 ? parts.join(". ") + "." : "Status updated.",
             duration: 5000,
+            position: "top-center",
+          });
+        } else if (newStatus === "picked_for_team") {
+          const parts: string[] = ["Applicant has been notified"];
+          if (result?.discordRoleAssigned) parts.push("Discord role assigned automatically");
+          if (result?.discordMissing) parts.push("Applicant notified to connect their Discord account");
+          toast.success(`${applicantFirstName || "Applicant"} picked for team!`, {
+            description: parts.join(". ") + ".",
+            duration: 6000,
             position: "top-center",
           });
         } else {
