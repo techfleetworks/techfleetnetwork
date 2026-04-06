@@ -124,6 +124,7 @@ export function reportError(
   userId?: string,
 ) {
   const msg = formatError(err);
+  if (isSuppressed(msg)) return;
   reportToAuditLog(msg, source, userId);
 }
 
