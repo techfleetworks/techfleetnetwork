@@ -15,24 +15,29 @@ const corsHeaders = {
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
-const ONBOARDING_CHANNEL_HINTS = [
+const EXACT_ONBOARDING_CHANNEL_NAMES = [
   "welcome",
   "general",
   "start-here",
-  "introduction",
   "getting-started",
   "get-started",
   "onboarding",
   "community",
+  "introductions",
 ] as const;
+const EXACT_ONBOARDING_CHANNEL_SET = new Set(EXACT_ONBOARDING_CHANNEL_NAMES);
 
 function normalizeChannelName(name?: string) {
-  return (name ?? "").trim().toLowerCase();
+  return (name ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}-]+/gu, "")
+    .replace(/^-+|-+$/g, "");
 }
 
 function isOnboardingInviteChannel(channel: DiscordInviteChannel) {
-  const name = normalizeChannelName(channel.name);
-  return ONBOARDING_CHANNEL_HINTS.some((hint) => name.includes(hint));
+  return EXACT_ONBOARDING_CHANNEL_SET.has(normalizeChannelName(channel.name));
 }
 
 function summarizeInviteErrors(inviteErrors: string[]) {
@@ -148,17 +153,20 @@ Deno.serve(async (req) => {
     const onboardingCandidates = allCandidates
       .filter(isOnboardingInviteChannel)
       .slice(0, MAX_ONBOARDING_CANDIDATES);
-    const candidates = onboardingCandidates.length > 0
-      ? onboardingCandidates
-      : allCandidates.slice(0, MAX_ONBOARDING_CANDIDATES);
 
-    if (candidates.length === 0) {
-      throw new Error("No onboarding invite channels found in Discord server");
+    if (onboardingCandidates.length === 0) {
+      throw new Error(
+        `No exact onboarding invite channels found in Discord server. Expected one of: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}`,
+      );
     }
 
-    logger.info("candidate_channels", `Prepared ${candidates.length} onboarding invite channel candidates`, {
+    const candidates = onboardingCandidates;
+
+    logger.info("candidate_channels", `Prepared ${candidates.length} exact onboarding invite channel candidates`, {
       candidateCount: candidates.length,
       topCandidates: candidates.map((channel) => channel.name ?? channel.id),
+      matchStrategy: "exact_name",
+      allowedChannelNames: [...EXACT_ONBOARDING_CHANNEL_NAMES],
     });
 
     let inviteUrl = "";
@@ -196,6 +204,7 @@ Deno.serve(async (req) => {
         logger.info("create_invite", `Created onboarding invite in channel ${channel.name ?? channel.id}`, {
           channelId: channel.id,
           channelName: channel.name ?? null,
+          matchStrategy: "exact_name",
         });
         break;
       }
@@ -206,6 +215,7 @@ Deno.serve(async (req) => {
         channelId: channel.id,
         channelName: channel.name ?? null,
         status: inviteRes.status,
+        matchStrategy: "exact_name",
       });
     }
 
@@ -221,6 +231,8 @@ Deno.serve(async (req) => {
         changedFields: [
           `guild_id:${guildId}`,
           `candidate_channels:${candidates.length}`,
+          "channel_match_strategy:exact_name",
+          `expected_channel_names:${EXACT_ONBOARDING_CHANNEL_NAMES.join(",")}`,
           `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
           `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
         ],
@@ -239,11 +251,13 @@ Deno.serve(async (req) => {
       changedFields: [
         "invite_type:onboarding",
         `candidate_channels:${candidates.length}`,
+        "channel_match_strategy:exact_name",
       ],
     });
 
     logger.info("generate", `Generated fresh onboarding invite for user ${user.id}`, {
       candidateCount: candidates.length,
+      matchStrategy: "exact_name",
     });
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
