@@ -45,30 +45,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user already has an invite URL
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("discord_invite_url, has_discord_account, first_name")
-      .eq("user_id", user.id)
-      .single();
+    // Always generate a fresh single-use invite — never return a cached one.
+    // Invites are max_uses:1 and expire after 7 days, so stored URLs are
+    // invalid after first use or expiry.
 
-    if (profile?.discord_invite_url) {
-      logger.info("check", `User ${user.id} already has invite URL`);
-      return new Response(JSON.stringify({ invite_url: profile.discord_invite_url }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Generate unique Discord invite via Bot API
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
     const guildId = Deno.env.get("DISCORD_GUILD_ID");
     if (!botToken || !guildId) {
       throw new Error("Discord bot configuration is missing");
     }
 
-    // Fetch guild channels and try the most likely onboarding channels first,
-    // while still falling back across every text channel deterministically.
     const channelsRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
       headers: { Authorization: `Bot ${botToken}` },
     });
@@ -129,38 +115,25 @@ Deno.serve(async (req) => {
 
     if (!inviteUrl) {
       throw new Error(
-        `Failed to create Discord invite. The bot could not create an invite in any of the ${candidates.length} candidate text channels. This usually means a channel-level override is still denying "Create Invite" for the bot or its role. Errors: ${inviteErrors.slice(0, 12).join(" | ")}`,
+        `Failed to create Discord invite. The bot could not create an invite in any of the ${candidates.length} candidate text channels. Errors: ${inviteErrors.slice(0, 12).join(" | ")}`,
       );
     }
 
-    // Save invite URL to profile using service role
+    // Audit log only — do NOT persist the invite URL to the profile.
+    // The invite is single-use and ephemeral; storing it leads to stale links.
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!serviceRoleKey) throw new Error("Missing service role key");
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { error: updateError } = await adminClient
-      .from("profiles")
-      .update({
-        discord_invite_url: inviteUrl,
-        discord_invite_created_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      logger.error("save", `Failed to save invite URL: ${updateError.message}`);
-      throw new Error("Failed to save invite link");
+    if (serviceRoleKey) {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      await adminClient.rpc("write_audit_log", {
+        p_event_type: "discord_invite_generated",
+        p_table_name: "profiles",
+        p_record_id: user.id,
+        p_user_id: user.id,
+        p_changed_fields: ["discord_invite_url"],
+      });
     }
 
-    // Audit log
-    await adminClient.rpc("write_audit_log", {
-      p_event_type: "discord_invite_generated",
-      p_table_name: "profiles",
-      p_record_id: user.id,
-      p_user_id: user.id,
-      p_changed_fields: ["discord_invite_url"],
-    });
-
-    logger.info("generate", `Generated invite for user ${user.id}: ${inviteUrl}`);
+    logger.info("generate", `Generated fresh invite for user ${user.id}`);
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
