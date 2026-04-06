@@ -134,6 +134,8 @@ export default function ProjectFormPage() {
       return data;
     },
     enabled: isEditing && !initialized,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   if (existingProject && !initialized) {
@@ -278,6 +280,8 @@ export default function ProjectFormPage() {
     },
     onSuccess: (data, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["project-init", data.id] });
       toast.success("Project created");
       notifyProjectUpdate("created", values, data.id);
       navigate("/admin/clients?tab=projects");
@@ -292,6 +296,8 @@ export default function ProjectFormPage() {
     },
     onSuccess: (_, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-init", id] });
       toast.success("Project updated");
       const changes = existingProject ? computeChanges(existingProject, values) : [];
       notifyProjectUpdate("updated", values, id!, changes);
