@@ -280,6 +280,8 @@ export default function ProjectFormPage() {
     },
     onSuccess: (data, values) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["project-init", data.id] });
       toast.success("Project created");
       notifyProjectUpdate("created", values, data.id);
       navigate("/admin/clients?tab=projects");
