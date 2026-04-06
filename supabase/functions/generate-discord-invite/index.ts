@@ -13,10 +13,91 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+const COMMUNITY_ROLE_ID = "1083439364975112293";
+const MAX_ONBOARDING_CANDIDATES = 12;
+const ONBOARDING_CHANNEL_HINTS = [
+  "welcome",
+  "general",
+  "start-here",
+  "introduction",
+  "getting-started",
+  "get-started",
+  "onboarding",
+  "community",
+] as const;
+
+function normalizeChannelName(name?: string) {
+  return (name ?? "").trim().toLowerCase();
+}
+
+function isOnboardingInviteChannel(channel: DiscordInviteChannel) {
+  const name = normalizeChannelName(channel.name);
+  return ONBOARDING_CHANNEL_HINTS.some((hint) => name.includes(hint));
+}
+
+function summarizeInviteErrors(inviteErrors: string[]) {
+  return inviteErrors.slice(0, 12).join(" | ");
+}
+
+type AuditLogParams = {
+  supabaseUrl: string;
+  eventType: string;
+  recordId: string;
+  userId: string;
+  tableName?: string;
+  errorMessage?: string;
+  changedFields?: string[];
+};
+
+async function writeDiscordAuditLog({
+  supabaseUrl,
+  eventType,
+  recordId,
+  userId,
+  tableName = "discord_integration",
+  errorMessage,
+  changedFields,
+}: AuditLogParams) {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceRoleKey || !supabaseUrl) return;
+
+  try {
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const payload: Record<string, unknown> = {
+      p_event_type: eventType,
+      p_table_name: tableName,
+      p_record_id: recordId,
+      p_user_id: userId,
+    };
+
+    if (errorMessage) {
+      payload.p_error_message = errorMessage.substring(0, 4000);
+    }
+
+    if (changedFields?.length) {
+      payload.p_changed_fields = changedFields;
+    }
+
+    await adminClient.rpc("write_audit_log", payload);
+  } catch (auditError) {
+    logger.warn("audit_log", "Failed to write Discord event to audit log", {
+      error: String(auditError),
+      eventType,
+      recordId,
+    });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  let auditUserId = ZERO_UUID;
+  let errorAlreadyAudited = false;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -27,8 +108,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error("Missing Supabase environment configuration");
     }
@@ -37,7 +116,11 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -45,9 +128,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Always generate a fresh single-use invite — never return a cached one.
-    // Invites are max_uses:1 and expire after 7 days, so stored URLs are
-    // invalid after first use or expiry.
+    auditUserId = user.id;
 
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
     const guildId = Deno.env.get("DISCORD_GUILD_ID");
@@ -64,17 +145,22 @@ Deno.serve(async (req) => {
     }
 
     const channels = await channelsRes.json();
-    const candidates = getInviteChannelCandidates(
-      channels as DiscordInviteChannel[],
-    );
+    const allCandidates = getInviteChannelCandidates(channels as DiscordInviteChannel[]);
+    const onboardingCandidates = allCandidates
+      .filter(isOnboardingInviteChannel)
+      .slice(0, MAX_ONBOARDING_CANDIDATES);
+    const candidates = onboardingCandidates.length > 0
+      ? onboardingCandidates
+      : allCandidates.slice(0, MAX_ONBOARDING_CANDIDATES);
 
     if (candidates.length === 0) {
-      throw new Error("No text channels found in Discord server");
+      throw new Error("No onboarding invite channels found in Discord server");
     }
 
-    logger.info("candidate_channels", `Prepared ${candidates.length} invite channel candidates`, {
+    logger.info("candidate_channels", `Prepared ${candidates.length} onboarding invite channel candidates`, {
       candidateCount: candidates.length,
-      topCandidates: candidates.slice(0, 10).map((channel) => channel.name ?? channel.id),
+      topCandidates: candidates.map((channel) => channel.name ?? channel.id),
+      communityRoleId: COMMUNITY_ROLE_ID,
     });
 
     let inviteUrl = "";
@@ -91,15 +177,30 @@ Deno.serve(async (req) => {
           max_age: 604800,
           max_uses: 1,
           unique: true,
+          role_ids: [COMMUNITY_ROLE_ID],
         }),
       });
 
       if (inviteRes.ok) {
-        const invite = await inviteRes.json();
-        inviteUrl = `https://discord.gg/${invite.code}`;
-        logger.info("create_invite", `Created invite in channel ${channel.name ?? channel.id}`, {
+        const invite = await inviteRes.json().catch(() => null) as { code?: string } | null;
+        const inviteCode = invite?.code;
+
+        if (!inviteCode) {
+          inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: Missing invite code in Discord response`);
+          logger.warn("create_invite", `Invite creation returned no code for channel ${channel.name ?? channel.id}`, {
+            channelId: channel.id,
+            channelName: channel.name ?? null,
+            status: inviteRes.status,
+            communityRoleId: COMMUNITY_ROLE_ID,
+          });
+          continue;
+        }
+
+        inviteUrl = `https://discord.gg/${inviteCode}`;
+        logger.info("create_invite", `Created onboarding invite in channel ${channel.name ?? channel.id}`, {
           channelId: channel.id,
           channelName: channel.name ?? null,
+          communityRoleId: COMMUNITY_ROLE_ID,
         });
         break;
       }
@@ -110,53 +211,49 @@ Deno.serve(async (req) => {
         channelId: channel.id,
         channelName: channel.name ?? null,
         status: inviteRes.status,
+        communityRoleId: COMMUNITY_ROLE_ID,
       });
     }
 
     if (!inviteUrl) {
-      const errorSummary = `Discord bot failed to create invite in any of ${candidates.length} text channels. Top errors: ${inviteErrors.slice(0, 12).join(" | ")}`;
+      const errorSummary = `Discord bot failed to create onboarding invite in any of ${candidates.length} onboarding channels. Top errors: ${summarizeInviteErrors(inviteErrors)}`;
 
-      // Write verbose error to audit_log so admins see it in the Activity Log
-      const serviceRoleKeyErr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (serviceRoleKeyErr) {
-        try {
-          const adminClientErr = createClient(supabaseUrl!, serviceRoleKeyErr);
-          await adminClientErr.rpc("write_audit_log", {
-            p_event_type: "discord_bot_error",
-            p_table_name: "discord_integration",
-            p_record_id: user!.id,
-            p_user_id: user!.id,
-            p_error_message: errorSummary.substring(0, 4000),
-            p_changed_fields: [
-              `guild_id:${guildId}`,
-              `candidate_channels:${candidates.length}`,
-              `top_channels:${candidates.slice(0, 5).map(c => c.name ?? c.id).join(",")}`,
-              `all_status_codes:${[...new Set(inviteErrors.map(e => e.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
-            ],
-          });
-        } catch (auditErr) {
-          logger.warn("audit_log", "Failed to write Discord error to audit log", { error: String(auditErr) });
-        }
-      }
+      await writeDiscordAuditLog({
+        supabaseUrl,
+        eventType: "discord_bot_error",
+        recordId: user.id,
+        userId: user.id,
+        errorMessage: errorSummary,
+        changedFields: [
+          `guild_id:${guildId}`,
+          `candidate_channels:${candidates.length}`,
+          `community_role_id:${COMMUNITY_ROLE_ID}`,
+          `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
+          `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
+        ],
+      });
+      errorAlreadyAudited = true;
 
       throw new Error(errorSummary);
     }
 
-    // Audit log only — do NOT persist the invite URL to the profile.
-    // The invite is single-use and ephemeral; storing it leads to stale links.
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (serviceRoleKey) {
-      const adminClient = createClient(supabaseUrl, serviceRoleKey);
-      await adminClient.rpc("write_audit_log", {
-        p_event_type: "discord_invite_generated",
-        p_table_name: "profiles",
-        p_record_id: user.id,
-        p_user_id: user.id,
-        p_changed_fields: ["discord_invite_url"],
-      });
-    }
+    await writeDiscordAuditLog({
+      supabaseUrl,
+      eventType: "discord_invite_generated",
+      recordId: user.id,
+      userId: user.id,
+      tableName: "profiles",
+      changedFields: [
+        "invite_type:onboarding",
+        `community_role_id:${COMMUNITY_ROLE_ID}`,
+        `candidate_channels:${candidates.length}`,
+      ],
+    });
 
-    logger.info("generate", `Generated fresh invite for user ${user.id}`);
+    logger.info("generate", `Generated fresh onboarding invite for user ${user.id}`, {
+      communityRoleId: COMMUNITY_ROLE_ID,
+      candidateCount: candidates.length,
+    });
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
@@ -166,21 +263,15 @@ Deno.serve(async (req) => {
     const message = error instanceof Error ? error.message : "Unknown error";
     logger.error("handler", `Error: ${message}`);
 
-    // Persist error to audit_log for Activity Log visibility
-    try {
-      const srkFallback = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      const urlFallback = Deno.env.get("SUPABASE_URL");
-      if (srkFallback && urlFallback) {
-        const ac = createClient(urlFallback, srkFallback);
-        await ac.rpc("write_audit_log", {
-          p_event_type: "discord_bot_error",
-          p_table_name: "discord_integration",
-          p_record_id: "generate-discord-invite",
-          p_user_id: "00000000-0000-0000-0000-000000000000",
-          p_error_message: message.substring(0, 4000),
-        });
-      }
-    } catch { /* swallow audit failures */ }
+    if (!errorAlreadyAudited) {
+      await writeDiscordAuditLog({
+        supabaseUrl,
+        eventType: "discord_bot_error",
+        recordId: "generate-discord-invite",
+        userId: auditUserId,
+        errorMessage: message,
+      });
+    }
 
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
