@@ -35,7 +35,7 @@ export const EXACT_ONBOARDING_CHANNEL_NAMES = [
   "introductions",
 ] as const;
 
-const EXACT_ONBOARDING_CHANNEL_SET = new Set(EXACT_ONBOARDING_CHANNEL_NAMES);
+const EXACT_ONBOARDING_CHANNEL_SET = new Set<string>(EXACT_ONBOARDING_CHANNEL_NAMES);
 
 const EXACT_PRIORITY_NAMES = [
   "welcome",
