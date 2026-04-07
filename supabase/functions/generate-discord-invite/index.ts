@@ -1,7 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import {
+  EXACT_ONBOARDING_CHANNEL_NAMES,
+  getInviteCapableChannels,
   getInviteChannelCandidates,
+  isExactOnboardingInviteChannel,
   type DiscordInviteChannel,
+  type DiscordGuildRole,
 } from "../_shared/discord-invite-utils.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
@@ -15,30 +19,6 @@ const corsHeaders = {
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
-const EXACT_ONBOARDING_CHANNEL_NAMES = [
-  "welcome",
-  "general",
-  "start-here",
-  "getting-started",
-  "get-started",
-  "onboarding",
-  "community",
-  "introductions",
-] as const;
-const EXACT_ONBOARDING_CHANNEL_SET = new Set(EXACT_ONBOARDING_CHANNEL_NAMES);
-
-function normalizeChannelName(name?: string) {
-  return (name ?? "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}-]+/gu, "")
-    .replace(/^-+|-+$/g, "");
-}
-
-function isOnboardingInviteChannel(channel: DiscordInviteChannel) {
-  return EXACT_ONBOARDING_CHANNEL_SET.has(normalizeChannelName(channel.name));
-}
 
 function summarizeInviteErrors(inviteErrors: string[]) {
   return inviteErrors.slice(0, 12).join(" | ");
@@ -148,15 +128,54 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch guild channels [${channelsRes.status}]: ${errText}`);
     }
 
-    const channels = await channelsRes.json();
-    const allCandidates = getInviteChannelCandidates(channels as DiscordInviteChannel[]);
+    const channels = await channelsRes.json() as DiscordInviteChannel[];
+
+    const botMemberRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/@me`, {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
+    if (!botMemberRes.ok) {
+      const errText = await botMemberRes.text();
+      throw new Error(`Failed to fetch bot membership [${botMemberRes.status}]: ${errText}`);
+    }
+
+    const botMember = await botMemberRes.json() as { user?: { id?: string }; roles?: string[] };
+    const botUserId = botMember.user?.id;
+    const botRoleIds = botMember.roles ?? [];
+
+    if (!botUserId) {
+      throw new Error("Discord bot membership response did not include a user id");
+    }
+
+    const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
+    if (!rolesRes.ok) {
+      const errText = await rolesRes.text();
+      throw new Error(`Failed to fetch guild roles [${rolesRes.status}]: ${errText}`);
+    }
+
+    const guildRoles = await rolesRes.json() as DiscordGuildRole[];
+
+    const inviteCapableChannels = getInviteCapableChannels({
+      channels,
+      guildId,
+      guildRoles,
+      memberRoleIds: botRoleIds,
+      memberUserId: botUserId,
+    });
+
+    const allCandidates = getInviteChannelCandidates(inviteCapableChannels);
     const onboardingCandidates = allCandidates
-      .filter(isOnboardingInviteChannel)
+      .filter(isExactOnboardingInviteChannel)
       .slice(0, MAX_ONBOARDING_CANDIDATES);
 
     if (onboardingCandidates.length === 0) {
+      const inviteCapableChannelNames = inviteCapableChannels
+        .map((channel) => channel.name ?? channel.id)
+        .slice(0, 25);
+
       throw new Error(
-        `No exact onboarding invite channels found in Discord server. Expected one of: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}`,
+        `No onboarding invite channel is currently usable by the Discord bot. Expected one of: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}. Invite-capable channels found: ${inviteCapableChannelNames.join(", ") || "none"}`,
       );
     }
 
@@ -165,6 +184,7 @@ Deno.serve(async (req) => {
     logger.info("candidate_channels", `Prepared ${candidates.length} exact onboarding invite channel candidates`, {
       candidateCount: candidates.length,
       topCandidates: candidates.map((channel) => channel.name ?? channel.id),
+      inviteCapableChannelCount: inviteCapableChannels.length,
       matchStrategy: "exact_name",
       allowedChannelNames: [...EXACT_ONBOARDING_CHANNEL_NAMES],
     });
@@ -231,6 +251,7 @@ Deno.serve(async (req) => {
         changedFields: [
           `guild_id:${guildId}`,
           `candidate_channels:${candidates.length}`,
+          `invite_capable_channels:${inviteCapableChannels.length}`,
           "channel_match_strategy:exact_name",
           `expected_channel_names:${EXACT_ONBOARDING_CHANNEL_NAMES.join(",")}`,
           `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
