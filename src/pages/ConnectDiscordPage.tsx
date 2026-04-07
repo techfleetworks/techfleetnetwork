@@ -324,6 +324,58 @@ export default function ConnectDiscordPage() {
               <MessageSquare className="h-4 w-4" />
               Re-link a different account
             </Button>
+
+            {inviteUrl ? (
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
+                <a
+                  href={inviteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open Discord Invite
+                </a>
+                <Button variant="outline" size="sm" onClick={copyToClipboard} className="shrink-0 gap-2">
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Copy Link"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={generateInvite}
+                  disabled={generating}
+                  className="shrink-0 gap-2"
+                >
+                  {generating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  I need another link
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generateInvite}
+                disabled={generating}
+                className="gap-2 mt-1"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Generate a new invite link
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
