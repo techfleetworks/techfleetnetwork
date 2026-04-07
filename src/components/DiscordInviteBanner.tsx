@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
+import { MessageSquare, ExternalLink, Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +88,20 @@ export function DiscordInviteBanner() {
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied!" : "Copy Link"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generateInvite}
+                disabled={generating}
+                className="gap-2"
+              >
+                {generating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                I need another link
               </Button>
             </div>
           ) : (
