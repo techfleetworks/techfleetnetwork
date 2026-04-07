@@ -12,33 +12,20 @@ serve(async (req) => {
   const GUILD_ID = Deno.env.get("DISCORD_GUILD_ID");
   const headers = { Authorization: `Bot ${BOT_TOKEN}` };
 
-  // 1. List first 10 members (doesn't use search)
-  const listRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members?limit=10`, { headers });
-  const listBody = listRes.ok ? await listRes.json() : await listRes.text();
+  const queries = ["kmorgan", "morgan", "km"];
+  const results: Record<string, any> = {};
 
-  // 2. Search for "k"  
-  const searchRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=k&limit=10`, { headers });
-  const searchBody = searchRes.ok ? await searchRes.json() : await searchRes.text();
+  for (const q of queries) {
+    const res = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(q)}&limit=10`, { headers });
+    const body = res.ok ? await res.json() : await res.text();
+    results[q] = {
+      status: res.status,
+      count: Array.isArray(body) ? body.length : 0,
+      members: Array.isArray(body) ? body.map((m: any) => ({ username: m.user?.username, global_name: m.user?.global_name, nick: m.nick, id: m.user?.id })) : body,
+    };
+  }
 
-  // 3. Get guild info
-  const guildRes = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}?with_counts=true`, { headers });
-  const guildBody = guildRes.ok ? await guildRes.json() : await guildRes.text();
-
-  const result = {
-    guild: guildRes.ok ? { name: guildBody.name, member_count: guildBody.approximate_member_count, id: guildBody.id } : { error: listRes.status, body: guildBody },
-    list_members: {
-      status: listRes.status,
-      count: Array.isArray(listBody) ? listBody.length : 0,
-      usernames: Array.isArray(listBody) ? listBody.map((m: any) => ({ username: m.user?.username, global_name: m.user?.global_name, nick: m.nick, id: m.user?.id })) : listBody,
-    },
-    search_k: {
-      status: searchRes.status,
-      count: Array.isArray(searchBody) ? searchBody.length : 0,
-      usernames: Array.isArray(searchBody) ? searchBody.map((m: any) => ({ username: m.user?.username, global_name: m.user?.global_name, nick: m.nick })) : searchBody,
-    },
-  };
-
-  return new Response(JSON.stringify(result, null, 2), {
+  return new Response(JSON.stringify(results, null, 2), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
