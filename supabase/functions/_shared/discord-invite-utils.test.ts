@@ -1,5 +1,9 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { getInviteChannelCandidates } from "./discord-invite-utils.ts";
+import {
+  getInviteCapableChannels,
+  getInviteChannelCandidates,
+  isExactOnboardingInviteChannel,
+} from "./discord-invite-utils.ts";
 
 Deno.test("prioritizes onboarding channels over project-specific general channels", () => {
   const candidates = getInviteChannelCandidates([
@@ -27,4 +31,74 @@ Deno.test("keeps all text channels available as fallback candidates", () => {
     candidates.map((channel) => channel.name),
     ["custom-onboarding", "support-general"],
   );
+});
+
+Deno.test("matches onboarding channels by normalized exact name", () => {
+  assertEquals(isExactOnboardingInviteChannel({ name: "👋welcome" }), true);
+  assertEquals(isExactOnboardingInviteChannel({ name: "general" }), true);
+  assertEquals(isExactOnboardingInviteChannel({ name: "agile-ux-general" }), false);
+});
+
+Deno.test("filters out channels where the bot cannot both view and create invites", () => {
+  const channels = getInviteCapableChannels({
+    channels: [
+      {
+        id: "welcome",
+        type: 0,
+        name: "welcome",
+        permission_overwrites: [
+          { id: "guild", type: 0, allow: "0", deny: "1024" },
+        ],
+      },
+      {
+        id: "general",
+        type: 0,
+        name: "general",
+        permission_overwrites: [
+          { id: "guild", type: 0, allow: "0", deny: "0" },
+        ],
+      },
+    ],
+    guildId: "guild",
+    guildRoles: [
+      { id: "guild", permissions: "1025" },
+      { id: "bot-role", permissions: "0" },
+    ],
+    memberRoleIds: ["bot-role"],
+    memberUserId: "bot-user",
+  });
+
+  assertEquals(channels.map((channel) => channel.name), ["general"]);
+});
+
+Deno.test("inherits category permission overwrites when determining invite-capable channels", () => {
+  const channels = getInviteCapableChannels({
+    channels: [
+      {
+        id: "category",
+        type: 4,
+        name: "onboarding",
+        permission_overwrites: [{ id: "guild", type: 0, allow: "0", deny: "1" }],
+      },
+      {
+        id: "welcome",
+        type: 0,
+        name: "welcome",
+        parent_id: "category",
+        permission_overwrites: [],
+      },
+      {
+        id: "general",
+        type: 0,
+        name: "general",
+        permission_overwrites: [],
+      },
+    ],
+    guildId: "guild",
+    guildRoles: [{ id: "guild", permissions: "1025" }],
+    memberRoleIds: [],
+    memberUserId: "bot-user",
+  });
+
+  assertEquals(channels.map((channel) => channel.name), ["general"]);
 });
