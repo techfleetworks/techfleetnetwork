@@ -44,7 +44,17 @@ serve(async (req) => {
       );
     }
 
-    const { discord_username } = await req.json();
+    const body = await req.json();
+    const discord_username = body.discord_username;
+    const confirm_user_id = body.confirm_user_id; // Optional: user picked a candidate
+    if (confirm_user_id && typeof confirm_user_id === "string" && confirm_user_id.length <= 20) {
+      // Direct confirmation — no search needed
+      log.info("resolve", `Direct confirmation of Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+      return new Response(
+        JSON.stringify({ discord_user_id: confirm_user_id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     if (!discord_username || typeof discord_username !== "string" || discord_username.length > MAX_USERNAME_LENGTH) {
       log.warn("validate", `Missing discord_username in request body [${requestId}]`, { requestId });
       return new Response(
