@@ -180,8 +180,52 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  /** Download a Discord avatar and upload it to the avatars bucket */
+  const saveDiscordAvatar = async (discordAvatarUrl: string, userId: string): Promise<string | null> => {
+    try {
+      // Only set avatar if user doesn't already have one
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("user_id", userId)
+        .single();
+
+      if (currentProfile?.avatar_url) {
+        return null; // User already has an avatar, don't overwrite
+      }
+
+      const response = await fetch(discordAvatarUrl);
+      if (!response.ok) return null;
+
+      const blob = await response.blob();
+      const path = `${userId}/avatar.png`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, blob, { upsert: true, contentType: "image/png" });
+
+      if (uploadError) {
+        console.warn("[ConnectDiscord] Avatar upload failed:", uploadError.message);
+        return null;
+      }
+
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl } as any)
+        .eq("user_id", userId);
+
+      return publicUrl;
+    } catch (err) {
+      console.warn("[ConnectDiscord] Avatar save failed:", err);
+      return null;
+    }
+  };
+
   /** Complete linking once we have a confirmed Discord user ID */
-  const finalizeLinking = async (discordUserId: string, discordUsername: string) => {
+  const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null) => {
     await supabase
       .from("profiles")
       .update({
@@ -190,6 +234,11 @@ export default function ConnectDiscordPage() {
         has_discord_account: true,
       })
       .eq("user_id", user!.id);
+
+    // Save Discord avatar if available and user doesn't have one yet
+    if (avatarUrl) {
+      saveDiscordAvatar(avatarUrl, user!.id); // fire-and-forget, don't block linking
+    }
 
     await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
 
@@ -241,7 +290,7 @@ export default function ConnectDiscordPage() {
 
       if (result.discord_user_id) {
         // Exact match — auto-verify
-        await finalizeLinking(result.discord_user_id, normalized);
+        await finalizeLinking(result.discord_user_id, normalized, result.avatar_url);
       } else if (result.candidates && result.candidates.length > 0) {
         // No exact match but candidates found — show picker
         setCandidates(result.candidates);
@@ -262,12 +311,13 @@ export default function ConnectDiscordPage() {
     id: string;
     username: string;
     global_name: string | null;
+    avatar?: string | null;
   }) => {
     setConfirmingId(candidate.id);
     setVerifyError("");
     try {
       const discordUsername = candidate.username;
-      await finalizeLinking(candidate.id, discordUsername);
+      await finalizeLinking(candidate.id, discordUsername, candidate.avatar);
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {

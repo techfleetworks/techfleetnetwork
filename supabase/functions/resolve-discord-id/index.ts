@@ -165,8 +165,12 @@ serve(async (req) => {
         `Verified "${cleanUsername}" → Discord ID ${match.user.id}`,
         [`username:${cleanUsername}`, `discord_id:${match.user.id}`, `result_count:${members.length}`]
       );
+      const avatarHash = match.user?.avatar;
+      const avatarUrl = avatarHash
+        ? `https://cdn.discordapp.com/avatars/${match.user.id}/${avatarHash}.png?size=256`
+        : null;
       return new Response(
-        JSON.stringify({ discord_user_id: match.user.id }),
+        JSON.stringify({ discord_user_id: match.user.id, avatar_url: avatarUrl }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
