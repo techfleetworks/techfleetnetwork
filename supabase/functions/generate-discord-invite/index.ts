@@ -1,12 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import {
-  EXACT_ONBOARDING_CHANNEL_NAMES,
-  getInviteCapableChannels,
-  getInviteChannelCandidates,
-  isExactOnboardingInviteChannel,
-  type DiscordInviteChannel,
-  type DiscordGuildRole,
-} from "../_shared/discord-invite-utils.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const logger = createEdgeLogger("generate-discord-invite");
@@ -21,54 +13,11 @@ const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
 const BOT_USER_ID = "1381402399587561583"; // Tech Fleet Network Activity Bot#0394
 
-// Module-level cache — persists for lifetime of the edge function instance
-let cachedBotRoleIds: string[] | null = null;
-let cachedGuildRoles: DiscordGuildRole[] | null = null;
-
-async function getBotRoles(botToken: string, guildId: string): Promise<string[]> {
-  if (cachedBotRoleIds) {
-    return cachedBotRoleIds;
-  }
-
-  const botMemberRes = await fetch(
-    `https://discord.com/api/v10/guilds/${guildId}/members/${BOT_USER_ID}`,
-    { headers: { Authorization: `Bot ${botToken}` } },
-  );
-  if (!botMemberRes.ok) {
-    const errText = await botMemberRes.text();
-    throw new Error(`Failed to fetch bot membership [${botMemberRes.status}]: ${errText}`);
-  }
-
-  const botMember = await botMemberRes.json() as { roles?: string[] };
-
-  cachedBotRoleIds = botMember.roles ?? [];
-
-  logger.info("cache", "Loaded bot roles (permanent cache)", {
-    botUserId: BOT_USER_ID,
-    roleCount: cachedBotRoleIds.length,
-  });
-
-  return cachedBotRoleIds;
-}
-
-async function getGuildRoles(botToken: string, guildId: string) {
-  if (cachedGuildRoles) {
-    return cachedGuildRoles;
-  }
-
-  const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
-    headers: { Authorization: `Bot ${botToken}` },
-  });
-  if (!rolesRes.ok) {
-    const errText = await rolesRes.text();
-    throw new Error(`Failed to fetch guild roles [${rolesRes.status}]: ${errText}`);
-  }
-
-  cachedGuildRoles = await rolesRes.json() as DiscordGuildRole[];
-  logger.info("cache", "Loaded guild roles (permanent cache)", { roleCount: cachedGuildRoles.length });
-
-  return cachedGuildRoles;
-}
+// Hardcoded onboarding channels — these are permanent and don't change
+const ONBOARDING_CHANNELS = [
+  { id: "1080931652697608303", name: "welcome" },
+  { id: "1080931652697608306", name: "general" },
+] as const;
 
 function summarizeInviteErrors(inviteErrors: string[]) {
   return inviteErrors.slice(0, 12).join(" | ");
@@ -170,58 +119,8 @@ Deno.serve(async (req) => {
       throw new Error("Discord bot configuration is missing");
     }
 
-    const channelsRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
-      headers: { Authorization: `Bot ${botToken}` },
-    });
-    if (!channelsRes.ok) {
-      const errText = await channelsRes.text();
-      throw new Error(`Failed to fetch guild channels [${channelsRes.status}]: ${errText}`);
-    }
-
-    const channels = await channelsRes.json() as DiscordInviteChannel[];
-
-    const [botRoleIds, guildRoles] = await Promise.all([
-      getBotRoles(botToken, guildId),
-      getGuildRoles(botToken, guildId),
-    ]);
-
-    const inviteCapableChannels = getInviteCapableChannels({
-      channels,
-      guildId,
-      guildRoles,
-      memberRoleIds: botRoleIds,
-      memberUserId: BOT_USER_ID,
-    });
-
-    const prioritizedInviteCapableChannels = getInviteChannelCandidates(inviteCapableChannels);
-    const onboardingCandidates = prioritizedInviteCapableChannels
-      .filter(isExactOnboardingInviteChannel)
-      .slice(0, MAX_ONBOARDING_CANDIDATES);
-    const fallbackCandidates = prioritizedInviteCapableChannels
-      .filter((channel) => !isExactOnboardingInviteChannel(channel))
-      .slice(0, MAX_ONBOARDING_CANDIDATES);
-
-    if (prioritizedInviteCapableChannels.length === 0) {
-      const inviteCapableChannelNames = inviteCapableChannels
-        .map((channel) => channel.name ?? channel.id)
-        .slice(0, 25);
-
-      throw new Error(
-        `The Discord bot cannot create invites in any text channel right now. Expected onboarding channels: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}. Invite-capable channels found: ${inviteCapableChannelNames.join(", ") || "none"}`,
-      );
-    }
-
-    const candidates = [...onboardingCandidates, ...fallbackCandidates].slice(0, MAX_ONBOARDING_CANDIDATES);
-
-    logger.info("candidate_channels", `Prepared ${candidates.length} invite channel candidates`, {
-      candidateCount: candidates.length,
-      topCandidates: candidates.map((channel) => channel.name ?? channel.id),
-      inviteCapableChannelCount: inviteCapableChannels.length,
-      onboardingCandidateCount: onboardingCandidates.length,
-      fallbackCandidateCount: fallbackCandidates.length,
-      matchStrategy: onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only",
-      allowedChannelNames: [...EXACT_ONBOARDING_CHANNEL_NAMES],
-    });
+    // Try hardcoded onboarding channels directly — no discovery needed
+    const candidates = ONBOARDING_CHANNELS;
 
     let inviteUrl = "";
     const inviteErrors: string[] = [];
@@ -245,14 +144,11 @@ Deno.serve(async (req) => {
         const inviteCode = invite?.code;
 
         if (!inviteCode) {
-          inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: Missing invite code in Discord response`);
-          logger.warn("create_invite", `Invite creation returned no code for channel ${channel.name ?? channel.id}`, {
+        inviteErrors.push(`${channel.name} [${inviteRes.status}]: Missing invite code in Discord response`);
+          logger.warn("create_invite", `Invite creation returned no code for channel ${channel.name}`, {
             channelId: channel.id,
-            channelName: channel.name ?? null,
+            channelName: channel.name,
             status: inviteRes.status,
-            matchStrategy: isExactOnboardingInviteChannel(channel)
-              ? "exact_then_capable_fallback"
-              : "capable_fallback_only",
           });
           continue;
         }
@@ -272,16 +168,13 @@ Deno.serve(async (req) => {
       inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: ${errText}`);
       logger.warn("create_invite", `Invite creation failed for channel ${channel.name ?? channel.id}`, {
         channelId: channel.id,
-        channelName: channel.name ?? null,
+        channelName: channel.name,
         status: inviteRes.status,
-        matchStrategy: isExactOnboardingInviteChannel(channel)
-          ? "exact_then_capable_fallback"
-          : "capable_fallback_only",
       });
     }
 
     if (!inviteUrl) {
-      const errorSummary = `Discord bot failed to create invite in any of ${candidates.length} candidate channels. Top errors: ${summarizeInviteErrors(inviteErrors)}`;
+      const errorSummary = `Discord bot failed to create invite in ${candidates.length} hardcoded channels. Errors: ${summarizeInviteErrors(inviteErrors)}`;
 
       await writeDiscordAuditLog({
         supabaseUrl,
@@ -291,13 +184,7 @@ Deno.serve(async (req) => {
         errorMessage: errorSummary,
         changedFields: [
           `guild_id:${guildId}`,
-          `candidate_channels:${candidates.length}`,
-          `invite_capable_channels:${inviteCapableChannels.length}`,
-          `onboarding_candidates:${onboardingCandidates.length}`,
-          `fallback_candidates:${fallbackCandidates.length}`,
-          `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
-          `expected_channel_names:${EXACT_ONBOARDING_CHANNEL_NAMES.join(",")}`,
-          `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
+          `channels:${candidates.map((c) => `${c.name}:${c.id}`).join(",")}`,
           `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
         ],
       });
@@ -314,17 +201,11 @@ Deno.serve(async (req) => {
       tableName: "profiles",
       changedFields: [
         "invite_type:onboarding",
-        `candidate_channels:${candidates.length}`,
-        `onboarding_candidates:${onboardingCandidates.length}`,
-        `fallback_candidates:${fallbackCandidates.length}`,
-        `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
+        `channel_count:${candidates.length}`,
       ],
     });
 
-    logger.info("generate", `Generated fresh Discord invite for user ${user.id}`, {
-      candidateCount: candidates.length,
-      matchStrategy: onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only",
-    });
+    logger.info("generate", `Generated Discord invite for user ${user.id}`);
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
