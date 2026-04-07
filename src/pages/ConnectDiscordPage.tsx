@@ -424,17 +424,17 @@ export default function ConnectDiscordPage() {
               <p className="text-sm font-medium text-foreground">Ready? Generate your invite link:</p>
               {inviteUrl ? (
                 <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <a
                       href={inviteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                      className="inline-flex shrink-0 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
                       <ExternalLink className="h-4 w-4" />
                       Open Discord Invite
                     </a>
-                    <Button variant="outline" size="sm" onClick={copyToClipboard} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={copyToClipboard} className="shrink-0 gap-2">
                       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                       {copied ? "Copied!" : "Copy Link"}
                     </Button>
@@ -443,7 +443,7 @@ export default function ConnectDiscordPage() {
                       size="sm"
                       onClick={generateInvite}
                       disabled={generating}
-                      className="gap-2"
+                      className="shrink-0 gap-2"
                     >
                       {generating ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -497,12 +497,12 @@ export default function ConnectDiscordPage() {
 
             {inviteUrl ? (
               <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-wrap gap-2">
                   <a
                     href={inviteUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                   >
                     <ExternalLink className="h-4 w-4" />
                     Open Discord Invite
@@ -511,7 +511,7 @@ export default function ConnectDiscordPage() {
                     variant="outline"
                     size="sm"
                     onClick={copyToClipboard}
-                    className="gap-2"
+                    className="shrink-0 gap-2"
                   >
                     {copied ? (
                       <Check className="h-3.5 w-3.5" />
@@ -525,7 +525,7 @@ export default function ConnectDiscordPage() {
                     size="sm"
                     onClick={generateInvite}
                     disabled={generating}
-                    className="gap-2"
+                    className="shrink-0 gap-2"
                   >
                     {generating ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
