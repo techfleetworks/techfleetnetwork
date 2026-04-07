@@ -226,7 +226,22 @@ export default function ConnectDiscordPage() {
 
   /** Complete linking once we have a confirmed Discord user ID */
   const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null) => {
-    await supabase
+    // Check if this Discord account is already linked to another user
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("display_name, user_id")
+      .eq("discord_user_id", discordUserId)
+      .neq("user_id", user!.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const ownerName = existing[0].display_name || "another member";
+      throw new Error(
+        `This Discord account is already linked to ${ownerName}. Each Discord account can only be connected to one Tech Fleet profile. If you believe this is an error, please contact an admin.`
+      );
+    }
+
+    const { error: updateError } = await supabase
       .from("profiles")
       .update({
         discord_username: discordUsername,
@@ -234,6 +249,15 @@ export default function ConnectDiscordPage() {
         has_discord_account: true,
       })
       .eq("user_id", user!.id);
+
+    if (updateError) {
+      if (updateError.message?.includes("idx_profiles_discord_user_id_unique") || updateError.message?.includes("unique")) {
+        throw new Error(
+          "This Discord account is already linked to another Tech Fleet profile. Each Discord account can only be connected to one profile. If you believe this is an error, please contact an admin."
+        );
+      }
+      throw updateError;
+    }
 
     // Save Discord avatar if available and user doesn't have one yet
     if (avatarUrl) {

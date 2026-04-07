@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_profiles_discord_user_id_unique ON public.profiles (discord_user_id) WHERE discord_user_id IS NOT NULL AND discord_user_id != '';
