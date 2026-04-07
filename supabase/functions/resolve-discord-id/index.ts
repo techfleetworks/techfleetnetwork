@@ -102,63 +102,25 @@ serve(async (req) => {
       }
     }
 
-    const members = allMembers;
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      log.error("resolve", `Discord API error [${requestId}]: HTTP ${res.status} — ${errorText}`, {
-        requestId,
-        httpStatus: res.status,
-        username: cleanUsername,
-        responseBody: errorText.substring(0, 500),
-      });
-
-      // Log to audit_log for Activity Log visibility
-      try {
-        const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-        const url = Deno.env.get("SUPABASE_URL");
-        if (srk && url) {
-          const ac = createClient(url, srk);
-          await ac.rpc("write_audit_log", {
-            p_event_type: "discord_bot_error",
-            p_table_name: "discord_integration",
-            p_record_id: `resolve-discord-id:${requestId}`,
-            p_user_id: "00000000-0000-0000-0000-000000000000",
-            p_error_message: `[resolve] HTTP ${res.status} for username "${cleanUsername}" — ${errorText.substring(0, 500)}`,
-            p_changed_fields: [`username:${cleanUsername}`, `http_status:${res.status}`],
-          });
-        }
-      } catch { /* swallow */ }
-
-      // For 404 (unknown guild) or 403 (bot lacks access), return a graceful null
-      // so the client UI doesn't show a scary error — the user simply isn't found
-      if (res.status === 404 || res.status === 403) {
-        return new Response(
-          JSON.stringify({ discord_user_id: null, message: "Could not verify — guild not accessible" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      return new Response(
-        JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const members = await res.json();
     const candidateUsernames = members.map((m: any) => m.user?.username).filter(Boolean);
     const candidateGlobalNames = members.map((m: any) => m.user?.global_name).filter(Boolean);
     const candidateNicks = members.map((m: any) => m.nick).filter(Boolean);
     log.info("resolve", `Discord returned ${members.length} members for query "${cleanUsername}" [${requestId}]`, {
       requestId,
       username: cleanUsername,
+      rawUsername,
       resultCount: members.length,
       candidateUsernames,
       candidateGlobalNames,
       candidateNicks,
     });
 
+    // Match on cleaned username OR raw username (handles dot-prefixed names like .kmorgan)
     const match = members.find(
-      (m: any) => m.user?.username?.toLowerCase() === cleanUsername
+      (m: any) => {
+        const u = m.user?.username?.toLowerCase();
+        return u === cleanUsername || u === rawUsername;
+      }
     );
 
     // Audit-log helper
