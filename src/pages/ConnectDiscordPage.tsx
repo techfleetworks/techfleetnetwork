@@ -237,6 +237,7 @@ export default function ConnectDiscordPage() {
 
     try {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
+      console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
       if (result.discord_user_id) {
         // Exact match — auto-verify

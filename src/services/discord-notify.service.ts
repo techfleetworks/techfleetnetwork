@@ -196,20 +196,35 @@ export const DiscordNotifyService = {
   }> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {
-        const { data } = await discordBreaker.execute(
+        const { data: rawData, error } = await discordBreaker.execute(
           () => supabase.functions.invoke("resolve-discord-id", {
             body: { discord_username: discordUsername },
           }),
         );
+
+        if (error) {
+          log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${error.message}`, { discordUsername });
+          return { discord_user_id: null };
+        }
+
+        // supabase.functions.invoke may return parsed JSON or a raw string
+        const data = typeof rawData === "string" ? (() => { try { return JSON.parse(rawData); } catch { return rawData; } })() : rawData;
+
         const result = data?.discord_user_id || null;
+        const candidates = Array.isArray(data?.candidates) ? data.candidates : undefined;
+
         if (result) {
           log.info("resolveDiscordId", `Resolved "${discordUsername}" to Discord ID ${result}`, { discordUsername, discordUserId: result });
         } else {
-          log.warn("resolveDiscordId", `Could not resolve "${discordUsername}" — user not found in server`, { discordUsername });
+          log.warn("resolveDiscordId", `Could not resolve "${discordUsername}" — candidates: ${candidates?.length ?? 0}`, {
+            discordUsername,
+            candidateCount: candidates?.length ?? 0,
+            rawDataType: typeof rawData,
+          });
         }
         return {
           discord_user_id: result,
-          candidates: data?.candidates || undefined,
+          candidates,
           message: data?.message || undefined,
         };
       } catch (err) {
