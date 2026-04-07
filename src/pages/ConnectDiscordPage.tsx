@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -437,6 +438,20 @@ export default function ConnectDiscordPage() {
                       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                       {copied ? "Copied!" : "Copy Link"}
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={generateInvite}
+                      disabled={generating}
+                      className="gap-2"
+                    >
+                      {generating ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      I need another link
+                    </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     This is a single-use invite link valid for 7 days.
@@ -504,6 +519,20 @@ export default function ConnectDiscordPage() {
                       <Copy className="h-3.5 w-3.5" />
                     )}
                     {copied ? "Copied!" : "Copy Link"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={generateInvite}
+                    disabled={generating}
+                    className="gap-2"
+                  >
+                    {generating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    I need another link
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
