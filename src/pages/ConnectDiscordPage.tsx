@@ -11,6 +11,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
+import DiscordUsernameTutorial from "@/components/DiscordUsernameTutorial";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -656,6 +657,9 @@ export default function ConnectDiscordPage() {
               Enter your Discord username or display name and we'll find you in the Tech
               Fleet server.
             </p>
+
+            {/* Tutorial: How to find your username */}
+            <DiscordUsernameTutorial />
 
             <div className="space-y-2">
               <Label htmlFor="discord-username">Discord Username or Display Name</Label>
