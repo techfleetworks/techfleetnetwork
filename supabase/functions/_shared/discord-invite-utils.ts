@@ -133,6 +133,7 @@ export function getInviteCapableChannels({
   memberUserId: string;
 }) {
   const textChannels = channels.filter((channel) => channel.type === 0);
+  const channelsById = new Map(channels.map((channel) => [channel.id, channel]));
   const guildPermissions = getBaseGuildPermissions(guildRoles, guildId, memberRoleIds);
 
   if ((guildPermissions & ADMINISTRATOR) === ADMINISTRATOR) {
@@ -141,7 +142,10 @@ export function getInviteCapableChannels({
 
   return textChannels.filter((channel) => {
     let permissions = guildPermissions;
-    const overwrites = channel.permission_overwrites ?? [];
+    const parentOverwrites = channel.parent_id
+      ? channelsById.get(channel.parent_id)?.permission_overwrites ?? []
+      : [];
+    const overwrites = [...parentOverwrites, ...(channel.permission_overwrites ?? [])];
 
     permissions = applyOverwrite(
       permissions,

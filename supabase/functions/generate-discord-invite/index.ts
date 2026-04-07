@@ -164,28 +164,33 @@ Deno.serve(async (req) => {
       memberUserId: botUserId,
     });
 
-    const allCandidates = getInviteChannelCandidates(inviteCapableChannels);
-    const onboardingCandidates = allCandidates
+    const prioritizedInviteCapableChannels = getInviteChannelCandidates(inviteCapableChannels);
+    const onboardingCandidates = prioritizedInviteCapableChannels
       .filter(isExactOnboardingInviteChannel)
       .slice(0, MAX_ONBOARDING_CANDIDATES);
+    const fallbackCandidates = prioritizedInviteCapableChannels
+      .filter((channel) => !isExactOnboardingInviteChannel(channel))
+      .slice(0, MAX_ONBOARDING_CANDIDATES);
 
-    if (onboardingCandidates.length === 0) {
+    if (prioritizedInviteCapableChannels.length === 0) {
       const inviteCapableChannelNames = inviteCapableChannels
         .map((channel) => channel.name ?? channel.id)
         .slice(0, 25);
 
       throw new Error(
-        `No onboarding invite channel is currently usable by the Discord bot. Expected one of: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}. Invite-capable channels found: ${inviteCapableChannelNames.join(", ") || "none"}`,
+        `The Discord bot cannot create invites in any text channel right now. Expected onboarding channels: ${EXACT_ONBOARDING_CHANNEL_NAMES.join(", ")}. Invite-capable channels found: ${inviteCapableChannelNames.join(", ") || "none"}`,
       );
     }
 
-    const candidates = onboardingCandidates;
+    const candidates = [...onboardingCandidates, ...fallbackCandidates].slice(0, MAX_ONBOARDING_CANDIDATES);
 
-    logger.info("candidate_channels", `Prepared ${candidates.length} exact onboarding invite channel candidates`, {
+    logger.info("candidate_channels", `Prepared ${candidates.length} invite channel candidates`, {
       candidateCount: candidates.length,
       topCandidates: candidates.map((channel) => channel.name ?? channel.id),
       inviteCapableChannelCount: inviteCapableChannels.length,
-      matchStrategy: "exact_name",
+      onboardingCandidateCount: onboardingCandidates.length,
+      fallbackCandidateCount: fallbackCandidates.length,
+      matchStrategy: onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only",
       allowedChannelNames: [...EXACT_ONBOARDING_CHANNEL_NAMES],
     });
 
@@ -216,15 +221,20 @@ Deno.serve(async (req) => {
             channelId: channel.id,
             channelName: channel.name ?? null,
             status: inviteRes.status,
+            matchStrategy: isExactOnboardingInviteChannel(channel)
+              ? "exact_then_capable_fallback"
+              : "capable_fallback_only",
           });
           continue;
         }
 
         inviteUrl = `https://discord.gg/${inviteCode}`;
-        logger.info("create_invite", `Created onboarding invite in channel ${channel.name ?? channel.id}`, {
+        logger.info("create_invite", `Created Discord invite in channel ${channel.name ?? channel.id}`, {
           channelId: channel.id,
           channelName: channel.name ?? null,
-          matchStrategy: "exact_name",
+          matchStrategy: isExactOnboardingInviteChannel(channel)
+            ? "exact_then_capable_fallback"
+            : "capable_fallback_only",
         });
         break;
       }
@@ -235,12 +245,14 @@ Deno.serve(async (req) => {
         channelId: channel.id,
         channelName: channel.name ?? null,
         status: inviteRes.status,
-        matchStrategy: "exact_name",
+        matchStrategy: isExactOnboardingInviteChannel(channel)
+          ? "exact_then_capable_fallback"
+          : "capable_fallback_only",
       });
     }
 
     if (!inviteUrl) {
-      const errorSummary = `Discord bot failed to create onboarding invite in any of ${candidates.length} onboarding channels. Top errors: ${summarizeInviteErrors(inviteErrors)}`;
+      const errorSummary = `Discord bot failed to create invite in any of ${candidates.length} candidate channels. Top errors: ${summarizeInviteErrors(inviteErrors)}`;
 
       await writeDiscordAuditLog({
         supabaseUrl,
@@ -252,7 +264,9 @@ Deno.serve(async (req) => {
           `guild_id:${guildId}`,
           `candidate_channels:${candidates.length}`,
           `invite_capable_channels:${inviteCapableChannels.length}`,
-          "channel_match_strategy:exact_name",
+          `onboarding_candidates:${onboardingCandidates.length}`,
+          `fallback_candidates:${fallbackCandidates.length}`,
+          `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
           `expected_channel_names:${EXACT_ONBOARDING_CHANNEL_NAMES.join(",")}`,
           `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
           `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
@@ -272,13 +286,15 @@ Deno.serve(async (req) => {
       changedFields: [
         "invite_type:onboarding",
         `candidate_channels:${candidates.length}`,
-        "channel_match_strategy:exact_name",
+        `onboarding_candidates:${onboardingCandidates.length}`,
+        `fallback_candidates:${fallbackCandidates.length}`,
+        `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
       ],
     });
 
-    logger.info("generate", `Generated fresh onboarding invite for user ${user.id}`, {
+    logger.info("generate", `Generated fresh Discord invite for user ${user.id}`, {
       candidateCount: candidates.length,
-      matchStrategy: "exact_name",
+      matchStrategy: onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only",
     });
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {

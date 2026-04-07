@@ -70,3 +70,35 @@ Deno.test("filters out channels where the bot cannot both view and create invite
 
   assertEquals(channels.map((channel) => channel.name), ["general"]);
 });
+
+Deno.test("inherits category permission overwrites when determining invite-capable channels", () => {
+  const channels = getInviteCapableChannels({
+    channels: [
+      {
+        id: "category",
+        type: 4,
+        name: "onboarding",
+        permission_overwrites: [{ id: "guild", type: 0, allow: "0", deny: "1" }],
+      },
+      {
+        id: "welcome",
+        type: 0,
+        name: "welcome",
+        parent_id: "category",
+        permission_overwrites: [],
+      },
+      {
+        id: "general",
+        type: 0,
+        name: "general",
+        permission_overwrites: [],
+      },
+    ],
+    guildId: "guild",
+    guildRoles: [{ id: "guild", permissions: "1025" }],
+    memberRoleIds: [],
+    memberUserId: "bot-user",
+  });
+
+  assertEquals(channels.map((channel) => channel.name), ["general"]);
+});
