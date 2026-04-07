@@ -130,7 +130,23 @@ Deno.serve(async (req) => {
 
     const channels = await channelsRes.json() as DiscordInviteChannel[];
 
-    const botMemberRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/@me`, {
+    // Step 1: Get the bot's own user ID via /users/@me
+    const botUserRes = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: { Authorization: `Bot ${botToken}` },
+    });
+    if (!botUserRes.ok) {
+      const errText = await botUserRes.text();
+      throw new Error(`Failed to fetch bot user [${botUserRes.status}]: ${errText}`);
+    }
+
+    const botUser = await botUserRes.json() as { id?: string };
+    const botUserId = botUser.id;
+    if (!botUserId) {
+      throw new Error("Discord bot /users/@me response did not include an id");
+    }
+
+    // Step 2: Get the bot's guild member info (roles, etc.)
+    const botMemberRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${botUserId}`, {
       headers: { Authorization: `Bot ${botToken}` },
     });
     if (!botMemberRes.ok) {
@@ -138,13 +154,8 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch bot membership [${botMemberRes.status}]: ${errText}`);
     }
 
-    const botMember = await botMemberRes.json() as { user?: { id?: string }; roles?: string[] };
-    const botUserId = botMember.user?.id;
+    const botMember = await botMemberRes.json() as { roles?: string[] };
     const botRoleIds = botMember.roles ?? [];
-
-    if (!botUserId) {
-      throw new Error("Discord bot membership response did not include a user id");
-    }
 
     const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
       headers: { Authorization: `Bot ${botToken}` },
