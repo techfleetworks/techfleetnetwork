@@ -179,79 +179,97 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  /** Complete linking once we have a confirmed Discord user ID */
+  const finalizeLinking = async (discordUserId: string, discordUsername: string) => {
+    await supabase
+      .from("profiles")
+      .update({
+        discord_username: discordUsername,
+        discord_user_id: discordUserId,
+        has_discord_account: true,
+      })
+      .eq("user_id", user!.id);
+
+    await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
+
+    let communityRoleAssigned = false;
+    try {
+      await assignCommunityRole(discordUserId);
+      communityRoleAssigned = true;
+    } catch {
+      communityRoleAssigned = false;
+    }
+
+    DiscordNotifyService.discordVerified(displayName, discordUsername, discordUserId);
+
+    queryClient.invalidateQueries({ queryKey: ["journey-completed", user!.id, PHASE] });
+    queryClient.invalidateQueries({ queryKey: ["journey-progress", user!.id, PHASE] });
+
+    await refreshProfile();
+
+    setVerified(true);
+    setCandidates([]);
+    if (communityRoleAssigned) {
+      toast.success("Discord account verified, linked, and added to Community!");
+    } else {
+      toast.success("Discord account verified and linked!", {
+        description:
+          "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
+      });
+    }
+    if (!completionShownRef.current) {
+      completionShownRef.current = true;
+      setShowCompletionDialog(true);
+    }
+  };
+
   const handleVerify = async () => {
     const trimmed = username.trim();
     if (!trimmed) {
-      setVerifyError("Please enter your Discord username.");
+      setVerifyError("Please enter your Discord username or display name.");
       return;
     }
     const normalized = normalizeDiscordUsername(trimmed);
     setVerifying(true);
     setVerifyError("");
+    setCandidates([]);
 
     try {
-      const discordUserId =
-        await DiscordNotifyService.resolveDiscordId(normalized);
+      const result = await DiscordNotifyService.resolveDiscordId(normalized);
 
-      if (!discordUserId) {
-        setVerifyError(
-          "We couldn't find that username in the Tech Fleet Discord server. Please make sure you've joined and that the username is correct."
-        );
-        setVerifying(false);
-        return;
-      }
-
-      await supabase
-        .from("profiles")
-        .update({
-          discord_username: normalized,
-          discord_user_id: discordUserId,
-          has_discord_account: true,
-        })
-        .eq("user_id", user!.id);
-
-      await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
-
-      let communityRoleAssigned = false;
-      try {
-        await assignCommunityRole(discordUserId);
-        communityRoleAssigned = true;
-      } catch {
-        communityRoleAssigned = false;
-      }
-
-      DiscordNotifyService.discordVerified(
-        displayName,
-        normalized,
-        discordUserId
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: ["journey-completed", user!.id, PHASE],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["journey-progress", user!.id, PHASE],
-      });
-
-      await refreshProfile();
-
-      setVerified(true);
-      if (communityRoleAssigned) {
-        toast.success("Discord account verified, linked, and added to Community!");
+      if (result.discord_user_id) {
+        // Exact match — auto-verify
+        await finalizeLinking(result.discord_user_id, normalized);
+      } else if (result.candidates && result.candidates.length > 0) {
+        // No exact match but candidates found — show picker
+        setCandidates(result.candidates);
+        setVerifyError("");
       } else {
-        toast.success("Discord account verified and linked!", {
-          description:
-            "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
-        });
-      }
-      if (!completionShownRef.current) {
-        completionShownRef.current = true;
-        setShowCompletionDialog(true);
+        setVerifyError(
+          "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct."
+        );
       }
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleCandidateSelect = async (candidate: {
+    id: string;
+    username: string;
+    global_name: string | null;
+  }) => {
+    setConfirmingId(candidate.id);
+    setVerifyError("");
+    try {
+      const discordUsername = candidate.username;
+      await finalizeLinking(candidate.id, discordUsername);
+    } catch (err: any) {
+      setVerifyError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setConfirmingId(null);
     }
   };
 
