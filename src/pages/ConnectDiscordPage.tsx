@@ -290,7 +290,7 @@ export default function ConnectDiscordPage() {
 
       if (result.discord_user_id) {
         // Exact match — auto-verify
-        await finalizeLinking(result.discord_user_id, normalized);
+        await finalizeLinking(result.discord_user_id, normalized, result.avatar_url);
       } else if (result.candidates && result.candidates.length > 0) {
         // No exact match but candidates found — show picker
         setCandidates(result.candidates);
@@ -311,12 +311,13 @@ export default function ConnectDiscordPage() {
     id: string;
     username: string;
     global_name: string | null;
+    avatar?: string | null;
   }) => {
     setConfirmingId(candidate.id);
     setVerifyError("");
     try {
       const discordUsername = candidate.username;
-      await finalizeLinking(candidate.id, discordUsername);
+      await finalizeLinking(candidate.id, discordUsername, candidate.avatar);
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
