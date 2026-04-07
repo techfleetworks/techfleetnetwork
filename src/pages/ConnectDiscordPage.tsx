@@ -78,6 +78,14 @@ export default function ConnectDiscordPage() {
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [candidates, setCandidates] = useState<Array<{
+    id: string;
+    username: string;
+    global_name: string | null;
+    nick: string | null;
+    avatar: string | null;
+  }>>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Track whether we've done the initial sync from DB state
   const initialSyncDone = useRef(false);
@@ -171,79 +179,97 @@ export default function ConnectDiscordPage() {
     }
   };
 
+  /** Complete linking once we have a confirmed Discord user ID */
+  const finalizeLinking = async (discordUserId: string, discordUsername: string) => {
+    await supabase
+      .from("profiles")
+      .update({
+        discord_username: discordUsername,
+        discord_user_id: discordUserId,
+        has_discord_account: true,
+      })
+      .eq("user_id", user!.id);
+
+    await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
+
+    let communityRoleAssigned = false;
+    try {
+      await assignCommunityRole(discordUserId);
+      communityRoleAssigned = true;
+    } catch {
+      communityRoleAssigned = false;
+    }
+
+    DiscordNotifyService.discordVerified(displayName, discordUsername, discordUserId);
+
+    queryClient.invalidateQueries({ queryKey: ["journey-completed", user!.id, PHASE] });
+    queryClient.invalidateQueries({ queryKey: ["journey-progress", user!.id, PHASE] });
+
+    await refreshProfile();
+
+    setVerified(true);
+    setCandidates([]);
+    if (communityRoleAssigned) {
+      toast.success("Discord account verified, linked, and added to Community!");
+    } else {
+      toast.success("Discord account verified and linked!", {
+        description:
+          "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
+      });
+    }
+    if (!completionShownRef.current) {
+      completionShownRef.current = true;
+      setShowCompletionDialog(true);
+    }
+  };
+
   const handleVerify = async () => {
     const trimmed = username.trim();
     if (!trimmed) {
-      setVerifyError("Please enter your Discord username.");
+      setVerifyError("Please enter your Discord username or display name.");
       return;
     }
     const normalized = normalizeDiscordUsername(trimmed);
     setVerifying(true);
     setVerifyError("");
+    setCandidates([]);
 
     try {
-      const discordUserId =
-        await DiscordNotifyService.resolveDiscordId(normalized);
+      const result = await DiscordNotifyService.resolveDiscordId(normalized);
 
-      if (!discordUserId) {
-        setVerifyError(
-          "We couldn't find that username in the Tech Fleet Discord server. Please make sure you've joined and that the username is correct."
-        );
-        setVerifying(false);
-        return;
-      }
-
-      await supabase
-        .from("profiles")
-        .update({
-          discord_username: normalized,
-          discord_user_id: discordUserId,
-          has_discord_account: true,
-        })
-        .eq("user_id", user!.id);
-
-      await JourneyService.upsertTask(user!.id, PHASE, TASK_ID, true);
-
-      let communityRoleAssigned = false;
-      try {
-        await assignCommunityRole(discordUserId);
-        communityRoleAssigned = true;
-      } catch {
-        communityRoleAssigned = false;
-      }
-
-      DiscordNotifyService.discordVerified(
-        displayName,
-        normalized,
-        discordUserId
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: ["journey-completed", user!.id, PHASE],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["journey-progress", user!.id, PHASE],
-      });
-
-      await refreshProfile();
-
-      setVerified(true);
-      if (communityRoleAssigned) {
-        toast.success("Discord account verified, linked, and added to Community!");
+      if (result.discord_user_id) {
+        // Exact match — auto-verify
+        await finalizeLinking(result.discord_user_id, normalized);
+      } else if (result.candidates && result.candidates.length > 0) {
+        // No exact match but candidates found — show picker
+        setCandidates(result.candidates);
+        setVerifyError("");
       } else {
-        toast.success("Discord account verified and linked!", {
-          description:
-            "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
-        });
-      }
-      if (!completionShownRef.current) {
-        completionShownRef.current = true;
-        setShowCompletionDialog(true);
+        setVerifyError(
+          "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct."
+        );
       }
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleCandidateSelect = async (candidate: {
+    id: string;
+    username: string;
+    global_name: string | null;
+  }) => {
+    setConfirmingId(candidate.id);
+    setVerifyError("");
+    try {
+      const discordUsername = candidate.username;
+      await finalizeLinking(candidate.id, discordUsername);
+    } catch (err: any) {
+      setVerifyError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -627,21 +653,22 @@ export default function ConnectDiscordPage() {
               Verify your Discord account
             </h2>
             <p className="text-sm text-muted-foreground">
-              Enter your Discord username and we'll verify you're in the Tech
-              Fleet server using the Tech Fleet Network Activity Bot.
+              Enter your Discord username or display name and we'll find you in the Tech
+              Fleet server.
             </p>
 
             <div className="space-y-2">
-              <Label htmlFor="discord-username">Discord Username</Label>
+              <Label htmlFor="discord-username">Discord Username or Display Name</Label>
               <Input
                 id="discord-username"
-                placeholder="e.g. johndoe"
+                placeholder="e.g. johndoe or John D."
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setVerifyError("");
+                  setCandidates([]);
                 }}
-                disabled={verifying}
+                disabled={verifying || !!confirmingId}
                 aria-describedby={
                   verifyError ? "discord-verify-error" : undefined
                 }
@@ -660,28 +687,80 @@ export default function ConnectDiscordPage() {
               </div>
             )}
 
+            {/* Candidate picker — shown when no exact match but similar members found */}
+            {candidates.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-foreground">
+                  We found similar members — is one of these you?
+                </p>
+                <div className="space-y-2" role="list" aria-label="Matching Discord members">
+                  {candidates.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleCandidateSelect(c)}
+                      disabled={!!confirmingId}
+                      className="w-full flex items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      role="listitem"
+                      aria-label={`Select ${c.global_name || c.nick || c.username}`}
+                    >
+                      {c.avatar ? (
+                        <img
+                          src={c.avatar}
+                          alt=""
+                          className="h-10 w-10 rounded-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-medium">
+                          {(c.global_name || c.username || "?").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {c.global_name || c.username}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          @{c.username}
+                          {c.nick && c.nick !== c.global_name ? ` · ${c.nick}` : ""}
+                        </p>
+                      </div>
+                      {confirmingId === c.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  None of these? Try searching with your exact Discord username (Settings → My Account).
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 onClick={handleVerify}
-                disabled={verifying || !username.trim()}
+                disabled={verifying || !!confirmingId || !username.trim()}
                 className="gap-2"
               >
                 {verifying ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Verifying…
+                    Searching…
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    Verify
+                    {candidates.length > 0 ? "Search Again" : "Verify"}
                   </>
                 )}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setStep("no-discord-choose")}
-                disabled={verifying}
+                disabled={verifying || !!confirmingId}
               >
                 I need an invite instead
               </Button>

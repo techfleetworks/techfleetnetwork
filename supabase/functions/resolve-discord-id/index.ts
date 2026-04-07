@@ -44,7 +44,17 @@ serve(async (req) => {
       );
     }
 
-    const { discord_username } = await req.json();
+    const body = await req.json();
+    const discord_username = body.discord_username;
+    const confirm_user_id = body.confirm_user_id; // Optional: user picked a candidate
+    if (confirm_user_id && typeof confirm_user_id === "string" && confirm_user_id.length <= 20) {
+      // Direct confirmation — no search needed
+      log.info("resolve", `Direct confirmation of Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+      return new Response(
+        JSON.stringify({ discord_user_id: confirm_user_id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     if (!discord_username || typeof discord_username !== "string" || discord_username.length > MAX_USERNAME_LENGTH) {
       log.warn("validate", `Missing discord_username in request body [${requestId}]`, { requestId });
       return new Response(
@@ -161,7 +171,18 @@ serve(async (req) => {
       );
     }
 
-    log.warn("resolve", `No exact match for "${cleanUsername}" in guild [${requestId}]`, {
+    // Build candidate list for the UI picker (limit to 10, sanitize output)
+    const candidates = members.slice(0, 10).map((m: any) => ({
+      id: m.user?.id,
+      username: m.user?.username,
+      global_name: m.user?.global_name || null,
+      nick: m.nick || null,
+      avatar: m.user?.avatar
+        ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png?size=64`
+        : null,
+    }));
+
+    log.warn("resolve", `No exact match for "${cleanUsername}" in guild — returning ${candidates.length} candidates [${requestId}]`, {
       requestId,
       username: cleanUsername,
       candidateUsernames,
@@ -174,7 +195,13 @@ serve(async (req) => {
       [`username:${cleanUsername}`, `result_count:${members.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
     );
     return new Response(
-      JSON.stringify({ discord_user_id: null, message: "User not found in server" }),
+      JSON.stringify({
+        discord_user_id: null,
+        message: candidates.length > 0
+          ? "No exact username match found. Did you mean one of these members?"
+          : "User not found in server",
+        candidates: candidates.length > 0 ? candidates : undefined,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

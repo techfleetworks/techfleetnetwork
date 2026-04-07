@@ -68,8 +68,8 @@ export const ProfileService = {
       if (input.discordUsername) {
         log.info("update", `Resolving Discord ID for username "${input.discordUsername}"`, { userId, discordUsername: input.discordUsername });
         const resolved = await DiscordNotifyService.resolveDiscordId(input.discordUsername);
-        if (resolved) {
-          discordUserId = resolved;
+        if (resolved.discord_user_id) {
+          discordUserId = resolved.discord_user_id;
           log.info("update", `Discord ID resolved: ${resolved}`, { userId, discordUserId: resolved });
         } else {
           log.warn("update", `Could not resolve Discord ID for "${input.discordUsername}" — user may not be in the server`, { userId, discordUsername: input.discordUsername });
