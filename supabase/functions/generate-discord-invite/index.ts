@@ -65,9 +65,7 @@ async function getGuildRoles(botToken: string, guildId: string) {
   }
 
   cachedGuildRoles = await rolesRes.json() as DiscordGuildRole[];
-  guildRolesCachedAt = now;
-
-  logger.info("cache", "Refreshed guild roles cache", { roleCount: cachedGuildRoles.length });
+  logger.info("cache", "Loaded guild roles (permanent cache)", { roleCount: cachedGuildRoles.length });
 
   return cachedGuildRoles;
 }
@@ -182,8 +180,8 @@ Deno.serve(async (req) => {
 
     const channels = await channelsRes.json() as DiscordInviteChannel[];
 
-    const [{ botUserId, botRoleIds }, guildRoles] = await Promise.all([
-      getBotIdentity(botToken, guildId),
+    const [botRoleIds, guildRoles] = await Promise.all([
+      getBotRoles(botToken, guildId),
       getGuildRoles(botToken, guildId),
     ]);
 
@@ -192,7 +190,7 @@ Deno.serve(async (req) => {
       guildId,
       guildRoles,
       memberRoleIds: botRoleIds,
-      memberUserId: botUserId,
+      memberUserId: BOT_USER_ID,
     });
 
     const prioritizedInviteCapableChannels = getInviteChannelCandidates(inviteCapableChannels);
