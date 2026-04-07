@@ -658,6 +658,9 @@ export default function ConnectDiscordPage() {
               Fleet server.
             </p>
 
+            {/* Tutorial: How to find your username */}
+            <DiscordUsernameTutorial />
+
             <div className="space-y-2">
               <Label htmlFor="discord-username">Discord Username or Display Name</Label>
               <Input
