@@ -106,15 +106,40 @@ serve(async (req) => {
     }
 
     const members = await res.json();
+    const candidateUsernames = members.map((m: any) => m.user?.username).filter(Boolean);
+    const candidateGlobalNames = members.map((m: any) => m.user?.global_name).filter(Boolean);
+    const candidateNicks = members.map((m: any) => m.nick).filter(Boolean);
     log.info("resolve", `Discord returned ${members.length} members for query "${cleanUsername}" [${requestId}]`, {
       requestId,
       username: cleanUsername,
       resultCount: members.length,
+      candidateUsernames,
+      candidateGlobalNames,
+      candidateNicks,
     });
 
     const match = members.find(
       (m: any) => m.user?.username?.toLowerCase() === cleanUsername
     );
+
+    // Audit-log helper
+    const auditLog = async (eventType: string, errorMessage: string, fields: string[]) => {
+      try {
+        const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        const url = Deno.env.get("SUPABASE_URL");
+        if (srk && url) {
+          const ac = createClient(url, srk);
+          await ac.rpc("write_audit_log", {
+            p_event_type: eventType,
+            p_table_name: "discord_integration",
+            p_record_id: `resolve-discord-id:${requestId}`,
+            p_user_id: "00000000-0000-0000-0000-000000000000",
+            p_error_message: errorMessage,
+            p_changed_fields: fields,
+          });
+        }
+      } catch { /* swallow */ }
+    };
 
     if (match) {
       log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${match.user.id} [${requestId}]`, {
@@ -122,6 +147,11 @@ serve(async (req) => {
         username: cleanUsername,
         discordUserId: match.user.id,
       });
+      await auditLog(
+        "discord_username_verified",
+        `Verified "${cleanUsername}" → Discord ID ${match.user.id}`,
+        [`username:${cleanUsername}`, `discord_id:${match.user.id}`, `result_count:${members.length}`]
+      );
       return new Response(
         JSON.stringify({ discord_user_id: match.user.id }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -131,8 +161,15 @@ serve(async (req) => {
     log.warn("resolve", `No exact match for "${cleanUsername}" in guild [${requestId}]`, {
       requestId,
       username: cleanUsername,
-      candidateUsernames: members.map((m: any) => m.user?.username).filter(Boolean),
+      candidateUsernames,
+      candidateGlobalNames,
+      candidateNicks,
     });
+    await auditLog(
+      "discord_username_not_found",
+      `No match for "${cleanUsername}" — Discord returned ${members.length} candidates: usernames=[${candidateUsernames.join(",")}] display_names=[${candidateGlobalNames.join(",")}] nicknames=[${candidateNicks.join(",")}]`,
+      [`username:${cleanUsername}`, `result_count:${members.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
+    );
     return new Response(
       JSON.stringify({ discord_user_id: null, message: "User not found in server" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
