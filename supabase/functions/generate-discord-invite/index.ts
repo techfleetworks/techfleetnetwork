@@ -20,20 +20,14 @@ const corsHeaders = {
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
 const BOT_USER_ID = "1381402399587561583"; // Tech Fleet Network Activity Bot#0394
-const BOT_ROLES_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const GUILD_METADATA_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Module-level cache — survives across warm invocations
+// Module-level cache — persists for lifetime of the edge function instance
 let cachedBotRoleIds: string[] | null = null;
-let botRolesCachedAt = 0;
-
 let cachedGuildRoles: DiscordGuildRole[] | null = null;
-let guildRolesCachedAt = 0;
 
-async function getBotIdentity(botToken: string, guildId: string) {
-  const now = Date.now();
-  if (cachedBotRoleIds && now - botRolesCachedAt < BOT_ROLES_TTL_MS) {
-    return { botUserId: BOT_USER_ID, botRoleIds: cachedBotRoleIds };
+async function getBotRoles(botToken: string, guildId: string): Promise<string[]> {
+  if (cachedBotRoleIds) {
+    return cachedBotRoleIds;
   }
 
   const botMemberRes = await fetch(
@@ -48,19 +42,17 @@ async function getBotIdentity(botToken: string, guildId: string) {
   const botMember = await botMemberRes.json() as { roles?: string[] };
 
   cachedBotRoleIds = botMember.roles ?? [];
-  botRolesCachedAt = now;
 
-  logger.info("cache", "Refreshed bot roles cache", {
+  logger.info("cache", "Loaded bot roles (permanent cache)", {
     botUserId: BOT_USER_ID,
     roleCount: cachedBotRoleIds.length,
   });
 
-  return { botUserId: BOT_USER_ID, botRoleIds: cachedBotRoleIds };
+  return cachedBotRoleIds;
 }
 
 async function getGuildRoles(botToken: string, guildId: string) {
-  const now = Date.now();
-  if (cachedGuildRoles && now - guildRolesCachedAt < GUILD_METADATA_TTL_MS) {
+  if (cachedGuildRoles) {
     return cachedGuildRoles;
   }
 
