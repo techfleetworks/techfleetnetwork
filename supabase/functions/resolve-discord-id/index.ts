@@ -53,17 +53,56 @@ serve(async (req) => {
       );
     }
 
-    const cleanUsername = discord_username.replace(/^[@.]+/, "").toLowerCase();
-    log.info("resolve", `Searching Discord guild for username "${cleanUsername}" [${requestId}]`, {
+    const rawUsername = discord_username.trim().toLowerCase();
+    const cleanUsername = rawUsername.replace(/^[@.]+/, "");
+    // Search with both cleaned and raw username to handle dot-prefixed Discord names
+    const searchQueries = [cleanUsername];
+    if (rawUsername !== cleanUsername) searchQueries.push(rawUsername);
+    log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
       username: cleanUsername,
+      rawUsername,
       guildId: GUILD_ID,
     });
 
-    const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(cleanUsername)}&limit=10`;
-    const res = await fetch(searchUrl, {
-      headers: { Authorization: `Bot ${BOT_TOKEN}` },
-    });
+    // Run searches in parallel and merge results
+    const allMembers: any[] = [];
+    const seenIds = new Set<string>();
+    for (const query of searchQueries) {
+      const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=10`;
+      const res = await fetch(searchUrl, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+      });
+      if (res.ok) {
+        const members = await res.json();
+        for (const m of members) {
+          if (m.user?.id && !seenIds.has(m.user.id)) {
+            seenIds.add(m.user.id);
+            allMembers.push(m);
+          }
+        }
+      } else {
+        const errorText = await res.text();
+        log.error("resolve", `Discord API error for query "${query}" [${requestId}]: HTTP ${res.status} — ${errorText}`, {
+          requestId, httpStatus: res.status, query,
+        });
+        if (allMembers.length === 0) {
+          // If first query fails, handle error
+          if (res.status === 404 || res.status === 403) {
+            return new Response(
+              JSON.stringify({ discord_user_id: null, message: "Could not verify — guild not accessible" }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          return new Response(
+            JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
+    const members = allMembers;
 
     if (!res.ok) {
       const errorText = await res.text();
