@@ -154,12 +154,9 @@ Deno.serve(async (req) => {
         }
 
         inviteUrl = `https://discord.gg/${inviteCode}`;
-        logger.info("create_invite", `Created Discord invite in channel ${channel.name ?? channel.id}`, {
+        logger.info("create_invite", `Created Discord invite in #${channel.name}`, {
           channelId: channel.id,
-          channelName: channel.name ?? null,
-          matchStrategy: isExactOnboardingInviteChannel(channel)
-            ? "exact_then_capable_fallback"
-            : "capable_fallback_only",
+          channelName: channel.name,
         });
         break;
       }
