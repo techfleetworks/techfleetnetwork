@@ -19,6 +19,80 @@ const corsHeaders = {
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
+const BOT_IDENTITY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const GUILD_METADATA_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Module-level cache — survives across warm invocations
+let cachedBotUserId: string | null = null;
+let cachedBotRoleIds: string[] | null = null;
+let botIdentityCachedAt = 0;
+
+let cachedGuildRoles: DiscordGuildRole[] | null = null;
+let guildRolesCachedAt = 0;
+
+async function getBotIdentity(botToken: string, guildId: string) {
+  const now = Date.now();
+  if (cachedBotUserId && cachedBotRoleIds && now - botIdentityCachedAt < BOT_IDENTITY_TTL_MS) {
+    return { botUserId: cachedBotUserId, botRoleIds: cachedBotRoleIds };
+  }
+
+  const botUserRes = await fetch("https://discord.com/api/v10/users/@me", {
+    headers: { Authorization: `Bot ${botToken}` },
+  });
+  if (!botUserRes.ok) {
+    const errText = await botUserRes.text();
+    throw new Error(`Failed to fetch bot user [${botUserRes.status}]: ${errText}`);
+  }
+
+  const botUser = await botUserRes.json() as { id?: string };
+  if (!botUser.id) {
+    throw new Error("Discord bot /users/@me response did not include an id");
+  }
+
+  const botMemberRes = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${botUser.id}`,
+    { headers: { Authorization: `Bot ${botToken}` } },
+  );
+  if (!botMemberRes.ok) {
+    const errText = await botMemberRes.text();
+    throw new Error(`Failed to fetch bot membership [${botMemberRes.status}]: ${errText}`);
+  }
+
+  const botMember = await botMemberRes.json() as { roles?: string[] };
+
+  cachedBotUserId = botUser.id;
+  cachedBotRoleIds = botMember.roles ?? [];
+  botIdentityCachedAt = now;
+
+  logger.info("cache", "Refreshed bot identity cache", {
+    botUserId: cachedBotUserId,
+    roleCount: cachedBotRoleIds.length,
+  });
+
+  return { botUserId: cachedBotUserId, botRoleIds: cachedBotRoleIds };
+}
+
+async function getGuildRoles(botToken: string, guildId: string) {
+  const now = Date.now();
+  if (cachedGuildRoles && now - guildRolesCachedAt < GUILD_METADATA_TTL_MS) {
+    return cachedGuildRoles;
+  }
+
+  const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+    headers: { Authorization: `Bot ${botToken}` },
+  });
+  if (!rolesRes.ok) {
+    const errText = await rolesRes.text();
+    throw new Error(`Failed to fetch guild roles [${rolesRes.status}]: ${errText}`);
+  }
+
+  cachedGuildRoles = await rolesRes.json() as DiscordGuildRole[];
+  guildRolesCachedAt = now;
+
+  logger.info("cache", "Refreshed guild roles cache", { roleCount: cachedGuildRoles.length });
+
+  return cachedGuildRoles;
+}
 
 function summarizeInviteErrors(inviteErrors: string[]) {
   return inviteErrors.slice(0, 12).join(" | ");
@@ -130,42 +204,10 @@ Deno.serve(async (req) => {
 
     const channels = await channelsRes.json() as DiscordInviteChannel[];
 
-    // Step 1: Get the bot's own user ID via /users/@me
-    const botUserRes = await fetch("https://discord.com/api/v10/users/@me", {
-      headers: { Authorization: `Bot ${botToken}` },
-    });
-    if (!botUserRes.ok) {
-      const errText = await botUserRes.text();
-      throw new Error(`Failed to fetch bot user [${botUserRes.status}]: ${errText}`);
-    }
-
-    const botUser = await botUserRes.json() as { id?: string };
-    const botUserId = botUser.id;
-    if (!botUserId) {
-      throw new Error("Discord bot /users/@me response did not include an id");
-    }
-
-    // Step 2: Get the bot's guild member info (roles, etc.)
-    const botMemberRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${botUserId}`, {
-      headers: { Authorization: `Bot ${botToken}` },
-    });
-    if (!botMemberRes.ok) {
-      const errText = await botMemberRes.text();
-      throw new Error(`Failed to fetch bot membership [${botMemberRes.status}]: ${errText}`);
-    }
-
-    const botMember = await botMemberRes.json() as { roles?: string[] };
-    const botRoleIds = botMember.roles ?? [];
-
-    const rolesRes = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
-      headers: { Authorization: `Bot ${botToken}` },
-    });
-    if (!rolesRes.ok) {
-      const errText = await rolesRes.text();
-      throw new Error(`Failed to fetch guild roles [${rolesRes.status}]: ${errText}`);
-    }
-
-    const guildRoles = await rolesRes.json() as DiscordGuildRole[];
+    const [{ botUserId, botRoleIds }, guildRoles] = await Promise.all([
+      getBotIdentity(botToken, guildId),
+      getGuildRoles(botToken, guildId),
+    ]);
 
     const inviteCapableChannels = getInviteCapableChannels({
       channels,
