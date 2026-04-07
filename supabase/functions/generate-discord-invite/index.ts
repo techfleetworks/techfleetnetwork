@@ -19,38 +19,25 @@ const corsHeaders = {
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 const MAX_ONBOARDING_CANDIDATES = 12;
-const BOT_IDENTITY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const BOT_USER_ID = "1381402399587561583"; // Tech Fleet Network Activity Bot#0394
+const BOT_ROLES_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const GUILD_METADATA_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Module-level cache — survives across warm invocations
-let cachedBotUserId: string | null = null;
 let cachedBotRoleIds: string[] | null = null;
-let botIdentityCachedAt = 0;
+let botRolesCachedAt = 0;
 
 let cachedGuildRoles: DiscordGuildRole[] | null = null;
 let guildRolesCachedAt = 0;
 
 async function getBotIdentity(botToken: string, guildId: string) {
   const now = Date.now();
-  if (cachedBotUserId && cachedBotRoleIds && now - botIdentityCachedAt < BOT_IDENTITY_TTL_MS) {
-    return { botUserId: cachedBotUserId, botRoleIds: cachedBotRoleIds };
-  }
-
-  const botUserRes = await fetch("https://discord.com/api/v10/users/@me", {
-    headers: { Authorization: `Bot ${botToken}` },
-  });
-  if (!botUserRes.ok) {
-    const errText = await botUserRes.text();
-    throw new Error(`Failed to fetch bot user [${botUserRes.status}]: ${errText}`);
-  }
-
-  const botUser = await botUserRes.json() as { id?: string };
-  if (!botUser.id) {
-    throw new Error("Discord bot /users/@me response did not include an id");
+  if (cachedBotRoleIds && now - botRolesCachedAt < BOT_ROLES_TTL_MS) {
+    return { botUserId: BOT_USER_ID, botRoleIds: cachedBotRoleIds };
   }
 
   const botMemberRes = await fetch(
-    `https://discord.com/api/v10/guilds/${guildId}/members/${botUser.id}`,
+    `https://discord.com/api/v10/guilds/${guildId}/members/${BOT_USER_ID}`,
     { headers: { Authorization: `Bot ${botToken}` } },
   );
   if (!botMemberRes.ok) {
@@ -60,16 +47,15 @@ async function getBotIdentity(botToken: string, guildId: string) {
 
   const botMember = await botMemberRes.json() as { roles?: string[] };
 
-  cachedBotUserId = botUser.id;
   cachedBotRoleIds = botMember.roles ?? [];
-  botIdentityCachedAt = now;
+  botRolesCachedAt = now;
 
-  logger.info("cache", "Refreshed bot identity cache", {
-    botUserId: cachedBotUserId,
+  logger.info("cache", "Refreshed bot roles cache", {
+    botUserId: BOT_USER_ID,
     roleCount: cachedBotRoleIds.length,
   });
 
-  return { botUserId: cachedBotUserId, botRoleIds: cachedBotRoleIds };
+  return { botUserId: BOT_USER_ID, botRoleIds: cachedBotRoleIds };
 }
 
 async function getGuildRoles(botToken: string, guildId: string) {
