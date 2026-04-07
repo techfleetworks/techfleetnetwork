@@ -78,6 +78,14 @@ export default function ConnectDiscordPage() {
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [candidates, setCandidates] = useState<Array<{
+    id: string;
+    username: string;
+    global_name: string | null;
+    nick: string | null;
+    avatar: string | null;
+  }>>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Track whether we've done the initial sync from DB state
   const initialSyncDone = useRef(false);
