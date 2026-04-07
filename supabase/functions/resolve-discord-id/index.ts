@@ -116,11 +116,12 @@ serve(async (req) => {
       candidateNicks,
     });
 
-    // Match on cleaned username OR raw username (handles dot-prefixed names like .kmorgan)
+    // Match on cleaned username, raw username, or dot-prefixed variant
+    const matchCandidates = new Set([cleanUsername, rawUsername, `.${cleanUsername}`]);
     const match = members.find(
       (m: any) => {
         const u = m.user?.username?.toLowerCase();
-        return u === cleanUsername || u === rawUsername;
+        return u ? matchCandidates.has(u) : false;
       }
     );
 
