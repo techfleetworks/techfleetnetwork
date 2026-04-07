@@ -168,16 +168,13 @@ Deno.serve(async (req) => {
       inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: ${errText}`);
       logger.warn("create_invite", `Invite creation failed for channel ${channel.name ?? channel.id}`, {
         channelId: channel.id,
-        channelName: channel.name ?? null,
+        channelName: channel.name,
         status: inviteRes.status,
-        matchStrategy: isExactOnboardingInviteChannel(channel)
-          ? "exact_then_capable_fallback"
-          : "capable_fallback_only",
       });
     }
 
     if (!inviteUrl) {
-      const errorSummary = `Discord bot failed to create invite in any of ${candidates.length} candidate channels. Top errors: ${summarizeInviteErrors(inviteErrors)}`;
+      const errorSummary = `Discord bot failed to create invite in ${candidates.length} hardcoded channels. Errors: ${summarizeInviteErrors(inviteErrors)}`;
 
       await writeDiscordAuditLog({
         supabaseUrl,
@@ -187,13 +184,7 @@ Deno.serve(async (req) => {
         errorMessage: errorSummary,
         changedFields: [
           `guild_id:${guildId}`,
-          `candidate_channels:${candidates.length}`,
-          `invite_capable_channels:${inviteCapableChannels.length}`,
-          `onboarding_candidates:${onboardingCandidates.length}`,
-          `fallback_candidates:${fallbackCandidates.length}`,
-          `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
-          `expected_channel_names:${EXACT_ONBOARDING_CHANNEL_NAMES.join(",")}`,
-          `attempted_channels:${candidates.map((channel) => channel.name ?? channel.id).join(",")}`,
+          `channels:${candidates.map((c) => `${c.name}:${c.id}`).join(",")}`,
           `all_status_codes:${[...new Set(inviteErrors.map((entry) => entry.match(/\[(\d+)\]/)?.[1]).filter(Boolean))].join(",")}`,
         ],
       });
@@ -210,17 +201,11 @@ Deno.serve(async (req) => {
       tableName: "profiles",
       changedFields: [
         "invite_type:onboarding",
-        `candidate_channels:${candidates.length}`,
-        `onboarding_candidates:${onboardingCandidates.length}`,
-        `fallback_candidates:${fallbackCandidates.length}`,
-        `channel_match_strategy:${onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only"}`,
+        `channel_count:${candidates.length}`,
       ],
     });
 
-    logger.info("generate", `Generated fresh Discord invite for user ${user.id}`, {
-      candidateCount: candidates.length,
-      matchStrategy: onboardingCandidates.length > 0 ? "exact_then_capable_fallback" : "capable_fallback_only",
-    });
+    logger.info("generate", `Generated Discord invite for user ${user.id}`);
 
     return new Response(JSON.stringify({ invite_url: inviteUrl }), {
       status: 200,
