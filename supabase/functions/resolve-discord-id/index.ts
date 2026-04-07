@@ -125,8 +125,8 @@ serve(async (req) => {
       }
     );
 
-    // Audit-log helper
-    const auditLog = async (eventType: string, errorMessage: string, fields: string[]) => {
+    // Audit-log helper — only set p_error_message for actual errors to avoid triggering admin error notifications
+    const auditLog = async (eventType: string, message: string, fields: string[], isError = false) => {
       try {
         const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
         const url = Deno.env.get("SUPABASE_URL");
@@ -137,8 +137,8 @@ serve(async (req) => {
             p_table_name: "discord_integration",
             p_record_id: `resolve-discord-id:${requestId}`,
             p_user_id: "00000000-0000-0000-0000-000000000000",
-            p_error_message: errorMessage,
-            p_changed_fields: fields,
+            p_error_message: isError ? message : null,
+            p_changed_fields: [...fields, ...(isError ? [] : [`info:${message}`])],
           });
         }
       } catch { /* swallow */ }
