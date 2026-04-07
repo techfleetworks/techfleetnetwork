@@ -11,6 +11,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
+import DiscordUsernameTutorial from "@/components/DiscordUsernameTutorial";
 import {
   Breadcrumb,
   BreadcrumbItem,
