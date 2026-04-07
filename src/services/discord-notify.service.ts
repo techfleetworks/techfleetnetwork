@@ -183,7 +183,17 @@ export const DiscordNotifyService = {
     });
   },
 
-  async resolveDiscordId(discordUsername: string): Promise<string | null> {
+  async resolveDiscordId(discordUsername: string): Promise<{
+    discord_user_id: string | null;
+    candidates?: Array<{
+      id: string;
+      username: string;
+      global_name: string | null;
+      nick: string | null;
+      avatar: string | null;
+    }>;
+    message?: string;
+  }> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {
         const { data } = await discordBreaker.execute(
@@ -197,9 +207,29 @@ export const DiscordNotifyService = {
         } else {
           log.warn("resolveDiscordId", `Could not resolve "${discordUsername}" — user not found in server`, { discordUsername });
         }
-        return result;
+        return {
+          discord_user_id: result,
+          candidates: data?.candidates || undefined,
+          message: data?.message || undefined,
+        };
       } catch (err) {
         log.warn("resolveDiscordId", `Error resolving Discord ID for "${discordUsername}" — returning null`, { discordUsername }, err);
+        return { discord_user_id: null };
+      }
+    });
+  },
+
+  async confirmDiscordId(discordUserId: string): Promise<string | null> {
+    return log.track("confirmDiscordId", `Confirming Discord ID ${discordUserId}`, { discordUserId }, async () => {
+      try {
+        const { data } = await discordBreaker.execute(
+          () => supabase.functions.invoke("resolve-discord-id", {
+            body: { confirm_user_id: discordUserId },
+          }),
+        );
+        return data?.discord_user_id || null;
+      } catch (err) {
+        log.warn("confirmDiscordId", `Error confirming Discord ID ${discordUserId}`, { discordUserId }, err);
         return null;
       }
     });
