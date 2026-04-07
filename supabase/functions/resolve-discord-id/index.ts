@@ -102,6 +102,7 @@ serve(async (req) => {
       }
     }
 
+    const members = allMembers;
     const candidateUsernames = members.map((m: any) => m.user?.username).filter(Boolean);
     const candidateGlobalNames = members.map((m: any) => m.user?.global_name).filter(Boolean);
     const candidateNicks = members.map((m: any) => m.nick).filter(Boolean);
