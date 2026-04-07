@@ -55,9 +55,9 @@ serve(async (req) => {
 
     const rawUsername = discord_username.trim().toLowerCase();
     const cleanUsername = rawUsername.replace(/^[@.]+/, "");
-    // Search with both cleaned and raw username to handle dot-prefixed Discord names
-    const searchQueries = [cleanUsername];
-    if (rawUsername !== cleanUsername) searchQueries.push(rawUsername);
+    // Build search queries: original input, cleaned, and dot-prefixed variant
+    // Discord usernames can start with dots (e.g., .kmorgan) which the search API treats differently
+    const searchQueries = [...new Set([rawUsername, cleanUsername, `.${cleanUsername}`])];
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
       username: cleanUsername,
