@@ -20,6 +20,8 @@ import {
   Activity,
   Building2,
   Users,
+  Settings,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -123,12 +125,10 @@ function ProfileDropdown({
 function DesktopHeader({
   profile,
   user,
-  onEditProfile,
   onSignOut,
 }: {
   profile: Profile | null;
   user: User | null;
-  onEditProfile: () => void;
   onSignOut: () => void;
 }) {
   const { header } = usePageHeader();
@@ -185,7 +185,6 @@ function DesktopHeader({
           <ProfileDropdown
             profile={profile}
             user={user}
-            onEditProfile={onEditProfile}
             onSignOut={onSignOut}
           />
         </div>
