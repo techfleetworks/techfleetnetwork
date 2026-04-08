@@ -525,6 +525,30 @@ export default function ProjectApplicationStatusPage() {
     scheduleMutation.mutate();
   }, [scheduleMutation]);
 
+  /* ── delete application mutation ────────────────────────── */
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("project_applications")
+        .delete()
+        .eq("id", applicationId!)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Application deleted", {
+        description: "Your project application has been permanently removed.",
+        position: "top-center",
+      });
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-apps-count"] });
+      navigate("/applications/projects", { replace: true });
+    },
+    onError: (err: Error) => {
+      toast.error("Failed to delete application", { description: err.message });
+    },
+  });
+
   /* ── loading / not found states ─────────────────────────── */
   if (appLoading) {
     return (
