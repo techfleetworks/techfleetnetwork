@@ -34,6 +34,7 @@ export function GeneralApplicationTab() {
   const [deleting, setDeleting] = useState(false);
   const {
     loading,
+    activeApp,
     form,
     section,
     saving,
@@ -54,13 +55,13 @@ export function GeneralApplicationTab() {
   } = useGeneralApplication();
 
   const handleDeleteApplication = async () => {
-    if (!user || !form.id) return;
+    if (!user || !activeApp?.id) return;
     setDeleting(true);
     try {
       const { error } = await supabase
         .from("general_applications")
         .delete()
-        .eq("id", form.id as string)
+        .eq("id", activeApp.id)
         .eq("user_id", user.id);
       if (error) throw error;
       toast.success("Application deleted", {
