@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Globe, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
+import { useAuth } from "@/contexts/AuthContext";
 
 const eventTabs: TabItem[] = [
   { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
@@ -9,10 +10,17 @@ const eventTabs: TabItem[] = [
 
 export default function EventsPage() {
   const [tab, setTab] = useState("community");
+  const { profile } = useAuth();
+
+  const userTimezone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const lumaSrc =
     "https://lu.ma/embed/community/comm-xiKNSR1G2cMEJBk/events?compact=true&lt=light";
-  const calendarSrc =
-    "https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=America%2FNew_York&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH";
+  const calendarSrc = useMemo(
+    () =>
+      `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH`,
+    [userTimezone]
+  );
 
   return (
     <div className="container-app py-8 sm:py-12">
