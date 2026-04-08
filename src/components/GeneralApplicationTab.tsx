@@ -30,6 +30,8 @@ import {
 } from "@/components/general-application";
 
 export function GeneralApplicationTab() {
+  const { user } = useAuth();
+  const [deleting, setDeleting] = useState(false);
   const {
     loading,
     form,
@@ -50,6 +52,30 @@ export function GeneralApplicationTab() {
     canSubmit,
     navigate,
   } = useGeneralApplication();
+
+  const handleDeleteApplication = async () => {
+    if (!user || !form.id) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("general_applications")
+        .delete()
+        .eq("id", form.id as string)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast.success("Application deleted", {
+        description: "Your general application has been permanently removed.",
+        position: "top-center",
+      });
+      navigate("/applications");
+    } catch (err: unknown) {
+      toast.error("Failed to delete application", {
+        description: err instanceof Error ? err.message : "An unexpected error occurred.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
