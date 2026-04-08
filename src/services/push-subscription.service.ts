@@ -61,17 +61,18 @@ function stringifyPushContext(context: Record<string, unknown>): string {
 
 function getSubscriptionFailureMessage(err: unknown): string {
   const message = getErrorMessage(err);
+  const lower = message.toLowerCase();
 
-  if (message.toLowerCase().includes("permission")) {
+  if (lower.includes("permission")) {
     return "Your browser blocked the notification request. Please review your notification permissions and try again.";
   }
 
-  if (message.toLowerCase().includes("service worker") || message.toLowerCase().includes("registration")) {
-    return "Push notifications are not ready on this device yet. Refresh the page and try again.";
+  if (isPushAbortError(err) || lower.includes("abort")) {
+    return "Your browser's push service couldn't complete the registration. We've reset the local state — please close and reopen the app, then try enabling push again.";
   }
 
-  if (message.toLowerCase().includes("abort")) {
-    return "This device has a broken local push registration. We reset it for you — please close and reopen the app, then enable push again.";
+  if (lower.includes("service worker") || lower.includes("registration")) {
+    return "Push notifications are not ready on this device yet. Refresh the page and try again.";
   }
 
   return "We couldn't finish enabling push notifications on this device.";
@@ -227,6 +228,8 @@ export class PushSubscriptionService {
           if (attempt > 0) {
             await refreshServiceWorker(registration);
             await clearAllPushSubscriptions();
+            // Longer backoff: 2s, then 5s — push services need time to recover
+            await new Promise((r) => setTimeout(r, attempt === 1 ? 2000 : 5000));
           }
 
           subscription = await registration.pushManager.subscribe({
@@ -236,10 +239,6 @@ export class PushSubscriptionService {
           break; // success
         } catch (pushErr) {
           lastPushError = pushErr;
-          if (attempt < 2) {
-            // Brief backoff before retry
-            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-          }
         }
       }
 
