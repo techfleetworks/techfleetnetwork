@@ -1,10 +1,18 @@
-import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { useGeneralApplication } from "@/hooks/use-general-application";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import {
   SECTION_TITLES,
   TOTAL_SECTIONS,
