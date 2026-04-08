@@ -49,7 +49,7 @@ export function TrainingGoalsTab() {
     if (!user) return;
     setSaving(true);
     try {
-      await ProfileService.update(user.id, {
+      await ProfileService.updateFields(user.id, {
         interests: form.interests,
         experience_areas: form.experience_areas,
         professional_goals: form.professional_goals,
