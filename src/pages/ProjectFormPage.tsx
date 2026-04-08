@@ -607,11 +607,16 @@ export default function ProjectFormPage() {
         <Separator />
 
         {/* Discord Role */}
-        <DiscordRolePicker
-          selectedRoleId={form.discord_role_id}
-          selectedRoleName={form.discord_role_name}
-          onSelect={(roleId, roleName) => setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))}
-        />
+        <div className="space-y-1.5">
+          <DiscordRolePicker
+            selectedRoleId={form.discord_role_id}
+            selectedRoleName={form.discord_role_name}
+            onSelect={(roleId, roleName) => setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))}
+          />
+          {(errors.discord_role_id || errors.discord_role_name) && (
+            <p className="text-xs text-destructive">Discord role is required. Please select or create a Discord role for this project.</p>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
