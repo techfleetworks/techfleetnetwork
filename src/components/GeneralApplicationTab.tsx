@@ -173,8 +173,8 @@ export function GeneralApplicationTab() {
               </Button>
             )}
 
-            {/* Delete button — only shown when an application exists */}
-            {activeApp && (
+            {/* Delete button — only shown for submitted applications */}
+            {activeApp && activeApp.status === "submitted" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting}>

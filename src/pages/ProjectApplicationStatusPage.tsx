@@ -925,32 +925,34 @@ export default function ProjectApplicationStatusPage() {
           <ArrowLeft className="h-4 w-4" /> Back to Project Applications
         </Button>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" className="gap-1.5" disabled={deleteMutation.isPending}>
-              <Trash2 className="h-4 w-4" />
-              {deleteMutation.isPending ? "Deleting…" : "Delete Application"}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently remove your application for <span className="font-semibold">{clientName}</span>. 
-                All of your responses will be lost and cannot be recovered. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteMutation.mutate()}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Yes, Delete Permanently
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {applicantStatus === "pending_review" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-1.5" disabled={deleteMutation.isPending}>
+                <Trash2 className="h-4 w-4" />
+                {deleteMutation.isPending ? "Deleting…" : "Delete Application"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove your application for <span className="font-semibold">{clientName}</span>. 
+                  All of your responses will be lost and cannot be recovered. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, Delete Permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );
