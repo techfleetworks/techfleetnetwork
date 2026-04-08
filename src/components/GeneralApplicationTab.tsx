@@ -166,11 +166,41 @@ export function GeneralApplicationTab() {
       {/* ── Sticky Footer CTAs ─────────────────────────────── */}
       <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
         <div className="max-w-4xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {section > 1 && (
               <Button variant="outline" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Previous
               </Button>
+            )}
+
+            {/* Delete button — only shown when an application exists */}
+            {activeApp && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting}>
+                    <Trash2 className="h-4 w-4" />
+                    {deleting ? "Deleting…" : "Delete"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove your general application and all of your responses. 
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteApplication}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Delete Permanently
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
