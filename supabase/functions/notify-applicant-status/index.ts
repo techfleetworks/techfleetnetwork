@@ -12,6 +12,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { queueTransactionalEmail } from '../_shared/transactional-email.ts'
+import { discordFetch } from '../_shared/discord-fetch.ts'
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -202,7 +203,7 @@ function validatePayload(raw: unknown): { ok: true; data: ValidatedPayload } | {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Discord role assignment helper                                     */
+/*  Discord role assignment helper (with retry)                        */
 /* ------------------------------------------------------------------ */
 
 async function assignDiscordRole(discordUserId: string, roleId: string): Promise<{ ok: boolean; error?: string }> {
@@ -214,13 +215,17 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
   }
 
   try {
-    const res = await fetch(
+    const { response: res, retries } = await discordFetch(
       `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
       {
         method: 'PUT',
         headers: { Authorization: `Bot ${botToken}` },
       },
     )
+
+    if (retries > 0) {
+      console.info('Discord role assignment succeeded after retries', { retries, discordUserId, roleId })
+    }
 
     if (!res.ok) {
       const errorText = await res.text()
@@ -231,7 +236,7 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
     await res.text() // consume body
     return { ok: true }
   } catch (e) {
-    console.error('Discord role assignment error', e)
+    console.error('Discord role assignment error after retries', e)
     return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
   }
 }
@@ -423,7 +428,7 @@ Deno.serve(async (req) => {
         const applicantDiscordUserId = applicantProfile?.discord_user_id as string | undefined
 
         if (applicantDiscordUserId) {
-          // Assign Discord role automatically
+          // Assign Discord role automatically (with retry)
           const result = await assignDiscordRole(applicantDiscordUserId, discordRoleId)
           if (result.ok) {
             discordRoleAssigned = true

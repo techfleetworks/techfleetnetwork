@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { discordFetch } from "../_shared/discord-fetch.ts";
 
 const log = createEdgeLogger("manage-discord-roles");
 
@@ -108,9 +109,14 @@ serve(async (req) => {
     // ---------- LIST ----------
     if (body.action === "list") {
       log.info("list", `Fetching guild roles [${requestId}]`);
-      const res = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/roles`, {
-        headers: discordHeaders,
-      });
+      const { response: res, retries } = await discordFetch(
+        `https://discord.com/api/v10/guilds/${GUILD_ID}/roles`,
+        { headers: discordHeaders },
+      );
+
+      if (retries > 0) {
+        log.info("list", `Guild roles fetch succeeded after ${retries} retries [${requestId}]`);
+      }
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -159,15 +165,22 @@ serve(async (req) => {
 
       log.info("create", `Creating Discord role "${roleName}" [${requestId}]`);
 
-      const res = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/roles`, {
-        method: "POST",
-        headers: { ...discordHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: roleName,
-          mentionable: true,
-          permissions: "0",
-        }),
-      });
+      const { response: res, retries } = await discordFetch(
+        `https://discord.com/api/v10/guilds/${GUILD_ID}/roles`,
+        {
+          method: "POST",
+          headers: { ...discordHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: roleName,
+            mentionable: true,
+            permissions: "0",
+          }),
+        },
+      );
+
+      if (retries > 0) {
+        log.info("create", `Role creation succeeded after ${retries} retries [${requestId}]`);
+      }
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -193,13 +206,17 @@ serve(async (req) => {
       const { discord_user_id, role_id } = body;
       log.info("assign", `Assigning role ${role_id} to user ${discord_user_id} [${requestId}]`);
 
-      const res = await fetch(
+      const { response: res, retries } = await discordFetch(
         `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discord_user_id}/roles/${role_id}`,
         {
           method: "PUT",
           headers: discordHeaders,
         },
       );
+
+      if (retries > 0) {
+        log.info("assign", `Role assignment succeeded after ${retries} retries [${requestId}]`);
+      }
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -233,13 +250,17 @@ serve(async (req) => {
       const { discord_user_id, role_id } = body;
       log.info("remove", `Removing role ${role_id} from user ${discord_user_id} [${requestId}]`);
 
-      const res = await fetch(
+      const { response: res, retries } = await discordFetch(
         `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discord_user_id}/roles/${role_id}`,
         {
           method: "DELETE",
           headers: discordHeaders,
         },
       );
+
+      if (retries > 0) {
+        log.info("remove", `Role removal succeeded after ${retries} retries [${requestId}]`);
+      }
 
       if (!res.ok) {
         const errorText = await res.text();

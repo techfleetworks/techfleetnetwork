@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { discordFetch } from "../_shared/discord-fetch.ts";
 
 const log = createEdgeLogger("resolve-discord-id");
 
@@ -65,8 +66,6 @@ serve(async (req) => {
 
     const rawUsername = discord_username.trim().toLowerCase();
     const cleanUsername = rawUsername.replace(/^[@.]+/, "");
-    // Build search queries: original input, cleaned, and dot-prefixed variant
-    // Discord usernames can start with dots (e.g., .kmorgan) which the search API treats differently
     const searchQueries = [...new Set([rawUsername, cleanUsername, `.${cleanUsername}`])];
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
@@ -75,37 +74,52 @@ serve(async (req) => {
       guildId: GUILD_ID,
     });
 
-    // Run searches in parallel and merge results
+    // Run searches and merge results with auto-retry
     const allMembers: any[] = [];
     const seenIds = new Set<string>();
     for (const query of searchQueries) {
       const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=10`;
-      const res = await fetch(searchUrl, {
-        headers: { Authorization: `Bot ${BOT_TOKEN}` },
-      });
-      if (res.ok) {
-        const members = await res.json();
-        for (const m of members) {
-          if (m.user?.id && !seenIds.has(m.user.id)) {
-            seenIds.add(m.user.id);
-            allMembers.push(m);
-          }
-        }
-      } else {
-        const errorText = await res.text();
-        log.error("resolve", `Discord API error for query "${query}" [${requestId}]: HTTP ${res.status} — ${errorText}`, {
-          requestId, httpStatus: res.status, query,
+      
+      try {
+        const { response: res, retries } = await discordFetch(searchUrl, {
+          headers: { Authorization: `Bot ${BOT_TOKEN}` },
         });
-        if (allMembers.length === 0) {
-          // If first query fails, handle error
-          if (res.status === 404 || res.status === 403) {
+
+        if (retries > 0) {
+          log.info("resolve", `Discord search for "${query}" succeeded after ${retries} retries [${requestId}]`, { requestId, retries });
+        }
+
+        if (res.ok) {
+          const members = await res.json();
+          for (const m of members) {
+            if (m.user?.id && !seenIds.has(m.user.id)) {
+              seenIds.add(m.user.id);
+              allMembers.push(m);
+            }
+          }
+        } else {
+          const errorText = await res.text();
+          log.error("resolve", `Discord API error for query "${query}" [${requestId}]: HTTP ${res.status} — ${errorText}`, {
+            requestId, httpStatus: res.status, query,
+          });
+          if (allMembers.length === 0) {
+            if (res.status === 404 || res.status === 403) {
+              return new Response(
+                JSON.stringify({ discord_user_id: null, message: "Could not verify — guild not accessible" }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
             return new Response(
-              JSON.stringify({ discord_user_id: null, message: "Could not verify — guild not accessible" }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+        }
+      } catch (fetchErr) {
+        log.error("resolve", `Network error for query "${query}" after retries [${requestId}]: ${fetchErr}`, { requestId, query });
+        if (allMembers.length === 0) {
           return new Response(
-            JSON.stringify({ error: "Failed to search Discord members", discord_user_id: null }),
+            JSON.stringify({ error: "Failed to reach Discord API", discord_user_id: null }),
             { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -135,7 +149,7 @@ serve(async (req) => {
       }
     );
 
-    // Audit-log helper — only set p_error_message for actual errors to avoid triggering admin error notifications
+    // Audit-log helper
     const auditLog = async (eventType: string, message: string, fields: string[], isError = false) => {
       try {
         const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -175,7 +189,7 @@ serve(async (req) => {
       );
     }
 
-    // Build candidate list for the UI picker (limit to 10, sanitize output)
+    // Build candidate list for the UI picker
     const candidates = members.slice(0, 10).map((m: any) => ({
       id: m.user?.id,
       username: m.user?.username,

@@ -1,4 +1,5 @@
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { discordFetch } from "../_shared/discord-fetch.ts";
 
 const log = createEdgeLogger("register-fleety-command");
 
@@ -21,8 +22,8 @@ Deno.serve(async (req) => {
       throw new Error("Missing DISCORD_BOT_TOKEN or DISCORD_APPLICATION_ID");
     }
 
-    // Register the /fleety global slash command
-    const res = await fetch(
+    // Register the /fleety global slash command (with retry)
+    const { response: res, retries } = await discordFetch(
       `https://discord.com/api/v10/applications/${appId}/commands`,
       {
         method: "POST",
@@ -46,6 +47,10 @@ Deno.serve(async (req) => {
         }),
       },
     );
+
+    if (retries > 0) {
+      log.info("register", `Command registration succeeded after ${retries} retries`);
+    }
 
     const data = await res.json();
 

@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { discordFetch } from "../_shared/discord-fetch.ts";
 
 const logger = createEdgeLogger("generate-discord-invite");
 
@@ -10,8 +11,6 @@ const corsHeaders = {
 };
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-const MAX_ONBOARDING_CANDIDATES = 12;
-const BOT_USER_ID = "1381402399587561583"; // Tech Fleet Network Activity Bot#0394
 
 // Hardcoded onboarding channels — these are permanent and don't change
 const ONBOARDING_CHANNELS = [
@@ -126,25 +125,35 @@ Deno.serve(async (req) => {
     const inviteErrors: string[] = [];
 
     for (const channel of candidates) {
-      const inviteRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/invites`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bot ${botToken}`,
-          "Content-Type": "application/json",
+      const { response: inviteRes, retries } = await discordFetch(
+        `https://discord.com/api/v10/channels/${channel.id}/invites`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            max_age: 604800,
+            max_uses: 1,
+            unique: true,
+          }),
         },
-        body: JSON.stringify({
-          max_age: 604800,
-          max_uses: 1,
-          unique: true,
-        }),
-      });
+      );
+
+      if (retries > 0) {
+        logger.info("create_invite", `Invite creation for #${channel.name} succeeded after ${retries} retries`, {
+          channelId: channel.id,
+          retries,
+        });
+      }
 
       if (inviteRes.ok) {
         const invite = await inviteRes.json().catch(() => null) as { code?: string } | null;
         const inviteCode = invite?.code;
 
         if (!inviteCode) {
-        inviteErrors.push(`${channel.name} [${inviteRes.status}]: Missing invite code in Discord response`);
+          inviteErrors.push(`${channel.name} [${inviteRes.status}]: Missing invite code in Discord response`);
           logger.warn("create_invite", `Invite creation returned no code for channel ${channel.name}`, {
             channelId: channel.id,
             channelName: channel.name,
