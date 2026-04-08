@@ -472,7 +472,7 @@ export default function ProjectApplicationStatusPage() {
   const isActiveTeammate = applicantStatus === "active_participant";
 
   /* ── fetch interview invite notification ─────────────────── */
-  const showInviteStatuses = ["invited_to_interview", "interview_scheduled", "picked_for_team", "active_participant"];
+  const showInviteStatuses = ["invited_to_interview", "interview_scheduled", "active_participant"];
   const { data: interviewNotification } = useQuery({
     queryKey: ["interview-invite-notification", user?.id],
     queryFn: async () => {
