@@ -426,12 +426,34 @@ export function AppLayout({ children }: AppLayoutProps) {
                     variant="outline"
                     className="w-full justify-start"
                     onClick={() => {
-                      navigate("/profile/edit");
+                      navigate("/profile/edit?tab=basic-info");
                       setMobileMenuOpen(false);
                     }}
                   >
                     <UserPen className="h-4 w-4 mr-2" />
-                    Edit Profile
+                    Basic Info
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/profile/edit?tab=preferences");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Preferences
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/profile/edit?tab=account");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    Account
                   </Button>
                   <Button
                     variant="outline"
