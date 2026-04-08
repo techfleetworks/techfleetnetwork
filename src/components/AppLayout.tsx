@@ -20,6 +20,8 @@ import {
   Activity,
   Building2,
   Users,
+  Settings,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -63,14 +65,13 @@ const CURRENT_BANNER = {
 function ProfileDropdown({
   profile,
   user,
-  onEditProfile,
   onSignOut,
 }: {
   profile: Profile | null;
   user: User | null;
-  onEditProfile: () => void;
   onSignOut: () => void;
 }) {
+  const navigate = useNavigate();
   const avatarInitials = profile
     ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
     : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
@@ -98,9 +99,17 @@ function ProfileDropdown({
           </p>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onEditProfile}>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=basic-info")}>
           <UserPen className="h-4 w-4 mr-2" />
-          Edit Profile
+          Basic Info
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=preferences")}>
+          <Settings className="h-4 w-4 mr-2" />
+          Preferences
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=account")}>
+          <KeyRound className="h-4 w-4 mr-2" />
+          Account
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>
@@ -116,12 +125,10 @@ function ProfileDropdown({
 function DesktopHeader({
   profile,
   user,
-  onEditProfile,
   onSignOut,
 }: {
   profile: Profile | null;
   user: User | null;
-  onEditProfile: () => void;
   onSignOut: () => void;
 }) {
   const { header } = usePageHeader();
@@ -178,7 +185,6 @@ function DesktopHeader({
           <ProfileDropdown
             profile={profile}
             user={user}
-            onEditProfile={onEditProfile}
             onSignOut={onSignOut}
           />
         </div>
@@ -420,12 +426,34 @@ export function AppLayout({ children }: AppLayoutProps) {
                     variant="outline"
                     className="w-full justify-start"
                     onClick={() => {
-                      navigate("/profile/edit");
+                      navigate("/profile/edit?tab=basic-info");
                       setMobileMenuOpen(false);
                     }}
                   >
                     <UserPen className="h-4 w-4 mr-2" />
-                    Edit Profile
+                    Basic Info
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/profile/edit?tab=preferences");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Preferences
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      navigate("/profile/edit?tab=account");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    Account
                   </Button>
                   <Button
                     variant="outline"
@@ -463,7 +491,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <DesktopHeader
               profile={profile}
               user={user}
-              onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
             <AnnouncementBanner {...CURRENT_BANNER} />

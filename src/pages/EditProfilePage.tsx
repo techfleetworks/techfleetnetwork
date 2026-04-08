@@ -61,7 +61,7 @@ export default function EditProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs = ["basic-info", "training-goals", "preferences", "account"];
+  const validTabs = ["basic-info", "preferences", "account"];
   const [activeTab, setActiveTab] = useState(
     tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
   );
@@ -177,8 +177,6 @@ export default function EditProfilePage() {
       const fieldToTab: Record<string, string> = {
         firstName: "basic-info", lastName: "basic-info", country: "basic-info",
         timezone: "basic-info", discordUsername: "basic-info", email: "basic-info",
-        interests: "training-goals", experience_areas: "training-goals",
-        education_background: "training-goals", professional_goals: "training-goals",
       };
       const firstField = Object.keys(fieldErrors)[0];
       const targetTab = fieldToTab[firstField];
@@ -296,7 +294,6 @@ export default function EditProfilePage() {
           <ResponsiveTabsList
             tabs={[
               { value: "basic-info", label: "Basic Info" },
-              { value: "training-goals", label: "Training Goals" },
               { value: "preferences", label: "Preferences" },
               { value: "account", label: "Account" },
             ] as TabItem[]}
@@ -440,68 +437,8 @@ export default function EditProfilePage() {
             </div>
           </ResponsiveTabsContent>
 
-          {/* ── Tab 2: Training Goals ── */}
-          <ResponsiveTabsContent value="training-goals" className="space-y-6">
-            <div className="card-elevated p-6 sm:p-8 space-y-6">
-              {/* Activity Interests */}
-              <div className="space-y-3">
-                <Label>Activity interests</Label>
-                <p className="text-xs text-muted-foreground">What kinds of activities do you want to do in Tech Fleet?</p>
-                {ACTIVITY_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => toggleInterest(option)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3",
-                      form.interests.includes(option) ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <div className={cn("h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center", form.interests.includes(option) ? "bg-primary border-primary text-primary-foreground" : "border-primary")} aria-hidden="true">
-                      {form.interests.includes(option) && <Check className="h-3 w-3" />}
-                    </div>
-                    <span className="text-sm text-foreground">{option}</span>
-                  </button>
-                ))}
-              </div>
 
-              {/* Experience Areas */}
-              <div className="space-y-1.5">
-                <Label>Experience areas</Label>
-                <p className="text-xs text-muted-foreground">What areas do you want to gain experience in?</p>
-                <ExperienceAreasSelect
-                  selected={form.experience_areas}
-                  onChange={(v) => setForm({ ...form, experience_areas: v })}
-                />
-              </div>
-
-              {/* Professional Goals */}
-              <ValidatedField id="edit-goals" label="Professional development goals" value={form.professional_goals} touched={touched.professional_goals}>
-                <Textarea
-                  id="edit-goals"
-                  value={form.professional_goals}
-                  onChange={(e) => setForm({ ...form, professional_goals: e.target.value })}
-                  placeholder="Describe your professional development goals..."
-                  className="min-h-[100px] resize-y"
-                  maxLength={5000}
-                />
-              </ValidatedField>
-
-              {/* Education */}
-              <div className="space-y-1.5">
-                <Label>Education background</Label>
-                <MultiSelect
-                  options={EDUCATION_OPTIONS.map((e) => ({ value: e, label: e }))}
-                  selected={form.education_background}
-                  onChange={(v) => setForm({ ...form, education_background: v })}
-                  placeholder="Search and select education..."
-                  aria-label="Education background"
-                />
-              </div>
-            </div>
-          </ResponsiveTabsContent>
-
-          {/* ── Tab 3: Preferences ── */}
+          {/* ── Tab 2: Preferences ── */}
           <ResponsiveTabsContent value="preferences" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-4">
