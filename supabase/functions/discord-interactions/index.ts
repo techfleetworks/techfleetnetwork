@@ -1,6 +1,7 @@
 import nacl from "npm:tweetnacl@1.0.3";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { discordFetch } from "../_shared/discord-fetch.ts";
 
 const log = createEdgeLogger("discord-interactions");
 
@@ -172,12 +173,15 @@ async function postFollowup(
   const baseUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
 
   for (let i = 0; i < chunks.length; i++) {
-    const url = i === 0 ? baseUrl : baseUrl; // all go to same webhook
-    const res = await fetch(url, {
+    const { response: res, retries } = await discordFetch(baseUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: chunks[i] }),
     });
+
+    if (retries > 0) {
+      log.info("followup", `Followup part ${i + 1}/${chunks.length} succeeded after ${retries} retries`);
+    }
 
     if (!res.ok) {
       const text = await res.text();
