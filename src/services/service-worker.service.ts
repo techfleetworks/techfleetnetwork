@@ -152,7 +152,7 @@ export function registerAppServiceWorker(): void {
       consecutiveUpdateFailures += 1;
       nextAllowedUpdateCheckAt = now + getServiceWorkerRetryBackoffMs(consecutiveUpdateFailures);
 
-      if (consecutiveUpdateFailures >= 2) {
+      if (consecutiveUpdateFailures >= 1) {
         await recoverFromServiceWorkerError(
           error,
           "ServiceWorkerRegistration.update",
