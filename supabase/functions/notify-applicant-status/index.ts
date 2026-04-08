@@ -3,8 +3,8 @@
  *
  * Atomically updates an applicant's status, creates an in-app notification,
  * writes an audit log entry, and optionally triggers a transactional email
- * (interview invite). When status is "picked_for_team", automatically assigns
- * the project's Discord role or notifies the applicant to connect Discord.
+ * (interview invite). When status is "active_participant", automatically assigns
+ * the project's Discord role and logs the result to the activity log.
  *
  * Security: JWT verification + admin role check (SECURITY DEFINER has_role).
  * Payload: Zod-validated, size-limited (32 KiB), XSS-sanitized.
@@ -23,13 +23,12 @@ const VALID_STATUSES = new Set([
   'pending_review',
   'invited_to_interview',
   'interview_scheduled',
-  'picked_for_team',
   'not_selected',
   'active_participant',
   'left_the_project',
 ] as const)
 
-type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_scheduled' | 'picked_for_team' | 'not_selected' | 'active_participant' | 'left_the_project'
+type ApplicantStatus = 'pending_review' | 'invited_to_interview' | 'interview_scheduled' | 'not_selected' | 'active_participant' | 'left_the_project'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -83,10 +82,10 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
     type: 'interview_scheduled',
     linkUrl: '',
   },
-  picked_for_team: {
-    title: '🚀 You\'ve been picked for a team!',
-    bodyFn: () => '<p>Congratulations! You have been selected to join a Tech Fleet project team.</p>',
-    type: 'picked_for_team',
+  active_participant: {
+    title: '🚀 You\'re now an Active Teammate!',
+    bodyFn: () => '<p>Congratulations! You have been selected to join a Tech Fleet project team. Welcome aboard!</p>',
+    type: 'active_participant',
     linkUrl: '',
   },
   not_selected: {
@@ -94,12 +93,6 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
     bodyFn: () =>
       '<p>Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!</p>',
     type: 'not_selected',
-    linkUrl: '',
-  },
-  active_participant: {
-    title: '✅ You\'re now an Active Participant',
-    bodyFn: () => '<p>Your status has been updated to Active Participant. Welcome to the team!</p>',
-    type: 'active_participant',
     linkUrl: '',
   },
   left_the_project: {
@@ -401,11 +394,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  /* ---- 5. Discord role assignment for picked_for_team (non-blocking) ---- */
+  /* ---- 5. Discord role assignment for active_participant (non-blocking) ---- */
   let discordRoleAssigned = false
-  let discordMissing = false
 
-  if (newStatus === 'picked_for_team') {
+  if (newStatus === 'active_participant') {
     try {
       // Fetch project Discord role
       const { data: projectData } = await supabase
@@ -438,33 +430,40 @@ Deno.serve(async (req) => {
               roleId: discordRoleId,
               roleName: discordRoleName,
             })
+
+            // Log to audit
+            try {
+              await supabase.rpc('write_audit_log', {
+                p_event_type: 'discord_role_assigned',
+                p_table_name: 'project_applications',
+                p_record_id: applicationId,
+                p_user_id: user.id,
+                p_changed_fields: [applicantUserId, discordRoleId, discordRoleName || ''],
+              })
+            } catch (auditErr) {
+              console.warn('Discord role audit log failed', auditErr)
+            }
           } else {
             console.error('Discord role assignment failed', {
               applicantUserId,
               error: result.error,
             })
-          }
-        } else {
-          // Applicant doesn't have Discord connected — send them a notification
-          discordMissing = true
-          try {
-            await supabase.from('notifications').insert({
-              user_id: applicantUserId,
-              title: '⚠️ Connect Your Discord Account',
-              body_html:
-                '<p>Congratulations on being selected for a project team! To receive your team role and access project channels, please connect your Discord account to your profile.</p>' +
-                '<p><a href="/training/connect-discord">Connect Discord Now</a></p>',
-              notification_type: 'discord_connect_required',
-              link_url: '/training/connect-discord',
-              read: false,
-            })
-            console.info('Discord connect notification sent', { applicantUserId })
-          } catch (notifErr) {
-            console.error('Failed to send Discord connect notification', notifErr)
+
+            // Log failure to audit
+            try {
+              await supabase.rpc('write_audit_log', {
+                p_event_type: 'discord_role_assignment_failed',
+                p_table_name: 'project_applications',
+                p_record_id: applicationId,
+                p_user_id: user.id,
+                p_changed_fields: [applicantUserId, discordRoleId],
+                p_error_message: result.error || 'Unknown error',
+              })
+            } catch (auditErr) {
+              console.warn('Discord role failure audit log failed', auditErr)
+            }
           }
         }
-      } else {
-        console.warn('Project has no Discord role configured', { projectId })
       }
     } catch (e) {
       console.error('Discord role assignment flow error', e)
@@ -477,6 +476,5 @@ Deno.serve(async (req) => {
     notificationCreated,
     emailSent,
     discordRoleAssigned,
-    discordMissing,
   })
 })

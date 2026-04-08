@@ -37,13 +37,6 @@ export const ApplicationStatusBadge = memo(function ApplicationStatusBadge({ sta
           Not Selected
         </Badge>
       );
-    case "picked_for_team":
-      return (
-        <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          Selected for Team
-        </Badge>
-      );
     case "active_participant":
       return (
         <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">

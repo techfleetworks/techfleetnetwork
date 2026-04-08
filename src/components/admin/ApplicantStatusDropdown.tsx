@@ -26,7 +26,6 @@ export const APPLICANT_STATUSES = [
   { value: "pending_review", label: "Pending Review" },
   { value: "invited_to_interview", label: "Invite to Interview" },
   { value: "interview_scheduled", label: "Interview Scheduled" },
-  { value: "picked_for_team", label: "Picked for Team" },
   { value: "not_selected", label: "Not Selected" },
   { value: "active_participant", label: "Active Participant" },
   { value: "left_the_project", label: "Left the Project" },
@@ -40,7 +39,6 @@ const SELECTABLE_STATUSES = APPLICANT_STATUSES.filter((s) => s.value !== "pendin
 const STATUS_ICONS: Record<string, typeof Calendar> = {
   invited_to_interview: Calendar,
   interview_scheduled: Calendar,
-  picked_for_team: UserCheck,
   not_selected: UserX,
   active_participant: Users,
   left_the_project: LogOut,
@@ -150,8 +148,8 @@ export function ApplicantStatusDropdown({
           coordinatorName = await resolveCoordinatorName(projectId, fallbackName);
         }
 
-        /* -- Pre-flight: "picked_for_team" requires a Discord role on the project -- */
-        if (newStatus === "picked_for_team") {
+        /* -- Pre-flight: "active_participant" requires Discord role on project & Discord on applicant -- */
+        if (newStatus === "active_participant") {
           const { data: projectData } = await supabase
             .from("projects")
             .select("discord_role_id, discord_role_name")
@@ -161,7 +159,7 @@ export function ApplicantStatusDropdown({
           if (!projectData?.discord_role_id) {
             toast.error("Discord role required", {
               description:
-                "This project does not have a Discord role assigned. Please add one in the project settings before selecting teammates.",
+                "This project does not have a Discord role assigned. Please add one in the project settings before marking participants as active.",
               duration: 10000,
               position: "top-center",
               action: {
@@ -170,6 +168,22 @@ export function ApplicantStatusDropdown({
                   window.location.href = `/admin/clients/project/${projectId}`;
                 },
               },
+            });
+            setChanging(false);
+            return;
+          }
+
+          const { data: applicantProfile } = await supabase
+            .from("profiles")
+            .select("discord_user_id, discord_username")
+            .eq("user_id", applicantUserId)
+            .single();
+
+          if (!applicantProfile?.discord_user_id) {
+            toast.error("Discord account not connected", {
+              description: `${applicantFirstName || "This applicant"} has not connected their Discord account. They must connect Discord before being made an Active Participant.`,
+              duration: 10000,
+              position: "top-center",
             });
             setChanging(false);
             return;
@@ -209,11 +223,10 @@ export function ApplicantStatusDropdown({
             duration: 5000,
             position: "top-center",
           });
-        } else if (newStatus === "picked_for_team") {
+        } else if (newStatus === "active_participant") {
           const parts: string[] = ["Applicant has been notified"];
           if (result?.discordRoleAssigned) parts.push("Discord role assigned automatically");
-          if (result?.discordMissing) parts.push("Applicant notified to connect their Discord account");
-          toast.success(`${applicantFirstName || "Applicant"} picked for team!`, {
+          toast.success(`${applicantFirstName || "Applicant"} is now an Active Participant!`, {
             description: parts.join(". ") + ".",
             duration: 6000,
             position: "top-center",
