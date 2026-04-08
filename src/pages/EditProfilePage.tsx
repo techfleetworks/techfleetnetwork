@@ -61,7 +61,7 @@ export default function EditProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs = ["basic-info", "training-goals", "preferences", "account"];
+  const validTabs = ["basic-info", "preferences", "account"];
   const [activeTab, setActiveTab] = useState(
     tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
   );
@@ -177,8 +177,6 @@ export default function EditProfilePage() {
       const fieldToTab: Record<string, string> = {
         firstName: "basic-info", lastName: "basic-info", country: "basic-info",
         timezone: "basic-info", discordUsername: "basic-info", email: "basic-info",
-        interests: "training-goals", experience_areas: "training-goals",
-        education_background: "training-goals", professional_goals: "training-goals",
       };
       const firstField = Object.keys(fieldErrors)[0];
       const targetTab = fieldToTab[firstField];
@@ -296,7 +294,6 @@ export default function EditProfilePage() {
           <ResponsiveTabsList
             tabs={[
               { value: "basic-info", label: "Basic Info" },
-              { value: "training-goals", label: "Training Goals" },
               { value: "preferences", label: "Preferences" },
               { value: "account", label: "Account" },
             ] as TabItem[]}
