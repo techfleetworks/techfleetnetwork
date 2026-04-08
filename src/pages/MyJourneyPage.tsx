@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
 import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 import { MyProjectsTab } from "@/components/MyProjectsTab";
+import { TrainingGoalsTab } from "@/components/TrainingGoalsTab";
 
 export default function MyJourneyPage() {
   return (
@@ -13,13 +14,18 @@ export default function MyJourneyPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="training-goals" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="training-goals">Training Goals</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>
           <TabsTrigger value="certifications">Class Certifications</TabsTrigger>
           <TabsTrigger value="project-certifications">Project Certifications</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="training-goals">
+          <TrainingGoalsTab />
+        </TabsContent>
 
         <TabsContent value="overview">
           <div className="card-elevated p-12 text-center">
