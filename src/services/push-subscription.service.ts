@@ -228,6 +228,8 @@ export class PushSubscriptionService {
           if (attempt > 0) {
             await refreshServiceWorker(registration);
             await clearAllPushSubscriptions();
+            // Longer backoff: 2s, then 5s — push services need time to recover
+            await new Promise((r) => setTimeout(r, attempt === 1 ? 2000 : 5000));
           }
 
           subscription = await registration.pushManager.subscribe({
@@ -237,10 +239,6 @@ export class PushSubscriptionService {
           break; // success
         } catch (pushErr) {
           lastPushError = pushErr;
-          if (attempt < 2) {
-            // Brief backoff before retry
-            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-          }
         }
       }
 
