@@ -3,8 +3,8 @@
  *
  * Atomically updates an applicant's status, creates an in-app notification,
  * writes an audit log entry, and optionally triggers a transactional email
- * (interview invite). When status is "picked_for_team", automatically assigns
- * the project's Discord role or notifies the applicant to connect Discord.
+ * (interview invite). When status is "active_participant", automatically assigns
+ * the project's Discord role and logs the result to the activity log.
  *
  * Security: JWT verification + admin role check (SECURITY DEFINER has_role).
  * Payload: Zod-validated, size-limited (32 KiB), XSS-sanitized.
