@@ -63,14 +63,13 @@ const CURRENT_BANNER = {
 function ProfileDropdown({
   profile,
   user,
-  onEditProfile,
   onSignOut,
 }: {
   profile: Profile | null;
   user: User | null;
-  onEditProfile: () => void;
   onSignOut: () => void;
 }) {
+  const navigate = useNavigate();
   const avatarInitials = profile
     ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
     : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
@@ -98,9 +97,17 @@ function ProfileDropdown({
           </p>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onEditProfile}>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=basic-info")}>
           <UserPen className="h-4 w-4 mr-2" />
-          Edit Profile
+          Basic Info
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=preferences")}>
+          <Settings className="h-4 w-4 mr-2" />
+          Preferences
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=account")}>
+          <KeyRound className="h-4 w-4 mr-2" />
+          Account
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>
