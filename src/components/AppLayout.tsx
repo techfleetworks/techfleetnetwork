@@ -469,7 +469,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <DesktopHeader
               profile={profile}
               user={user}
-              onEditProfile={() => navigate("/profile/edit")}
               onSignOut={handleSignOut}
             />
             <AnnouncementBanner {...CURRENT_BANNER} />
