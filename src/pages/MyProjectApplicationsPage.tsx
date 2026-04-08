@@ -356,7 +356,7 @@ export default function MyProjectApplicationsPage() {
                     {hasStatusUpdate ? (
                       <Badge className={`gap-1 shrink-0 ${
                         app.applicant_status === "invited_to_interview" ? "bg-primary/10 text-primary border-primary/30" :
-                        app.applicant_status === "picked_for_team" || app.applicant_status === "interview_scheduled" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
+                        app.applicant_status === "interview_scheduled" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
                         app.applicant_status === "not_selected" ? "bg-destructive/10 text-destructive border-destructive/30" :
                         "bg-muted text-muted-foreground border-border"
                       }`}>

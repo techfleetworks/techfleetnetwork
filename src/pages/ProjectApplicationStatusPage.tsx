@@ -264,7 +264,7 @@ function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus 
           "bg-border";
 
         const showInviteButton = step.key === "interview" && step.status !== "upcoming" && onViewInvite;
-        const showScheduleButton = step.key === "interview" && step.status !== "upcoming" && onMarkScheduled && applicantStatus !== "interview_scheduled" && applicantStatus !== "picked_for_team" && applicantStatus !== "active_participant" && applicantStatus !== "left_the_project";
+        const showScheduleButton = step.key === "interview" && step.status !== "upcoming" && onMarkScheduled && applicantStatus !== "interview_scheduled" && applicantStatus !== "active_participant" && applicantStatus !== "left_the_project";
 
         return (
           <div key={step.key} className="relative pb-8 last:pb-0" role="listitem">
