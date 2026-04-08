@@ -1,9 +1,18 @@
-import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { useGeneralApplication } from "@/hooks/use-general-application";
 import {
   SECTION_TITLES,
@@ -21,8 +30,11 @@ import {
 } from "@/components/general-application";
 
 export function GeneralApplicationTab() {
+  const { user } = useAuth();
+  const [deleting, setDeleting] = useState(false);
   const {
     loading,
+    activeApp,
     form,
     section,
     saving,
@@ -41,6 +53,30 @@ export function GeneralApplicationTab() {
     canSubmit,
     navigate,
   } = useGeneralApplication();
+
+  const handleDeleteApplication = async () => {
+    if (!user || !activeApp?.id) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("general_applications")
+        .delete()
+        .eq("id", activeApp.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast.success("Application deleted", {
+        description: "Your general application has been permanently removed.",
+        position: "top-center",
+      });
+      navigate("/applications");
+    } catch (err: unknown) {
+      toast.error("Failed to delete application", {
+        description: err instanceof Error ? err.message : "An unexpected error occurred.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -130,11 +166,41 @@ export function GeneralApplicationTab() {
       {/* ── Sticky Footer CTAs ─────────────────────────────── */}
       <div className="sticky bottom-0 z-20 border-t bg-background px-4 sm:px-6 py-3">
         <div className="max-w-4xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {section > 1 && (
               <Button variant="outline" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Previous
               </Button>
+            )}
+
+            {/* Delete button — only shown when an application exists */}
+            {activeApp && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={deleting}>
+                    <Trash2 className="h-4 w-4" />
+                    {deleting ? "Deleting…" : "Delete"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove your general application and all of your responses. 
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteApplication}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Delete Permanently
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">

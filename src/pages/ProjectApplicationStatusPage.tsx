@@ -9,6 +9,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
   XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
   Trophy, Star, Sparkles, Mail, User, Briefcase, GraduationCap,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
@@ -519,6 +525,30 @@ export default function ProjectApplicationStatusPage() {
     scheduleMutation.mutate();
   }, [scheduleMutation]);
 
+  /* ── delete application mutation ────────────────────────── */
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("project_applications")
+        .delete()
+        .eq("id", applicationId!)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Application deleted", {
+        description: "Your project application has been permanently removed.",
+        position: "top-center",
+      });
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-apps-count"] });
+      navigate("/applications/projects", { replace: true });
+    },
+    onError: (err: Error) => {
+      toast.error("Failed to delete application", { description: err.message });
+    },
+  });
+
   /* ── loading / not found states ─────────────────────────── */
   if (appLoading) {
     return (
@@ -894,6 +924,33 @@ export default function ProjectApplicationStatusPage() {
         <Button variant="outline" onClick={() => navigate("/applications/projects")} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Back to Project Applications
         </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" className="gap-1.5" disabled={deleteMutation.isPending}>
+              <Trash2 className="h-4 w-4" />
+              {deleteMutation.isPending ? "Deleting…" : "Delete Application"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove your application for <span className="font-semibold">{clientName}</span>. 
+                All of your responses will be lost and cannot be recovered. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMutation.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, Delete Permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
