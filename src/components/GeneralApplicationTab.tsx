@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useGeneralApplication } from "@/hooks/use-general-application";
 import {
   SECTION_TITLES,
   TOTAL_SECTIONS,
