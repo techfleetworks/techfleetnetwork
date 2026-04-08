@@ -194,6 +194,7 @@ export function registerAppServiceWorker(): void {
         return;
       }
 
+      // Immediately activate the new service worker and reload
       void updateServiceWorker(true).catch((error) =>
         recoverFromServiceWorkerError(
           error,
@@ -211,6 +212,9 @@ export function registerAppServiceWorker(): void {
       if (!registration) {
         return;
       }
+
+      // Force check for a new SW version right away on every page load
+      void registration.update().catch(() => {});
 
       window.addEventListener("focus", triggerUpdateCheck);
       window.addEventListener("online", triggerUpdateCheck);
