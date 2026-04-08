@@ -51,12 +51,6 @@ const STATUS_CONFIG: Record<string, {
     variant: "info",
     description: "You've indicated that your interview has been scheduled. The project coordinator has been notified.",
   },
-  picked_for_team: {
-    label: "Selected for Team",
-    icon: UserCheck,
-    variant: "success",
-    description: "Congratulations! You've been selected to join the project team. Check your notifications for next steps.",
-  },
   not_selected: {
     label: "Not Selected",
     icon: XCircle,
@@ -112,8 +106,7 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
     pending_review: 0,
     invited_to_interview: 1,
     interview_scheduled: 1.5,
-    picked_for_team: 2,
-    active_participant: 3,
+    active_participant: 2,
     not_selected: -1,
     left_the_project: -2,
   };
@@ -163,28 +156,16 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
       : "Awaiting interview invitation from the coordinator.",
   });
 
-  // Selected for Team
-  const selectedCompleted = currentOrder >= 2;
-  steps.push({
-    key: "selected",
-    label: "Selected for Team",
-    icon: UserCheck,
-    status: selectedCompleted ? "completed" : currentOrder >= 1 ? "upcoming" : "upcoming",
-    description: selectedCompleted
-      ? "You've been selected to join the project team!"
-      : "Pending team selection after interview.",
-  });
-
   // Active Teammate
-  const activeCompleted = currentOrder >= 3;
+  const activeCompleted = currentOrder >= 2;
   steps.push({
     key: "active",
     label: "Active Teammate",
     icon: Users,
-    status: activeCompleted ? "completed" : currentOrder >= 2 ? "upcoming" : "upcoming",
+    status: activeCompleted ? "completed" : currentOrder >= 1 ? "upcoming" : "upcoming",
     description: activeCompleted
       ? "You're actively contributing to the project team!"
-      : "You'll become an active teammate once onboarding is complete.",
+      : "You'll become an active teammate once you're selected and onboarding is complete.",
   });
 
   // Now mark the current step as "active" instead of "completed"
@@ -193,7 +174,6 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
     pending_review: "submitted",
     invited_to_interview: "interview",
     interview_scheduled: "interview",
-    picked_for_team: "selected",
     active_participant: "active",
   };
   const activeKey = currentStepMap[applicantStatus];

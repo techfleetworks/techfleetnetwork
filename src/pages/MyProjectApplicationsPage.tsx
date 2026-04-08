@@ -41,7 +41,6 @@ interface ProjectApp {
 const STATUS_PAGE_STATUSES = new Set([
   "invited_to_interview",
   "interview_scheduled",
-  "picked_for_team",
   "not_selected",
   "active_participant",
   "left_the_project",
@@ -51,7 +50,6 @@ const APPLICANT_STATUS_LABELS: Record<string, string> = {
   pending_review: "Pending Review",
   invited_to_interview: "Invited to Interview",
   interview_scheduled: "Interview Scheduled",
-  picked_for_team: "Picked for Team",
   not_selected: "Not Selected",
   active_participant: "Active Participant",
   left_the_project: "Left the Project",
