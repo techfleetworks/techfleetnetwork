@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,10 +6,11 @@ import { format } from "date-fns";
 import {
   Loader2, Building2, ExternalLink, Briefcase, Users,
   FileText, Lightbulb, ClipboardList, Target, Clock,
-  Link2, Trophy, Sparkles,
+  Link2, Trophy, Sparkles, ArrowLeft, LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { FolderKanban } from "lucide-react";
@@ -79,19 +80,82 @@ interface ProjectData {
   } | null;
 }
 
-interface MilestoneData {
-  deliverables: string[];
-  activities: string[];
-  skills: string[];
+interface ProjectWithStatus extends ProjectData {
+  applicant_status: string;
 }
 
-/* ── Active Project Card ─────────────────────────────────── */
-function ActiveProjectCard({ project }: { project: ProjectData }) {
+/* ── Project Summary Card (clickable) ────────────────────── */
+function ProjectSummaryCard({
+  project,
+  onClick,
+}: {
+  project: ProjectWithStatus;
+  onClick: () => void;
+}) {
   const client = project.clients;
+  const isActive = project.applicant_status === "active_participant";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="card-elevated p-5 w-full text-left transition-all duration-200 hover:border-primary/50 hover:shadow-md hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
+      aria-label={`View details for ${client?.name ?? "Project"}`}
+    >
+      <div className="flex items-center gap-4">
+        <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          isActive ? "bg-primary/10" : "bg-muted"
+        }`}>
+          {isActive ? (
+            <Trophy className="h-6 w-6 text-primary" aria-hidden="true" />
+          ) : (
+            <LogOut className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-base font-semibold text-foreground truncate">
+              {client?.name ?? "Project"}
+            </h3>
+            {isActive ? (
+              <Badge className="bg-success/10 text-success border-success/30 gap-1 text-xs">
+                <Sparkles className="h-3 w-3" /> Active Teammate
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <LogOut className="h-3 w-3" /> Left the Team
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
+          </p>
+          {client?.project_summary && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              {client.project_summary}
+            </p>
+          )}
+        </div>
+        <ArrowLeft className="h-5 w-5 text-muted-foreground rotate-180 flex-shrink-0" aria-hidden="true" />
+      </div>
+    </button>
+  );
+}
+
+/* ── Active Project Detail View ──────────────────────────── */
+function ActiveProjectDetail({
+  project,
+  onBack,
+}: {
+  project: ProjectWithStatus;
+  onBack: () => void;
+}) {
+  const client = project.clients;
+  const isActive = project.applicant_status === "active_participant";
 
   const { data: milestoneData } = useQuery({
     queryKey: ["milestone-data", project.current_phase_milestones],
-    queryFn: async (): Promise<MilestoneData> => {
+    queryFn: async () => {
       if (!project.current_phase_milestones.length) {
         return { deliverables: [], activities: [], skills: [] };
       }
@@ -112,6 +176,12 @@ function ActiveProjectCard({ project }: { project: ProjectData }) {
 
   return (
     <div className="space-y-6">
+      {/* Back button */}
+      <Button variant="ghost" size="sm" onClick={onBack} className="gap-2 -ml-2">
+        <ArrowLeft className="h-4 w-4" />
+        Back to My Projects
+      </Button>
+
       {/* Hero */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-6 space-y-4">
@@ -122,9 +192,15 @@ function ActiveProjectCard({ project }: { project: ProjectData }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground">{client?.name ?? "Project"}</h2>
-                <Badge className="bg-success/10 text-success border-success/30 gap-1">
-                  <Sparkles className="h-3 w-3" /> Active Teammate
-                </Badge>
+                {isActive ? (
+                  <Badge className="bg-success/10 text-success border-success/30 gap-1">
+                    <Sparkles className="h-3 w-3" /> Active Teammate
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="gap-1">
+                    <LogOut className="h-3 w-3" /> Left the Team
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
@@ -261,27 +337,33 @@ function ActiveProjectCard({ project }: { project: ProjectData }) {
 /* ── Main Tab Component ──────────────────────────────────── */
 export function MyProjectsTab() {
   const { user } = useAuth();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Fetch applications where user is an active participant
-  const { data: activeApps, isLoading } = useQuery({
-    queryKey: ["my-active-projects", user?.id],
+  // Fetch applications where user is active or left
+  const { data: myApps, isLoading } = useQuery({
+    queryKey: ["my-project-apps", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("project_id")
+        .select("project_id, applicant_status")
         .eq("user_id", user!.id)
-        .eq("applicant_status", "active_participant");
+        .in("applicant_status", ["active_participant", "left_the_team"]);
       if (error) throw error;
       return data ?? [];
     },
     enabled: !!user,
   });
 
-  const projectIds = useMemo(() => (activeApps ?? []).map((a) => a.project_id), [activeApps]);
+  const projectIds = useMemo(() => (myApps ?? []).map((a) => a.project_id), [myApps]);
+  const statusMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (myApps ?? []).forEach((a) => { map[a.project_id] = a.applicant_status; });
+    return map;
+  }, [myApps]);
 
   // Fetch full project details with client info
   const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["my-active-project-details", projectIds],
+    queryKey: ["my-project-details", projectIds],
     queryFn: async () => {
       if (!projectIds.length) return [];
       const { data, error } = await supabase
@@ -295,12 +377,26 @@ export function MyProjectsTab() {
         `)
         .in("id", projectIds);
       if (error) throw error;
-      return (data ?? []) as unknown as ProjectData[];
+      return (data ?? []).map((p) => ({
+        ...p,
+        applicant_status: statusMap[p.id] ?? "active_participant",
+      })) as unknown as ProjectWithStatus[];
     },
     enabled: projectIds.length > 0,
   });
 
   const loading = isLoading || projectsLoading;
+
+  // Detail view
+  const selectedProject = projects?.find((p) => p.id === selectedProjectId);
+  if (selectedProject) {
+    return (
+      <ActiveProjectDetail
+        project={selectedProject}
+        onBack={() => setSelectedProjectId(null)}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -313,20 +409,28 @@ export function MyProjectsTab() {
   if (!projects?.length) {
     return (
       <SectionEmptyState
-        title="No Active Projects"
-        description="Once you're selected as an active teammate on a project, it will appear here with full project details."
+        title="No Projects Yet"
+        description="Once you're selected as an active teammate on a project, or if you've left a team, it will appear here."
         icon={FolderKanban}
       />
     );
   }
 
+  // Sort: active first, then left
+  const sorted = [...projects].sort((a, b) => {
+    if (a.applicant_status === "active_participant" && b.applicant_status !== "active_participant") return -1;
+    if (a.applicant_status !== "active_participant" && b.applicant_status === "active_participant") return 1;
+    return 0;
+  });
+
   return (
-    <div className="space-y-10">
-      {projects.map((project) => (
-        <div key={project.id}>
-          <ActiveProjectCard project={project} />
-          {projects.length > 1 && <Separator className="mt-10" />}
-        </div>
+    <div className="space-y-3">
+      {sorted.map((project) => (
+        <ProjectSummaryCard
+          key={project.id}
+          project={project}
+          onClick={() => setSelectedProjectId(project.id)}
+        />
       ))}
     </div>
   );
