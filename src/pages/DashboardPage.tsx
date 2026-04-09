@@ -36,6 +36,7 @@ import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
+import { CheckCircle2 as CheckCircle2Icon } from "lucide-react";
 import { format } from "date-fns";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
