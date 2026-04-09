@@ -8,114 +8,106 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft } from "lucide-react";
-import welcomeSlide1 from "@/assets/welcome-slide-1.png";
-import welcomeSlide2 from "@/assets/welcome-slide-2.png";
-import welcomeSlide3 from "@/assets/welcome-slide-3.png";
-import welcomeSlide4 from "@/assets/welcome-slide-4.png";
-import welcomeSlide5 from "@/assets/welcome-slide-5.png";
+import { Progress } from "@/components/ui/progress";
+import { ChevronRight, ChevronLeft, Heart, Shield, Users, TrendingUp } from "lucide-react";
+import welcomeImg1 from "@/assets/welcome-slide-1-v2.png";
+import welcomeImg2 from "@/assets/welcome-slide-2-v2.png";
+import welcomeImg3 from "@/assets/welcome-slide-3-v2.png";
+import welcomeImg4 from "@/assets/welcome-slide-4-v2.png";
+import welcomeImg5 from "@/assets/welcome-slide-5-v2.png";
 
 const WELCOME_KEY_PREFIX = "tf_welcome_shown_";
 
-const slides = [
+interface SlideData {
+  image: string;
+  title: string;
+  content: React.ReactNode;
+}
+
+const VALUE_ITEMS = [
+  { icon: Heart, label: "Service", desc: "We help each other grow" },
+  { icon: Shield, label: "Responsibility", desc: "We show up and take care" },
+  { icon: Users, label: "Community", desc: "We build real friendships" },
+  { icon: TrendingUp, label: "Growth", desc: "Mistakes are how we learn" },
+];
+
+const slides: SlideData[] = [
   {
-    image: welcomeSlide1,
+    image: welcomeImg1,
     title: "Welcome to Tech Fleet! 🎉",
     content: (
-      <div className="space-y-3 text-sm text-muted-foreground text-left">
-        <p className="text-base font-medium text-foreground">
-          Hi there! We're so glad you're here.
-        </p>
-        <p>
-          Tech Fleet is a nonprofit where people learn how to work well on teams. We believe everyone can be a leader — not by telling others what to do, but by helping each other grow.
-        </p>
-        <p>
-          No matter where you are in your career — just starting out, switching paths, or already experienced — you belong here.
-        </p>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        A nonprofit where people learn to work well on teams. Whether you're starting out, switching paths, or already experienced — <span className="font-medium text-foreground">you belong here.</span>
+      </p>
+    ),
+  },
+  {
+    image: welcomeImg2,
+    title: "What We Stand For",
+    content: (
+      <div className="grid grid-cols-2 gap-3">
+        {VALUE_ITEMS.map(({ icon: Icon, label, desc }) => (
+          <div key={label} className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/40 p-3">
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground leading-tight">{label}</p>
+              <p className="text-xs text-muted-foreground leading-snug">{desc}</p>
+            </div>
+          </div>
+        ))}
       </div>
     ),
   },
   {
-    image: welcomeSlide2,
-    title: "What We Care About",
+    image: welcomeImg3,
+    title: "How It Works",
     content: (
-      <div className="space-y-3 text-sm text-muted-foreground text-left">
-        <div>
-          <span className="font-semibold text-foreground">Service</span> — We help each other grow. Everyone has something to give, and we make sure every voice is heard.
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">Responsibility</span> — If you're ready to learn, you're welcome here. We all take care of each other.
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">Community</span> — Members help decide how things work here. We build real friendships and strong teams.
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">Always Getting Better</span> — Mistakes aren't failures — they're how we learn. We're always looking for ways to improve.
-        </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        We pair <span className="font-medium text-foreground">nonprofits</span> that need work done with <span className="font-medium text-foreground">people like you</span> who want real team experience. Along the way you'll practice servant leadership, agile teamwork, and shared decision-making.
+      </p>
+    ),
+  },
+  {
+    image: welcomeImg4,
+    title: "What You Can Do",
+    content: (
+      <div className="space-y-2.5">
+        {[
+          { emoji: "🛠️", name: "Project Training", desc: "Real projects for nonprofits — no experience needed" },
+          { emoji: "📚", name: "Learning Labs", desc: "Hands-on classes with certificates" },
+          { emoji: "🤝", name: "Community", desc: "Events, group projects, and peer support" },
+        ].map((item) => (
+          <div key={item.name} className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+            <span className="text-base leading-none mt-0.5">{item.emoji}</span>
+            <div>
+              <p className="text-sm font-medium text-foreground leading-tight">{item.name}</p>
+              <p className="text-xs text-muted-foreground leading-snug">{item.desc}</p>
+            </div>
+          </div>
+        ))}
       </div>
     ),
   },
   {
-    image: welcomeSlide3,
-    title: "Who We Help",
+    image: welcomeImg5,
+    title: "5 Steps to Get Going",
     content: (
-      <div className="space-y-3 text-sm text-muted-foreground text-left">
-        <p>
-          We help two groups of people: <span className="font-semibold text-foreground">nonprofits</span> that need project work done, and <span className="font-semibold text-foreground">people like you</span> who want to build real skills by working on real teams.
-        </p>
-        <p>
-          Along the way, you'll practice six important <span className="font-semibold text-foreground">Team Habits</span>:
-        </p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Leading by helping others</li>
-          <li>Making it safe to try new things</li>
-          <li>Working step by step</li>
-          <li>Taking ownership together</li>
-          <li>Making decisions as a group</li>
-          <li>Always learning and improving</li>
-        </ul>
-      </div>
-    ),
-  },
-  {
-    image: welcomeSlide4,
-    title: "What You Can Do Here",
-    content: (
-      <div className="space-y-3 text-sm text-muted-foreground text-left">
-        <div>
-          <span className="font-semibold text-foreground">🛠️ Project Training</span>
-          <p className="mt-1">Work on real projects for nonprofit clients. It's like an internship, but with more support and teamwork. Anyone can join — no experience needed!</p>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">📚 Learning Labs</span>
-          <p className="mt-1">Take classes and workshops to learn leadership skills. You'll work on hands-on projects and earn certificates when you finish.</p>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">🤝 Community</span>
-          <p className="mt-1">Meet other members, go to events, join group projects, and help each other out. This is your space to connect and grow.</p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    image: welcomeSlide5,
-    title: "Here's How to Get Started",
-    content: (
-      <div className="space-y-3 text-sm text-muted-foreground text-left">
-        <p className="text-base font-medium text-foreground">
-          Just follow these 5 steps to get going:
-        </p>
-        <ol className="list-decimal pl-5 space-y-2">
-          <li><span className="font-semibold text-foreground">Connect to Discord</span> — This is where our community hangs out</li>
-          <li><span className="font-semibold text-foreground">Finish Your Onboarding</span> — Set up your profile and check out key info</li>
-          <li><span className="font-semibold text-foreground">Learn About Agile</span> — Find out how teams work together step by step</li>
-          <li><span className="font-semibold text-foreground">Join Project Training</span> — See how our team projects work</li>
-          <li><span className="font-semibold text-foreground">Join Volunteer Teams</span> — Learn how to volunteer with us</li>
-        </ol>
-        <p>
-          Once you finish these steps, you can apply to join a project and start making a difference!
-        </p>
-      </div>
+      <ol className="space-y-1.5 text-sm text-muted-foreground">
+        {[
+          "Connect to Discord",
+          "Complete your onboarding",
+          "Learn about Agile",
+          "Join Project Training",
+          "Join Volunteer Teams",
+        ].map((step, i) => (
+          <li key={i} className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+              {i + 1}
+            </span>
+            <span className="leading-snug">{step}</span>
+          </li>
+        ))}
+      </ol>
     ),
   },
 ];
@@ -128,10 +120,7 @@ export function WelcomeDialog() {
   useEffect(() => {
     if (!user) return;
     const key = WELCOME_KEY_PREFIX + user.id;
-    const shown = localStorage.getItem(key);
-    if (!shown) {
-      setOpen(true);
-    }
+    if (!localStorage.getItem(key)) setOpen(true);
   }, [user]);
 
   const handleClose = () => {
@@ -144,51 +133,69 @@ export function WelcomeDialog() {
   const slide = slides[currentSlide];
   const isLast = currentSlide === slides.length - 1;
   const isFirst = currentSlide === 0;
+  const progress = ((currentSlide + 1) / slides.length) * 100;
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); }}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto" aria-labelledby="welcome-title" aria-describedby="welcome-desc">
-        <DialogHeader className="items-center text-center">
+      <DialogContent
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl"
+        aria-labelledby="welcome-title"
+        aria-describedby="welcome-desc"
+      >
+        {/* Progress bar */}
+        <Progress value={progress} className="h-1 rounded-none rounded-t-2xl" />
+
+        {/* Image area */}
+        <div className="flex justify-center px-6 pt-5 pb-2">
           <img
             src={slide.image}
             alt=""
-            className="mx-auto h-32 w-32 object-contain mb-2"
+            className="h-28 w-28 object-contain"
             aria-hidden="true"
           />
-          <DialogTitle id="welcome-title" className="text-xl">{slide.title}</DialogTitle>
-          <DialogDescription id="welcome-desc" className="sr-only">
-            Welcome information about Tech Fleet
-          </DialogDescription>
-        </DialogHeader>
+        </div>
 
-        <div className="py-2">{slide.content}</div>
+        {/* Content area */}
+        <div className="px-6 pb-2">
+          <DialogHeader className="items-center text-center mb-3">
+            <DialogTitle id="welcome-title" className="text-lg font-semibold">{slide.title}</DialogTitle>
+            <DialogDescription id="welcome-desc" className="sr-only">
+              Welcome information about Tech Fleet
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Dots */}
-        <div className="flex justify-center gap-1.5 pt-1" role="tablist" aria-label="Slide indicators">
+          <div className="min-h-[120px] flex items-start">{slide.content}</div>
+        </div>
+
+        {/* Step indicator dots */}
+        <div className="flex justify-center gap-1.5 px-6" role="tablist" aria-label="Slide indicators">
           {slides.map((_, i) => (
             <button
               key={i}
               role="tab"
               aria-selected={i === currentSlide}
               aria-label={`Slide ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${i === currentSlide ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/25"
+              }`}
               onClick={() => setCurrentSlide(i)}
             />
           ))}
         </div>
 
-        <div className="flex gap-2 pt-2">
+        {/* Navigation */}
+        <div className="flex gap-2 px-6 pt-3 pb-2">
           {!isFirst && (
-            <Button variant="outline" className="flex-1" onClick={() => setCurrentSlide((p) => p - 1)}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setCurrentSlide((p) => p - 1)}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Back
             </Button>
           )}
           {isLast ? (
-            <Button className="flex-1" onClick={handleClose}>
-              Let's Get Started! <ChevronRight className="h-4 w-4 ml-1" />
+            <Button size="sm" className="flex-1" onClick={handleClose}>
+              Let's Go! <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button className="flex-1" onClick={() => setCurrentSlide((p) => p + 1)}>
+            <Button size="sm" className="flex-1" onClick={() => setCurrentSlide((p) => p + 1)}>
               Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           )}
@@ -197,11 +204,12 @@ export function WelcomeDialog() {
         {!isLast && (
           <button
             onClick={handleClose}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto pb-4"
           >
             Skip introduction
           </button>
         )}
+        {isLast && <div className="pb-4" />}
       </DialogContent>
     </Dialog>
   );
