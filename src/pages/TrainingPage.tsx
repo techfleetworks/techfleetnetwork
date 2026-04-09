@@ -184,6 +184,9 @@ export default function TrainingPage() {
       locked: !allConnectDiscordDone,
       prerequisiteLabel: "Connect to Discord",
     },
+  ];
+
+  const coreCourses: CourseCard[] = [
     {
       id: "agile-mindset",
       title: "Build an Agile Mindset",
@@ -217,9 +220,6 @@ export default function TrainingPage() {
       locked: !allAgileDone,
       prerequisiteLabel: "Build an Agile Mindset",
     },
-  ];
-
-  const coreCourses: CourseCard[] = [
     {
       id: "discord-learning",
       title: "Discord Learning Series",
