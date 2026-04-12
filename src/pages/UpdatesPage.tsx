@@ -262,7 +262,7 @@ export default function UpdatesPage() {
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
                   style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement.body_html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
                 />
               )}
             </div>

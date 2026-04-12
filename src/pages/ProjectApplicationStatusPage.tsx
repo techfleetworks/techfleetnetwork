@@ -694,7 +694,7 @@ export default function ProjectApplicationStatusPage() {
             {interviewNotification?.body_html ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: interviewNotification.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(interviewNotification.body_html) }}
               />
             ) : (
               <p className="text-muted-foreground text-sm">No invitation details available.</p>
