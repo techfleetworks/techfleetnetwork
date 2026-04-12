@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
+import { sanitizeHtml } from "@/lib/security";
 
 /* ── status display config ─────────────────────────────────── */
 
@@ -694,7 +695,7 @@ export default function ProjectApplicationStatusPage() {
             {interviewNotification?.body_html ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: interviewNotification.body_html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(interviewNotification.body_html) }}
               />
             ) : (
               <p className="text-muted-foreground text-sm">No invitation details available.</p>
