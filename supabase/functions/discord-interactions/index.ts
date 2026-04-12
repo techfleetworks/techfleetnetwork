@@ -12,6 +12,8 @@ const RESPONSE_PONG = 1;
 const RESPONSE_DEFERRED_CHANNEL_MESSAGE = 5;
 
 const MAX_DISCORD_LENGTH = 1950;
+/** LLM10: Max input question length to prevent unbounded consumption */
+const MAX_QUESTION_LENGTH = 2000;
 
 /* ── Fleety system prompt (Discord‑adapted) ─────────────────────── */
 const SYSTEM_PROMPT = `You are Fleety, the official Tech Fleet Assistant — a helpful AI that answers questions exclusively about Tech Fleet, its community, processes, team practices, workshops, handbooks, and onboarding.
@@ -101,9 +103,43 @@ async function loadKnowledgeBase(): Promise<string> {
   return ctx;
 }
 
+/** LLM01: Prompt injection detection for Discord */
+const DISCORD_INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+  /you\s+are\s+now\s+(a|an|the|DAN|jailbroken)/i,
+  /system\s*prompt/i,
+  /\[SYSTEM\]/i,
+  /reveal\s+(your|the)\s+(system|initial)\s+(prompt|instructions?)/i,
+  /bypass\s+(the\s+)?(restrictions?|filters?|safety)/i,
+  /jailbreak/i,
+];
+
+/** LLM02: PII patterns to redact from output */
+const PII_OUTPUT_PATTERNS = [
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi,
+  /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g,
+  /\b\d{3}-\d{2}-\d{4}\b/g,
+];
+
+function sanitizeDiscordOutput(text: string): string {
+  let sanitized = text;
+  for (const pattern of PII_OUTPUT_PATTERNS) {
+    sanitized = sanitized.replace(pattern, "[REDACTED]");
+  }
+  return sanitized;
+}
+
 async function getAIResponse(question: string, knowledgeCtx: string): Promise<string> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  // LLM10: Truncate question to prevent unbounded input
+  const truncatedQuestion = question.slice(0, MAX_QUESTION_LENGTH);
+
+  // LLM01: Log injection attempts
+  if (DISCORD_INJECTION_PATTERNS.some((p) => p.test(truncatedQuestion))) {
+    log.warn("prompt-injection", `Potential injection in Discord command: ${truncatedQuestion.substring(0, 80)}`);
+  }
 
   const response = await fetch(
     "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -117,9 +153,10 @@ async function getAIResponse(question: string, knowledgeCtx: string): Promise<st
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYSTEM_PROMPT + knowledgeCtx },
-          { role: "user", content: question },
+          { role: "user", content: truncatedQuestion },
         ],
         stream: false,
+        max_tokens: 1800, // LLM10: Cap output to fit Discord message limits
       }),
     },
   );
@@ -130,7 +167,9 @@ async function getAIResponse(question: string, knowledgeCtx: string): Promise<st
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
+  const rawOutput = data.choices?.[0]?.message?.content ?? "I couldn't generate a response. Please try again.";
+  // LLM02/LLM05: Sanitize output before returning
+  return sanitizeDiscordOutput(rawOutput);
 }
 
 /** Split content into chunks that fit Discord's message limit, breaking at newlines when possible */
