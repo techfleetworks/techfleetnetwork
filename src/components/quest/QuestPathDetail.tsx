@@ -43,8 +43,6 @@ export function QuestPathDetail({
   onBack,
   allProgress,
   selfReportProgress: parentSelfReport,
-  _completedPathSlugs,
-  _allPaths,
 }: QuestPathDetailProps) {
   const { profile } = useAuth();
   const { data: steps, isLoading } = useQuestSteps(path.id);
