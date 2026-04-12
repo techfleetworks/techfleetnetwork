@@ -37,6 +37,24 @@ export interface UserQuestSelection {
   created_at: string;
 }
 
+/** Pre-parsed path row to typed QuestPath */
+function toQuestPath(p: Record<string, unknown>): QuestPath {
+  return {
+    ...(p as unknown as QuestPath),
+    duration_phases: (p.duration_phases as { label: string; duration: string }[]) ?? [],
+    prerequisites: (p.prerequisites as string[]) ?? [],
+  };
+}
+
+/** Pre-parsed step row to typed QuestPathStep */
+function toQuestPathStep(s: Record<string, unknown>): QuestPathStep {
+  return {
+    ...(s as unknown as QuestPathStep),
+    step_type: s.step_type as QuestPathStep["step_type"],
+    linked_filter: s.linked_filter as Record<string, unknown> | null,
+  };
+}
+
 export const QuestService = {
   async getPaths(): Promise<QuestPath[]> {
     return log.track("getPaths", "Loading all quest paths", {}, async () => {
@@ -48,11 +66,7 @@ export const QuestService = {
         log.error("getPaths", error.message, {}, error);
         throw new Error("Failed to load quest paths");
       }
-      return (data ?? []).map((p) => ({
-        ...p,
-        duration_phases: (p.duration_phases as { label: string; duration: string }[]) ?? [],
-        prerequisites: p.prerequisites ?? [],
-      }));
+      return (data ?? []).map(toQuestPath);
     });
   },
 
@@ -67,11 +81,7 @@ export const QuestService = {
         log.error("getSteps", error.message, { pathId }, error);
         throw new Error("Failed to load path steps");
       }
-      return (data ?? []).map((s) => ({
-        ...s,
-        step_type: s.step_type as QuestPathStep["step_type"],
-        linked_filter: s.linked_filter as Record<string, unknown> | null,
-      }));
+      return (data ?? []).map(toQuestPathStep);
     });
   },
 
@@ -85,11 +95,7 @@ export const QuestService = {
         log.error("getAllSteps", error.message, {}, error);
         throw new Error("Failed to load all steps");
       }
-      return (data ?? []).map((s) => ({
-        ...s,
-        step_type: s.step_type as QuestPathStep["step_type"],
-        linked_filter: s.linked_filter as Record<string, unknown> | null,
-      }));
+      return (data ?? []).map(toQuestPathStep);
     });
   },
 
@@ -104,6 +110,25 @@ export const QuestService = {
         throw new Error("Failed to load quest selections");
       }
       return data ?? [];
+    });
+  },
+
+  /** Batch-add multiple paths in a single DB round-trip */
+  async addPaths(userId: string, pathIds: string[]): Promise<void> {
+    if (pathIds.length === 0) return;
+    return log.track("addPaths", `Adding ${pathIds.length} paths`, { userId, count: pathIds.length }, async () => {
+      const rows = pathIds.map((pathId) => ({
+        user_id: userId,
+        path_id: pathId,
+        started_at: new Date().toISOString(),
+      }));
+      const { error } = await supabase
+        .from("user_quest_selections")
+        .upsert(rows, { onConflict: "user_id,path_id", ignoreDuplicates: true });
+      if (error) {
+        log.error("addPaths", error.message, { userId }, error);
+        throw new Error("Failed to add paths");
+      }
     });
   },
 
@@ -136,13 +161,11 @@ export const QuestService = {
   },
 
   async completeSelfReportStep(userId: string, stepId: string, completed: boolean): Promise<void> {
-    // Self-report steps are stored as journey_progress with phase = 'quest_self_report'
-    // We use the step UUID as the task_id
     return log.track("completeSelfReportStep", `${completed ? "Completing" : "Uncompleting"} step ${stepId}`, { userId, stepId }, async () => {
       const { error } = await supabase.from("journey_progress").upsert(
         {
           user_id: userId,
-          phase: "first_steps" as const, // Using first_steps as fallback since quest phases aren't in enum yet
+          phase: "first_steps" as const,
           task_id: `quest-step-${stepId}`,
           completed,
           completed_at: completed ? new Date().toISOString() : null,
@@ -171,6 +194,30 @@ export const QuestService = {
       for (const row of data ?? []) {
         const stepId = row.task_id.replace("quest-step-", "");
         map.set(stepId, row.completed);
+      }
+      return map;
+    });
+  },
+
+  /**
+   * Batch-fetch journey progress for ALL phases in a single query.
+   * Replaces 7 separate phase-specific queries, reducing DB hits by ~85%.
+   */
+  async getAllJourneyProgress(userId: string): Promise<Map<string, { task_id: string; completed: boolean }[]>> {
+    return log.track("getAllJourneyProgress", "Loading all journey progress", { userId }, async () => {
+      const { data, error } = await supabase
+        .from("journey_progress")
+        .select("phase, task_id, completed")
+        .eq("user_id", userId);
+      if (error) {
+        log.error("getAllJourneyProgress", error.message, { userId }, error);
+        throw new Error("Failed to load journey progress");
+      }
+      const map = new Map<string, { task_id: string; completed: boolean }[]>();
+      for (const row of data ?? []) {
+        const phase = row.phase as string;
+        if (!map.has(phase)) map.set(phase, []);
+        map.get(phase)!.push({ task_id: row.task_id, completed: row.completed });
       }
       return map;
     });
