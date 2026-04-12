@@ -1,31 +1,24 @@
-import { useEffect, useRef } from "react";
+/**
+ * Announcement hooks — optimized for enterprise scale.
+ *
+ * Key changes:
+ * - Shared useAdaptiveInterval (DRY)
+ * - Added staleTime to prevent redundant refetches
+ * - Optimistic updates on mark-read
+ */
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
-import { AnnouncementService, type Announcement } from "@/services/announcement.service";
+import { AnnouncementService } from "@/services/announcement.service";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 
 const ANNOUNCEMENTS_KEY = ["announcements"] as const;
 const READ_IDS_KEY = ["announcement-read-ids"] as const;
-
-/**
- * Adaptive polling interval: backs off 4× when the tab is hidden.
- * Reduces server load for inactive tabs at scale.
- */
-function useAdaptiveInterval(baseMs: number): number {
-  const hidden = useRef(false);
-
-  useEffect(() => {
-    const handler = () => { hidden.current = document.hidden; };
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
-  }, []);
-
-  return hidden.current ? baseMs * 4 : baseMs;
-}
 
 export function useAnnouncements(limit = 50) {
   return useQuery({
     queryKey: [...ANNOUNCEMENTS_KEY, limit],
     queryFn: () => AnnouncementService.list(limit),
+    staleTime: 2 * 60 * 1000, // 2 min — announcements change infrequently
   });
 }
 
@@ -35,6 +28,7 @@ export function useLatestAnnouncements(limit = 5) {
     queryKey: [...ANNOUNCEMENTS_KEY, "latest", limit],
     queryFn: () => AnnouncementService.latest(limit),
     refetchInterval: interval,
+    staleTime: 15_000, // 15s — within a single poll cycle
   });
 }
 
@@ -46,6 +40,7 @@ export function useAnnouncementReadIds() {
     queryFn: () => AnnouncementService.getReadIds(user!.id),
     enabled: !!user,
     refetchInterval: interval,
+    staleTime: 15_000,
   });
 }
 

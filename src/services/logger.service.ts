@@ -40,6 +40,34 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 const MIN_LEVEL: LogLevel =
   (import.meta.env.VITE_LOG_LEVEL as LogLevel) || "debug";
 
+// Log throttling: max N logs per key per window to prevent console flooding at scale
+const THROTTLE_WINDOW_MS = 10_000; // 10 seconds
+const THROTTLE_MAX_PER_KEY = 5;
+const throttleCounts = new Map<string, { count: number; windowStart: number }>();
+
+function isThrottled(key: string): boolean {
+  const now = Date.now();
+  const entry = throttleCounts.get(key);
+  if (!entry || now - entry.windowStart > THROTTLE_WINDOW_MS) {
+    throttleCounts.set(key, { count: 1, windowStart: now });
+    // Prevent unbounded map growth — prune stale entries periodically
+    if (throttleCounts.size > 200) {
+      for (const [k, v] of throttleCounts) {
+        if (now - v.windowStart > THROTTLE_WINDOW_MS) throttleCounts.delete(k);
+      }
+    }
+    return false;
+  }
+  entry.count++;
+  if (entry.count > THROTTLE_MAX_PER_KEY) {
+    if (entry.count === THROTTLE_MAX_PER_KEY + 1) {
+      console.warn(`[LOG THROTTLED] "${key}" — suppressing repeated logs for ${THROTTLE_WINDOW_MS / 1000}s`);
+    }
+    return true;
+  }
+  return false;
+}
+
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[MIN_LEVEL];
 }
@@ -59,6 +87,10 @@ function formatError(err: unknown): LogEntry["error"] | undefined {
 
 function emit(entry: LogEntry) {
   if (!shouldLog(entry.level)) return;
+
+  // Throttle repeated logs from same service+action
+  const throttleKey = `${entry.service}:${entry.action}`;
+  if (isThrottled(throttleKey)) return;
 
   const prefix = `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.service}] [${entry.action}]`;
 

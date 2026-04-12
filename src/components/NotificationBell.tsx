@@ -67,7 +67,7 @@ export function NotificationBell() {
 
   // In-app notifications
   const { data: notifications = [] } = useNotifications(20);
-  const { data: unreadNotifCount = 0 } = useUnreadNotificationCount();
+  const unreadNotifCount = useUnreadNotificationCount();
   const markNotifRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 

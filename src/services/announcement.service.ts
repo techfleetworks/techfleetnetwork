@@ -19,7 +19,7 @@ export const AnnouncementService = {
   async list(limit = 50): Promise<Announcement[]> {
     const { data, error } = await supabase
       .from("announcements")
-      .select("*")
+      .select("id, title, body_html, video_url, audio_url, created_by, created_at, updated_at")
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) {
