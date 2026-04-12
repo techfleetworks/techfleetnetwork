@@ -1,87 +1,88 @@
 
 
-# Updated BDD Scenarios Document with Timeframe Data
+# Updated BDD Scenarios: Step Completion Model
 
-## What Changed
-The updated CSV adds **Estimated Timeframe to Complete** with phase breakdowns for all 8 paths (plus Measure Practices kept from previous version = 9 total). It also clarifies the "Learn and Practice Skills" and "Client-Facing Project Teamwork" paths with full step definitions.
+## Problem
+Path steps need a consistent completion model. Some steps are simple self-report actions ("Obtain Observer role in Discord"), but others are entire multi-lesson courses ("Finish the Observer Handbook course" = 7 lessons). We need to handle both without overwhelming users.
 
-## Plan
+## Design Decisions
 
-### 1. Generate updated document at `/mnt/documents/quest-journey-bdd-scenarios-v3.md`
+**Completion model:** Every step requires the user to explicitly confirm "I am complete" — matching the existing course lesson pattern (the "Mark as Complete" button at the bottom of the lesson dialog).
 
-**Updates to existing scenarios:**
-- Add timeframe data to the path seed/reference table (all 9 paths with `estimated_duration` summary and `duration_breakdown` phases)
-- Update path card mockups to show timeframe inside the detail view (not on card badge per your preference)
-- Update "Learn and Practice Skills" path steps to match the new CSV (Research → Register → Submit homework → Get certification)
-- Update "Client-Facing Project Teamwork" path with 16-week breakdown and its 3 prerequisites
-- Add "Measure Your Team Practices" back as a path (kept from previous version)
+**Course-type steps — the key UX challenge:** When a step IS a course (e.g., "Finish the Observer Handbook"), the step card in the path detail view should:
+1. Show an inline progress indicator (e.g., "5/7 lessons") so users see progress without leaving the path view
+2. Provide a "Go to Course" link that navigates to the course page
+3. Auto-complete the step when all lessons in the linked course are done (no need to manually confirm — the course completion IS the confirmation)
+4. Show "Auto-verified from course progress" text so users understand why it completed
+5. NOT require double-confirmation (completing all lessons + separately marking the step done)
 
-**New BDD scenarios to add:**
+**Simple steps:** Show the same "Mark as Complete" button pattern used in courses, but within the path detail view instead of a lesson dialog.
 
-| ID | Scenario | Section |
-|----|----------|---------|
-| QP-TIME-001 | Path detail view shows estimated timeframe summary | Timeframe Display |
-| QP-TIME-002 | Path detail view shows phase breakdown (e.g., "1 week to start, 2 weeks to observe") | Timeframe Display |
-| QP-TIME-003 | Timeframe adjusts language for variable durations ("5 to 8 weeks") | Timeframe Display |
-| QP-TIME-004 | Intake wizard shows timeframe alongside recommended paths | Intake |
-| QP-TIME-005 | Total estimated time shown for full recommended plan | Intake |
-| QP-LEARN-001 | Learn and Practice Skills path shows masterclass research step | Path Steps |
-| QP-LEARN-002 | Certification step auto-completes from class_certifications table | Path Steps |
-| QP-CLIENT-001 | Client-Facing Project Teamwork path requires 3 prerequisites completed | Prerequisites |
-| QP-CLIENT-002 | Client path shows 16-week timeline with 4 phases | Timeframe |
-| QP-VOL-001 | Volunteer Team path requires 3 prerequisites | Prerequisites |
-| QP-VOL-002 | Volunteer path shows 13-week timeline | Timeframe |
+## Step Type Classification
 
-**Updated path reference table (9 paths):**
+| Type | Example | Completion Method |
+|------|---------|-------------------|
+| **Course** | "Finish the Observer Handbook" | Auto-completes when all course lessons are done |
+| **Self-report** | "Post reflection in Discord" | User clicks "I have completed this step" |
+| **System-verified** | "Get your certification" | Auto-completes from `class_certifications` table |
+| **Application** | "Complete the General Application" | Auto-completes from `general_applications` table |
 
-```
-Path                          | Timeframe    | Breakdown                              | Level
-------------------------------|-------------|----------------------------------------|----------
-Onboard to the Community      | 1 day       | 1 day to onboard                       | Beginner
-Plan Your Training Journey    | 2 weeks     | 2 weeks for growth roadmap             | Beginner
-Observe Teams                 | 4 weeks     | 1w start + 2w observe + 1w reflect     | Beginner
-Learn and Practice Skills     | 5-8 weeks   | 1w start + 4-8w class                  | Beginner
-Become a Service Leader       | 3 weeks     | 1w start + 2w class                    | Beginner
-Measure Your Team Practices   | 2 weeks     | (from previous version)                | Beginner
-Build an Agile Mindset        | 5 weeks     | 1w start + 4w practice                 | Beginner
-Client-Facing Project Work    | 16 weeks    | 1w start + 4w wait + 3w onboard + 9w  | Advanced
-Join a Volunteer Team         | 13 weeks    | 1w start + 12w complete                | Advanced
-```
+## Changes to the v3 Document
 
-**Updated ASCII mockup** for path detail view showing timeframe:
+### New scenarios to add (~8):
 
-```
-+--------------------------------------------------+
-| <- Back to My Journey                            |
-|                                                  |
-| [icon] Observe Teams                             |
-| Beginner Path                                    |
-|                                                  |
-| Estimated Time: ~4 weeks                         |
-| +----------------------------------------------+ |
-| | 1 week to start | 2 weeks to observe |       | |
-| | 1 week to reflect                    |       | |
-| +----------------------------------------------+ |
-|                                                  |
-| Progress: 3/7 steps (43%)                        |
-| [====================............] 43%           |
-|                                                  |
-| Steps:                                           |
-| [x] Finish the Observer Handbook course          |
-| [x] Finish the Discord Learning Series           |
-| [ ] Sponsor a project to follow      <- Current |
-| [ ] Obtain Observer role in Discord              |
-| [ ] Join Observer meetings (2x/week, 2 weeks)   |
-| [ ] Post reflection in Discord                  |
-| [ ] Answer general application question          |
-+--------------------------------------------------+
+- **QP-STEP-001**: Self-report step shows "I have completed this step" button in path detail
+- **QP-STEP-002**: Confirming self-report shows confirmation dialog ("Are you sure?") before marking done
+- **QP-STEP-003**: Completed self-report step can be toggled back to incomplete (matches course pattern)
+- **QP-STEP-004**: Course-type step shows inline progress bar with lesson count
+- **QP-STEP-005**: Course-type step shows "Go to Course" link that navigates to the course page
+- **QP-STEP-006**: Course-type step auto-completes when all linked lessons are marked done
+- **QP-STEP-007**: Course-type step cannot be manually unchecked (must uncomplete lessons in the course)
+- **QP-STEP-008**: System-verified step shows data source and sync date, cannot be manually toggled
+
+### Updated mockup for path detail (showing mixed step types):
+
+```text
+STEPS
++---------------------------------------------------------------+
+|  [x]  1. Finish the "Observer Handbook" course     [COURSE]   |
+|       7/7 lessons complete                                    |
+|       Auto-verified from course progress                      |
++---------------------------------------------------------------+
+|  [x]  2. Finish the "Discord Learning Series"     [COURSE]   |
+|       20/20 lessons complete                                  |
+|       Auto-verified from course progress                      |
++---------------------------------------------------------------+
+|  [ ]  3. Sponsor a project to follow               <- YOU    |
+|       Choose a project from the project list                  |
+|       [I have completed this step]                            |
++---------------------------------------------------------------+
+|  ( )  4. Obtain Observer role in Discord                      |
+|       Available after step 3                                  |
++---------------------------------------------------------------+
+
+--- Course-type step (in progress, not yet auto-completed): ---
++---------------------------------------------------------------+
+|  [ ]  1. Finish "Build an Agile Mindset"           [COURSE]  |
+|       ============............  12/20 lessons                 |
+|       [Go to Course ->]                                       |
++---------------------------------------------------------------+
 ```
 
-### 2. Deliverable
-A single Markdown file with all ~52+ BDD scenarios (41 existing + 11 new timeframe/path scenarios), updated mockups, and the complete 9-path reference table with timeframe data.
+### What gets updated in the document
+1. Add a "Step Completion Model" section explaining the 4 step types
+2. Add 8 new QP-STEP scenarios (total becomes ~61)
+3. Update all path detail mockups to show step type badges and appropriate completion UIs
+4. Update QP-PROG-005 (self-reported step) to use "I have completed this step" language
+5. Update QP-PROG-006 (auto-completed) to reference course-type step behavior
+6. Annotate each path's steps table with the step type
 
-### Technical Details
-- Output: `/mnt/documents/quest-journey-bdd-scenarios-v3.md`
-- No code changes — requirements document only
-- Timeframe stored as two fields in the future `quest_paths` table: `estimated_duration` (text, e.g., "4 weeks") and `duration_phases` (jsonb array, e.g., `[{"label": "Start", "duration": "1 week"}, ...]`)
+## Technical Notes
+- `quest_path_steps` table needs a `step_type` enum: `course`, `self_report`, `system_verified`, `application`
+- Course-type steps need a `linked_phase` column referencing the course's journey phase
+- A database trigger or edge function watches `journey_progress` completions and auto-marks course-type path steps as done
+- Self-report steps use the same `journey_progress` upsert pattern as existing lessons
+
+## Deliverable
+Updated `/mnt/documents/quest-journey-bdd-scenarios-v3.md` with all changes above.
 
