@@ -13,6 +13,12 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
+/**
+ * OWASP LLM02/ASVS V13.2: Use session JWT for API auth, never static keys.
+ * Max input length per OWASP LLM10 unbounded consumption prevention.
+ */
+const MAX_INPUT_LENGTH = 4000;
+
 async function streamChat({
   messages,
   onDelta,
@@ -22,13 +28,24 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
+  // ASVS V13.2.1: Use session-bound JWT, not static publishable key
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Authentication required. Please sign in again.");
+
+  // LLM10: Truncate overly long messages to prevent unbounded consumption
+  const sanitizedMessages = messages.map((m) => ({
+    ...m,
+    content: m.content.slice(0, MAX_INPUT_LENGTH),
+  }));
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages: sanitizedMessages }),
   });
 
   if (!resp.ok) {

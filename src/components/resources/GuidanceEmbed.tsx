@@ -10,6 +10,8 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
+const MAX_INPUT_LENGTH = 4000;
+
 async function streamChat({
   messages,
   onDelta,
@@ -19,13 +21,28 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
+  // ASVS V13.2.1: Use session-bound JWT, not static publishable key
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabaseClient = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  );
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Authentication required. Please sign in again.");
+
+  const sanitizedMessages = messages.map((m) => ({
+    ...m,
+    content: m.content.slice(0, MAX_INPUT_LENGTH),
+  }));
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages: sanitizedMessages }),
   });
 
   if (!resp.ok) {
