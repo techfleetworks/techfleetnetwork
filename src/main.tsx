@@ -2,22 +2,17 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { installGlobalErrorReporter } from "@/services/error-reporter.service";
-import { registerAppServiceWorker } from "@/services/service-worker.service";
 
-// Suppress browser-surfaced SW fetch errors from appearing in console —
-// the service-worker.service recovery logic handles these automatically.
-window.addEventListener("unhandledrejection", (event) => {
-  const msg = String(event.reason?.message ?? event.reason ?? "");
-  if (
-    msg.includes("Failed to update a ServiceWorker") ||
-    msg.includes("An unknown error occurred when fetching the script") ||
-    msg.includes("Failed to register a ServiceWorker")
-  ) {
-    event.preventDefault();
+// Unregister any existing service workers and clear caches so users always get fresh content
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((r) => r.unregister());
+  });
+  if ("caches" in window) {
+    caches.keys().then((names) => names.forEach((name) => caches.delete(name)));
   }
-});
+}
 
 installGlobalErrorReporter();
-registerAppServiceWorker();
 
 createRoot(document.getElementById("root")!).render(<App />);
