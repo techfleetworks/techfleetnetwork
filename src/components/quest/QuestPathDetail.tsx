@@ -8,7 +8,6 @@ import {
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuestSteps, useSelfReportProgress, useCompleteSelfReportStep, useRemoveQuestPath } from "@/hooks/use-quest";
-import { useJourneyProgress } from "@/hooks/use-journey-progress";
 import { isStepCompleted } from "./QuestRoadmap";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -17,7 +16,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { QuestPath, QuestPathStep } from "@/services/quest.service";
+import type { QuestPath } from "@/services/quest.service";
 
 // Course phase to route mapping
 const COURSE_ROUTES: Record<string, string> = {
@@ -44,10 +43,10 @@ export function QuestPathDetail({
   onBack,
   allProgress,
   selfReportProgress: parentSelfReport,
-  completedPathSlugs,
-  allPaths,
+  _completedPathSlugs,
+  _allPaths,
 }: QuestPathDetailProps) {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const { data: steps, isLoading } = useQuestSteps(path.id);
   const { data: freshSelfReport } = useSelfReportProgress();
   const completeSelfReport = useCompleteSelfReportStep();
