@@ -184,13 +184,17 @@ export async function checkCache(normalizedKey: string): Promise<string | null> 
   }
 }
 
+/**
+ * Write to exploration cache via edge function (service_role only).
+ * Client-side writes are blocked by RLS for security (cache-poisoning prevention).
+ */
 export async function writeCache(normalizedKey: string, markdown: string): Promise<void> {
   try {
-    await supabase.from("exploration_cache").upsert(
-      { query_normalized: normalizedKey, response_markdown: markdown },
-      { onConflict: "query_normalized" },
-    );
-    log.debug("writeCache", "Cache written", { normalizedKey });
+    const { error } = await supabase.functions.invoke("write-exploration-cache", {
+      body: { query_normalized: normalizedKey, response_markdown: markdown },
+    });
+    if (error) throw error;
+    log.debug("writeCache", "Cache written via edge function", { normalizedKey });
   } catch (err) {
     log.warn("writeCache", "Failed to write cache (non-blocking)", {}, err);
   }
