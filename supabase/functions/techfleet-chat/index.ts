@@ -89,16 +89,37 @@ function hasPromptInjection(content: string): boolean {
 }
 
 /**
- * OWASP AI: Output sanitization.
- * Strips potentially dangerous content from AI responses before streaming.
+ * OWASP LLM02/LLM05: Output sanitization.
+ * Strips system prompt leakage, dangerous content, and PII patterns.
  */
+const CANARY_PHRASE = "FLEETY-SYSTEM-CANARY-7x9k2";
+
+/** Common PII patterns to redact from AI output (LLM02: Sensitive Info Disclosure) */
+const PII_PATTERNS = [
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi,  // emails
+  /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g,                       // US phone numbers
+  /\b\d{3}-\d{2}-\d{4}\b/g,                               // SSN
+  /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,         // credit cards
+];
+
 function sanitizeAIOutput(text: string): string {
-  // Strip any accidentally leaked system prompt markers
-  return text
+  let sanitized = text
+    // LLM07: Strip system prompt markers / canary
     .replace(/\<\|im_start\|[^]*?\<\|im_end\|>/g, "")
     .replace(/\[SYSTEM\][^]*/gi, "")
+    .replace(new RegExp(CANARY_PHRASE, "g"), "[REDACTED]")
+    // LLM05: Strip dangerous HTML/JS from output
     .replace(/<script[\s>][^]*?<\/script>/gi, "")
-    .replace(/javascript\s*:/gi, "");
+    .replace(/javascript\s*:/gi, "")
+    .replace(/<iframe[\s>][^]*?<\/iframe>/gi, "")
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "");
+
+  // LLM02: Redact PII patterns from AI output
+  for (const pattern of PII_PATTERNS) {
+    sanitized = sanitized.replace(pattern, "[REDACTED]");
+  }
+
+  return sanitized;
 }
 
 /**
