@@ -47,7 +47,7 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
   const { data: volunteerProgress } = useJourneyProgress(user?.id, "volunteer");
 
   const allProgress = useMemo(() => {
-    const map = new Map<string, { completed: number; total: number }>();
+    const map: Map<string, { completed: number; total: number }> = new Map();
     const progressArrays: { phase: string; data: { task_id: string; completed: boolean }[] | undefined }[] = [
       { phase: "first_steps", data: firstStepsProgress },
       { phase: "second_steps", data: secondStepsProgress },
@@ -68,9 +68,12 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
 
   // Compute step completion for each path
   const pathProgress = useMemo(() => {
-    if (!paths || !allSteps || !selections) return new Map<string, { completed: number; total: number; nextStep?: QuestPathStep }>();
+    if (!paths || !allSteps || !selections) {
+      const empty: Map<string, { completed: number; total: number; nextStep?: QuestPathStep }> = new Map();
+      return empty;
+    }
     
-    const result = new Map<string, { completed: number; total: number; nextStep?: QuestPathStep }>();
+    const result: Map<string, { completed: number; total: number; nextStep?: QuestPathStep }> = new Map();
 
     for (const path of paths) {
       const steps = allSteps.filter((s) => s.path_id === path.id);
