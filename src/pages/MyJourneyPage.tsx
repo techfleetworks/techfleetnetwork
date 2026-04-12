@@ -1,27 +1,11 @@
-import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
 import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 import { MyProjectsTab } from "@/components/MyProjectsTab";
 import { TrainingGoalsTab } from "@/components/TrainingGoalsTab";
-import { QuestIntakeWizard } from "@/components/quest/QuestIntakeWizard";
-import { QuestRoadmap } from "@/components/quest/QuestRoadmap";
-import { useUserQuestSelections } from "@/hooks/use-quest";
+import { QuestOverview } from "@/components/quest/QuestOverview";
 
 export default function MyJourneyPage() {
-  const { data: selections, isLoading } = useUserQuestSelections();
-  const [showIntake, setShowIntake] = useState(false);
-
-  const handleNeedIntake = useCallback(() => {
-    setShowIntake(true);
-  }, []);
-
-  const handleIntakeComplete = useCallback(() => {
-    setShowIntake(false);
-  }, []);
-
-  const hasSelections = !isLoading && selections && selections.length > 0;
-
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
@@ -41,15 +25,7 @@ export default function MyJourneyPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : showIntake || !hasSelections ? (
-            <QuestIntakeWizard onComplete={handleIntakeComplete} />
-          ) : (
-            <QuestRoadmap onNeedIntake={handleNeedIntake} />
-          )}
+          <QuestOverview />
         </TabsContent>
 
         <TabsContent value="training-goals">

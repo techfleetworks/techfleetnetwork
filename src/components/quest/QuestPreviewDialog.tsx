@@ -1,16 +1,12 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  Clock, CheckCircle2, Circle, Lock, BookOpen, Shield, Zap,
-} from "lucide-react";
+import { Clock, Lock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { useQuestPaths, useQuestSteps, useAddQuestPath } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { QuestPath } from "@/services/quest.service";
 
 const STEP_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   course: { label: "COURSE", color: "bg-primary/10 text-primary" },
