@@ -543,3 +543,54 @@ export function isExpectedContentType(
   if (!actual) return false;
   return actual.toLowerCase().startsWith(expected.toLowerCase());
 }
+
+// ─── OWASP LLM Top 10: Client-Side AI Security ─────────────────────
+
+/**
+ * LLM02: Detect PII patterns in AI output for client-side redaction.
+ * Use as a defense-in-depth layer — server-side filtering is primary.
+ */
+const CLIENT_PII_PATTERNS = [
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi,  // emails
+  /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g,                       // US phone numbers
+  /\b\d{3}-\d{2}-\d{4}\b/g,                               // SSN
+  /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,         // credit cards
+];
+
+export function redactPIIFromOutput(text: string): string {
+  let redacted = text;
+  for (const pattern of CLIENT_PII_PATTERNS) {
+    redacted = redacted.replace(pattern, "[REDACTED]");
+  }
+  return redacted;
+}
+
+/**
+ * LLM05: Sanitize AI-generated markdown/HTML before rendering.
+ * Prevents XSS from AI output that may contain injected scripts.
+ */
+export function sanitizeAIMarkdown(markdown: string): string {
+  return markdown
+    .replace(/<script[\s>][^]*?<\/script>/gi, "")
+    .replace(/<iframe[\s>][^]*?<\/iframe>/gi, "")
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .replace(/vbscript\s*:/gi, "")
+    .replace(/data\s*:\s*text\/html/gi, "");
+}
+
+/**
+ * LLM01: Detect prompt injection patterns in user input (client-side).
+ * Use as pre-flight check before sending to AI endpoint.
+ */
+export function hasPromptInjectionPattern(input: string): boolean {
+  const patterns = [
+    /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+    /you\s+are\s+now\s+(a|an|the|DAN|jailbroken)/i,
+    /system\s*prompt/i,
+    /\[SYSTEM\]/i,
+    /reveal\s+(your|the)\s+(system|initial)\s+(prompt|instructions?)/i,
+    /bypass\s+(the\s+)?(restrictions?|filters?|safety)/i,
+  ];
+  return patterns.some((p) => p.test(input));
+}
