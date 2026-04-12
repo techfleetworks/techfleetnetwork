@@ -15,13 +15,14 @@ import { DosTypewriter } from "./DosTypewriter";
 import { toast } from "sonner";
 import type { QuestPath, QuestPathStep } from "@/services/quest.service";
 
-const FEATURED_SLUGS = ["client-projects", "learn-skills", "volunteer"] as const;
-
-const QUEST_LABELS: Record<string, string> = {
-  "client-projects": "GET TEAM EXPERIENCE",
-  "learn-skills": "DEVELOP SKILLS",
-  volunteer: "VOLUNTEER",
-};
+/* ── Static button definitions matching the Figma design ── */
+const QUEST_BUTTONS = [
+  { slug: "plan-journey", label: "PLAN JOURNEY" },
+  { slug: "explore-possibilities", label: "EXPLORE POSSIBILITIES" },
+  { slug: "observe-teams", label: "OBSERVE TEAMS" },
+  { slug: "client-projects", label: "GET TEAM EXPERIENCE" },
+  { slug: "learn-skills", label: "DEVELOP SKILLS" },
+] as const;
 
 const STEP_TYPE_LABELS: Record<string, string> = {
   course: "COURSE",
@@ -29,6 +30,14 @@ const STEP_TYPE_LABELS: Record<string, string> = {
   system_verified: "VERIFIED",
   application: "APPLICATION",
 };
+
+/*
+ * Button Y positions within the right panel (577×990 local coords),
+ * derived from control-center.svg element positions.
+ *   button rect top = (svgY - panelTop) / panelHeight
+ *   panelTop = 329, panelHeight = 990
+ */
+const BUTTON_TOPS = [18.28, 31.31, 44.44, 57.58, 70.71]; // %
 
 type ScreenView = "home" | "quest-detail";
 
@@ -73,20 +82,23 @@ export function ControlCenterOverview() {
     return result;
   }, [paths, allSteps, allProgress, selfReportProgress, profile]);
 
-  const featuredPaths = useMemo(() => {
-    if (!paths) return [];
-    return FEATURED_SLUGS.map((slug) => paths.find((p) => p.slug === slug)).filter(
-      (p): p is QuestPath => !!p
-    );
-  }, [paths]);
-
   const subscribedIds = useMemo(() => {
     if (!selections) return new Set<string>();
     return new Set(selections.map((s) => s.path_id));
   }, [selections]);
 
+  /** Resolve slug → QuestPath (if it exists in DB) */
+  const pathBySlug = useMemo(() => {
+    const map = new Map<string, QuestPath>();
+    if (!paths) return map;
+    for (const p of paths) map.set(p.slug, p);
+    return map;
+  }, [paths]);
+
   const handleQuestClick = useCallback(
-    (path: QuestPath) => {
+    (slug: string) => {
+      const path = pathBySlug.get(slug);
+      if (!path) return;
       if (subscribedIds.has(path.id)) {
         navigate(`/my-journey/quest/${path.id}`);
       } else {
@@ -94,7 +106,7 @@ export function ControlCenterOverview() {
         setScreenView("quest-detail");
       }
     },
-    [subscribedIds, navigate]
+    [pathBySlug, subscribedIds, navigate]
   );
 
   const handleReturnHome = useCallback(() => {
@@ -112,9 +124,8 @@ export function ControlCenterOverview() {
 
   return (
     <div className="w-full max-w-6xl mx-auto" role="region" aria-label="Quest Control Center">
-      {/* Full Control Center layout */}
+      {/* Full Control Center layout — background SVG */}
       <div className="relative w-full" style={{ aspectRatio: "2826 / 2194" }}>
-        {/* Background SVG — the full control center frame */}
         <img
           src="/images/control-center.svg"
           alt=""
@@ -123,11 +134,10 @@ export function ControlCenterOverview() {
           draggable={false}
         />
 
-        {/* ── Screen content area ── positioned over the green CRT region */}
+        {/* ── Screen content area — over the CRT green region ── */}
         <div
           className="absolute overflow-hidden"
           style={{
-            /* Green screen bounds within 2826×2194: ~(370,700) to (1790,1700) */
             top: "33%",
             left: "14.5%",
             width: "50%",
@@ -136,7 +146,6 @@ export function ControlCenterOverview() {
           }}
         >
           {screenView === "home" ? (
-            /* ── Landscape on load ── */
             <div className="w-full h-full relative">
               <img
                 src="/images/landscape.svg"
@@ -144,7 +153,6 @@ export function ControlCenterOverview() {
                 className="w-full h-full object-cover"
                 draggable={false}
               />
-              {/* Scanline overlay for CRT effect */}
               <div
                 className="absolute inset-0 pointer-events-none"
                 aria-hidden="true"
@@ -155,14 +163,12 @@ export function ControlCenterOverview() {
               />
             </div>
           ) : selectedQuestId ? (
-            /* ── DOS quest detail view ── */
             <div
               className="w-full h-full relative"
               style={{
                 background: "radial-gradient(ellipse at center, #024a02 0%, #013201 50%, #001a00 100%)",
               }}
             >
-              {/* Scanline overlay */}
               <div
                 className="absolute inset-0 pointer-events-none z-10"
                 aria-hidden="true"
@@ -171,7 +177,6 @@ export function ControlCenterOverview() {
                     "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)",
                 }}
               />
-              {/* Screen glow */}
               <div
                 className="absolute inset-0 pointer-events-none z-10"
                 aria-hidden="true"
@@ -179,97 +184,131 @@ export function ControlCenterOverview() {
                   background: "radial-gradient(ellipse at center, rgba(1,255,133,0.04) 0%, transparent 70%)",
                 }}
               />
-              {/* Scrollable terminal content */}
               <div className="relative z-20 w-full h-full overflow-y-auto dos-scrollbar p-[6%]">
-                <QuestDetailScreen
-                  pathId={selectedQuestId}
-                  onReturn={handleReturnHome}
-                />
+                <QuestDetailScreen pathId={selectedQuestId} onReturn={handleReturnHome} />
               </div>
             </div>
           ) : null}
         </div>
 
-        {/* ── Right panel quest buttons ── positioned over the controls panel */}
+        {/* ── Right panel — built from SVG parts ── */}
         <div
-          className="absolute flex flex-col items-center justify-center gap-[1.5%]"
+          className="absolute"
           style={{
-            /* Controls panel within 2826×2194: ~(2210,430) to (2730,1270) */
-            top: "22%",
-            left: "79.5%",
-            width: "18%",
-            height: "56%",
+            /* Panel bounds in 2826×2194: x=2179 y=329, w=577 h=990 */
+            left: "77.1%",
+            top: "15%",
+            width: "20.42%",
+            height: "45.12%",
           }}
         >
-          <h3
-            className="font-bold tracking-[0.15em] uppercase mb-[2%] select-none"
+          {/* Panel background */}
+          <img
+            src="/images/controls-bg.svg"
+            alt=""
+            className="absolute inset-0 w-full h-full pointer-events-none select-none"
+            aria-hidden="true"
+            draggable={false}
+          />
+
+          {/* Top screws — centered at y≈6.9% */}
+          <div
+            className="absolute pointer-events-none select-none"
+            aria-hidden="true"
             style={{
-              color: "#100D26",
-              fontSize: "clamp(0.5rem, 1.2vw, 1rem)",
+              top: "3.3%",
+              left: "4.3%",
+              width: "91.3%", /* 532/583 */
+              height: "7.5%", /* 74/990 */
             }}
           >
-            QUESTS
-          </h3>
+            <img src="/images/screws.svg" alt="" className="w-full h-full" draggable={false} />
+          </div>
 
-          {featuredPaths.map((path) => {
-            const isOn = subscribedIds.has(path.id);
-            const progress = pathProgress.get(path.id);
-            const label = QUEST_LABELS[path.slug] ?? path.title.toUpperCase();
+          {/* "QUESTS" title */}
+          <div
+            className="absolute w-full flex justify-center"
+            style={{ top: "12%", left: 0, right: 0 }}
+          >
+            <span
+              className="font-bold tracking-[0.2em] uppercase select-none"
+              style={{
+                color: "#100D26",
+                fontSize: "clamp(0.5rem, 1.2vw, 1.1rem)",
+              }}
+            >
+              QUESTS
+            </span>
+          </div>
+
+          {/* Quest buttons */}
+          {QUEST_BUTTONS.map((btn, i) => {
+            const path = pathBySlug.get(btn.slug);
+            const isOn = path ? subscribedIds.has(path.id) : false;
+            const progress = path ? pathProgress.get(path.id) : undefined;
             const pct = progress ? Math.round((progress.completed / Math.max(progress.total, 1)) * 100) : 0;
+            const isAvailable = !!path;
 
             return (
               <button
-                key={path.id}
-                onClick={() => handleQuestClick(path)}
-                className="w-[85%] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm transition-transform active:scale-[0.97]"
-                aria-label={`${label} — ${isOn ? `active, ${pct}% complete` : "not started"}`}
+                key={btn.slug}
+                onClick={() => handleQuestClick(btn.slug)}
+                disabled={!isAvailable}
+                className="absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-transform active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  left: "12.65%",
+                  width: "75.4%",
+                  top: `${BUTTON_TOPS[i]}%`,
+                  height: "10%",
+                }}
+                aria-label={`${btn.label} — ${isOn ? `active, ${pct}% complete` : isAvailable ? "not started" : "coming soon"}`}
               >
-                <div className="relative">
-                  <div
-                    className="relative px-[8%] py-[12%] flex items-center justify-center rounded-sm border transition-shadow"
-                    style={
-                      isOn
-                        ? {
-                            background: "#01FF85",
-                            borderColor: "#01FF85",
-                            boxShadow:
-                              "0 0 4px rgba(50,156,43,1), 0 0 8px rgba(50,156,43,1), 0 0 28px rgba(50,156,43,0.7), 0 0 56px rgba(50,156,43,0.5)",
-                          }
-                        : {
-                            background: "#F0F0DF",
-                            borderColor: "#F1F1D2",
-                            boxShadow:
-                              "0 0 4px rgba(159,142,142,0.6), 0 0 8px rgba(159,142,142,0.4)",
-                          }
-                    }
-                  >
-                    <span
-                      className="font-bold tracking-wider select-none font-mono text-center leading-tight"
-                      style={{
-                        color: isOn ? "#013201" : "#100D26",
-                        fontSize: "clamp(0.4rem, 0.9vw, 0.75rem)",
-                      }}
-                    >
-                      {label}
-                      {isOn && progress ? ` — ${pct}%` : ""}
-                    </span>
-                  </div>
-                  {/* Bottom edge shadow like the SVG buttons */}
-                  <div
-                    className="h-[clamp(2px,0.3vw,6px)] rounded-b-sm -mt-px"
-                    style={{ background: isOn ? "#0D6A08" : "#80823A" }}
-                  />
-                </div>
+                {/* Button SVG background */}
+                <img
+                  src={isOn ? "/images/on-button.svg" : "/images/off-button.svg"}
+                  alt=""
+                  className="absolute inset-0 w-full h-full pointer-events-none select-none"
+                  aria-hidden="true"
+                  draggable={false}
+                />
+                {/* Label text overlay */}
+                <span
+                  className="relative z-10 font-bold tracking-wider select-none font-mono flex items-center justify-center w-full"
+                  style={{
+                    color: isOn ? "#013201" : "#100D26",
+                    fontSize: "clamp(0.35rem, 0.85vw, 0.75rem)",
+                    /* Nudge text up to center within the button face (not the shadow) */
+                    marginTop: "-4%",
+                    height: "100%",
+                  }}
+                >
+                  {btn.label}
+                  {isOn && progress ? ` — ${pct}%` : ""}
+                </span>
               </button>
             );
           })}
+
+          {/* Bottom screws — centered at y≈90.5% */}
+          <div
+            className="absolute pointer-events-none select-none"
+            aria-hidden="true"
+            style={{
+              top: "87%",
+              left: "4.3%",
+              width: "91.3%",
+              height: "7.5%",
+            }}
+          >
+            <img src="/images/screws.svg" alt="" className="w-full h-full" draggable={false} />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Quest Detail Screen (inside the CRT) ──────────────────────────── */
+/* ── Quest Detail Screen (inside the CRT) ── */
 
 function QuestDetailScreen({
   pathId,
@@ -318,7 +357,6 @@ function QuestDetailScreen({
 
   return (
     <div className="font-mono space-y-[3%]">
-      {/* Back button */}
       <button
         onClick={onReturn}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
@@ -329,7 +367,6 @@ function QuestDetailScreen({
         </span>
       </button>
 
-      {/* Terminal content */}
       <pre
         className="whitespace-pre-wrap leading-relaxed"
         style={{ color: "#01FF85", fontSize: "clamp(0.3rem, 0.85vw, 0.7rem)" }}
@@ -341,7 +378,6 @@ function QuestDetailScreen({
         )}
       </pre>
 
-      {/* Action buttons */}
       {!stepsLoading && (
         <div className="flex gap-[3%] pt-[2%]">
           <button
