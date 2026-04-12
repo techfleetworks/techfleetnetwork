@@ -87,9 +87,10 @@ export const JourneyService = {
     }
 
     return log.track("getCompletedCount", `Counting completed ${phase} tasks for user ${userId}`, { userId, phase }, async () => {
+      // Use DB-side count (head: true) to avoid transferring row data — critical at 10k+ users
       let query = supabase
         .from("journey_progress")
-        .select("task_id")
+        .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("phase", phase)
         .eq("completed", true);
@@ -98,10 +99,14 @@ export const JourneyService = {
         query = query.in("task_id", [...validTaskIds]);
       }
 
-      const { data } = await query;
-      const count = data?.length ?? 0;
-      log.debug("getCompletedCount", `User ${userId} has ${count} completed tasks in ${phase}`, { userId, phase, count });
-      return count;
+      const { count, error } = await query;
+      if (error) {
+        log.error("getCompletedCount", `Count query failed: ${error.message}`, { userId, phase }, error);
+        throw new Error("Failed to count progress");
+      }
+      const result = count ?? 0;
+      log.debug("getCompletedCount", `User ${userId} has ${result} completed tasks in ${phase}`, { userId, phase, count: result });
+      return result;
     });
   },
 
