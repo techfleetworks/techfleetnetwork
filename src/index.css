@@ -432,3 +432,31 @@ body {
 .rich-text-editor .ql-snow .ql-picker-item.ql-selected {
   color: hsl(var(--primary));
 }
+
+/* DOS terminal cursor blink */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* DOS-style scrollbar for CRT screen */
+.dos-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.dos-scrollbar::-webkit-scrollbar-track {
+  background: #001a00;
+}
+.dos-scrollbar::-webkit-scrollbar-thumb {
+  background: #01FF85;
+  border: 1px solid #013201;
+}
+.dos-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #02cc6a;
+}
+.dos-scrollbar {
+  scrollbar-color: #01FF85 #001a00;
+  scrollbar-width: thin;
+}
