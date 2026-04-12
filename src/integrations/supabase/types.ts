@@ -1458,7 +1458,74 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_roster_member_view: {
+        Row: {
+          airtable_record_id: string | null
+          client_name: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string | null
+          linked_project_ids: string[] | null
+          member_email: string | null
+          member_name: string | null
+          member_role: string | null
+          phase: string | null
+          project_id: string | null
+          project_name: string | null
+          project_type: string | null
+          start_date: string | null
+          status: string | null
+          synced_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          airtable_record_id?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string | null
+          linked_project_ids?: string[] | null
+          member_email?: string | null
+          member_name?: string | null
+          member_role?: string | null
+          phase?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          project_type?: string | null
+          start_date?: string | null
+          status?: string | null
+          synced_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          airtable_record_id?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string | null
+          linked_project_ids?: string[] | null
+          member_email?: string | null
+          member_name?: string | null
+          member_role?: string | null
+          phase?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          project_type?: string | null
+          start_date?: string | null
+          status?: string | null
+          synced_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_roster_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_rate_limit: {
