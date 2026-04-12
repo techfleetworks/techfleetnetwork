@@ -80,25 +80,13 @@ export default function MyProjectApplicationsPage() {
   const [view, setView] = useState<"card" | "table">("card");
   const queryClient = useQueryClient();
 
-  /* ── realtime subscription for live status updates ── */
+  /* ── poll for status updates (realtime removed for security) ── */
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`my-apps-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "project_applications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["my-project-applications", user.id] });
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications", user.id] });
+    }, 30_000);
+    return () => clearInterval(interval);
   }, [user, queryClient]);
 
   const { data: apps, isLoading } = useQuery({

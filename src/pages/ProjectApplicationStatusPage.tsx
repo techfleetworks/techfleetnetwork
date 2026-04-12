@@ -351,26 +351,14 @@ export default function ProjectApplicationStatusPage() {
   const queryClient = useQueryClient();
   const [invitePanelOpen, setInvitePanelOpen] = useState(false);
 
-  /* ── realtime subscription ──────────────────────────────── */
+  /* ── poll for status updates (realtime removed for security) ── */
   useEffect(() => {
     if (!applicationId) return;
-    const channel = supabase
-      .channel(`app-status-${applicationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "project_applications",
-          filter: `id=eq.${applicationId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["my-project-app-status", applicationId] });
-          queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["my-project-app-status", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
+    }, 30_000);
+    return () => clearInterval(interval);
   }, [applicationId, queryClient]);
 
   /* ── fetch application ──────────────────────────────────── */
