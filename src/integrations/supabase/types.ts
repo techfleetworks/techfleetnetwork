@@ -1188,6 +1188,101 @@ export type Database = {
         }
         Relationships: []
       }
+      quest_path_steps: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          linked_filter: Json | null
+          linked_phase: string | null
+          linked_table: string | null
+          path_id: string
+          sort_order: number
+          step_type: Database["public"]["Enums"]["quest_step_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          linked_filter?: Json | null
+          linked_phase?: string | null
+          linked_table?: string | null
+          path_id: string
+          sort_order?: number
+          step_type?: Database["public"]["Enums"]["quest_step_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          linked_filter?: Json | null
+          linked_phase?: string | null
+          linked_table?: string | null
+          path_id?: string
+          sort_order?: number
+          step_type?: Database["public"]["Enums"]["quest_step_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quest_path_steps_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "quest_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quest_paths: {
+        Row: {
+          created_at: string
+          description: string
+          duration_phases: Json
+          estimated_duration: string
+          icon: string
+          id: string
+          level: string
+          prerequisites: string[]
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          duration_phases?: Json
+          estimated_duration?: string
+          icon?: string
+          id?: string
+          level?: string
+          prerequisites?: string[]
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration_phases?: Json
+          estimated_duration?: string
+          icon?: string
+          id?: string
+          level?: string
+          prerequisites?: string[]
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           action: string
@@ -1241,6 +1336,44 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      user_quest_selections: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          path_id: string
+          started_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          path_id: string
+          started_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          path_id?: string
+          started_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quest_selections_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "quest_paths"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1448,6 +1581,11 @@ export type Database = {
         | "application_design"
         | "strategy"
         | "discovery"
+      quest_step_type:
+        | "course"
+        | "self_report"
+        | "system_verified"
+        | "application"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1605,6 +1743,12 @@ export const Constants = {
         "application_design",
         "strategy",
         "discovery",
+      ],
+      quest_step_type: [
+        "course",
+        "self_report",
+        "system_verified",
+        "application",
       ],
     },
   },
