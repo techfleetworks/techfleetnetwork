@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useAddQuestPath, useQuestPaths } from "@/hooks/use-quest";
+import { useBatchAddQuestPaths, useQuestPaths } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { QuestPath } from "@/services/quest.service";
@@ -15,9 +15,8 @@ const INTEREST_OPTIONS = [
   { id: "Volunteer for Tech Fleet's nonprofit organization", label: "Volunteer for Tech Fleet", description: "Contribute to our nonprofit mission" },
   { id: "Join a community of practice", label: "Join a community of practice", description: "Connect with like-minded professionals" },
   { id: "exploring", label: "I'm not sure yet, still exploring", description: "Browse all paths and discover what excites you" },
-];
+] as const;
 
-// Map interests to recommended path slugs
 const INTEREST_PATH_MAP: Record<string, string[]> = {
   "Train on project teams": ["plan", "observe", "service-leader", "agile-mindset", "client-projects"],
   "Take classes": ["plan", "learn-skills", "service-leader", "agile-mindset"],
@@ -34,7 +33,7 @@ interface QuestIntakeWizardProps {
 export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
   const { user, profile, refreshProfile } = useAuth();
   const { data: paths } = useQuestPaths();
-  const addPath = useAddQuestPath();
+  const batchAddPaths = useBatchAddQuestPaths();
   const [step, setStep] = useState<"interests" | "recommendations">("interests");
   const [selectedInterests, setSelectedInterests] = useState<string[]>(profile?.interests ?? []);
   const [saving, setSaving] = useState(false);
@@ -64,11 +63,10 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
     return paths.filter((p) => recommendedSlugs.includes(p.slug));
   }, [paths, recommendedSlugs, selectedInterests]);
 
-  const handleContinue = async () => {
+  const handleContinue = useCallback(async () => {
     if (!user) return;
     setSaving(true);
     try {
-      // Save interests to profile
       await supabase.from("profiles").update({ interests: selectedInterests.filter((i) => i !== "exploring") }).eq("user_id", user.id);
       await refreshProfile();
       setStep("recommendations");
@@ -77,26 +75,21 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
     } finally {
       setSaving(false);
     }
-  };
+  }, [user, selectedInterests, refreshProfile]);
 
-  const handleStartJourney = async () => {
+  const handleStartJourney = useCallback(async () => {
     if (!paths) return;
     setSaving(true);
     try {
-      // Always add "onboard" path
-      const pathsToAdd = new Set(recommendedSlugs);
-      pathsToAdd.add("onboard");
-      
-      for (const slug of pathsToAdd) {
-        const path = paths.find((p) => p.slug === slug);
-        if (path) {
-          try {
-            await addPath.mutateAsync(path.id);
-          } catch {
-            // Ignore duplicates
-          }
-        }
-      }
+      // Collect all path IDs to add in one batch
+      const slugsToAdd = new Set(recommendedSlugs);
+      slugsToAdd.add("onboard");
+      const pathIds = Array.from(slugsToAdd)
+        .map((slug) => paths.find((p) => p.slug === slug)?.id)
+        .filter((id): id is string => !!id);
+
+      // Single batch insert instead of N sequential mutations
+      await batchAddPaths.mutateAsync(pathIds);
       toast.success("Your journey has begun!");
       onComplete();
     } catch {
@@ -104,7 +97,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
     } finally {
       setSaving(false);
     }
-  };
+  }, [paths, recommendedSlugs, batchAddPaths, onComplete]);
 
   if (step === "interests") {
     return (
@@ -118,38 +111,14 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Activity interests">
-          {INTEREST_OPTIONS.map((option) => {
-            const isSelected = selectedInterests.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                onClick={() => toggleInterest(option.id)}
-                className={cn(
-                  "card-elevated p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg",
-                  isSelected
-                    ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-                    : "hover:border-muted-foreground/30 hover:shadow-sm"
-                )}
-                aria-pressed={isSelected}
-                role="option"
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={cn(
-                      "flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-colors",
-                      isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
-                    )}
-                  >
-                    {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{option.label}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{option.description}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {INTEREST_OPTIONS.map((option) => (
+            <InterestOption
+              key={option.id}
+              option={option}
+              isSelected={selectedInterests.includes(option.id)}
+              onToggle={toggleInterest}
+            />
+          ))}
         </div>
 
         <div className="flex justify-center">
@@ -167,7 +136,6 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
     );
   }
 
-  // Recommendations step
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="text-center space-y-2">
@@ -202,19 +170,61 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
   );
 }
 
-function RecommendedPathCard({ path, index, allPaths }: { path: QuestPath; index: number; allPaths: QuestPath[] }) {
-  const prereqsMet = path.prerequisites.length === 0; // At intake, no prereqs are met yet
+const InterestOption = memo(function InterestOption({
+  option,
+  isSelected,
+  onToggle,
+}: {
+  option: { id: string; label: string; description: string };
+  isSelected: boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onToggle(option.id)}
+      className={cn(
+        "card-elevated p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg",
+        isSelected
+          ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
+          : "hover:border-muted-foreground/30 hover:shadow-sm"
+      )}
+      aria-pressed={isSelected}
+      role="option"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-colors",
+            isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
+          )}
+        >
+          {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+        </div>
+        <div>
+          <p className="font-medium text-foreground">{option.label}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{option.description}</p>
+        </div>
+      </div>
+    </button>
+  );
+});
+
+const RecommendedPathCard = memo(function RecommendedPathCard({
+  path,
+  index,
+  allPaths,
+}: {
+  path: QuestPath;
+  index: number;
+  allPaths: QuestPath[];
+}) {
+  const prereqsMet = path.prerequisites.length === 0;
   const prereqNames = path.prerequisites
     .map((slug) => allPaths.find((p) => p.slug === slug)?.title ?? slug)
     .join(", ");
 
   return (
-    <div
-      className={cn(
-        "card-elevated p-4 flex items-center gap-4",
-        !prereqsMet && "opacity-60"
-      )}
-    >
+    <div className={cn("card-elevated p-4 flex items-center gap-4", !prereqsMet && "opacity-60")}>
       <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
         {index + 1}
       </div>
@@ -236,7 +246,7 @@ function RecommendedPathCard({ path, index, allPaths }: { path: QuestPath; index
       <span className="text-sm text-muted-foreground flex-shrink-0">{path.estimated_duration}</span>
     </div>
   );
-}
+});
 
 function getTotalWeeks(paths: QuestPath[]): number {
   let total = 0;
