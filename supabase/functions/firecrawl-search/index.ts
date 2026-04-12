@@ -1,8 +1,13 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+/** Max query length to prevent abuse */
+const MAX_QUERY_LENGTH = 500;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -10,6 +15,37 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth check — only authenticated users can search (OWASP A01)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!anonKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      anonKey,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { query, limit } = await req.json();
 
     if (!query || typeof query !== "string" || query.trim().length < 2) {
@@ -18,6 +54,9 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // Truncate query to prevent abuse
+    const safeQuery = query.trim().slice(0, MAX_QUERY_LENGTH);
 
     const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
     if (!apiKey) {
@@ -30,8 +69,6 @@ Deno.serve(async (req) => {
 
     const safeLimit = Math.min(Math.max(Number(limit) || 3, 1), 5);
 
-    console.log("Firecrawl search:", query.trim(), "limit:", safeLimit);
-
     const response = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
@@ -39,7 +76,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: query.trim(),
+        query: safeQuery,
         limit: safeLimit,
         scrapeOptions: { formats: ["markdown"] },
       }),
@@ -48,18 +85,18 @@ Deno.serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Firecrawl API error:", data);
+      console.error("Firecrawl API error:", response.status);
       return new Response(
-        JSON.stringify({ success: false, error: data.error || `Request failed: ${response.status}` }),
+        JSON.stringify({ success: false, error: `Search request failed` }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Return simplified results
+    // Return simplified results — strip any unexpected fields (mass assignment defense)
     const results = (data.data || []).slice(0, safeLimit).map((r: Record<string, unknown>) => ({
-      title: r.title || "Untitled",
-      description: r.description || "",
-      url: r.url || "",
+      title: typeof r.title === "string" ? r.title.slice(0, 200) : "Untitled",
+      description: typeof r.description === "string" ? r.description.slice(0, 500) : "",
+      url: typeof r.url === "string" ? r.url.slice(0, 2000) : "",
     }));
 
     return new Response(
@@ -67,10 +104,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error in firecrawl-search:", error);
-    const msg = error instanceof Error ? error.message : "Search failed";
+    console.error("Error in firecrawl-search");
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
+      JSON.stringify({ success: false, error: "Search failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

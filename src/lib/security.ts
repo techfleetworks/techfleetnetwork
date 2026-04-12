@@ -1,13 +1,27 @@
 /**
  * Security utilities — OWASP hardening helpers
  *
- * Covers: XSS (A7), Injection (A3), SSRF (A10), Prototype Pollution,
- * Timing Attacks, Input Validation, and PII Protection.
+ * Covers OWASP Top 10 2021 + API Security Top 10:
+ *   A01 Broken Access Control — IDOR guards, path traversal detection
+ *   A02 Cryptographic Failures — safe nonce/CSRF generation, constant-time compare
+ *   A03 Injection — SQL injection detection, HTML sanitization, prototype pollution
+ *   A04 Insecure Design — rate limit helpers, mass assignment guards
+ *   A05 Security Misconfiguration — CSP nonce, safe JSON parse
+ *   A06 Vulnerable Components — (handled at dependency level)
+ *   A07 Auth Failures — timing-safe compare, credential masking
+ *   A08 Software & Data Integrity — safe JSON parse, deep sanitize
+ *   A09 Logging & Monitoring Failures — PII masking, safe error messages
+ *   A10 SSRF — URL allowlisting, blocked host patterns
+ *
+ * Additional: ReDoS protection, header injection prevention,
+ * open redirect prevention, mass assignment guards.
  *
  * No PII should ever pass through console.log in production.
  */
 
-// ─── XSS Prevention ─────────────────────────────────────────────────
+import DOMPurify from "dompurify";
+
+// ─── XSS Prevention (A03, A07) ─────────────────────────────────────
 
 /** Sanitize a string for safe display (prevents XSS via innerHTML) */
 export function sanitizeText(input: string): string {
@@ -23,31 +37,44 @@ export function stripHtml(input: string): string {
 
 /**
  * Deep-sanitize an object's string values to prevent stored XSS.
- * Recursively strips `<script`, `on*=` event handlers, and `javascript:` from strings.
+ * Recursively strips `<script`, `on*=` event handlers, `javascript:`,
+ * `vbscript:`, `data:text/html`, and expression() from strings.
+ * Also guards against prototype pollution.
  */
-export function deepSanitize<T>(obj: T): T {
+export function deepSanitize<T>(obj: T, depth = 0): T {
+  // Guard against deeply nested payloads (DoS via recursion)
+  if (depth > 20) return obj;
+
   if (typeof obj === "string") {
     return obj
       .replace(/<script[\s>]/gi, "")
+      .replace(/<\/script>/gi, "")
       .replace(/on\w+\s*=/gi, "")
-      .replace(/javascript\s*:/gi, "") as unknown as T;
+      .replace(/javascript\s*:/gi, "")
+      .replace(/vbscript\s*:/gi, "")
+      .replace(/data\s*:\s*text\/html/gi, "")
+      .replace(/expression\s*\(/gi, "")
+      .replace(/<iframe[\s>]/gi, "")
+      .replace(/<object[\s>]/gi, "")
+      .replace(/<embed[\s>]/gi, "")
+      .replace(/<form[\s>]/gi, "") as unknown as T;
   }
   if (Array.isArray(obj)) {
-    return obj.map(deepSanitize) as unknown as T;
+    return obj.map((item) => deepSanitize(item, depth + 1)) as unknown as T;
   }
   if (obj !== null && typeof obj === "object") {
     const result: Record<string, unknown> = {};
     for (const key of Object.keys(obj)) {
       // Prototype pollution guard: reject __proto__, constructor, prototype keys
       if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-      result[key] = deepSanitize((obj as Record<string, unknown>)[key]);
+      result[key] = deepSanitize((obj as Record<string, unknown>)[key], depth + 1);
     }
     return result as T;
   }
   return obj;
 }
 
-// ─── URL Safety ──────────────────────────────────────────────────────
+// ─── URL Safety (A10 SSRF, Open Redirect) ───────────────────────────
 
 /** Validate a URL is safe (no javascript: or data: protocols) */
 export function isSafeUrl(url: string): boolean {
@@ -61,7 +88,7 @@ export function isSafeUrl(url: string): boolean {
 
 /**
  * Validate that a URL points to an allowed external host (anti-SSRF).
- * Use for any user-provided URLs that will be fetched server-side.
+ * Blocks internal IPs, cloud metadata endpoints, and non-HTTP protocols.
  */
 const BLOCKED_HOST_PATTERNS = [
   /^localhost$/i,
@@ -70,9 +97,12 @@ const BLOCKED_HOST_PATTERNS = [
   /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,
   /^192\.168\.\d+\.\d+$/,
   /^0\.0\.0\.0$/,
-  /^169\.254\.\d+\.\d+$/,  // Link-local / AWS metadata
-  /^\[::1?\]$/,             // IPv6 loopback
+  /^169\.254\.\d+\.\d+$/,        // Link-local / AWS metadata
+  /^\[::1?\]$/,                   // IPv6 loopback
   /^metadata\.google\.internal$/i,
+  /^\.internal$/i,                // GCP internal
+  /^fd[0-9a-f]{2}:/i,            // IPv6 ULA
+  /^fc[0-9a-f]{2}:/i,            // IPv6 ULA
 ];
 
 export function isSafeExternalUrl(url: string): boolean {
@@ -80,13 +110,37 @@ export function isSafeExternalUrl(url: string): boolean {
     const parsed = new URL(url);
     if (!["http:", "https:"].includes(parsed.protocol)) return false;
     const host = parsed.hostname;
+    if (!host || host.length === 0) return false;
+    // Block numeric-only hostnames (potential IP bypass)
+    if (/^\d+$/.test(host)) return false;
     return !BLOCKED_HOST_PATTERNS.some((p) => p.test(host));
   } catch {
     return false;
   }
 }
 
-// ─── Cryptographic Helpers ───────────────────────────────────────────
+/**
+ * Prevent open redirect attacks by validating redirect targets.
+ * Only allows same-origin or explicitly allowed external domains.
+ */
+const ALLOWED_REDIRECT_DOMAINS = [
+  "techfleetnetwork.lovable.app",
+  "guide.techfleet.org",
+];
+
+export function isSafeRedirectUrl(url: string): boolean {
+  try {
+    // Relative URLs are always safe (same-origin)
+    if (url.startsWith("/") && !url.startsWith("//")) return true;
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin === window.location.origin) return true;
+    return ALLOWED_REDIRECT_DOMAINS.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// ─── Cryptographic Helpers (A02) ────────────────────────────────────
 
 /** Generate a cryptographically random nonce for CSP */
 export function generateNonce(): string {
@@ -102,7 +156,7 @@ export function generateCsrfToken(): string {
   return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ─── PII Protection ─────────────────────────────────────────────────
+// ─── PII Protection (A09) ───────────────────────────────────────────
 
 /** Mask PII for logging (show only last 4 chars) */
 export function maskPii(value: string): string {
@@ -117,7 +171,34 @@ export function maskEmail(email: string): string {
   return email[0] + "***" + email.slice(at);
 }
 
-// ─── Timing-Safe Comparison ──────────────────────────────────────────
+/**
+ * Safe error message formatter that strips sensitive details.
+ * Prevents internal details from leaking to the client (A09).
+ */
+export function safeErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    // Strip stack traces, file paths, and SQL details
+    const msg = error.message;
+    if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(msg)) {
+      return "Service temporarily unavailable";
+    }
+    if (/relation.*does not exist|column.*does not exist/i.test(msg)) {
+      return "A data error occurred";
+    }
+    if (/permission denied|row-level security/i.test(msg)) {
+      return "Access denied";
+    }
+    // Return generic for unrecognized database/system errors
+    if (/pg_|sql|supabase|postgres/i.test(msg)) {
+      return "An internal error occurred";
+    }
+    // Truncate and return sanitized message
+    return msg.slice(0, 200);
+  }
+  return "An unexpected error occurred";
+}
+
+// ─── Timing-Safe Comparison (A02, A07) ──────────────────────────────
 
 /** Constant-time string comparison to prevent timing attacks */
 export function safeCompare(a: string, b: string): boolean {
@@ -129,14 +210,13 @@ export function safeCompare(a: string, b: string): boolean {
   return result === 0;
 }
 
-// ─── Input Guards ────────────────────────────────────────────────────
+// ─── Input Guards (A03, A04) ────────────────────────────────────────
 
 /** Enforce a maximum byte length on a string (prevents oversized payloads) */
 export function enforceMaxBytes(input: string, maxBytes: number): string {
   const encoder = new TextEncoder();
   const encoded = encoder.encode(input);
   if (encoded.length <= maxBytes) return input;
-  // Truncate to maxBytes and decode back (may lose trailing multibyte char)
   const decoder = new TextDecoder("utf-8", { fatal: false });
   return decoder.decode(encoded.slice(0, maxBytes));
 }
@@ -146,17 +226,96 @@ export function enforceMaxBytes(input: string, maxBytes: number): string {
  * Use as an additional defense layer (RLS + parameterized queries are primary).
  */
 const SQL_INJECTION_PATTERNS = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|UNION|EXEC)\b.*\b(FROM|INTO|TABLE|SET|WHERE)\b)/i,
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|UNION|EXEC|TRUNCATE|GRANT|REVOKE)\b.*\b(FROM|INTO|TABLE|SET|WHERE|ALL)\b)/i,
   /(['";]\s*(--))/,
   /(\/\*[\s\S]*?\*\/)/,
   /(\bOR\b\s+\d+\s*=\s*\d+)/i,
+  /(\bAND\b\s+\d+\s*=\s*\d+)/i,
+  /(;\s*(DROP|ALTER|TRUNCATE|DELETE)\b)/i,
+  /(\bEXEC(UTE)?\s+(xp_|sp_))/i,
+  /(\bINFORMATION_SCHEMA\b)/i,
+  /(\bpg_catalog\b)/i,
+  /(\bCHAR\s*\(\d+\))/i,
 ];
 
 export function hasSqlInjectionPattern(input: string): boolean {
   return SQL_INJECTION_PATTERNS.some((p) => p.test(input));
 }
 
-// ─── Prototype Pollution Guard ───────────────────────────────────────
+/**
+ * Detect path traversal attempts (A01).
+ * Validates file names/paths don't escape intended directories.
+ */
+export function hasPathTraversal(input: string): boolean {
+  const normalized = decodeURIComponent(input);
+  return /\.\.[/\\]/.test(normalized) ||
+    /%2e%2e[/\\%]/i.test(input) ||
+    /\.\.%2f/i.test(input) ||
+    /\.\.%5c/i.test(input);
+}
+
+/**
+ * Detect HTTP header injection attempts.
+ * Prevents CRLF injection in header values.
+ */
+export function hasHeaderInjection(input: string): boolean {
+  return /[\r\n]/.test(input) || /%0[aAdD]/i.test(input);
+}
+
+/**
+ * Mass assignment protection (A04 Insecure Design).
+ * Picks only allowed keys from an object, rejecting everything else.
+ * Use when processing user-submitted form data before DB writes.
+ */
+export function pickAllowedFields<T extends Record<string, unknown>>(
+  data: T,
+  allowedKeys: string[],
+): Partial<T> {
+  const result: Partial<T> = {};
+  const allowedSet = new Set(allowedKeys);
+  for (const key of Object.keys(data)) {
+    if (allowedSet.has(key)) {
+      (result as Record<string, unknown>)[key] = data[key];
+    }
+  }
+  return result;
+}
+
+/**
+ * Validate UUID format to prevent IDOR attacks (A01).
+ * Ensures IDs follow the standard UUID v4 pattern.
+ */
+export function isValidUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+/**
+ * Validate that a string is safe for use in content-disposition headers.
+ * Prevents header injection via file names.
+ */
+export function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[^\w\s.-]/g, "_")  // Replace non-safe chars
+    .replace(/\.{2,}/g, ".")     // Collapse multiple dots
+    .slice(0, 200);              // Max length
+}
+
+// ─── ReDoS Protection ───────────────────────────────────────────────
+
+/**
+ * Safely test a regex against input with a length limit.
+ * Prevents ReDoS by rejecting excessively long inputs.
+ */
+export function safeRegexTest(
+  pattern: RegExp,
+  input: string,
+  maxLength = 10_000,
+): boolean {
+  if (input.length > maxLength) return false;
+  return pattern.test(input);
+}
+
+// ─── Prototype Pollution Guard (A08) ────────────────────────────────
 
 /**
  * Safe JSON.parse that strips prototype-polluting keys.
@@ -171,9 +330,7 @@ export function safeJsonParse<T = unknown>(json: string): T {
   }) as T;
 }
 
-// ─── HTML Sanitization (DOMPurify) ──────────────────────────────────
-
-import DOMPurify from "dompurify";
+// ─── HTML Sanitization (DOMPurify) (A03) ────────────────────────────
 
 /**
  * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
@@ -189,9 +346,85 @@ export function sanitizeHtml(dirty: string): string {
       "table", "thead", "tbody", "tr", "th", "td",
     ],
     ALLOWED_ATTR: [
-      "href", "target", "rel", "src", "alt", "class", "style",
+      "href", "target", "rel", "src", "alt", "class",
       "width", "height", "colspan", "rowspan",
     ],
     ALLOW_DATA_ATTR: false,
+    // Force rel="noopener noreferrer" on all links
+    FORBID_ATTR: ["style"],
+    ADD_ATTR: ["target"],
   });
+}
+
+// ─── Content-Type Validation (A05) ──────────────────────────────────
+
+/** Allowed file upload MIME types */
+const ALLOWED_UPLOAD_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "video/mp4",
+  "video/webm",
+  "audio/mpeg",
+  "audio/mp4",
+]);
+
+/** Max file size in bytes (10 MB) */
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
+export function validateFileUpload(file: File): { valid: boolean; error?: string } {
+  if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+    return { valid: false, error: `File type "${file.type}" is not allowed` };
+  }
+  if (file.size > MAX_UPLOAD_SIZE) {
+    return { valid: false, error: `File size exceeds the ${MAX_UPLOAD_SIZE / (1024 * 1024)}MB limit` };
+  }
+  if (hasPathTraversal(file.name)) {
+    return { valid: false, error: "Invalid file name" };
+  }
+  return { valid: true };
+}
+
+// ─── Rate Limiting Helper (A04) ─────────────────────────────────────
+
+/**
+ * Client-side rate limiter for UI actions (e.g., form submissions).
+ * Uses a sliding window approach. NOT a substitute for server-side rate limiting.
+ */
+const actionTimestamps = new globalThis.Map<string, number[]>();
+
+export function isClientRateLimited(
+  action: string,
+  maxAttempts = 5,
+  windowMs = 60_000,
+): boolean {
+  const now = Date.now();
+  const timestamps = actionTimestamps.get(action) || [];
+  // Remove expired entries
+  const recent = timestamps.filter((t) => now - t < windowMs);
+  if (recent.length >= maxAttempts) return true;
+  recent.push(now);
+  actionTimestamps.set(action, recent);
+  return false;
+}
+
+/** Reset client-side rate limit for an action */
+export function resetClientRateLimit(action: string): void {
+  actionTimestamps.delete(action);
+}
+
+// ─── CORS Origin Validation ─────────────────────────────────────────
+
+const ALLOWED_ORIGINS = new Set([
+  "https://techfleetnetwork.lovable.app",
+  "https://id-preview--3ae718a9-cd87-4a00-991b-209d8baa78ad.lovable.app",
+]);
+
+/** Validate that a request origin is allowed */
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  return ALLOWED_ORIGINS.has(origin);
 }

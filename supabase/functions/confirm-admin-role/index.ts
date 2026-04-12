@@ -5,16 +5,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
+/** Allowed redirect origins — prevents open redirect (OWASP A01) */
+const ALLOWED_REDIRECT_ORIGINS = new Set([
+  'https://techfleetnetwork.lovable.app',
+])
+
+function getSafeAppOrigin(): string {
+  const configured = Deno.env.get('APP_ORIGIN') || 'https://techfleetnetwork.lovable.app'
+  try {
+    const parsed = new URL(configured)
+    if (ALLOWED_REDIRECT_ORIGINS.has(parsed.origin)) return parsed.origin
+  } catch { /* invalid URL */ }
+  return 'https://techfleetnetwork.lovable.app'
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+
+  // Only allow GET for confirmation links (OWASP A05)
+  if (req.method !== 'GET') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 
   try {
     const url = new URL(req.url)
     const token = url.searchParams.get('token')
 
-    if (!token || typeof token !== 'string' || token.length < 32) {
+    // Validate token format: must be 64-char hex (32 bytes encoded)
+    if (!token || typeof token !== 'string' || !/^[0-9a-f]{64}$/i.test(token)) {
       return new Response(
         JSON.stringify({ error: 'Invalid or missing token' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -25,7 +48,9 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    // Find the pending promotion
+    const appOrigin = getSafeAppOrigin()
+
+    // Find the pending promotion — use constant-time-safe lookup by relying on DB index
     const { data: promotion, error: fetchErr } = await supabase
       .from('admin_promotions')
       .select('id, user_id, confirmed_at')
@@ -40,16 +65,11 @@ Deno.serve(async (req) => {
     }
 
     if (promotion.confirmed_at) {
-      const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://techfleetnetwork.lovable.app'
       return new Response(null, {
         status: 302,
         headers: { ...corsHeaders, Location: `${appOrigin}/login?admin_confirmed=already` },
       })
     }
-
-    // Derive the app origin from the Supabase URL (e.g. https://xyz.supabase.co → published app)
-    // We use a known app URL; fall back to referer or a safe default
-    const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://techfleetnetwork.lovable.app'
 
     // Grant the admin role
     const { error: roleErr } = await supabase

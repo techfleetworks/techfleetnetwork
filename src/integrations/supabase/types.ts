@@ -1484,6 +1484,16 @@ export type Database = {
       export_my_data: { Args: never; Returns: Json }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
+      get_own_promotions: {
+        Args: { p_user_id: string }
+        Returns: {
+          confirmed_at: string
+          created_at: string
+          id: string
+          promoted_by: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
