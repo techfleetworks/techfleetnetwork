@@ -1,8 +1,27 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /confirm-admin
+Disallow: /reset-password
+Disallow: /profile/edit
+Disallow: /dashboard
+Disallow: /my-journey
+Disallow: /applications
+Disallow: /chat
+Disallow: /notifications
+Disallow: /feedback
+Disallow: /activity-log
+Disallow: /clients
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /confirm-admin
+Disallow: /reset-password
+Disallow: /profile/edit
+Disallow: /dashboard
 
 User-agent: Twitterbot
 Allow: /
@@ -11,4 +30,18 @@ User-agent: facebookexternalhit
 Allow: /
 
 User-agent: *
-Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /confirm-admin
+Disallow: /reset-password
+Disallow: /profile/edit
+Disallow: /dashboard
+Disallow: /my-journey
+Disallow: /applications
+Disallow: /chat
+Disallow: /notifications
+Disallow: /feedback
+Disallow: /activity-log
+Disallow: /clients
+
+Sitemap: https://techfleetnetwork.lovable.app/sitemap.xml

@@ -14,3 +14,9 @@
   X-Permitted-Cross-Domain-Policies: none
   X-DNS-Prefetch-Control: off
   X-Download-Options: noopen
+  NEL: {"report_to":"default","max_age":2592000,"include_subdomains":true}
+  Report-To: {"group":"default","max_age":2592000,"endpoints":[{"url":"https://techfleetnetwork.lovable.app/api/csp-report"}],"include_subdomains":true}
+
+/sw-push.js
+  Cache-Control: no-cache, max-age=0
+  Service-Worker-Allowed: /

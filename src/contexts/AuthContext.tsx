@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, type ReactNode } from "react";
+import { isSafeRedirectUrl } from "@/lib/security";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
@@ -100,9 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const storedRedirect = sessionStorage.getItem("auth_redirect");
               if (storedRedirect) {
                 sessionStorage.removeItem("auth_redirect");
-                setTimeout(() => {
-                  window.location.replace(storedRedirect);
-                }, 100);
+                // WSTG-CLNT-04: Validate redirect target to prevent open redirect
+                if (isSafeRedirectUrl(storedRedirect)) {
+                  setTimeout(() => {
+                    window.location.replace(storedRedirect);
+                  }, 100);
+                }
               }
             }
           }
