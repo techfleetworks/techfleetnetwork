@@ -8,7 +8,7 @@
  * - Optimistic updates on mark-read mutations
  * - Proper staleTime to prevent refetch storms
  */
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationService, type AppNotification } from "@/services/notification.service";
@@ -50,7 +50,6 @@ export function useUnreadNotificationCount() {
 
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: (notificationId: string) => NotificationService.markRead(notificationId),

@@ -7,7 +7,7 @@
  * - Optimistic updates on mark-read
  */
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
-import { AnnouncementService, type Announcement } from "@/services/announcement.service";
+import { AnnouncementService } from "@/services/announcement.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 
