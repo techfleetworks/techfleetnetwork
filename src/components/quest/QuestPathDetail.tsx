@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuestSteps, useSelfReportProgress, useCompleteSelfReportStep, useRemoveQuestPath } from "@/hooks/use-quest";
+import { useQuestSteps, useCompleteSelfReportStep, useRemoveQuestPath } from "@/hooks/use-quest";
 import { isStepCompleted } from "./QuestRoadmap";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -46,14 +46,14 @@ export function QuestPathDetail({
 }: QuestPathDetailProps) {
   const { profile } = useAuth();
   const { data: steps, isLoading } = useQuestSteps(path.id);
-  const { data: freshSelfReport } = useSelfReportProgress();
   const completeSelfReport = useCompleteSelfReportStep();
   const removePath = useRemoveQuestPath();
   const [confirmStepId, setConfirmStepId] = useState<string | null>(null);
   const [confirmUncomplete, setConfirmUncomplete] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
-  const selfReportProgress = freshSelfReport ?? parentSelfReport;
+  // Use parent-provided progress directly — no redundant fetch
+  const selfReportProgress = parentSelfReport;
 
   const stepCompletions = useMemo(() => {
     if (!steps) return new Map<string, boolean>();
