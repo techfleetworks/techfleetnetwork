@@ -1,9 +1,11 @@
 import { useMemo, memo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, Circle, Lock, Plus, Eye, BookOpen,
   Rocket, Map as MapIcon, Shield, BarChart2, Zap, Briefcase, Heart,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -14,8 +16,8 @@ import {
   useAllJourneyProgress,
 } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
-import { QuestIntakeWizard } from "./QuestIntakeWizard";
 import { QuestPreviewDialog } from "./QuestPreviewDialog";
+import { QuestPickerDialog } from "./QuestPickerDialog";
 import { isStepCompleted } from "./QuestRoadmap";
 import type { QuestPath, QuestPathStep } from "@/services/quest.service";
 
@@ -25,6 +27,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   briefcase: Briefcase, heart: Heart, circle: Circle,
 };
 
+/** Only these three slugs are shown to users as selectable quests */
+const FEATURED_SLUGS = ["client-projects", "learn-skills", "volunteer"] as const;
+
 export function QuestOverview() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -33,7 +38,7 @@ export function QuestOverview() {
   const { data: selections, isLoading: selectionsLoading } = useUserQuestSelections();
   const { data: selfReportProgress } = useSelfReportProgress();
   const { data: allJourneyMap } = useAllJourneyProgress();
-  const [showIntake, setShowIntake] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [previewPathId, setPreviewPathId] = useState<string | null>(null);
 
   const allProgress = useMemo(() => {
@@ -77,6 +82,23 @@ export function QuestOverview() {
     return set;
   }, [paths, pathProgress]);
 
+  const selectedPaths = useMemo(() => {
+    if (!paths || !selections) return [];
+    return paths
+      .filter((p) => selections.some((s) => s.path_id === p.id))
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [paths, selections]);
+
+  const selectedPathIds = useMemo(() => selectedPaths.map((p) => p.id), [selectedPaths]);
+
+  /** Featured quests not yet subscribed */
+  const featuredAvailable = useMemo(() => {
+    if (!paths || !selections) return [];
+    return paths
+      .filter((p) => FEATURED_SLUGS.includes(p.slug as typeof FEATURED_SLUGS[number]))
+      .filter((p) => !selections.some((s) => s.path_id === p.id));
+  }, [paths, selections]);
+
   const handleCardClick = useCallback((id: string) => {
     navigate(`/my-journey/quest/${id}`);
   }, [navigate]);
@@ -89,74 +111,70 @@ export function QuestOverview() {
     );
   }
 
-  const hasSelections = selections && selections.length > 0;
-
-  if (!hasSelections && !showIntake) {
-    return (
-      <QuestIntakeWizard onComplete={() => setShowIntake(false)} />
-    );
-  }
-
-  if (showIntake) {
-    return <QuestIntakeWizard onComplete={() => setShowIntake(false)} />;
-  }
-
-  const selectedPaths = paths
-    ?.filter((p) => selections!.some((s) => s.path_id === p.id))
-    .sort((a, b) => a.sort_order - b.sort_order) ?? [];
-
-  const unselectedPaths = paths
-    ?.filter((p) => !selections!.some((s) => s.path_id === p.id)) ?? [];
-
   return (
     <div className="space-y-8">
-      {/* Subscribed quests */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
+      {/* Header with add-quest button */}
+      <div className="flex items-center justify-between">
+        <div>
           <h2 className="text-lg font-semibold text-foreground">Your Quests</h2>
-          <span className="text-sm text-muted-foreground">{selectedPaths.length} active</span>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {selectedPaths.length === 0
+              ? "Start your first quest to begin your journey."
+              : `${selectedPaths.length} active quest${selectedPaths.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
-
-        {selectedPaths.length === 0 ? (
-          <div className="text-center py-12 card-elevated rounded-lg">
-            <p className="text-muted-foreground">You haven't subscribed to any quests yet.</p>
-            <p className="text-sm text-muted-foreground mt-1">Browse available quests below to get started.</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list" aria-label="Your subscribed quests">
-            {selectedPaths.map((path) => (
-              <SubscribedQuestCard
-                key={path.id}
-                path={path}
-                progress={pathProgress.get(path.id)}
-                completedPathSlugs={completedPathSlugs}
-                allPaths={paths ?? []}
-                onClick={handleCardClick}
-              />
-            ))}
-          </div>
+        {featuredAvailable.length > 0 && (
+          <Button onClick={() => setPickerOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Start a Quest
+          </Button>
         )}
       </div>
 
-      {/* Available quests */}
-      {unselectedPaths.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Available Quests</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list" aria-label="Available quests">
-            {unselectedPaths.map((path) => (
-              <AvailableQuestCard
-                key={path.id}
-                path={path}
-                completedPathSlugs={completedPathSlugs}
-                allPaths={paths ?? []}
-                onPreview={setPreviewPathId}
-              />
-            ))}
-          </div>
+      {/* Empty state */}
+      {selectedPaths.length === 0 && (
+        <div className="text-center py-16 card-elevated rounded-lg">
+          <Compass className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" aria-hidden="true" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">No quests yet</h3>
+          <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+            Choose a quest to get started. Each quest guides you through a hands-on learning experience.
+          </p>
+          <Button onClick={() => setPickerOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Pick Your First Quest
+          </Button>
         </div>
       )}
 
-      {/* Preview dialog for adding a quest */}
+      {/* Subscribed quests grid */}
+      {selectedPaths.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="list" aria-label="Your subscribed quests">
+          {selectedPaths.map((path) => (
+            <SubscribedQuestCard
+              key={path.id}
+              path={path}
+              progress={pathProgress.get(path.id)}
+              completedPathSlugs={completedPathSlugs}
+              allPaths={paths ?? []}
+              onClick={handleCardClick}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Picker dialog — pick ONE quest at a time */}
+      <QuestPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        selectedPathIds={selectedPathIds}
+        completedPathSlugs={completedPathSlugs}
+        onPreview={(id) => {
+          setPickerOpen(false);
+          setPreviewPathId(id);
+        }}
+      />
+
+      {/* Preview + opt-in dialog */}
       {previewPathId && (
         <QuestPreviewDialog
           open={!!previewPathId}
@@ -250,71 +268,6 @@ const SubscribedQuestCard = memo(function SubscribedQuestCard({
             </p>
           )}
         </>
-      )}
-    </button>
-  );
-});
-
-/** Card for a quest the user has NOT subscribed to — clicking opens preview */
-const AvailableQuestCard = memo(function AvailableQuestCard({
-  path,
-  completedPathSlugs,
-  allPaths,
-  onPreview,
-}: {
-  path: QuestPath;
-  completedPathSlugs: Set<string>;
-  allPaths: QuestPath[];
-  onPreview: (id: string) => void;
-}) {
-  const prereqsMet = path.prerequisites.every((slug) => completedPathSlugs.has(slug));
-  const Icon = ICON_MAP[path.icon] ?? Circle;
-
-  return (
-    <button
-      role="listitem"
-      onClick={() => onPreview(path.id)}
-      className={cn(
-        "card-elevated p-5 text-left transition-all duration-200 rounded-lg w-full",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "hover:shadow-md hover:border-primary/30 cursor-pointer",
-        !prereqsMet && "opacity-60"
-      )}
-      aria-label={`Preview quest: ${path.title}`}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <div className={cn(
-          "flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center",
-          prereqsMet ? "bg-muted" : "bg-muted"
-        )}>
-          {!prereqsMet ? (
-            <Lock className="h-5 w-5 text-muted-foreground" />
-          ) : (
-            <Icon className="h-5 w-5 text-muted-foreground" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate">{path.title}</h3>
-          <span className={cn(
-            "text-xs font-medium px-2 py-0.5 rounded-full",
-            path.level === "advanced"
-              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-              : "bg-primary/10 text-primary"
-          )}>
-            {path.level === "advanced" ? "Advanced" : "Beginner"}
-          </span>
-        </div>
-        <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      </div>
-
-      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{path.description}</p>
-      <p className="text-xs text-muted-foreground">{path.estimated_duration}</p>
-
-      {!prereqsMet && (
-        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-          <Lock className="h-3 w-3" />
-          Requires: {path.prerequisites.map((slug) => allPaths.find((p) => p.slug === slug)?.title ?? slug).join(", ")}
-        </p>
       )}
     </button>
   );
