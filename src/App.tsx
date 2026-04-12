@@ -56,6 +56,7 @@ const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
 const RosterApplicantDetailPage = lazy(() => import("./pages/RosterApplicantDetailPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
+const QuestDetailPage = lazy(() => import("./pages/QuestDetailPage"));
 const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
@@ -118,6 +119,7 @@ const App = () => (
                     <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                     <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
                     <Route path="/my-journey" element={<ProtectedRoute><MyJourneyPage /></ProtectedRoute>} />
+                    <Route path="/my-journey/quest/:pathId" element={<ProtectedRoute><QuestDetailPage /></ProtectedRoute>} />
                     <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
                     <Route path="/courses/connect-discord" element={<ProtectedRoute><ConnectDiscordPage /></ProtectedRoute>} />
                     <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
