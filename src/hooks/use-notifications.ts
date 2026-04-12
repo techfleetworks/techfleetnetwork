@@ -89,40 +89,13 @@ export function useMarkAllNotificationsRead() {
   });
 }
 
-/** Subscribe to realtime INSERT events on the notifications table */
+/**
+ * Notifications realtime was removed for security (prevents unauthorized channel subscriptions).
+ * The useNotifications hook already polls via refetchInterval with adaptive intervals.
+ * This hook is kept as a no-op for backward compatibility.
+ */
 export function useNotificationRealtime() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel("notifications-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
-
-          const newNotif = payload.new as Record<string, unknown>;
-          const title = typeof newNotif?.title === "string" ? newNotif.title : "New notification";
-          toast.info(title, {
-            description: "Tap the bell to view details.",
-          });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
+  // No-op: polling handles freshness; realtime removed for security
 }
 
 export type { AppNotification };
