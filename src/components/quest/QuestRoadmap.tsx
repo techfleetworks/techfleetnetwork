@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   CheckCircle2, Circle, Lock, ArrowRight, Plus, Eye, BookOpen,
-  Rocket, Map, Shield, BarChart2, Zap, Briefcase, Heart,
+  Rocket, Map as MapIcon, Shield, BarChart2, Zap, Briefcase, Heart,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -19,7 +19,7 @@ import { QuestExploreDialog } from "./QuestExploreDialog";
 import type { QuestPathStep } from "@/services/quest.service";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  rocket: Rocket, map: Map, eye: Eye, "book-open": BookOpen,
+  rocket: Rocket, map: MapIcon, eye: Eye, "book-open": BookOpen,
   shield: Shield, "bar-chart-2": BarChart2, zap: Zap,
   briefcase: Briefcase, heart: Heart, circle: Circle,
 };
