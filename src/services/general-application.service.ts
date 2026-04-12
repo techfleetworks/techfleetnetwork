@@ -119,7 +119,7 @@ export const GeneralApplicationService = {
     return log.track("list", `Listing general apps for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("user_id", userId)
         .order("updated_at", { ascending: false });
       if (error) {
@@ -135,7 +135,7 @@ export const GeneralApplicationService = {
     return log.track("fetch", `Fetching general app ${id}`, { id }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("id", id)
         .single();
       if (error) {
@@ -212,7 +212,7 @@ export const GeneralApplicationService = {
     return log.track("getLatestCompleted", `Fetching latest completed app for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("user_id", userId)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })
