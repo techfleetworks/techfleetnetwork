@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  CheckCircle2, Circle, Lock, ArrowRight, Plus, Clock, Eye, BookOpen,
+  CheckCircle2, Circle, Lock, ArrowRight, Plus, Eye, BookOpen,
   Rocket, Map, Shield, BarChart2, Zap, Briefcase, Heart,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,7 +16,7 @@ import { useJourneyProgress } from "@/hooks/use-journey-progress";
 import { cn } from "@/lib/utils";
 import { QuestPathDetail } from "./QuestPathDetail";
 import { QuestExploreDialog } from "./QuestExploreDialog";
-import type { QuestPath, QuestPathStep } from "@/services/quest.service";
+import type { QuestPathStep } from "@/services/quest.service";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   rocket: Rocket, map: Map, eye: Eye, "book-open": BookOpen,

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ProfileService } from "@/services/profile.service";
+import { supabase } from "@/integrations/supabase/client";
 import { useAddQuestPath, useQuestPaths } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -69,7 +69,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
     setSaving(true);
     try {
       // Save interests to profile
-      await ProfileService.update(user.id, { interests: selectedInterests.filter((i) => i !== "exploring") });
+      await supabase.from("profiles").update({ interests: selectedInterests.filter((i) => i !== "exploring") }).eq("user_id", user.id);
       await refreshProfile();
       setStep("recommendations");
     } catch {
