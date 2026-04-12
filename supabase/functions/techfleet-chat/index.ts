@@ -447,7 +447,8 @@ serve(async (req) => {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
     }
 
-    const fullSystemPrompt = SYSTEM_PROMPT + knowledgeContext + webResult.context;
+    // LLM07: Inject canary phrase into system prompt to detect leakage
+    const fullSystemPrompt = SYSTEM_PROMPT + `\n[CANARY:${CANARY_PHRASE}]\n` + knowledgeContext + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
       model: "google/gemini-3-flash-preview",
@@ -465,6 +466,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
         stream: true,
+        max_tokens: 4096, // LLM10: Cap output tokens to prevent unbounded consumption
       }),
     });
 
