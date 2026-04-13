@@ -518,6 +518,9 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <p className="text-sm text-muted-foreground">
               Supporting roles that strengthen the team. Not weighted as heavily in the readiness score, but still important for well-rounded recruiting.
             </p>
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Applicants can select multiple duties — the same person may appear in more than one card.
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {otherHats.map((hat) => <HatRow key={hat} hat={hat} />)}
