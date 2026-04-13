@@ -138,11 +138,11 @@ export function ControlCenterOverview() {
         <div
           className="absolute overflow-hidden"
           style={{
-            top: "33%",
-            left: "14.5%",
-            width: "50%",
-            height: "44%",
-            borderRadius: "4% / 6%",
+            top: "31.5%",
+            left: "14%",
+            width: "51.5%",
+            height: "46.5%",
+            borderRadius: "3% / 5%",
           }}
         >
           {screenView === "home" ? (
@@ -256,10 +256,10 @@ export function ControlCenterOverview() {
                 disabled={!isAvailable}
                 className="absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-transform active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
-                  left: "12.65%",
-                  width: "75.4%",
+                  left: "5%",
+                  width: "90%",
                   top: `${BUTTON_TOPS[i]}%`,
-                  height: "10%",
+                  height: "11.5%",
                 }}
                 aria-label={`${btn.label} — ${isOn ? `active, ${pct}% complete` : isAvailable ? "not started" : "coming soon"}`}
               >
@@ -273,11 +273,10 @@ export function ControlCenterOverview() {
                 />
                 {/* Label text overlay */}
                 <span
-                  className="relative z-10 font-bold tracking-wider select-none font-mono flex items-center justify-center w-full"
+                  className="relative z-10 font-bold tracking-[0.15em] select-none font-mono flex items-center justify-center w-full"
                   style={{
                     color: isOn ? "#013201" : "#100D26",
-                    fontSize: "clamp(0.35rem, 0.85vw, 0.75rem)",
-                    /* Nudge text up to center within the button face (not the shadow) */
+                    fontSize: "clamp(0.4rem, 1vw, 0.85rem)",
                     marginTop: "-4%",
                     height: "100%",
                   }}
