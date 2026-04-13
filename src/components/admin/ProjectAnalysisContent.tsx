@@ -520,8 +520,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
         </Card>
       )}
 
-      {/* ── Applicants Table ─────────────────────── */}
-      <ApplicantsTable rows={enrichedRows} clientName={clientName} />
+      {/* Applicants table removed per design — use Project Roster tab instead */}
 
       {/* ── Multi-project applicants side panel ── */}
       <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>

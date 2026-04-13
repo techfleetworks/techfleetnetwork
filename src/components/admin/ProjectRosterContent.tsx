@@ -148,7 +148,7 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
         ) : (
           <ThemedAgGrid<EnrichedApp>
             gridId={`roster-detail-${projectId}`}
-            height={enrichedApps.length <= 5 ? "280px" : "420px"}
+            height={enrichedApps.length <= 5 ? "360px" : "640px"}
             rowData={enrichedApps}
             columnDefs={columnDefs}
             getRowId={(p) => p.data.id}
