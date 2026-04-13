@@ -83,10 +83,6 @@ function QuestOption({
 }) {
   const meta = QUEST_META[quest.slug] ?? { icon: BookOpen, color: "bg-muted text-muted-foreground" };
   const Icon = meta.icon;
-  const prereqsMet = quest.prerequisites.every((slug) => completedPathSlugs.has(slug));
-  const missingPrereqs = quest.prerequisites
-    .filter((slug) => !completedPathSlugs.has(slug))
-    .map((slug) => allPaths.find((p) => p.slug === slug)?.title ?? slug);
 
   return (
     <button

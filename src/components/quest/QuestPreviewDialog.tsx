@@ -37,10 +37,6 @@ export function QuestPreviewDialog({
 
   const path = paths?.find((p) => p.id === pathId);
 
-  const prereqsMet = useMemo(() => {
-    if (!path) return false;
-    return path.prerequisites.every((slug) => completedPathSlugs.has(slug));
-  }, [path, completedPathSlugs]);
 
   const missingPrereqs = useMemo(() => {
     if (!path || !paths) return [];
