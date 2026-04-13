@@ -10,7 +10,9 @@ export interface TemplateEntry {
 }
 
 import { template as interviewInvite } from './interview-invite.tsx'
+import { template as questNudge } from './quest-nudge.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'interview-invite': interviewInvite,
+  'quest-nudge': questNudge,
 }
