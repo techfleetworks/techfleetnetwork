@@ -438,10 +438,17 @@ serve(async (req) => {
     }
 
     let knowledgeContext = "";
+    // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
+    const MAX_KB_CONTEXT_CHARS = 400_000;
     if (knowledge && knowledge.length > 0) {
       for (const entry of knowledge) {
-        const truncatedContent = entry.content.length > 3000 ? entry.content.substring(0, 3000) + "...[truncated]" : entry.content;
-        knowledgeContext += `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
+        const truncatedContent = entry.content.length > 2000 ? entry.content.substring(0, 2000) + "...[truncated]" : entry.content;
+        const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
+        if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
+          log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
+          break;
+        }
+        knowledgeContext += entryText;
       }
     } else {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
