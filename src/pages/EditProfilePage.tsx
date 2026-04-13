@@ -266,7 +266,7 @@ export default function EditProfilePage() {
         { label: "Edit Profile" },
       ],
       title: "Edit Profile",
-      description: "Manage your profile information, training goals, and preferences.",
+      description: "Manage your profile information, background, and preferences.",
     });
     return () => setHeader(null);
   }, [setHeader]);
