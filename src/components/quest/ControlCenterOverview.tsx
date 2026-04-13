@@ -168,14 +168,6 @@ export function ControlCenterOverview() {
                 className="w-full h-full object-cover"
                 draggable={false}
               />
-              <div
-                className="absolute inset-0 pointer-events-none"
-                aria-hidden="true"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
-                }}
-              />
             </div>
           ) : selectedQuestId ? (
             <div
