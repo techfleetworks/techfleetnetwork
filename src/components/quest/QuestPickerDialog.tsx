@@ -1,9 +1,5 @@
 import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Circle, Eye, BookOpen, Rocket, Map as MapIcon, Shield,
-  BarChart2, Zap, Briefcase, Heart, ArrowRight, Lock,
-} from "lucide-react";
+import { BookOpen, Users, Heart, ArrowRight, Lock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -11,21 +7,19 @@ import { useQuestPaths } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
 import type { QuestPath } from "@/services/quest.service";
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  rocket: Rocket, map: MapIcon, eye: Eye, "book-open": BookOpen,
-  shield: Shield, "bar-chart-2": BarChart2, zap: Zap,
-  briefcase: Briefcase, heart: Heart, circle: Circle,
+const QUEST_META: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  "learn-skills": { icon: BookOpen, color: "bg-primary/10 text-primary" },
+  "client-projects": { icon: Users, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  "volunteer": { icon: Heart, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
 };
 
-/** Only these three slugs are available for users to pick */
-const FEATURED_SLUGS = ["client-projects", "learn-skills", "volunteer"] as const;
+const FEATURED_SLUGS = ["learn-skills", "client-projects", "volunteer"] as const;
 
 interface QuestPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedPathIds: string[];
   completedPathSlugs: Set<string>;
-  /** Called when the user wants to preview/opt-in to a specific quest */
   onPreview: (pathId: string) => void;
 }
 
@@ -47,11 +41,11 @@ export function QuestPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Choose a Quest</DialogTitle>
+          <DialogTitle>Find a Quest</DialogTitle>
           <DialogDescription>
-            Pick one quest to focus on. You can add another after you've started this one.
+            Choose a quest to learn more about it. Pick one that fits your goals.
           </DialogDescription>
         </DialogHeader>
 
@@ -87,7 +81,8 @@ function QuestOption({
   completedPathSlugs: Set<string>;
   onSelect: () => void;
 }) {
-  const Icon = ICON_MAP[quest.icon] ?? Circle;
+  const meta = QUEST_META[quest.slug] ?? { icon: BookOpen, color: "bg-muted text-muted-foreground" };
+  const Icon = meta.icon;
   const prereqsMet = quest.prerequisites.every((slug) => completedPathSlugs.has(slug));
   const missingPrereqs = quest.prerequisites
     .filter((slug) => !completedPathSlugs.has(slug))
@@ -104,19 +99,19 @@ function QuestOption({
           ? "hover:shadow-md hover:border-primary/30 cursor-pointer"
           : "opacity-60 cursor-not-allowed"
       )}
-      aria-label={`Preview quest: ${quest.title}`}
+      aria-label={`Learn more about quest: ${quest.title}`}
     >
       <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className={cn("flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center", prereqsMet ? meta.color : "bg-muted")}>
           {prereqsMet ? (
-            <Icon className="h-5 w-5 text-primary" />
+            <Icon className="h-5 w-5" />
           ) : (
             <Lock className="h-5 w-5 text-muted-foreground" />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground">{quest.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-1">{quest.description}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{quest.description}</p>
           {!prereqsMet && (
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
               <Lock className="h-3 w-3" />
@@ -124,7 +119,7 @@ function QuestOption({
             </p>
           )}
           {prereqsMet && (
-            <p className="text-xs text-muted-foreground mt-0.5">{quest.estimated_duration}</p>
+            <p className="text-xs text-muted-foreground mt-1">{quest.estimated_duration}</p>
           )}
         </div>
         {prereqsMet && (

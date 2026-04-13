@@ -1,15 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Compass, Rocket } from "lucide-react";
+import { Compass, Rocket, Search } from "lucide-react";
 import { useQuestPaths, useUserQuestSelections } from "@/hooks/use-quest";
 import { QuestPickerDialog } from "./QuestPickerDialog";
 import { QuestPreviewDialog } from "./QuestPreviewDialog";
+import { QuestCongratulationsDialog } from "./QuestCongratulationsDialog";
+import questEmptyState from "@/assets/quest-empty-state.png";
 
-/**
- * Quest Overview — empty-state with explanation + button to browse quests.
- * If the user already has an active quest, navigates to its detail page.
- */
 export function QuestOverview() {
   const navigate = useNavigate();
   const { data: paths, isLoading: pathsLoading } = useQuestPaths();
@@ -17,6 +15,7 @@ export function QuestOverview() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [previewPathId, setPreviewPathId] = useState<string | null>(null);
+  const [congratsPathId, setCongratsPathId] = useState<string | null>(null);
 
   const selectedPathIds = useMemo(
     () => selections?.map((s) => s.path_id) ?? [],
@@ -35,6 +34,19 @@ export function QuestOverview() {
 
   const hasActiveQuest = selectedPathIds.length > 0;
 
+  const handleQuestSelected = (pathId: string) => {
+    setPreviewPathId(null);
+    setCongratsPathId(pathId);
+  };
+
+  const handleCongratsClose = () => {
+    const pathId = congratsPathId;
+    setCongratsPathId(null);
+    if (pathId) {
+      navigate(`/my-journey/quest/${pathId}`);
+    }
+  };
+
   if (pathsLoading || selectionsLoading) {
     return (
       <div className="flex items-center justify-center py-16" role="status" aria-label="Loading quests">
@@ -46,7 +58,6 @@ export function QuestOverview() {
   return (
     <div className="w-full">
       {hasActiveQuest ? (
-        /* User already has quest(s) — show a summary card for each */
         <div className="space-y-4">
           {selections?.map((sel) => {
             const path = paths?.find((p) => p.id === sel.path_id);
@@ -79,33 +90,36 @@ export function QuestOverview() {
 
           <div className="flex justify-center pt-2">
             <Button variant="outline" onClick={() => setPickerOpen(true)}>
-              <Compass className="mr-2 h-4 w-4" />
-              Browse More Quests
+              <Search className="mr-2 h-4 w-4" />
+              Find Quests
             </Button>
           </div>
         </div>
       ) : (
-        /* Empty state — no quests yet */
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Compass className="h-8 w-8 text-primary" />
-          </div>
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <img
+            src={questEmptyState}
+            alt="Illustration of a person choosing between learning paths"
+            width={320}
+            height={240}
+            className="mb-6"
+            loading="lazy"
+          />
           <h2 className="text-xl font-semibold text-foreground mb-2">
-            Start Your Quest
+            Discover Your Path
           </h2>
           <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">
             Quests are guided learning paths that help you build real-world skills
-            step by step. Choose a quest to review what's involved, then subscribe
-            to begin tracking your progress.
+            step by step. Browse available quests, review what's involved, and
+            subscribe to begin tracking your progress.
           </p>
           <Button size="lg" onClick={() => setPickerOpen(true)}>
             <Compass className="mr-2 h-5 w-5" />
-            Choose a Quest
+            Find Quests
           </Button>
         </div>
       )}
 
-      {/* Quest picker dialog */}
       <QuestPickerDialog
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -117,13 +131,25 @@ export function QuestOverview() {
         }}
       />
 
-      {/* Quest preview/subscribe dialog */}
       {previewPathId && (
         <QuestPreviewDialog
           open={!!previewPathId}
           onOpenChange={(open) => { if (!open) setPreviewPathId(null); }}
           pathId={previewPathId}
           completedPathSlugs={completedPathSlugs}
+          onQuestSelected={handleQuestSelected}
+          onFindAnother={() => {
+            setPreviewPathId(null);
+            setPickerOpen(true);
+          }}
+        />
+      )}
+
+      {congratsPathId && (
+        <QuestCongratulationsDialog
+          open={!!congratsPathId}
+          pathTitle={paths?.find((p) => p.id === congratsPathId)?.title ?? ""}
+          onClose={handleCongratsClose}
         />
       )}
     </div>

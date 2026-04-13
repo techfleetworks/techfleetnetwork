@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Lock } from "lucide-react";
+import { Clock, Lock, Search } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { useQuestPaths, useQuestSteps, useAddQuestPath } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 const STEP_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   course: { label: "COURSE", color: "bg-primary/10 text-primary" },
@@ -20,6 +19,8 @@ interface QuestPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   pathId: string;
   completedPathSlugs: Set<string>;
+  onQuestSelected: (pathId: string) => void;
+  onFindAnother: () => void;
 }
 
 export function QuestPreviewDialog({
@@ -27,6 +28,8 @@ export function QuestPreviewDialog({
   onOpenChange,
   pathId,
   completedPathSlugs,
+  onQuestSelected,
+  onFindAnother,
 }: QuestPreviewDialogProps) {
   const { data: paths } = useQuestPaths();
   const { data: steps, isLoading: stepsLoading } = useQuestSteps(pathId);
@@ -46,11 +49,10 @@ export function QuestPreviewDialog({
       .map((slug) => paths.find((p) => p.slug === slug)?.title ?? slug);
   }, [path, paths, completedPathSlugs]);
 
-  const handleSubscribe = async () => {
+  const handleSelectQuest = async () => {
     try {
       await addPath.mutateAsync(pathId);
-      toast.success(`You've subscribed to "${path?.title}"! Head to your quests to start.`);
-      onOpenChange(false);
+      onQuestSelected(pathId);
     } catch {
       // Error handled by hook
     }
@@ -145,15 +147,16 @@ export function QuestPreviewDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
-            Not Now
+          <Button variant="outline" onClick={onFindAnother} className="w-full sm:w-auto">
+            <Search className="mr-2 h-4 w-4" />
+            Find Another Quest
           </Button>
           <Button
-            onClick={handleSubscribe}
+            onClick={handleSelectQuest}
             disabled={!prereqsMet || addPath.isPending}
             className="w-full sm:w-auto"
           >
-            {addPath.isPending ? "Adding..." : "Yes, Start This Quest"}
+            {addPath.isPending ? "Selecting..." : "Select This Quest"}
           </Button>
         </DialogFooter>
       </DialogContent>
