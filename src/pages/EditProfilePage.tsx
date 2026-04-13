@@ -61,7 +61,7 @@ export default function EditProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs = ["basic-info", "preferences", "account"];
+  const validTabs = ["basic-info", "background", "preferences", "account"];
   const [activeTab, setActiveTab] = useState(
     tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
   );
