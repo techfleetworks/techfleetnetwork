@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BookOpen, Users, Heart, ArrowRight, Lock } from "lucide-react";
+import { BookOpen, Users, Heart, ArrowRight } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -83,48 +83,27 @@ function QuestOption({
 }) {
   const meta = QUEST_META[quest.slug] ?? { icon: BookOpen, color: "bg-muted text-muted-foreground" };
   const Icon = meta.icon;
-  const prereqsMet = quest.prerequisites.every((slug) => completedPathSlugs.has(slug));
-  const missingPrereqs = quest.prerequisites
-    .filter((slug) => !completedPathSlugs.has(slug))
-    .map((slug) => allPaths.find((p) => p.slug === slug)?.title ?? slug);
 
   return (
     <button
       onClick={onSelect}
-      disabled={!prereqsMet}
       className={cn(
         "w-full card-elevated p-4 text-left rounded-lg transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        prereqsMet
-          ? "hover:shadow-md hover:border-primary/30 cursor-pointer"
-          : "opacity-60 cursor-not-allowed"
+        "hover:shadow-md hover:border-primary/30 cursor-pointer"
       )}
       aria-label={`Learn more about quest: ${quest.title}`}
     >
       <div className="flex items-center gap-3">
-        <div className={cn("flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center", prereqsMet ? meta.color : "bg-muted")}>
-          {prereqsMet ? (
-            <Icon className="h-5 w-5" />
-          ) : (
-            <Lock className="h-5 w-5 text-muted-foreground" />
-          )}
+        <div className={cn("flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center", meta.color)}>
+          <Icon className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground">{quest.title}</h3>
           <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{quest.description}</p>
-          {!prereqsMet && (
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Lock className="h-3 w-3" />
-              Requires: {missingPrereqs.join(", ")}
-            </p>
-          )}
-          {prereqsMet && (
-            <p className="text-xs text-muted-foreground mt-1">{quest.estimated_duration}</p>
-          )}
+          <p className="text-xs text-muted-foreground mt-1">{quest.estimated_duration}</p>
         </div>
-        {prereqsMet && (
-          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        )}
+        <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
       </div>
     </button>
   );

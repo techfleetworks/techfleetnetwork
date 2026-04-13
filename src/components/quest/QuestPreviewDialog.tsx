@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Lock, Search } from "lucide-react";
+import { Clock, Search } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -37,10 +37,6 @@ export function QuestPreviewDialog({
 
   const path = paths?.find((p) => p.id === pathId);
 
-  const prereqsMet = useMemo(() => {
-    if (!path) return false;
-    return path.prerequisites.every((slug) => completedPathSlugs.has(slug));
-  }, [path, completedPathSlugs]);
 
   const missingPrereqs = useMemo(() => {
     if (!path || !paths) return [];
@@ -99,14 +95,14 @@ export function QuestPreviewDialog({
           )}
         </div>
 
-        {/* Prerequisites warning */}
-        {!prereqsMet && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <Lock className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+        {/* Prerequisites info */}
+        {missingPrereqs.length > 0 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
+            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-destructive">Prerequisites Required</p>
+              <p className="text-sm font-medium text-foreground">Includes Prerequisites</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Complete these quests first: {missingPrereqs.join(", ")}
+                This quest includes completing: {missingPrereqs.join(", ")}
               </p>
             </div>
           </div>
@@ -153,7 +149,7 @@ export function QuestPreviewDialog({
           </Button>
           <Button
             onClick={handleSelectQuest}
-            disabled={!prereqsMet || addPath.isPending}
+            disabled={addPath.isPending}
             className="w-full sm:w-auto"
           >
             {addPath.isPending ? "Selecting..." : "Select This Quest"}
