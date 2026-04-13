@@ -506,12 +506,34 @@ serve(async (req) => {
 
     log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
 
-    // OWASP AI: Create a transform stream to sanitize AI output
+    // OWASP AI: Create a transform stream to sanitize AI output content
+    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing
     const sanitizeStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
-        const sanitized = sanitizeAIOutput(text);
-        controller.enqueue(new TextEncoder().encode(sanitized));
+        const lines = text.split("\n");
+        const sanitizedLines: string[] = [];
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ") || line.trim() === "data: [DONE]") {
+            sanitizedLines.push(line);
+            continue;
+          }
+          try {
+            const jsonStr = line.slice(6);
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed?.choices?.[0]?.delta?.content;
+            if (typeof content === "string") {
+              parsed.choices[0].delta.content = sanitizeAIOutput(content);
+            }
+            sanitizedLines.push("data: " + JSON.stringify(parsed));
+          } catch {
+            // Partial JSON or unparseable — pass through as-is
+            sanitizedLines.push(line);
+          }
+        }
+
+        controller.enqueue(new TextEncoder().encode(sanitizedLines.join("\n")));
       },
     });
 
