@@ -2,7 +2,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
 import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 import { MyProjectsTab } from "@/components/MyProjectsTab";
-import { TrainingGoalsTab } from "@/components/TrainingGoalsTab";
 import { QuestOverview } from "@/components/quest/QuestOverview";
 
 export default function MyJourneyPage() {
@@ -18,7 +17,6 @@ export default function MyJourneyPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Quests</TabsTrigger>
-          <TabsTrigger value="training-goals">Training Goals</TabsTrigger>
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>
           <TabsTrigger value="certifications">Class Certifications</TabsTrigger>
           <TabsTrigger value="project-certifications">Project Certifications</TabsTrigger>
@@ -26,10 +24,6 @@ export default function MyJourneyPage() {
 
         <TabsContent value="overview">
           <QuestOverview />
-        </TabsContent>
-
-        <TabsContent value="training-goals">
-          <TrainingGoalsTab />
         </TabsContent>
 
         <TabsContent value="my-projects">
