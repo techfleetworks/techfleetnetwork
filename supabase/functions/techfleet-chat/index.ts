@@ -438,10 +438,17 @@ serve(async (req) => {
     }
 
     let knowledgeContext = "";
+    // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
+    const MAX_KB_CONTEXT_CHARS = 400_000;
     if (knowledge && knowledge.length > 0) {
       for (const entry of knowledge) {
-        const truncatedContent = entry.content.length > 3000 ? entry.content.substring(0, 3000) + "...[truncated]" : entry.content;
-        knowledgeContext += `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
+        const truncatedContent = entry.content.length > 2000 ? entry.content.substring(0, 2000) + "...[truncated]" : entry.content;
+        const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
+        if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
+          log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
+          break;
+        }
+        knowledgeContext += entryText;
       }
     } else {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
@@ -499,12 +506,34 @@ serve(async (req) => {
 
     log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
 
-    // OWASP AI: Create a transform stream to sanitize AI output
+    // OWASP AI: Create a transform stream to sanitize AI output content
+    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing
     const sanitizeStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
-        const sanitized = sanitizeAIOutput(text);
-        controller.enqueue(new TextEncoder().encode(sanitized));
+        const lines = text.split("\n");
+        const sanitizedLines: string[] = [];
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ") || line.trim() === "data: [DONE]") {
+            sanitizedLines.push(line);
+            continue;
+          }
+          try {
+            const jsonStr = line.slice(6);
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed?.choices?.[0]?.delta?.content;
+            if (typeof content === "string") {
+              parsed.choices[0].delta.content = sanitizeAIOutput(content);
+            }
+            sanitizedLines.push("data: " + JSON.stringify(parsed));
+          } catch {
+            // Partial JSON or unparseable — pass through as-is
+            sanitizedLines.push(line);
+          }
+        }
+
+        controller.enqueue(new TextEncoder().encode(sanitizedLines.join("\n")));
       },
     });
 
