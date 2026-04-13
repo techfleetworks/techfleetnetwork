@@ -103,6 +103,10 @@ function ProfileDropdown({
           <UserPen className="h-4 w-4 mr-2" />
           Basic Info
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=background")}>
+          <GraduationCap className="h-4 w-4 mr-2" />
+          Background
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=preferences")}>
           <Settings className="h-4 w-4 mr-2" />
           Preferences
