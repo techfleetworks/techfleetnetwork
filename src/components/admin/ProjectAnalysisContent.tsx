@@ -376,7 +376,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             applied to other projects
           </button>
           <p>
-            <span className="font-semibold text-foreground">{bd.total}</span> total applicants
+            <span className="font-semibold text-foreground">{bd.total}</span> {bd.total === 1 ? "person wants" : "people want"} to commit to this duty
           </p>
         </div>
 
