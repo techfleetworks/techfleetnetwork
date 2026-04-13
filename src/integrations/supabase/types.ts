@@ -1342,6 +1342,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          last_nudged_at: string | null
           path_id: string
           started_at: string | null
           updated_at: string
@@ -1351,6 +1352,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          last_nudged_at?: string | null
           path_id: string
           started_at?: string | null
           updated_at?: string
@@ -1360,6 +1362,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          last_nudged_at?: string | null
           path_id?: string
           started_at?: string | null
           updated_at?: string
