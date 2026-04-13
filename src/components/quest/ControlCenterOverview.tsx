@@ -134,6 +134,21 @@ export function ControlCenterOverview() {
           draggable={false}
         />
 
+        {/* ── CRT scanline overlay — covers the full green glass screen ── */}
+        <div
+          className="absolute pointer-events-none z-30"
+          aria-hidden="true"
+          style={{
+            top: "11%",
+            left: "10%",
+            width: "58%",
+            height: "72%",
+            borderRadius: "6% / 8%",
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px)",
+          }}
+        />
+
         {/* ── Screen content area — over the CRT green region ── */}
         <div
           className="absolute overflow-hidden"
@@ -153,14 +168,6 @@ export function ControlCenterOverview() {
                 className="w-full h-full object-cover"
                 draggable={false}
               />
-              <div
-                className="absolute inset-0 pointer-events-none"
-                aria-hidden="true"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
-                }}
-              />
             </div>
           ) : selectedQuestId ? (
             <div
@@ -169,14 +176,6 @@ export function ControlCenterOverview() {
                 background: "radial-gradient(ellipse at center, #024a02 0%, #013201 50%, #001a00 100%)",
               }}
             >
-              <div
-                className="absolute inset-0 pointer-events-none z-10"
-                aria-hidden="true"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)",
-                }}
-              />
               <div
                 className="absolute inset-0 pointer-events-none z-10"
                 aria-hidden="true"
