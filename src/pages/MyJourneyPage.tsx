@@ -25,7 +25,7 @@ export default function MyJourneyPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          <QuestOverview />
+          <ControlCenterOverview />
         </TabsContent>
 
         <TabsContent value="training-goals">
