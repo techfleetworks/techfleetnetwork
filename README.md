@@ -1,5 +1,9 @@
 # Tech Fleet Network
 
+![Regression](https://github.com/lovable-dev/techfleetnetwork/actions/workflows/regression.yml/badge.svg)
+![Vitest](https://github.com/lovable-dev/techfleetnetwork/actions/workflows/regression.yml/badge.svg?event=push&branch=main)
+![BDD Coverage](https://github.com/lovable-dev/techfleetnetwork/actions/workflows/regression.yml/badge.svg?event=push)
+
 ## Project info
 
 Tech Fleet Network is a Lovable-built web app for Tech Fleet trainees and administrators.
