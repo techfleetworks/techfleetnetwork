@@ -3,7 +3,7 @@ import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
 import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 import { MyProjectsTab } from "@/components/MyProjectsTab";
 import { TrainingGoalsTab } from "@/components/TrainingGoalsTab";
-import { QuestOverview } from "@/components/quest/QuestOverview";
+import { ControlCenterOverview } from "@/components/quest/ControlCenterOverview";
 
 export default function MyJourneyPage() {
   return (
