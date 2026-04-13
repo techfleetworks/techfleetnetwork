@@ -156,72 +156,76 @@ export function QuestPathDetail({
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Estimated Time: {path.estimated_duration}</span>
           </div>
-          <div className="relative flex items-center" role="list" aria-label="Duration phases">
-            {/* Connecting line */}
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-border" aria-hidden="true" />
+          <div className="relative" role="list" aria-label="Duration phases">
+            {/* Connecting line (inset to center of first and last nodes) */}
+            <div className="absolute top-5 h-0.5 bg-border" style={{ left: `${100 / (2 * path.duration_phases.length)}%`, right: `${100 / (2 * path.duration_phases.length)}%` }} aria-hidden="true" />
             {/* Completed portion of line */}
             <div
-              className="absolute top-5 left-0 h-0.5 bg-primary transition-all duration-500"
-              style={{ width: `${((currentPhaseIndex) / Math.max(path.duration_phases.length - 1, 1)) * 100}%` }}
+              className="absolute top-5 h-0.5 bg-primary transition-all duration-500"
+              style={{
+                left: `${100 / (2 * path.duration_phases.length)}%`,
+                width: `${((currentPhaseIndex) / Math.max(path.duration_phases.length - 1, 1)) * (100 - 100 / path.duration_phases.length)}%`,
+              }}
               aria-hidden="true"
             />
 
-            {path.duration_phases.map((phase, i) => {
-              const isCompleted = i < currentPhaseIndex;
-              const isCurrent = i === currentPhaseIndex;
-              const _isFuture = i > currentPhaseIndex;
+            <div className="flex">
+              {path.duration_phases.map((phase, i) => {
+                const isCompleted = i < currentPhaseIndex;
+                const isCurrent = i === currentPhaseIndex;
 
-              return (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center relative z-10"
-                  role="listitem"
-                >
-                  {/* Node circle */}
+                return (
                   <div
-                    className={cn(
-                      "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                      isCompleted
-                        ? "bg-primary border-primary"
-                        : isCurrent
-                        ? "bg-background border-primary ring-4 ring-primary/20"
-                        : "bg-background border-muted-foreground/30"
-                    )}
+                    key={i}
+                    className="flex-1 flex flex-col items-center relative z-10"
+                    role="listitem"
                   >
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-5 w-5 text-primary-foreground" />
-                    ) : isCurrent ? (
-                      <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-muted-foreground/40" />
+                    {/* Node circle */}
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                        isCompleted
+                          ? "bg-primary border-primary"
+                          : isCurrent
+                          ? "bg-background border-primary ring-4 ring-primary/20"
+                          : "bg-background border-muted-foreground/30"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary-foreground" />
+                      ) : isCurrent ? (
+                        <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-muted-foreground/40" />
+                      )}
+                    </div>
+
+                    {/* Duration label */}
+                    <p className={cn(
+                      "text-xs font-semibold mt-2 text-center",
+                      isCurrent ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {phase.duration}
+                    </p>
+
+                    {/* Phase label */}
+                    <p className={cn(
+                      "text-[11px] text-center mt-0.5 max-w-[100px]",
+                      isCurrent ? "text-primary font-medium" : "text-muted-foreground"
+                    )}>
+                      {phase.label}
+                    </p>
+
+                    {/* You are here indicator */}
+                    {isCurrent && (
+                      <span className="mt-1.5 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        You are here
+                      </span>
                     )}
                   </div>
-
-                  {/* Duration label */}
-                  <p className={cn(
-                    "text-xs font-semibold mt-2 text-center",
-                    isCurrent ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {phase.duration}
-                  </p>
-
-                  {/* Phase label */}
-                  <p className={cn(
-                    "text-[11px] text-center mt-0.5 max-w-[100px]",
-                    isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                  )}>
-                    {phase.label}
-                  </p>
-
-                  {/* You are here indicator */}
-                  {isCurrent && (
-                    <span className="mt-1.5 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      You are here
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
