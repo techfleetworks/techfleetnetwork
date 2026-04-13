@@ -363,6 +363,10 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
         {/* Tertiary: Application breakdown */}
         <div className="space-y-1.5 text-sm text-muted-foreground">
           <p>
+            <span className="font-semibold text-foreground">{bd.total}</span> {bd.total === 1 ? "person" : "people"} interested in this duty
+          </p>
+          <Separator className="!my-1" />
+          <p>
             <span className="font-semibold text-success">{bd.unique}</span>{" "}
             applied to only <span className="font-medium text-foreground">{clientName}</span>
           </p>
@@ -373,11 +377,8 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             onClick={() => bd.shared > 0 && setMultiProjectSheet({ hat })}
           >
             <span className="font-semibold text-warning">{bd.shared}</span>{" "}
-            applied to other projects
+            applied to other projects too
           </button>
-          <p>
-            <span className="font-semibold text-foreground">{bd.total}</span> {bd.total === 1 ? "person wants" : "people want"} to commit to this duty
-          </p>
         </div>
 
         {/* Progress bar */}
@@ -487,6 +488,10 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <p>
               Each core role needs at least <strong>{READY_THRESHOLD} applicants</strong> who only applied to {clientName} to be considered ready.
             </p>
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs">
+              <strong>{analysis?.totalApplicants ?? 0} unique {(analysis?.totalApplicants ?? 0) === 1 ? "person" : "people"}</strong> applied to this project.
+              Since applicants can select multiple duties, the same person may appear in more than one card below.
+            </div>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> <strong>Ready to recruit</strong> = {READY_THRESHOLD}+ applicants</span>
               <span className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" /> <strong>Almost ready</strong> = 1 applicant</span>
@@ -513,6 +518,9 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
             <p className="text-sm text-muted-foreground">
               Supporting roles that strengthen the team. Not weighted as heavily in the readiness score, but still important for well-rounded recruiting.
             </p>
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Applicants can select multiple duties — the same person may appear in more than one card.
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {otherHats.map((hat) => <HatRow key={hat} hat={hat} />)}
