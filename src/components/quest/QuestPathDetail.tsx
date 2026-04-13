@@ -149,37 +149,82 @@ export function QuestPathDetail({
         <p className="text-muted-foreground mt-1">{path.description}</p>
       </div>
 
-      {/* Estimated Time */}
-      <div aria-label={`Estimated time to complete: ${path.estimated_duration}`}>
-        <div className="flex items-center gap-2 mb-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Estimated Time: {path.estimated_duration}</span>
-        </div>
-        {path.duration_phases.length > 1 && (
-          <div className="flex gap-0.5 rounded-lg overflow-hidden" role="list" aria-label="Duration phases">
-            {path.duration_phases.map((phase, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex-1 py-2 px-3 text-center",
-                  i === currentPhaseIndex
-                    ? "bg-primary/20 border-2 border-primary/40"
-                    : i < currentPhaseIndex
-                    ? "bg-success/10"
-                    : "bg-muted/50"
-                )}
-                role="listitem"
-              >
-                <p className="text-xs font-medium text-foreground">{phase.duration}</p>
-                <p className="text-xs text-muted-foreground">{phase.label}</p>
-                {i === currentPhaseIndex && (
-                  <p className="text-[10px] text-primary font-medium mt-0.5">▲ You are here</p>
-                )}
-              </div>
-            ))}
+      {/* Timeline */}
+      {path.duration_phases.length > 1 && (
+        <div aria-label={`Estimated time to complete: ${path.estimated_duration}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Estimated Time: {path.estimated_duration}</span>
           </div>
-        )}
-      </div>
+          <div className="relative flex items-center" role="list" aria-label="Duration phases">
+            {/* Connecting line */}
+            <div className="absolute top-5 left-0 right-0 h-0.5 bg-border" aria-hidden="true" />
+            {/* Completed portion of line */}
+            <div
+              className="absolute top-5 left-0 h-0.5 bg-primary transition-all duration-500"
+              style={{ width: `${((currentPhaseIndex) / Math.max(path.duration_phases.length - 1, 1)) * 100}%` }}
+              aria-hidden="true"
+            />
+
+            {path.duration_phases.map((phase, i) => {
+              const isCompleted = i < currentPhaseIndex;
+              const isCurrent = i === currentPhaseIndex;
+              const isFuture = i > currentPhaseIndex;
+
+              return (
+                <div
+                  key={i}
+                  className="flex-1 flex flex-col items-center relative z-10"
+                  role="listitem"
+                >
+                  {/* Node circle */}
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                      isCompleted
+                        ? "bg-primary border-primary"
+                        : isCurrent
+                        ? "bg-background border-primary ring-4 ring-primary/20"
+                        : "bg-background border-muted-foreground/30"
+                    )}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-primary-foreground" />
+                    ) : isCurrent ? (
+                      <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-muted-foreground/40" />
+                    )}
+                  </div>
+
+                  {/* Duration label */}
+                  <p className={cn(
+                    "text-xs font-semibold mt-2 text-center",
+                    isCurrent ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"
+                  )}>
+                    {phase.duration}
+                  </p>
+
+                  {/* Phase label */}
+                  <p className={cn(
+                    "text-[11px] text-center mt-0.5 max-w-[100px]",
+                    isCurrent ? "text-primary font-medium" : "text-muted-foreground"
+                  )}>
+                    {phase.label}
+                  </p>
+
+                  {/* You are here indicator */}
+                  {isCurrent && (
+                    <span className="mt-1.5 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      You are here
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Progress */}
       <div>
