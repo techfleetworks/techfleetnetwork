@@ -169,7 +169,7 @@ export function QuestPathDetail({
             {path.duration_phases.map((phase, i) => {
               const isCompleted = i < currentPhaseIndex;
               const isCurrent = i === currentPhaseIndex;
-              const isFuture = i > currentPhaseIndex;
+              const _isFuture = i > currentPhaseIndex;
 
               return (
                 <div
