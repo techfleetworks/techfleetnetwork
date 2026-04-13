@@ -17,7 +17,7 @@ export default function MyJourneyPage() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">Quests</TabsTrigger>
           <TabsTrigger value="training-goals">Training Goals</TabsTrigger>
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>
           <TabsTrigger value="certifications">Class Certifications</TabsTrigger>
