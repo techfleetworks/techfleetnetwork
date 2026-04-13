@@ -161,11 +161,11 @@ export function ControlCenterOverview() {
           }}
         >
           {screenView === "home" ? (
-            <div className="w-full h-full relative">
+            <div className="w-full h-full relative" style={{ background: "#012a01" }}>
               <img
                 src="/images/landscape.svg"
                 alt="Quest landscape"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 draggable={false}
               />
             </div>
