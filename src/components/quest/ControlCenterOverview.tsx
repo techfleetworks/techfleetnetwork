@@ -180,14 +180,6 @@ export function ControlCenterOverview() {
                 className="absolute inset-0 pointer-events-none z-10"
                 aria-hidden="true"
                 style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)",
-                }}
-              />
-              <div
-                className="absolute inset-0 pointer-events-none z-10"
-                aria-hidden="true"
-                style={{
                   background: "radial-gradient(ellipse at center, rgba(1,255,133,0.04) 0%, transparent 70%)",
                 }}
               />
