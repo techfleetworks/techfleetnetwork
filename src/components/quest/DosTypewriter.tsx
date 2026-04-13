@@ -46,7 +46,7 @@ export function DosTypewriter({
   const isTyping = displayedCount < text.length;
 
   return (
-    <span className={className} aria-label={text} role="status">
+    <span className={className} aria-label={text} role="status" style={{ fontFamily: "'White Rabbit', monospace" }}>
       {text.slice(0, displayedCount)}
       <span
         className={isTyping ? "animate-pulse" : "animate-blink"}

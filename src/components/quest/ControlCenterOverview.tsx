@@ -366,7 +366,7 @@ function QuestDetailScreen({
   const fullText = [...lines, "STEPS:", ...stepsText, "", "> READY TO BEGIN? [Y/N]"].join("\n");
 
   return (
-    <div className="font-mono space-y-[3%]">
+    <div className="space-y-[3%]" style={{ fontFamily: "'White Rabbit', monospace" }}>
       <button
         onClick={onReturn}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
