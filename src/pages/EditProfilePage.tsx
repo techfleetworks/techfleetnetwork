@@ -294,6 +294,7 @@ export default function EditProfilePage() {
           <ResponsiveTabsList
             tabs={[
               { value: "basic-info", label: "Basic Info" },
+              { value: "background", label: "Background" },
               { value: "preferences", label: "Preferences" },
               { value: "account", label: "Account" },
             ] as TabItem[]}
