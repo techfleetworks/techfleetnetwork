@@ -134,6 +134,21 @@ export function ControlCenterOverview() {
           draggable={false}
         />
 
+        {/* ── CRT scanline overlay — covers the full green glass screen ── */}
+        <div
+          className="absolute pointer-events-none z-30"
+          aria-hidden="true"
+          style={{
+            top: "11%",
+            left: "10%",
+            width: "58%",
+            height: "72%",
+            borderRadius: "6% / 8%",
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px)",
+          }}
+        />
+
         {/* ── Screen content area — over the CRT green region ── */}
         <div
           className="absolute overflow-hidden"
