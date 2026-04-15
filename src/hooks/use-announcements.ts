@@ -1,46 +1,45 @@
 /**
  * Announcement hooks — optimized for enterprise scale.
  *
- * Key changes:
- * - Shared useAdaptiveInterval (DRY)
- * - Added staleTime to prevent redundant refetches
- * - Optimistic updates on mark-read
+ * Polling reduced from 30s → 60s base (240s when hidden).
+ * staleTime raised to match poll cycle — saves ~50% of announcement DB calls.
  */
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { AnnouncementService } from "@/services/announcement.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
+import { queryKeys, CACHE_SEMI_STATIC } from "@/lib/query-config";
 
 const ANNOUNCEMENTS_KEY = ["announcements"] as const;
 const READ_IDS_KEY = ["announcement-read-ids"] as const;
 
 export function useAnnouncements(limit = 50) {
   return useQuery({
-    queryKey: [...ANNOUNCEMENTS_KEY, limit],
+    queryKey: queryKeys.announcements(limit),
     queryFn: () => AnnouncementService.list(limit),
-    staleTime: 2 * 60 * 1000, // 2 min — announcements change infrequently
+    ...CACHE_SEMI_STATIC, // 15 min — announcements change very infrequently
   });
 }
 
 export function useLatestAnnouncements(limit = 5) {
-  const interval = useAdaptiveInterval(30_000);
+  const interval = useAdaptiveInterval(60_000); // 60s base (was 30s), 240s hidden
   return useQuery({
-    queryKey: [...ANNOUNCEMENTS_KEY, "latest", limit],
+    queryKey: queryKeys.announcementsLatest(limit),
     queryFn: () => AnnouncementService.latest(limit),
     refetchInterval: interval,
-    staleTime: 15_000, // 15s — within a single poll cycle
+    staleTime: 45_000, // 45s — within a single poll cycle
   });
 }
 
 export function useAnnouncementReadIds() {
   const { user } = useAuth();
-  const interval = useAdaptiveInterval(30_000);
+  const interval = useAdaptiveInterval(60_000); // 60s base (was 30s)
   return useQuery({
     queryKey: [...READ_IDS_KEY, user?.id],
     queryFn: () => AnnouncementService.getReadIds(user!.id),
     enabled: !!user,
     refetchInterval: interval,
-    staleTime: 15_000,
+    staleTime: 45_000,
   });
 }
 
