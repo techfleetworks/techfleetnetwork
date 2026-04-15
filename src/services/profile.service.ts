@@ -77,7 +77,8 @@ export const ProfileService = {
         }
       }
 
-      const updateData: Record<string, unknown> = {
+      // Build update payload with only known safe fields (A04 mass assignment)
+      const rawData: Record<string, unknown> = {
         first_name: input.firstName,
         last_name: input.lastName,
         country: input.country,
@@ -99,12 +100,15 @@ export const ProfileService = {
       };
 
       if (email) {
-        updateData.email = email;
+        rawData.email = email;
       }
+
+      // A03/A08: Deep-sanitize all string values to prevent stored XSS
+      const updateData = deepSanitize(rawData);
 
       const { error } = await supabase
         .from("profiles")
-        .update(updateData as any)
+        .update(updateData as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
         .eq("user_id", userId);
       if (error) {
         log.error("update", `Failed to save profile for user ${userId}: ${error.message}`, {
@@ -126,16 +130,19 @@ export const ProfileService = {
       lastName,
       hasEmail: !!email,
     }, async () => {
-      const updateData: Record<string, string> = {
+      const rawData: Record<string, string> = {
         first_name: firstName,
         last_name: lastName,
         display_name: `${firstName} ${lastName}`.trim(),
       };
-      if (email) updateData.email = email;
+      if (email) rawData.email = email;
+
+      // A03: Sanitize OAuth-provided names before persisting
+      const updateData = deepSanitize(rawData);
 
       const { error } = await supabase
         .from("profiles")
-        .update(updateData as any)
+        .update(updateData as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
         .eq("user_id", userId);
       if (error) {
         log.error("updateNames", `Failed to sync profile names for user ${userId}: ${error.message}`, {
