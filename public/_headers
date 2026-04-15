@@ -17,6 +17,12 @@
   NEL: {"report_to":"default","max_age":2592000,"include_subdomains":true}
   Report-To: {"group":"default","max_age":2592000,"endpoints":[{"url":"https://techfleetnetwork.lovable.app/api/csp-report"}],"include_subdomains":true}
 
+/sw.js
+  Cache-Control: no-cache, max-age=0
+  Content-Type: application/javascript
+  Service-Worker-Allowed: /
+
 /sw-push.js
   Cache-Control: no-cache, max-age=0
+  Content-Type: application/javascript
   Service-Worker-Allowed: /
