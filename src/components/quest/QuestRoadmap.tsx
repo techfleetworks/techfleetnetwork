@@ -12,11 +12,12 @@ import {
   useUserQuestSelections,
   useSelfReportProgress,
   useAllJourneyProgress,
+  useSystemVerificationData,
 } from "@/hooks/use-quest";
 import { cn } from "@/lib/utils";
 import { QuestPathDetail } from "./QuestPathDetail";
 import { QuestExploreDialog } from "./QuestExploreDialog";
-import type { QuestPath, QuestPathStep } from "@/services/quest.service";
+import type { QuestPath, QuestPathStep, SystemVerificationData } from "@/services/quest.service";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   rocket: Rocket, map: MapIcon, eye: Eye, "book-open": BookOpen,
