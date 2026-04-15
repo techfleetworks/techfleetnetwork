@@ -129,3 +129,14 @@ export function useAllJourneyProgress() {
     refetchInterval,
   });
 }
+
+/** Fetch system verification data for quest steps referencing other DB tables */
+export function useSystemVerificationData() {
+  const { user } = useAuth();
+  return useQuery<SystemVerificationData>({
+    queryKey: ["quest-system-verification", user?.id],
+    queryFn: () => QuestService.getSystemVerificationData(user!.id),
+    enabled: !!user?.id,
+    staleTime: USER_STALE_TIME,
+  });
+}
