@@ -26,7 +26,7 @@ import type { UserRow } from "@/components/admin/UserActionsDropdown";
 
 export default function UserAdminPage() {
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin check is handled by AdminRoute wrapper
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
