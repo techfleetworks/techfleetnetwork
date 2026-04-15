@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { SystemVerificationData } from "@/services/quest.service";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -36,6 +37,7 @@ interface QuestPathDetailProps {
   selfReportProgress: Map<string, boolean> | undefined;
   completedPathSlugs: Set<string>;
   allPaths: QuestPath[];
+  sysVerification?: SystemVerificationData | null;
 }
 
 export function QuestPathDetail({
@@ -43,6 +45,7 @@ export function QuestPathDetail({
   onBack,
   allProgress,
   selfReportProgress: parentSelfReport,
+  sysVerification,
 }: QuestPathDetailProps) {
   const { profile } = useAuth();
   const { data: steps, isLoading } = useQuestSteps(path.id);
@@ -59,10 +62,10 @@ export function QuestPathDetail({
     if (!steps) return new Map<string, boolean>();
     const map = new Map<string, boolean>();
     for (const step of steps) {
-      map.set(step.id, isStepCompleted(step, allProgress, selfReportProgress, profile));
+      map.set(step.id, isStepCompleted(step, allProgress, selfReportProgress, profile, sysVerification));
     }
     return map;
-  }, [steps, allProgress, selfReportProgress, profile]);
+  }, [steps, allProgress, selfReportProgress, profile, sysVerification]);
 
   const completedCount = useMemo(() => {
     let count = 0;

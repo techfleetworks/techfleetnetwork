@@ -9,6 +9,7 @@ import {
   useAllJourneyProgress,
   useQuestSteps,
   useAddQuestPath,
+  useSystemVerificationData,
 } from "@/hooks/use-quest";
 import { isStepCompleted } from "./QuestRoadmap";
 import { DosTypewriter } from "./DosTypewriter";
