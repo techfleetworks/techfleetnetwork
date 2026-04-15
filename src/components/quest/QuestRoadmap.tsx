@@ -40,6 +40,8 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
 
   // Single query replaces 7 individual useJourneyProgress() calls
   const { data: allJourneyMap } = useAllJourneyProgress();
+  // System verification data for steps referencing other DB tables
+  const { data: sysVerification } = useSystemVerificationData();
 
   // Derive phase completion stats from the single batch query
   const allProgress = useMemo(() => {
@@ -64,7 +66,7 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
       let nextStep: QuestPathStep | undefined;
 
       for (const step of steps) {
-        if (isStepCompleted(step, allProgress, selfReportProgress, profile)) {
+        if (isStepCompleted(step, allProgress, selfReportProgress, profile, sysVerification)) {
           completed++;
         } else if (!nextStep) {
           nextStep = step;
@@ -73,7 +75,7 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
       result.set(path.id, { completed, total: steps.length, nextStep });
     }
     return result;
-  }, [paths, allSteps, selections, allProgress, selfReportProgress, profile]);
+  }, [paths, allSteps, selections, allProgress, selfReportProgress, profile, sysVerification]);
 
   const completedPathSlugs = useMemo(() => {
     if (!paths) return new Set<string>();
