@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_banners: {
+        Row: {
+          body_html: string
+          created_at: string
+          created_by: string
+          id: string
+          reopen_after_dismiss: boolean
+          status: Database["public"]["Enums"]["banner_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          reopen_after_dismiss?: boolean
+          status?: Database["public"]["Enums"]["banner_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          reopen_after_dismiss?: boolean
+          status?: Database["public"]["Enums"]["banner_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_promotions: {
         Row: {
           confirmed_at: string | null
@@ -138,6 +171,35 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      banner_dismissals: {
+        Row: {
+          banner_id: string
+          dismissed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          banner_id: string
+          dismissed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          banner_id?: string
+          dismissed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banner_dismissals_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "admin_banners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bdd_scenarios: {
         Row: {
@@ -1634,6 +1696,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member"
+      banner_status: "draft" | "published" | "archived"
       bdd_status: "implemented" | "partial" | "not_built"
       bdd_test_type: "unit" | "e2e" | "both" | "none" | "manual"
       client_status: "active" | "inactive"
@@ -1794,6 +1857,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      banner_status: ["draft", "published", "archived"],
       bdd_status: ["implemented", "partial", "not_built"],
       bdd_test_type: ["unit", "e2e", "both", "none", "manual"],
       client_status: ["active", "inactive"],
