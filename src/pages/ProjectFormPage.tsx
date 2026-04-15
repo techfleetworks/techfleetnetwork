@@ -84,7 +84,7 @@ export default function ProjectFormPage() {
   const isEditing = !!id;
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin access is enforced by AdminRoute wrapper
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<ProjectForm>(EMPTY_FORM);
@@ -329,14 +329,13 @@ export default function ProjectFormPage() {
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
-  if (adminLoading || (isEditing && !initialized)) {
+  if (isEditing && !initialized) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6 max-w-3xl mx-auto">

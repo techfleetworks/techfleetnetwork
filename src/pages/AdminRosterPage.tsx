@@ -22,7 +22,7 @@ interface ProjectWithClient {
 }
 
 export default function AdminRosterPage() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin access is enforced by AdminRoute wrapper
   const { user } = useAuth();
   const navigate = useNavigate();
 
