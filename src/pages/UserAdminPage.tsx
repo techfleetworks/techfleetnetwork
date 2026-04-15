@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Navigate } from "react-router-dom";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -226,15 +226,7 @@ export default function UserAdminPage() {
     },
   ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
 
-  if (adminLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  // Admin access is enforced by AdminRoute wrapper
 
   const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : "Resend Admin Invite?";
   const confirmDesc = confirmAction === "promote"
