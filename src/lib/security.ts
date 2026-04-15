@@ -200,12 +200,18 @@ export function safeErrorMessage(error: unknown): string {
 
 // ─── Timing-Safe Comparison (A02, A07) ──────────────────────────────
 
-/** Constant-time string comparison to prevent timing attacks */
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ * Pads the shorter string so the loop length never leaks which input
+ * was shorter — the XOR still produces a non-zero result on mismatch.
+ */
 export function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const maxLen = Math.max(a.length, b.length);
+  // Length mismatch will still fail because padded chars won't match,
+  // but we track it explicitly to guarantee rejection.
+  let result = a.length ^ b.length;
+  for (let i = 0; i < maxLen; i++) {
+    result |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
   return result === 0;
 }
@@ -433,11 +439,11 @@ export function isAllowedOrigin(origin: string | null): boolean {
 
 /**
  * Clear sensitive session data when the app is backgrounded (MASVS-STORAGE-2).
- * Call this from a visibility change handler.
+ * Removes cached form data from sessionStorage to prevent data theft
+ * on shared/public devices. Preserves session management keys.
  */
 export function clearSensitiveSessionData(): void {
-  // Remove any cached form data from session storage
-  const keysToKeep = new Set(["session_started_at", "theme"]);
+  const keysToKeep = new Set(["session_started_at", "theme", "sb-iqsjhrhsjlgjiaedzmtz-auth-token"]);
   const keysToRemove: string[] = [];
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
@@ -445,8 +451,9 @@ export function clearSensitiveSessionData(): void {
       keysToRemove.push(key);
     }
   }
-  // Don't actually remove session keys — just flag for re-validation
-  // This prevents data theft on shared/public devices
+  for (const key of keysToRemove) {
+    sessionStorage.removeItem(key);
+  }
 }
 
 // ─── CRS-Inspired WAF Patterns (ModSecurity CRS) ───────────────────
