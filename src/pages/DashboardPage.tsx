@@ -40,6 +40,7 @@ import { CheckCircle2 as CheckCircle2Icon } from "lucide-react";
 import { format } from "date-fns";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
+import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
