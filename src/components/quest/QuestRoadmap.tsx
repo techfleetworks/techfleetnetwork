@@ -123,6 +123,7 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
           selfReportProgress={selfReportProgress}
           completedPathSlugs={completedPathSlugs}
           allPaths={paths ?? []}
+          sysVerification={sysVerification}
         />
       );
     }
