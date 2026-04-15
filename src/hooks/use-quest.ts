@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
-import { QuestService, type QuestPath, type QuestPathStep, type UserQuestSelection } from "@/services/quest.service";
+import { QuestService, type QuestPath, type QuestPathStep, type UserQuestSelection, type SystemVerificationData } from "@/services/quest.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
