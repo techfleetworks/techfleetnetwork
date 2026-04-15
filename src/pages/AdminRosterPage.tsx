@@ -4,7 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldAlert, Target, Users, FolderKanban, BarChart3, ArrowRight } from "lucide-react";
+import { Loader2, Target, Users, FolderKanban, BarChart3, ArrowRight } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;

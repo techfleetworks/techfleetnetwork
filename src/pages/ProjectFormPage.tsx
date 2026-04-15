@@ -192,7 +192,7 @@ export default function ProjectFormPage() {
         label: p.display_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unknown",
       })).sort((a, b) => a.label.localeCompare(b.label));
     },
-    enabled: isAdmin,
+    enabled: !!user,
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
