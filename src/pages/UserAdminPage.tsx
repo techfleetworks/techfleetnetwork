@@ -1,9 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/use-admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +24,7 @@ import type { UserRow } from "@/components/admin/UserActionsDropdown";
 
 export default function UserAdminPage() {
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin check is handled by AdminRoute wrapper
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -75,8 +73,8 @@ export default function UserAdminPage() {
   };
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) fetchData();
-  }, [isAdmin, adminLoading]);
+    fetchData();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
@@ -227,15 +225,7 @@ export default function UserAdminPage() {
     },
   ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
 
-  if (adminLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  // Admin access is enforced by AdminRoute wrapper
 
   const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : "Resend Admin Invite?";
   const confirmDesc = confirmAction === "promote"

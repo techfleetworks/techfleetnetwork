@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ProfileInput } from "@/lib/validators/profile";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { createLogger } from "@/services/logger.service";
+import { pickAllowedFields, deepSanitize } from "@/lib/security";
 
 const log = createLogger("ProfileService");
 
@@ -150,13 +151,37 @@ export const ProfileService = {
 
   /** Update arbitrary profile fields (used by general application to sync Section 2 fields) */
   async updateFields(userId: string, fields: Record<string, unknown>) {
+    // Mass assignment protection: only allow known safe fields
+    const ALLOWED_PROFILE_FIELDS = [
+      "bio",
+      "professional_background",
+      "professional_goals",
+      "education_background",
+      "experience_areas",
+      "interests",
+      "portfolio_url",
+      "linkedin_url",
+      "scheduling_url",
+      "notify_training_opportunities",
+      "notify_announcements",
+      "has_discord_account",
+      "avatar_url",
+    ];
+    const safeFields = pickAllowedFields(fields, ALLOWED_PROFILE_FIELDS);
+    // Sanitize string values to prevent stored XSS
+    const sanitizedFields = deepSanitize(safeFields);
+
     return log.track("updateFields", `Updating profile fields for user ${userId}`, {
       userId,
-      fields: Object.keys(fields),
+      fields: Object.keys(sanitizedFields),
     }, async () => {
+      if (Object.keys(sanitizedFields).length === 0) {
+        log.warn("updateFields", "No allowed fields to update", { userId, requestedFields: Object.keys(fields) });
+        return;
+      }
       const { error } = await supabase
         .from("profiles")
-        .update(fields as any)
+        .update(sanitizedFields as any)
         .eq("user_id", userId);
       if (error) {
         log.error("updateFields", `Failed to update profile fields: ${error.message}`, { userId }, error);

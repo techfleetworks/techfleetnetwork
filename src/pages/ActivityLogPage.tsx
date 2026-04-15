@@ -1,9 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-import { useAdmin } from "@/hooks/use-admin";
+
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -91,7 +90,7 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
 const PAGE_SIZE = 50;
 
 export default function ActivityLogPage() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin access is enforced by AdminRoute wrapper
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [profiles, setProfiles] = useState<Map<string, { email: string; name: string }>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -143,12 +142,12 @@ export default function ActivityLogPage() {
   };
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) fetchProfiles();
-  }, [isAdmin, adminLoading]);
+    fetchProfiles();
+  }, []);
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) fetchLogs();
-  }, [isAdmin, adminLoading, page, eventFilter]);
+    fetchLogs();
+  }, [page, eventFilter]);
 
   const filteredEntries = useMemo(() => {
     if (!search.trim()) return entries;
@@ -252,15 +251,7 @@ export default function ActivityLogPage() {
     },
   ], [profiles]);
 
-  if (adminLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  // Admin access is enforced by AdminRoute wrapper
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">

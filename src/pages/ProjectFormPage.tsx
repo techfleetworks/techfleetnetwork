@@ -1,10 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { DiscordRolePicker } from "@/components/DiscordRolePicker";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/use-admin";
 import { toast } from "sonner";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -84,7 +83,7 @@ export default function ProjectFormPage() {
   const isEditing = !!id;
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  // Admin access is enforced by AdminRoute wrapper
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<ProjectForm>(EMPTY_FORM);
@@ -193,7 +192,7 @@ export default function ProjectFormPage() {
         label: p.display_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unknown",
       })).sort((a, b) => a.label.localeCompare(b.label));
     },
-    enabled: isAdmin,
+    enabled: !!user,
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
@@ -329,14 +328,13 @@ export default function ProjectFormPage() {
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
-  if (adminLoading || (isEditing && !initialized)) {
+  if (isEditing && !initialized) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6 max-w-3xl mx-auto">
