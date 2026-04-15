@@ -88,6 +88,47 @@ serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `CSV ingest request received [${requestId}]`, { requestId });
 
+  // --- JWT + admin role validation ---
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const SUPABASE_URL_AUTH = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const SUPABASE_SERVICE_ROLE_KEY_AUTH = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const anonClient = createClient(SUPABASE_URL_AUTH, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await anonClient.auth.getUser();
+  if (userErr || !userData?.user) {
+    log.warn("auth", `Invalid JWT [${requestId}]`, { requestId });
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const adminClient = createClient(SUPABASE_URL_AUTH, SUPABASE_SERVICE_ROLE_KEY_AUTH);
+  const { data: roleData } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userData.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!roleData) {
+    log.warn("auth", `Non-admin user attempted ingest [${requestId}]: ${userData.user.id}`, { requestId });
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  // --- End auth ---
+
   try {
     const { csv_text, dataset_name } = await req.json();
 

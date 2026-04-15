@@ -14,9 +14,19 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // --- Service role key validation (internal/cron only) ---
+  const authHeader = req.headers.get('Authorization')
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  if (!authHeader || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  // --- End auth ---
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient(supabaseUrl, serviceKey)
 
   const now = new Date()
   const inactivityThreshold = new Date(now.getTime() - INACTIVITY_THRESHOLD_DAYS * 24 * 60 * 60 * 1000).toISOString()
