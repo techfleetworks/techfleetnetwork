@@ -11,10 +11,10 @@ import {
   Activity,
   Megaphone,
   Building2,
-  
   MessageSquarePlus,
   Users,
   Map,
+  Flag,
 } from "lucide-react";
 import {
   Sidebar,
@@ -135,6 +135,18 @@ export const AppSidebar = memo(function AppSidebar() {
                     <Link to="/admin/activity-log">
                       <Activity className="h-4 w-4" />
                       <span>Activity Log</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/banners")}
+                    tooltip="Banner Management"
+                  >
+                    <Link to="/admin/banners">
+                      <Flag className="h-4 w-4" />
+                      <span>Banners</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

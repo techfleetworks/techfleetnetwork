@@ -54,6 +54,7 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
+const BannerManagementPage = lazy(() => import("./pages/BannerManagementPage"));
 const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
 const RosterApplicantDetailPage = lazy(() => import("./pages/RosterApplicantDetailPage"));
 const MyJourneyPage = lazy(() => import("./pages/MyJourneyPage"));
@@ -153,6 +154,7 @@ const App = () => (
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
                     <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
+                    <Route path="/admin/banners" element={<AdminRoute><BannerManagementPage /></AdminRoute>} />
                     <Route path="/admin/roster/project/:projectId" element={<AdminRoute><RosterProjectDetailPage /></AdminRoute>} />
                     <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<AdminRoute><RosterApplicantDetailPage /></AdminRoute>} />
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
