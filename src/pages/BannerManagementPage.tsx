@@ -49,7 +49,7 @@ import {
 import { Plus, Pencil, Trash2, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { sanitizeHtml } from "@/lib/security";
-import RichTextEditor from "@/components/RichTextEditor";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
