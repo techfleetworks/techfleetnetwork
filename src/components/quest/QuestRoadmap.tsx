@@ -295,6 +295,7 @@ export function isStepCompleted(
   courseProgress: Map<string, { completed: number; total: number }>,
   selfReportProgress: Map<string, boolean> | undefined,
   profile: { discord_username?: string; profile_completed?: boolean } | null,
+  sysVerification?: SystemVerificationData | null,
 ): boolean {
   switch (step.step_type) {
     case "course": {
@@ -305,16 +306,53 @@ export function isStepCompleted(
     case "self_report":
       return selfReportProgress?.get(step.id) ?? false;
     case "system_verified": {
+      const filter = step.linked_filter as Record<string, unknown> | null;
       if (step.linked_table === "profiles") {
-        const filter = step.linked_filter as Record<string, unknown> | null;
         if (filter?.field === "profile_completed") return !!profile?.profile_completed;
         if (filter?.field === "discord_username" && filter?.not_empty) return !!profile?.discord_username;
         if (filter?.auto_after_step) return false;
       }
+      if (step.linked_table === "class_certifications" && sysVerification) {
+        if (filter?.match_user) return sysVerification.classCertifications.length > 0;
+      }
+      if (step.linked_table === "project_applications" && sysVerification && filter) {
+        const field = filter.field as string;
+        const value = filter.value as string;
+        return sysVerification.projectApplications.some((pa) => {
+          if (field === "applicant_status") return pa.applicant_status === value;
+          if (field === "status") return pa.status === value;
+          return false;
+        });
+      }
       return false;
     }
-    case "application":
+    case "application": {
+      const filter = step.linked_filter as Record<string, unknown> | null;
+      if (step.linked_table === "general_applications" && sysVerification && filter) {
+        const field = filter.field as string;
+        const value = filter.value as string;
+        return sysVerification.generalApplications.some((ga) => {
+          if (field === "status") {
+            // "submitted" matches both "submitted" and "completed" statuses
+            if (value === "submitted") return ga.status === "submitted" || ga.status === "completed";
+            return ga.status === value;
+          }
+          return false;
+        });
+      }
+      if (step.linked_table === "project_applications" && sysVerification && filter) {
+        const field = filter.field as string;
+        const value = filter.value as string;
+        return sysVerification.projectApplications.some((pa) => {
+          if (field === "status") {
+            if (value === "submitted") return pa.status === "submitted" || pa.status === "completed";
+            return pa.status === value;
+          }
+          return false;
+        });
+      }
       return false;
+    }
     default:
       return false;
   }
