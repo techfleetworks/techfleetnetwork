@@ -222,4 +222,38 @@ export const QuestService = {
       return map;
     });
   },
+
+  /**
+   * Fetch system verification data for quest steps that reference other tables.
+   * Single batch fetch for general_applications, project_applications, and class_certifications.
+   * Reduces N+1 queries to 3 parallel queries.
+   */
+  async getSystemVerificationData(userId: string): Promise<SystemVerificationData> {
+    return log.track("getSystemVerificationData", "Loading system verification data", { userId }, async () => {
+      const [gaRes, paRes, ccRes] = await Promise.all([
+        supabase
+          .from("general_applications")
+          .select("id, status, completed_at")
+          .eq("user_id", userId),
+        supabase
+          .from("project_applications")
+          .select("id, status, applicant_status, completed_at, project_id")
+          .eq("user_id", userId),
+        supabase
+          .from("class_certifications")
+          .select("id, user_id")
+          .eq("user_id", userId),
+      ]);
+
+      if (gaRes.error) log.error("getSystemVerificationData", "general_applications: " + gaRes.error.message, { userId });
+      if (paRes.error) log.error("getSystemVerificationData", "project_applications: " + paRes.error.message, { userId });
+      if (ccRes.error) log.error("getSystemVerificationData", "class_certifications: " + ccRes.error.message, { userId });
+
+      return {
+        generalApplications: gaRes.data ?? [],
+        projectApplications: paRes.data ?? [],
+        classCertifications: ccRes.data ?? [],
+      };
+    });
+  },
 };
