@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
-import { QuestService, type QuestPath, type QuestPathStep, type UserQuestSelection } from "@/services/quest.service";
+import { QuestService, type QuestPath, type QuestPathStep, type UserQuestSelection, type SystemVerificationData } from "@/services/quest.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
@@ -127,5 +127,16 @@ export function useAllJourneyProgress() {
     enabled: !!user?.id,
     staleTime: USER_STALE_TIME,
     refetchInterval,
+  });
+}
+
+/** Fetch system verification data for quest steps referencing other DB tables */
+export function useSystemVerificationData() {
+  const { user } = useAuth();
+  return useQuery<SystemVerificationData>({
+    queryKey: ["quest-system-verification", user?.id],
+    queryFn: () => QuestService.getSystemVerificationData(user!.id),
+    enabled: !!user?.id,
+    staleTime: USER_STALE_TIME,
   });
 }
