@@ -130,16 +130,19 @@ export const ProfileService = {
       lastName,
       hasEmail: !!email,
     }, async () => {
-      const updateData: Record<string, string> = {
+      const rawData: Record<string, string> = {
         first_name: firstName,
         last_name: lastName,
         display_name: `${firstName} ${lastName}`.trim(),
       };
-      if (email) updateData.email = email;
+      if (email) rawData.email = email;
+
+      // A03: Sanitize OAuth-provided names before persisting
+      const updateData = deepSanitize(rawData);
 
       const { error } = await supabase
         .from("profiles")
-        .update(updateData as any)
+        .update(updateData as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
         .eq("user_id", userId);
       if (error) {
         log.error("updateNames", `Failed to sync profile names for user ${userId}: ${error.message}`, {
