@@ -41,6 +41,7 @@ export function ControlCenterOverview() {
   const { data: selections, isLoading: selectionsLoading } = useUserQuestSelections();
   const { data: selfReportProgress } = useSelfReportProgress();
   const { data: allJourneyMap } = useAllJourneyProgress();
+  const { data: sysVerification } = useSystemVerificationData();
 
   const [screenView, setScreenView] = useState<ScreenView>("home");
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function ControlCenterOverview() {
       let completed = 0;
       let nextStep: QuestPathStep | undefined;
       for (const step of steps) {
-        if (isStepCompleted(step, allProgress, selfReportProgress, profile)) {
+        if (isStepCompleted(step, allProgress, selfReportProgress, profile, sysVerification)) {
           completed++;
         } else if (!nextStep) {
           nextStep = step;
@@ -72,7 +73,7 @@ export function ControlCenterOverview() {
       result.set(path.id, { completed, total: steps.length, nextStep });
     }
     return result;
-  }, [paths, allSteps, allProgress, selfReportProgress, profile]);
+  }, [paths, allSteps, allProgress, selfReportProgress, profile, sysVerification]);
 
   const subscribedIds = useMemo(() => {
     if (!selections) return new Set<string>();
