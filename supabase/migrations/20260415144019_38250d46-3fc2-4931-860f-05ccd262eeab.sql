@@ -1,0 +1,1 @@
+ALTER TABLE public.email_unsubscribe_tokens DROP CONSTRAINT email_unsubscribe_tokens_email_key;
