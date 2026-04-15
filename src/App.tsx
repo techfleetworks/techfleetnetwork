@@ -138,23 +138,23 @@ const App = () => (
                     <Route path="/applications/projects" element={<ProtectedRoute><MyProjectApplicationsPage /></ProtectedRoute>} />
                     <Route path="/applications/projects/:applicationId/status" element={<ProtectedRoute><ProjectApplicationStatusPage /></ProtectedRoute>} />
                     <Route path="/project-openings" element={<ProtectedRoute><ProjectOpeningsPage /></ProtectedRoute>} />
-                    <Route path="/project-openings/:projectId" element={<ProjectOpeningDetailPage />} />
+                    <Route path="/project-openings/:projectId" element={<ProtectedRoute><ProjectOpeningDetailPage /></ProtectedRoute>} />
                     <Route path="/project-openings/:projectId/apply" element={<ProtectedRoute><ProjectApplicationPage /></ProtectedRoute>} />
-                    <Route path="/admin/ingest" element={<ProtectedRoute><AdminIngestPage /></ProtectedRoute>} />
-                    <Route path="/admin/users" element={<ProtectedRoute><UserAdminPage /></ProtectedRoute>} />
-                    <Route path="/admin/activity-log" element={<ProtectedRoute><ActivityLogPage /></ProtectedRoute>} />
-                    <Route path="/admin/applications/analysis/:projectId" element={<ProtectedRoute><ProjectAnalysisDetailPage /></ProtectedRoute>} />
-                    <Route path="/admin/applications/:applicationId" element={<ProtectedRoute><ApplicationSubmissionDetailPage /></ProtectedRoute>} />
-                    <Route path="/admin/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
-                    <Route path="/admin/clients/projects/new" element={<ProtectedRoute><ProjectFormPage /></ProtectedRoute>} />
-                    <Route path="/admin/clients/projects/:id/edit" element={<ProtectedRoute><ProjectFormPage /></ProtectedRoute>} />
+                    <Route path="/admin/ingest" element={<AdminRoute><AdminIngestPage /></AdminRoute>} />
+                    <Route path="/admin/users" element={<AdminRoute><UserAdminPage /></AdminRoute>} />
+                    <Route path="/admin/activity-log" element={<AdminRoute><ActivityLogPage /></AdminRoute>} />
+                    <Route path="/admin/applications/analysis/:projectId" element={<AdminRoute><ProjectAnalysisDetailPage /></AdminRoute>} />
+                    <Route path="/admin/applications/:applicationId" element={<AdminRoute><ApplicationSubmissionDetailPage /></AdminRoute>} />
+                    <Route path="/admin/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
+                    <Route path="/admin/clients/projects/new" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
+                    <Route path="/admin/clients/projects/:id/edit" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
                     <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-                    <Route path="/admin/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-                    <Route path="/admin/roster" element={<ProtectedRoute><AdminRosterPage /></ProtectedRoute>} />
-                    <Route path="/admin/roster/project/:projectId" element={<ProtectedRoute><RosterProjectDetailPage /></ProtectedRoute>} />
-                    <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<ProtectedRoute><RosterApplicantDetailPage /></ProtectedRoute>} />
+                    <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
+                    <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
+                    <Route path="/admin/roster/project/:projectId" element={<AdminRoute><RosterProjectDetailPage /></AdminRoute>} />
+                    <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<AdminRoute><RosterApplicantDetailPage /></AdminRoute>} />
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                     <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
