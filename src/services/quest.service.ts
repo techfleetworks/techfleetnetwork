@@ -37,7 +37,12 @@ export interface UserQuestSelection {
   created_at: string;
 }
 
-/** Pre-parsed path row to typed QuestPath */
+export interface SystemVerificationData {
+  generalApplications: { id: string; status: string; completed_at: string | null }[];
+  projectApplications: { id: string; status: string; applicant_status: string; completed_at: string | null; project_id: string }[];
+  classCertifications: { id: string; user_id: string }[];
+}
+
 function toQuestPath(p: Record<string, unknown>): QuestPath {
   return {
     ...(p as unknown as QuestPath),
