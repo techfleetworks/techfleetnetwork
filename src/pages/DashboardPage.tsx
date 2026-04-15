@@ -40,6 +40,7 @@ import { CheckCircle2 as CheckCircle2Icon } from "lucide-react";
 import { format } from "date-fns";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
+import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
@@ -219,14 +220,15 @@ export default function DashboardPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Poll for project app status changes (realtime removed for security)
+  // Poll for project app status changes — adaptive interval (60s base, 240s hidden)
+  const dashboardPollInterval = useAdaptiveInterval(60_000);
   useEffect(() => {
     if (!userId) return;
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-project-apps-combined", userId] });
-    }, 30_000);
+    }, dashboardPollInterval);
     return () => clearInterval(interval);
-  }, [userId, queryClient]);
+  }, [userId, queryClient, dashboardPollInterval]);
 
   const myProjectApps = projectAppData?.apps ?? [];
   const dashProjectMap = useMemo(() => new Map((projectAppData?.projects ?? []).map((p) => [p.id, p])), [projectAppData?.projects]);

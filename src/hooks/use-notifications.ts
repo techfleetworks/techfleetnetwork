@@ -24,14 +24,14 @@ const NOTIFICATIONS_KEY = ["notifications"] as const;
  */
 export function useNotifications(limit = 50) {
   const { user } = useAuth();
-  const interval = useAdaptiveInterval(30_000);
+  const interval = useAdaptiveInterval(60_000); // 60s base (was 30s), 240s hidden
 
   return useQuery({
     queryKey: [...NOTIFICATIONS_KEY, user?.id, limit],
     queryFn: () => NotificationService.list(user!.id, limit),
     enabled: !!user,
     refetchInterval: interval,
-    staleTime: 15_000, // 15s — avoid refetching within the same poll cycle
+    staleTime: 45_000, // 45s — within a single poll cycle
   });
 }
 

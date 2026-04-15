@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { MemoryCache } from "@/lib/memory-cache";
 
 export interface Workshop {
   id: string;
@@ -24,12 +25,20 @@ export const workshopCategoryColors: Record<string, string> = {
   "User Experience": "bg-success/10 text-success border-success/20",
 };
 
+const CACHE_KEY = "workshops";
+const CACHE_TTL = 30 * 60 * 1000; // 30 min
+
 export async function fetchWorkshops(): Promise<Workshop[]> {
+  const cached = MemoryCache.get<Workshop[]>(CACHE_KEY);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("workshops")
     .select("id, name, category, description, figma_link, led_by, deliverables, accountable_function, functions_involved, stakeholders, timing, milestones, project_types, skills, company_types")
     .order("name");
 
   if (error) throw error;
-  return (data ?? []) as Workshop[];
+  const result = (data ?? []) as Workshop[];
+  MemoryCache.set(CACHE_KEY, result, CACHE_TTL);
+  return result;
 }
