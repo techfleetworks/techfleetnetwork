@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/use-admin";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ShieldAlert, Target, Users, FolderKanban, BarChart3, ArrowRight } from "lucide-react";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
@@ -36,7 +35,7 @@ export default function AdminRosterPage() {
       if (error) throw error;
       return (data ?? []) as unknown as ProjectWithClient[];
     },
-    enabled: !!user && isAdmin,
+    enabled: !!user,
   });
 
   const sortedProjects = useMemo(() => {
@@ -62,22 +61,13 @@ export default function AdminRosterPage() {
       }
       return counts;
     },
-    enabled: !!user && isAdmin,
+    enabled: !!user,
   });
 
-  if (adminLoading || projLoading) {
+  if (projLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <ShieldAlert className="h-12 w-12 text-destructive" />
-        <p className="text-muted-foreground font-medium">Access denied. Admin role required.</p>
       </div>
     );
   }

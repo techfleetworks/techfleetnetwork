@@ -1,10 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { DiscordRolePicker } from "@/components/DiscordRolePicker";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/use-admin";
 import { toast } from "sonner";
 import { z } from "zod";
 import { format } from "date-fns";
