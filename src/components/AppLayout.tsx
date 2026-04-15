@@ -22,6 +22,7 @@ import {
   Users,
   Settings,
   KeyRound,
+  Flag,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -209,6 +210,7 @@ const mobileNavLinks = [
 
 const mobileAdminLinks = [
   { label: "Activity Log", href: "/admin/activity-log", icon: Activity },
+  { label: "Banners", href: "/admin/banners", icon: Flag },
   { label: "Clients & Projects", href: "/admin/clients", icon: Building2 },
   { label: "Recruiting Center", href: "/admin/roster", icon: Users },
   { label: "User Admin", href: "/admin/users", icon: ShieldCheck },
