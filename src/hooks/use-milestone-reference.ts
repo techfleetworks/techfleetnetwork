@@ -1,5 +1,7 @@
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MemoryCache } from "@/lib/memory-cache";
+import { queryKeys, CACHE_STATIC } from "@/lib/query-config";
 
 export interface MilestoneRef {
   milestone_name: string;
@@ -8,22 +10,31 @@ export interface MilestoneRef {
   skills: string[];
 }
 
+const MEM_KEY = "milestone-reference";
+const MEM_TTL = 60 * 60 * 1000; // 1 hour — milestones almost never change
+
 /**
- * Fetches milestone reference data (deliverables, activities, skills per milestone).
- * Cached for 30 min since this rarely changes.
+ * Fetches milestone reference data with double-layer cache:
+ * 1. In-memory (0 latency, 1hr TTL) — prevents DB call entirely
+ * 2. React Query (30min staleTime) — prevents re-render storms
  */
 export function useMilestoneReference() {
   return useQuery({
-    queryKey: ["milestone-reference"],
+    queryKey: queryKeys.milestoneReference(),
     queryFn: async () => {
+      const cached = MemoryCache.get<MilestoneRef[]>(MEM_KEY);
+      if (cached) return cached;
+
       const { data, error } = await supabase
         .from("milestone_reference")
         .select("milestone_name, deliverables, activities, skills")
         .order("milestone_name");
       if (error) throw error;
-      return (data ?? []) as unknown as MilestoneRef[];
+      const result = (data ?? []) as unknown as MilestoneRef[];
+      MemoryCache.set(MEM_KEY, result, MEM_TTL);
+      return result;
     },
-    staleTime: 30 * 60 * 1000,
+    ...CACHE_STATIC,
   });
 }
 
