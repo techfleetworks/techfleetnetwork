@@ -74,8 +74,8 @@ export default function UserAdminPage() {
   };
 
   useEffect(() => {
-    if (isAdmin && !adminLoading) fetchData();
-  }, [isAdmin, adminLoading]);
+    fetchData();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
