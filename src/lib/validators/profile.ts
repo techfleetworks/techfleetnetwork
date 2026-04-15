@@ -65,6 +65,13 @@ export const profileSchema = z.object({
   notify_announcements: z.boolean().optional().default(false),
   education_background: z.array(z.string().max(200)).max(20).optional().default([]),
   has_discord_account: z.boolean().optional().default(true),
+  bio: z
+    .string()
+    .trim()
+    .max(2000, "Bio must be under 2000 characters")
+    .refine((val) => !/<script/i.test(val), "Bio contains invalid content")
+    .optional()
+    .default(""),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
