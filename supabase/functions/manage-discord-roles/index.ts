@@ -128,6 +128,24 @@ serve(async (req) => {
       );
     }
 
+    // ── Admin check for mutating actions ──
+    if (body.action !== "list") {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const { data: adminRole } = await adminClient
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+
+      if (!adminRole) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: admin role required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const discordHeaders = { Authorization: `Bot ${BOT_TOKEN}` };
 
     // ---------- LIST ----------
