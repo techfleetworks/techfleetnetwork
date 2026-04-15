@@ -256,8 +256,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             className="container-app flex h-16 items-center justify-between"
             aria-label="Main navigation"
           >
-            <Link
-              to="/"
+            <a
+              href="https://techfleet.org"
               className="flex items-center gap-2 font-bold text-lg"
               aria-label="Tech Fleet Home"
             >
@@ -268,8 +268,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 width={32}
                 height={32}
               />
-              <span className="hidden sm:inline">Tech Fleet</span>
-            </Link>
+            </a>
             <div className="flex items-center gap-2">
               <ThemeToggle />
               {!loading && !user && (
