@@ -50,15 +50,32 @@ const StatCard = memo(function StatCard({ icon, value, label, colorClass }: Stat
   );
 });
 
+function parseStatsDate(value: string): Date | null {
+  if (!value) return null;
+
+  const isoDateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    const [, year, month, day] = isoDateMatch;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  }
+
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+}
+
 function formatDateRange(start: string, end: string): string {
-  if (!start || !end) return "";
-  const fmt = (d: string) => {
-    const date = new Date(d + "T00:00:00");
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-  const endDate = new Date(end + "T00:00:00");
-  const year = endDate.getFullYear();
-  return `${fmt(start)} – ${fmt(end)}, ${year}`;
+  const startDate = parseStatsDate(start);
+  const endDate = parseStatsDate(end);
+
+  if (!startDate || !endDate) return "";
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+
+  return `${formatter.format(startDate)} – ${formatter.format(endDate)}, ${endDate.getUTCFullYear()}`;
 }
 
 function MapFallback() {

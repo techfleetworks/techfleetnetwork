@@ -174,7 +174,8 @@ export default function DashboardPage() {
   const { data: stats } = useQuery({
     queryKey: ["network-stats"],
     queryFn: () => StatsService.getNetworkStats(),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   // Fetch general application status
