@@ -14,8 +14,7 @@ export default function EventsPage() {
 
   const userTimezone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  const lumaSrc =
-    "https://lu.ma/embed/community/comm-xiKNSR1G2cMEJBk/events?compact=true&lt=light";
+  const lumaSrc = "https://lu.ma/tech-fleet-network";
   const calendarSrc = useMemo(
     () =>
       `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH`,
