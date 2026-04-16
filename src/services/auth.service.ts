@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("AuthService");
-const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
+const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours (tightened from 8h)
 
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {

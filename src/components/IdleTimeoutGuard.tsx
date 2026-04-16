@@ -28,7 +28,7 @@ export function IdleTimeoutGuard() {
   }, []);
 
   const { resetTimers } = useIdleTimeout({
-    timeoutMs: 30 * 60 * 1000,  // 30 min idle timeout
+    timeoutMs: 20 * 60 * 1000,  // 20 min idle timeout (tightened from 30 min)
     warningMs: 2 * 60 * 1000,   // warn 2 min before
     onWarning: handleWarning,
     onTimeout: handleTimeout,
@@ -46,7 +46,7 @@ export function IdleTimeoutGuard() {
         <AlertDialogHeader>
           <AlertDialogTitle>Session expiring soon</AlertDialogTitle>
           <AlertDialogDescription>
-            You've been inactive for a while. You'll be signed out in 2 minutes for security. Click below to stay signed in.
+            You've been inactive for 18 minutes. You'll be signed out in 2 minutes for security. Click below to stay signed in.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
