@@ -66,6 +66,7 @@ export default function UpdatesPage() {
   const [newBody, setNewBody] = useState("");
   const [newVideoUrl, setNewVideoUrl] = useState<string | null>(null);
   const [newAudioUrl, setNewAudioUrl] = useState<string | null>(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
