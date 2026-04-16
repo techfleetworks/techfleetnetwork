@@ -304,17 +304,19 @@ export default function UpdatesPage() {
                   else if (type === "audio") { setNewAudioUrl(url); setNewVideoUrl(null); }
                   else { setNewVideoUrl(null); setNewAudioUrl(null); }
                 }}
+                onBusyChange={setMediaBusy}
               />
             </Suspense>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Posting…" : "Post Announcement"}
+            <Button onClick={handleCreate} disabled={createMutation.isPending || mediaBusy}>
+              {createMutation.isPending ? "Posting…" : mediaBusy ? "Uploading media…" : "Post Announcement"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
