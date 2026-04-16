@@ -14,6 +14,8 @@ import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MfaService } from "@/services/mfa.service";
+import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,6 +25,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
+  const [mfaOpen, setMfaOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -114,6 +117,13 @@ export default function LoginPage() {
       queryClient.removeQueries({ queryKey: ["admin-role"] });
       try {
         await AuthService.signInWithPassword(result.data.email, result.data.password);
+        // Check if 2FA challenge is required (user has enrolled TOTP factors)
+        const { needsChallenge } = await MfaService.getAssuranceLevel();
+        if (needsChallenge) {
+          setMfaOpen(true);
+          setLoading(false);
+          return;
+        }
         navigate(from, { replace: true });
       } catch (err: unknown) {
         // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
@@ -193,6 +203,12 @@ export default function LoginPage() {
           <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary font-medium hover:underline">Sign up</Link>
         </p>
       </div>
+
+      <MfaChallengeDialog
+        open={mfaOpen}
+        onSuccess={() => { setMfaOpen(false); navigate(from, { replace: true }); }}
+        onCancel={() => { setMfaOpen(false); setError("Sign-in cancelled. Please try again."); }}
+      />
     </div>
   );
 }
