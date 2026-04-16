@@ -124,12 +124,31 @@ export function ClientsTab() {
       if (error) throw error;
       const clientId = (data as any).id as string;
 
+      let logoUploadFailed = false;
+
       if (logoFile) {
-        const logoUrl = await uploadClientLogo(clientId, logoFile);
-        await supabase.from("clients").update({ logo_url: logoUrl } as any).eq("id", clientId);
+        try {
+          const logoUrl = await uploadClientLogo(clientId, logoFile);
+          const { error: updateError } = await supabase.from("clients").update({ logo_url: logoUrl } as any).eq("id", clientId);
+          if (updateError) throw updateError;
+        } catch (error) {
+          console.error("Client logo upload failed after client creation", error);
+          logoUploadFailed = true;
+        }
       }
+
+      return { logoUploadFailed };
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); toast.success("Client created"); closeDialog(); },
+    onSuccess: ({ logoUploadFailed }) => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      if (logoUploadFailed) {
+        toast.success("Client created");
+        toast.warning("The client was created, but the logo upload failed. You can retry from Edit Client.");
+      } else {
+        toast.success("Client created");
+      }
+      closeDialog();
+    },
     onError: (err: Error) => toast.error(err.message),
   });
 
