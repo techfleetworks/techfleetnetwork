@@ -44,7 +44,8 @@ export const PasskeyService = {
 
     let attestation;
     try {
-      attestation = await startRegistration({ optionsJSON: optsResp });
+      // SimpleWebAuthn v10: pass the options object directly
+      attestation = await startRegistration(optsResp);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       log.warn("enroll", `User cancelled or browser rejected passkey: ${msg}`);
