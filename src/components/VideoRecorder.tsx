@@ -13,6 +13,8 @@ type VideoSource = "camera" | "screen";
 interface MediaRecorderProps {
   /** Called with the public URL after successful upload, or null when cleared */
   onMediaReady: (url: string | null, type: MediaType | null) => void;
+  /** Called when recording or upload state changes — parent should disable submit while busy */
+  onBusyChange?: (busy: boolean) => void;
   /** Maximum recording duration in seconds (default 300 = 5 min) */
   maxDuration?: number;
   /** Optional existing media URL for display */
@@ -23,6 +25,7 @@ interface MediaRecorderProps {
 
 export default function AnnouncementMediaRecorder({
   onMediaReady,
+  onBusyChange,
   maxDuration = 300,
   existingUrl = null,
   existingType = null,
