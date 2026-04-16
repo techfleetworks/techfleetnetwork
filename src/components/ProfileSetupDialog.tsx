@@ -134,7 +134,6 @@ export function ProfileSetupDialog() {
       DiscordNotifyService.profileCompleted(displayName, result.data.country, discordUser, discordId);
       DiscordNotifyService.taskCompleted(displayName, "profile", discordUser, discordId);
       setOpen(false);
-      setDismissed(true);
     } catch (err: any) {
       setErrors({ general: err.message });
     } finally {
