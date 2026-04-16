@@ -13,6 +13,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { useQueryClient } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -111,8 +112,20 @@ export default function LoginPage() {
       }
 
       queryClient.removeQueries({ queryKey: ["admin-role"] });
-      await AuthService.signInWithPassword(result.data.email, result.data.password);
-      navigate(from, { replace: true });
+      try {
+        await AuthService.signInWithPassword(result.data.email, result.data.password);
+        navigate(from, { replace: true });
+      } catch (err: unknown) {
+        // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
+        try {
+          await supabase.rpc("record_failed_login", {
+            _email: result.data.email,
+            _ip: null,
+            _user_agent: navigator.userAgent.substring(0, 200),
+          });
+        } catch { /* non-blocking */ }
+        throw err;
+      }
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
