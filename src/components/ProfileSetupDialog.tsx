@@ -24,11 +24,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
-  const isFirstLogin = sessionStorage.getItem("profile_setup_shown") !== "true";
-  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed && isFirstLogin;
+  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed;
 
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", country: "", timezone: "",
     discordUsername: "", interests: [] as string[],
@@ -44,13 +42,8 @@ export function ProfileSetupDialog() {
   const [timezoneOpen, setTimezoneOpen] = useState(false);
 
   useEffect(() => {
-    if (shouldShow && !dismissed) {
-      setOpen(true);
-      sessionStorage.setItem("profile_setup_shown", "true");
-    } else {
-      setOpen(false);
-    }
-  }, [shouldShow, dismissed]);
+    setOpen(shouldShow);
+  }, [shouldShow]);
 
   useEffect(() => {
     if (!initialized && profile && user) {
