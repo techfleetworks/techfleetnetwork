@@ -27,6 +27,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { PasskeyManagement } from "@/components/PasskeyManagement";
 import { toast } from "sonner";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
@@ -564,6 +565,11 @@ export default function EditProfilePage() {
                     <p className="text-xs text-muted-foreground">We'll send a reset link to your email.</p>
                   </div>
                 )}
+              </div>
+
+              {/* Passkey / WebAuthn MFA */}
+              <div className="pt-2 border-t">
+                <PasskeyManagement />
               </div>
 
               {/* Discord Account Link */}
