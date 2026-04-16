@@ -485,22 +485,18 @@ export default function ProjectApplicationPage() {
   return (
     <div className="relative">
       {/* General Application Warning Dialog */}
-      <Dialog open={genAppDialogOpen} onOpenChange={setGenAppDialogOpen}>
-        <DialogContent>
+      <Dialog open={genAppDialogOpen} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} className="[&>button[class*='close']]:hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
-              General Application Not Completed
+              General Application Required
             </DialogTitle>
             <DialogDescription>
-              We recommend completing your General Application first — admins review it alongside project applications.
-              You can still proceed with this project application if you prefer.
+              You must complete your General Application before submitting a project application. Admins review it alongside project applications to evaluate your readiness.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setGenAppDialogOpen(false)}>
-              Continue Anyway
-            </Button>
+          <DialogFooter>
             <Button onClick={() => navigate("/applications/general")}>
               Go to General Application
             </Button>
@@ -620,8 +616,13 @@ export default function ProjectApplicationPage() {
                   </div>
                 </>
               ) : (
-                <div className="rounded-lg border bg-card p-6 text-center space-y-3">
-                  <p className="text-sm text-muted-foreground">No general application found. Please complete it first.</p>
+                <div className="rounded-lg border border-warning/30 bg-warning/5 p-6 text-center space-y-3">
+                  <AlertTriangle className="h-8 w-8 text-warning mx-auto" />
+                  <p className="text-sm font-medium text-foreground">General Application Required</p>
+                  <p className="text-sm text-muted-foreground">You must complete your General Application before you can proceed with a project application.</p>
+                  <Button onClick={() => navigate("/applications/general")} className="mt-2">
+                    Go to General Application
+                  </Button>
                 </div>
               )}
             </div>
@@ -779,7 +780,7 @@ export default function ProjectApplicationPage() {
 
             {/* Step 1: Continue */}
             {step === 1 && (
-              <Button onClick={handleNext} disabled={isSaving}>
+              <Button onClick={handleNext} disabled={isSaving || !genAppComplete}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Continue
               </Button>
