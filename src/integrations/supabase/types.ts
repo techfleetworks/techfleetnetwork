@@ -542,6 +542,30 @@ export type Database = {
         }
         Relationships: []
       }
+      failed_login_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
@@ -859,6 +883,42 @@ export type Database = {
           notification_type?: string
           read?: boolean
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      passkey_credentials: {
+        Row: {
+          counter: number
+          created_at: string
+          credential_id: string
+          device_name: string
+          id: string
+          last_used_at: string | null
+          public_key: string
+          transports: string[]
+          user_id: string
+        }
+        Insert: {
+          counter?: number
+          created_at?: string
+          credential_id: string
+          device_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key: string
+          transports?: string[]
+          user_id: string
+        }
+        Update: {
+          counter?: number
+          created_at?: string
+          credential_id?: string
+          device_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key?: string
+          transports?: string[]
           user_id?: string
         }
         Relationships: []
@@ -1375,6 +1435,36 @@ export type Database = {
         }
         Relationships: []
       }
+      revoked_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          reason: string
+          revoked_at: string
+          revoked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          reason?: string
+          revoked_at?: string
+          revoked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          reason?: string
+          revoked_at?: string
+          revoked_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -1633,6 +1723,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_session_revoked: {
+        Args: { _issued_at: string; _user_id: string }
+        Returns: boolean
+      }
       log_pii_access: {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
@@ -1657,6 +1751,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_failed_login: {
+        Args: { _email: string; _ip?: string; _user_agent?: string }
+        Returns: Json
       }
       reset_rate_limit: {
         Args: { p_action: string; p_identifier: string }
