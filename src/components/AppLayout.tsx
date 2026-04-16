@@ -28,6 +28,7 @@ import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
+import { MfaEnforcementGuard } from "./MfaEnforcementGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
@@ -286,6 +287,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
+        <MfaEnforcementGuard />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -471,6 +473,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
         <ProfileSetupDialog />
+        <MfaEnforcementGuard />
         <FleetyChatWidget />
       </div>
     );
@@ -503,6 +506,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         <ProfileSetupDialog />
+        <MfaEnforcementGuard />
         <FleetyChatWidget />
       </SidebarProvider>
     </PageHeaderProvider>
