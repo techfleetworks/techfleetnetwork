@@ -35,24 +35,16 @@ export default function EventsPage() {
         <ResponsiveTabsList tabs={eventTabs} value={tab} onValueChange={setTab} className="mb-6" />
 
         <ResponsiveTabsContent value="public">
-          <div className="rounded-lg border bg-card p-6 sm:p-8 flex flex-col items-center text-center gap-4">
-            <Globe className="h-10 w-10 text-primary" aria-hidden="true" />
-            <div className="space-y-1">
-              <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                Tech Fleet Public Events
-              </h2>
-              <p className="text-muted-foreground text-sm max-w-md">
-                Browse and RSVP to upcoming public events on Luma.
-              </p>
-            </div>
-            <a
-              href={lumaSrc}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Open Luma Events
-            </a>
+          <div className="rounded-lg border bg-card overflow-hidden">
+            <iframe
+              src="https://lu.ma/embed/calendar/cal-Lc3CH36RbDM6vWY/events"
+              title="Tech Fleet Public Events – Luma"
+              className="w-full border-0"
+              style={{ minHeight: "680px" }}
+              loading="lazy"
+              allowFullScreen
+              aria-hidden="false"
+            />
           </div>
         </ResponsiveTabsContent>
 
