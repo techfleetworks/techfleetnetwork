@@ -114,6 +114,27 @@ export const AuthService = {
     }
 
     if (data.session) {
+      // Server-side revocation check: if an admin or auto-detection revoked sessions
+      // after this token was issued, force sign-out immediately.
+      try {
+        const issuedAt = new Date((data.session as { user: { created_at?: string } }).user.created_at ?? data.session.user.last_sign_in_at ?? new Date().toISOString());
+        const tokenIssuedAt = data.session.expires_at
+          ? new Date((data.session.expires_at - (data.session.expires_in ?? 600)) * 1000)
+          : issuedAt;
+        const { data: revoked } = await supabase.rpc("is_session_revoked", {
+          _user_id: data.session.user.id,
+          _issued_at: tokenIssuedAt.toISOString(),
+        });
+        if (revoked === true) {
+          log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
+          await supabase.auth.signOut();
+          sessionStorage.removeItem("session_started_at");
+          return null;
+        }
+      } catch (e) {
+        log.warn("getSession", `Revocation check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`);
+      }
+
       const startedAt = sessionStorage.getItem("session_started_at");
       if (startedAt) {
         const elapsed = Date.now() - parseInt(startedAt, 10);
