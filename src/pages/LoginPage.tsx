@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+import { useQueryClient } from "@/lib/react-query";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const searchParams = new URLSearchParams(location.search);
   const redirectParam = searchParams.get("redirect");
@@ -55,23 +57,22 @@ export default function LoginPage() {
   // Show toast for admin confirmation redirect
   useEffect(() => {
     const adminConfirmed = searchParams.get("admin_confirmed");
+    if (!adminConfirmed) return;
+
+    queryClient.removeQueries({ queryKey: ["admin-role"] });
+
     if (adminConfirmed === "true") {
       toast.success("Admin Role successfully confirmed!");
-      const url = new URL(window.location.href);
-      url.searchParams.delete("admin_confirmed");
-      window.history.replaceState({}, "", url.pathname + url.search);
     } else if (adminConfirmed === "already") {
       toast.info("Your admin role was already confirmed.");
-      const url = new URL(window.location.href);
-      url.searchParams.delete("admin_confirmed");
-      window.history.replaceState({}, "", url.pathname + url.search);
     } else if (adminConfirmed === "error") {
       toast.error("Failed to confirm admin role. Please try again or contact support.");
-      const url = new URL(window.location.href);
-      url.searchParams.delete("admin_confirmed");
-      window.history.replaceState({}, "", url.pathname + url.search);
     }
-  }, []);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("admin_confirmed");
+    window.history.replaceState({}, "", url.pathname + url.search);
+  }, [queryClient, searchParams]);
 
   // Store redirect for OAuth flows
   useEffect(() => {
@@ -109,6 +110,7 @@ export default function LoginPage() {
         return;
       }
 
+      queryClient.removeQueries({ queryKey: ["admin-role"] });
       await AuthService.signInWithPassword(result.data.email, result.data.password);
       navigate(from, { replace: true });
     } catch (err: any) {

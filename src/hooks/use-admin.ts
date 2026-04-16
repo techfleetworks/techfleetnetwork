@@ -1,28 +1,35 @@
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { queryKeys } from "@/lib/query-config";
 
 /**
  * Hook that checks if the current user has the admin role.
- * Cached via React Query — won't re-fetch on every component mount.
+ * Always revalidates on mount/focus so newly confirmed admins get access immediately.
  */
 export function useAdmin() {
   const { user } = useAuth();
 
   const { data: isAdmin = false, isLoading: loading } = useQuery({
-    queryKey: ["admin-role", user?.id],
+    queryKey: user ? queryKeys.adminRole(user.id) : ["admin-role", "anonymous"],
     queryFn: async () => {
       if (!user) return false;
-      const { data } = await supabase
+
+      const { count, error } = await supabase
         .from("user_roles")
-        .select("id")
+        .select("id", { head: true, count: "exact" })
         .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      return !!data;
+        .eq("role", "admin");
+
+      if (error) throw error;
+      return (count ?? 0) > 0;
     },
     enabled: !!user,
-    staleTime: 10 * 60 * 1000, // 10 min — role rarely changes
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   return { isAdmin, loading };
