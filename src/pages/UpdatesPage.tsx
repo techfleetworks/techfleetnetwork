@@ -66,6 +66,7 @@ export default function UpdatesPage() {
   const [newBody, setNewBody] = useState("");
   const [newVideoUrl, setNewVideoUrl] = useState<string | null>(null);
   const [newAudioUrl, setNewAudioUrl] = useState<string | null>(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
@@ -75,6 +76,7 @@ export default function UpdatesPage() {
   const handleCreate = async () => {
     if (!newTitle.trim()) { toast.error("Title is required."); return; }
     if (!newBody.trim() || newBody === "<p></p>") { toast.error("Announcement body is required."); return; }
+    if (mediaBusy) { toast.error("Please wait for the recording to finish uploading."); return; }
     if (!user) return;
     try {
       await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl, audioUrl: newAudioUrl });
@@ -302,17 +304,19 @@ export default function UpdatesPage() {
                   else if (type === "audio") { setNewAudioUrl(url); setNewVideoUrl(null); }
                   else { setNewVideoUrl(null); setNewAudioUrl(null); }
                 }}
+                onBusyChange={setMediaBusy}
               />
             </Suspense>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Posting…" : "Post Announcement"}
+            <Button onClick={handleCreate} disabled={createMutation.isPending || mediaBusy}>
+              {createMutation.isPending ? "Posting…" : mediaBusy ? "Uploading media…" : "Post Announcement"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
