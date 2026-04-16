@@ -75,10 +75,7 @@ export function ProfileSetupDialog() {
     }
   }, [profile, user, initialized]);
 
-  const handleSkip = () => {
-    setDismissed(true);
-    setOpen(false);
-  };
+  // Profile setup is mandatory — no skip allowed
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
@@ -155,20 +152,13 @@ export function ProfileSetupDialog() {
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(val) => { if (!val) handleSkip(); }}>
-      <DialogContent className="w-full max-w-full md:max-w-[70vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden">
+    <Dialog open={open} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
+      <DialogContent className="w-full max-w-full md:max-w-[70vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden [&>button[class*='close']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader className="px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl">Welcome to Tech Fleet</DialogTitle>
-              <DialogDescription className="mt-1">
-                Complete your profile to get the most out of your experience.
-              </DialogDescription>
-            </div>
-            <Button variant="ghost" size="sm" className="text-muted-foreground shrink-0" onClick={handleSkip}>
-              Skip for now
-            </Button>
-          </div>
+          <DialogTitle className="text-xl">Welcome to Tech Fleet</DialogTitle>
+          <DialogDescription className="mt-1">
+            Complete your profile to get started. All required fields must be filled in.
+          </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
