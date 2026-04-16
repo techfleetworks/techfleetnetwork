@@ -76,6 +76,7 @@ export default function UpdatesPage() {
   const handleCreate = async () => {
     if (!newTitle.trim()) { toast.error("Title is required."); return; }
     if (!newBody.trim() || newBody === "<p></p>") { toast.error("Announcement body is required."); return; }
+    if (mediaBusy) { toast.error("Please wait for the recording to finish uploading."); return; }
     if (!user) return;
     try {
       await createMutation.mutateAsync({ title: newTitle.trim(), bodyHtml: newBody, userId: user.id, videoUrl: newVideoUrl, audioUrl: newAudioUrl });
