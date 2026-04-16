@@ -53,6 +53,11 @@ export default function AnnouncementMediaRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Notify parent whenever recording or uploading is in progress so it can block submit.
+  useEffect(() => {
+    onBusyChange?.(recording || uploading);
+  }, [recording, uploading, onBusyChange]);
+
   const stopAllTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
