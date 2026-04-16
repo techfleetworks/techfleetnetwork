@@ -12,7 +12,8 @@ export default function EventsPage() {
   const [tab, setTab] = useState("community");
   const { profile } = useAuth();
 
-  const userTimezone = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Always render in the member's profile timezone; fall back to EDT (America/New_York) if unset.
+  const userTimezone = profile?.timezone?.trim() || "America/New_York";
 
   const lumaSrc = "https://lu.ma/tech-fleet-network";
   const calendarSrc = useMemo(
