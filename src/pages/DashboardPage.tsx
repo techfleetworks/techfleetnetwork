@@ -34,6 +34,8 @@ import { useDashboardPreferences } from "@/hooks/use-dashboard-preferences";
 import { StatsService } from "@/services/stats.service";
 import { stripHtml } from "@/lib/html";
 import { TOTAL_AGILE_LESSONS } from "@/data/agile-course";
+import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
+import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { CheckCircle2 as CheckCircle2Icon } from "lucide-react";
@@ -166,6 +168,8 @@ export default function DashboardPage() {
   const { data: connectDiscordCompleted = 0 } = useCompletedCount(userId, "first_steps", CONNECT_DISCORD_TASK_IDS);
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
   const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
+  const { data: discordLearningCompleted = 0 } = useCompletedCount(userId, "discord_learning");
+  const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
   const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
   const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
   const { data: latestAnnouncements = [] } = useLatestAnnouncements(5);
@@ -240,6 +244,8 @@ export default function DashboardPage() {
   const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allDiscordDone = discordLearningCompleted >= TOTAL_DISCORD_LESSONS;
+  const allThirdStepsDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
   const allOnboardingDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allProjectTrainingDone && allVolunteerDone;
@@ -339,6 +345,8 @@ export default function DashboardPage() {
                 <BadgesDisplay
                   allFirstStepsDone={allFirstStepsDone}
                   allSecondStepsDone={allSecondStepsDone}
+                  allDiscordDone={allDiscordDone}
+                  allThirdStepsDone={allThirdStepsDone}
                   allProjectTrainingDone={allProjectTrainingDone}
                   allVolunteerDone={allVolunteerDone}
                   communityBadgeCount={communityBadgeCount}
