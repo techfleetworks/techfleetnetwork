@@ -68,13 +68,13 @@ Deno.serve(async (req) => {
       expectedChallenge: chal.challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
-      credential: {
-        id: cred.credential_id,
-        publicKey: publicKeyBytes,
+      authenticator: {
+        credentialID: cred.credential_id,
+        credentialPublicKey: publicKeyBytes,
         counter: cred.counter ?? 0,
         transports: (cred.transports ?? []) as AuthenticatorTransport[],
       },
-    });
+    } as Parameters<typeof verifyAuthenticationResponse>[0]);
 
     if (!verification.verified) {
       return new Response(JSON.stringify({ error: "Verification failed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
