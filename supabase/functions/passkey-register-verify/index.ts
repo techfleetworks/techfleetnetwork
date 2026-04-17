@@ -51,16 +51,44 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Verification failed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { credential } = verification.registrationInfo;
+    // SimpleWebAuthn v10: registrationInfo exposes credential fields directly,
+    // but newer patch versions wrap them under `credential`. Support both shapes.
+    const info = verification.registrationInfo as {
+      credentialID?: Uint8Array | string;
+      credentialPublicKey?: Uint8Array;
+      counter?: number;
+      credential?: { id: string; publicKey: Uint8Array; counter: number; transports?: string[] };
+    };
+    const credentialId: string =
+      info.credential?.id ??
+      (typeof info.credentialID === "string"
+        ? info.credentialID
+        : info.credentialID
+          ? btoa(String.fromCharCode(...info.credentialID))
+          : "");
+    const publicKeyBytes: Uint8Array | undefined =
+      info.credential?.publicKey ?? info.credentialPublicKey;
+    const counter: number = info.credential?.counter ?? info.counter ?? 0;
+    const transports: string[] = info.credential?.transports ?? (response.response?.transports ?? []);
+
+    if (!credentialId || !publicKeyBytes) {
+      console.error("passkey-register-verify: missing credential fields", { info });
+      return new Response(JSON.stringify({ error: "Verification returned incomplete credential" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     await admin.from("passkey_credentials").delete().eq("user_id", user.id).eq("credential_id", `pending:${user.id}`);
-    await admin.from("passkey_credentials").insert({
+    const { error: insertErr } = await admin.from("passkey_credentials").insert({
       user_id: user.id,
-      credential_id: credential.id,
-      public_key: btoa(String.fromCharCode(...credential.publicKey)),
-      counter: credential.counter,
-      transports: credential.transports ?? [],
+      credential_id: credentialId,
+      public_key: btoa(String.fromCharCode(...publicKeyBytes)),
+      counter,
+      transports,
       device_name: deviceName || "Passkey",
     });
+    if (insertErr) {
+      console.error("passkey-register-verify insert failed", insertErr);
+      return new Response(JSON.stringify({ error: insertErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     return new Response(JSON.stringify({ verified: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
