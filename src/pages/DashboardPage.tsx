@@ -244,6 +244,8 @@ export default function DashboardPage() {
   const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
+  const allDiscordDone = discordLearningCompleted >= TOTAL_DISCORD_LESSONS;
+  const allThirdStepsDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
   const allOnboardingDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allProjectTrainingDone && allVolunteerDone;
