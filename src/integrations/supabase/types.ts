@@ -923,6 +923,87 @@ export type Database = {
         }
         Relationships: []
       }
+      passkey_login_challenges: {
+        Row: {
+          challenge: string
+          created_at: string
+          expires_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge: string
+          created_at?: string
+          expires_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge?: string
+          created_at?: string
+          expires_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      passkey_login_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          session_token_hash: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          session_token_hash: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          session_token_hash?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
+      passkey_recovery_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1693,6 +1774,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_passkey_login_artifacts: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
       delete_email: {
@@ -1721,6 +1803,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_passkey_login_verified: {
+        Args: { _session_hash: string }
         Returns: boolean
       }
       is_session_revoked: {
