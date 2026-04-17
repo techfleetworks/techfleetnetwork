@@ -12,6 +12,7 @@ import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
 import { Suspense, lazy } from "react";
 
 // Eagerly loaded routes (critical path)
@@ -63,6 +64,7 @@ const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const AdminRecoveryPage = lazy(() => import("./pages/AdminRecoveryPage"));
 
 function RouteFallback() {
   return (
@@ -109,6 +111,7 @@ const App = () => (
             <ErrorBoundary>
               <AppLayout>
                 <IdleTimeoutGuard />
+                <PasskeyLoginGate />
                 <PWAInstallPrompt />
                 <OfflineBanner />
                 <Suspense fallback={<RouteFallback />}>
@@ -160,6 +163,7 @@ const App = () => (
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                     <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                    <Route path="/admin-recovery" element={<ProtectedRoute><AdminRecoveryPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
