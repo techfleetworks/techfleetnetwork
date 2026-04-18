@@ -110,6 +110,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ErrorBoundary>
+              <AnalyticsTracker />
               <AppLayout>
                 <IdleTimeoutGuard />
                 <PasskeyLoginGate />
