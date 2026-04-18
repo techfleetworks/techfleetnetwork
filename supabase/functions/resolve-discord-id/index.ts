@@ -183,12 +183,40 @@ serve(async (req) => {
 
     // Match on cleaned username, raw username, or dot-prefixed variant
     const matchCandidates = new Set([cleanUsername, rawUsername, `.${cleanUsername}`]);
-    const match = members.find(
-      (m: any) => {
-        const u = m.user?.username?.toLowerCase();
-        return u ? matchCandidates.has(u) : false;
-      }
+    const fieldsOf = (m: any): string[] => [
+      m.user?.username,
+      m.user?.global_name,
+      m.nick,
+    ].filter(Boolean).map((s: string) => s.toLowerCase());
+
+    // 1) Exact match on username/global_name/nick
+    let match = members.find((m: any) =>
+      fieldsOf(m).some((f) => matchCandidates.has(f))
     );
+
+    // 2) Strong fuzzy match: a field starts with the input followed by a
+    //    separator (., _, -, space) — handles cases like input "sainaz"
+    //    matching Discord username "sainaz.com" or display name "Sainaz Doe".
+    if (!match) {
+      const needle = cleanUsername;
+      const strongMatches = members.filter((m: any) =>
+        fieldsOf(m).some((f) => {
+          if (f === needle) return true;
+          if (f.startsWith(needle)) {
+            const next = f.charAt(needle.length);
+            return next === "" || /[._\-\s]/.test(next);
+          }
+          // Display name like "Sainaz" (no suffix) — exact case-insensitive
+          return false;
+        })
+      );
+      if (strongMatches.length === 1) {
+        match = strongMatches[0];
+        log.info("resolve", `Strong fuzzy match for "${cleanUsername}" → "${match.user?.username}" [${requestId}]`, {
+          requestId, username: cleanUsername, matched: match.user?.username,
+        });
+      }
+    }
 
     // Audit-log helper
     const auditLog = async (eventType: string, message: string, fields: string[], isError = false) => {
