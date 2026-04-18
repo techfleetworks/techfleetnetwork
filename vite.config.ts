@@ -1,7 +1,42 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { writeFileSync, mkdirSync } from "fs";
+
+// Stable build identifier injected into the bundle and emitted as /version.json
+// so a long-lived browser tab can detect deploys and refresh BEFORE attempting
+// to fetch a stale chunk hash.
+const BUILD_ID =
+  process.env.VITE_BUILD_ID ||
+  process.env.COMMIT_REF ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.GITHUB_SHA ||
+  `${Date.now()}`;
+
+/**
+ * Emit /version.json into the build output. This file is intentionally
+ * uncached (see public/_headers) so the version watcher always sees fresh data.
+ */
+function emitVersionManifest(): Plugin {
+  return {
+    name: "emit-version-manifest",
+    apply: "build",
+    closeBundle() {
+      try {
+        const dir = path.resolve(__dirname, "dist");
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(
+          path.join(dir, "version.json"),
+          JSON.stringify({ buildId: BUILD_ID, builtAt: new Date().toISOString() }),
+          "utf8",
+        );
+      } catch {
+        // Non-fatal: version.json is an enhancement, not a hard requirement.
+      }
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,9 +47,13 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    emitVersionManifest(),
   ].filter(Boolean),
   resolve: {
     alias: {
