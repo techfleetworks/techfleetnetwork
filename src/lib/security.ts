@@ -339,28 +339,58 @@ export function safeJsonParse<T = unknown>(json: string): T {
 // ─── HTML Sanitization (DOMPurify) (A03) ────────────────────────────
 
 /**
- * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
- * Strips scripts, event handlers, and dangerous attributes while
- * keeping safe formatting tags.
+ * Strict allow-list for user-generated rich text (announcements, banners,
+ * notification bodies). Locked down to ONLY the formatting tags Quill emits
+ * — no styling vectors of any kind:
+ *
+ *   • No `style` attribute (forbids inline CSS)
+ *   • No `class` attribute (forbids referencing global Tailwind/utility CSS)
+ *   • No `id` attribute (forbids `:target` CSS pseudo-class abuse + DOM clobbering)
+ *   • No `<style>`, `<link>`, `<svg>`, `<math>`, `<iframe>`, `<object>`, `<embed>`
+ *   • No `<div>`, `<span>`, `<img>`, `<table>` (positional/visual abuse vectors)
+ *
+ * This is enforced both on read (renderer) AND on write (DB trigger
+ * `sanitize_user_html_trigger`) for defense in depth — a compromised
+ * admin token cannot store CSS/HTML payloads either.
  */
 export function sanitizeHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, {
+  if (typeof dirty !== "string" || dirty.length === 0) return "";
+  // Hard cap to prevent DOM-based DoS via giant HTML blobs.
+  const capped = dirty.length > 100_000 ? dirty.slice(0, 100_000) : dirty;
+  return DOMPurify.sanitize(capped, {
     ALLOWED_TAGS: [
-      "p", "br", "strong", "b", "em", "i", "u", "s", "a",
-      "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
-      "blockquote", "pre", "code", "hr", "img", "div", "span",
-      "table", "thead", "tbody", "tr", "th", "td",
+      "p", "br", "strong", "b", "em", "i", "u", "s",
+      "a", "ul", "ol", "li", "h2", "h3", "blockquote",
     ],
-    ALLOWED_ATTR: [
-      "href", "target", "rel", "src", "alt", "class",
-      "width", "height", "colspan", "rowspan",
-    ],
+    ALLOWED_ATTR: ["href", "target", "rel"],
     ALLOW_DATA_ATTR: false,
-    // Force rel="noopener noreferrer" on all links
-    FORBID_ATTR: ["style"],
-    ADD_ATTR: ["target"],
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|\/(?!\/)|#)/i,
+    FORBID_TAGS: [
+      "style", "link", "meta", "base", "script", "iframe",
+      "object", "embed", "form", "input", "button", "textarea",
+      "select", "option", "svg", "math", "img", "video", "audio",
+      "source", "track", "frame", "frameset", "applet",
+    ],
+    FORBID_ATTR: [
+      "style", "class", "id", "srcset", "sizes", "loading",
+      "ping", "formaction", "background", "poster",
+    ],
+    USE_PROFILES: { html: true }, // disables SVG + MathML namespaces entirely
+    KEEP_CONTENT: false,           // drop content of forbidden tags
+    SANITIZE_DOM: true,             // mitigate DOM clobbering
+    SANITIZE_NAMED_PROPS: true,
+    IN_PLACE: false,
   });
 }
+
+// Force every surviving <a> to open in a new tab with a safe rel.
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") {
+    node.setAttribute("target", "_blank");
+    node.setAttribute("rel", "noopener noreferrer nofollow");
+  }
+});
 
 // ─── Content-Type Validation (A05) ──────────────────────────────────
 
