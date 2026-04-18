@@ -1,71 +1,23 @@
-import { useEffect, useRef } from "react";
-import { useQueryClient } from "@/lib/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-
 /**
- * Subscribes to realtime INSERT events on the announcements table.
- * Invalidates announcement queries and shows a toast for new announcements
- * created by other users.
+ * Announcement realtime hook — DEPRECATED, kept as a no-op for backwards compat.
+ *
+ * Why this is now a no-op (audit 2026-04-18):
+ * At 10k concurrent users, an admin INSERT into `announcements` would fan
+ * out to 10k WebSocket frames in <1s, blowing past the Realtime quota
+ * (~2,500 msg/s on Team) and triggering 20k thundering-herd refetches
+ * (each client invalidates 2 React Query keys).
+ *
+ * The existing `useLatestAnnouncements` hook already polls every 60s
+ * (240s when the tab is hidden). That is now the sole delivery channel —
+ * users see new announcements within 0–60s instead of instantly, which is
+ * an acceptable trade-off for stability at scale.
+ *
+ * The hook is left exported (and still called from AppLayout) so that
+ * removing the file doesn't ripple through call sites or tests. Re-enabling
+ * realtime should not happen without first introducing jittered, scoped
+ * subscriptions and a server-side fanout job (see `notify_project_opening`
+ * two-step pattern).
  */
-export function useAnnouncementRealtime() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userIdRef = useRef(user?.id);
-  userIdRef.current = user?.id;
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("announcements-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "announcements",
-        },
-        (payload) => {
-          // Invalidate all announcement queries so lists refresh automatically
-          queryClient.invalidateQueries({ queryKey: ["announcements"] });
-          queryClient.invalidateQueries({ queryKey: ["announcement-read-ids"] });
-
-          // Only toast if the announcement was created by someone else
-          const createdBy = (payload.new as Record<string, unknown>)?.created_by;
-          if (createdBy !== userIdRef.current) {
-            const title = (payload.new as Record<string, unknown>)?.title;
-            toast.info("New announcement", {
-              description: typeof title === "string" ? title : "A new announcement has been posted.",
-            });
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "announcements",
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["announcements"] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "announcements",
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["announcements"] });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+export function useAnnouncementRealtime(): void {
+  // Intentionally empty. See file header.
 }
