@@ -88,11 +88,16 @@ async function resolveUnsubscribeToken(
   | { ok: true; suppressed: true }
   | { ok: false; error: string }
 > {
-  const { data: existingToken, error: tokenLookupError } = await supabase
+  // Defensive: in case legacy duplicate rows exist for an email, take the
+  // oldest unused row (or oldest if all used) instead of erroring on multi-row.
+  const { data: tokenRows, error: tokenLookupError } = await supabase
     .from('email_unsubscribe_tokens')
-    .select('token, used_at')
+    .select('token, used_at, created_at')
     .eq('email', normalizedEmail)
-    .maybeSingle()
+    .order('used_at', { ascending: true, nullsFirst: true })
+    .order('created_at', { ascending: true })
+    .limit(1)
+  const existingToken = tokenRows && tokenRows.length > 0 ? tokenRows[0] : null
 
   if (tokenLookupError) {
     console.error('Token lookup failed', {
@@ -136,11 +141,13 @@ async function resolveUnsubscribeToken(
       return { ok: false, error: 'Failed to prepare email' }
     }
 
-    const { data: storedToken, error: reReadError } = await supabase
+    const { data: storedRows, error: reReadError } = await supabase
       .from('email_unsubscribe_tokens')
       .select('token')
       .eq('email', normalizedEmail)
-      .maybeSingle()
+      .order('created_at', { ascending: true })
+      .limit(1)
+    const storedToken = storedRows && storedRows.length > 0 ? storedRows[0] : null
 
     if (reReadError || !storedToken) {
       console.error('Failed to read back unsubscribe token after upsert', {

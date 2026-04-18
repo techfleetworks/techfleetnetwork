@@ -49,17 +49,25 @@ const INTERVIEW_GUIDE_URL =
 
 interface NotificationContent {
   title: string
-  bodyFn: (ctx: { coordinatorName: string; schedulingUrl?: string }) => string
+  bodyFn: (ctx: { coordinatorName: string; schedulingUrl?: string; projectName?: string }) => string
+  /** Plain-text body used for transactional email (HTML stripped). */
+  emailMessageFn: (ctx: { coordinatorName: string; schedulingUrl?: string; projectName?: string }) => string
+  /** Friendly status label shown in email subject + body. */
+  statusLabel: string
   type: string
   linkUrl: string
 }
+
+const APP_BASE_URL = 'https://techfleetnetwork.lovable.app'
 
 const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
   pending_review: {
     title: 'Application Status Updated',
     bodyFn: () => '<p>Your application status has been updated to Pending Review.</p>',
+    emailMessageFn: () => 'Your application is now back in pending review.',
+    statusLabel: 'Pending Review',
     type: 'status_change',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   invited_to_interview: {
     title: '🎉 Interview Invitation',
@@ -73,33 +81,46 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
       }
       return html
     },
+    emailMessageFn: ({ coordinatorName }) =>
+      `You have been invited to interview by ${coordinatorName || 'a Tech Fleet Project Coordinator'}. Check your application for the scheduling link.`,
+    statusLabel: 'Invited to Interview',
     type: 'interview_invite',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   interview_scheduled: {
     title: '📅 Interview Scheduled',
-    bodyFn: () => '<p>The applicant has indicated they have scheduled their interview.</p>',
+    bodyFn: () => '<p>Your interview has been marked as scheduled. We look forward to meeting you!</p>',
+    emailMessageFn: () => 'Your interview has been marked as scheduled. We look forward to meeting you!',
+    statusLabel: 'Interview Scheduled',
     type: 'interview_scheduled',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   active_participant: {
     title: '🚀 You\'re now an Active Teammate!',
     bodyFn: () => '<p>Congratulations! You have been selected to join a Tech Fleet project team. Welcome aboard!</p>',
+    emailMessageFn: () =>
+      'Congratulations! You have been selected to join a Tech Fleet project team. Welcome aboard!',
+    statusLabel: 'Active Participant',
     type: 'active_participant',
-    linkUrl: '',
+    linkUrl: '/journey',
   },
   not_selected: {
     title: 'Application Update',
     bodyFn: () =>
       '<p>Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!</p>',
+    emailMessageFn: () =>
+      'Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!',
+    statusLabel: 'Not Selected',
     type: 'not_selected',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   left_the_project: {
     title: 'Project Status Updated',
     bodyFn: () => '<p>Your project participation status has been updated.</p>',
+    emailMessageFn: () => 'Your project participation status has been updated.',
+    statusLabel: 'Left the Project',
     type: 'left_project',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
 }
 
@@ -317,15 +338,56 @@ Deno.serve(async (req) => {
 
   console.info('Status updated', { applicationId, newStatus })
 
-  /* ---- 2. In-app notification (non-blocking) ---- */
+  /* ---- 1b. Resolve project + applicant context (best-effort) ---- */
+  let projectName = ''
+  try {
+    const { data: projectRow } = await supabase
+      .from('projects')
+      .select('friendly_name, client_id, clients:client_id ( name )')
+      .eq('id', projectId)
+      .maybeSingle()
+    const clientsField = (projectRow as any)?.clients
+    const clientName =
+      (clientsField && !Array.isArray(clientsField) ? clientsField.name : '') ||
+      (Array.isArray(clientsField) ? clientsField[0]?.name : '') ||
+      ''
+    const friendly = (projectRow as any)?.friendly_name || ''
+    projectName = [clientName, friendly].filter(Boolean).join(' — ')
+  } catch (e) {
+    console.warn('Project lookup failed (non-critical)', e)
+  }
+
+  // Look up applicant preferences + fallback contact info.
+  let applicantWantsEmail = true
+  let resolvedFirstName = applicantFirstName
+  let resolvedEmail = applicantEmail
+  try {
+    const { data: applicantProfile } = await supabase
+      .from('profiles')
+      .select('first_name, email, notify_announcements')
+      .eq('user_id', applicantUserId)
+      .maybeSingle()
+    if (applicantProfile) {
+      // notify_announcements is the master "send me emails" toggle. Default
+      // to true if missing so we never silently drop critical updates.
+      applicantWantsEmail = applicantProfile.notify_announcements !== false
+      resolvedFirstName = resolvedFirstName || (applicantProfile.first_name as string) || ''
+      resolvedEmail = resolvedEmail || (applicantProfile.email as string) || ''
+    }
+  } catch (e) {
+    console.warn('Applicant profile lookup failed (non-critical)', e)
+  }
+
+  /* ---- 2. In-app notification (always sent, non-blocking) ---- */
   const content = NOTIFICATION_MAP[newStatus]
   let notificationCreated = false
 
   try {
+    const titleWithProject = projectName ? `${content.title} — ${projectName}` : content.title
     const { error: notifError } = await supabase.from('notifications').insert({
       user_id: applicantUserId,
-      title: content.title,
-      body_html: content.bodyFn({ coordinatorName, schedulingUrl }),
+      title: titleWithProject,
+      body_html: content.bodyFn({ coordinatorName, schedulingUrl, projectName }),
       notification_type: content.type,
       link_url: content.linkUrl,
       read: false,
@@ -354,44 +416,95 @@ Deno.serve(async (req) => {
     console.warn('Audit log failed (non-critical)', e)
   }
 
-  /* ---- 4. Email — interview invite (non-blocking) ---- */
+  /* ---- 4a. Email — branded interview invite (non-blocking) ---- */
   let emailSent = false
-  if (newStatus === 'invited_to_interview' && applicantEmail && schedulingUrl) {
-    const timestamp = Date.now()
-    const idempotencyKey = `interview-invite-${applicationId}-${timestamp}`
+  if (
+    newStatus === 'invited_to_interview' &&
+    resolvedEmail &&
+    schedulingUrl &&
+    applicantWantsEmail
+  ) {
+    const idempotencyKey = `interview-invite-${applicationId}-${Date.now()}`
     try {
       const emailResult = await queueTransactionalEmail({
         supabase,
         templateName: 'interview-invite',
-        recipientEmail: applicantEmail,
+        recipientEmail: resolvedEmail,
         idempotencyKey,
         messageId: idempotencyKey,
         templateData: {
-          firstName: applicantFirstName || undefined,
+          firstName: resolvedFirstName || undefined,
           coordinatorName,
           schedulingUrl,
         },
       })
 
       if (!emailResult.ok) {
-        console.error('Email queue failed', {
+        console.error('Interview email queue failed', {
           status: emailResult.status,
           error: emailResult.error,
-          applicantEmail,
+          applicantEmail: resolvedEmail,
           applicationId,
         })
       } else {
         emailSent = !emailResult.suppressed
         console.info('Interview email processed', {
-          applicantEmail,
+          applicantEmail: resolvedEmail,
           queued: !emailResult.suppressed,
           suppressed: emailResult.suppressed,
           messageId: emailResult.messageId,
         })
       }
     } catch (e) {
-      console.error('Email send error', e)
+      console.error('Interview email send error', e)
     }
+  } else if (resolvedEmail && applicantWantsEmail) {
+    /* ---- 4b. Email — generic status change (all other transitions) ---- */
+    const idempotencyKey = `applicant-status-${applicationId}-${newStatus}-${Date.now()}`
+    try {
+      const ctaPath = content.linkUrl || '/applications'
+      const emailResult = await queueTransactionalEmail({
+        supabase,
+        templateName: 'applicant-status-change',
+        recipientEmail: resolvedEmail,
+        idempotencyKey,
+        messageId: idempotencyKey,
+        templateData: {
+          firstName: resolvedFirstName || undefined,
+          statusLabel: content.statusLabel,
+          statusMessage: content.emailMessageFn({ coordinatorName, schedulingUrl, projectName }),
+          projectName: projectName || undefined,
+          ctaUrl: `${APP_BASE_URL}${ctaPath}`,
+          ctaLabel: 'View Your Applications',
+        },
+      })
+
+      if (!emailResult.ok) {
+        console.error('Status email queue failed', {
+          status: emailResult.status,
+          error: emailResult.error,
+          applicantEmail: resolvedEmail,
+          applicationId,
+          newStatus,
+        })
+      } else {
+        emailSent = !emailResult.suppressed
+        console.info('Status email processed', {
+          applicantEmail: resolvedEmail,
+          newStatus,
+          queued: !emailResult.suppressed,
+          suppressed: emailResult.suppressed,
+          messageId: emailResult.messageId,
+        })
+      }
+    } catch (e) {
+      console.error('Status email send error', e)
+    }
+  } else if (!applicantWantsEmail) {
+    console.info('Skipped status email — applicant has notify_announcements disabled', {
+      applicantUserId,
+      newStatus,
+    })
   }
 
   /* ---- 5. Discord role assignment for active_participant (non-blocking) ---- */
