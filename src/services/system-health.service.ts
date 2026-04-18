@@ -1,0 +1,81 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export interface SystemHealthState {
+  status: "healthy" | "degraded" | "overloaded";
+  reason: string;
+  pause_non_critical: boolean;
+  updated_at: string;
+}
+
+export interface ErrorFingerprint {
+  fingerprint: string;
+  event_type: string | null;
+  table_name: string | null;
+  occurrences: number;
+  affected_users: number;
+  first_seen: string;
+  last_seen: string;
+  sample_message: string | null;
+}
+
+export interface RemediationRule {
+  id: string;
+  signature_pattern: string;
+  event_type_filter: string | null;
+  remediation_function: string;
+  description: string;
+  enabled: boolean;
+  cooldown_seconds: number;
+  last_run_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  run_count: number;
+  success_count: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
+export const SystemHealthService = {
+  async getHealth(): Promise<SystemHealthState | null> {
+    const { data, error } = await sb
+      .from("system_health_state")
+      .select("status, reason, pause_non_critical, updated_at")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as SystemHealthState | null) ?? null;
+  },
+
+  async getTopErrors(hours = 24, limit = 10): Promise<ErrorFingerprint[]> {
+    const { data, error } = await sb.rpc("get_top_error_fingerprints", {
+      p_hours: hours,
+      p_limit: limit,
+    });
+    if (error) throw error;
+    return (data as ErrorFingerprint[]) ?? [];
+  },
+
+  async getRemediations(): Promise<RemediationRule[]> {
+    const { data, error } = await sb
+      .from("system_remediations")
+      .select("*")
+      .order("description", { ascending: true });
+    if (error) throw error;
+    return (data as RemediationRule[]) ?? [];
+  },
+
+  async setRemediationEnabled(id: string, enabled: boolean): Promise<void> {
+    const { error } = await sb
+      .from("system_remediations")
+      .update({ enabled })
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async runRemediationsNow(): Promise<{ ran: number }> {
+    const { data, error } = await sb.rpc("run_auto_remediations");
+    if (error) throw error;
+    return (data as { ran: number }) ?? { ran: 0 };
+  },
+};

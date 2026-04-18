@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
+import { SelfHealingRunner } from "@/components/SelfHealingRunner";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { RouteChangeReloader } from "@/components/RouteChangeReloader";
 import { Suspense } from "react";
@@ -117,6 +118,7 @@ const App = () => (
               <AppLayout>
                 <IdleTimeoutGuard />
                 <PasskeyLoginGate />
+                <SelfHealingRunner />
                 <PWAInstallPrompt />
                 <OfflineBanner />
                 <Suspense fallback={<RouteFallback />}>
