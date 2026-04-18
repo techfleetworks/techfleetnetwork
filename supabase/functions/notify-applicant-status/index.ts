@@ -49,17 +49,25 @@ const INTERVIEW_GUIDE_URL =
 
 interface NotificationContent {
   title: string
-  bodyFn: (ctx: { coordinatorName: string; schedulingUrl?: string }) => string
+  bodyFn: (ctx: { coordinatorName: string; schedulingUrl?: string; projectName?: string }) => string
+  /** Plain-text body used for transactional email (HTML stripped). */
+  emailMessageFn: (ctx: { coordinatorName: string; schedulingUrl?: string; projectName?: string }) => string
+  /** Friendly status label shown in email subject + body. */
+  statusLabel: string
   type: string
   linkUrl: string
 }
+
+const APP_BASE_URL = 'https://techfleetnetwork.lovable.app'
 
 const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
   pending_review: {
     title: 'Application Status Updated',
     bodyFn: () => '<p>Your application status has been updated to Pending Review.</p>',
+    emailMessageFn: () => 'Your application is now back in pending review.',
+    statusLabel: 'Pending Review',
     type: 'status_change',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   invited_to_interview: {
     title: '🎉 Interview Invitation',
@@ -73,33 +81,46 @@ const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
       }
       return html
     },
+    emailMessageFn: ({ coordinatorName }) =>
+      `You have been invited to interview by ${coordinatorName || 'a Tech Fleet Project Coordinator'}. Check your application for the scheduling link.`,
+    statusLabel: 'Invited to Interview',
     type: 'interview_invite',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   interview_scheduled: {
     title: '📅 Interview Scheduled',
-    bodyFn: () => '<p>The applicant has indicated they have scheduled their interview.</p>',
+    bodyFn: () => '<p>Your interview has been marked as scheduled. We look forward to meeting you!</p>',
+    emailMessageFn: () => 'Your interview has been marked as scheduled. We look forward to meeting you!',
+    statusLabel: 'Interview Scheduled',
     type: 'interview_scheduled',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   active_participant: {
     title: '🚀 You\'re now an Active Teammate!',
     bodyFn: () => '<p>Congratulations! You have been selected to join a Tech Fleet project team. Welcome aboard!</p>',
+    emailMessageFn: () =>
+      'Congratulations! You have been selected to join a Tech Fleet project team. Welcome aboard!',
+    statusLabel: 'Active Participant',
     type: 'active_participant',
-    linkUrl: '',
+    linkUrl: '/journey',
   },
   not_selected: {
     title: 'Application Update',
     bodyFn: () =>
       '<p>Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!</p>',
+    emailMessageFn: () =>
+      'Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!',
+    statusLabel: 'Not Selected',
     type: 'not_selected',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
   left_the_project: {
     title: 'Project Status Updated',
     bodyFn: () => '<p>Your project participation status has been updated.</p>',
+    emailMessageFn: () => 'Your project participation status has been updated.',
+    statusLabel: 'Left the Project',
     type: 'left_project',
-    linkUrl: '',
+    linkUrl: '/applications',
   },
 }
 
