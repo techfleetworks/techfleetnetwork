@@ -46,6 +46,8 @@ interface ProjectDetail {
   client_intake_url?: string;
   notion_repository_url?: string;
   coordinator_id?: string | null;
+  friendly_name?: string;
+  description?: string;
 }
 
 interface ClientDetail {
@@ -173,7 +175,9 @@ export default function ProjectOpeningDetailPage() {
   const pageTitle = useMemo(() => {
     if (!data) return "Project Opening | Tech Fleet";
     const clientName = data.client?.name ?? "Project Opening";
-    return `${clientName} — ${typeLabel(data.project?.project_type ?? "")} | Tech Fleet`;
+    const nick = data.project?.friendly_name?.trim();
+    const headline = nick ? `${clientName} — ${nick}` : clientName;
+    return `${headline} — ${typeLabel(data.project?.project_type ?? "")} | Tech Fleet`;
   }, [data]);
 
   useEffect(() => {
@@ -253,10 +257,17 @@ export default function ProjectOpeningDetailPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             {client?.name ?? "Project Opening"}
+            {project.friendly_name?.trim() && (
+              <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
+            )}
           </h1>
-          <p className="text-muted-foreground">
-            {client?.project_summary || `${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
-          </p>
+          {project.description?.trim() ? (
+            <p className="text-foreground whitespace-pre-wrap leading-relaxed">{project.description}</p>
+          ) : (
+            <p className="text-muted-foreground">
+              {client?.project_summary || `${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>

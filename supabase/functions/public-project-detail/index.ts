@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // Fetch project
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url, coordinator_id")
+      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url, coordinator_id, friendly_name, description")
       .eq("id", projectId)
       .neq("project_status", "project_complete")
       .maybeSingle();
