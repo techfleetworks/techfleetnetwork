@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { installGlobalErrorReporter } from "@/services/error-reporter.service";
+import { startDeployWatcher } from "@/lib/deploy-watcher";
 
 // Unregister any existing service workers and clear caches so users always get fresh content
 if ("serviceWorker" in navigator) {
@@ -14,5 +15,8 @@ if ("serviceWorker" in navigator) {
 }
 
 installGlobalErrorReporter();
+// Detect new deploys while the tab is open and refresh BEFORE a stale chunk
+// fetch can fail. Pairs with lazyWithRetry as the safety net.
+startDeployWatcher();
 
 createRoot(document.getElementById("root")!).render(<App />);

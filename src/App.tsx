@@ -14,6 +14,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { RouteChangeReloader } from "@/components/RouteChangeReloader";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 
@@ -111,6 +112,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ErrorBoundary>
+              <RouteChangeReloader />
               <AnalyticsTracker />
               <AppLayout>
                 <IdleTimeoutGuard />
