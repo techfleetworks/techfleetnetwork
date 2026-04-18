@@ -199,9 +199,22 @@ export function TotpMfaManagement() {
               </div>
             </div>
           </div>
-          <Button onClick={() => setEnrollOpen(true)} variant={hasMfa ? "outline" : "default"} size="sm">
-            {hasMfa ? "Add another" : "Enable 2FA"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {hasMfa && (
+              <Button
+                onClick={() => setDisableOpen(true)}
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+              >
+                <ShieldOff className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Disable 2FA
+              </Button>
+            )}
+            <Button onClick={() => setEnrollOpen(true)} variant={hasMfa ? "outline" : "default"} size="sm">
+              {hasMfa ? "Add another" : "Enable 2FA"}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
