@@ -17,6 +17,7 @@ interface ProjectWithClient {
   project_status: string;
   team_hats: string[];
   client_id: string;
+  friendly_name?: string;
   clients: { name: string } | null;
 }
 
@@ -30,7 +31,7 @@ export default function AdminRosterPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, clients(name)")
+        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, clients(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as ProjectWithClient[];
@@ -119,6 +120,9 @@ export default function AdminRosterPage() {
 
                 <h3 className="text-base font-semibold text-foreground mb-1">
                   {project.clients?.name ?? "Unknown Client"}
+                  {project.friendly_name?.trim() && (
+                    <span className="text-muted-foreground font-medium"> — {project.friendly_name}</span>
+                  )}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   {typeLabel(project.project_type)}

@@ -46,7 +46,7 @@ export default function RosterProjectDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, clients(name)")
+        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, clients(name)")
         .eq("id", projectId!)
         .single();
       if (error) throw error;
@@ -57,6 +57,8 @@ export default function RosterProjectDetailPage() {
         project_status: string;
         team_hats: string[];
         client_id: string;
+        friendly_name?: string;
+        description?: string;
         clients: { name: string } | null;
       };
     },
@@ -77,7 +79,10 @@ export default function RosterProjectDetailPage() {
     enabled: !!projectId && !!user && isAdmin,
   });
 
-  const clientName = project?.clients?.name ?? "Project";
+  const baseClientName = project?.clients?.name ?? "Project";
+  const clientName = project?.friendly_name?.trim()
+    ? `${baseClientName} — ${project.friendly_name}`
+    : baseClientName;
   const isLoading = adminLoading || projLoading;
 
   if (isLoading) {
@@ -127,6 +132,9 @@ export default function RosterProjectDetailPage() {
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
+        {project.description?.trim() && (
+          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap leading-relaxed">{project.description}</p>
+        )}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
           <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
