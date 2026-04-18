@@ -37,7 +37,8 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const rawExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "jpg";
       const path = `${userId}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
