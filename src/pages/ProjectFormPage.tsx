@@ -109,6 +109,8 @@ export default function ProjectFormPage() {
         if (data && !initialized) {
           setForm({
             client_id: data.client_id,
+            friendly_name: (data as any).friendly_name ?? "",
+            description: (data as any).description ?? "",
             project_type: data.project_type as ProjectTypeValue,
             phase: data.phase as ProjectPhaseValue,
             team_hats: data.team_hats ?? [],
@@ -145,6 +147,8 @@ export default function ProjectFormPage() {
   if (existingProject && !initialized) {
     setForm({
       client_id: existingProject.client_id,
+      friendly_name: (existingProject as any).friendly_name ?? "",
+      description: (existingProject as any).description ?? "",
       project_type: existingProject.project_type as ProjectTypeValue,
       phase: existingProject.phase as ProjectPhaseValue,
       team_hats: existingProject.team_hats ?? [],
