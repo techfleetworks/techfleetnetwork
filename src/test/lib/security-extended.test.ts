@@ -23,13 +23,57 @@ describe("sanitizeHtml", () => {
   it("strips script tags", () => {
     expect(sanitizeHtml('<p>Hello</p><script>alert("xss")</script>')).not.toContain("<script");
   });
-  it("preserves safe tags", () => {
+  it("preserves safe formatting tags", () => {
     const result = sanitizeHtml("<p><strong>Bold</strong></p>");
     expect(result).toContain("<strong>");
     expect(result).toContain("<p>");
   });
-  it("strips style attributes", () => {
+  it("strips style attributes (inline CSS)", () => {
     expect(sanitizeHtml('<p style="color:red">text</p>')).not.toContain("style");
+  });
+  it("strips class attributes (CSS class injection)", () => {
+    expect(sanitizeHtml('<p class="fixed inset-0 bg-red-500">text</p>')).not.toContain("class");
+  });
+  it("strips id attributes (DOM clobbering / :target abuse)", () => {
+    expect(sanitizeHtml('<p id="evil">text</p>')).not.toContain('id=');
+  });
+  it("strips <style> blocks entirely", () => {
+    const out = sanitizeHtml("<style>body{display:none}</style><p>ok</p>");
+    expect(out).not.toContain("<style");
+    expect(out).not.toContain("display:none");
+  });
+  it("strips <link rel=stylesheet>", () => {
+    expect(sanitizeHtml('<link rel="stylesheet" href="evil.css"><p>ok</p>')).not.toContain("<link");
+  });
+  it("strips <iframe>", () => {
+    expect(sanitizeHtml('<iframe src="https://evil"></iframe><p>ok</p>')).not.toContain("<iframe");
+  });
+  it("strips <svg> (CSS-via-SVG vector)", () => {
+    expect(sanitizeHtml('<svg><style>*{display:none}</style></svg><p>ok</p>')).not.toContain("<svg");
+  });
+  it("strips <div> and <span> (positional abuse)", () => {
+    const out = sanitizeHtml('<div><span>x</span></div>');
+    expect(out).not.toContain("<div");
+    expect(out).not.toContain("<span");
+  });
+  it("strips <img> (request smuggling / referrer leak)", () => {
+    expect(sanitizeHtml('<img src="https://evil/track"><p>ok</p>')).not.toContain("<img");
+  });
+  it("strips event handlers", () => {
+    expect(sanitizeHtml('<a href="#" onclick="alert(1)">x</a>')).not.toContain("onclick");
+  });
+  it("rejects javascript: URLs in href", () => {
+    const out = sanitizeHtml('<a href="javascript:alert(1)">x</a>');
+    expect(out).not.toMatch(/javascript:/i);
+  });
+  it("forces target=_blank rel=noopener on links", () => {
+    const out = sanitizeHtml('<a href="https://example.com">x</a>');
+    expect(out).toContain('target="_blank"');
+    expect(out).toContain("noopener");
+  });
+  it("returns empty string for non-string input", () => {
+    expect(sanitizeHtml(null as unknown as string)).toBe("");
+    expect(sanitizeHtml(undefined as unknown as string)).toBe("");
   });
 });
 

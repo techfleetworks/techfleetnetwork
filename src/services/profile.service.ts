@@ -104,11 +104,11 @@ export const ProfileService = {
       }
 
       // A03/A08: Deep-sanitize all string values to prevent stored XSS
-      const updateData = deepSanitize(rawData);
+      const updateData = deepSanitize(rawData) as Record<string, unknown>;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updateData as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
+      const { error } = await (supabase
+        .from("profiles") as any)
+        .update(updateData)
         .eq("user_id", userId);
       if (error) {
         log.error("update", `Failed to save profile for user ${userId}: ${error.message}`, {
@@ -138,11 +138,11 @@ export const ProfileService = {
       if (email) rawData.email = email;
 
       // A03: Sanitize OAuth-provided names before persisting
-      const updateData = deepSanitize(rawData);
+      const updateData = deepSanitize(rawData) as Record<string, unknown>;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updateData as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
+      const { error } = await (supabase
+        .from("profiles") as any)
+        .update(updateData)
         .eq("user_id", userId);
       if (error) {
         log.error("updateNames", `Failed to sync profile names for user ${userId}: ${error.message}`, {
