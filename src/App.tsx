@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Suspense, lazy } from "react";
 
 // Eagerly loaded routes (critical path)
@@ -109,6 +110,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ErrorBoundary>
+              <AnalyticsTracker />
               <AppLayout>
                 <IdleTimeoutGuard />
                 <PasskeyLoginGate />
