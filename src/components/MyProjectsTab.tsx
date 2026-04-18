@@ -71,6 +71,8 @@ interface ProjectData {
   client_intake_url: string;
   notion_repository_url: string;
   created_at: string;
+  friendly_name?: string;
+  description?: string;
   clients: {
     name: string;
     website: string;
@@ -116,6 +118,9 @@ function ProjectSummaryCard({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-semibold text-foreground truncate">
               {client?.name ?? "Project"}
+              {project.friendly_name?.trim() && (
+                <span className="text-muted-foreground font-medium"> — {project.friendly_name}</span>
+              )}
             </h3>
             {isActive ? (
               <Badge className="bg-success/10 text-success border-success/30 gap-1 text-xs">
@@ -130,11 +135,11 @@ function ProjectSummaryCard({
           <p className="text-sm text-muted-foreground mt-0.5">
             {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
           </p>
-          {client?.project_summary && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {client.project_summary}
-            </p>
-          )}
+          {project.description?.trim() ? (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{project.description}</p>
+          ) : client?.project_summary ? (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{client.project_summary}</p>
+          ) : null}
         </div>
         <ArrowLeft className="h-5 w-5 text-muted-foreground rotate-180 flex-shrink-0" aria-hidden="true" />
       </div>
@@ -191,7 +196,12 @@ function ActiveProjectDetail({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-foreground">{client?.name ?? "Project"}</h2>
+                <h2 className="text-xl font-bold text-foreground">
+                  {client?.name ?? "Project"}
+                  {project.friendly_name?.trim() && (
+                    <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
+                  )}
+                </h2>
                 {isActive ? (
                   <Badge className="bg-success/10 text-success border-success/30 gap-1">
                     <Sparkles className="h-3 w-3" /> Active Teammate
@@ -207,9 +217,11 @@ function ActiveProjectDetail({
               </p>
             </div>
           </div>
-          {client?.project_summary && (
+          {project.description?.trim() ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{project.description}</p>
+          ) : client?.project_summary ? (
             <p className="text-sm text-muted-foreground leading-relaxed">{client.project_summary}</p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -373,6 +385,7 @@ export function MyProjectsTab() {
           current_phase_milestones, timezone_range,
           anticipated_start_date, anticipated_end_date,
           client_intake_url, notion_repository_url, created_at,
+          friendly_name, description,
           clients!projects_client_id_fkey ( name, website, mission, project_summary, primary_contact )
         `)
         .in("id", projectIds);
