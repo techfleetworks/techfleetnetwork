@@ -5,10 +5,12 @@ import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("useDiscordRoleRetry");
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
 /**
- * On login, drains any queued Discord role grants for the user.
- * Failures stay in the queue and back off — UI is never blocked.
- * Runs at most once per session.
+ * On login, drains queued Discord role grants for the user.
+ * Failures stay queued and back off — UI is never blocked.
  */
 export function useDiscordRoleRetry() {
   const { user, session } = useAuth();
@@ -22,10 +24,9 @@ export function useDiscordRoleRetry() {
 
     const drain = async () => {
       try {
-        const { data: pending, error } = await supabase.rpc(
-          "list_pending_role_grants_for_user" as never,
-          { p_user_id: user.id },
-        );
+        const { data: pending, error } = await sb.rpc("list_pending_role_grants_for_user", {
+          p_user_id: user.id,
+        });
         if (error || !Array.isArray(pending) || pending.length === 0) return;
         if (cancelled) return;
 
@@ -37,14 +38,14 @@ export function useDiscordRoleRetry() {
               body: { action: "assign", discord_user_id: row.discord_user_id, role_id: row.role_id },
             });
             const ok = !res.error && (res.data as { success?: boolean })?.success !== false;
-            await supabase.rpc("mark_discord_role_grant_result" as never, {
+            await sb.rpc("mark_discord_role_grant_result", {
               p_id: row.id,
               p_success: ok,
               p_error: ok ? null : (res.error?.message ?? "retry failed"),
             });
             if (ok) log.info("retry", `Granted queued role ${row.role_id}`);
           } catch (err) {
-            await supabase.rpc("mark_discord_role_grant_result" as never, {
+            await sb.rpc("mark_discord_role_grant_result", {
               p_id: row.id,
               p_success: false,
               p_error: err instanceof Error ? err.message : "unknown",
@@ -56,7 +57,6 @@ export function useDiscordRoleRetry() {
       }
     };
 
-    // Defer so login navigation isn't slowed
     const timer = window.setTimeout(drain, 1500);
     return () => {
       cancelled = true;
