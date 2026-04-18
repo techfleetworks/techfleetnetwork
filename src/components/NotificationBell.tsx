@@ -21,6 +21,7 @@ import {
   useLatestAnnouncements,
   useAnnouncementReadIds,
   useMarkAnnouncementRead,
+  useRecordAnnouncementView,
 } from "@/hooks/use-announcements";
 import {
   useNotifications,
@@ -32,6 +33,7 @@ import {
 import { stripHtml } from "@/lib/html";
 import { sanitizeHtml } from "@/lib/security";
 import type { Announcement } from "@/services/announcement.service";
+import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
 
 /** Unified notification item used for the merged list */
 interface UnifiedItem {
@@ -64,6 +66,7 @@ export function NotificationBell() {
   const { data: announcements = [] } = useLatestAnnouncements(20);
   const { data: readIds = new Set<string>() } = useAnnouncementReadIds();
   const markAnnouncementRead = useMarkAnnouncementRead();
+  const recordView = useRecordAnnouncementView();
 
   // In-app notifications
   const { data: notifications = [] } = useNotifications(20);
@@ -103,6 +106,7 @@ export function NotificationBell() {
   const handleItemClick = (item: UnifiedItem) => {
     if (item.kind === "announcement") {
       markAnnouncementRead.mutate(item.id);
+      recordView.mutate(item.id);
       openDetailAfterPopoverCloses(() => {
         setSelectedNotification(null);
         setSelectedAnnouncement(item.raw as Announcement);
@@ -244,6 +248,9 @@ export function NotificationBell() {
             <SheetDescription>
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
+            {selectedAnnouncement && (
+              <AnnouncementViewStats announcementId={selectedAnnouncement.id} className="mt-2" />
+            )}
           </SheetHeader>
           <ScrollArea className="flex-1 px-6 py-4 space-y-4">
             {selectedAnnouncement?.video_url && (
