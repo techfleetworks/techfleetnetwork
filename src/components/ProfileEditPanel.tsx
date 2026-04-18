@@ -499,7 +499,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                 <Label htmlFor="edit-notify" className="text-sm leading-relaxed cursor-pointer">
                   Notify me about training opportunities that match my preferences
                 </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Receive in-app notifications when matching opportunities open.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Receive in-app notifications when matching opportunities open or change status.</p>
               </div>
             </div>
 
