@@ -94,4 +94,28 @@ export const AnnouncementService = {
       log.error("markRead", `Failed to mark read: ${error.message}`, {}, error);
     }
   },
+
+  /** Record a view (every click counts toward total views) */
+  async recordView(userId: string, announcementId: string): Promise<void> {
+    const { error } = await supabase
+      .from("announcement_views")
+      .insert({ user_id: userId, announcement_id: announcementId } as any);
+    if (error) {
+      log.warn("recordView", `Failed to record view: ${error.message}`, {}, error);
+    }
+  },
+
+  /** Aggregated view counts (total + unique) for all announcements */
+  async getViewCounts(): Promise<Map<string, { total: number; unique: number }>> {
+    const { data, error } = await supabase.rpc("get_announcement_view_counts");
+    if (error) {
+      log.warn("getViewCounts", `Failed to fetch view counts: ${error.message}`, {}, error);
+      return new Map();
+    }
+    const map = new Map<string, { total: number; unique: number }>();
+    for (const row of (data ?? []) as Array<{ announcement_id: string; total_views: number; unique_views: number }>) {
+      map.set(row.announcement_id, { total: Number(row.total_views), unique: Number(row.unique_views) });
+    }
+    return map;
+  },
 };

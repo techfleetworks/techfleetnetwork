@@ -82,6 +82,29 @@ export function useCreateAnnouncement() {
   });
 }
 
+export function useAnnouncementViewCounts() {
+  return useQuery({
+    queryKey: ["announcement-view-counts"],
+    queryFn: () => AnnouncementService.getViewCounts(),
+    staleTime: 30_000,
+  });
+}
+
+export function useRecordAnnouncementView() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (announcementId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      return AnnouncementService.recordView(user.id, announcementId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["announcement-view-counts"] });
+    },
+  });
+}
+
 export function useDeleteAnnouncement() {
   const queryClient = useQueryClient();
 
