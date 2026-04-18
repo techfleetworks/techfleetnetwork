@@ -45,11 +45,11 @@ function SingleBanner({
       className="relative w-full"
       style={{ backgroundColor: "hsl(220, 60%, 15%)", color: "hsl(0, 0%, 100%)" }}
     >
-      <div className="flex items-start gap-3 px-4 py-3 sm:items-center sm:py-2.5 w-full">
+      <div className="mx-auto flex w-full max-w-[1200px] items-start gap-3 px-4 py-3 sm:items-center sm:py-2.5">
         <div className="flex-1 min-w-0 space-y-0.5">
-          <p className="text-sm font-semibold leading-snug">{banner.title}</p>
+          <p className="text-sm font-semibold leading-snug break-words">{banner.title}</p>
           <div
-            className="text-xs leading-relaxed opacity-90 prose prose-xs prose-invert max-w-none [&_a]:text-blue-300 [&_a]:underline"
+            className="text-xs leading-relaxed opacity-90 prose prose-xs prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:text-blue-300 [&_a]:underline [&_*]:max-w-full"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(banner.body_html) }}
           />
         </div>
