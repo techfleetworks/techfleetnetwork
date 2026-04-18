@@ -165,14 +165,22 @@ export default function DashboardPage() {
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
-  // Batch all journey progress queries — React Query deduplicates automatically
+  // Single round-trip RPC: phase counts + general app + project apps in one call.
+  // Cuts dashboard load from 8 queries to 1 (audit 2026-04-18).
+  const { data: overview } = useDashboardOverview();
+  const phaseCounts = overview?.phase_counts ?? {};
+
+  // Task-id-filtered counts (RPC returns total per phase, can't filter by task subset)
   const { data: connectDiscordCompleted = 0 } = useCompletedCount(userId, "first_steps", CONNECT_DISCORD_TASK_IDS);
   const { data: firstStepsCompleted = 0 } = useCompletedCount(userId, "first_steps", FIRST_STEPS_TASK_IDS);
-  const { data: secondStepsCompleted = 0 } = useCompletedCount(userId, "second_steps");
-  const { data: discordLearningCompleted = 0 } = useCompletedCount(userId, "discord_learning");
-  const { data: teamworkCompleted = 0 } = useCompletedCount(userId, "third_steps");
-  const { data: projectTrainingCompleted = 0 } = useCompletedCount(userId, "project_training");
-  const { data: volunteerCompleted = 0 } = useCompletedCount(userId, "volunteer");
+
+  // Phase-total counts (sourced from overview RPC)
+  const secondStepsCompleted = phaseCounts.second_steps ?? 0;
+  const discordLearningCompleted = phaseCounts.discord_learning ?? 0;
+  const teamworkCompleted = phaseCounts.third_steps ?? 0;
+  const projectTrainingCompleted = phaseCounts.project_training ?? 0;
+  const volunteerCompleted = phaseCounts.volunteer ?? 0;
+
   const { data: latestAnnouncements = [] } = useLatestAnnouncements(5);
 
   // Share cache key with NetworkActivity component — no duplicate fetch
@@ -183,62 +191,41 @@ export default function DashboardPage() {
     refetchInterval: 5 * 60 * 1000,
   });
 
-  // Fetch general application status
-  const { data: generalApp } = useQuery({
-    queryKey: ["dashboard-general-app", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("general_applications")
-        .select("id, status, completed_at, updated_at, current_section")
-        .eq("user_id", userId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
-  });
+  // General application status — sourced from overview RPC
+  const generalApp = overview?.general_application ?? null;
 
-  // Combine project apps + projects + clients into a single query to avoid waterfall
-  const { data: projectAppData } = useQuery({
-    queryKey: ["dashboard-project-apps-combined", userId],
+  // Project apps come from RPC; still need projects + clients lookup for display.
+  const projectApps = overview?.project_applications ?? [];
+  const { data: projectLookup } = useQuery({
+    queryKey: ["dashboard-project-lookup", projectApps.map((a) => a.project_id).sort().join(",")],
     queryFn: async () => {
-      const { data: apps, error: appsErr } = await supabase
-        .from("project_applications")
-        .select("id, project_id, status, applicant_status, completed_at, updated_at, current_step, team_hats_interest")
-        .eq("user_id", userId!)
-        .order("updated_at", { ascending: false });
-      if (appsErr) throw appsErr;
-      if (!apps || apps.length === 0) return { apps: [], projects: [], clients: [] };
-
-      const projectIds = [...new Set(apps.map((a) => a.project_id))];
+      if (projectApps.length === 0) return { projects: [], clients: [] };
+      const projectIds = [...new Set(projectApps.map((a) => a.project_id))];
       const { data: projects } = await supabase
         .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
-
       const clientIds = [...new Set((projects ?? []).map((p) => p.client_id))];
       const { data: clients } = clientIds.length > 0
         ? await supabase.from("clients").select("id, name").in("id", clientIds)
         : { data: [] };
-
-      return { apps: apps ?? [], projects: projects ?? [], clients: clients ?? [] };
+      return { projects: projects ?? [], clients: clients ?? [] };
     },
-    enabled: !!userId,
+    enabled: projectApps.length > 0,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Poll for project app status changes — adaptive interval (60s base, 240s hidden)
+  // Adaptive poll for application status changes (60s base, 240s when tab hidden)
   const dashboardPollInterval = useAdaptiveInterval(60_000);
   useEffect(() => {
     if (!userId) return;
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard-project-apps-combined", userId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview", userId] });
     }, dashboardPollInterval);
     return () => clearInterval(interval);
   }, [userId, queryClient, dashboardPollInterval]);
 
-  const myProjectApps = projectAppData?.apps ?? [];
-  const dashProjectMap = useMemo(() => new Map((projectAppData?.projects ?? []).map((p) => [p.id, p])), [projectAppData?.projects]);
-  const dashClientMap = useMemo(() => new Map((projectAppData?.clients ?? []).map((c) => [c.id, c])), [projectAppData?.clients]);
+  const myProjectApps = projectApps;
+  const dashProjectMap = useMemo(() => new Map((projectLookup?.projects ?? []).map((p) => [p.id, p])), [projectLookup?.projects]);
+  const dashClientMap = useMemo(() => new Map((projectLookup?.clients ?? []).map((c) => [c.id, c])), [projectLookup?.clients]);
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
