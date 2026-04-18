@@ -1,0 +1,58 @@
+/**
+ * Dashboard overview hook — single round-trip replacement for the eight
+ * separate per-widget queries DashboardPage.tsx used to fire on first paint.
+ *
+ * Audit 2026-04-18: at 10k concurrent users hitting /dashboard during a
+ * kickoff event, the old fan-out was ~80k DB queries in the first second.
+ * The `get_dashboard_overview` RPC returns everything in one call so peak
+ * dashboard load is now ~10k queries instead.
+ */
+import { useQuery } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+export interface DashboardGeneralApp {
+  id: string;
+  status: string;
+  completed_at: string | null;
+  updated_at: string;
+  current_section: number;
+}
+
+export interface DashboardProjectApp {
+  id: string;
+  project_id: string;
+  status: string;
+  applicant_status: string | null;
+  completed_at: string | null;
+  updated_at: string;
+  current_step: number;
+  team_hats_interest: string[];
+}
+
+export interface DashboardOverview {
+  phase_counts: Record<string, number>;
+  general_application: DashboardGeneralApp | null;
+  project_applications: DashboardProjectApp[];
+}
+
+export function useDashboardOverview() {
+  const { user } = useAuth();
+  const userId = user?.id;
+  return useQuery({
+    queryKey: ["dashboard-overview", userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<DashboardOverview> => {
+      const { data, error } = await supabase.rpc("get_dashboard_overview", { p_user_id: userId! });
+      if (error) throw error;
+      const raw = (data ?? {}) as Partial<DashboardOverview>;
+      return {
+        phase_counts: raw.phase_counts ?? {},
+        general_application: raw.general_application ?? null,
+        project_applications: raw.project_applications ?? [],
+      };
+    },
+  });
+}
