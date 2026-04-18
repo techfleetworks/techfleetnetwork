@@ -339,6 +339,66 @@ export function TotpMfaManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Disable 2FA confirmation dialog (requires password re-auth) */}
+      <Dialog open={disableOpen} onOpenChange={handleDisableDialogChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldOff className="h-5 w-5 text-destructive" aria-hidden="true" />
+              Disable Two-Factor Authentication
+            </DialogTitle>
+            <DialogDescription>
+              This will remove all of your authenticator apps and stop asking for a 6-digit code at sign-in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <span>
+                Your account will be less secure after disabling 2FA. We strongly recommend keeping it on.
+              </span>
+            </div>
+
+            <Label htmlFor="disable-2fa-password">Confirm your password</Label>
+            <Input
+              id="disable-2fa-password"
+              type="password"
+              autoComplete="current-password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              disabled={disabling}
+              placeholder="Enter your password"
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              We re-check your password to make sure it's really you.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => handleDisableDialogChange(false)}
+              disabled={disabling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDisableAll}
+              disabled={disabling || !disablePassword}
+            >
+              {disabling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <span className={disabling ? "ml-2" : ""}>Disable 2FA</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
