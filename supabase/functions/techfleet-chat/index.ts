@@ -63,6 +63,50 @@ const MAX_MESSAGE_LENGTH = 20_000;
 const WEB_SEARCH_TIMEOUT_MS = 5000;
 
 /**
+ * Module-level Fleety knowledge base cache (audit 2026-04-18).
+ *
+ * Deno isolates persist across invocations within the same worker, so a
+ * module-level `let` is shared across requests. At 30 req/s of chat traffic
+ * we were doing 30 full-table scans/sec of `knowledge_base` and pushing
+ * ~6.8 MB/s of identical system prompts into the AI gateway. With this
+ * cache the table is read once per isolate per TTL window.
+ */
+const KB_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+type KbEntry = { title: string; content: string; url: string };
+let kbCache: KbEntry[] | null = null;
+let kbCacheExpiresAt = 0;
+let kbInflight: Promise<KbEntry[]> | null = null;
+
+async function loadKnowledgeBaseCached(
+  client: ReturnType<typeof createClient>,
+  requestId: string,
+): Promise<KbEntry[]> {
+  const now = Date.now();
+  if (kbCache && now < kbCacheExpiresAt) {
+    log.info("kb-cache", `KB cache HIT [${requestId}] (${kbCache.length} entries, ${Math.round((kbCacheExpiresAt - now) / 1000)}s left)`, { requestId });
+    return kbCache;
+  }
+  if (kbInflight) {
+    log.info("kb-cache", `KB cache COALESCE [${requestId}] — joining in-flight refresh`, { requestId });
+    return kbInflight;
+  }
+  log.info("kb-cache", `KB cache MISS [${requestId}] — refreshing`, { requestId });
+  kbInflight = (async () => {
+    const { data, error } = await client.from("knowledge_base").select("title, content, url").order("title");
+    if (error) throw error;
+    const entries = (data ?? []) as KbEntry[];
+    kbCache = entries;
+    kbCacheExpiresAt = Date.now() + KB_CACHE_TTL_MS;
+    return entries;
+  })();
+  try {
+    return await kbInflight;
+  } finally {
+    kbInflight = null;
+  }
+}
+
+/**
  * OWASP AI: Prompt injection detection patterns.
  * Detects common prompt injection / jailbreak attempts in user messages.
  */
@@ -420,22 +464,19 @@ serve(async (req) => {
       );
     }
 
-    // Load knowledge base and optionally search web in parallel
+    // Load knowledge base (cached at module scope) and optionally search web in parallel
     const doWebSearch = shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch}`, { requestId, doWebSearch });
 
-    const [kbResult, webResult] = await Promise.all([
-      supabase.from("knowledge_base").select("title, content, url").order("title"),
+    const [knowledge, webResult] = await Promise.all([
+      loadKnowledgeBaseCached(supabase, requestId).catch((e) => {
+        log.error("kb", `Failed to load knowledge base [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId }, e);
+        return [] as KbEntry[];
+      }),
       doWebSearch ? searchWebForTips(buildSearchQuery(lastUserMessage)) : Promise.resolve({ context: "", sources: [] }),
     ]);
 
-    const { data: knowledge, error: kbError } = kbResult;
-
-    if (kbError) {
-      log.error("kb", `Failed to load knowledge base [${requestId}]: ${kbError.message}`, { requestId }, kbError);
-    } else {
-      log.info("kb", `Loaded ${knowledge?.length ?? 0} KB entries [${requestId}]`, { requestId, entryCount: knowledge?.length ?? 0 });
-    }
+    log.info("kb", `Loaded ${knowledge.length} KB entries [${requestId}]`, { requestId, entryCount: knowledge.length });
 
     let knowledgeContext = "";
     // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
