@@ -24,6 +24,47 @@ serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
 
+  // ── JWT auth check ────────────────────────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Authentication required" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !user) {
+    return new Response(
+      JSON.stringify({ error: "Invalid or expired token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // ── Server-side rate limit (20 lookups / 5 min per user) ──────────
+  // Prevents using this endpoint to enumerate the Discord guild's member list.
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: rl } = await adminClient.rpc("check_rate_limit", {
+    p_identifier: user.id,
+    p_action: "resolve_discord_id",
+    p_max_attempts: 20,
+    p_window_minutes: 5,
+    p_block_minutes: 10,
+  });
+  if (rl && !rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many lookups. Please wait." }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN");
   const GUILD_ID = Deno.env.get("DISCORD_GUILD_ID");
 
