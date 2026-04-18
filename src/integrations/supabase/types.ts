@@ -886,6 +886,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_fanout_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          next_offset: number
+          payload: Json
+          source: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_offset?: number
+          payload: Json
+          source: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_offset?: number
+          payload?: Json
+          source?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body_html: string
@@ -1832,6 +1874,7 @@ export type Database = {
           unique_views: number
         }[]
       }
+      get_dashboard_overview: { Args: { p_user_id: string }; Returns: Json }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
       get_own_promotions: {
@@ -1859,6 +1902,15 @@ export type Database = {
         Args: { _issued_at: string; _user_id: string }
         Returns: boolean
       }
+      list_pending_fanout_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          source: string
+        }[]
+      }
       log_pii_access: {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
@@ -1871,6 +1923,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      process_notification_fanout_chunk: {
+        Args: { p_chunk_size?: number; p_job_id: string }
+        Returns: Json
       }
       purge_old_audit_logs: {
         Args: { retention_days?: number }
