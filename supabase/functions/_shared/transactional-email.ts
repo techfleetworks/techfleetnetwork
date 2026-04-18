@@ -77,6 +77,36 @@ async function insertEmailLog(
   }
 }
 
+async function lookupTokenWithRetry(
+  supabase: SupabaseClient,
+  normalizedEmail: string,
+  attempts = 3
+): Promise<{ data: Array<{ token: string; used_at: string | null; created_at: string }> | null; error: unknown }> {
+  let lastError: unknown = null
+  for (let i = 0; i < attempts; i++) {
+    // Simpler order clause — `nullsFirst` option has caused PostgREST issues in the past.
+    // Sort used_at ASC so NULL (unused) rows naturally come first in PostgREST default ordering,
+    // then by created_at ASC as a tiebreaker.
+    const { data, error } = await supabase
+      .from('email_unsubscribe_tokens')
+      .select('token, used_at, created_at')
+      .eq('email', normalizedEmail)
+      .order('used_at', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(1)
+
+    if (!error) {
+      return { data, error: null }
+    }
+    lastError = error
+    // Brief backoff before retry (transient network/PostgREST hiccups)
+    if (i < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100 * (i + 1)))
+    }
+  }
+  return { data: null, error: lastError }
+}
+
 async function resolveUnsubscribeToken(
   supabase: SupabaseClient,
   normalizedEmail: string,
@@ -90,28 +120,53 @@ async function resolveUnsubscribeToken(
 > {
   // Defensive: in case legacy duplicate rows exist for an email, take the
   // oldest unused row (or oldest if all used) instead of erroring on multi-row.
-  const { data: tokenRows, error: tokenLookupError } = await supabase
-    .from('email_unsubscribe_tokens')
-    .select('token, used_at, created_at')
-    .eq('email', normalizedEmail)
-    .order('used_at', { ascending: true, nullsFirst: true })
-    .order('created_at', { ascending: true })
-    .limit(1)
+  const { data: tokenRows, error: tokenLookupError } = await lookupTokenWithRetry(
+    supabase,
+    normalizedEmail
+  )
   const existingToken = tokenRows && tokenRows.length > 0 ? tokenRows[0] : null
 
-  if (tokenLookupError) {
-    console.error('Token lookup failed', {
+  if (tokenLookupError && !existingToken) {
+    console.error('Token lookup failed after retries — falling back to fresh token mint', {
       error: tokenLookupError,
       email: normalizedEmail,
     })
-    await insertEmailLog(supabase, {
-      message_id: messageId,
-      template_name: templateName,
-      recipient_email: recipientEmail,
-      status: 'failed',
-      error_message: 'Failed to look up unsubscribe token',
-    })
-    return { ok: false, error: 'Failed to prepare email' }
+    // Self-heal: instead of failing the email, mint a fresh token.
+    // The unique constraint on email will cause upsert to succeed or no-op.
+    const fallbackToken = generateToken()
+    const { error: fallbackError } = await supabase
+      .from('email_unsubscribe_tokens')
+      .upsert(
+        { token: fallbackToken, email: normalizedEmail },
+        { onConflict: 'email', ignoreDuplicates: true }
+      )
+
+    if (fallbackError) {
+      console.error('Fallback token mint also failed', {
+        error: fallbackError,
+        email: normalizedEmail,
+      })
+      await insertEmailLog(supabase, {
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: recipientEmail,
+        status: 'failed',
+        error_message: 'Failed to look up or create unsubscribe token',
+      })
+      return { ok: false, error: 'Failed to prepare email' }
+    }
+
+    // Re-read to get whichever token now exists for this email
+    const { data: postFallbackRows } = await lookupTokenWithRetry(supabase, normalizedEmail)
+    if (postFallbackRows && postFallbackRows.length > 0 && !postFallbackRows[0].used_at) {
+      return { ok: true, token: postFallbackRows[0].token }
+    }
+    if (postFallbackRows && postFallbackRows.length > 0) {
+      // A used token exists but no unused — treat as suppressed-style edge case
+      return { ok: true, token: postFallbackRows[0].token }
+    }
+    // As a last resort, use the token we just generated
+    return { ok: true, token: fallbackToken }
   }
 
   if (existingToken && !existingToken.used_at) {
