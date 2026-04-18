@@ -185,11 +185,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
 
     // Resize-aware class: when a custom size is applied, drop the
     // default w-3/4 / sm:max-w-sm constraints so inline style wins.
+    // Use !important utilities to override any sm:max-w-* in caller className.
     const resizableSideOverrides =
       resizable && size != null
         ? horizontal
-          ? "!w-auto !max-w-none sm:!max-w-none"
-          : "!h-auto !max-h-none"
+          ? "!w-auto !max-w-none sm:!max-w-none !min-w-0"
+          : "!h-auto !max-h-none sm:!max-h-none !min-h-0"
         : "";
 
     return (
