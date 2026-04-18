@@ -412,6 +412,38 @@ export default function ProjectFormPage() {
           </div>
         )}
 
+        {/* Friendly Name (project nickname) */}
+        <div className="space-y-1.5">
+          <Label htmlFor="friendly-name">Project Nickname</Label>
+          <Input
+            id="friendly-name"
+            type="text"
+            maxLength={200}
+            placeholder="e.g. Member Experience Team"
+            value={form.friendly_name}
+            onChange={(e) => setForm((f) => ({ ...f, friendly_name: e.target.value }))}
+            aria-invalid={!!errors.friendly_name}
+            aria-describedby="friendly-name-help"
+          />
+          <p id="friendly-name-help" className="text-xs text-muted-foreground">
+            Shown after the client name as <span className="font-medium">[Client] — [Nickname]</span>. Max 200 characters.
+          </p>
+          {errors.friendly_name && <p className="text-xs text-destructive">{errors.friendly_name}</p>}
+        </div>
+
+        {/* Project Description (long form) */}
+        <div className="space-y-1.5">
+          <Label htmlFor="project-description">Project Description</Label>
+          <CharCountTextarea
+            id="project-description"
+            placeholder="Describe the project's goals, scope, and what teammates can expect…"
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            aria-invalid={!!errors.description}
+          />
+          {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+        </div>
+
         {/* Project Type */}
         <div className="space-y-1.5">
           <Label htmlFor="project-type">Project Type <span className="text-destructive">*</span></Label>
