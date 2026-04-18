@@ -163,7 +163,7 @@ export function ProjectsTab() {
           exportFileName="projects"
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {projects.map((p) => {
             const client = clientMap.get(p.client_id);
             const projComputed = computeMilestoneData(p.current_phase_milestones, milestoneRefs);
