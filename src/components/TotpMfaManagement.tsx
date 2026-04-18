@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Standards: RFC 6238 (TOTP), RFC 4648 (Base32).
  */
 export function TotpMfaManagement() {
+  const { user } = useAuth();
   const [factors, setFactors] = useState<TotpFactor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +32,11 @@ export function TotpMfaManagement() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [secretCopied, setSecretCopied] = useState(false);
+
+  // Disable-all dialog state (re-auth required)
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [disabling, setDisabling] = useState(false);
 
   const totpFactors = factors.filter((f) => f.factor_type === "totp" && f.status === "verified");
   const hasMfa = totpFactors.length > 0;
