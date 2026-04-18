@@ -49,6 +49,9 @@ import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
 );
+const SystemHealthWidget = lazy(() =>
+  import("@/components/admin/SystemHealthWidget").then((m) => ({ default: m.SystemHealthWidget }))
+);
 
 interface CoreCourse {
   id: string;
@@ -590,6 +593,10 @@ export default function DashboardPage() {
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
       )}
+
+      <Suspense fallback={null}>
+        <SystemHealthWidget />
+      </Suspense>
     </div>
   );
 }
