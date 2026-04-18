@@ -1883,6 +1883,7 @@ export type Database = {
         Args: { p_action: string; p_identifier: string }
         Returns: undefined
       }
+      sanitize_user_html: { Args: { input: string }; Returns: string }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
         Args: { p_token: string }
