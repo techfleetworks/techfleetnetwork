@@ -103,6 +103,35 @@ export type Database = {
           },
         ]
       }
+      announcement_views: {
+        Row: {
+          announcement_id: string
+          id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          announcement_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_views_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           audio_url: string | null
@@ -1786,6 +1815,14 @@ export type Database = {
         Returns: number
       }
       export_my_data: { Args: never; Returns: Json }
+      get_announcement_view_counts: {
+        Args: never
+        Returns: {
+          announcement_id: string
+          total_views: number
+          unique_views: number
+        }[]
+      }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
       get_own_promotions: {

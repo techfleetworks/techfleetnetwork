@@ -25,10 +25,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, useMarkAnnouncementRead,
+  useRecordAnnouncementView,
 } from "@/hooks/use-announcements";
 import { stripHtml } from "@/lib/html";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { Announcement } from "@/services/announcement.service";
+import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
 
@@ -44,6 +46,7 @@ export default function UpdatesPage() {
   const createMutation = useCreateAnnouncement();
   const deleteMutation = useDeleteAnnouncement();
   const markReadMutation = useMarkAnnouncementRead();
+  const recordViewMutation = useRecordAnnouncementView();
 
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [createOpen, setCreateOpen] = useState(false);
@@ -71,6 +74,7 @@ export default function UpdatesPage() {
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
     markReadMutation.mutate(a.id);
+    recordViewMutation.mutate(a.id);
   };
 
   const handleCreate = async () => {
@@ -222,9 +226,12 @@ export default function UpdatesPage() {
               <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
                 {stripHtml(a.body_html).slice(0, 150)}
               </p>
-              <Badge variant="secondary" className="text-xs">
-                {format(new Date(a.created_at), "MMM d, yyyy")}
-              </Badge>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs">
+                  {format(new Date(a.created_at), "MMM d, yyyy")}
+                </Badge>
+                <AnnouncementViewStats announcementId={a.id} />
+              </div>
             </button>
           ))}
         </div>
@@ -238,6 +245,9 @@ export default function UpdatesPage() {
             <SheetDescription>
               {selectedAnnouncement && format(new Date(selectedAnnouncement.created_at), "MMMM d, yyyy 'at' h:mm a")}
             </SheetDescription>
+            {selectedAnnouncement && (
+              <AnnouncementViewStats announcementId={selectedAnnouncement.id} size="md" className="mt-2" />
+            )}
           </SheetHeader>
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-6 py-4 space-y-4">
