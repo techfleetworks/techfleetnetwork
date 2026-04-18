@@ -1,7 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("discord-notify");
+
+/**
+ * SECURITY: Originally callable without auth, which made the Discord webhook
+ * a spam vector for any anonymous client. Fixed 2026-04-18 audit:
+ *  • Requires a valid Supabase JWT
+ *  • Server-side rate limit (60 req / 5 min per user) via check_rate_limit
+ *  • Strict allow-list of event types (existing) and bounded body
+ */
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,7 +91,6 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-/** Max request body size (8 KB — sufficient for notification payloads) */
 const MAX_BODY_BYTES = 8 * 1024;
 
 const VALID_EVENTS = new Set([
@@ -106,8 +114,38 @@ serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
 
+  // ── JWT auth check ────────────────────────────────────────────────
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return jsonResponse({ error: "Authentication required" }, 401);
+  }
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !user) {
+    return jsonResponse({ error: "Invalid or expired token" }, 401);
+  }
+
+  // ── Server-side rate limit (60 events / 5 min per user) ───────────
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: rl } = await adminClient.rpc("check_rate_limit", {
+    p_identifier: user.id,
+    p_action: "discord_notify",
+    p_max_attempts: 60,
+    p_window_minutes: 5,
+    p_block_minutes: 5,
+  });
+  if (rl && !rl.allowed) {
+    return jsonResponse({ error: "Too many notifications" }, 429);
+  }
+
   try {
-    // A3: Enforce request body size limit
     const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
     if (contentLength > MAX_BODY_BYTES) {
       log.warn("handler", `Request body too large [${requestId}]: ${contentLength} bytes`, { requestId, contentLength });
@@ -117,7 +155,7 @@ serve(async (req) => {
     const payload: NotifyPayload = await req.json();
 
     if (!payload?.event || !VALID_EVENTS.has(payload.event)) {
-      log.warn("handler", `Missing event in request payload [${requestId}]`, { requestId });
+      log.warn("handler", `Missing/invalid event [${requestId}]`, { requestId });
       return jsonResponse({ error: "Missing event" }, 400);
     }
 
@@ -168,7 +206,7 @@ serve(async (req) => {
     }
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return jsonResponse({ error: message }, 500);
+    // OWASP A09: Generic error message
+    return jsonResponse({ error: "An unexpected error occurred" }, 500);
   }
 });

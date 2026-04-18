@@ -395,13 +395,18 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 
 // ─── Content-Type Validation (A05) ──────────────────────────────────
 
-/** Allowed file upload MIME types */
+/**
+ * Allowed file upload MIME types.
+ * SVG is intentionally EXCLUDED — SVGs can carry <script> and event handlers
+ * that survive client-side rendering, and our public storage buckets serve
+ * files with their declared Content-Type, so a malicious SVG would execute
+ * in the user's origin context. Use PNG/JPG/WebP for any image upload.
+ */
 const ALLOWED_UPLOAD_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
   "application/pdf",
   "video/mp4",
   "video/webm",

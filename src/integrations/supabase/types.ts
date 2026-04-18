@@ -54,6 +54,7 @@ export type Database = {
           id: string
           promoted_by: string
           token: string
+          token_hash: string | null
           user_id: string
         }
         Insert: {
@@ -62,6 +63,7 @@ export type Database = {
           id?: string
           promoted_by: string
           token?: string
+          token_hash?: string | null
           user_id: string
         }
         Update: {
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           promoted_by?: string
           token?: string
+          token_hash?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1891,6 +1894,14 @@ export type Database = {
           email: string
           expires_at: string
           used_at: string
+        }[]
+      }
+      verify_admin_promotion_token: {
+        Args: { p_token: string }
+        Returns: {
+          confirmed_at: string
+          id: string
+          user_id: string
         }[]
       }
       write_audit_log:

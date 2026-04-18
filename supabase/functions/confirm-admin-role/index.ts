@@ -50,12 +50,13 @@ Deno.serve(async (req) => {
 
     const appOrigin = getSafeAppOrigin()
 
-    // Find the pending promotion — use constant-time-safe lookup by relying on DB index
-    const { data: promotion, error: fetchErr } = await supabase
-      .from('admin_promotions')
-      .select('id, user_id, confirmed_at')
-      .eq('token', token)
-      .single()
+    // Verify the token via SECURITY DEFINER function which compares against
+    // the SHA-256 hash stored in admin_promotions.token_hash. This prevents
+    // a DB read leak from exposing the plaintext token of pending promotions.
+    const { data: rows, error: fetchErr } = await supabase
+      .rpc('verify_admin_promotion_token', { p_token: token })
+
+    const promotion = Array.isArray(rows) ? rows[0] : null
 
     if (fetchErr || !promotion) {
       return new Response(
