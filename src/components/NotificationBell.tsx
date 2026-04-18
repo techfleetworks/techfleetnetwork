@@ -242,7 +242,7 @@ export function NotificationBell() {
 
       {/* Announcement detail panel */}
       <Sheet open={!!selectedAnnouncement} onOpenChange={(o) => !o && setSelectedAnnouncement(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
+        <SheetContent side="right" resizeKey="notification-announcement" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
             <SheetTitle className="text-xl pr-8">{selectedAnnouncement?.title}</SheetTitle>
             <SheetDescription>
@@ -285,7 +285,7 @@ export function NotificationBell() {
 
       {/* Notification detail panel (for notifications without a link) */}
       <Sheet open={!!selectedNotification} onOpenChange={(o) => !o && setSelectedNotification(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
+        <SheetContent side="right" resizeKey="notification-detail" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
             <SheetTitle className="text-xl pr-8">{selectedNotification?.title}</SheetTitle>
             <SheetDescription>

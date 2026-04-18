@@ -214,7 +214,7 @@ export default function ExploreTab() {
 
       {/* All Popular side panel */}
       <Sheet open={showAllPopular} onOpenChange={setShowAllPopular}>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent resizeKey="explore-popular" className="w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />

@@ -532,7 +532,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
 
       {/* ── Multi-project applicants side panel ── */}
       <Sheet open={!!multiProjectSheet} onOpenChange={(open) => !open && setMultiProjectSheet(null)}>
-        <SheetContent className="w-full sm:max-w-lg" aria-describedby={undefined}>
+        <SheetContent resizeKey="project-analysis-multi" className="w-full sm:max-w-lg" aria-describedby={undefined}>
           <SheetHeader>
             <SheetTitle className="break-words">
               Applicants who also applied elsewhere — {multiProjectSheet?.hat}

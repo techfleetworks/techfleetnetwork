@@ -406,7 +406,7 @@ export default function ThirdStepsPage() {
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}
       >
-        <SheetContent className="w-full sm:max-w-xl overflow-hidden flex flex-col">
+        <SheetContent resizeKey="third-steps-lesson" className="w-full sm:max-w-xl overflow-hidden flex flex-col">
           <SheetHeader className="pb-4 border-b border-border">
             {selectedLesson && (
               <p className="text-xs text-muted-foreground">
