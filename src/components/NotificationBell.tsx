@@ -242,7 +242,12 @@ export function NotificationBell() {
 
       {/* Announcement detail panel */}
       <Sheet open={!!selectedAnnouncement} onOpenChange={(o) => !o && setSelectedAnnouncement(null)}>
-        <SheetContent side="right" resizeKey="notification-announcement" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
+        <SheetContent
+          side="right"
+          resizeKey="notification-announcement"
+          minSize={360}
+          className="flex flex-col p-0 overflow-hidden w-[min(36rem,95vw)] sm:!max-w-none"
+        >
           <SheetHeader className="px-6 pt-6 pb-4 border-b">
             <SheetTitle className="text-xl pr-8">{selectedAnnouncement?.title}</SheetTitle>
             <SheetDescription>
@@ -252,33 +257,35 @@ export function NotificationBell() {
               <AnnouncementViewStats announcementId={selectedAnnouncement.id} className="mt-2" />
             )}
           </SheetHeader>
-          <ScrollArea className="flex-1 px-6 py-4 space-y-4">
-            {selectedAnnouncement?.video_url && (
-              <video
-                src={selectedAnnouncement.video_url}
-                controls
-                playsInline
-                className="w-full rounded-lg aspect-video bg-black mb-4"
-                aria-label="Announcement video"
-              />
-            )}
-            {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4 mb-4">
-                <Mic className="h-5 w-5 text-primary shrink-0" />
-                <audio
-                  src={selectedAnnouncement.audio_url}
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-4 space-y-4 min-w-0">
+              {selectedAnnouncement?.video_url && (
+                <video
+                  src={selectedAnnouncement.video_url}
                   controls
-                  className="w-full h-10"
-                  aria-label="Announcement audio"
+                  playsInline
+                  className="block w-full max-w-full rounded-lg aspect-video bg-black mb-4"
+                  aria-label="Announcement video"
                 />
-              </div>
-            )}
-            {selectedAnnouncement && (
-              <div
-                className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
-              />
-            )}
+              )}
+              {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4 mb-4">
+                  <Mic className="h-5 w-5 text-primary shrink-0" />
+                  <audio
+                    src={selectedAnnouncement.audio_url}
+                    controls
+                    className="w-full h-10 min-w-0"
+                    aria-label="Announcement audio"
+                  />
+                </div>
+              )}
+              {selectedAnnouncement && (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none break-words"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
+                />
+              )}
+            </div>
           </ScrollArea>
         </SheetContent>
       </Sheet>

@@ -185,11 +185,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
 
     // Resize-aware class: when a custom size is applied, drop the
     // default w-3/4 / sm:max-w-sm constraints so inline style wins.
+    // Use !important utilities to override any sm:max-w-* in caller className.
     const resizableSideOverrides =
       resizable && size != null
         ? horizontal
-          ? "!w-auto !max-w-none sm:!max-w-none"
-          : "!h-auto !max-h-none"
+          ? "!w-auto !max-w-none sm:!max-w-none !min-w-0"
+          : "!h-auto !max-h-none sm:!max-h-none !min-h-0"
         : "";
 
     return (
@@ -219,11 +220,11 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
               onPointerCancel={onPointerUp}
               onDoubleClick={onDoubleClick}
               className={cn(
-                "group absolute z-50 flex items-center justify-center transition-colors",
+                "group absolute z-50 flex items-center justify-center transition-colors touch-none select-none",
                 "hover:bg-primary/30 focus-visible:bg-primary/40 focus-visible:outline-none",
                 horizontal
-                  ? "top-0 h-full w-2 cursor-col-resize"
-                  : "left-0 w-full h-2 cursor-row-resize",
+                  ? "top-0 h-full w-3 cursor-col-resize"
+                  : "left-0 w-full h-3 cursor-row-resize",
                 side === "right" && "left-0 -translate-x-1/2",
                 side === "left" && "right-0 translate-x-1/2",
                 side === "top" && "bottom-0 translate-y-1/2",
@@ -234,7 +235,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
                 aria-hidden="true"
                 className={cn(
                   "rounded-full bg-border transition-colors group-hover:bg-primary group-focus-visible:bg-primary",
-                  horizontal ? "h-12 w-1" : "w-12 h-1",
+                  horizontal ? "h-16 w-1.5" : "w-16 h-1.5",
                 )}
               />
             </div>
