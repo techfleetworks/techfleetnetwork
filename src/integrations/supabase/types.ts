@@ -172,6 +172,7 @@ export type Database = {
         Row: {
           changed_fields: string[] | null
           created_at: string
+          error_fingerprint: string | null
           error_message: string | null
           event_type: string
           id: string
@@ -183,6 +184,7 @@ export type Database = {
         Insert: {
           changed_fields?: string[] | null
           created_at?: string
+          error_fingerprint?: string | null
           error_message?: string | null
           event_type: string
           id?: string
@@ -194,6 +196,7 @@ export type Database = {
         Update: {
           changed_fields?: string[] | null
           created_at?: string
+          error_fingerprint?: string | null
           error_message?: string | null
           event_type?: string
           id?: string
@@ -436,6 +439,48 @@ export type Database = {
           user_id?: string
           visible_widgets?: Json
           widget_order?: Json
+        }
+        Relationships: []
+      }
+      discord_role_grant_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          discord_user_id: string
+          granted_at: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          reason: string
+          role_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          discord_user_id: string
+          granted_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          reason?: string
+          role_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          discord_user_id?: string
+          granted_at?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          reason?: string
+          role_id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1740,6 +1785,81 @@ export type Database = {
         }
         Relationships: []
       }
+      system_health_state: {
+        Row: {
+          id: number
+          pause_non_critical: boolean
+          reason: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          pause_non_critical?: boolean
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          pause_non_critical?: boolean
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_remediations: {
+        Row: {
+          cooldown_seconds: number
+          created_at: string
+          description: string
+          enabled: boolean
+          event_type_filter: string | null
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          remediation_function: string
+          run_count: number
+          signature_pattern: string
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          cooldown_seconds?: number
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          event_type_filter?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          remediation_function: string
+          run_count?: number
+          signature_pattern: string
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          cooldown_seconds?: number
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          event_type_filter?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          remediation_function?: string
+          run_count?: number
+          signature_pattern?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_quest_selections: {
         Row: {
           completed_at: string | null
@@ -1947,6 +2067,10 @@ export type Database = {
       cleanup_passkey_login_artifacts: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
+      compute_error_fingerprint: {
+        Args: { p_event: string; p_msg: string; p_table: string }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1955,6 +2079,22 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      evaluate_system_health: {
+        Args: never
+        Returns: {
+          id: number
+          pause_non_critical: boolean
+          reason: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "system_health_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       export_my_data: { Args: never; Returns: Json }
       get_announcement_view_counts: {
@@ -1978,6 +2118,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_top_error_fingerprints: {
+        Args: { p_hours?: number; p_limit?: number }
+        Returns: {
+          affected_users: number
+          event_type: string
+          fingerprint: string
+          first_seen: string
+          last_seen: string
+          occurrences: number
+          sample_message: string
+          table_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1989,6 +2142,7 @@ export type Database = {
         Args: { _session_hash: string }
         Returns: boolean
       }
+      is_remediation_allowed: { Args: { p_fn: string }; Returns: boolean }
       is_session_revoked: {
         Args: { _issued_at: string; _user_id: string }
         Returns: boolean
@@ -2002,8 +2156,21 @@ export type Database = {
           source: string
         }[]
       }
+      list_pending_role_grants_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          attempts: number
+          discord_user_id: string
+          id: string
+          role_id: string
+        }[]
+      }
       log_pii_access: {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
+        Returns: undefined
+      }
+      mark_discord_role_grant_result: {
+        Args: { p_error?: string; p_id: string; p_success: boolean }
         Returns: undefined
       }
       move_to_dlq: {
@@ -2023,6 +2190,16 @@ export type Database = {
         Args: { retention_days?: number }
         Returns: number
       }
+      queue_discord_role_grant: {
+        Args: {
+          p_discord_user_id: string
+          p_error?: string
+          p_reason?: string
+          p_role_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -2039,6 +2216,9 @@ export type Database = {
         Args: { p_action: string; p_identifier: string }
         Returns: undefined
       }
+      retry_pending_discord_role_grants: { Args: never; Returns: number }
+      retry_stuck_fanout_jobs: { Args: never; Returns: number }
+      run_auto_remediations: { Args: never; Returns: Json }
       safe_create_notification: {
         Args: {
           p_body_html?: string
