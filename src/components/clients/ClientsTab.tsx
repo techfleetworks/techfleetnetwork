@@ -55,7 +55,8 @@ const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/web
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
 
 async function uploadClientLogo(clientId: string, file: File): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
+  const rawExt = file.name.split(".").pop()?.toLowerCase() ?? "png";
+  const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "png";
   const path = `${clientId}/logo.${ext}`;
 
   const { error: uploadError } = await supabase.storage
