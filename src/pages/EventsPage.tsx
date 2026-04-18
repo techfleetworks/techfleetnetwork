@@ -37,14 +37,25 @@ export default function EventsPage() {
         <ResponsiveTabsContent value="public">
           <div className="rounded-lg border bg-card overflow-hidden">
             <iframe
-              src="https://lu.ma/embed/calendar/cal-Lc3CH36RbDM6vWY/events"
-              title="Tech Fleet Public Events – Luma"
+              src="https://lu.ma/embed/calendar/cal-tech-fleet-community/events"
+              title="Tech Fleet Community Events – Luma"
               className="w-full border-0"
               style={{ minHeight: "680px" }}
               loading="lazy"
               allowFullScreen
               aria-hidden="false"
             />
+            <div className="border-t p-3 text-center text-sm text-muted-foreground">
+              Not seeing events?{" "}
+              <a
+                href="https://lu.ma/tech-fleet-community"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Open the calendar on Luma →
+              </a>
+            </div>
           </div>
         </ResponsiveTabsContent>
 
