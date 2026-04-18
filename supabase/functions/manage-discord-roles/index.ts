@@ -271,15 +271,48 @@ serve(async (req) => {
         if (status === 404) userMessage = "Discord user or role not found in this server.";
         if (status === 429) userMessage = "Rate limited by Discord. Please try again shortly.";
 
+        // Self-healing: queue the grant for automatic retry (skip non-recoverable 404s)
+        if (status !== 404) {
+          try {
+            const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+            const url = Deno.env.get("SUPABASE_URL");
+            if (srk && url) {
+              const ac = createClient(url, srk);
+              await ac.rpc("queue_discord_role_grant", {
+                p_user_id: user.id,
+                p_discord_user_id: discord_user_id,
+                p_role_id: role_id,
+                p_reason: "manage-discord-roles assign failed",
+                p_error: `HTTP ${status}: ${errorText.substring(0, 300)}`,
+              });
+            }
+          } catch { /* swallow */ }
+        }
+
         return new Response(
-          JSON.stringify({ error: userMessage }),
+          JSON.stringify({ error: userMessage, queued_for_retry: status !== 404 }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
       // Discord returns 204 No Content on success
-      await res.text(); // consume body
+      await res.text();
       log.info("assign", `Role ${role_id} assigned to user ${discord_user_id} [${requestId}]`);
+
+      // Mark any queued retries for this (discord_user_id, role_id) as granted
+      try {
+        const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        const url = Deno.env.get("SUPABASE_URL");
+        if (srk && url) {
+          const ac = createClient(url, srk);
+          await ac
+            .from("discord_role_grant_queue")
+            .update({ granted_at: new Date().toISOString(), last_error: null })
+            .eq("discord_user_id", discord_user_id)
+            .eq("role_id", role_id)
+            .is("granted_at", null);
+        }
+      } catch { /* swallow */ }
 
       return new Response(
         JSON.stringify({ success: true }),
