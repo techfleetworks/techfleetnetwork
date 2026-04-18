@@ -371,13 +371,14 @@ export function sanitizeHtml(dirty: string): string {
       "object", "embed", "form", "input", "button", "textarea",
       "select", "option", "svg", "math", "img", "video", "audio",
       "source", "track", "frame", "frameset", "applet",
+      "div", "span", "table", "thead", "tbody", "tfoot",
+      "tr", "th", "td", "colgroup", "col", "caption",
     ],
     FORBID_ATTR: [
       "style", "class", "id", "srcset", "sizes", "loading",
       "ping", "formaction", "background", "poster",
     ],
-    USE_PROFILES: { html: true }, // disables SVG + MathML namespaces entirely
-    KEEP_CONTENT: false,           // drop content of forbidden tags
+    KEEP_CONTENT: true,            // keep inner text of stripped wrapper tags
     SANITIZE_DOM: true,             // mitigate DOM clobbering
     SANITIZE_NAMED_PROPS: true,
     IN_PLACE: false,
