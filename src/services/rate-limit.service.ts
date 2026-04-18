@@ -69,7 +69,7 @@ export const RateLimitService = {
         log.warn("check", `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action }, error);
         return { allowed: true, remaining: 5, retry_after: 0 };
       }
-      const result = (data ?? { allowed: true, remaining: 5, retry_after: 0 }) as RateLimitResult;
+      const result = (data ?? { allowed: true, remaining: 5, retry_after: 0 }) as unknown as RateLimitResult;
       if (!result.allowed) {
         log.warn("check", `Rate limit exceeded for "${action}" — blocked for ${result.retry_after}s`, {
           action,
