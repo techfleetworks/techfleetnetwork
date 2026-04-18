@@ -123,6 +123,51 @@ export function TotpMfaManagement() {
     setEnrollOpen(open);
   };
 
+  const handleDisableDialogChange = (open: boolean) => {
+    if (!open) setDisablePassword("");
+    setDisableOpen(open);
+  };
+
+  const handleDisableAll = async () => {
+    if (!user?.email) {
+      toast.error("Could not verify your identity. Please sign in again.");
+      return;
+    }
+    if (!disablePassword) {
+      toast.error("Enter your password to confirm.");
+      return;
+    }
+    setDisabling(true);
+    try {
+      // Re-authenticate with password to confirm identity before removing 2FA.
+      // scope: "local" leaves other device sessions untouched.
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: disablePassword,
+      });
+      if (reauthErr) {
+        toast.error("Incorrect password. 2FA was not disabled.");
+        return;
+      }
+
+      // Remove every TOTP factor (verified or pending).
+      const list = await MfaService.listFactors();
+      const toRemove = list.filter((f) => f.factor_type === "totp");
+      for (const f of toRemove) {
+        await MfaService.unenroll(f.id);
+      }
+
+      toast.success("Two-factor authentication has been disabled.");
+      setDisableOpen(false);
+      setDisablePassword("");
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not disable 2FA");
+    } finally {
+      setDisabling(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
