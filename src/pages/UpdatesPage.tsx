@@ -239,7 +239,7 @@ export default function UpdatesPage() {
 
       {/* Detail side panel */}
       <Sheet open={!!selectedAnnouncement} onOpenChange={(open) => !open && setSelectedAnnouncement(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
+        <SheetContent side="right" resizeKey="updates-detail" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
           <SheetHeader className="px-6 pt-6 pb-4 border-b min-w-0">
             <SheetTitle className="text-xl pr-8 break-words whitespace-normal overflow-hidden overflow-wrap-anywhere" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{selectedAnnouncement?.title}</SheetTitle>
             <SheetDescription>

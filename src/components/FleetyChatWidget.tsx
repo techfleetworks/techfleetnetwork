@@ -289,7 +289,7 @@ export function FleetyChatWidget() {
 
       {/* Side panel */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full sm:w-[440px] p-0 flex flex-col">
+        <SheetContent side="right" resizeKey="fleety-chat" className="w-full sm:w-[440px] p-0 flex flex-col">
           <SheetHeader className="px-4 py-3 border-b shrink-0">
             <SheetTitle className="flex items-center gap-2 justify-between">
               <span className="flex items-center gap-2">

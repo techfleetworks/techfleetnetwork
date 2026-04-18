@@ -22,7 +22,7 @@ export function CommunityAgreementPanel({ open, onOpenChange, onAccepted, loadin
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
+      <SheetContent side="right" resizeKey="community-agreement" className="w-full sm:max-w-2xl flex flex-col p-0">
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <SheetTitle className="text-xl">Community Collective Agreement</SheetTitle>
           <SheetDescription>

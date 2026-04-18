@@ -38,7 +38,7 @@ export default function ResourceDetailPanel({
 }: ResourceDetailPanelProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-hidden flex flex-col">
+      <SheetContent resizeKey="resource-detail" className="w-full sm:max-w-lg overflow-hidden flex flex-col">
         <SheetHeader className="pb-4 border-b border-border">
           <div className="flex items-start gap-2 flex-wrap">
             <Badge

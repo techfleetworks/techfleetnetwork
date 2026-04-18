@@ -679,7 +679,7 @@ export default function ProjectApplicationStatusPage() {
 
       {/* Interview Invitation Side Panel */}
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
-        <SheetContent className="sm:max-w-lg">
+        <SheetContent resizeKey="interview-invite" className="sm:max-w-lg">
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2 text-lg">
               <Calendar className="h-5 w-5 text-primary" />
