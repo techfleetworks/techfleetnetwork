@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
+import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,23 +10,40 @@ import { createLogger } from "@/services/logger.service";
 const log = createLogger("MfaEnforcementGuard");
 
 /**
- * Global MFA gate. Runs on every authenticated session and forces a TOTP challenge
- * whenever the user is at AAL1 but has a verified TOTP factor (i.e., nextLevel === 'aal2').
+ * Global TOTP MFA gate. Runs on every authenticated session and forces a TOTP
+ * challenge whenever the user is at AAL1 but has a verified TOTP factor.
  *
- * This catches all sign-in paths — password, Google OAuth, magic link, token refresh —
- * not just the password form on /login.
+ * Policy: Admins who already have a passkey enrolled are NOT challenged for TOTP
+ * here — the PasskeyLoginGate is their primary admin factor, and stacking both
+ * prompts on the same sign-in is redundant. They can still manage TOTP voluntarily
+ * from /profile/edit. Non-admins (and admins without a passkey) are still
+ * TOTP-gated as before.
  */
 export function MfaEnforcementGuard() {
   const { user, session, loading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+  const passkeyEnrolled = usePasskeyEnrolled();
   const [challengeOpen, setChallengeOpen] = useState(false);
   const lastCheckedToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (loading || !user || !session) {
+    if (loading || adminLoading || !user || !session) {
       lastCheckedToken.current = null;
       setChallengeOpen(false);
       return;
     }
+
+    // Admins with a passkey use the PasskeyLoginGate as their primary factor —
+    // skip the TOTP prompt to avoid the double-prompt UX.
+    if (isAdmin && passkeyEnrolled === true) {
+      lastCheckedToken.current = session.access_token;
+      setChallengeOpen(false);
+      return;
+    }
+
+    // Wait for the passkey enrollment check to resolve (null = unknown) before
+    // deciding whether to gate, so we don't briefly flash the TOTP dialog.
+    if (isAdmin && passkeyEnrolled === null) return;
 
     // Avoid re-checking the same access token repeatedly (e.g., after re-renders).
     if (lastCheckedToken.current === session.access_token) return;
@@ -44,7 +63,7 @@ export function MfaEnforcementGuard() {
     })();
 
     return () => { cancelled = true; };
-  }, [user, session, loading]);
+  }, [user, session, loading, adminLoading, isAdmin, passkeyEnrolled]);
 
   return (
     <MfaChallengeDialog

@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Smartphone, Loader2, Trash2, ShieldCheck, Copy, CheckCircle2 } from "lucide-react";
+import { Smartphone, Loader2, Trash2, ShieldCheck, Copy, CheckCircle2, ShieldOff, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { MfaService, type TotpFactor } from "@/services/mfa.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Two-factor authentication (TOTP) management UI.
@@ -16,6 +18,7 @@ import { MfaService, type TotpFactor } from "@/services/mfa.service";
  * Standards: RFC 6238 (TOTP), RFC 4648 (Base32).
  */
 export function TotpMfaManagement() {
+  const { user } = useAuth();
   const [factors, setFactors] = useState<TotpFactor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +32,11 @@ export function TotpMfaManagement() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [secretCopied, setSecretCopied] = useState(false);
+
+  // Disable-all dialog state (re-auth required)
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [disabling, setDisabling] = useState(false);
 
   const totpFactors = factors.filter((f) => f.factor_type === "totp" && f.status === "verified");
   const hasMfa = totpFactors.length > 0;
@@ -115,6 +123,51 @@ export function TotpMfaManagement() {
     setEnrollOpen(open);
   };
 
+  const handleDisableDialogChange = (open: boolean) => {
+    if (!open) setDisablePassword("");
+    setDisableOpen(open);
+  };
+
+  const handleDisableAll = async () => {
+    if (!user?.email) {
+      toast.error("Could not verify your identity. Please sign in again.");
+      return;
+    }
+    if (!disablePassword) {
+      toast.error("Enter your password to confirm.");
+      return;
+    }
+    setDisabling(true);
+    try {
+      // Re-authenticate with password to confirm identity before removing 2FA.
+      // scope: "local" leaves other device sessions untouched.
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: disablePassword,
+      });
+      if (reauthErr) {
+        toast.error("Incorrect password. 2FA was not disabled.");
+        return;
+      }
+
+      // Remove every TOTP factor (verified or pending).
+      const list = await MfaService.listFactors();
+      const toRemove = list.filter((f) => f.factor_type === "totp");
+      for (const f of toRemove) {
+        await MfaService.unenroll(f.id);
+      }
+
+      toast.success("Two-factor authentication has been disabled.");
+      setDisableOpen(false);
+      setDisablePassword("");
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not disable 2FA");
+    } finally {
+      setDisabling(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -146,9 +199,22 @@ export function TotpMfaManagement() {
               </div>
             </div>
           </div>
-          <Button onClick={() => setEnrollOpen(true)} variant={hasMfa ? "outline" : "default"} size="sm">
-            {hasMfa ? "Add another" : "Enable 2FA"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {hasMfa && (
+              <Button
+                onClick={() => setDisableOpen(true)}
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+              >
+                <ShieldOff className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Disable 2FA
+              </Button>
+            )}
+            <Button onClick={() => setEnrollOpen(true)} variant={hasMfa ? "outline" : "default"} size="sm">
+              {hasMfa ? "Add another" : "Enable 2FA"}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -270,6 +336,66 @@ export function TotpMfaManagement() {
                 <span className={verifying ? "ml-2" : ""}>Verify &amp; Enable</span>
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable 2FA confirmation dialog (requires password re-auth) */}
+      <Dialog open={disableOpen} onOpenChange={handleDisableDialogChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldOff className="h-5 w-5 text-destructive" aria-hidden="true" />
+              Disable Two-Factor Authentication
+            </DialogTitle>
+            <DialogDescription>
+              This will remove all of your authenticator apps and stop asking for a 6-digit code at sign-in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <span>
+                Your account will be less secure after disabling 2FA. We strongly recommend keeping it on.
+              </span>
+            </div>
+
+            <Label htmlFor="disable-2fa-password">Confirm your password</Label>
+            <Input
+              id="disable-2fa-password"
+              type="password"
+              autoComplete="current-password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              disabled={disabling}
+              placeholder="Enter your password"
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              We re-check your password to make sure it's really you.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => handleDisableDialogChange(false)}
+              disabled={disabling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDisableAll}
+              disabled={disabling || !disablePassword}
+            >
+              {disabling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <span className={disabling ? "ml-2" : ""}>Disable 2FA</span>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
