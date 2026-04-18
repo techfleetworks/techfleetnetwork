@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CharCountTextarea } from "@/components/ui/char-count-textarea";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -44,6 +45,8 @@ const optionalUrl = z.string().refine(
 // ---------- Schema ----------
 const projectSchema = z.object({
   client_id: z.string().uuid("Select a client"),
+  friendly_name: z.string().trim().max(200, "Keep it under 200 characters").default(""),
+  description: z.string().max(5000, "Keep it under 5,000 characters").default(""),
   project_type: z.enum(["website_design", "service_design", "application_design", "strategy", "discovery"] as const),
   phase: z.enum(["phase_1", "phase_2", "phase_3", "phase_4"] as const),
   team_hats: z.array(z.string()).min(1, "Select at least one team hat"),
@@ -63,6 +66,8 @@ type ProjectForm = z.infer<typeof projectSchema>;
 
 const EMPTY_FORM: ProjectForm = {
   client_id: "",
+  friendly_name: "",
+  description: "",
   project_type: "website_design",
   phase: "phase_1",
   team_hats: [],
