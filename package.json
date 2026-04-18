@@ -10,9 +10,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev",
+    "audit:signatures": "npm audit signatures"
   },
   "dependencies": {
+    "@cyclonedx/cyclonedx-npm": "^1.19.3",
     "@hookform/resolvers": "^3.10.0",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.11",
