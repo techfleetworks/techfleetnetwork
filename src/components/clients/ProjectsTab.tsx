@@ -31,6 +31,8 @@ interface Project {
   team_hats: string[];
   project_status: string;
   current_phase_milestones: string[];
+  friendly_name?: string;
+  description?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -90,7 +92,11 @@ export function ProjectsTab() {
     {
       headerName: "Client",
       flex: 2,
-      valueGetter: (params) => clientMap.get(params.data?.client_id ?? "")?.name ?? "Unknown",
+      valueGetter: (params) => {
+        const clientName = clientMap.get(params.data?.client_id ?? "")?.name ?? "Unknown";
+        const nick = params.data?.friendly_name?.trim();
+        return nick ? `${clientName} — ${nick}` : clientName;
+      },
     },
     {
       headerName: "Type",
@@ -174,7 +180,12 @@ export function ProjectsTab() {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <CardTitle className="text-lg leading-tight truncate">{client?.name ?? "Unknown"}</CardTitle>
+                        <CardTitle className="text-lg leading-tight truncate">
+                          {client?.name ?? "Unknown"}
+                          {p.friendly_name?.trim() && (
+                            <span className="text-muted-foreground font-medium"> — {p.friendly_name}</span>
+                          )}
+                        </CardTitle>
                         <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)} · {phaseLabel(p.phase)}</p>
                       </div>
                     </div>
@@ -182,6 +193,9 @@ export function ProjectsTab() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3 text-sm">
+                  {p.description?.trim() && (
+                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed line-clamp-3">{p.description}</p>
+                  )}
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
                     <div className="flex flex-wrap gap-1">{p.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}</div>

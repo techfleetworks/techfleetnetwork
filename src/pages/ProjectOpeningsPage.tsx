@@ -27,6 +27,8 @@ interface OpenProject {
   project_status: string;
   team_hats: string[];
   current_phase_milestones: string[];
+  friendly_name?: string;
+  description?: string;
 }
 
 interface ClientInfo {
@@ -66,7 +68,7 @@ export default function ProjectOpeningsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones")
+        .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, friendly_name, description")
         .in("project_status", [...VISIBLE_STATUSES])
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -295,7 +297,12 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
                     </div>
                   )}
                   <div className="min-w-0">
-                    <CardTitle className="text-lg leading-tight truncate">{p.clientName}</CardTitle>
+                    <CardTitle className="text-lg leading-tight truncate">
+                      {p.clientName}
+                      {p.friendly_name?.trim() && (
+                        <span className="text-muted-foreground font-medium"> — {p.friendly_name}</span>
+                      )}
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
                   </div>
                 </div>

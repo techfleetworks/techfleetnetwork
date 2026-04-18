@@ -1332,8 +1332,10 @@ export type Database = {
           created_at: string
           created_by: string
           current_phase_milestones: string[]
+          description: string
           discord_role_id: string
           discord_role_name: string
+          friendly_name: string
           id: string
           notion_repository_url: string
           phase: Database["public"]["Enums"]["project_phase"]
@@ -1352,8 +1354,10 @@ export type Database = {
           created_at?: string
           created_by: string
           current_phase_milestones?: string[]
+          description?: string
           discord_role_id?: string
           discord_role_name?: string
+          friendly_name?: string
           id?: string
           notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]
@@ -1372,8 +1376,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_phase_milestones?: string[]
+          description?: string
           discord_role_id?: string
           discord_role_name?: string
+          friendly_name?: string
           id?: string
           notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]

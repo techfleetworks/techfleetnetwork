@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CharCountTextarea } from "@/components/ui/char-count-textarea";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -44,6 +45,8 @@ const optionalUrl = z.string().refine(
 // ---------- Schema ----------
 const projectSchema = z.object({
   client_id: z.string().uuid("Select a client"),
+  friendly_name: z.string().trim().max(200, "Keep it under 200 characters").default(""),
+  description: z.string().max(5000, "Keep it under 5,000 characters").default(""),
   project_type: z.enum(["website_design", "service_design", "application_design", "strategy", "discovery"] as const),
   phase: z.enum(["phase_1", "phase_2", "phase_3", "phase_4"] as const),
   team_hats: z.array(z.string()).min(1, "Select at least one team hat"),
@@ -63,6 +66,8 @@ type ProjectForm = z.infer<typeof projectSchema>;
 
 const EMPTY_FORM: ProjectForm = {
   client_id: "",
+  friendly_name: "",
+  description: "",
   project_type: "website_design",
   phase: "phase_1",
   team_hats: [],
@@ -104,6 +109,8 @@ export default function ProjectFormPage() {
         if (data && !initialized) {
           setForm({
             client_id: data.client_id,
+            friendly_name: (data as any).friendly_name ?? "",
+            description: (data as any).description ?? "",
             project_type: data.project_type as ProjectTypeValue,
             phase: data.phase as ProjectPhaseValue,
             team_hats: data.team_hats ?? [],
@@ -140,6 +147,8 @@ export default function ProjectFormPage() {
   if (existingProject && !initialized) {
     setForm({
       client_id: existingProject.client_id,
+      friendly_name: (existingProject as any).friendly_name ?? "",
+      description: (existingProject as any).description ?? "",
       project_type: existingProject.project_type as ProjectTypeValue,
       phase: existingProject.phase as ProjectPhaseValue,
       team_hats: existingProject.team_hats ?? [],
@@ -402,6 +411,38 @@ export default function ProjectFormPage() {
             </div>
           </div>
         )}
+
+        {/* Friendly Name (project nickname) */}
+        <div className="space-y-1.5">
+          <Label htmlFor="friendly-name">Project Nickname</Label>
+          <Input
+            id="friendly-name"
+            type="text"
+            maxLength={200}
+            placeholder="e.g. Member Experience Team"
+            value={form.friendly_name}
+            onChange={(e) => setForm((f) => ({ ...f, friendly_name: e.target.value }))}
+            aria-invalid={!!errors.friendly_name}
+            aria-describedby="friendly-name-help"
+          />
+          <p id="friendly-name-help" className="text-xs text-muted-foreground">
+            Shown after the client name as <span className="font-medium">[Client] — [Nickname]</span>. Max 200 characters.
+          </p>
+          {errors.friendly_name && <p className="text-xs text-destructive">{errors.friendly_name}</p>}
+        </div>
+
+        {/* Project Description (long form) */}
+        <div className="space-y-1.5">
+          <Label htmlFor="project-description">Project Description</Label>
+          <CharCountTextarea
+            id="project-description"
+            placeholder="Describe the project's goals, scope, and what teammates can expect…"
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            aria-invalid={!!errors.description}
+          />
+          {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+        </div>
 
         {/* Project Type */}
         <div className="space-y-1.5">

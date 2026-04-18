@@ -58,6 +58,8 @@ interface ProjectInfo {
   team_hats: string[];
   current_phase_milestones: string[];
   coordinator_id?: string | null;
+  friendly_name?: string;
+  description?: string;
 }
 
 interface ClientInfo {
@@ -248,8 +250,11 @@ export default function ProjectApplicationPage() {
 
   /* ── push page context into the global header ──────────── */
   const { setHeader } = usePageHeader();
-  const description = client?.name
-    ? `${client.name} — ${typeLabel(project?.project_type ?? "")} · ${phaseLabel(project?.phase ?? "")}`
+  const headline = client?.name
+    ? (project?.friendly_name?.trim() ? `${client.name} — ${project.friendly_name}` : client.name)
+    : undefined;
+  const description = headline
+    ? `${headline} — ${typeLabel(project?.project_type ?? "")} · ${phaseLabel(project?.phase ?? "")}`
     : undefined;
 
   useLayoutEffect(() => {
