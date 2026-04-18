@@ -384,20 +384,24 @@ Deno.serve(async (req) => {
 
   try {
     const titleWithProject = projectName ? `${content.title} — ${projectName}` : content.title
-    const { error: notifError } = await supabase.from('notifications').insert({
-      user_id: applicantUserId,
-      title: titleWithProject,
-      body_html: content.bodyFn({ coordinatorName, schedulingUrl, projectName }),
-      notification_type: content.type,
-      link_url: content.linkUrl,
-      read: false,
+    // Self-healing path: enqueue + immediate-attempt via safe_create_notification.
+    // If the live insert fails for any reason, the outbox worker retries with
+    // exponential backoff (30s → 32m) and DLQs after 5 attempts. Admin alert
+    // fires automatically via the audit_log error trigger.
+    const { data: outboxId, error: notifError } = await supabase.rpc('safe_create_notification', {
+      p_user_id: applicantUserId,
+      p_title: titleWithProject,
+      p_body_html: content.bodyFn({ coordinatorName, schedulingUrl, projectName }),
+      p_notification_type: content.type,
+      p_link_url: content.linkUrl,
+      p_source: 'notify-applicant-status',
     })
 
     if (notifError) {
-      console.error('Notification insert failed', { applicantUserId, error: notifError.message })
+      console.error('Notification enqueue failed', { applicantUserId, error: notifError.message })
     } else {
       notificationCreated = true
-      console.info('Notification created', { applicantUserId, type: content.type })
+      console.info('Notification queued', { applicantUserId, type: content.type, outboxId })
     }
   } catch (e) {
     console.error('Notification error', e)

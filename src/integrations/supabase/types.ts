@@ -886,6 +886,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_dlq: {
+        Row: {
+          attempts: number
+          body_html: string
+          failed_at: string
+          id: string
+          last_error: string | null
+          link_url: string
+          notification_type: string
+          outbox_id: string | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          body_html?: string
+          failed_at?: string
+          id?: string
+          last_error?: string | null
+          link_url?: string
+          notification_type?: string
+          outbox_id?: string | null
+          source?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          body_html?: string
+          failed_at?: string
+          id?: string
+          last_error?: string | null
+          link_url?: string
+          notification_type?: string
+          outbox_id?: string | null
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_fanout_jobs: {
         Row: {
           attempts: number
@@ -925,6 +967,54 @@ export type Database = {
           started_at?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_outbox: {
+        Row: {
+          attempts: number
+          body_html: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          last_error: string | null
+          link_url: string
+          next_attempt_at: string
+          notification_type: string
+          source: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          body_html?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string
+          next_attempt_at?: string
+          notification_type?: string
+          source?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          body_html?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string
+          next_attempt_at?: string
+          notification_type?: string
+          source?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1861,6 +1951,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      drain_notification_outbox: { Args: { p_limit?: number }; Returns: Json }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -1947,6 +2038,17 @@ export type Database = {
       reset_rate_limit: {
         Args: { p_action: string; p_identifier: string }
         Returns: undefined
+      }
+      safe_create_notification: {
+        Args: {
+          p_body_html?: string
+          p_link_url?: string
+          p_notification_type?: string
+          p_source?: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
       }
       sanitize_user_html: { Args: { input: string }; Returns: string }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
