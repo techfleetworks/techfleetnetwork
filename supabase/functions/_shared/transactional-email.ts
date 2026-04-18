@@ -141,11 +141,13 @@ async function resolveUnsubscribeToken(
       return { ok: false, error: 'Failed to prepare email' }
     }
 
-    const { data: storedToken, error: reReadError } = await supabase
+    const { data: storedRows, error: reReadError } = await supabase
       .from('email_unsubscribe_tokens')
       .select('token')
       .eq('email', normalizedEmail)
-      .maybeSingle()
+      .order('created_at', { ascending: true })
+      .limit(1)
+    const storedToken = storedRows && storedRows.length > 0 ? storedRows[0] : null
 
     if (reReadError || !storedToken) {
       console.error('Failed to read back unsubscribe token after upsert', {
