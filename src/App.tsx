@@ -14,7 +14,8 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 
 // Eagerly loaded routes (critical path)
 import Index from "./pages/Index";
