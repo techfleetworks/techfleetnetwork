@@ -1,24 +1,29 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { logAccountActivity } from "@/lib/account-activity";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
+    void logAccountActivity("login_attempt_started", { email });
     return log.track("signInWithPassword", `Authenticating user ${email}`, { email }, async () => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
+        void logAccountActivity("login_failed", { email, errorMessage: error.message, errorCode: error.status });
         throw new Error("Invalid email or password. Please try again.");
       }
       sessionStorage.setItem("session_started_at", Date.now().toString());
       log.info("signInWithPassword", `User ${email} authenticated successfully`, { userId: data.user?.id });
+      void logAccountActivity("login_succeeded", { email, userId: data.user?.id });
       return data;
     });
   },
 
   async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
+    void logAccountActivity("signup_attempt_started", { email, details: { hasName: Boolean(firstName && lastName) } });
     return log.track("signUp", `Registering new user ${email}`, { email, firstName, lastName }, async () => {
       const attempt = async () =>
         supabase.auth.signUp({
@@ -42,18 +47,30 @@ export const AuthService = {
       let lastErr: { message: string; status?: number; code?: string } | null = null;
       let data: any = null;
       for (let i = 0; i < 2; i++) {
-        const res = await Promise.race([attempt(), timeoutPromise]);
-        if (!res.error) { data = res.data; lastErr = null; break; }
-        lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
-        const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
-        if (!transient) break;
-        await new Promise(r => setTimeout(r, 600 * (i + 1)));
+        try {
+          const res = await Promise.race([attempt(), timeoutPromise]);
+          if (!res.error) { data = res.data; lastErr = null; break; }
+          lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
+          const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
+          if (!transient) break;
+          await new Promise(r => setTimeout(r, 600 * (i + 1)));
+        } catch (networkErr: any) {
+          // Catches the timeoutPromise rejection AND any fetch-level network failures (offline, DNS, CORS).
+          lastErr = { message: networkErr?.message ?? "Network error", status: 0 };
+          void logAccountActivity("signup_network_error", { email, errorMessage: lastErr.message });
+          break;
+        }
       }
 
       if (lastErr) {
         // Persist the REAL Supabase error so admins can diagnose, but surface a friendly mapped message to the user.
         log.error("signUp", `Registration failed for ${email}: [${lastErr.status ?? "?"}] ${lastErr.message}`,
           { email, errorCode: lastErr.status, errorName: lastErr.code }, lastErr as Error);
+        void logAccountActivity("signup_supabase_error", {
+          email,
+          errorMessage: lastErr.message,
+          errorCode: lastErr.status ?? lastErr.code ?? "unknown",
+        });
 
         const m = (lastErr.message || "").toLowerCase();
         // Map common Supabase auth errors to actionable user messaging.
@@ -86,6 +103,11 @@ export const AuthService = {
         userId: data?.user?.id,
         confirmationRequired: !data?.session,
       });
+      void logAccountActivity("signup_succeeded", {
+        email,
+        userId: data?.user?.id,
+        details: { confirmationRequired: !data?.session },
+      });
       return data;
     });
   },
@@ -95,9 +117,11 @@ export const AuthService = {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${email}: ${error.message}`, { email }, error);
+        void logAccountActivity("password_reset_failed", { email, errorMessage: error.message, errorCode: error.status });
         throw new Error("If an account exists with that email, a reset link has been sent.");
       }
       log.info("resetPassword", `Password reset email sent for ${email}`, { email });
+      void logAccountActivity("password_reset_requested", { email });
     });
   },
 
@@ -109,6 +133,7 @@ export const AuthService = {
         throw new Error("Failed to update password. Please try again.");
       }
       log.info("updatePassword", "Password updated successfully");
+      void logAccountActivity("password_updated", {});
     });
   },
 
@@ -119,6 +144,7 @@ export const AuthService = {
     const { error } = await supabase.auth.signOut();
     if (!error) {
       log.info("signOut", "User signed out successfully (global)");
+      void logAccountActivity("signout_global", {});
       return;
     }
 
@@ -129,6 +155,7 @@ export const AuthService = {
       throw new Error("Sign out failed. Please try again.");
     }
     log.info("signOut", "User signed out successfully (local fallback)");
+    void logAccountActivity("signout_local", { errorMessage: error.message });
   },
 
   async signOutAllDevices() {
@@ -141,6 +168,7 @@ export const AuthService = {
       sessionStorage.removeItem("session_started_at");
       await supabase.auth.signOut();
       log.info("signOutAllDevices", "All sessions revoked and local session cleared");
+      void logAccountActivity("signout_all_devices", {});
     });
   },
 
@@ -166,6 +194,7 @@ export const AuthService = {
         });
         if (revoked === true) {
           log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
+          void logAccountActivity("session_revoked_serverside", { userId: data.session.user.id });
           await supabase.auth.signOut();
           sessionStorage.removeItem("session_started_at");
           return null;
@@ -181,6 +210,10 @@ export const AuthService = {
           log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
             elapsedMs: elapsed,
             maxMs: MAX_SESSION_AGE_MS,
+          });
+          void logAccountActivity("session_expired_clientside", {
+            userId: data.session.user.id,
+            details: { elapsedMs: elapsed },
           });
           await supabase.auth.signOut();
           sessionStorage.removeItem("session_started_at");
