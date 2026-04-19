@@ -1761,6 +1761,33 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_confirmation_reminders: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          email: string
+          id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          email: string
+          id?: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          email?: string
+          id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
