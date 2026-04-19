@@ -94,8 +94,8 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields,
     firstName: "Jane",
     lastName: "Doe",
     email: "jane@example.com",
-    password: "Str0ng!Pass",
-    confirmPassword: "Str0ng!Pass",
+    password: "Str0ng!PassWord",
+    confirmPassword: "Str0ng!PassWord",
     agreedToTerms: true as const,
   };
 
