@@ -28,8 +28,21 @@ type GlobalWithCtx = typeof globalThis & {
   [GLOBAL_VALUE_KEY]?: AuthContextType;
 };
 const g = globalThis as GlobalWithCtx;
-const AuthContext: React.Context<AuthContextType | undefined> =
-  g[GLOBAL_KEY] ?? (g[GLOBAL_KEY] = createContext<AuthContextType | undefined>(undefined));
+const existingAuthCtx = g[GLOBAL_KEY];
+const freshAuthCtx = existingAuthCtx ?? createContext<AuthContextType | undefined>(undefined);
+
+// Dev-time duplicate-context detector: surfaces HMR module duplication
+// instantly instead of letting it silently break auth for users.
+if (import.meta.env?.DEV && existingAuthCtx && existingAuthCtx !== freshAuthCtx) {
+  throw new Error(
+    "[AuthContext] Duplicate context instance detected on globalThis. " +
+      "This usually means HMR loaded two copies of AuthContext.tsx. " +
+      "Check for non-canonical import paths (must be @/contexts/AuthContext)."
+  );
+}
+
+const AuthContext: React.Context<AuthContextType | undefined> = freshAuthCtx;
+g[GLOBAL_KEY] = AuthContext;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

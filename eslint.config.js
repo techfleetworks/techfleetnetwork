@@ -21,6 +21,43 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Force a single canonical import path for context modules. Multiple
+      // import paths (relative vs alias, with/without extension) cause Vite to
+      // load the same context twice, breaking provider/consumer matching.
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/contexts/AuthContext",
+                "**/contexts/AuthContext.tsx",
+                "**/contexts/PageHeaderContext",
+                "**/contexts/PageHeaderContext.tsx",
+              ],
+              message:
+                "Import context modules only via the '@/contexts/*' alias (no relative paths, no .tsx extension). This prevents HMR from loading duplicate context instances.",
+            },
+          ],
+          paths: [
+            {
+              name: "@/contexts/AuthContext.tsx",
+              message: "Drop the .tsx extension — import as '@/contexts/AuthContext'.",
+            },
+            {
+              name: "@/contexts/PageHeaderContext.tsx",
+              message: "Drop the .tsx extension — import as '@/contexts/PageHeaderContext'.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The context modules themselves are allowed to be the canonical source.
+    files: ["src/contexts/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 );
