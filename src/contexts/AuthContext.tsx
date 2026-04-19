@@ -22,8 +22,10 @@ interface AuthContextType {
 // from the other, and consumers throw "useAuth must be used within AuthProvider"
 // — surfaced to users as "authorization failed" on the login screen.
 const GLOBAL_KEY = "__tfn_auth_context__";
+const GLOBAL_VALUE_KEY = "__tfn_auth_context_value__";
 type GlobalWithCtx = typeof globalThis & {
   [GLOBAL_KEY]?: React.Context<AuthContextType | undefined>;
+  [GLOBAL_VALUE_KEY]?: AuthContextType;
 };
 const g = globalThis as GlobalWithCtx;
 const AuthContext: React.Context<AuthContextType | undefined> =
