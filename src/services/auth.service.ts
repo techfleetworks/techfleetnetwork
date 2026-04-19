@@ -23,6 +23,7 @@ export const AuthService = {
   },
 
   async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
+    void logAccountActivity("signup_attempt_started", { email, details: { hasName: Boolean(firstName && lastName) } });
     return log.track("signUp", `Registering new user ${email}`, { email, firstName, lastName }, async () => {
       const attempt = async () =>
         supabase.auth.signUp({
@@ -46,18 +47,30 @@ export const AuthService = {
       let lastErr: { message: string; status?: number; code?: string } | null = null;
       let data: any = null;
       for (let i = 0; i < 2; i++) {
-        const res = await Promise.race([attempt(), timeoutPromise]);
-        if (!res.error) { data = res.data; lastErr = null; break; }
-        lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
-        const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
-        if (!transient) break;
-        await new Promise(r => setTimeout(r, 600 * (i + 1)));
+        try {
+          const res = await Promise.race([attempt(), timeoutPromise]);
+          if (!res.error) { data = res.data; lastErr = null; break; }
+          lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
+          const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
+          if (!transient) break;
+          await new Promise(r => setTimeout(r, 600 * (i + 1)));
+        } catch (networkErr: any) {
+          // Catches the timeoutPromise rejection AND any fetch-level network failures (offline, DNS, CORS).
+          lastErr = { message: networkErr?.message ?? "Network error", status: 0 };
+          void logAccountActivity("signup_network_error", { email, errorMessage: lastErr.message });
+          break;
+        }
       }
 
       if (lastErr) {
         // Persist the REAL Supabase error so admins can diagnose, but surface a friendly mapped message to the user.
         log.error("signUp", `Registration failed for ${email}: [${lastErr.status ?? "?"}] ${lastErr.message}`,
           { email, errorCode: lastErr.status, errorName: lastErr.code }, lastErr as Error);
+        void logAccountActivity("signup_supabase_error", {
+          email,
+          errorMessage: lastErr.message,
+          errorCode: lastErr.status ?? lastErr.code ?? "unknown",
+        });
 
         const m = (lastErr.message || "").toLowerCase();
         // Map common Supabase auth errors to actionable user messaging.
@@ -89,6 +102,11 @@ export const AuthService = {
       log.info("signUp", `User ${email} registered successfully, confirmation email sent`, {
         userId: data?.user?.id,
         confirmationRequired: !data?.session,
+      });
+      void logAccountActivity("signup_succeeded", {
+        email,
+        userId: data?.user?.id,
+        details: { confirmationRequired: !data?.session },
       });
       return data;
     });
