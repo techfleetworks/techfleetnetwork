@@ -81,6 +81,10 @@ export default function RegisterPage() {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
+      void logAccountActivity("signup_validation_failed", {
+        email: email || null,
+        details: { failedFields: Object.keys(fieldErrors).join(",") },
+      });
       showFormErrors(fieldErrors, {
         firstName: "First name", lastName: "Last name", email: "Email",
         password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
@@ -97,6 +101,10 @@ export default function RegisterPage() {
       const rateCheck = await RateLimitService.check(result.data.email, "signup_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
+        void logAccountActivity("signup_rate_limited", {
+          email: result.data.email,
+          details: { retryAfterSec: rateCheck.retry_after },
+        });
         setAuthError(`Too many signup attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
         setLoading(false);
         return;
