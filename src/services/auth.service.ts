@@ -1,19 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { logAccountActivity } from "@/lib/account-activity";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
+    void logAccountActivity("login_attempt_started", { email });
     return log.track("signInWithPassword", `Authenticating user ${email}`, { email }, async () => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
+        void logAccountActivity("login_failed", { email, errorMessage: error.message, errorCode: error.status });
         throw new Error("Invalid email or password. Please try again.");
       }
       sessionStorage.setItem("session_started_at", Date.now().toString());
       log.info("signInWithPassword", `User ${email} authenticated successfully`, { userId: data.user?.id });
+      void logAccountActivity("login_succeeded", { email, userId: data.user?.id });
       return data;
     });
   },
