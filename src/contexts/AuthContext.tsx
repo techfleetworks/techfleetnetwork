@@ -185,8 +185,9 @@ export function useAuth() {
   // Always resolve the context from globalThis at call time. This guarantees we
   // read from the SAME context instance the AuthProvider is writing to, even
   // after Vite HMR re-evaluates one of the modules involved.
-  const canonical = (globalThis as GlobalWithCtx)[GLOBAL_KEY] ?? AuthContext;
-  const ctx = useContext(canonical);
+  const globals = globalThis as GlobalWithCtx;
+  const canonical = globals[GLOBAL_KEY] ?? AuthContext;
+  const ctx = useContext(canonical) ?? globals[GLOBAL_VALUE_KEY];
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
