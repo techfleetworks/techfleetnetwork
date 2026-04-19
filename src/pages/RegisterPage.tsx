@@ -13,6 +13,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+import { logAccountActivity } from "@/lib/account-activity";
 
 export default function RegisterPage() {
   const location = useLocation();
