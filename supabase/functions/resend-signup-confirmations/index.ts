@@ -20,10 +20,23 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Service-role only (cron / admin invocation)
-  const authHeader = req.headers.get('Authorization')
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  if (!authHeader || authHeader !== `Bearer ${serviceKey}`) {
+  // Service-role only (cron / admin invocation). Accept any token whose JWT
+  // payload has role=service_role — this works whether the caller uses the
+  // env-injected key or a vault-stored historical key.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  let isServiceRole = false
+  try {
+    const payloadPart = token.split('.')[1]
+    if (payloadPart) {
+      const padded = payloadPart + '='.repeat((4 - (payloadPart.length % 4)) % 4)
+      const decoded = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/')))
+      isServiceRole = decoded?.role === 'service_role'
+    }
+  } catch {
+    isServiceRole = false
+  }
+  if (!isServiceRole) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -31,6 +44,7 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, serviceKey)
 
   const now = new Date()
