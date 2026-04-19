@@ -16,7 +16,18 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Stash the context on globalThis so HMR re-imports of this module reuse the
+// SAME context instance. Without this, Vite's hot-reload can produce two
+// distinct React contexts in memory: AuthProvider writes to one, useAuth reads
+// from the other, and consumers throw "useAuth must be used within AuthProvider"
+// — surfaced to users as "authorization failed" on the login screen.
+const GLOBAL_KEY = "__tfn_auth_context__";
+type GlobalWithCtx = typeof globalThis & {
+  [GLOBAL_KEY]?: React.Context<AuthContextType | undefined>;
+};
+const g = globalThis as GlobalWithCtx;
+const AuthContext: React.Context<AuthContextType | undefined> =
+  g[GLOBAL_KEY] ?? (g[GLOBAL_KEY] = createContext<AuthContextType | undefined>(undefined));
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
