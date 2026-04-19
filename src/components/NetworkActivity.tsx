@@ -155,9 +155,9 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
               )}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.prev_week_signups} label="New Sign-ups" colorClass="bg-primary/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={stats.prev_week_core_active} label="Completed Core Courses" colorClass="bg-warning/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={stats.prev_week_beginner_active} label="Completed Beginner Courses" colorClass="bg-info/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={stats.prev_week_advanced_active} label="Completed Advanced Courses" colorClass="bg-accent/50" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={stats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={stats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={stats.prev_week_advanced_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
                 <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={stats.prev_week_applications} label="General Applications Completed" colorClass="bg-success/10" />
                 <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.prev_week_badges} label="Badges Earned" colorClass="bg-primary/10" />
               </div>
