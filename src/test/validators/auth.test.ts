@@ -12,14 +12,14 @@ import { loginSchema, registerSchema, passwordSchema } from "@/lib/validators/au
 
 describe("passwordSchema (BDD 2.3: Weak password rejection)", () => {
   it("accepts a strong OWASP-compliant password", () => {
-    const result = passwordSchema.safeParse("Str0ng!Pass");
+    const result = passwordSchema.safeParse("Str0ng!PassWord");
     expect(result.success).toBe(true);
   });
 
-  it("rejects password shorter than 8 characters", () => {
-    const result = passwordSchema.safeParse("Ab1!");
+  it("rejects password shorter than 12 characters", () => {
+    const result = passwordSchema.safeParse("Ab1!short");
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toContain("8 characters");
+    expect(result.error?.issues[0].message).toContain("12 characters");
   });
 
   it("rejects password without uppercase letter", () => {

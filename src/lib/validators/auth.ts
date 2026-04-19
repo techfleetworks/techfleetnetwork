@@ -10,7 +10,7 @@ const safeText = (label: string, max: number) =>
 
 export const passwordSchema = z
   .string()
-  .min(8, "At least 8 characters")
+  .min(12, "At least 12 characters")
   .max(128, "Password must be under 128 characters")
   .regex(/[A-Z]/, "One uppercase letter required")
   .regex(/[a-z]/, "One lowercase letter required")
