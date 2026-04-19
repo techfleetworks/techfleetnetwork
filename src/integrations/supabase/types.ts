@@ -2067,6 +2067,10 @@ export type Database = {
       cleanup_passkey_login_artifacts: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
+      clear_rate_limits_for_email: {
+        Args: { p_email: string }
+        Returns: number
+      }
       compute_error_fingerprint: {
         Args: { p_event: string; p_msg: string; p_table: string }
         Returns: string
