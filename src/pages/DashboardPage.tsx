@@ -190,8 +190,9 @@ export default function DashboardPage() {
   const { data: stats } = useQuery({
     queryKey: ["network-stats"],
     queryFn: () => StatsService.getNetworkStats(),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // General application status — sourced from overview RPC
