@@ -117,9 +117,11 @@ export const AuthService = {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${email}: ${error.message}`, { email }, error);
+        void logAccountActivity("password_reset_failed", { email, errorMessage: error.message, errorCode: error.status });
         throw new Error("If an account exists with that email, a reset link has been sent.");
       }
       log.info("resetPassword", `Password reset email sent for ${email}`, { email });
+      void logAccountActivity("password_reset_requested", { email });
     });
   },
 
@@ -131,6 +133,7 @@ export const AuthService = {
         throw new Error("Failed to update password. Please try again.");
       }
       log.info("updatePassword", "Password updated successfully");
+      void logAccountActivity("password_updated", {});
     });
   },
 
@@ -141,6 +144,7 @@ export const AuthService = {
     const { error } = await supabase.auth.signOut();
     if (!error) {
       log.info("signOut", "User signed out successfully (global)");
+      void logAccountActivity("signout_global", {});
       return;
     }
 
@@ -151,6 +155,7 @@ export const AuthService = {
       throw new Error("Sign out failed. Please try again.");
     }
     log.info("signOut", "User signed out successfully (local fallback)");
+    void logAccountActivity("signout_local", { errorMessage: error.message });
   },
 
   async signOutAllDevices() {
@@ -163,6 +168,7 @@ export const AuthService = {
       sessionStorage.removeItem("session_started_at");
       await supabase.auth.signOut();
       log.info("signOutAllDevices", "All sessions revoked and local session cleared");
+      void logAccountActivity("signout_all_devices", {});
     });
   },
 
