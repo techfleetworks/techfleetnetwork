@@ -91,8 +91,9 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
   const { data: stats = defaultStats, isLoading: loading } = useQuery({
     queryKey: ["network-stats"],
     queryFn: () => StatsService.getNetworkStats(),
-    staleTime: 5 * 60 * 1000, // 5 min cache
-    refetchInterval: 5 * 60 * 1000, // auto-refresh every 5 min
+    staleTime: 60 * 1000, // 60s — keep dashboard near-realtime
+    refetchInterval: 60 * 1000, // auto-refresh every 60s
+    refetchOnWindowFocus: true, // refresh when user tabs back in
   });
 
   if (loading) {
