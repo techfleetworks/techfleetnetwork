@@ -168,15 +168,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, session, profile, loading, profileLoaded, signOut, signOutAllDevices, refreshProfile]
   );
 
+  // Resolve the canonical context from globalThis at render time so HMR can't
+  // make AuthProvider write to a different instance than useAuth reads from.
+  const Canonical = (globalThis as GlobalWithCtx)[GLOBAL_KEY] ?? AuthContext;
   return (
-    <AuthContext.Provider value={contextValue}>
+    <Canonical.Provider value={contextValue}>
       {children}
-    </AuthContext.Provider>
+    </Canonical.Provider>
   );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
+  // Always resolve the context from globalThis at call time. This guarantees we
+  // read from the SAME context instance the AuthProvider is writing to, even
+  // after Vite HMR re-evaluates one of the modules involved.
+  const canonical = (globalThis as GlobalWithCtx)[GLOBAL_KEY] ?? AuthContext;
+  const ctx = useContext(canonical);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
