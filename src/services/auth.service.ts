@@ -20,32 +20,71 @@ export const AuthService = {
 
   async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
     return log.track("signUp", `Registering new user ${email}`, { email, firstName, lastName }, async () => {
-      const signUpPromise = supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: `${firstName} ${lastName}`.trim(),
-            first_name: firstName,
-            last_name: lastName,
+      const attempt = async () =>
+        supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: `${firstName} ${lastName}`.trim(),
+              first_name: firstName,
+              last_name: lastName,
+            },
+            emailRedirectTo: redirectTo,
           },
-          emailRedirectTo: redirectTo,
-        },
-      });
+        });
 
-      // Add a 30-second timeout to prevent hanging
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Sign-up request timed out. Please try again.")), 30_000)
       );
 
-      const { data, error } = await Promise.race([signUpPromise, timeoutPromise]);
-      if (error) {
-        log.error("signUp", `Registration failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
-        throw new Error("Unable to create account. Please try again or use a different email.");
+      // Auto-retry once on transient 5xx / network blips before surfacing.
+      let lastErr: { message: string; status?: number; code?: string } | null = null;
+      let data: any = null;
+      for (let i = 0; i < 2; i++) {
+        const res = await Promise.race([attempt(), timeoutPromise]);
+        if (!res.error) { data = res.data; lastErr = null; break; }
+        lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
+        const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
+        if (!transient) break;
+        await new Promise(r => setTimeout(r, 600 * (i + 1)));
       }
+
+      if (lastErr) {
+        // Persist the REAL Supabase error so admins can diagnose, but surface a friendly mapped message to the user.
+        log.error("signUp", `Registration failed for ${email}: [${lastErr.status ?? "?"}] ${lastErr.message}`,
+          { email, errorCode: lastErr.status, errorName: lastErr.code }, lastErr as Error);
+
+        const m = (lastErr.message || "").toLowerCase();
+        // Map common Supabase auth errors to actionable user messaging.
+        if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already")) {
+          throw new Error("An account with this email already exists. Try signing in or resetting your password.");
+        }
+        if (m.includes("pwned") || m.includes("compromised")) {
+          throw new Error("This password has appeared in a known data breach. Please choose a different password.");
+        }
+        if (m.includes("weak") || m.includes("password should") || m.includes("password must")) {
+          throw new Error(`Password rejected: ${lastErr.message}`);
+        }
+        if (m.includes("rate") || lastErr.status === 429) {
+          throw new Error("Too many signup attempts from your network. Please wait a few minutes and try again.");
+        }
+        if (m.includes("invalid") && m.includes("email")) {
+          throw new Error("That email address looks invalid. Please double-check and try again.");
+        }
+        if (m.includes("signup") && m.includes("disabled")) {
+          throw new Error("Account creation is temporarily unavailable. Please contact support.");
+        }
+        if (lastErr.status && lastErr.status >= 500) {
+          throw new Error("The signup service is temporarily unavailable. Please try again in a minute.");
+        }
+        // Last-resort: surface the actual server message so the user (and we) can act on it.
+        throw new Error(lastErr.message || "Unable to create account. Please try again or use a different email.");
+      }
+
       log.info("signUp", `User ${email} registered successfully, confirmation email sent`, {
-        userId: data.user?.id,
-        confirmationRequired: !data.session,
+        userId: data?.user?.id,
+        confirmationRequired: !data?.session,
       });
       return data;
     });
