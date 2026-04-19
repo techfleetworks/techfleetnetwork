@@ -194,6 +194,7 @@ export const AuthService = {
         });
         if (revoked === true) {
           log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
+          void logAccountActivity("session_revoked_serverside", { userId: data.session.user.id });
           await supabase.auth.signOut();
           sessionStorage.removeItem("session_started_at");
           return null;
@@ -209,6 +210,10 @@ export const AuthService = {
           log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
             elapsedMs: elapsed,
             maxMs: MAX_SESSION_AGE_MS,
+          });
+          void logAccountActivity("session_expired_clientside", {
+            userId: data.session.user.id,
+            details: { elapsedMs: elapsed },
           });
           await supabase.auth.signOut();
           sessionStorage.removeItem("session_started_at");
