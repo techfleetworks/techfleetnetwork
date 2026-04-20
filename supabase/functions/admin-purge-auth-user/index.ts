@@ -1,0 +1,148 @@
+// Admin-only utility: hard-delete an auth.users row by email (and any cascading
+// public-schema records). Solves the "ghost account" problem where a manual
+// SQL wipe of public.profiles cannot touch auth.users (no SQL grant on the auth
+// schema), leaving an orphan that makes Supabase Auth reject re-registration
+// with "User already registered" and silently refuses password recovery.
+//
+// Caller must be an authenticated admin. The function re-verifies the role
+// server-side via has_role() — never trust client claims.
+
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405)
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
+
+  // 1) Verify caller is an authenticated admin.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  if (!authHeader.startsWith('Bearer ')) return jsonResponse({ error: 'Unauthorized' }, 401)
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: userData, error: userErr } = await userClient.auth.getUser()
+  if (userErr || !userData?.user) return jsonResponse({ error: 'Unauthorized' }, 401)
+
+  const admin = createClient(supabaseUrl, serviceKey)
+  const { data: isAdmin, error: roleErr } = await admin.rpc('has_role', {
+    _user_id: userData.user.id,
+    _role: 'admin',
+  })
+  if (roleErr || isAdmin !== true) return jsonResponse({ error: 'Forbidden' }, 403)
+
+  // 2) Parse + validate input.
+  let email: string
+  try {
+    const body = await req.json()
+    email = String(body?.email ?? '').trim().toLowerCase()
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400)
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) {
+    return jsonResponse({ error: 'A valid email is required' }, 400)
+  }
+
+  // 3) Look the user up via the auth admin API (paginate up to 10k accounts).
+  let target: { id: string; email: string } | null = null
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) return jsonResponse({ error: error.message }, 500)
+    const users = data?.users ?? []
+    const hit = users.find((u) => (u.email ?? '').toLowerCase() === email)
+    if (hit) {
+      target = { id: hit.id, email: hit.email ?? email }
+      break
+    }
+    if (users.length < 1000) break
+  }
+
+  // 4) Best-effort cleanup of related public-schema rows so a fresh signup is clean.
+  //    We do NOT fail the whole request on per-table errors — log + continue.
+  const cleanupResults: Record<string, string> = {}
+
+  if (target) {
+    const tablesByUserId = [
+      'profiles',
+      'journey_progress',
+      'dashboard_preferences',
+      'general_applications',
+      'project_applications',
+      'announcement_reads',
+      'announcement_views',
+      'banner_dismissals',
+      'chat_conversations',
+      'class_certifications',
+      'project_certifications',
+      'exploration_queries',
+      'feedback',
+      'grid_view_states',
+      'notifications',
+      'passkey_credentials',
+      'push_subscriptions',
+      'signup_confirmation_reminders',
+    ]
+    for (const t of tablesByUserId) {
+      const { error } = await admin.from(t).delete().eq('user_id', target.id)
+      cleanupResults[t] = error ? `error: ${error.message}` : 'ok'
+    }
+  }
+
+  // Always try to clear email-keyed records (covers cases where there is no
+  // auth row but suppression / log entries exist).
+  const tablesByEmail = ['suppressed_emails', 'failed_login_attempts', 'email_unsubscribe_tokens']
+  for (const t of tablesByEmail) {
+    const { error } = await admin.from(t).delete().eq('email', email)
+    cleanupResults[t] = error ? `error: ${error.message}` : 'ok'
+  }
+
+  // 5) Hard-delete the auth user (uses service role; bypasses the SQL grant gap).
+  let authDeleted = false
+  if (target) {
+    const { error: delErr } = await admin.auth.admin.deleteUser(target.id)
+    if (delErr) {
+      return jsonResponse(
+        { error: `Auth delete failed: ${delErr.message}`, cleanupResults },
+        500,
+      )
+    }
+    authDeleted = true
+  }
+
+  // 6) Audit trail so admins can see who purged whom and why.
+  await admin.rpc('write_audit_log', {
+    p_event_type: 'admin_purge_auth_user',
+    p_table_name: 'auth.users',
+    p_record_id: target?.id ?? null,
+    p_user_id: userData.user.id,
+    p_changed_fields: [`email:${email}`, `auth_deleted:${authDeleted}`],
+    p_error_message: null,
+  })
+
+  return jsonResponse({
+    ok: true,
+    email,
+    auth_deleted: authDeleted,
+    auth_user_id: target?.id ?? null,
+    cleanup: cleanupResults,
+    note: target
+      ? 'Auth account and related app data removed.'
+      : 'No auth account existed for this email; only email-keyed records were checked.',
+  })
+})
