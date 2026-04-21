@@ -550,13 +550,48 @@ export default function GenericCoursePage({
         </DialogContent>
       </Dialog>
 
-      {/* Lesson detail popup — 80% width dialog */}
+      {/* Lesson detail — full-screen on mobile, centered modal on desktop */}
       <Dialog
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}
       >
-        <DialogContent className="w-[90vw] max-w-[80%] max-h-[85vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <DialogContent
+          className={
+            isMobile
+              ? "w-screen h-[100dvh] max-w-none max-h-none rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
+              : "w-[90vw] max-w-[80%] max-h-[85vh] overflow-hidden flex flex-col p-0"
+          }
+          onTouchStart={(e) => {
+            if (!isMobile) return;
+            const t = e.touches[0];
+            touchStartXRef.current = t.clientX;
+            touchStartYRef.current = t.clientY;
+          }}
+          onTouchEnd={(e) => {
+            if (!isMobile || touchStartXRef.current === null) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - touchStartXRef.current;
+            const dy = t.clientY - (touchStartYRef.current ?? t.clientY);
+            touchStartXRef.current = null;
+            touchStartYRef.current = null;
+            // horizontal swipe only — ignore vertical scrolls
+            if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+            if (!selectedLesson) return;
+            const idx = allLessons.findIndex((l) => l.id === selectedLesson.id);
+            if (dx < 0 && idx < allLessons.length - 1) {
+              setSelectedLesson(allLessons[idx + 1]);
+            } else if (dx > 0 && idx > 0) {
+              setSelectedLesson(allLessons[idx - 1]);
+            }
+          }}
+        >
+          <DialogHeader
+            className={
+              isMobile
+                ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 text-left space-y-1"
+                : "px-6 pt-6 pb-4 border-b border-border"
+            }
+          >
             {selectedLesson && (
               <p className="text-xs text-muted-foreground">
                 Lesson{" "}
@@ -564,7 +599,7 @@ export default function GenericCoursePage({
                 of {totalLessons}
               </p>
             )}
-            <DialogTitle className="text-base leading-snug pr-6">
+            <DialogTitle className={isMobile ? "text-base leading-snug pr-8 text-left" : "text-base leading-snug pr-6"}>
               {selectedLesson?.title}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -572,24 +607,34 @@ export default function GenericCoursePage({
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-4 py-4">
+          <ScrollArea className={isMobile ? "flex-1" : "flex-1 px-6"}>
+            <div className={isMobile ? "space-y-4 pb-4" : "space-y-4 py-4"}>
               {selectedLesson?.youtubeId && (
-                <div className="space-y-2">
-                  <AspectRatio ratio={16 / 9}>
-                    <iframe
-                      src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}`}
-                      title={selectedLesson.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full rounded-lg border border-border"
-                    />
-                  </AspectRatio>
+                <div className={isMobile ? "space-y-2" : "space-y-2"}>
+                  <div className={isMobile ? "w-full bg-black" : ""}>
+                    <AspectRatio ratio={16 / 9}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
+                        title={selectedLesson.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        className={
+                          isMobile
+                            ? "w-full h-full border-0"
+                            : "w-full h-full rounded-lg border border-border"
+                        }
+                      />
+                    </AspectRatio>
+                  </div>
                   <a
                     href={`https://www.youtube.com/watch?v=${selectedLesson.youtubeId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className={
+                      isMobile
+                        ? "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-4"
+                        : "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    }
                   >
                     <ExternalLink className="h-3 w-3" />
                     Watch on YouTube
@@ -597,42 +642,44 @@ export default function GenericCoursePage({
                 </div>
               )}
 
-              {/* Text version: collapsed accordion if there's a video, otherwise shown directly */}
-              {selectedLesson?.content && selectedLesson?.youtubeId ? (
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="text-version" className="border rounded-lg">
-                    <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
-                      Text Version
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-3">
-                        {renderContent(selectedLesson.content)}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              ) : selectedLesson?.content ? (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Lesson Content
-                  </p>
+              <div className={isMobile ? "px-4 space-y-4" : "space-y-4"}>
+                {/* Text version */}
+                {selectedLesson?.content && selectedLesson?.youtubeId ? (
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="text-version" className="border rounded-lg">
+                      <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline">
+                        Text Version
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-3">
+                          {renderContent(selectedLesson.content)}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                ) : selectedLesson?.content ? (
                   <div className="space-y-3">
-                    {renderContent(selectedLesson.content)}
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Lesson Content
+                    </p>
+                    <div className="space-y-3">
+                      {renderContent(selectedLesson.content)}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              <div className="pt-2">
-                <a
-                  href={selectedLesson?.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-1.5" />
-                    Read on Guide
-                  </Button>
-                </a>
+                <div className="pt-2">
+                  <a
+                    href={selectedLesson?.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-1.5" />
+                      Read on Guide
+                    </Button>
+                  </a>
+                </div>
               </div>
             </div>
           </ScrollArea>
@@ -650,9 +697,15 @@ export default function GenericCoursePage({
                   : null;
 
               return (
-                <div className="px-6 py-4 border-t border-border space-y-3 shrink-0">
+                <div
+                  className={
+                    isMobile
+                      ? "px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-border space-y-2 shrink-0 bg-background/95 backdrop-blur"
+                      : "px-6 py-4 border-t border-border space-y-3 shrink-0"
+                  }
+                >
                   <Button
-                    className="w-full"
+                    className="w-full h-11"
                     variant={
                       completedSet.has(selectedLesson.id) ? "outline" : "default"
                     }
@@ -675,7 +728,7 @@ export default function GenericCoursePage({
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 h-11"
                       disabled={!prevLesson}
                       onClick={() =>
                         prevLesson && setSelectedLesson(prevLesson)
@@ -686,7 +739,7 @@ export default function GenericCoursePage({
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 h-11"
                       disabled={!nextLesson}
                       onClick={() =>
                         nextLesson && setSelectedLesson(nextLesson)
