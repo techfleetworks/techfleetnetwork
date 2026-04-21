@@ -89,6 +89,16 @@ export default function GenericCoursePage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  // Treat tablets (≤1024px) as "fullscreen" too so the lesson viewer maximizes screen real estate
+  const [isTabletOrSmaller, setIsTabletOrSmaller] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1024px)");
+    const update = () => setIsTabletOrSmaller(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+  const fullscreen = isMobile || isTabletOrSmaller;
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
@@ -556,18 +566,18 @@ export default function GenericCoursePage({
       >
         <DialogContent
           className={
-            isMobile
+            fullscreen
               ? "w-screen h-[100dvh] max-w-none max-h-none rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
               : "w-[90vw] max-w-[80%] max-h-[85vh] overflow-hidden flex flex-col p-0"
           }
           onTouchStart={(e) => {
-            if (!isMobile) return;
+            if (!fullscreen) return;
             const t = e.touches[0];
             touchStartXRef.current = t.clientX;
             touchStartYRef.current = t.clientY;
           }}
           onTouchEnd={(e) => {
-            if (!isMobile || touchStartXRef.current === null) return;
+            if (!fullscreen || touchStartXRef.current === null) return;
             const t = e.changedTouches[0];
             const dx = t.clientX - touchStartXRef.current;
             const dy = t.clientY - (touchStartYRef.current ?? t.clientY);
@@ -586,7 +596,7 @@ export default function GenericCoursePage({
         >
           <DialogHeader
             className={
-              isMobile
+              fullscreen
                 ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 text-left space-y-1"
                 : "px-6 pt-6 pb-4 border-b border-border"
             }
@@ -598,7 +608,7 @@ export default function GenericCoursePage({
                 of {totalLessons}
               </p>
             )}
-            <DialogTitle className={isMobile ? "text-base leading-snug pr-8 text-left" : "text-base leading-snug pr-6"}>
+            <DialogTitle className={fullscreen ? "text-base leading-snug pr-8 text-left" : "text-base leading-snug pr-6"}>
               {selectedLesson?.title}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -606,11 +616,11 @@ export default function GenericCoursePage({
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className={isMobile ? "flex-1" : "flex-1 px-6"}>
-            <div className={isMobile ? "space-y-4 pb-4" : "space-y-4 py-4"}>
+          <ScrollArea className={fullscreen ? "flex-1" : "flex-1 px-6"}>
+            <div className={fullscreen ? "space-y-4 pb-4" : "space-y-4 py-4"}>
               {selectedLesson?.youtubeId && (
-                <div className={isMobile ? "space-y-2" : "space-y-2"}>
-                  <div className={isMobile ? "w-full bg-black" : ""}>
+                <div className={fullscreen ? "space-y-2" : "space-y-2"}>
+                  <div className={fullscreen ? "w-full bg-black" : ""}>
                     <AspectRatio ratio={16 / 9}>
                       <iframe
                         src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
@@ -618,7 +628,7 @@ export default function GenericCoursePage({
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
                         className={
-                          isMobile
+                          fullscreen
                             ? "w-full h-full border-0"
                             : "w-full h-full rounded-lg border border-border"
                         }
@@ -630,7 +640,7 @@ export default function GenericCoursePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={
-                      isMobile
+                      fullscreen
                         ? "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-4"
                         : "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     }
@@ -641,7 +651,7 @@ export default function GenericCoursePage({
                 </div>
               )}
 
-              <div className={isMobile ? "px-4 space-y-4" : "space-y-4"}>
+              <div className={fullscreen ? "px-4 space-y-4" : "space-y-4"}>
                 {/* Text version */}
                 {selectedLesson?.content && selectedLesson?.youtubeId ? (
                   <Accordion type="single" collapsible className="w-full">
@@ -698,7 +708,7 @@ export default function GenericCoursePage({
               return (
                 <div
                   className={
-                    isMobile
+                    fullscreen
                       ? "px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-border space-y-2 shrink-0 bg-background/95 backdrop-blur"
                       : "px-6 py-4 border-t border-border space-y-3 shrink-0"
                   }
