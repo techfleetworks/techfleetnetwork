@@ -314,6 +314,37 @@ export default function AnnouncementMediaRecorder({
       {/* Mode selection — only when not recording and no preview */}
       {!recording && !hasPreview && (
         <div className="space-y-3">
+          {/* Microphone picker */}
+          <div className="space-y-2">
+            <label htmlFor="mic-device-select" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Microphone
+            </label>
+            <Select
+              value={selectedMicId || "default"}
+              onValueChange={(value) => setSelectedMicId(value === "default" ? "" : value)}
+            >
+              <SelectTrigger id="mic-device-select" className="w-full" aria-label="Select microphone">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="System default microphone" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">System default microphone</SelectItem>
+                {microphones.map((mic, idx) => (
+                  <SelectItem key={mic.deviceId || `mic-${idx}`} value={mic.deviceId || `mic-${idx}`}>
+                    {mic.label || `Microphone ${idx + 1}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {microphones.length > 0 && microphones.every((m) => !m.label) && (
+              <p className="text-xs text-muted-foreground">
+                Grant microphone permission once to see device names.
+              </p>
+            )}
+          </div>
+
           {/* Video options */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Video</p>
