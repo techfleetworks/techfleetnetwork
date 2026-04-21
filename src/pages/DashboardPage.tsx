@@ -44,6 +44,7 @@ import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
+import { useAdmin } from "@/hooks/use-admin";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
