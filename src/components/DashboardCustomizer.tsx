@@ -64,12 +64,18 @@ export function DashboardCustomizer({
     (e: React.DragEvent<HTMLDivElement>, dropIdx: number) => {
       e.preventDefault();
       if (dragIdx === null || dragIdx === dropIdx) return;
+      // Map displayed indices back to full widgetOrder
+      const movedId = displayedOrder[dragIdx];
+      const targetId = displayedOrder[dropIdx];
+      const fromFull = widgetOrder.indexOf(movedId);
+      const toFull = widgetOrder.indexOf(targetId);
+      if (fromFull === -1 || toFull === -1) return;
       const updated = [...widgetOrder];
-      const [moved] = updated.splice(dragIdx, 1);
-      updated.splice(dropIdx, 0, moved);
+      const [moved] = updated.splice(fromFull, 1);
+      updated.splice(toFull, 0, moved);
       onReorder(updated);
     },
-    [dragIdx, widgetOrder, onReorder],
+    [dragIdx, widgetOrder, displayedOrder, onReorder],
   );
 
   const handleDragEnd = useCallback(() => {
