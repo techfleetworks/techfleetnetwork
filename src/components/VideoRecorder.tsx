@@ -28,6 +28,44 @@ const buildAudioConstraints = (deviceId: string | null): MediaTrackConstraints =
   ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
 });
 
+type MicrophonePermissionState = PermissionState | "unsupported";
+
+const getMicrophonePermissionState = async (): Promise<MicrophonePermissionState> => {
+  try {
+    if (!navigator.permissions?.query) return "unsupported";
+    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    return status.state;
+  } catch {
+    return "unsupported";
+  }
+};
+
+const getRecorderErrorMessage = (err: unknown, permissionState: MicrophonePermissionState) => {
+  const errorName = err instanceof DOMException
+    ? err.name
+    : typeof err === "object" && err && "name" in err
+      ? String((err as { name?: unknown }).name)
+      : "UnknownError";
+
+  if (errorName === "NotAllowedError" || permissionState === "denied") {
+    return "Permission denied. Allow microphone in settings.";
+  }
+
+  if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+    return "No microphone found.";
+  }
+
+  if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+    return "Microphone in use by another app.";
+  }
+
+  if (errorName === "OverconstrainedError") {
+    return "Selected microphone is unavailable. Try reconnecting it.";
+  }
+
+  return "Could not start recording. Check your device permissions.";
+};
+
 export default function AnnouncementMediaRecorder({
   onMediaReady,
   onBusyChange,
@@ -62,10 +100,15 @@ export default function AnnouncementMediaRecorder({
       const devices = await navigator.mediaDevices.enumerateDevices();
       const mics = devices.filter((d) => d.kind === "audioinput");
       setAudioInputs(mics);
-      // Clear stored preference if device no longer exists
       setSelectedMicId((prev) => {
-        if (!prev) return prev;
-        return mics.some((m) => m.deviceId === prev) ? prev : "";
+        if (!prev || mics.length === 0) return prev;
+        if (mics.some((mic) => mic.deviceId === prev)) return prev;
+        try {
+          window.localStorage.removeItem(MIC_PREF_KEY);
+        } catch {
+          /* localStorage may be unavailable */
+        }
+        return "";
       });
     } catch (err) {
       log.error("refreshAudioInputs", "Failed to list audio inputs", {}, err);
@@ -73,8 +116,10 @@ export default function AnnouncementMediaRecorder({
   }, []);
 
   useEffect(() => {
-    refreshAudioInputs();
-    const handler = () => refreshAudioInputs();
+    void refreshAudioInputs();
+    const handler = () => {
+      void refreshAudioInputs();
+    };
     navigator.mediaDevices?.addEventListener?.("devicechange", handler);
     return () => {
       navigator.mediaDevices?.removeEventListener?.("devicechange", handler);
@@ -117,25 +162,33 @@ export default function AnnouncementMediaRecorder({
     }
   }, []);
 
+  const resolveSelectedMicId = useCallback(() => {
+    if (!selectedMicId) return null;
+    if (audioInputs.length === 0) return selectedMicId;
+    return audioInputs.some((device) => device.deviceId === selectedMicId) ? selectedMicId : null;
+  }, [audioInputs, selectedMicId]);
+
   const startRecording = useCallback(async (type: MediaType) => {
+    const requestedMicId = resolveSelectedMicId();
+    const permissionStatePromise = getMicrophonePermissionState();
+
     try {
-      const audioConstraints = buildAudioConstraints(selectedMicId || null);
       let stream: MediaStream;
 
       if (type === "audio") {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: buildAudioConstraints(requestedMicId),
+          video: false,
+        });
       } else if (videoSource === "camera") {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: audioConstraints,
+          audio: buildAudioConstraints(requestedMicId),
         });
       } else {
         const micPromise = navigator.mediaDevices.getUserMedia({
-          audio: audioConstraints,
+          audio: buildAudioConstraints(requestedMicId),
           video: false,
-        }).catch((micErr) => {
-          log.error("startRecording", "Microphone unavailable for screen recording", {}, micErr);
-          return null;
         });
 
         let displayStream: MediaStream;
@@ -145,17 +198,17 @@ export default function AnnouncementMediaRecorder({
             audio: true,
           });
         } catch (displayErr) {
-          const pendingMicStream = await micPromise;
+          const pendingMicStream = await micPromise.catch(() => null);
           pendingMicStream?.getTracks().forEach((track) => track.stop());
           throw displayErr;
         }
 
         const micStream = await micPromise;
-        sourceStreamsRef.current = micStream ? [displayStream, micStream] : [displayStream];
+        sourceStreamsRef.current = [displayStream, micStream];
 
         const videoTrack = displayStream.getVideoTracks()[0];
         const systemAudioTracks = displayStream.getAudioTracks();
-        const micAudioTracks = micStream?.getAudioTracks() ?? [];
+        const micAudioTracks = micStream.getAudioTracks();
         const audioTracks: MediaStreamTrack[] = [];
 
         if (systemAudioTracks.length > 0 && micAudioTracks.length > 0) {
@@ -164,6 +217,9 @@ export default function AnnouncementMediaRecorder({
           if (AudioContextCtor) {
             const ctx = new AudioContextCtor();
             audioContextRef.current = ctx;
+            if (ctx.state === "suspended") {
+              await ctx.resume().catch(() => {});
+            }
             const destination = ctx.createMediaStreamDestination();
             ctx.createMediaStreamSource(new MediaStream(systemAudioTracks)).connect(destination);
             ctx.createMediaStreamSource(new MediaStream(micAudioTracks)).connect(destination);
@@ -184,8 +240,7 @@ export default function AnnouncementMediaRecorder({
         stream = new MediaStream([videoTrack, ...audioTracks]);
       }
 
-      // Refresh device list now that permission is granted (labels become available)
-      refreshAudioInputs();
+      void refreshAudioInputs();
 
       streamRef.current = stream;
       chunksRef.current = [];
@@ -237,18 +292,13 @@ export default function AnnouncementMediaRecorder({
           return prev + 1;
         });
       }, 1000);
-    } catch (err: any) {
-      const msg = err?.name === "NotAllowedError"
-        ? "Permission denied. Please allow device access."
-        : err?.name === "NotFoundError"
-          ? "Selected microphone not found. Try a different device."
-          : err?.name === "NotReadableError"
-            ? "Microphone is in use by another application."
-            : "Could not start recording. Check your device permissions.";
+    } catch (err: unknown) {
+      const permissionState = await permissionStatePromise;
+      const msg = getRecorderErrorMessage(err, permissionState);
       toast.error(msg);
-      log.error("startRecording", msg, {}, err);
+      log.error("startRecording", msg, { requestedMicId, type, videoSource }, err);
     }
-  }, [videoSource, maxDuration, stopAllTracks, selectedMicId, refreshAudioInputs]);
+  }, [maxDuration, refreshAudioInputs, resolveSelectedMicId, stopAllTracks, videoSource]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current?.state === "recording") {
