@@ -233,7 +233,11 @@ export default function DashboardPage() {
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
-  const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD;
+  // Self-heal: treat Connect to Discord as done if the profile already has a linked
+  // Discord account, even when the journey_progress row is missing (older users who
+  // linked Discord via ProfileSetupDialog never marked the connect-discord task).
+  const hasLinkedDiscord = !!(profile?.discord_user_id && profile.discord_user_id.length > 0);
+  const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD || hasLinkedDiscord;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allDiscordDone = discordLearningCompleted >= TOTAL_DISCORD_LESSONS;
