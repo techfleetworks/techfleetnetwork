@@ -124,20 +124,18 @@ export default function AnnouncementMediaRecorder({
     try {
       let stream: MediaStream;
 
+      const audioConstraints = buildAudioConstraints(selectedMicId || null);
+
       if (type === "audio") {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
       } else if (videoSource === "camera") {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: true,
+          audio: audioConstraints,
         });
       } else {
         const micPromise = navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: audioConstraints,
           video: false,
         }).catch((micErr) => {
           log.error("startRecording", "Microphone unavailable for screen recording", {}, micErr);
