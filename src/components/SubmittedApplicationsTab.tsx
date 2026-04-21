@@ -429,7 +429,7 @@ export default function SubmittedApplicationsTab() {
           toolbarLeft={
             <AllApplicationsColumnPicker visibleKeys={visibleKeys} onChange={handleColumnChange} />
           }
-          showExportCsv
+          hideColumnsPicker
           exportFileName="applications-export"
         />
       )}
