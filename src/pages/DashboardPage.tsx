@@ -328,6 +328,7 @@ export default function DashboardPage() {
             widgetOrder={widgetOrder}
             onToggle={toggleWidget}
             onReorder={reorderWidgets}
+            excludeIds={isAdmin ? [] : ["system_health"]}
           />
         </div>
       </div>
