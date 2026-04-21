@@ -118,15 +118,13 @@ export default function AdminRosterPage() {
                   </div>
                 </div>
 
-                <h3 className="text-base font-semibold text-foreground">
+                <h3 className="text-base font-semibold text-foreground mb-1">
                   {project.clients?.name ?? "Unknown Client"}
+                  {project.friendly_name?.trim() && (
+                    <span className="text-muted-foreground font-medium"> — {project.friendly_name}</span>
+                  )}
                 </h3>
-                {project.friendly_name?.trim() && (
-                  <p className="text-sm font-medium text-foreground mt-0.5">
-                    {project.friendly_name}
-                  </p>
-                )}
-                <p className="text-sm text-muted-foreground mt-1 mb-3">
+                <p className="text-sm text-muted-foreground mb-3">
                   {typeLabel(project.project_type)}
                 </p>
 
