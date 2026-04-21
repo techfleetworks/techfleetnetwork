@@ -164,6 +164,7 @@ export default function DashboardPage() {
   const userId = user?.id;
   const customizerRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
+  const { isAdmin } = useAdmin();
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
