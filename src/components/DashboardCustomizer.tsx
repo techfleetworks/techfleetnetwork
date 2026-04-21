@@ -101,7 +101,7 @@ export function DashboardCustomizer({
           Drag to reorder · Toggle to show or hide
         </p>
         <div className="space-y-1" role="list" aria-label="Reorder dashboard sections">
-          {widgetOrder.map((id, idx) => (
+          {displayedOrder.map((id, idx) => (
             <div
               key={id}
               role="listitem"
