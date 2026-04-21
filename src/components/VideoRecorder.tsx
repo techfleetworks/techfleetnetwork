@@ -1,11 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video, Mic, Square, Trash2, Loader2, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("MediaRecorder");
+const MIC_PREF_KEY = "announcement-recorder:mic-device-id";
+
+const buildAudioConstraints = (deviceId: string | null): MediaTrackConstraints => ({
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+});
 
 type MediaType = "video" | "audio";
 type VideoSource = "camera" | "screen";
@@ -37,6 +46,14 @@ export default function AnnouncementMediaRecorder({
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl);
   const [previewType, setPreviewType] = useState<MediaType | null>(existingType);
   const [elapsed, setElapsed] = useState(0);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(MIC_PREF_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
 
   const recorderRef = useRef<globalThis.MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -60,6 +77,37 @@ export default function AnnouncementMediaRecorder({
     onBusyChange?.(recording || uploading);
   }, [recording, uploading, onBusyChange]);
 
+  // Enumerate available microphones (and refresh on device changes).
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+
+    const refresh = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter((d) => d.kind === "audioinput");
+        setMicrophones(mics);
+        // If the previously selected mic is gone, fall back to default.
+        setSelectedMicId((current) => (current && mics.some((m) => m.deviceId === current) ? current : ""));
+      } catch (err) {
+        log.error("enumerateDevices", "Failed to list audio devices", {}, err as Error);
+      }
+    };
+
+    refresh();
+    navigator.mediaDevices.addEventListener?.("devicechange", refresh);
+    return () => navigator.mediaDevices.removeEventListener?.("devicechange", refresh);
+  }, []);
+
+  // Persist mic selection.
+  useEffect(() => {
+    try {
+      if (selectedMicId) localStorage.setItem(MIC_PREF_KEY, selectedMicId);
+      else localStorage.removeItem(MIC_PREF_KEY);
+    } catch {
+      /* ignore quota / private mode errors */
+    }
+  }, [selectedMicId]);
+
   const stopAllTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     sourceStreamsRef.current.forEach((stream) => stream.getTracks().forEach((t) => t.stop()));
@@ -76,20 +124,18 @@ export default function AnnouncementMediaRecorder({
     try {
       let stream: MediaStream;
 
+      const audioConstraints = buildAudioConstraints(selectedMicId || null);
+
       if (type === "audio") {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
       } else if (videoSource === "camera") {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: true,
+          audio: audioConstraints,
         });
       } else {
         const micPromise = navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: audioConstraints,
           video: false,
         }).catch((micErr) => {
           log.error("startRecording", "Microphone unavailable for screen recording", {}, micErr);
@@ -199,7 +245,7 @@ export default function AnnouncementMediaRecorder({
       toast.error(msg);
       log.error("startRecording", msg, {}, err);
     }
-  }, [videoSource, maxDuration, stopAllTracks]);
+  }, [videoSource, maxDuration, stopAllTracks, selectedMicId]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current?.state === "recording") {
@@ -268,6 +314,37 @@ export default function AnnouncementMediaRecorder({
       {/* Mode selection — only when not recording and no preview */}
       {!recording && !hasPreview && (
         <div className="space-y-3">
+          {/* Microphone picker */}
+          <div className="space-y-2">
+            <label htmlFor="mic-device-select" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Microphone
+            </label>
+            <Select
+              value={selectedMicId || "default"}
+              onValueChange={(value) => setSelectedMicId(value === "default" ? "" : value)}
+            >
+              <SelectTrigger id="mic-device-select" className="w-full" aria-label="Select microphone">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="System default microphone" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">System default microphone</SelectItem>
+                {microphones.map((mic, idx) => (
+                  <SelectItem key={mic.deviceId || `mic-${idx}`} value={mic.deviceId || `mic-${idx}`}>
+                    {mic.label || `Microphone ${idx + 1}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {microphones.length > 0 && microphones.every((m) => !m.label) && (
+              <p className="text-xs text-muted-foreground">
+                Grant microphone permission once to see device names.
+              </p>
+            )}
+          </div>
+
           {/* Video options */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Video</p>
