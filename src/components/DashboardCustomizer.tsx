@@ -30,7 +30,10 @@ export function DashboardCustomizer({
   widgetOrder,
   onToggle,
   onReorder,
+  excludeIds,
 }: DashboardCustomizerProps) {
+  const excluded = new Set(excludeIds ?? []);
+  const displayedOrder = widgetOrder.filter((id) => !excluded.has(id));
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
