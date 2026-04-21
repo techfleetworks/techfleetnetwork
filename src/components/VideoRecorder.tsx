@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video, Mic, Square, Trash2, Loader2, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,18 +11,22 @@ const log = createLogger("MediaRecorder");
 type MediaType = "video" | "audio";
 type VideoSource = "camera" | "screen";
 
+const MIC_PREF_KEY = "announcement-recorder:preferred-mic-id";
+
 interface MediaRecorderProps {
-  /** Called with the public URL after successful upload, or null when cleared */
   onMediaReady: (url: string | null, type: MediaType | null) => void;
-  /** Called when recording or upload state changes — parent should disable submit while busy */
   onBusyChange?: (busy: boolean) => void;
-  /** Maximum recording duration in seconds (default 300 = 5 min) */
   maxDuration?: number;
-  /** Optional existing media URL for display */
   existingUrl?: string | null;
-  /** Type of existing media */
   existingType?: MediaType | null;
 }
+
+const buildAudioConstraints = (deviceId: string | null): MediaTrackConstraints => ({
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+});
 
 export default function AnnouncementMediaRecorder({
   onMediaReady,
@@ -37,6 +42,11 @@ export default function AnnouncementMediaRecorder({
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl);
   const [previewType, setPreviewType] = useState<MediaType | null>(existingType);
   const [elapsed, setElapsed] = useState(0);
+  const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem(MIC_PREF_KEY) ?? "";
+  });
 
   const recorderRef = useRef<globalThis.MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -45,6 +55,31 @@ export default function AnnouncementMediaRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const refreshAudioInputs = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter((d) => d.kind === "audioinput");
+      setAudioInputs(mics);
+      // Clear stored preference if device no longer exists
+      setSelectedMicId((prev) => {
+        if (!prev) return prev;
+        return mics.some((m) => m.deviceId === prev) ? prev : "";
+      });
+    } catch (err) {
+      log.error("refreshAudioInputs", "Failed to list audio inputs", {}, err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAudioInputs();
+    const handler = () => refreshAudioInputs();
+    navigator.mediaDevices?.addEventListener?.("devicechange", handler);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.("devicechange", handler);
+    };
+  }, [refreshAudioInputs]);
 
   useEffect(() => {
     return () => {
@@ -55,10 +90,20 @@ export default function AnnouncementMediaRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Notify parent whenever recording or uploading is in progress so it can block submit.
   useEffect(() => {
     onBusyChange?.(recording || uploading);
   }, [recording, uploading, onBusyChange]);
+
+  const handleMicChange = useCallback((value: string) => {
+    const next = value === "__default__" ? "" : value;
+    setSelectedMicId(next);
+    try {
+      if (next) window.localStorage.setItem(MIC_PREF_KEY, next);
+      else window.localStorage.removeItem(MIC_PREF_KEY);
+    } catch {
+      /* localStorage may be unavailable */
+    }
+  }, []);
 
   const stopAllTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -74,22 +119,19 @@ export default function AnnouncementMediaRecorder({
 
   const startRecording = useCallback(async (type: MediaType) => {
     try {
+      const audioConstraints = buildAudioConstraints(selectedMicId || null);
       let stream: MediaStream;
 
       if (type === "audio") {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
       } else if (videoSource === "camera") {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: true,
+          audio: audioConstraints,
         });
       } else {
         const micPromise = navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: audioConstraints,
           video: false,
         }).catch((micErr) => {
           log.error("startRecording", "Microphone unavailable for screen recording", {}, micErr);
@@ -141,6 +183,9 @@ export default function AnnouncementMediaRecorder({
 
         stream = new MediaStream([videoTrack, ...audioTracks]);
       }
+
+      // Refresh device list now that permission is granted (labels become available)
+      refreshAudioInputs();
 
       streamRef.current = stream;
       chunksRef.current = [];
@@ -195,11 +240,15 @@ export default function AnnouncementMediaRecorder({
     } catch (err: any) {
       const msg = err?.name === "NotAllowedError"
         ? "Permission denied. Please allow device access."
-        : "Could not start recording. Check your device permissions.";
+        : err?.name === "NotFoundError"
+          ? "Selected microphone not found. Try a different device."
+          : err?.name === "NotReadableError"
+            ? "Microphone is in use by another application."
+            : "Could not start recording. Check your device permissions.";
       toast.error(msg);
       log.error("startRecording", msg, {}, err);
     }
-  }, [videoSource, maxDuration, stopAllTracks]);
+  }, [videoSource, maxDuration, stopAllTracks, selectedMicId, refreshAudioInputs]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current?.state === "recording") {
@@ -257,6 +306,7 @@ export default function AnnouncementMediaRecorder({
   };
 
   const hasPreview = !!previewUrl && !recording;
+  const micSelectValue = selectedMicId || "__default__";
 
   return (
     <div className="space-y-3">
@@ -265,13 +315,40 @@ export default function AnnouncementMediaRecorder({
         <span className="text-sm font-medium text-foreground">Media (optional — video or audio)</span>
       </div>
 
+      {/* Microphone picker — visible whenever no preview exists and not recording */}
+      {!recording && !hasPreview && (
+        <div className="space-y-1.5">
+          <label htmlFor="mic-select" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Microphone
+          </label>
+          <Select value={micSelectValue} onValueChange={handleMicChange}>
+            <SelectTrigger id="mic-select" className="h-9 text-sm" aria-label="Select microphone">
+              <SelectValue placeholder="System default" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__default__">System default</SelectItem>
+              {audioInputs.map((device, idx) => (
+                <SelectItem key={device.deviceId || idx} value={device.deviceId || `mic-${idx}`}>
+                  {device.label || `Microphone ${idx + 1}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {audioInputs.every((d) => !d.label) && audioInputs.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Device names appear after granting microphone permission once.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Mode selection — only when not recording and no preview */}
       {!recording && !hasPreview && (
         <div className="space-y-3">
           {/* Video options */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Video</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 type="button"
                 variant={videoSource === "camera" ? "default" : "outline"}
