@@ -44,6 +44,7 @@ import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
+import { useAdmin } from "@/hooks/use-admin";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
@@ -163,6 +164,7 @@ export default function DashboardPage() {
   const userId = user?.id;
   const customizerRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
+  const { isAdmin } = useAdmin();
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
@@ -326,6 +328,7 @@ export default function DashboardPage() {
             widgetOrder={widgetOrder}
             onToggle={toggleWidget}
             onReorder={reorderWidgets}
+            excludeIds={isAdmin ? [] : ["system_health"]}
           />
         </div>
       </div>
@@ -590,6 +593,15 @@ export default function DashboardPage() {
             ) : null;
           }
 
+          case "system_health":
+            return isAdmin && isVisible("system_health") ? (
+              <section key="system_health">
+                <Suspense fallback={<Skeleton className="h-[200px] rounded-lg" />}>
+                  <SystemHealthWidget />
+                </Suspense>
+              </section>
+            ) : null;
+
           default:
             return null;
         }
@@ -598,10 +610,6 @@ export default function DashboardPage() {
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
       )}
-
-      <Suspense fallback={null}>
-        <SystemHealthWidget />
-      </Suspense>
     </div>
   );
 }

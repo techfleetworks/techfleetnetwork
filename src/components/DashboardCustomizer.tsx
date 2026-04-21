@@ -18,6 +18,8 @@ interface DashboardCustomizerProps {
   widgetOrder: DashboardWidgetId[];
   onToggle: (id: DashboardWidgetId) => void;
   onReorder: (ordered: DashboardWidgetId[]) => void;
+  /** IDs to exclude from the picker (e.g. admin-only widgets for non-admins) */
+  excludeIds?: DashboardWidgetId[];
 }
 
 const widgetLabel = (id: DashboardWidgetId) =>
@@ -28,7 +30,10 @@ export function DashboardCustomizer({
   widgetOrder,
   onToggle,
   onReorder,
+  excludeIds,
 }: DashboardCustomizerProps) {
+  const excluded = new Set(excludeIds ?? []);
+  const displayedOrder = widgetOrder.filter((id) => !excluded.has(id));
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
@@ -59,12 +64,18 @@ export function DashboardCustomizer({
     (e: React.DragEvent<HTMLDivElement>, dropIdx: number) => {
       e.preventDefault();
       if (dragIdx === null || dragIdx === dropIdx) return;
+      // Map displayed indices back to full widgetOrder
+      const movedId = displayedOrder[dragIdx];
+      const targetId = displayedOrder[dropIdx];
+      const fromFull = widgetOrder.indexOf(movedId);
+      const toFull = widgetOrder.indexOf(targetId);
+      if (fromFull === -1 || toFull === -1) return;
       const updated = [...widgetOrder];
-      const [moved] = updated.splice(dragIdx, 1);
-      updated.splice(dropIdx, 0, moved);
+      const [moved] = updated.splice(fromFull, 1);
+      updated.splice(toFull, 0, moved);
       onReorder(updated);
     },
-    [dragIdx, widgetOrder, onReorder],
+    [dragIdx, widgetOrder, displayedOrder, onReorder],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -90,7 +101,7 @@ export function DashboardCustomizer({
           Drag to reorder · Toggle to show or hide
         </p>
         <div className="space-y-1" role="list" aria-label="Reorder dashboard sections">
-          {widgetOrder.map((id, idx) => (
+          {displayedOrder.map((id, idx) => (
             <div
               key={id}
               role="listitem"

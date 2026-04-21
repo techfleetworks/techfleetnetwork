@@ -8,15 +8,17 @@ export type DashboardWidgetId =
   | "network_activity"
   | "latest_updates"
   | "my_project_apps"
-  | "badges";
+  | "badges"
+  | "system_health";
 
-export const ALL_WIDGETS: { id: DashboardWidgetId; label: string }[] = [
+export const ALL_WIDGETS: { id: DashboardWidgetId; label: string; adminOnly?: boolean }[] = [
   { id: "core_courses", label: "Core Courses" },
   { id: "world_map", label: "Tech Fleet Network Map" },
   { id: "network_activity", label: "Tech Fleet Network Activity" },
   { id: "latest_updates", label: "Community Updates" },
   { id: "my_project_apps", label: "My Project Applications" },
   { id: "badges", label: "Beginner Badges Earned" },
+  { id: "system_health", label: "System Health", adminOnly: true },
 ];
 
 /** Default order for all widget IDs */
