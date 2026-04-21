@@ -89,6 +89,7 @@ export default function GenericCoursePage({
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
@@ -96,6 +97,8 @@ export default function GenericCoursePage({
   const [progressLoaded, setProgressLoaded] = useState(false);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const prevCompletedCountRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
 
   // Load progress
   useEffect(() => {
