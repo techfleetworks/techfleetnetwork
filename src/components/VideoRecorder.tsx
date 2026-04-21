@@ -245,7 +245,7 @@ export default function AnnouncementMediaRecorder({
       toast.error(msg);
       log.error("startRecording", msg, {}, err);
     }
-  }, [videoSource, maxDuration, stopAllTracks]);
+  }, [videoSource, maxDuration, stopAllTracks, selectedMicId]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current?.state === "recording") {
