@@ -40,6 +40,8 @@ export default function AnnouncementMediaRecorder({
 
   const recorderRef = useRef<globalThis.MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const sourceStreamsRef = useRef<MediaStream[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -60,7 +62,14 @@ export default function AnnouncementMediaRecorder({
 
   const stopAllTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
+    sourceStreamsRef.current.forEach((stream) => stream.getTracks().forEach((t) => t.stop()));
+    sourceStreamsRef.current = [];
     streamRef.current = null;
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
   }, []);
 
   const startRecording = useCallback(async (type: MediaType) => {
@@ -75,48 +84,62 @@ export default function AnnouncementMediaRecorder({
           audio: true,
         });
       } else {
-        // Screen capture: get display (with optional system audio) + microphone separately, then merge.
-        // getDisplayMedia's audio track only captures tab/system audio — never the mic.
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: true, // system audio (best-effort; not all browsers/OSes support)
+        const micPromise = navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: false,
+        }).catch((micErr) => {
+          log.error("startRecording", "Microphone unavailable for screen recording", {}, micErr);
+          return null;
         });
 
-        let micStream: MediaStream | null = null;
+        let displayStream: MediaStream;
         try {
-          micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        } catch (micErr) {
-          log.warn?.("startRecording", "Microphone unavailable, recording without mic audio", {}, micErr as Error);
-          toast.warning("Microphone unavailable — recording screen without mic audio.");
+          displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: true,
+          });
+        } catch (displayErr) {
+          const pendingMicStream = await micPromise;
+          pendingMicStream?.getTracks().forEach((track) => track.stop());
+          throw displayErr;
         }
 
+        const micStream = await micPromise;
+        sourceStreamsRef.current = micStream ? [displayStream, micStream] : [displayStream];
+
         const videoTrack = displayStream.getVideoTracks()[0];
+        const systemAudioTracks = displayStream.getAudioTracks();
+        const micAudioTracks = micStream?.getAudioTracks() ?? [];
         const audioTracks: MediaStreamTrack[] = [];
 
-        // Mix system audio + mic audio if both exist; otherwise use whichever is available.
-        const sysAudioTracks = displayStream.getAudioTracks();
-        const micAudioTracks = micStream?.getAudioTracks() ?? [];
+        if (systemAudioTracks.length > 0 && micAudioTracks.length > 0) {
+          const AudioContextCtor = window.AudioContext ?? (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
-        if (sysAudioTracks.length > 0 && micAudioTracks.length > 0) {
-          const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
-          const ctx = new AudioCtx();
-          const dest = ctx.createMediaStreamDestination();
-          ctx.createMediaStreamSource(new MediaStream(sysAudioTracks)).connect(dest);
-          ctx.createMediaStreamSource(new MediaStream(micAudioTracks)).connect(dest);
-          audioTracks.push(...dest.stream.getAudioTracks());
+          if (AudioContextCtor) {
+            const ctx = new AudioContextCtor();
+            audioContextRef.current = ctx;
+            const destination = ctx.createMediaStreamDestination();
+            ctx.createMediaStreamSource(new MediaStream(systemAudioTracks)).connect(destination);
+            ctx.createMediaStreamSource(new MediaStream(micAudioTracks)).connect(destination);
+            audioTracks.push(...destination.stream.getAudioTracks());
+          } else {
+            audioTracks.push(micAudioTracks[0]);
+          }
         } else if (micAudioTracks.length > 0) {
-          audioTracks.push(...micAudioTracks);
-        } else if (sysAudioTracks.length > 0) {
-          audioTracks.push(...sysAudioTracks);
+          audioTracks.push(micAudioTracks[0]);
+        } else if (systemAudioTracks.length > 0) {
+          audioTracks.push(systemAudioTracks[0]);
+        }
+
+        if (audioTracks.length === 0) {
+          toast.warning("No microphone audio was captured. Allow microphone access to record voiceover.");
         }
 
         stream = new MediaStream([videoTrack, ...audioTracks]);
-
-        // When user stops sharing via the browser's native control, stop the underlying tracks too.
-        videoTrack.addEventListener("ended", () => {
-          displayStream.getTracks().forEach((t) => t.stop());
-          micStream?.getTracks().forEach((t) => t.stop());
-        });
       }
 
       streamRef.current = stream;
