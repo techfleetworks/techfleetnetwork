@@ -75,9 +75,47 @@ export default function AnnouncementMediaRecorder({
           audio: true,
         });
       } else {
-        stream = await navigator.mediaDevices.getDisplayMedia({
+        // Screen capture: get display (with optional system audio) + microphone separately, then merge.
+        // getDisplayMedia's audio track only captures tab/system audio — never the mic.
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: true,
+          audio: true, // system audio (best-effort; not all browsers/OSes support)
+        });
+
+        let micStream: MediaStream | null = null;
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } catch (micErr) {
+          log.warn?.("startRecording", "Microphone unavailable, recording without mic audio", {}, micErr as Error);
+          toast.warning("Microphone unavailable — recording screen without mic audio.");
+        }
+
+        const videoTrack = displayStream.getVideoTracks()[0];
+        const audioTracks: MediaStreamTrack[] = [];
+
+        // Mix system audio + mic audio if both exist; otherwise use whichever is available.
+        const sysAudioTracks = displayStream.getAudioTracks();
+        const micAudioTracks = micStream?.getAudioTracks() ?? [];
+
+        if (sysAudioTracks.length > 0 && micAudioTracks.length > 0) {
+          const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+          const ctx = new AudioCtx();
+          const dest = ctx.createMediaStreamDestination();
+          ctx.createMediaStreamSource(new MediaStream(sysAudioTracks)).connect(dest);
+          ctx.createMediaStreamSource(new MediaStream(micAudioTracks)).connect(dest);
+          audioTracks.push(...dest.stream.getAudioTracks());
+        } else if (micAudioTracks.length > 0) {
+          audioTracks.push(...micAudioTracks);
+        } else if (sysAudioTracks.length > 0) {
+          audioTracks.push(...sysAudioTracks);
+        }
+
+        stream = new MediaStream([videoTrack, ...audioTracks]);
+
+        // When user stops sharing via the browser's native control, stop the underlying tracks too.
+        videoTrack.addEventListener("ended", () => {
+          displayStream.getTracks().forEach((t) => t.stop());
+          micStream?.getTracks().forEach((t) => t.stop());
         });
       }
 
