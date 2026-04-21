@@ -77,6 +77,37 @@ export default function AnnouncementMediaRecorder({
     onBusyChange?.(recording || uploading);
   }, [recording, uploading, onBusyChange]);
 
+  // Enumerate available microphones (and refresh on device changes).
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+
+    const refresh = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter((d) => d.kind === "audioinput");
+        setMicrophones(mics);
+        // If the previously selected mic is gone, fall back to default.
+        setSelectedMicId((current) => (current && mics.some((m) => m.deviceId === current) ? current : ""));
+      } catch (err) {
+        log.error("enumerateDevices", "Failed to list audio devices", {}, err as Error);
+      }
+    };
+
+    refresh();
+    navigator.mediaDevices.addEventListener?.("devicechange", refresh);
+    return () => navigator.mediaDevices.removeEventListener?.("devicechange", refresh);
+  }, []);
+
+  // Persist mic selection.
+  useEffect(() => {
+    try {
+      if (selectedMicId) localStorage.setItem(MIC_PREF_KEY, selectedMicId);
+      else localStorage.removeItem(MIC_PREF_KEY);
+    } catch {
+      /* ignore quota / private mode errors */
+    }
+  }, [selectedMicId]);
+
   const stopAllTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     sourceStreamsRef.current.forEach((stream) => stream.getTracks().forEach((t) => t.stop()));
