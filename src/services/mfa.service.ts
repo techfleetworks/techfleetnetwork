@@ -107,21 +107,30 @@ export const MfaService = {
     };
   },
 
-  /** Submit a 6-digit code during login to elevate the session to AAL2. */
-  async challengeAndVerify(factorId: string, code: string): Promise<void> {
-    const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId });
-    if (challengeErr || !challengeData) {
-      throw new Error("Failed to create MFA challenge");
-    }
-    const { error: verifyErr } = await supabase.auth.mfa.verify({
+  /** Pre-create a challenge so the user's verify is a single round-trip. */
+  async createChallenge(factorId: string): Promise<string> {
+    const { data, error } = await supabase.auth.mfa.challenge({ factorId });
+    if (error || !data) throw new Error("Failed to create MFA challenge");
+    return data.id;
+  },
+
+  /** Verify a previously created challenge with the user's 6-digit code. */
+  async verifyChallenge(factorId: string, challengeId: string, code: string): Promise<void> {
+    const { error } = await supabase.auth.mfa.verify({
       factorId,
-      challengeId: challengeData.id,
+      challengeId,
       code: code.replace(/\s/g, ""),
     });
-    if (verifyErr) {
-      log.warn("challengeAndVerify", `Invalid code: ${verifyErr.message}`);
+    if (error) {
+      log.warn("verifyChallenge", `Invalid code: ${error.message}`);
       throw new Error("Invalid verification code. Please try again.");
     }
-    log.info("challengeAndVerify", "MFA challenge passed — session elevated to AAL2");
+    log.info("verifyChallenge", "MFA challenge passed — session elevated to AAL2");
+  },
+
+  /** Submit a 6-digit code during login to elevate the session to AAL2. */
+  async challengeAndVerify(factorId: string, code: string): Promise<void> {
+    const challengeId = await this.createChallenge(factorId);
+    await this.verifyChallenge(factorId, challengeId, code);
   },
 };
