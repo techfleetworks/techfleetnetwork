@@ -46,6 +46,14 @@ export default function AnnouncementMediaRecorder({
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl);
   const [previewType, setPreviewType] = useState<MediaType | null>(existingType);
   const [elapsed, setElapsed] = useState(0);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(MIC_PREF_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
 
   const recorderRef = useRef<globalThis.MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
