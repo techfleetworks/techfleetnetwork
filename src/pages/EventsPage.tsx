@@ -35,19 +35,26 @@ export default function EventsPage() {
         <ResponsiveTabsList tabs={eventTabs} value={tab} onValueChange={setTab} className="mb-6" />
 
         <ResponsiveTabsContent value="public">
-          <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="overflow-hidden rounded-lg bg-card">
             <iframe
               src="https://luma.com/embed/calendar/cal-Iy1vN2k9O1VcEBC/events"
               title="Tech Fleet Network Events – Luma"
-              className="w-full border-0"
-              style={{ height: "100dvh", minHeight: "480px" }}
+              width="100%"
+              height="600"
+              frameBorder="0"
+              className="w-full"
+              style={{
+                height: "100dvh",
+                minHeight: "480px",
+                border: "1px solid hsl(var(--border) / 0.55)",
+                borderRadius: "4px",
+              }}
               loading="lazy"
               allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
               aria-hidden="false"
               tabIndex={0}
             />
-            <div className="border-t p-3 text-center text-sm text-muted-foreground">
+            <div className="border-x border-b p-3 text-center text-sm text-muted-foreground">
               Not seeing events?{" "}
               <a
                 href={lumaSrc}
