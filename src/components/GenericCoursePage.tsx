@@ -89,6 +89,16 @@ export default function GenericCoursePage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  // Treat tablets (≤1024px) as "fullscreen" too so the lesson viewer maximizes screen real estate
+  const [isTabletOrSmaller, setIsTabletOrSmaller] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1024px)");
+    const update = () => setIsTabletOrSmaller(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+  const fullscreen = isMobile || isTabletOrSmaller;
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
