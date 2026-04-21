@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Share2,
   Check,
-  X,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
