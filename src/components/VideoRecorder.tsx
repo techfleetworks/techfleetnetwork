@@ -1,11 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video, Mic, Square, Trash2, Loader2, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("MediaRecorder");
+const MIC_PREF_KEY = "announcement-recorder:mic-device-id";
+
+const buildAudioConstraints = (deviceId: string | null): MediaTrackConstraints => ({
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+});
 
 type MediaType = "video" | "audio";
 type VideoSource = "camera" | "screen";
