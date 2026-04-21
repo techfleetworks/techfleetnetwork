@@ -18,6 +18,8 @@ interface DashboardCustomizerProps {
   widgetOrder: DashboardWidgetId[];
   onToggle: (id: DashboardWidgetId) => void;
   onReorder: (ordered: DashboardWidgetId[]) => void;
+  /** IDs to exclude from the picker (e.g. admin-only widgets for non-admins) */
+  excludeIds?: DashboardWidgetId[];
 }
 
 const widgetLabel = (id: DashboardWidgetId) =>
