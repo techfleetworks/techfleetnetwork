@@ -593,6 +593,15 @@ export default function DashboardPage() {
             ) : null;
           }
 
+          case "system_health":
+            return isAdmin && isVisible("system_health") ? (
+              <section key="system_health">
+                <Suspense fallback={<Skeleton className="h-[200px] rounded-lg" />}>
+                  <SystemHealthWidget />
+                </Suspense>
+              </section>
+            ) : null;
+
           default:
             return null;
         }
@@ -601,10 +610,6 @@ export default function DashboardPage() {
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
       )}
-
-      <Suspense fallback={null}>
-        <SystemHealthWidget />
-      </Suspense>
     </div>
   );
 }
