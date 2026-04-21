@@ -22,18 +22,30 @@ interface Props {
  */
 export function MfaChallengeDialog({ open, onSuccess, onCancel }: Props) {
   const [factor, setFactor] = useState<TotpFactor | null>(null);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Load factor + pre-create challenge in parallel when the dialog opens.
+  // Pre-creating means the user's verify click is a single round-trip instead of two.
   useEffect(() => {
     if (!open) return;
     setCode("");
+    setChallengeId(null);
     setLoading(true);
     void MfaService.listFactors()
-      .then((list) => {
+      .then(async (list) => {
         const verified = list.find((f) => f.factor_type === "totp" && f.status === "verified");
         setFactor(verified ?? null);
+        if (verified) {
+          try {
+            const id = await MfaService.createChallenge(verified.id);
+            setChallengeId(id);
+          } catch {
+            // Verify will fall back to challengeAndVerify if no pre-created challenge exists
+          }
+        }
       })
       .catch(() => setFactor(null))
       .finally(() => setLoading(false));
@@ -43,12 +55,23 @@ export function MfaChallengeDialog({ open, onSuccess, onCancel }: Props) {
     if (!factor || code.length !== 6) return;
     setVerifying(true);
     try {
-      await MfaService.challengeAndVerify(factor.id, code);
+      if (challengeId) {
+        await MfaService.verifyChallenge(factor.id, challengeId, code);
+      } else {
+        await MfaService.challengeAndVerify(factor.id, code);
+      }
       toast.success("Verified — welcome back!", { position: "top-center" });
       onSuccess();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed", { position: "top-center" });
       setCode("");
+      // Stale challenge after a failed attempt — create a fresh one for the retry
+      try {
+        const id = await MfaService.createChallenge(factor.id);
+        setChallengeId(id);
+      } catch {
+        setChallengeId(null);
+      }
     } finally {
       setVerifying(false);
     }
