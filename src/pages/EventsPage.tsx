@@ -15,7 +15,7 @@ export default function EventsPage() {
   // Always render in the member's profile timezone; fall back to EDT (America/New_York) if unset.
   const userTimezone = profile?.timezone?.trim() || "America/New_York";
 
-  const lumaSrc = "https://lu.ma/tech-fleet-network";
+  const lumaSrc = "https://luma.com/tech-fleet-network";
   const calendarSrc = useMemo(
     () =>
       `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH`,
@@ -37,14 +37,15 @@ export default function EventsPage() {
         <ResponsiveTabsContent value="public">
           <div className="rounded-lg border bg-card overflow-hidden">
             <iframe
-              src="https://lu.ma/embed/calendar/cal-tech-fleet-network/events"
+              src="https://luma.com/embed/calendar/cal-Iy1vN2k9O1VcEBC/events"
               title="Tech Fleet Network Events – Luma"
               className="w-full border-0"
-              style={{ minHeight: "680px" }}
+              style={{ height: "100dvh", minHeight: "480px" }}
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
               aria-hidden="false"
+              tabIndex={0}
             />
             <div className="border-t p-3 text-center text-sm text-muted-foreground">
               Not seeing events?{" "}
