@@ -292,7 +292,7 @@ export function ProfileSetupDialog() {
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <form id="profile-setup-form" onSubmit={handleComplete} className="px-4 sm:px-6 py-5 sm:py-6 space-y-8" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
