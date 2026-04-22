@@ -1,0 +1,641 @@
+{
+  "generatedAt": "2026-04-22T15:57:15.600Z",
+  "baseUrl": "https://techfleetnetwork.lovable.app",
+  "authedScan": false,
+  "axeTags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag2aaa",
+    "wcag21a",
+    "wcag21aa",
+    "wcag22aa",
+    "best-practice"
+  ],
+  "totals": {
+    "routesTotal": 39,
+    "scanned": 5,
+    "skipped": 34,
+    "errored": 0,
+    "violationsTotal": 10,
+    "byImpact": {
+      "critical": 0,
+      "serious": 10,
+      "moderate": 0,
+      "minor": 0
+    },
+    "byRule": {
+      "color-contrast": 4,
+      "color-contrast-enhanced": 4,
+      "target-size": 2
+    },
+    "byCriterion": {
+      "wcag2aa": 4,
+      "wcag143": 4,
+      "wcag2aaa": 4,
+      "wcag146": 4,
+      "wcag22aa": 2,
+      "wcag258": 2
+    }
+  },
+  "results": [
+    {
+      "route": {
+        "path": "/",
+        "label": "Index",
+        "kind": "public"
+      },
+      "status": "scanned",
+      "url": "https://techfleet.network/",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+          "wcagTags": [
+            "wcag2aa",
+            "wcag143"
+          ],
+          "nodeCount": 2,
+          "nodes": [
+            {
+              "target": [
+                ".pt-2 > a[href$=\"register\"] > .text-primary-foreground.hover\\:bg-primary\\/80.shadow-lg"
+              ],
+              "html": "<button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-e",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.63 (foreground color: #ffffff, background color: #3c83f6, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".sm\\:py-20.text-center.py-16 > a[href$=\"register\"] > .text-primary-foreground.hover\\:bg-primary\\/80.shadow-lg"
+              ],
+              "html": "<button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-e",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.63 (foreground color: #ffffff, background color: #3c83f6, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": {
+        "path": "/login",
+        "label": "Login",
+        "kind": "public"
+      },
+      "status": "scanned",
+      "url": "https://techfleet.network/login",
+      "violations": [
+        {
+          "id": "color-contrast-enhanced",
+          "impact": "serious",
+          "help": "Elements must meet enhanced color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast-enhanced?application=axeAPI",
+          "wcagTags": [
+            "wcag2aaa",
+            "wcag146"
+          ],
+          "nodeCount": 2,
+          "nodes": [
+            {
+              "target": [
+                "a[href$=\"forgot-password\"]"
+              ],
+              "html": "<a class=\"text-xs text-primary hover:underline\" href=\"/forgot-password\">Forgot password?</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.09 (foreground color: #3c83f6, background color: #0c1322, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 7:1"
+            },
+            {
+              "target": [
+                "a[href$=\"register\"]"
+              ],
+              "html": "<a class=\"text-primary font-medium hover:underline\" href=\"/register\">Sign up</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.36 (foreground color: #3c83f6, background color: #080c16, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 7:1"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+          "wcagTags": [
+            "wcag2aa",
+            "wcag143"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".bg-primary"
+              ],
+              "html": "<button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:o",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.63 (foreground color: #ffffff, background color: #3c83f6, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/target-size?application=axeAPI",
+          "wcagTags": [
+            "wcag22aa",
+            "wcag258"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".right-3"
+              ],
+              "html": "<button type=\"button\" class=\"absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground\" aria-label=\"Show password\">",
+              "failureSummary": "Fix any of the following:\n  Target has insufficient size (16px by 16px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 16px instead of at least 24px."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": {
+        "path": "/register",
+        "label": "Register",
+        "kind": "public"
+      },
+      "status": "scanned",
+      "url": "https://techfleet.network/register",
+      "violations": [
+        {
+          "id": "color-contrast-enhanced",
+          "impact": "serious",
+          "help": "Elements must meet enhanced color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast-enhanced?application=axeAPI",
+          "wcagTags": [
+            "wcag2aaa",
+            "wcag146"
+          ],
+          "nodeCount": 3,
+          "nodes": [
+            {
+              "target": [
+                ".text-primary.hover\\:underline[href=\"#\"]:nth-child(1)"
+              ],
+              "html": "<a href=\"#\" class=\"text-primary hover:underline\">Terms of Service</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.09 (foreground color: #3c83f6, background color: #0c1322, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 7:1"
+            },
+            {
+              "target": [
+                ".text-primary.hover\\:underline[href=\"#\"]:nth-child(2)"
+              ],
+              "html": "<a href=\"#\" class=\"text-primary hover:underline\">Community Guidelines</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.09 (foreground color: #3c83f6, background color: #0c1322, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 7:1"
+            },
+            {
+              "target": [
+                ".text-primary.hover\\:underline[href$=\"login\"]"
+              ],
+              "html": "<a class=\"text-primary font-medium hover:underline\" href=\"/login\">Sign in</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.36 (foreground color: #3c83f6, background color: #080c16, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 7:1"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+          "wcagTags": [
+            "wcag2aa",
+            "wcag143"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".bg-primary"
+              ],
+              "html": "<button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:o",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.63 (foreground color: #ffffff, background color: #3c83f6, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "target-size",
+          "impact": "serious",
+          "help": "All touch targets must be 24px large, or leave sufficient space",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/target-size?application=axeAPI",
+          "wcagTags": [
+            "wcag22aa",
+            "wcag258"
+          ],
+          "nodeCount": 2,
+          "nodes": [
+            {
+              "target": [
+                "button[aria-label=\"Show password\"]"
+              ],
+              "html": "<button type=\"button\" class=\"absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground\" aria-label=\"Show password\">",
+              "failureSummary": "Fix any of the following:\n  Target has insufficient size (16px by 16px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 16px instead of at least 24px."
+            },
+            {
+              "target": [
+                "button[aria-label=\"Show confirm password\"]"
+              ],
+              "html": "<button type=\"button\" class=\"absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground\" aria-label=\"Show confirm password\">",
+              "failureSummary": "Fix any of the following:\n  Target has insufficient size (16px by 16px, should be at least 24px by 24px)\n  Target has insufficient space to its closest neighbors. Safe clickable space has a diameter of 16px instead of at least 24px."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": {
+        "path": "/forgot-password",
+        "label": "Forgot password",
+        "kind": "public"
+      },
+      "status": "scanned",
+      "url": "https://techfleet.network/forgot-password",
+      "violations": [
+        {
+          "id": "color-contrast-enhanced",
+          "impact": "serious",
+          "help": "Elements must meet enhanced color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast-enhanced?application=axeAPI",
+          "wcagTags": [
+            "wcag2aaa",
+            "wcag146"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".text-primary"
+              ],
+              "html": "<a class=\"text-primary font-medium hover:underline\" href=\"/login\">Sign in</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 5.36 (foreground color: #3c83f6, background color: #080c16, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 7:1"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+          "wcagTags": [
+            "wcag2aa",
+            "wcag143"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".bg-primary"
+              ],
+              "html": "<button class=\"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:o",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.63 (foreground color: #ffffff, background color: #3c83f6, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route": {
+        "path": "/reset-password",
+        "label": "Reset password",
+        "kind": "public",
+        "skipReason": "Recovery token required"
+      },
+      "status": "skipped",
+      "message": "Recovery token required"
+    },
+    {
+      "route": {
+        "path": "/unsubscribe",
+        "label": "Unsubscribe",
+        "kind": "public",
+        "skipReason": "Email token required"
+      },
+      "status": "skipped",
+      "message": "Email token required"
+    },
+    {
+      "route": {
+        "path": "/confirm-admin",
+        "label": "Confirm admin",
+        "kind": "public",
+        "skipReason": "Confirm token required"
+      },
+      "status": "skipped",
+      "message": "Confirm token required"
+    },
+    {
+      "route": {
+        "path": "/dashboard",
+        "label": "Dashboard",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/profile-setup",
+        "label": "Profile setup",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/profile/edit",
+        "label": "Edit profile",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/profile/notifications",
+        "label": "Notifications",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/my-journey",
+        "label": "My Journey",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/my-journey/quest/take-flight",
+        "label": "Quest detail",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses",
+        "label": "Courses",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/connect-discord",
+        "label": "Connect Discord",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/onboarding",
+        "label": "Onboarding course",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/agile-mindset",
+        "label": "Agile mindset",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/discord-learning",
+        "label": "Discord learning",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/agile-teamwork",
+        "label": "Agile teamwork",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/project-training",
+        "label": "Project training",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/volunteer-teams",
+        "label": "Volunteer teams",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/courses/observer",
+        "label": "Observer",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/events",
+        "label": "Events",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/resources",
+        "label": "Resources",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/chat",
+        "label": "Chat",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/applications",
+        "label": "Applications",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/applications/general",
+        "label": "General application",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/applications/projects",
+        "label": "My project applications",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/project-openings",
+        "label": "Project openings list",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/updates",
+        "label": "Community updates",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/feedback",
+        "label": "Feedback",
+        "kind": "authed"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/users",
+        "label": "Admin: users",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/activity-log",
+        "label": "Admin: activity log",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/clients",
+        "label": "Admin: clients",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/clients/projects/new",
+        "label": "Admin: new project",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/feedback",
+        "label": "Admin: feedback",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/roster",
+        "label": "Admin: recruiting center",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/admin/banners",
+        "label": "Admin: banners",
+        "kind": "admin"
+      },
+      "status": "skipped",
+      "message": "no auth"
+    },
+    {
+      "route": {
+        "path": "/__nonexistent-route-for-404-scan__",
+        "label": "404 NotFound",
+        "kind": "public"
+      },
+      "status": "scanned",
+      "url": "https://techfleet.network/__nonexistent-route-for-404-scan__",
+      "violations": [
+        {
+          "id": "color-contrast-enhanced",
+          "impact": "serious",
+          "help": "Elements must meet enhanced color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast-enhanced?application=axeAPI",
+          "wcagTags": [
+            "wcag2aaa",
+            "wcag146"
+          ],
+          "nodeCount": 1,
+          "nodes": [
+            {
+              "target": [
+                ".text-primary"
+              ],
+              "html": "<a href=\"/\" class=\"text-primary underline hover:text-primary/90\">Return to Home</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.51 (foreground color: #3c83f6, background color: #191f2e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 7:1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
