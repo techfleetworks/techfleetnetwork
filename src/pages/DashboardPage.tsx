@@ -22,6 +22,7 @@ import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { DashboardCustomizer } from "@/components/DashboardCustomizer";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 import { DashboardEmptyState } from "@/components/DashboardEmptyState";
+import { GettingStartedChecklist, type ChecklistItem } from "@/components/GettingStartedChecklist";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
