@@ -196,7 +196,7 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input id="reg-password" type={showPassword ? "text" : "password"} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => markTouched("password")} className={`pl-10 pr-10 ${bc("password", password)}`} autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.password} aria-describedby="password-requirements" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -207,7 +207,7 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input id="reg-confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onBlur={() => markTouched("confirmPassword")} className={`pl-10 pr-10 ${bc("confirmPassword", confirmPassword)}`} autoComplete="new-password" required aria-required="true" aria-invalid={!!errors.confirmPassword} aria-describedby={errors.confirmPassword ? "reg-confirmPassword-error" : undefined} />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -216,7 +216,7 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2">
               <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
-                I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Community Guidelines</a>
+                I agree to the <a href="#" className="text-primary-text hover:underline">Terms of Service</a> and <a href="#" className="text-primary-text hover:underline">Community Guidelines</a>
               </Label>
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
@@ -229,7 +229,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : "/login"} className="text-primary font-medium hover:underline">Sign in</Link>
+          <Link to={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : "/login"} className="text-primary-text font-medium hover:underline">Sign in</Link>
         </p>
       </div>
     </div>

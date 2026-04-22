@@ -181,12 +181,12 @@ export default function LoginPage() {
             <ValidatedField id="password" label="Password" required error={errors.password} value={password} touched={touched.password}>
               <div className="flex items-center justify-between mb-1.5">
                 <span /> {/* spacer since label is in ValidatedField */}
-                <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                <Link to="/forgot-password" className="text-xs text-primary-text hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => markTouched("password")} className={`pl-10 pr-10 ${bc("password", password)}`} autoComplete="current-password" required aria-required="true" aria-invalid={!!errors.password} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           New member?{" "}
-          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary font-medium hover:underline">Sign up</Link>
+          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary-text font-medium hover:underline">Sign up</Link>
         </p>
       </div>
 

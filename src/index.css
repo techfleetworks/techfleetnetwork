@@ -107,8 +107,13 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 60%;
+    /* Primary brand. Darkened from 60% → 48% lightness so white-on-primary
+       achieves ≥4.5:1 (WCAG 2.1 AA, success criterion 1.4.3). */
+    --primary: 217 91% 48%;
     --primary-foreground: 0 0% 100%;
+    /* Text-only variant of primary used for inline links on light surfaces.
+       Darker (38% L) to clear AAA 7:1 on white background (SC 1.4.6). */
+    --primary-text: 217 91% 38%;
 
     --secondary: 215 20% 93%;
     --secondary-foreground: 222 47% 11%;
@@ -161,6 +166,8 @@ body {
 
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
+    /* On the dark surface (#0a0f1c-ish), 91%/72% lightness primary text gives ≥7:1. */
+    --primary-text: 217 91% 72%;
 
     --secondary: 222 30% 14%;
     --secondary-foreground: 210 20% 96%;
