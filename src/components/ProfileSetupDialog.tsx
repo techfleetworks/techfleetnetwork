@@ -165,7 +165,7 @@ export function ProfileSetupDialog() {
             <div className="space-y-1.5">
               <Label htmlFor="dialog-email">Email {!isOAuth && <span className="text-destructive">*</span>}</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input id="dialog-email" type="email" value={form.email} onChange={(e) => !isOAuth && setForm({ ...form, email: e.target.value })} readOnly={!!isOAuth} disabled={!!isOAuth} className={cn("pl-10", isOAuth && "bg-muted/50")} aria-invalid={!!errors.email} />
               </div>
               {isOAuth && <p className="text-xs text-muted-foreground">Email is managed by your Google account.</p>}
@@ -176,7 +176,7 @@ export function ProfileSetupDialog() {
             <div className="space-y-1.5">
               <Label htmlFor="dialog-firstName">First name <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input id="dialog-firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jane" className="pl-10" required aria-invalid={!!errors.firstName} />
               </div>
               {errors.firstName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.firstName}</p>}
@@ -186,7 +186,7 @@ export function ProfileSetupDialog() {
             <div className="space-y-1.5">
               <Label htmlFor="dialog-lastName">Last name <span className="text-destructive">*</span></Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input id="dialog-lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className="pl-10" required aria-invalid={!!errors.lastName} />
               </div>
               {errors.lastName && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.lastName}</p>}
