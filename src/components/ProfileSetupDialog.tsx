@@ -19,7 +19,7 @@ import { TIMEZONES } from "@/lib/timezones";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
