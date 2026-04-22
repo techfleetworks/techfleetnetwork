@@ -89,19 +89,26 @@ async function runAxe(page) {
 }
 
 async function login(page) {
-  if (!PASSWORD) return false;
-  console.log(`→ Logging in as ${EMAIL}`);
+  if (!PASSWORD) { console.log("✗ TF_AUDIT_PASSWORD not set"); return false; }
+  console.log(`→ Logging in as ${EMAIL} at ${BASE_URL}/login`);
   await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle", timeout: 30000 });
-  // Try common selectors
   try {
-    await page.locator('input[type="email"], input[name="email"]').first().fill(EMAIL);
+    const emailInput = page.locator('input[type="email"], input[name="email"], input[id*="email" i]').first();
+    await emailInput.waitFor({ timeout: 10000 });
+    await emailInput.fill(EMAIL);
     await page.locator('input[type="password"]').first().fill(PASSWORD);
-    await page.locator('button[type="submit"], button:has-text("Sign in"), button:has-text("Log in")').first().click();
-    await page.waitForURL((u) => !/\/(login|register|forgot)/.test(new URL(u).pathname), { timeout: 20000 });
+    await page.locator('button[type="submit"]').first().click();
+    await page.waitForURL((u) => !/\/(login|register|forgot)/.test(new URL(u).pathname), { timeout: 25000 });
     console.log(`✓ Logged in, landed on ${page.url()}`);
+    await page.waitForTimeout(2000);
     return true;
   } catch (e) {
     console.log(`✗ Login failed: ${e.message}`);
+    console.log(`  current url: ${page.url()}`);
+    try {
+      const txt = await page.evaluate(() => document.body.innerText.slice(0, 600));
+      console.log(`  page text: ${txt.replace(/\s+/g, " ")}`);
+    } catch {}
     return false;
   }
 }
