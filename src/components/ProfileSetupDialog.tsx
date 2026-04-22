@@ -199,13 +199,13 @@ export function ProfileSetupDialog() {
                 <PopoverTrigger asChild>
                   <Button id="dialog-country-trigger" variant="outline" role="combobox" aria-expanded={countryOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                    <span className="truncate">{form.country || "Select a country"}</span>
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 pointer-events-none" />
+                    <span className="truncate">{form.country || "Search or select a country..."}</span>
+                    <Globe className="ml-auto h-4 w-4 shrink-0 opacity-60 pointer-events-none" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
                   <Command>
-                    <CommandInput placeholder="Search countries..." />
+                    <CommandInput placeholder="Type a country name to search..." autoFocus />
                     <CommandList className="max-h-[260px]">
                       <CommandEmpty>No country found.</CommandEmpty>
                       <CommandGroup>
@@ -234,13 +234,13 @@ export function ProfileSetupDialog() {
                 <PopoverTrigger asChild>
                   <Button id="dialog-timezone-trigger" variant="outline" role="combobox" aria-expanded={timezoneOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                    <span className="truncate">{form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}</span>
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 pointer-events-none" />
+                    <span className="truncate">{form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Search or select a timezone..."}</span>
+                    <Clock className="ml-auto h-4 w-4 shrink-0 opacity-60 pointer-events-none" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
                   <Command>
-                    <CommandInput placeholder="Search timezones..." />
+                    <CommandInput placeholder="Type a city or region to search (e.g. New York, GMT)..." autoFocus />
                     <CommandList className="max-h-[260px]">
                       <CommandEmpty>No timezone found.</CommandEmpty>
                       <CommandGroup>
