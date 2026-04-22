@@ -98,7 +98,16 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     const dragStateRef = React.useRef<{
       startCoord: number;
       startSize: number;
+      pointerId: number;
+      target: HTMLDivElement;
+      active: boolean;
     } | null>(null);
+
+    // Movement (in px) before we treat the gesture as a drag. Below this
+    // threshold the pointer event passes through normally so that a stray
+    // click on the resize handle still allows Radix's outside-click logic
+    // to dismiss the sheet.
+    const DRAG_THRESHOLD = 4;
 
     const getMaxSize = React.useCallback(() => {
       if (typeof window === "undefined") return Number.POSITIVE_INFINITY;
