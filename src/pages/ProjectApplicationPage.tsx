@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   Loader2, CheckCircle2, Globe, User, ExternalLink,

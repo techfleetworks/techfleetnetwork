@@ -13,6 +13,7 @@ import {
   type GeneralApplication,
 } from "@/services/general-application.service";
 import { toast } from "sonner";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import {
   type AppFormData,
   EMPTY_FORM,
