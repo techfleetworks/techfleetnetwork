@@ -364,8 +364,11 @@ export function ProfileSetupDialog() {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t px-6 py-4 shrink-0">
-          <Button form="profile-setup-form" type="submit" className="w-full" disabled={saving}>
+        <div className="border-t px-6 py-4 shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
+            Skip for now
+          </Button>
+          <Button form="profile-setup-form" type="submit" disabled={saving} className="sm:min-w-[220px]">
             {saving ? "Saving…" : "Complete Profile Setup"}
           </Button>
         </div>
