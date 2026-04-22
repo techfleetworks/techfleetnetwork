@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,11 +39,19 @@ export function PasskeyManagement() {
 
   const handleEnroll = async () => {
     setEnrolling(true);
+    const wasFirstPasskey = passkeys.length === 0;
     try {
       await PasskeyService.enroll(deviceName || `Passkey on ${new Date().toLocaleDateString()}`);
-      toast.success("Passkey enrolled successfully");
       setDeviceName("");
       await refresh();
+      if (wasFirstPasskey && isAdmin) {
+        toast.success("Passkey enrolled — admin access unlocked", {
+          description: "You can now open the admin area without any extra steps.",
+          duration: 6000,
+        });
+      } else {
+        toast.success("Passkey enrolled successfully");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enrollment failed");
     } finally {
