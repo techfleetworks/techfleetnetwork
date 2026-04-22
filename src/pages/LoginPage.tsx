@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,11 +58,15 @@ export default function LoginPage() {
     }
   }, [email, password, touched]);
 
-  // Show toast for admin confirmation redirect
+  // Show toast for admin confirmation redirect (fires at most once per page load)
+  const adminConfirmedHandledRef = useRef(false);
   useEffect(() => {
-    const adminConfirmed = searchParams.get("admin_confirmed");
+    if (adminConfirmedHandledRef.current) return;
+    const params = new URLSearchParams(location.search);
+    const adminConfirmed = params.get("admin_confirmed");
     if (!adminConfirmed) return;
 
+    adminConfirmedHandledRef.current = true;
     queryClient.removeQueries({ queryKey: ["admin-role"] });
 
     if (adminConfirmed === "true") {
@@ -73,10 +77,14 @@ export default function LoginPage() {
       toast.error("Failed to confirm admin role. Please try again or contact support.");
     }
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("admin_confirmed");
-    window.history.replaceState({}, "", url.pathname + url.search);
-  }, [queryClient, searchParams]);
+    // Strip the param from the URL via the navigation API so router state stays in sync
+    params.delete("admin_confirmed");
+    const nextSearch = params.toString();
+    navigate(
+      { pathname: location.pathname, search: nextSearch ? `?${nextSearch}` : "" },
+      { replace: true },
+    );
+  }, [queryClient, location.search, location.pathname, navigate]);
 
   // Store redirect for OAuth flows
   useEffect(() => {
