@@ -133,14 +133,30 @@ async function main() {
     fs.appendFileSync(summaryPath, report);
   }
 
-  // Fail CI if coverage drops below threshold
-  const threshold = 20; // raise over time
-  if (parseFloat(coveragePct) < threshold) {
+  // ---------------------------------------------------------------------------
+  // CI gates (ratchet pattern — raise threshold over time, never lower it)
+  // ---------------------------------------------------------------------------
+  let failed = false;
+
+  // Gate 1: hard-fail on orphaned test_file references (broken catalog data)
+  if (filesMissing.length > 0) {
     console.error(
-      `\n❌ BDD coverage ${coveragePct}% is below ${threshold}% threshold.`
+      `\n❌ ${filesMissing.length} scenario(s) reference test files that do not exist on disk.`
     );
-    process.exit(1);
+    failed = true;
   }
+
+  // Gate 2: coverage threshold ratchet — current real coverage is ~84%.
+  // Set just below to absorb minor churn; raise as new tests land.
+  const COVERAGE_THRESHOLD = 80;
+  if (parseFloat(coveragePct) < COVERAGE_THRESHOLD) {
+    console.error(
+      `\n❌ BDD coverage ${coveragePct}% is below ${COVERAGE_THRESHOLD}% threshold.`
+    );
+    failed = true;
+  }
+
+  if (failed) process.exit(1);
 }
 
 main().catch((err) => {
