@@ -568,7 +568,7 @@ export default function GenericCoursePage({
           className={
             fullscreen
               ? "w-screen h-[100dvh] max-w-none max-h-none rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
-              : "w-[90vw] max-w-[80%] max-h-[85vh] overflow-hidden flex flex-col p-0"
+              : "w-[95vw] max-w-[1400px] sm:max-w-[92vw] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[92vh] overflow-hidden flex flex-col p-0"
           }
           onTouchStart={(e) => {
             if (!fullscreen) return;
