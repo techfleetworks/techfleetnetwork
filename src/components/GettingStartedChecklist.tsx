@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ElementType } from "react";
 import { Link } from "react-router-dom";
 import {
   Check,
@@ -6,7 +6,6 @@ import {
   ChevronsUpDown,
   Lock,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +14,7 @@ export interface ChecklistItem {
   title: string;
   /** Short, friendly subtitle, like "Customize your profile." */
   subtitle: string;
-  icon: LucideIcon;
+  icon: ElementType;
   href: string;
   completed: boolean;
   locked?: boolean;
