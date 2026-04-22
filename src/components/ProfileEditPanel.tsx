@@ -299,13 +299,13 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                     aria-invalid={!!errors.country}
                   >
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    {form.country || "Select a country"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                    {form.country || "Search or select a country..."}
+                    <Search className="ml-auto h-4 w-4 shrink-0 opacity-60" aria-hidden="true" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search countries..." />
+                    <CommandInput placeholder="Type a country name to search..." autoFocus />
                     <CommandList>
                       <CommandEmpty>No country found.</CommandEmpty>
                       <CommandGroup>
@@ -348,13 +348,13 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     {form.timezone
                       ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone
-                      : "Select a timezone"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                      : "Search or select a timezone..."}
+                    <Search className="ml-auto h-4 w-4 shrink-0 opacity-60" aria-hidden="true" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search timezones..." />
+                    <CommandInput placeholder="Type a city or region to search (e.g. New York, GMT)..." autoFocus />
                     <CommandList>
                       <CommandEmpty>No timezone found.</CommandEmpty>
                       <CommandGroup>
