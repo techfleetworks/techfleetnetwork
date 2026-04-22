@@ -107,7 +107,10 @@ async function login(page) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_BIN,
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log(`  [pageerror] ${e.message}`));
