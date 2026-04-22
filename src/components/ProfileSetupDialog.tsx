@@ -11,7 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
-import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { profileSchema, ACTIVITY_OPTIONS, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE } from "@/lib/validators/profile";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
@@ -216,6 +217,8 @@ export function ProfileSetupDialog() {
     }
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
+      showFormErrors(fieldErrors, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
+      scrollToFirstError();
       return;
     }
 
@@ -243,6 +246,8 @@ export function ProfileSetupDialog() {
         if (!errs[field]) errs[field] = err.message;
       });
       setErrors(errs);
+      showFormErrors(errs, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
+      scrollToFirstError();
       return;
     }
 
@@ -261,7 +266,9 @@ export function ProfileSetupDialog() {
       DiscordNotifyService.taskCompleted(displayName, "profile", discordUser, discordId);
       setOpen(false);
     } catch (err: any) {
-      setErrors({ general: err.message });
+      const generalErr = { general: err.message };
+      setErrors(generalErr);
+      showFormErrors(generalErr, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
     } finally {
       setSaving(false);
     }

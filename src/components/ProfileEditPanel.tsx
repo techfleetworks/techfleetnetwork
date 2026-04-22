@@ -11,7 +11,8 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
+import { profileSchema, ACTIVITY_OPTIONS, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE } from "@/lib/validators/profile";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import { EXPERIENCE_AREAS, EDUCATION_OPTIONS } from "@/lib/application-options";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,17 +115,25 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
+      showFormErrors(fieldErrors, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
+      scrollToFirstError();
       return;
     }
 
     // Validate email for non-OAuth users
     if (!isOAuth) {
       if (!form.email.trim()) {
-        setErrors({ email: "Email is required" });
+        const emailErr = { email: "Email is required" };
+        setErrors(emailErr);
+        showFormErrors(emailErr, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
+        scrollToFirstError();
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-        setErrors({ email: "Please enter a valid email" });
+        const emailErr = { email: "Please enter a valid email" };
+        setErrors(emailErr);
+        showFormErrors(emailErr, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
+        scrollToFirstError();
         return;
       }
     }
@@ -139,7 +148,9 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       toast.success("Profile updated successfully");
       onOpenChange(false);
     } catch (err: any) {
-      setErrors({ general: err.message });
+      const generalErr = { general: err.message };
+      setErrors(generalErr);
+      showFormErrors(generalErr, PROFILE_FIELD_LABELS, PROFILE_FIELD_GUIDANCE);
     } finally {
       setSaving(false);
     }

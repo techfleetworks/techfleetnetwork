@@ -3,6 +3,24 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+
+const CLIENT_FIELD_LABELS: Record<string, string> = {
+  name: "Client name",
+  website: "Website",
+  mission: "Mission",
+  project_summary: "Project summary",
+  status: "Status",
+  primary_contact: "Primary contact",
+  logo: "Logo",
+};
+const CLIENT_FIELD_GUIDANCE: Record<string, string> = {
+  name: "Enter the client organization's full name.",
+  website: "Include the full URL starting with https://.",
+  mission: "Describe the client's mission in a few sentences.",
+  project_summary: "Summarize the project scope and goals.",
+  primary_contact: "Add the main point of contact's name.",
+};
 import { z } from "zod";
 import {
   Building2, Plus, Pencil, Trash2, Loader2,
@@ -218,7 +236,10 @@ export function ClientsTab() {
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ClientForm, string>> = {};
       result.error.issues.forEach((i) => { const k = i.path[0] as keyof ClientForm; if (!fieldErrors[k]) fieldErrors[k] = i.message; });
-      setErrors(fieldErrors); return;
+      setErrors(fieldErrors);
+      showFormErrors(fieldErrors as Record<string, string>, CLIENT_FIELD_LABELS, CLIENT_FIELD_GUIDANCE);
+      scrollToFirstError();
+      return;
     }
     setErrors({});
     editingClient ? updateMutation.mutate({ id: editingClient.id, values: result.data }) : createMutation.mutate(result.data);

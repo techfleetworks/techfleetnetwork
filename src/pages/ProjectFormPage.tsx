@@ -5,6 +5,26 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+
+const PROJECT_FIELD_LABELS: Record<string, string> = {
+  name: "Project name",
+  client_id: "Client",
+  status: "Status",
+  start_date: "Start date",
+  end_date: "End date",
+  description: "Description",
+  discord_role_ids: "Discord roles",
+  coordinator_id: "Project coordinator",
+};
+const PROJECT_FIELD_GUIDANCE: Record<string, string> = {
+  name: "Give the project a clear, recognizable title.",
+  client_id: "Pick the client this project belongs to.",
+  start_date: "Choose a date in the future.",
+  end_date: "Must be on or after the start date.",
+  description: "Summarize the project's goals and scope.",
+  discord_role_ids: "Select at least one Discord role for participants.",
+};
 import { z } from "zod";
 import { format } from "date-fns";
 import {
@@ -323,12 +343,8 @@ export default function ProjectFormPage() {
         if (!fieldErrors[k]) fieldErrors[k] = i.message;
       });
       setErrors(fieldErrors);
-      toast.error("Please fix the errors before saving.");
-      // Scroll to first error
-      setTimeout(() => {
-        const firstError = document.querySelector("[data-error='true'], .text-destructive");
-        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+      showFormErrors(fieldErrors as Record<string, string>, PROJECT_FIELD_LABELS, PROJECT_FIELD_GUIDANCE);
+      scrollToFirstError();
       return;
     }
     setErrors({});

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   Loader2, CheckCircle2, Globe, User, ExternalLink,
@@ -373,26 +374,33 @@ export default function ProjectApplicationPage() {
   }, [passion, clientKnowledge, crossFunctional, successContribution]);
 
   /* ── error toast helper ─────────────────────────────────── */
+  // Centralized: same toast + auto-scroll/focus pattern used by every
+  // other form in the app.
+  const PROJECT_APPLICATION_LABELS: Record<string, string> = {
+    team_hats_interest: "Team Hats selection",
+    previous_phase_position: "Previous phase position",
+    previous_phase_learnings: "Previous phase learnings",
+    previous_phase_help_teammates: "How you'll help teammates",
+    prior_engagement_preparation: "Prior engagement preparation",
+    passion_for_project: "Passion for project",
+    client_project_knowledge: "Client & project knowledge",
+    cross_functional_contribution: "Cross-functional contribution",
+    project_success_contribution: "Project success contribution",
+  };
+  const PROJECT_APPLICATION_GUIDANCE: Record<string, string> = {
+    team_hats_interest: "Pick at least one Team Hat from the list.",
+    previous_phase_position: "Describe the role you held in your previous phase.",
+    previous_phase_learnings: "Share at least one specific takeaway.",
+    previous_phase_help_teammates: "Explain how you'll support teammates.",
+    prior_engagement_preparation: "Outline what you've done to prepare.",
+    passion_for_project: "Explain what excites you about the project.",
+    client_project_knowledge: "Show what you know about the client.",
+    cross_functional_contribution: "Describe how you'll work across roles.",
+    project_success_contribution: "Describe how you'll drive project success.",
+  };
   const showValidationErrorToast = useCallback((errs: Record<string, string>) => {
-    const count = Object.keys(errs).length;
-    const fieldNames = Object.values(errs).map((msg, i) => {
-      const key = Object.keys(errs)[i];
-      const labels: Record<string, string> = {
-        team_hats_interest: "Team Hats selection",
-        previous_phase_position: "Previous phase position",
-        previous_phase_learnings: "Previous phase learnings",
-        previous_phase_help_teammates: "How you'll help teammates",
-        prior_engagement_preparation: "Prior engagement preparation",
-        passion_for_project: "Passion for project",
-        client_project_knowledge: "Client & project knowledge",
-        cross_functional_contribution: "Cross-functional contribution",
-        project_success_contribution: "Project success contribution",
-      };
-      return labels[key] ?? key;
-    });
-    toast.error(
-      `${count} required field${count > 1 ? "s" : ""} need${count === 1 ? "s" : ""} attention: ${fieldNames.join(", ")}. Please fill in all required fields to continue.`
-    );
+    showFormErrors(errs, PROJECT_APPLICATION_LABELS, PROJECT_APPLICATION_GUIDANCE);
+    scrollToFirstError();
   }, []);
 
   /* ── navigation ────────────────────────────────────────── */
