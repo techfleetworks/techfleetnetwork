@@ -1,0 +1,73 @@
+name: WCAG 2.2 Accessibility Audit
+
+# Phase 0 / Phase 3 of the accessibility conformance program.
+#
+# - Phase 0: a baseline scan of every route in the app, used to seed
+#   guideline-by-guideline fix work.
+# - Phase 3: re-runs on a schedule + on demand so regressions are caught
+#   continuously. (A blocking PR-gate variant can be wired in later by
+#   gating on a budget delta vs the last successful baseline.)
+#
+# Trigger manually from the Actions tab → "WCAG 2.2 Accessibility Audit"
+# → "Run workflow". Output: an `a11y-report` artifact containing
+# a11y-report/a11y-report.json with full per-route violation detail,
+# plus a console summary in the run logs.
+#
+# Required GitHub Actions repository secrets:
+#   TF_ADMIN_EMAIL     — admin login email (mdenner@techfleet.org)
+#   TF_ADMIN_PASSWORD  — that account's password
+# If either is missing the run still produces a partial baseline by
+# scanning only public routes; authed routes are listed as "skipped".
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays at 06:00 UTC — weekly drift check. Cheap because it only
+    # runs once a week, not per PR.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: axe-core scan (every route)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      # Surfaced to the spec at runtime. Falsy → public-only scan.
+      TF_ADMIN_EMAIL: ${{ secrets.TF_ADMIN_EMAIL }}
+      TF_ADMIN_PASSWORD: ${{ secrets.TF_ADMIN_PASSWORD }}
+    steps:
+      - name: Checkout
+        # actions/checkout@v4.2.2 — pinned SHA per workspace OWASP CI/CD policy
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node
+        # actions/setup-node@v4.1.0 — pinned SHA
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run WCAG audit
+        # Only the a11y spec — keeps this job focused; the broader e2e
+        # suite still runs in `regression.yml`.
+        run: npx playwright test e2e/a11y/wcag-audit.spec.ts --reporter=list
+
+      - name: Upload a11y report
+        if: always()
+        # actions/upload-artifact@v4.4.3 — pinned SHA
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: a11y-report
+          path: a11y-report/
+          retention-days: 90
