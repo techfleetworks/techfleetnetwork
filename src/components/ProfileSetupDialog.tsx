@@ -144,12 +144,12 @@ export function ProfileSetupDialog() {
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
-      <DialogContent className="w-full max-w-full md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden [&>button[class*='close']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="w-full max-w-full md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="text-xl">Welcome to Tech Fleet</DialogTitle>
           <DialogDescription className="mt-1">
-            Complete your profile to get started. All required fields must be filled in.
+            Take a moment to set up your profile so we can personalize your experience. You can also finish this later from your onboarding steps.
           </DialogDescription>
         </DialogHeader>
 
