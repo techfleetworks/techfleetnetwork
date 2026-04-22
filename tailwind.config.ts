@@ -26,6 +26,8 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          /* WCAG-AAA-safe text variant for inline links / link buttons. */
+          text: "hsl(var(--primary-text))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
