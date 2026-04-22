@@ -98,7 +98,16 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     const dragStateRef = React.useRef<{
       startCoord: number;
       startSize: number;
+      pointerId: number;
+      target: HTMLDivElement;
+      active: boolean;
     } | null>(null);
+
+    // Movement (in px) before we treat the gesture as a drag. Below this
+    // threshold the pointer event passes through normally so that a stray
+    // click on the resize handle still allows Radix's outside-click logic
+    // to dismiss the sheet.
+    const DRAG_THRESHOLD = 4;
 
     const getMaxSize = React.useCallback(() => {
       if (typeof window === "undefined") return Number.POSITIVE_INFINITY;
@@ -109,18 +118,19 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     const onPointerDown = React.useCallback(
       (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0) return;
-        event.preventDefault();
         const target = event.currentTarget;
-        target.setPointerCapture(event.pointerId);
         const panel = target.parentElement as HTMLElement | null;
         const currentSize =
           size ?? (panel ? (horizontal ? panel.getBoundingClientRect().width : panel.getBoundingClientRect().height) : minSize);
+        // Record the gesture but DO NOT preventDefault or capture the pointer
+        // yet — that would block outside-click dismissal for plain clicks.
         dragStateRef.current = {
           startCoord: horizontal ? event.clientX : event.clientY,
           startSize: currentSize,
+          pointerId: event.pointerId,
+          target,
+          active: false,
         };
-        document.body.style.userSelect = "none";
-        document.body.style.cursor = horizontal ? "col-resize" : "row-resize";
       },
       [horizontal, minSize, size],
     );
@@ -130,12 +140,23 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         const drag = dragStateRef.current;
         if (!drag) return;
         const coord = horizontal ? event.clientX : event.clientY;
-        // Direction: dragging away from the sheet's anchor edge grows it.
-        // right: handle is on the left edge → moving left (smaller X) grows.
-        // left: handle is on the right edge → moving right (larger X) grows.
-        // top: handle is on the bottom edge → moving down (larger Y) grows.
-        // bottom: handle is on the top edge → moving up (smaller Y) grows.
         const delta = coord - drag.startCoord;
+
+        // Promote to an active drag once the user has moved past the threshold.
+        if (!drag.active) {
+          if (Math.abs(delta) < DRAG_THRESHOLD) return;
+          drag.active = true;
+          event.preventDefault();
+          try {
+            drag.target.setPointerCapture(drag.pointerId);
+          } catch {
+            /* ignore */
+          }
+          document.body.style.userSelect = "none";
+          document.body.style.cursor = horizontal ? "col-resize" : "row-resize";
+        }
+
+        // Direction: dragging away from the sheet's anchor edge grows it.
         const directionalDelta =
           side === "right" || side === "bottom" ? -delta : delta;
         const next = Math.min(getMaxSize(), Math.max(minSize, Math.round(drag.startSize + directionalDelta)));
@@ -148,18 +169,21 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
       (event: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragStateRef.current;
         dragStateRef.current = null;
-        document.body.style.userSelect = "";
-        document.body.style.cursor = "";
-        try {
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        } catch {
-          /* ignore */
-        }
-        if (drag && storageKey && size != null) {
+        if (!drag) return;
+        if (drag.active) {
+          document.body.style.userSelect = "";
+          document.body.style.cursor = "";
           try {
-            window.localStorage.setItem(storageKey, String(size));
+            event.currentTarget.releasePointerCapture(event.pointerId);
           } catch {
-            /* storage may be unavailable; ignore */
+            /* ignore */
+          }
+          if (storageKey && size != null) {
+            try {
+              window.localStorage.setItem(storageKey, String(size));
+            } catch {
+              /* storage may be unavailable; ignore */
+            }
           }
         }
       },
