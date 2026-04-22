@@ -22,6 +22,7 @@ import { BadgesDisplay } from "@/components/BadgesDisplay";
 import { DashboardCustomizer } from "@/components/DashboardCustomizer";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 import { DashboardEmptyState } from "@/components/DashboardEmptyState";
+import { GettingStartedChecklist, type ChecklistItem } from "@/components/GettingStartedChecklist";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -305,6 +306,22 @@ export default function DashboardPage() {
     },
   ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, projectTrainingCompleted, volunteerCompleted, allConnectDiscordDone, allFirstStepsDone, allSecondStepsDone, totalFirstSteps]);
 
+  // Gumroad-style flat checklist derived from the same course progress.
+  const onboardingChecklist: ChecklistItem[] = useMemo(
+    () =>
+      coreCourses.map((c) => ({
+        id: c.id,
+        title: c.title,
+        subtitle: c.description,
+        icon: c.icon,
+        href: c.href,
+        completed: c.totalTasks > 0 && c.completedTasks >= c.totalTasks,
+        locked: c.locked,
+        prerequisiteLabel: c.prerequisiteLabel,
+      })),
+    [coreCourses]
+  );
+
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
   // Hook guarantees arrays — no runtime guards needed
@@ -355,12 +372,10 @@ export default function DashboardPage() {
 
           case "core_courses":
             return isVisible("core_courses") ? (
-              <section key="core_courses" aria-labelledby="core-courses-heading">
-                <h2 id="core-courses-heading" className="text-xl font-semibold text-foreground mb-4">
-                  Onboard to Tech Fleet
-                </h2>
+              <section key="core_courses">
                 {allOnboardingDone ? (
-                  <div className="card-elevated overflow-hidden">
+                  <div className="card-elevated overflow-hidden" aria-labelledby="core-courses-heading">
+                    <h2 id="core-courses-heading" className="sr-only">Onboard to Tech Fleet</h2>
                     <div className="flex flex-col sm:flex-row items-stretch">
                       <div className="sm:w-48 md:w-56 flex-shrink-0 bg-primary/5">
                         <img
@@ -393,11 +408,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {coreCourses.map((course) => (
-                      <CoreCourseCard key={course.id} course={course} />
-                    ))}
-                  </div>
+                  <GettingStartedChecklist
+                    title="Getting started"
+                    items={onboardingChecklist}
+                    storageKey={userId ?? "anon"}
+                  />
                 )}
               </section>
             ) : null;
