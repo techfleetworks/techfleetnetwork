@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock, CloudCheck, CloudUpload, CloudOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -41,9 +41,38 @@ export function ProfileSetupDialog() {
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
 
+  // Auto-save state
+  type AutosaveStatus = "idle" | "pending" | "saving" | "saved" | "error" | "offline";
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlightRef = useRef(false);
+  const pendingRetryRef = useRef(false);
+  const lastSerializedRef = useRef<string>("");
+
   useEffect(() => {
     setOpen(shouldShow);
   }, [shouldShow]);
+
+  // Online/offline awareness so we can pause autosave gracefully
+  useEffect(() => {
+    const handleOnline = () => {
+      if (autosaveStatus === "offline") setAutosaveStatus("idle");
+      // If a save was queued while offline, trigger immediately
+      if (pendingRetryRef.current) {
+        pendingRetryRef.current = false;
+        setAutosaveStatus("pending");
+      }
+    };
+    const handleOffline = () => setAutosaveStatus("offline");
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    if (typeof navigator !== "undefined" && !navigator.onLine) setAutosaveStatus("offline");
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [autosaveStatus]);
 
   useEffect(() => {
     if (!initialized && profile && user) {
