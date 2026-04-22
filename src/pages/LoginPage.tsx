@@ -181,7 +181,7 @@ export default function LoginPage() {
             <ValidatedField id="password" label="Password" required error={errors.password} value={password} touched={touched.password}>
               <div className="flex items-center justify-between mb-1.5">
                 <span /> {/* spacer since label is in ValidatedField */}
-                <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                <Link to="/forgot-password" className="text-xs text-primary-text hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -200,7 +200,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           New member?{" "}
-          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary font-medium hover:underline">Sign up</Link>
+          <Link to={from !== "/dashboard" ? `/register?redirect=${encodeURIComponent(from)}` : "/register"} className="text-primary-text font-medium hover:underline">Sign up</Link>
         </p>
       </div>
 
