@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle, Link as LinkIcon, Bell } from "lucide-react";
+import { Globe, Clock, MessageCircle, Check, ChevronsUpDown, AlertCircle, Link as LinkIcon, Bell, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
