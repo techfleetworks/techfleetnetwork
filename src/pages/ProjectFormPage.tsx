@@ -323,12 +323,8 @@ export default function ProjectFormPage() {
         if (!fieldErrors[k]) fieldErrors[k] = i.message;
       });
       setErrors(fieldErrors);
-      toast.error("Please fix the errors before saving.");
-      // Scroll to first error
-      setTimeout(() => {
-        const firstError = document.querySelector("[data-error='true'], .text-destructive");
-        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+      showFormErrors(fieldErrors as Record<string, string>, PROJECT_FIELD_LABELS, PROJECT_FIELD_GUIDANCE);
+      scrollToFirstError();
       return;
     }
     setErrors({});

@@ -218,7 +218,10 @@ export function ClientsTab() {
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ClientForm, string>> = {};
       result.error.issues.forEach((i) => { const k = i.path[0] as keyof ClientForm; if (!fieldErrors[k]) fieldErrors[k] = i.message; });
-      setErrors(fieldErrors); return;
+      setErrors(fieldErrors);
+      showFormErrors(fieldErrors as Record<string, string>, CLIENT_FIELD_LABELS, CLIENT_FIELD_GUIDANCE);
+      scrollToFirstError();
+      return;
     }
     setErrors({});
     editingClient ? updateMutation.mutate({ id: editingClient.id, values: result.data }) : createMutation.mutate(result.data);

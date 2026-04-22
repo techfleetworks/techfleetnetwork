@@ -227,14 +227,10 @@ export function useGeneralApplication() {
     setErrors(fieldErrors);
 
     if (Object.keys(fieldErrors).length > 0) {
-      const errorCount = Object.keys(fieldErrors).length;
-      toast.error(`Please fix ${errorCount} required ${errorCount === 1 ? "field" : "fields"} before continuing`, {
-        description: Object.values(fieldErrors).join(", "),
-      });
-      requestAnimationFrame(() => {
-        const firstError = formContainerRef.current?.querySelector('[role="alert"]');
-        firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+      // Verbose error toast + auto-scroll/focus to first invalid field.
+      // Centralized so every form in the app behaves the same way.
+      showFormErrors(fieldErrors);
+      scrollToFirstError();
       return false;
     }
     return true;
