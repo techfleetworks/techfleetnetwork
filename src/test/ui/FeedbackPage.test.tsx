@@ -76,10 +76,12 @@ describe("FeedbackPage view routing", () => {
     expect(screen.queryByTestId("admin-feedback-table")).not.toBeInTheDocument();
   });
 
-  it("renders the admin feedback table for admins (BDD 36.5 / FB-1)", () => {
+  it("renders the admin feedback view for admins (BDD 36.5 / FB-1)", () => {
     mockUseAdmin.mockReturnValue({ isAdmin: true, loading: false });
     render(<FeedbackPage />);
-    expect(screen.getByTestId("admin-feedback-table")).toBeInTheDocument();
+    // Admin view shows the "Add Feedback" entry point (FB-1) and never the
+    // member submission card title.
+    expect(screen.getByRole("button", { name: /add feedback/i })).toBeInTheDocument();
     expect(screen.queryByText("Share Your Feedback")).not.toBeInTheDocument();
   });
 });
