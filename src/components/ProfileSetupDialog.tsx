@@ -551,3 +551,69 @@ export function ProfileSetupDialog() {
     </Dialog>
   );
 }
+
+/**
+ * Visible auto-save status — gives users continuous feedback that their
+ * data is being saved (Nielsen heuristic #1: visibility of system status).
+ */
+function AutosaveIndicator({
+  status,
+  lastSavedAt,
+}: {
+  status: "idle" | "pending" | "saving" | "saved" | "error" | "offline";
+  lastSavedAt: Date | null;
+}) {
+  const formatTime = (d: Date) =>
+    d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+  let icon: React.ReactNode = null;
+  let label = "";
+  let tone = "text-muted-foreground";
+
+  switch (status) {
+    case "saving":
+      icon = <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />;
+      label = "Saving…";
+      break;
+    case "pending":
+      icon = <CloudUpload className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Unsaved changes";
+      break;
+    case "saved":
+      icon = <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = lastSavedAt ? `Saved at ${formatTime(lastSavedAt)}` : "All changes saved";
+      tone = "text-emerald-600 dark:text-emerald-400";
+      break;
+    case "error":
+      icon = <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Couldn't save — will retry";
+      tone = "text-destructive";
+      break;
+    case "offline":
+      icon = <CloudOff className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Offline — will save when reconnected";
+      tone = "text-amber-600 dark:text-amber-400";
+      break;
+    case "idle":
+    default:
+      icon = <CloudUpload className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />;
+      label = "Auto-saves as you type";
+      break;
+  }
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap",
+        tone
+      )}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+      <span className="sr-only sm:hidden">{label}</span>
+    </div>
+  );
+}
