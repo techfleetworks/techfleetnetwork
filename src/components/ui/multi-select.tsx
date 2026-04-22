@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { X, Check, ChevronsUpDown } from "lucide-react";
+import { X, Check, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -39,8 +39,8 @@ export function MultiSelect({
   options,
   selected,
   onChange,
-  placeholder = "Select options...",
-  emptyMessage = "No options found.",
+  placeholder = "Search or select options...",
+  emptyMessage = "No matches found.",
   className,
   disabled,
   "aria-label": ariaLabel,
@@ -94,15 +94,15 @@ export function MultiSelect({
           >
             <span className="truncate">
               {selected.length > 0
-                ? `${selected.length} selected`
+                ? `${selected.length} selected — click to search/add more`
                 : placeholder}
             </span>
-            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+            <Search className="ml-auto h-4 w-4 shrink-0 opacity-60" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Search..." />
+            <CommandInput placeholder="Type to search..." autoFocus />
             <CommandList>
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               <CommandGroup>
