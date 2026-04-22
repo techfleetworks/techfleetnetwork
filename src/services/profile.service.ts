@@ -160,6 +160,12 @@ export const ProfileService = {
   async updateFields(userId: string, fields: Record<string, unknown>) {
     // Mass assignment protection: only allow known safe fields
     const ALLOWED_PROFILE_FIELDS = [
+      "first_name",
+      "last_name",
+      "display_name",
+      "country",
+      "timezone",
+      "discord_username",
       "bio",
       "professional_background",
       "professional_goals",
