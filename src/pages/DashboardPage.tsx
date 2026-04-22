@@ -306,6 +306,22 @@ export default function DashboardPage() {
     },
   ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, projectTrainingCompleted, volunteerCompleted, allConnectDiscordDone, allFirstStepsDone, allSecondStepsDone, totalFirstSteps]);
 
+  // Gumroad-style flat checklist derived from the same course progress.
+  const onboardingChecklist: ChecklistItem[] = useMemo(
+    () =>
+      coreCourses.map((c) => ({
+        id: c.id,
+        title: c.title,
+        subtitle: c.description,
+        icon: c.icon,
+        href: c.href,
+        completed: c.totalTasks > 0 && c.completedTasks >= c.totalTasks,
+        locked: c.locked,
+        prerequisiteLabel: c.prerequisiteLabel,
+      })),
+    [coreCourses]
+  );
+
   const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
   // Hook guarantees arrays — no runtime guards needed
