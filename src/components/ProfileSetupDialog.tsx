@@ -145,16 +145,16 @@ export function ProfileSetupDialog() {
 
   return (
     <Dialog open={open} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
-      <DialogContent className="w-full max-w-full md:max-w-[70vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden [&>button[class*='close']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader className="px-6 pt-6 pb-4">
+      <DialogContent className="w-full max-w-full md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] h-[100dvh] md:h-auto md:max-h-[90vh] flex flex-col p-0 gap-0 rounded-none md:rounded-lg overflow-hidden [&>button[class*='close']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle className="text-xl">Welcome to Tech Fleet</DialogTitle>
           <DialogDescription className="mt-1">
             Complete your profile to get started. All required fields must be filled in.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 px-6 pb-6">
-          <form id="profile-setup-form" onSubmit={handleComplete} className="space-y-6" noValidate>
+        <ScrollArea className="flex-1 min-h-0 px-6 overflow-y-auto">
+          <form id="profile-setup-form" onSubmit={handleComplete} className="space-y-6 pb-6" noValidate>
             {errors.general && (
               <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
                 {errors.general}
