@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   User, Globe, MessageCircle, Check, ChevronsUpDown,
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
-  Link2, RefreshCw,
+  Link2, RefreshCw, Search,
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
