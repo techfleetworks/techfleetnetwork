@@ -4,7 +4,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
-import { ShieldAlert } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -44,14 +44,21 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4 rounded-lg border bg-card p-6">
-          <ShieldAlert className="h-10 w-10 text-destructive mx-auto" aria-hidden="true" />
-          <h1 className="text-xl font-semibold">Passkey required for admin access</h1>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <ShieldCheck className="h-6 w-6 text-primary" aria-hidden="true" />
+          </div>
+          <h1 className="text-xl font-semibold">One-time admin security setup</h1>
           <p className="text-sm text-muted-foreground">
-            For security, all admin accounts must enroll a passkey (Face ID, Touch ID, Windows Hello, or hardware key) before accessing the admin area.
+            You're signed in as an admin — there's no login problem. Before you can open
+            the admin area, please add a passkey (Face ID, Touch ID, Windows Hello, or a
+            hardware key). It takes about 30 seconds and you only do it once per device.
           </p>
           <Button asChild>
-            <Link to="/profile/edit?tab=account">Enroll a passkey</Link>
+            <Link to="/profile/edit?tab=account">Set up my passkey</Link>
           </Button>
+          <p className="text-xs text-muted-foreground">
+            You can keep using the rest of Tech Fleet Network normally in the meantime.
+          </p>
         </div>
       </div>
     );

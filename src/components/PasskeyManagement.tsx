@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,11 +39,19 @@ export function PasskeyManagement() {
 
   const handleEnroll = async () => {
     setEnrolling(true);
+    const wasFirstPasskey = passkeys.length === 0;
     try {
       await PasskeyService.enroll(deviceName || `Passkey on ${new Date().toLocaleDateString()}`);
-      toast.success("Passkey enrolled successfully");
       setDeviceName("");
       await refresh();
+      if (wasFirstPasskey && isAdmin) {
+        toast.success("Passkey enrolled — admin access unlocked", {
+          description: "You can now open the admin area without any extra steps.",
+          duration: 6000,
+        });
+      } else {
+        toast.success("Passkey enrolled successfully");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enrollment failed");
     } finally {
@@ -90,7 +99,21 @@ export function PasskeyManagement() {
       <CardContent className="space-y-4">
         {adminRequiresPasskey && (
           <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-            <strong>Action required:</strong> Enroll a passkey to retain access to admin pages.
+            <strong>Action required:</strong> Add a passkey below to unlock the admin
+            area. This is a one-time setup — once it's done you'll have full admin
+            access without any further steps.
+          </div>
+        )}
+
+        {isAdmin && !loading && passkeys.length > 0 && (
+          <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-foreground">
+              <ShieldCheck className="inline h-4 w-4 text-primary mr-1.5 -mt-0.5" aria-hidden="true" />
+              Admin security setup is complete.
+            </span>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/admin/users">Open admin area</Link>
+            </Button>
           </div>
         )}
 
