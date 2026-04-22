@@ -75,3 +75,40 @@ export const profileSchema = z.object({
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
+
+/**
+ * Human labels + resolution guidance for every profile field. Shared by
+ * ProfileSetupDialog, ProfileSetupPage, ProfileEditPanel, EditProfilePage
+ * so error toasts read identically wherever the schema is used.
+ */
+export const PROFILE_FIELD_LABELS: Record<string, string> = {
+  firstName: "First name",
+  lastName: "Last name",
+  email: "Email",
+  country: "Country",
+  timezone: "Timezone",
+  discordUsername: "Discord username",
+  interests: "Activity interests",
+  portfolio_url: "Portfolio URL",
+  linkedin_url: "LinkedIn URL",
+  scheduling_url: "Scheduling link",
+  experience_areas: "Experience areas",
+  professional_goals: "Professional goals",
+  education_background: "Education background",
+  bio: "Bio",
+  general: "Save",
+};
+
+export const PROFILE_FIELD_GUIDANCE: Record<string, string> = {
+  firstName: "Type your given name (1–100 characters).",
+  lastName: "Type your family name (1–100 characters).",
+  email: "Use the format name@example.com.",
+  country: "Open the picker and start typing to search.",
+  timezone: "Open the picker and start typing your city or UTC offset.",
+  discordUsername: "Letters, numbers, dots, and underscores only.",
+  portfolio_url: "Include the full address starting with http:// or https://.",
+  linkedin_url: "Include the full address starting with http:// or https://.",
+  scheduling_url: "Include the full address starting with http:// or https://.",
+  general: "Try again, or refresh the page if the problem persists.",
+};
+
