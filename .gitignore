@@ -12,6 +12,21 @@ dist
 dist-ssr
 *.local
 
+# Environment variables — never commit secrets.
+# Lovable auto-generates a local .env with publishable keys only, but
+# ignoring the whole family prevents accidental commits of private keys,
+# service-role tokens, or per-developer overrides.
+.env
+.env.*
+!.env.example
+
+# Test / audit output
+a11y-report/
+playwright-report/
+test-results/
+coverage/
+sbom.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
