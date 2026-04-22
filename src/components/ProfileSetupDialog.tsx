@@ -281,10 +281,15 @@ export function ProfileSetupDialog() {
         )}
       >
         <DialogHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 shrink-0 border-b">
-          <DialogTitle className="text-lg sm:text-xl">Welcome to Tech Fleet</DialogTitle>
-          <DialogDescription className="mt-1 text-sm">
-            Take a moment to set up your profile so we can personalize your experience. You can also finish this later from your onboarding steps.
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="text-lg sm:text-xl">Welcome to Tech Fleet</DialogTitle>
+              <DialogDescription className="mt-1 text-sm">
+                Take a moment to set up your profile so we can personalize your experience. You can also finish this later from your onboarding steps.
+              </DialogDescription>
+            </div>
+            <AutosaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} />
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
