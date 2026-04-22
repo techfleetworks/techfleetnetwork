@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -41,9 +41,38 @@ export function ProfileSetupDialog() {
   const [countryOpen, setCountryOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
 
+  // Auto-save state
+  type AutosaveStatus = "idle" | "pending" | "saving" | "saved" | "error" | "offline";
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlightRef = useRef(false);
+  const pendingRetryRef = useRef(false);
+  const lastSerializedRef = useRef<string>("");
+
   useEffect(() => {
     setOpen(shouldShow);
   }, [shouldShow]);
+
+  // Online/offline awareness so we can pause autosave gracefully
+  useEffect(() => {
+    const handleOnline = () => {
+      if (autosaveStatus === "offline") setAutosaveStatus("idle");
+      // If a save was queued while offline, trigger immediately
+      if (pendingRetryRef.current) {
+        pendingRetryRef.current = false;
+        setAutosaveStatus("pending");
+      }
+    };
+    const handleOffline = () => setAutosaveStatus("offline");
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    if (typeof navigator !== "undefined" && !navigator.onLine) setAutosaveStatus("offline");
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [autosaveStatus]);
 
   useEffect(() => {
     if (!initialized && profile && user) {
@@ -68,7 +97,104 @@ export function ProfileSetupDialog() {
     }
   }, [profile, user, initialized]);
 
-  // Profile setup is mandatory — no skip allowed
+  // ---------------- Auto-save ----------------
+  // Snapshot the form state into the DB columns, debounced. Never sets
+  // profile_completed (that only happens on explicit "Complete" submit).
+  // Uses ProfileService.updateFields which is allowlist-protected.
+  const performAutosave = useCallback(async () => {
+    if (!user) return;
+    if (saveInFlightRef.current) {
+      // Re-trigger after current save finishes
+      pendingRetryRef.current = true;
+      return;
+    }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setAutosaveStatus("offline");
+      pendingRetryRef.current = true;
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      first_name: form.firstName,
+      last_name: form.lastName,
+      display_name: `${form.firstName} ${form.lastName}`.trim(),
+      country: form.country,
+      timezone: form.timezone,
+      discord_username: form.discordUsername || "",
+      interests: form.interests || [],
+      portfolio_url: form.portfolio_url || "",
+      linkedin_url: form.linkedin_url || "",
+      scheduling_url: form.scheduling_url || "",
+      experience_areas: form.experience_areas || [],
+      professional_goals: form.professional_goals || "",
+      notify_training_opportunities: !!form.notify_training_opportunities,
+      notify_announcements: !!form.notify_announcements,
+      education_background: form.education_background || [],
+    };
+
+    const serialized = JSON.stringify(payload);
+    if (serialized === lastSerializedRef.current) {
+      // Nothing actually changed since last successful save — skip the round-trip
+      setAutosaveStatus((prev) => (prev === "pending" ? "saved" : prev));
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    setAutosaveStatus("saving");
+    try {
+      await ProfileService.updateFields(user.id, payload);
+      lastSerializedRef.current = serialized;
+      setLastSavedAt(new Date());
+      setAutosaveStatus("saved");
+    } catch (err) {
+      setAutosaveStatus("error");
+      // Auto-retry once after a short delay
+      pendingRetryRef.current = true;
+    } finally {
+      saveInFlightRef.current = false;
+      // If user kept typing during the save, kick off another debounce
+      if (pendingRetryRef.current) {
+        pendingRetryRef.current = false;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(performAutosave, 1500);
+      }
+    }
+  }, [user, form]);
+
+  // Debounced trigger: every form change schedules a save 1.2s later.
+  useEffect(() => {
+    if (!initialized || !user || !open) return;
+
+    setAutosaveStatus((prev) => (prev === "offline" ? "offline" : "pending"));
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      performAutosave();
+    }, 1200);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [form, initialized, user, open, performAutosave]);
+
+  // Flush a pending save when the user closes the dialog or navigates away.
+  useEffect(() => {
+    const flush = () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+        // Fire-and-forget; we can't await in beforeunload reliably.
+        performAutosave();
+      }
+    };
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flush();
+    });
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, [performAutosave]);
+  // -------------------------------------------
 
   const toggleInterest = (interest: string) => {
     setForm((prev) => ({
@@ -155,10 +281,15 @@ export function ProfileSetupDialog() {
         )}
       >
         <DialogHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3 sm:pb-4 shrink-0 border-b">
-          <DialogTitle className="text-lg sm:text-xl">Welcome to Tech Fleet</DialogTitle>
-          <DialogDescription className="mt-1 text-sm">
-            Take a moment to set up your profile so we can personalize your experience. You can also finish this later from your onboarding steps.
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="text-lg sm:text-xl">Welcome to Tech Fleet</DialogTitle>
+              <DialogDescription className="mt-1 text-sm">
+                Take a moment to set up your profile so we can personalize your experience. You can also finish this later from your onboarding steps.
+              </DialogDescription>
+            </div>
+            <AutosaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} />
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
@@ -418,5 +549,71 @@ export function ProfileSetupDialog() {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Visible auto-save status — gives users continuous feedback that their
+ * data is being saved (Nielsen heuristic #1: visibility of system status).
+ */
+function AutosaveIndicator({
+  status,
+  lastSavedAt,
+}: {
+  status: "idle" | "pending" | "saving" | "saved" | "error" | "offline";
+  lastSavedAt: Date | null;
+}) {
+  const formatTime = (d: Date) =>
+    d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+  let icon: React.ReactNode = null;
+  let label = "";
+  let tone = "text-muted-foreground";
+
+  switch (status) {
+    case "saving":
+      icon = <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />;
+      label = "Saving…";
+      break;
+    case "pending":
+      icon = <CloudUpload className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Unsaved changes";
+      break;
+    case "saved":
+      icon = <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = lastSavedAt ? `Saved at ${formatTime(lastSavedAt)}` : "All changes saved";
+      tone = "text-emerald-600 dark:text-emerald-400";
+      break;
+    case "error":
+      icon = <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Couldn't save — will retry";
+      tone = "text-destructive";
+      break;
+    case "offline":
+      icon = <CloudOff className="h-3.5 w-3.5" aria-hidden="true" />;
+      label = "Offline — will save when reconnected";
+      tone = "text-amber-600 dark:text-amber-400";
+      break;
+    case "idle":
+    default:
+      icon = <CloudUpload className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />;
+      label = "Auto-saves as you type";
+      break;
+  }
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className={cn(
+        "shrink-0 inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap",
+        tone
+      )}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+      <span className="sr-only sm:hidden">{label}</span>
+    </div>
   );
 }
