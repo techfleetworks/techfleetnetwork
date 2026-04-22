@@ -533,7 +533,7 @@ export function ProfileSetupDialog() {
               </div>
             </section>
           </form>
-        </ScrollArea>
+        </div>
 
         {/* Sticky footer — safe-area aware on mobile */}
         <div
