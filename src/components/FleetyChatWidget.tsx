@@ -346,16 +346,27 @@ export function FleetyChatWidget() {
             aria-live="polite"
           >
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center py-8">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => inputRef.current?.focus()}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.focus(); } }}
+                className="flex flex-col items-center justify-center h-full text-center py-8 rounded-lg hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors cursor-text"
+                aria-label="Focus message input to ask Fleety a question"
+              >
                 <img src={fleetyIcon} alt="" className="h-16 w-16 opacity-40 mb-4" width={64} height={64} aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   Ask me anything about Tech Fleet!
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Tap a suggestion below or type your own question.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center" onClick={(e) => e.stopPropagation()}>
                   {["What is Tech Fleet?", "How do I get started?", "What workshops are available?"].map((q) => (
                     <button
                       key={q}
-                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setInput(q); inputRef.current?.focus(); }}
                       className="text-xs px-3 py-1.5 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors"
                     >
                       {q}
