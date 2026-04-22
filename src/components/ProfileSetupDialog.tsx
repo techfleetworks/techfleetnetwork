@@ -194,23 +194,27 @@ export function ProfileSetupDialog() {
 
             {/* Country */}
             <div className="space-y-1.5">
-              <Label>Country <span className="text-destructive">*</span></Label>
-              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+              <Label htmlFor="dialog-country-trigger">Country <span className="text-destructive">*</span></Label>
+              <Popover open={countryOpen} onOpenChange={setCountryOpen} modal>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={countryOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    {form.country || "Select a country"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  <Button id="dialog-country-trigger" variant="outline" role="combobox" aria-expanded={countryOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                    <span className="truncate">{form.country || "Select a country"}</span>
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 pointer-events-none" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
                   <Command>
                     <CommandInput placeholder="Search countries..." />
-                    <CommandList>
+                    <CommandList className="max-h-[260px]">
                       <CommandEmpty>No country found.</CommandEmpty>
                       <CommandGroup>
                         {COUNTRIES.map((c) => (
-                          <CommandItem key={c.code} value={c.name} onSelect={() => { setForm({ ...form, country: c.name }); setCountryOpen(false); }}>
+                          <CommandItem
+                            key={c.code}
+                            value={c.name}
+                            onSelect={() => { setForm((prev) => ({ ...prev, country: c.name })); setCountryOpen(false); }}
+                          >
                             <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
                             {c.name}
                           </CommandItem>
@@ -225,23 +229,27 @@ export function ProfileSetupDialog() {
 
             {/* Timezone */}
             <div className="space-y-1.5">
-              <Label>Timezone <span className="text-destructive">*</span></Label>
-              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+              <Label htmlFor="dialog-timezone-trigger">Timezone <span className="text-destructive">*</span></Label>
+              <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen} modal>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}
-                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                  <Button id="dialog-timezone-trigger" variant="outline" role="combobox" aria-expanded={timezoneOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                    <span className="truncate">{form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Select a timezone"}</span>
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50 pointer-events-none" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
                   <Command>
                     <CommandInput placeholder="Search timezones..." />
-                    <CommandList>
+                    <CommandList className="max-h-[260px]">
                       <CommandEmpty>No timezone found.</CommandEmpty>
                       <CommandGroup>
                         {TIMEZONES.map((tz) => (
-                          <CommandItem key={tz.value} value={tz.label} onSelect={() => { setForm({ ...form, timezone: tz.value }); setTimezoneOpen(false); }}>
+                          <CommandItem
+                            key={tz.value}
+                            value={tz.label}
+                            onSelect={() => { setForm((prev) => ({ ...prev, timezone: tz.value })); setTimezoneOpen(false); }}
+                          >
                             <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
                             {tz.label}
                           </CommandItem>
