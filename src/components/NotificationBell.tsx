@@ -148,11 +148,15 @@ export function NotificationBell() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-96 p-0" sideOffset={8}>
-          <div className="px-4 py-3 border-b flex items-center justify-between">
+        <PopoverContent
+          align="end"
+          className="w-[min(24rem,calc(100vw-1.5rem))] p-0"
+          sideOffset={8}
+        >
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <h3 className="font-semibold text-sm">Notifications</h3>
             {totalUnread > 0 && (
-              <span className="text-xs text-muted-foreground">
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {totalUnread} unread
               </span>
             )}
@@ -169,10 +173,10 @@ export function NotificationBell() {
                   <button
                     key={`${item.kind}-${item.id}`}
                     onClick={() => handleItemClick(item)}
-                    className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    className="w-full min-w-0 text-left px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
                         {item.kind === "alert" && item.notificationType === "project_opening" && (
                           <Rocket className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Project opening" />
                         )}
@@ -185,11 +189,11 @@ export function NotificationBell() {
                         {item.kind === "announcement" && !item.videoUrl && !item.audioUrl && (
                           <Megaphone className="h-3.5 w-3.5 text-primary shrink-0" aria-label="Announcement" />
                         )}
-                        <h4 className={`text-sm font-medium line-clamp-1 ${item.read ? "text-muted-foreground" : "text-foreground"}`}>
+                        <h4 className={`min-w-0 text-sm font-medium line-clamp-1 ${item.read ? "text-muted-foreground" : "text-foreground"}`}>
                           {item.title}
                         </h4>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         {!item.read && (
                           <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-label="Unread" />
                         )}
@@ -198,7 +202,7 @@ export function NotificationBell() {
                         </span>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    <p className="mt-0.5 pr-1 text-xs text-muted-foreground line-clamp-2 break-words">
                       {stripHtml(item.bodyHtml).slice(0, 120)}
                     </p>
                     {item.kind === "alert" && item.linkUrl && (
@@ -212,12 +216,12 @@ export function NotificationBell() {
             )}
           </ScrollArea>
 
-          <div className="border-t px-4 py-2 flex items-center gap-2">
+          <div className="flex items-center gap-2 border-t px-4 py-2 max-[420px]:flex-col">
             {totalUnread > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 text-xs gap-1.5"
+                className="flex-1 text-xs gap-1.5 max-[420px]:w-full"
                 onClick={handleMarkAllRead}
                 disabled={markAllRead.isPending}
               >
@@ -228,7 +232,7 @@ export function NotificationBell() {
             <Button
               variant="ghost"
               size="sm"
-              className="flex-1 text-xs"
+                className="flex-1 text-xs max-[420px]:w-full"
               onClick={() => {
                 setOpen(false);
                 navigate("/profile/notifications");
