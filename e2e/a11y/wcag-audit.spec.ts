@@ -105,7 +105,15 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       await expect(passwordInput).toBeVisible({ timeout: 15_000 });
       await passwordInput.fill(adminPassword);
 
-      await page.getByRole("button", { name: /sign in|log in|connect/i }).click();
+      // Strict-mode-safe: the credentials form's submit button. Avoid the
+      // permissive name regex — it also matches "Sign in with Google" and
+      // the "Connect" provider button on the login page.
+      const submitButton = page
+        .locator('form button[type="submit"]')
+        .filter({ hasText: /sign in|log in/i })
+        .first();
+      await expect(submitButton).toBeVisible({ timeout: 10_000 });
+      await submitButton.click();
       // Successful login lands somewhere outside the auth shell.
       await page.waitForURL((url) => !/\/(login|register|forgot-password)/.test(url.pathname), {
         timeout: 20_000,
