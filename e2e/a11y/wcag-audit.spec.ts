@@ -273,6 +273,3 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
     /* eslint-enable no-console */
   });
 });
-
-// Suppress unused-import warning without changing runtime behavior.
-void chromium;
