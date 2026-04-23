@@ -34,7 +34,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -406,7 +405,7 @@ export default function ThirdStepsPage() {
         open={!!selectedLesson}
         onOpenChange={(open) => !open && setSelectedLesson(null)}
       >
-        <SheetContent resizeKey="third-steps-lesson" className="w-full sm:max-w-xl overflow-hidden flex flex-col">
+        <SheetContent resizeKey="third-steps-lesson" className="w-full sm:max-w-xl min-h-0 overflow-hidden flex flex-col">
           <SheetHeader className="pb-4 border-b border-border">
             {selectedLesson && (
               <p className="text-xs text-muted-foreground">
@@ -425,7 +424,10 @@ export default function ThirdStepsPage() {
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 pr-2 -mr-2">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-2 -mr-2"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <div className="space-y-4 py-4">
               {/* Video embed */}
               {selectedLesson?.youtubeId && (
@@ -480,7 +482,7 @@ export default function ThirdStepsPage() {
                 </a>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Sticky footer: Mark complete + Back/Next */}
           {selectedLesson &&
