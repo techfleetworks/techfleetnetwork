@@ -1,74 +1,59 @@
 
 
-# Loading Detailed Workshop PDFs into Fleety's Knowledge Base
+# Security Audit in Response to Reported Lovable Vulnerability Claims
 
-You have detailed PDFs for every workshop template. Today Fleety only knows the short CSV row per workshop (name, category, one-line description, figma link, etc.), which is why answers feel shallow. We need to get the full nuance from those PDFs into the `knowledge_base` table that Fleety reads on every question.
+You shared a post claiming a mass Lovable data-leak via Broken Object Level Authorization (BOLA). I cannot verify the post's claims, and several details in it don't check out. Rather than acting on unverified information, I'll perform a concrete audit of *your* project against every specific risk the post lists, then give you a clear, evidence-based answer plus any real fixes that are warranted.
 
-## Best way to send me the content
+## What I will check
 
-Send me the **PDFs themselves** as uploads in chat (you can attach up to 10 files per message, 20MB each). I have a document parser that extracts text, tables, and embedded images from PDFs and PPTX files with high fidelity — including headings, bullet lists, and step-by-step instructions. That's much better than you copy-pasting into Word, because:
+### 1. Service role key exposure
+- Search the entire client codebase (`src/`, `public/`, `index.html`, `.env*`) for `SUPABASE_SERVICE_ROLE_KEY`, `service_role`, and any hardcoded JWT-shaped secrets.
+- Confirm every edge function reads the service role key from `Deno.env.get(...)` and never echoes it in responses or logs.
+- Confirm `src/integrations/supabase/client.ts` uses only the publishable (anon) key — which is designed to be public and protected by RLS.
 
-- I keep the structure (sections, steps, sub-steps) instead of a flat blob.
-- I can OCR any embedded screenshots of the Figma template.
-- One workshop = one knowledge base entry, cleanly named.
+### 2. Hardcoded third-party credentials
+- Grep the codebase for common credential patterns: `sk_live`, `sk_test`, `Bearer `, `api_key`, `apiKey`, `SECRET`, `TOKEN`, `password`, plus provider-specific prefixes (Stripe, SendGrid, OpenAI, Resend, Discord, Airtable).
+- Flag anything that should be a secret and isn't.
 
-If a workshop has a companion **Word doc, Notion export, or Google Doc PDF** with extra facilitator notes, send those alongside the workshop PDF and I'll merge them into the same entry.
+### 3. RLS coverage on every table
+- Run the Supabase linter and pull `pg_policies` to list every table, whether RLS is enabled, and which policies exist.
+- Specifically inspect tables holding PII or admin data: `profiles`, `user_roles`, `admin_promotions`, `audit_log`, `notifications`, `feedback`, `general_applications`, `project_applications`, `clients`, `projects`, `passkey_*`, `email_*`.
+- Verify each policy uses `auth.uid()` or `has_role(auth.uid(), 'admin')` — not client-supplied input.
 
-**Batching:** Send them in groups of ~8 PDFs per message. If you have 30+ workshops, we'll do it across a few messages. You don't need to rename the files — I'll match them to existing workshop names.
+### 4. Edge function authorization
+- Walk every function in `supabase/functions/` and confirm: JWT validation in code, role check via `user_roles` for admin-only functions, no SQL string interpolation, no reflected secrets.
+- Special focus on the recently added `ingest-workshop-docs`, the passkey functions, and any function that touches PII.
 
-## What I'll build (once you approve and start sending PDFs)
+### 5. Anomalous database access (last 48 days)
+- Query Supabase logs for unusual `SELECT` patterns on `profiles`, `user_roles`, `audit_log`, `feedback`, `general_applications`.
+- Look for spikes in read volume, queries from unexpected IPs, or `service_role` usage from outside our edge functions.
+- Check `audit_log` for `pii_access`, `role_granted`, and `session_revoked` events that don't have a known actor.
 
-### 1. Workshop document ingest pipeline
-- New admin-only edge function `ingest-workshop-docs` that accepts parsed workshop content (title + structured markdown) and upserts into `knowledge_base` keyed by `workshop://<slug>`.
-- Each entry will follow a consistent template so Fleety can pattern-match:
-  ```text
-  # <Workshop Name>
-  **Category:** ...
-  **Led by:** ...
-  **When:** Before/During/After ...
-  ## Goals
-  ## Scope
-  ## Who's Involved
-  ## Step-by-Step Facilitation Guide
-    ### Step 1: ...
-    ### Step 2: ...
-  ## Deliverables Produced
-  ## Skills Used
-  ## Tips & Common Pitfalls
-  ## Figma Template
-  ## Related Milestones
-  ```
-- Preserves the existing `Workshop Preview Image` markdown image tag so Fleety still shows the preview.
+### 6. Publish & visibility settings
+- Read current publish visibility for this project and explain what "public" actually exposes (the rendered site only — not source, not DB, not chat).
+- Confirm whether anything needs to change.
 
-### 2. Admin UI to upload PDFs
-- Add a **"Workshop Documents"** section to `/admin/ingest` (`AdminIngestPage.tsx`) with a drag-and-drop file picker.
-- For each PDF: shows parsing progress, the extracted title (editable), and a preview of the structured markdown before upsert.
-- Per-file status (pending → parsing → parsed → upserted / error), plus a "Re-ingest all" button for when you update a template.
+### 7. Past chat / secret hygiene
+- Pull the list of configured runtime secrets so you can see exactly what is stored.
+- Identify any secret that was ever pasted into chat (I cannot scan all chat history, but I can flag anything that looks like a secret in the recent code/secrets tooling).
 
-### 3. Sharper Fleety responses
-Tweaks to `techfleet-chat`'s system prompt so that when a user asks how to run a workshop, Fleety:
-- Pulls the **full structured workshop entry** (not just the one-line CSV summary) when one exists.
-- Walks through the step-by-step facilitation guide in order, not as a bulleted summary.
-- Cites the workshop entry plus any web tips separately, as it does today.
-- Keeps the existing 5-minute KB cache so cost doesn't increase.
+## What I will deliver
 
-### 4. Updates to memory
-- Add `mem://features/chatbot/workshop-knowledge` describing the workshop entry schema, slug convention (`workshop://<slug>`), and the "upload PDFs in /admin/ingest" workflow so future changes stay consistent.
+A single written report with:
+- **Verdict per claim** in the post: confirmed / not applicable / needs action — with the file, table, or log evidence behind each.
+- **Actionable fix list**, ordered by real risk (not panic order). For example: if any function is missing JWT validation, I'll fix it. If a third-party token is hardcoded, I'll move it to secrets and rotate.
+- **Rotation guidance scoped to what's actually exposed** — not a blanket "rotate everything." Blanket rotation of the service role key without cause will break your edge functions, queues, and triggers.
+- **A clear statement** of what the post got wrong, so you can respond to it confidently if it's circulating in your network.
 
-## Technical details
+## What I will NOT do without your sign-off
 
-- **Parsing:** Done by my `document--parse_document` tool at upload time inside the edge function flow — the client uploads the raw PDF bytes (base64 or multipart), the function calls a parsing helper, transforms the structured output into the markdown template above, then upserts.
-- **Storage:** Reuses the existing `knowledge_base` table (no schema change). Existing CSV-derived workshop rows at `csv://workshops-(detailed)/<slug>` will be **kept** but the new richer `workshop://<slug>` entries take precedence in Fleety's answers because they're longer and more specific.
-- **Auth:** Same admin-only JWT + `user_roles` check as `ingest-csv-knowledge`.
-- **Size:** A typical detailed workshop PDF parses to 3–8 KB of markdown — well within KB and AI gateway limits even with 30+ workshops loaded.
+- Rotate `LOVABLE_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, or any third-party key.
+- Flip the project to private (this affects how teammates and Discord OAuth callbacks work).
+- Tear down any edge function or table.
 
-## What you do next
-
-1. Approve this plan.
-2. In your next message, attach the first batch of workshop PDFs (up to 10). Once the pipeline is built, you'll also be able to upload them yourself from `/admin/ingest`.
+These are reversible only with effort, and several would actively break your live notification queue, Discord bot, and admin tooling. I want evidence before we touch them.
 
 ## Out of scope
 
-- Auto-syncing from a live Notion/Google Drive folder (possible follow-up if you'd rather maintain workshops there as the source of truth).
-- A facilitator-facing "live workshop runner" UI — Fleety will guide via chat for now.
+- Investigating Lovable-platform-wide claims. I can only audit *your* project. If you want, after the audit I can also point you at Lovable's official security/status page so you can verify platform-level claims directly rather than via a social post.
 
