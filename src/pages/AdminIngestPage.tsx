@@ -66,48 +66,61 @@ export default function AdminIngestPage() {
   };
 
   return (
-    <div className="container-app py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-2">Knowledge Base Ingestion</h1>
-      <p className="text-muted-foreground mb-6">
-        Load team practices CSV data into the Fleety knowledge base.
-      </p>
+    <div className="container-app py-8 max-w-2xl space-y-10">
+      <header>
+        <h1 className="text-2xl font-bold mb-2">Knowledge Base Ingestion</h1>
+        <p className="text-muted-foreground">
+          Load Tech Fleet reference content into Fleety's knowledge base.
+        </p>
+      </header>
 
-      <Button onClick={ingestAll} disabled={running} className="mb-6">
-        {running ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Ingesting...
-          </>
-        ) : (
-          "Ingest All Datasets"
-        )}
-      </Button>
+      <WorkshopDocsUploader />
 
-      <div className="space-y-2">
-        {CSV_DATASETS.map((ds) => {
-          const st = statuses[ds.name];
-          return (
-            <div key={ds.name} className="flex items-center gap-3 p-3 border rounded-lg">
-              {st.status === "idle" && <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />}
-              {st.status === "loading" && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
-              {st.status === "done" && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-              {st.status === "error" && <AlertCircle className="h-5 w-5 text-destructive" />}
-              <div className="flex-1">
-                <p className="text-sm font-medium">{ds.name}</p>
-                {st.detail && <p className="text-xs text-muted-foreground">{st.detail}</p>}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-bold">CSV Reference Data</h2>
+          <p className="text-sm text-muted-foreground">
+            Load team practices CSV data into the Fleety knowledge base.
+          </p>
+        </div>
+
+        <Button onClick={ingestAll} disabled={running}>
+          {running ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+              Ingesting...
+            </>
+          ) : (
+            "Ingest All Datasets"
+          )}
+        </Button>
+
+        <div className="space-y-2">
+          {CSV_DATASETS.map((ds) => {
+            const st = statuses[ds.name];
+            return (
+              <div key={ds.name} className="flex items-center gap-3 p-3 border rounded-lg">
+                {st.status === "idle" && <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" aria-hidden="true" />}
+                {st.status === "loading" && <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />}
+                {st.status === "done" && <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />}
+                {st.status === "error" && <AlertCircle className="h-5 w-5 text-destructive" aria-hidden="true" />}
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{ds.name}</p>
+                  {st.detail && <p className="text-xs text-muted-foreground">{st.detail}</p>}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => ingestOne(ds.file, ds.name)}
+                  disabled={running || st.status === "loading"}
+                >
+                  Ingest
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => ingestOne(ds.file, ds.name)}
-                disabled={running || st.status === "loading"}
-              >
-                Ingest
-              </Button>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
