@@ -1,120 +1,60 @@
 
 
-# Pre-Launch Hardening, Testing, and Refactoring Plan
+# Client Logo Upload + Display on Cards
 
-## Current State Assessment
+Currently `clients.logo_url` exists but isn't user-uploadable, and the four card surfaces (Clients, Projects, Project Openings, Applications) don't show it. This wires up upload + display end-to-end.
 
-**Strengths already in place:**
-- Comprehensive security library (`src/lib/security.ts`) covering OWASP Top 10
-- Zod validation on auth and profile forms
-- RLS on all tables, service-role gating on sensitive tables
-- Error boundary with audit logging, global error reporter with dedup/rate-limiting
-- Lazy-loaded routes, React Query with stale times
-- Admin role checks via `has_role()` SECURITY DEFINER function
-- Session age enforcement (8-hour max)
-- Rate limiting edge function with server-side hash
+## What you'll be able to do
+- On the admin Client form: upload, preview, and remove a client logo (PNG/JPG/WebP, ≤2 MB).
+- See that logo automatically on every card in:
+  - **Clients** (`/admin/clients`)
+  - **Projects** (under each client + `/admin/clients` project view)
+  - **Project Openings** (`/project-openings` + public opening detail)
+  - **Applications** (Your Applications + All Applications tabs + status page)
 
-**Issues found:**
-1. **Linter: SECURITY DEFINER view** — likely `project_roster_member_view`, needs ownership review
-2. **Linter: 3 public buckets allow file listing** — `avatars`, `announcement-videos`, `client-logos` allow unauthenticated enumeration
-3. **Admin routes not server-guarded** — admin pages check `isAdmin` client-side but `ProtectedRoute` only checks auth, not role. A non-admin user can navigate to `/admin/*` and see the page shell before data queries fail.
-4. **`ProfileService.updateFields` accepts arbitrary fields** — no allowlist, potential mass assignment
-5. **`/project-openings/:projectId` is unprotected** — exposed outside `ProtectedRoute`
-6. **Test coverage gaps** — 46 pages, ~57 components, but only 26 UI tests. No tests for admin pages, services, or edge functions in the suite.
-7. **No BDD scenarios for several features** — new features (quest system, feedback, recordings plan) may lack BDD entries
-8. **`bio` field in profile not in Zod schema** — can accept unsanitized content
+## Implementation
 
----
+### 1. Storage
+- Create a public `client-logos` Supabase storage bucket (mirrors existing `avatars` pattern).
+- RLS:
+  - `SELECT`: public (logos are shown on public project openings).
+  - `INSERT/UPDATE/DELETE`: only admins (`has_role(auth.uid(), 'admin')`).
+- Path convention: `{client_id}/logo.{ext}`, `upsert: true`, cache-busted with `?t={timestamp}`.
 
-## Phase 1: Security Hardening
+### 2. Upload component
+- New `src/components/ClientLogoUpload.tsx` modeled after `AvatarUpload.tsx`:
+  - Accepts `clientId`, `currentUrl`, `onUploaded`.
+  - 2 MB cap, PNG/JPG/WebP only, square preview with rounded corners (not circle — logos look bad cropped to circles).
+  - Upload writes to bucket, then updates `clients.logo_url`.
+  - Remove button clears storage + sets `logo_url = ''`.
+- Wire it into the existing client create/edit form on `/admin/clients` (the `ClientsPage` form panel).
 
-### 1.1 Fix Storage Bucket Listing
-- Add restrictive SELECT policies on `storage.objects` for `avatars`, `announcement-videos`, and `client-logos` buckets so unauthenticated users cannot enumerate files.
-- Files remain publicly readable by direct URL, but listing is blocked.
+### 3. Reusable display primitive
+- New `src/components/ClientLogo.tsx`:
+  - Props: `url`, `name`, `size` (`sm | md | lg`), `className`.
+  - Renders the image when `url` is non-empty; otherwise renders a neutral fallback tile with the client's initials (so cards look intentional, never broken).
+  - Uses `<img loading="lazy" />` with proper alt text (`{client.name} logo`).
 
-### 1.2 Admin Route Guard Component
-- Create `AdminRoute` wrapper that checks `useAdmin()` and redirects non-admins to `/dashboard` with an access-denied toast.
-- Apply to all `/admin/*` routes in `App.tsx`.
+### 4. Card surfaces to update
+For each, fetch `clients.logo_url` alongside the existing client name and render `<ClientLogo />` in the card header:
 
-### 1.3 Mass Assignment Protection in ProfileService
-- Add an allowlist to `updateFields()` using `pickAllowedFields` from the security library.
-- Only permit known safe fields like `bio`, `professional_background`, `professional_goals`, `education_background`, etc.
+| Surface | File(s) |
+|---|---|
+| Clients list cards | `src/pages/ClientsPage.tsx` |
+| Projects cards (within Clients page) | same file, project sub-cards |
+| Project Openings list + detail | `src/pages/ProjectOpeningsPage.tsx`, `src/pages/ProjectOpeningDetailPage.tsx` |
+| Public opening detail (edge fn already returns `client`) | confirm `public-project-detail` already selects `logo_url` — if not, add it to the select |
+| My Project Applications | `src/pages/MyProjectApplicationsPage.tsx` |
+| All Applications (admin tab) | `src/pages/ApplicationsPage.tsx` (and the AG Grid cell renderer for the client column gets a small 24px logo) |
+| Application status page | `src/pages/ProjectApplicationStatusPage.tsx` |
 
-### 1.4 Sanitize Bio Input
-- Add `bio` to the profile Zod schema with XSS validation and max length.
-- Apply `deepSanitize` before profile updates.
+For the AG Grid "All Applications" view, a compact 24px square logo + name in the same cell keeps row height unchanged.
 
-### 1.5 SECURITY DEFINER View Audit
-- Review `project_roster_member_view` ownership and ensure it runs with minimal privileges, not a superuser role.
+### 5. Memory + docs
+- Save a project memory at `mem://features/admin/client-logos` describing the bucket, validation, and the four card surfaces, so future work stays consistent.
 
-### 1.6 Protect Public Project Detail Route
-- Wrap `/project-openings/:projectId` in `ProtectedRoute` (it currently renders `ProjectOpeningDetailPage` without auth).
-
----
-
-## Phase 2: Refactoring
-
-### 2.1 Centralize Admin Guard Pattern
-- Extract repeated `if (!isAdmin && !adminLoading) return <AccessDenied />` pattern from 8+ admin pages into the shared `AdminRoute` component.
-
-### 2.2 Type-Safe Profile Service
-- Replace `as any` casts in `ProfileService.update()` and `updateFields()` with properly typed Supabase table types.
-- Remove `as unknown as Profile` cast in `fetch()` by aligning the Profile interface with the generated types.
-
-### 2.3 Consolidate Error Handling in Services
-- Several services duplicate try/catch + logging patterns. Extract a shared `serviceCall` wrapper that handles logging, error formatting, and audit trail consistently.
-
-### 2.4 Performance: Admin Data Fetching
-- Admin pages like `UserAdminPage` and `ActivityLogPage` use `useState` + `useEffect` for data fetching instead of React Query. Migrate to `useQuery` for caching, dedup, and stale-while-revalidate.
-
----
-
-## Phase 3: Testing
-
-### 3.1 Missing Unit Tests (Priority)
-- `ProfileService` — fetch, update, updateFields
-- `AuthService` — session expiration logic, signOut fallback
-- `security.ts` — remaining untested functions: `sanitizeHtml`, `validateFileUpload`, `hasPathTraversal`, `hasHeaderInjection`, `pickAllowedFields`, `isValidUuid`, `sanitizeFileName`, `isSafeRedirectUrl`, `isClientRateLimited`, `hasCRSAttackPattern`
-- `form-validation.ts` — `getFieldValidationState`, `validationBorderClass`
-
-### 3.2 Missing UI Tests
-- `AdminRoute` (new component) — verify redirect for non-admins
-- `ProtectedRoute` — verify redirect for unauthenticated users
-- `EditProfilePage` — form submission and validation
-- `DashboardPage` — widget rendering (extend existing test)
-- `FeedbackPage` — form submission
-- `ProjectOpeningsPage` — listing and filtering
-
-### 3.3 BDD Scenario Coverage
-- Insert BDD scenarios for all new security hardening work
-- Insert scenarios for admin route protection, storage bucket restrictions, mass assignment protection
-
-### 3.4 Edge Function Tests
-- Add unit tests for `rate-limit` input validation
-- Add tests for `confirm-admin-role` path traversal rejection
-
----
-
-## Phase 4: Final Verification
-
-### 4.1 Type Check + Build
-- Run `tsc --noEmit` and `npm run build` to confirm zero errors
-
-### 4.2 Full Test Suite
-- Run complete Vitest suite and fix any failures
-
-### 4.3 Security Re-Scan
-- Re-run the database linter and verify all findings are resolved
-- Log resolved findings in the security scanner
-
----
-
-## Implementation Order
-
-1. Security fixes first (Phase 1) — highest impact for launch safety
-2. Refactoring (Phase 2) — reduce technical debt before adding tests
-3. Testing (Phase 3) — lock in correctness
-4. Final verification (Phase 4) — confirm everything passes
-
-**Estimated scope:** ~15-20 files modified, 4-6 new test files, 2-3 database migrations, ~10 BDD scenarios added.
+## Out of scope
+- Bulk logo import / scraping from client websites.
+- Cropping UI — users upload their preferred square version (matches existing avatar UX).
+- WebP→AVIF conversion or CDN resizing — Supabase image transformation can be a follow-up if file sizes become an issue.
 
