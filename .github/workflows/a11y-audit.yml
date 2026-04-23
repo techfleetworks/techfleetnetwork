@@ -40,6 +40,12 @@ jobs:
       # Surfaced to the spec at runtime. Falsy → public-only scan.
       TF_ADMIN_EMAIL: ${{ secrets.TF_ADMIN_EMAIL }}
       TF_ADMIN_PASSWORD: ${{ secrets.TF_ADMIN_PASSWORD }}
+      # Supabase env vars required at Vite build time so the previewed
+      # bundle can talk to Lovable Cloud. Without these the SPA loads
+      # blank and every route reports the same "missing app" violations.
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
     steps:
       - name: Checkout
         # actions/checkout@v4.2.2 — pinned SHA per workspace OWASP CI/CD policy
