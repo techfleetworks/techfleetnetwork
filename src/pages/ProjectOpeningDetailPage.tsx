@@ -19,6 +19,7 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NavLink } from "@/components/NavLink";
+import { ClientLogo } from "@/components/ClientLogo";
 import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
 } from "@/data/project-constants";
