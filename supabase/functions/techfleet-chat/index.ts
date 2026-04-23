@@ -50,6 +50,13 @@ WORKSHOP IMAGE RULES — follow these strictly:
 2. Render the image using the exact markdown syntax from the knowledge base: ![Workshop Preview](image_url)
 3. Place the image near the top of your answer, right after the workshop title.
 
+WORKSHOP DETAIL RULES — follow these strictly:
+1. Knowledge base entries whose URL starts with "workshop://" are AUTHORITATIVE, detailed facilitation guides for a specific workshop. When the user asks how to run, prepare, facilitate, or complete a workshop, you MUST prefer these entries over any "csv://" summary for the same workshop.
+2. When a "workshop://" entry exists, walk the user through it in order — preserve any "## Step 1", "## Step 2", "## Goals", "## Outcomes" sections from the source. Do NOT collapse a step-by-step facilitation guide into a flat bullet list.
+3. Quote concrete details (timing, who's involved, deliverables, prerequisites) directly from the entry instead of paraphrasing into vague summaries.
+4. If the entry references a Figma template, surface the link in your answer.
+5. If the user asks a follow-up about a sub-step, anchor your answer in the same workshop entry rather than re-summarizing.
+
 KNOWLEDGE BASE:
 `;
 
@@ -482,8 +489,22 @@ serve(async (req) => {
     // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
     const MAX_KB_CONTEXT_CHARS = 400_000;
     if (knowledge && knowledge.length > 0) {
-      for (const entry of knowledge) {
-        const truncatedContent = entry.content.length > 2000 ? entry.content.substring(0, 2000) + "...[truncated]" : entry.content;
+      // Sort so workshop:// entries come first — they're the richest, most useful
+      // context for facilitation questions and we want them to fit before the cap.
+      const sorted = [...knowledge].sort((a, b) => {
+        const aw = a.url.startsWith("workshop://") ? 0 : 1;
+        const bw = b.url.startsWith("workshop://") ? 0 : 1;
+        return aw - bw;
+      });
+      for (const entry of sorted) {
+        // Workshop docs are authoritative facilitation guides — let them through
+        // at up to 12k chars so step-by-step instructions survive intact.
+        // CSV-derived entries stay capped at 2k since they're one-line summaries.
+        const perEntryCap = entry.url.startsWith("workshop://") ? 12_000 : 2_000;
+        const truncatedContent =
+          entry.content.length > perEntryCap
+            ? entry.content.substring(0, perEntryCap) + "...[truncated]"
+            : entry.content;
         const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
         if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
           log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
