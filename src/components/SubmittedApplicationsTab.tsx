@@ -71,6 +71,7 @@ interface ProjectRow {
 interface ClientRow {
   id: string;
   name: string;
+  logo_url?: string | null;
 }
 
 interface ProfileRow {
@@ -382,7 +383,10 @@ export default function SubmittedApplicationsTab() {
                   <p className="text-xs text-muted-foreground">{app.profile?.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-foreground font-medium">{app.client?.name ?? "Unknown Client"}</p>
+                  <div className="flex items-center gap-2">
+                    <ClientLogo url={app.client?.logo_url} name={app.client?.name} size="sm" />
+                    <p className="text-sm text-foreground font-medium truncate">{app.client?.name ?? "Unknown Client"}</p>
+                  </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="outline" className="text-xs">{typeLabel(app.project?.project_type ?? "")}</Badge>
                     <Badge variant="outline" className="text-xs">{phaseLabel(app.project?.phase ?? "")}</Badge>
