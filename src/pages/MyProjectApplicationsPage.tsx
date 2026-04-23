@@ -57,7 +57,7 @@ const APPLICANT_STATUS_LABELS: Record<string, string> = {
 
 interface EnrichedApp extends ProjectApp {
   project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] };
-  client?: { id: string; name: string };
+  client?: { id: string; name: string; logo_url?: string | null };
 }
 
 /** Returns the correct route for a given application based on its status. */
@@ -338,9 +338,12 @@ export default function MyProjectApplicationsPage() {
                 <CardContent className="pt-5 space-y-3">
                   {/* Client & Status */}
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-base font-semibold text-foreground">
-                      {app.client?.name ?? "Unknown Client"}
-                    </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <ClientLogo url={app.client?.logo_url} name={app.client?.name} size="md" />
+                      <p className="text-base font-semibold text-foreground truncate">
+                        {app.client?.name ?? "Unknown Client"}
+                      </p>
+                    </div>
                     {hasStatusUpdate ? (
                       <Badge className={`gap-1 shrink-0 ${
                         app.applicant_status === "invited_to_interview" ? "bg-primary/10 text-primary border-primary/30" :
