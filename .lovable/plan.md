@@ -1,60 +1,74 @@
 
 
-# Client Logo Upload + Display on Cards
+# Loading Detailed Workshop PDFs into Fleety's Knowledge Base
 
-Currently `clients.logo_url` exists but isn't user-uploadable, and the four card surfaces (Clients, Projects, Project Openings, Applications) don't show it. This wires up upload + display end-to-end.
+You have detailed PDFs for every workshop template. Today Fleety only knows the short CSV row per workshop (name, category, one-line description, figma link, etc.), which is why answers feel shallow. We need to get the full nuance from those PDFs into the `knowledge_base` table that Fleety reads on every question.
 
-## What you'll be able to do
-- On the admin Client form: upload, preview, and remove a client logo (PNG/JPG/WebP, ≤2 MB).
-- See that logo automatically on every card in:
-  - **Clients** (`/admin/clients`)
-  - **Projects** (under each client + `/admin/clients` project view)
-  - **Project Openings** (`/project-openings` + public opening detail)
-  - **Applications** (Your Applications + All Applications tabs + status page)
+## Best way to send me the content
 
-## Implementation
+Send me the **PDFs themselves** as uploads in chat (you can attach up to 10 files per message, 20MB each). I have a document parser that extracts text, tables, and embedded images from PDFs and PPTX files with high fidelity — including headings, bullet lists, and step-by-step instructions. That's much better than you copy-pasting into Word, because:
 
-### 1. Storage
-- Create a public `client-logos` Supabase storage bucket (mirrors existing `avatars` pattern).
-- RLS:
-  - `SELECT`: public (logos are shown on public project openings).
-  - `INSERT/UPDATE/DELETE`: only admins (`has_role(auth.uid(), 'admin')`).
-- Path convention: `{client_id}/logo.{ext}`, `upsert: true`, cache-busted with `?t={timestamp}`.
+- I keep the structure (sections, steps, sub-steps) instead of a flat blob.
+- I can OCR any embedded screenshots of the Figma template.
+- One workshop = one knowledge base entry, cleanly named.
 
-### 2. Upload component
-- New `src/components/ClientLogoUpload.tsx` modeled after `AvatarUpload.tsx`:
-  - Accepts `clientId`, `currentUrl`, `onUploaded`.
-  - 2 MB cap, PNG/JPG/WebP only, square preview with rounded corners (not circle — logos look bad cropped to circles).
-  - Upload writes to bucket, then updates `clients.logo_url`.
-  - Remove button clears storage + sets `logo_url = ''`.
-- Wire it into the existing client create/edit form on `/admin/clients` (the `ClientsPage` form panel).
+If a workshop has a companion **Word doc, Notion export, or Google Doc PDF** with extra facilitator notes, send those alongside the workshop PDF and I'll merge them into the same entry.
 
-### 3. Reusable display primitive
-- New `src/components/ClientLogo.tsx`:
-  - Props: `url`, `name`, `size` (`sm | md | lg`), `className`.
-  - Renders the image when `url` is non-empty; otherwise renders a neutral fallback tile with the client's initials (so cards look intentional, never broken).
-  - Uses `<img loading="lazy" />` with proper alt text (`{client.name} logo`).
+**Batching:** Send them in groups of ~8 PDFs per message. If you have 30+ workshops, we'll do it across a few messages. You don't need to rename the files — I'll match them to existing workshop names.
 
-### 4. Card surfaces to update
-For each, fetch `clients.logo_url` alongside the existing client name and render `<ClientLogo />` in the card header:
+## What I'll build (once you approve and start sending PDFs)
 
-| Surface | File(s) |
-|---|---|
-| Clients list cards | `src/pages/ClientsPage.tsx` |
-| Projects cards (within Clients page) | same file, project sub-cards |
-| Project Openings list + detail | `src/pages/ProjectOpeningsPage.tsx`, `src/pages/ProjectOpeningDetailPage.tsx` |
-| Public opening detail (edge fn already returns `client`) | confirm `public-project-detail` already selects `logo_url` — if not, add it to the select |
-| My Project Applications | `src/pages/MyProjectApplicationsPage.tsx` |
-| All Applications (admin tab) | `src/pages/ApplicationsPage.tsx` (and the AG Grid cell renderer for the client column gets a small 24px logo) |
-| Application status page | `src/pages/ProjectApplicationStatusPage.tsx` |
+### 1. Workshop document ingest pipeline
+- New admin-only edge function `ingest-workshop-docs` that accepts parsed workshop content (title + structured markdown) and upserts into `knowledge_base` keyed by `workshop://<slug>`.
+- Each entry will follow a consistent template so Fleety can pattern-match:
+  ```text
+  # <Workshop Name>
+  **Category:** ...
+  **Led by:** ...
+  **When:** Before/During/After ...
+  ## Goals
+  ## Scope
+  ## Who's Involved
+  ## Step-by-Step Facilitation Guide
+    ### Step 1: ...
+    ### Step 2: ...
+  ## Deliverables Produced
+  ## Skills Used
+  ## Tips & Common Pitfalls
+  ## Figma Template
+  ## Related Milestones
+  ```
+- Preserves the existing `Workshop Preview Image` markdown image tag so Fleety still shows the preview.
 
-For the AG Grid "All Applications" view, a compact 24px square logo + name in the same cell keeps row height unchanged.
+### 2. Admin UI to upload PDFs
+- Add a **"Workshop Documents"** section to `/admin/ingest` (`AdminIngestPage.tsx`) with a drag-and-drop file picker.
+- For each PDF: shows parsing progress, the extracted title (editable), and a preview of the structured markdown before upsert.
+- Per-file status (pending → parsing → parsed → upserted / error), plus a "Re-ingest all" button for when you update a template.
 
-### 5. Memory + docs
-- Save a project memory at `mem://features/admin/client-logos` describing the bucket, validation, and the four card surfaces, so future work stays consistent.
+### 3. Sharper Fleety responses
+Tweaks to `techfleet-chat`'s system prompt so that when a user asks how to run a workshop, Fleety:
+- Pulls the **full structured workshop entry** (not just the one-line CSV summary) when one exists.
+- Walks through the step-by-step facilitation guide in order, not as a bulleted summary.
+- Cites the workshop entry plus any web tips separately, as it does today.
+- Keeps the existing 5-minute KB cache so cost doesn't increase.
+
+### 4. Updates to memory
+- Add `mem://features/chatbot/workshop-knowledge` describing the workshop entry schema, slug convention (`workshop://<slug>`), and the "upload PDFs in /admin/ingest" workflow so future changes stay consistent.
+
+## Technical details
+
+- **Parsing:** Done by my `document--parse_document` tool at upload time inside the edge function flow — the client uploads the raw PDF bytes (base64 or multipart), the function calls a parsing helper, transforms the structured output into the markdown template above, then upserts.
+- **Storage:** Reuses the existing `knowledge_base` table (no schema change). Existing CSV-derived workshop rows at `csv://workshops-(detailed)/<slug>` will be **kept** but the new richer `workshop://<slug>` entries take precedence in Fleety's answers because they're longer and more specific.
+- **Auth:** Same admin-only JWT + `user_roles` check as `ingest-csv-knowledge`.
+- **Size:** A typical detailed workshop PDF parses to 3–8 KB of markdown — well within KB and AI gateway limits even with 30+ workshops loaded.
+
+## What you do next
+
+1. Approve this plan.
+2. In your next message, attach the first batch of workshop PDFs (up to 10). Once the pipeline is built, you'll also be able to upload them yourself from `/admin/ingest`.
 
 ## Out of scope
-- Bulk logo import / scraping from client websites.
-- Cropping UI — users upload their preferred square version (matches existing avatar UX).
-- WebP→AVIF conversion or CDN resizing — Supabase image transformation can be a follow-up if file sizes become an issue.
+
+- Auto-syncing from a live Notion/Google Drive folder (possible follow-up if you'd rather maintain workshops there as the source of truth).
+- A facilitator-facing "live workshop runner" UI — Fleety will guide via chat for now.
 
