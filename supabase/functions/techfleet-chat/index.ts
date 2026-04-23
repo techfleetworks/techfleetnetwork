@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { applyWaf } from "../_shared/waf.ts";
+import { scrub as dlpScrub } from "../_shared/dlp.ts";
 
 const log = createEdgeLogger("techfleet-chat");
 
@@ -169,6 +171,11 @@ function sanitizeAIOutput(text: string): string {
   for (const pattern of PII_PATTERNS) {
     sanitized = sanitized.replace(pattern, "[REDACTED]");
   }
+
+  // Defense-in-depth: also run the shared DLP scrubber. This catches
+  // tokens, JWTs, SB/Stripe keys, hex tokens, and CC-shape numbers that
+  // the local PII_PATTERNS list doesn't cover. Belt + suspenders.
+  sanitized = dlpScrub(sanitized);
 
   return sanitized;
 }
