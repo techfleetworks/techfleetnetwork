@@ -1,4 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { applyWaf } from "../_shared/waf.ts";
+import { scrubJson } from "../_shared/dlp.ts";
+import { getAdminClient } from "../_shared/admin-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +14,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // WAF: rate-limit / size / scanner / SQLi / path-traversal protection.
+  // This is a public unauthenticated endpoint, so it's the prime target
+  // for enumeration and abuse — WAF is mandatory here.
+  const blocked = await applyWaf(req, "public-project-detail");
+  if (blocked) return blocked;
+
   try {
     const url = new URL(req.url);
     const projectId = url.searchParams.get("projectId");
@@ -22,10 +31,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Use the centralized admin client (rotation-aware).
+    const supabase = getAdminClient();
 
     // Fetch project
     const { data: project, error: projErr } = await supabase
@@ -107,16 +114,30 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        project,
-        client,
-        milestoneData,
-        applicationCount: appCount ?? 0,
-        coordinatorName,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const payload = {
+      project,
+      client,
+      milestoneData,
+      applicationCount: appCount ?? 0,
+      coordinatorName,
+    };
+
+    // DLP: this is an UNAUTHENTICATED public endpoint. Strip any email,
+    // token, JWT, or internal UUID that should not leak. The legitimate
+    // UUIDs (project.id, client.id) are added to the allow-list so they
+    // pass through.
+    const allowedUuids = [
+      project.id,
+      client?.id,
+      project.coordinator_id,
+    ].filter((v): v is string => typeof v === "string");
+
+    const scrubbed = scrubJson(payload, { uuids: allowedUuids });
+
+    return new Response(scrubbed, {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("public-project-detail error:", err);
     return new Response(
