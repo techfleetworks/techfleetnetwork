@@ -4,17 +4,26 @@
  * Iterates every route in `e2e/a11y/routes.ts`, runs axe-core against the
  * rendered DOM, and writes a structured JSON report to `a11y-report/`.
  *
- * Auth: a single admin login at the start of the worker; the resulting
- * Supabase session lives in the page's localStorage and is reused for
- * every route. We don't persist storageState to disk because Lovable's
- * managed Playwright config controls that lifecycle.
+ * Architecture notes (important — easy to regress):
+ *
+ *  - We do NOT use `test.describe.configure({ mode: "serial" })`. Serial
+ *    mode means a single failed/skipped test aborts every subsequent
+ *    test in the describe with "did not run", which leaves the report
+ *    empty. Each route test must stand alone.
+ *
+ *  - Auth bootstrap happens once in `beforeAll`. We capture the resulting
+ *    Supabase session from `localStorage` and replay it on every per-route
+ *    page via `addInitScript`, so authed routes work without re-logging
+ *    in and without depending on Playwright's `storageState` config.
+ *
+ *  - The report is written in `afterAll`, which runs even when individual
+ *    route tests fail. The CI workflow also wipes `a11y-report/` before
+ *    the run so a stale committed stub can never masquerade as fresh output.
  *
  * Credentials are read from env (TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD).
- * In CI these are GitHub Actions repository secrets; locally drop them
- * in `.env.test` (gitignored) or export in your shell. If they aren't
- * present the spec scans only public routes and reports the rest as
- * skipped — that way the workflow still produces a partial baseline
- * instead of failing outright.
+ * If they aren't present the spec scans only public routes and reports
+ * the rest as skipped — that way the workflow still produces a partial
+ * baseline instead of failing outright.
  *
  * What axe catches: ~57% of WCAG violations (Deque published figure) —
  * the deterministic, machine-checkable subset (alt, contrast, labels,
@@ -27,6 +36,7 @@ import { test, expect } from "../../playwright-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { BrowserContext } from "@playwright/test";
 import { ROUTES, SCANNABLE_ROUTES, type RouteSpec } from "./routes";
 
 const REPORT_DIR = "a11y-report";
@@ -64,19 +74,29 @@ interface RouteFinding {
 const adminEmail = process.env.TF_ADMIN_EMAIL ?? "";
 const adminPassword = process.env.TF_ADMIN_PASSWORD ?? "";
 const haveAdminCreds = !!adminEmail && !!adminPassword;
-let authBootstrapError: string | null = null;
 
-test.describe.configure({ mode: "serial" });
+// Captured once in beforeAll, replayed in every per-route page. Shape:
+// the entire window.localStorage at end of login (Supabase session token,
+// auth-related flags, theme, etc.).
+let authedLocalStorage: Record<string, string> | null = null;
+let authBootstrapError: string | null = null;
+const findings: RouteFinding[] = [];
 
 test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
-  const findings: RouteFinding[] = [];
+  test.beforeAll(async ({ browser }) => {
+    if (!haveAdminCreds) {
+      authBootstrapError = "TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD not provided.";
+      return;
+    }
 
-  test("login as admin (skipped if creds missing)", async ({ page }) => {
-    test.skip(!haveAdminCreds, "TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD not set — public-only scan.");
-
+    let context: BrowserContext | null = null;
     try {
+      context = await browser.newContext();
+      const page = await context.newPage();
+
       await page.goto("/login");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("networkidle").catch(() => {});
+
       await page.getByLabel(/email/i).fill(adminEmail);
 
       const passwordInput = page
@@ -86,15 +106,28 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       await passwordInput.fill(adminPassword);
 
       await page.getByRole("button", { name: /sign in|log in|connect/i }).click();
-      // Successful login lands somewhere inside the authed shell.
+      // Successful login lands somewhere outside the auth shell.
       await page.waitForURL((url) => !/\/(login|register|forgot-password)/.test(url.pathname), {
-        timeout: 15_000,
+        timeout: 20_000,
       });
-      await expect(page).toHaveURL(/.+/);
-      authBootstrapError = null;
+
+      // Snapshot localStorage for replay on subsequent contexts. Supabase
+      // stores the session under a project-scoped `sb-*-auth-token` key,
+      // so we just copy everything to keep the spec resilient to key churn.
+      authedLocalStorage = await page.evaluate(() => {
+        const out: Record<string, string> = {};
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const k = window.localStorage.key(i);
+          if (k) out[k] = window.localStorage.getItem(k) ?? "";
+        }
+        return out;
+      });
     } catch (err) {
       authBootstrapError = err instanceof Error ? err.message : String(err);
+      // Don't fail the suite — public-only scan is still valuable.
       console.warn(`Admin bootstrap failed; continuing with public-only audit. ${authBootstrapError}`);
+    } finally {
+      await context?.close().catch(() => {});
     }
   });
 
@@ -108,7 +141,7 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       }
 
       // Skip authed/admin routes if creds are missing or login bootstrap failed.
-      if ((!haveAdminCreds || authBootstrapError) && route.kind !== "public") {
+      if (!authedLocalStorage && route.kind !== "public") {
         findings.push({
           route,
           status: "skipped",
@@ -121,6 +154,22 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       }
 
       try {
+        // Replay captured session into this page's localStorage BEFORE any
+        // app code runs, so AuthContext sees a logged-in user on first render.
+        if (authedLocalStorage) {
+          const snapshot = authedLocalStorage;
+          await page.addInitScript((entries: Record<string, string>) => {
+            try {
+              for (const [k, v] of Object.entries(entries)) {
+                window.localStorage.setItem(k, v);
+              }
+            } catch {
+              // Storage might be blocked on the about:blank origin pre-nav;
+              // the next nav will land on the real origin and re-run init.
+            }
+          }, snapshot);
+        }
+
         await page.goto(route.path);
         // App is a Vite SPA; wait for network to settle so async-loaded UI is
         // present in the DOM before axe walks it.
@@ -189,7 +238,7 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
 
     const report = {
       generatedAt: new Date().toISOString(),
-      authedScan: haveAdminCreds && !authBootstrapError,
+      authedScan: !!authedLocalStorage,
       coverageNote: !haveAdminCreds
         ? "Public-only scan — admin credentials not provided in this run."
         : authBootstrapError
