@@ -36,7 +36,7 @@ import { test, expect } from "../../playwright-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { chromium, type BrowserContext } from "@playwright/test";
+import type { BrowserContext } from "@playwright/test";
 import { ROUTES, SCANNABLE_ROUTES, type RouteSpec } from "./routes";
 
 const REPORT_DIR = "a11y-report";
