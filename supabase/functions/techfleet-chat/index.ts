@@ -340,6 +340,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // WAF: rate-limit / oversize / scanner / SQLi protection. Logged to
+  // security_events for the weekly admin digest.
+  const blocked = await applyWaf(req, "techfleet-chat");
+  if (blocked) return blocked;
+
   // WSTG-CONF-06: Only allow POST
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {

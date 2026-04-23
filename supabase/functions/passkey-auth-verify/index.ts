@@ -1,7 +1,12 @@
 // Verifies a WebAuthn assertion from an authenticated admin. On success,
-// records the JWT session as passkey-verified for 8 hours.
+// records the JWT session as passkey-verified for 30 days.
+//
+// Migrated to use the centralized admin-client wrapper (rotation-aware) so
+// that rotating the SUPABASE_SERVICE_ROLE_KEY does not require a code edit
+// to this critical security path.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyAuthenticationResponse } from "npm:@simplewebauthn/server@10.0.0";
+import { getAdminClient, getUserClient } from "../_shared/admin-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,11 +28,7 @@ Deno.serve(async (req) => {
     }
     const accessToken = authHeader.replace("Bearer ", "");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabase = getUserClient(authHeader);
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing device id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = getAdminClient();
 
     // Load stored challenge
     const { data: chal } = await admin.from("passkey_login_challenges").select("challenge, expires_at").eq("user_id", user.id).maybeSingle();
