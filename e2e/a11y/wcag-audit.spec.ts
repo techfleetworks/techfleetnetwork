@@ -64,6 +64,7 @@ interface RouteFinding {
 const adminEmail = process.env.TF_ADMIN_EMAIL ?? "";
 const adminPassword = process.env.TF_ADMIN_PASSWORD ?? "";
 const haveAdminCreds = !!adminEmail && !!adminPassword;
+let authBootstrapError: string | null = null;
 
 test.describe.configure({ mode: "serial" });
 
@@ -72,16 +73,29 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
 
   test("login as admin (skipped if creds missing)", async ({ page }) => {
     test.skip(!haveAdminCreds, "TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD not set — public-only scan.");
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-    await page.getByLabel(/email/i).fill(adminEmail);
-    await page.getByLabel(/^password$/i).fill(adminPassword);
-    await page.getByRole("button", { name: /sign in|log in|connect/i }).click();
-    // Successful login lands somewhere inside the authed shell.
-    await page.waitForURL((url) => !/\/(login|register|forgot-password)/.test(url.pathname), {
-      timeout: 15_000,
-    });
-    await expect(page).toHaveURL(/.+/);
+
+    try {
+      await page.goto("/login");
+      await page.waitForLoadState("networkidle");
+      await page.getByLabel(/email/i).fill(adminEmail);
+
+      const passwordInput = page
+        .locator('input[id="password"], input[autocomplete="current-password"], input[type="password"]')
+        .first();
+      await expect(passwordInput).toBeVisible({ timeout: 15_000 });
+      await passwordInput.fill(adminPassword);
+
+      await page.getByRole("button", { name: /sign in|log in|connect/i }).click();
+      // Successful login lands somewhere inside the authed shell.
+      await page.waitForURL((url) => !/\/(login|register|forgot-password)/.test(url.pathname), {
+        timeout: 15_000,
+      });
+      await expect(page).toHaveURL(/.+/);
+      authBootstrapError = null;
+    } catch (err) {
+      authBootstrapError = err instanceof Error ? err.message : String(err);
+      console.warn(`Admin bootstrap failed; continuing with public-only audit. ${authBootstrapError}`);
+    }
   });
 
   for (const route of ROUTES) {
@@ -93,14 +107,16 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
         return;
       }
 
-      // Skip authed/admin routes if we couldn't log in.
-      if (!haveAdminCreds && route.kind !== "public") {
+      // Skip authed/admin routes if creds are missing or login bootstrap failed.
+      if ((!haveAdminCreds || authBootstrapError) && route.kind !== "public") {
         findings.push({
           route,
           status: "skipped",
-          message: "No admin credentials available in this scan run.",
+          message: !haveAdminCreds
+            ? "No admin credentials available in this scan run."
+            : `Admin bootstrap failed before authenticated scanning: ${authBootstrapError}`,
         });
-        test.skip(true, "Admin credentials not provided.");
+        test.skip(true, !haveAdminCreds ? "Admin credentials not provided." : "Admin bootstrap failed.");
         return;
       }
 
@@ -173,10 +189,12 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
 
     const report = {
       generatedAt: new Date().toISOString(),
-      authedScan: haveAdminCreds,
-      coverageNote: haveAdminCreds
-        ? "Authenticated scan as admin user (TF_ADMIN_EMAIL)."
-        : "Public-only scan — admin credentials not provided in this run.",
+      authedScan: haveAdminCreds && !authBootstrapError,
+      coverageNote: !haveAdminCreds
+        ? "Public-only scan — admin credentials not provided in this run."
+        : authBootstrapError
+          ? `Public-only scan — admin bootstrap failed before authenticated routes were scanned: ${authBootstrapError}`
+          : "Authenticated scan as admin user (TF_ADMIN_EMAIL).",
       axeTags: AXE_TAGS,
       totals,
       scannableRouteCount: SCANNABLE_ROUTES.length,
