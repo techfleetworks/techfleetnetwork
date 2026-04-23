@@ -29,7 +29,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Breadcrumb,
@@ -567,8 +566,8 @@ export default function GenericCoursePage({
         <DialogContent
           className={
             fullscreen
-              ? "w-screen h-[100dvh] max-w-none max-h-none rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
-              : "w-[95vw] max-w-[1400px] sm:max-w-[92vw] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[92vh] overflow-hidden flex flex-col p-0"
+              ? "w-screen h-[100dvh] max-w-none max-h-none min-h-0 overflow-hidden rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
+              : "w-[95vw] max-w-[1400px] sm:max-w-[92vw] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[92vh] min-h-0 overflow-hidden flex flex-col p-0"
           }
           onTouchStart={(e) => {
             if (!fullscreen) return;
@@ -597,8 +596,8 @@ export default function GenericCoursePage({
           <DialogHeader
             className={
               fullscreen
-                ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 text-left space-y-1"
-                : "px-6 pt-6 pb-4 border-b border-border"
+                ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 shrink-0 text-left space-y-1"
+                : "px-6 pt-6 pb-4 border-b border-border shrink-0"
             }
           >
             {selectedLesson && (
@@ -616,7 +615,10 @@ export default function GenericCoursePage({
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className={fullscreen ? "flex-1" : "flex-1 px-6"}>
+          <div
+            className={fullscreen ? "flex-1 min-h-0 overflow-y-auto overscroll-contain" : "flex-1 min-h-0 overflow-y-auto overscroll-contain px-6"}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             <div className={fullscreen ? "space-y-4 pb-4" : "space-y-4 py-4"}>
               {selectedLesson?.youtubeId && (
                 <div className={fullscreen ? "space-y-2" : "space-y-2"}>
@@ -691,7 +693,7 @@ export default function GenericCoursePage({
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           {selectedLesson &&
             (() => {
