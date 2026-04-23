@@ -418,7 +418,7 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, name, website, mission")
+        .select("id, name, website, mission, logo_url")
         .eq("id", project!.client_id)
         .single();
       if (error) throw error;
@@ -589,13 +589,16 @@ export default function ProjectApplicationStatusPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
-            <Badge className={`gap-1 ${getStatusBadgeClasses(config.variant)}`}>
-              <StatusIcon className="h-3 w-3" />
-              {config.label}
-            </Badge>
+            <ClientLogo url={(client as any)?.logo_url} name={clientName} size="md" />
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
+              <Badge className={`gap-1 ${getStatusBadgeClasses(config.variant)}`}>
+                <StatusIcon className="h-3 w-3" />
+                {config.label}
+              </Badge>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Application Status</p>
+          <p className="text-sm text-muted-foreground mt-1">Application Status</p>
         </div>
       </div>
 
