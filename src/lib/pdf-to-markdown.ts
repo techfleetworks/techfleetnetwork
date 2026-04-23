@@ -17,8 +17,8 @@
  */
 
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - workerSrc is set to disable real worker for iframe safety
-pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+// Disable worker for iframe safety — fake-worker mode is fine for one-off admin imports
+(pdfjsLib.GlobalWorkerOptions as { workerSrc: string }).workerSrc = "";
 
 const MAX_OUTPUT_CHARS = 80_000;
 
@@ -41,7 +41,6 @@ export async function extractMarkdownFromPdf(file: File): Promise<{
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({
     data: arrayBuffer,
-    disableWorker: true,
     isEvalSupported: false,
   }).promise;
 
