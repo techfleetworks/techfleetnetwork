@@ -114,10 +114,32 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
         .first();
       await expect(submitButton).toBeVisible({ timeout: 10_000 });
       await submitButton.click();
-      // Successful login lands somewhere outside the auth shell.
-      await page.waitForURL((url) => !/\/(login|register|forgot-password)/.test(url.pathname), {
-        timeout: 20_000,
-      });
+
+      // SPA-safe auth bootstrap: a successful password sign-in updates
+      // localStorage immediately, but client-side routing does not always
+      // trigger a fresh document "load" event for page.waitForURL(). Wait
+      // for either an auth token to land in storage OR the URL to leave the
+      // auth shell, then snapshot storage for per-route replay.
+      await Promise.race([
+        page.waitForFunction(
+          () =>
+            Object.keys(window.localStorage).some((key) => {
+              if (!/auth-token/i.test(key)) return false;
+              const value = window.localStorage.getItem(key) ?? "";
+              return value.includes("access_token") || value.includes("refresh_token");
+            }),
+          undefined,
+          { timeout: 20_000 },
+        ),
+        page.waitForURL(
+          (url) => !/\/(login|register|forgot-password)/.test(url.pathname),
+          { timeout: 20_000, waitUntil: "commit" },
+        ),
+      ]);
+
+      // Give React auth state + route guards a beat to finish their first
+      // render cycle before we freeze the storage snapshot.
+      await page.waitForTimeout(750);
 
       // Snapshot localStorage for replay on subsequent contexts. Supabase
       // stores the session under a project-scoped `sb-*-auth-token` key,
@@ -130,6 +152,14 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
         }
         return out;
       });
+
+      const hasAuthToken = Object.entries(authedLocalStorage).some(
+        ([key, value]) => /auth-token/i.test(key) && /access_token|refresh_token/.test(value),
+      );
+
+      if (!hasAuthToken) {
+        throw new Error(`Login finished without a stored auth token. Current URL: ${page.url()}`);
+      }
     } catch (err) {
       authBootstrapError = err instanceof Error ? err.message : String(err);
       // Don't fail the suite — public-only scan is still valuable.
