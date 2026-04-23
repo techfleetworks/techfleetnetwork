@@ -1,25 +1,20 @@
 import { startAuthentication } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { getDeviceId, getDeviceVerificationHash } from "@/lib/device-id";
 
 const log = createLogger("PasskeyLoginService");
 
-/**
- * Computes a SHA-256 hex digest of the current access token.
- * Used to look up whether THIS JWT session has already completed
- * the passkey login gate.
- */
-async function sha256Hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 export const PasskeyLoginService = {
-  /** Returns true if the current JWT session has already passed the passkey gate. */
+  /**
+   * Returns true if THIS device has already passed the passkey gate within
+   * the 30-day trust window. Verification is bound to a stable per-device id
+   * (not the rotating JWT) so token refreshes don't trigger a re-prompt.
+   */
   async isCurrentSessionVerified(): Promise<boolean> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return false;
-    const hash = await sha256Hex(session.access_token);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const hash = await getDeviceVerificationHash(user.id);
     const { data, error } = await supabase.rpc("is_passkey_login_verified", { _session_hash: hash });
     if (error) {
       log.warn("isCurrentSessionVerified", `RPC failed: ${error.message}`);
@@ -45,7 +40,7 @@ export const PasskeyLoginService = {
     }
 
     const { data, error } = await supabase.functions.invoke("passkey-auth-verify", {
-      body: { response: assertion },
+      body: { response: assertion, device_id: getDeviceId() },
     });
     if (error || !data?.verified) {
       throw new Error(error?.message || "Passkey verification failed");
@@ -60,10 +55,10 @@ export const PasskeyLoginService = {
     }
   },
 
-  /** Consumes a recovery token (from the email link) to mark the session verified. */
+  /** Consumes a recovery token (from the email link) to mark this device verified. */
   async consumeRecoveryToken(token: string): Promise<void> {
     const { data, error } = await supabase.functions.invoke("passkey-recovery-verify", {
-      body: { token },
+      body: { token, device_id: getDeviceId() },
     });
     if (error || !data?.verified) {
       throw new Error(error?.message || "Recovery link is invalid or expired");

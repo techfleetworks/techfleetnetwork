@@ -34,9 +34,12 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { response } = body;
+    const { response, device_id } = body;
     if (!response?.id) {
       return new Response(JSON.stringify({ error: "Missing assertion" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (typeof device_id !== "string" || device_id.length < 16 || device_id.length > 256) {
+      return new Response(JSON.stringify({ error: "Missing device id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -87,14 +90,18 @@ Deno.serve(async (req) => {
     }).eq("id", cred.id);
     await admin.from("passkey_login_challenges").delete().eq("user_id", user.id);
 
-    // Mark this JWT session as verified for 8h
-    const sessionHash = await sha256Hex(accessToken);
+    // Mark THIS DEVICE (not the rotating JWT) as passkey-verified for 30 days.
+    // The hash is bound to (user_id + device_id) so JWT refreshes don't trigger
+    // a re-prompt, and the device is forgotten after 30 days of inactivity or
+    // when the user clears site data.
+    const deviceHash = await sha256Hex(`v1:${user.id}:${device_id}`);
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     await admin.from("passkey_login_sessions").upsert({
       user_id: user.id,
-      session_token_hash: sessionHash,
+      session_token_hash: deviceHash,
       verified_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
       ip_address: ip,
     }, { onConflict: "user_id,session_token_hash" });
 
