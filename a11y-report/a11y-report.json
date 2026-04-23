@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-04-23T22:07:38.996Z",
-  "authedScan": true,
-  "coverageNote": "Authenticated scan as admin user (TF_ADMIN_EMAIL).",
+  "generatedAt": "2026-04-23T22:45:57.374Z",
+  "authedScan": false,
+  "coverageNote": "Public-only scan — admin credentials not provided in this run.",
   "axeTags": [
     "wcag2a",
     "wcag2aa",
