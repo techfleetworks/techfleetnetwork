@@ -52,7 +52,9 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           id: string
+          prev_hash: string | null
           promoted_by: string
+          row_hash: string | null
           token: string
           token_hash: string | null
           user_id: string
@@ -61,7 +63,9 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           id?: string
+          prev_hash?: string | null
           promoted_by: string
+          row_hash?: string | null
           token?: string
           token_hash?: string | null
           user_id: string
@@ -70,7 +74,9 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           id?: string
+          prev_hash?: string | null
           promoted_by?: string
+          row_hash?: string | null
           token?: string
           token_hash?: string | null
           user_id?: string
@@ -177,7 +183,9 @@ export type Database = {
           event_type: string
           id: string
           ip_address: string | null
+          prev_hash: string | null
           record_id: string | null
+          row_hash: string | null
           table_name: string
           user_id: string | null
         }
@@ -189,7 +197,9 @@ export type Database = {
           event_type: string
           id?: string
           ip_address?: string | null
+          prev_hash?: string | null
           record_id?: string | null
+          row_hash?: string | null
           table_name: string
           user_id?: string | null
         }
@@ -201,7 +211,9 @@ export type Database = {
           event_type?: string
           id?: string
           ip_address?: string | null
+          prev_hash?: string | null
           record_id?: string | null
+          row_hash?: string | null
           table_name?: string
           user_id?: string | null
         }
@@ -1761,6 +1773,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          ip_address: string | null
+          severity: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          severity?: string
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          severity?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       signup_confirmation_reminders: {
         Row: {
           attempt_number: number
@@ -2011,6 +2056,69 @@ export type Database = {
       }
     }
     Views: {
+      audit_log_decrypted: {
+        Row: {
+          changed_fields: string[] | null
+          created_at: string | null
+          error_fingerprint: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string | null
+          ip_address: string | null
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          changed_fields?: string[] | null
+          created_at?: string | null
+          error_fingerprint?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          ip_address?: never
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          changed_fields?: string[] | null
+          created_at?: string | null
+          error_fingerprint?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          ip_address?: never
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      failed_login_attempts_decrypted: {
+        Row: {
+          attempted_at: string | null
+          email: string | null
+          id: string | null
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          email?: string | null
+          id?: string | null
+          ip_address?: never
+          user_agent?: never
+        }
+        Update: {
+          attempted_at?: string | null
+          email?: string | null
+          id?: string | null
+          ip_address?: never
+          user_agent?: never
+        }
+        Relationships: []
+      }
       project_roster_member_view: {
         Row: {
           airtable_record_id: string | null
@@ -2102,11 +2210,13 @@ export type Database = {
         Args: { p_event: string; p_msg: string; p_table: string }
         Returns: string
       }
+      decrypt_pii: { Args: { cipher: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
       drain_notification_outbox: { Args: { p_limit?: number }; Returns: Json }
+      encrypt_pii: { Args: { plain: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2169,6 +2279,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_elevated: { Args: { _user_id: string }; Returns: boolean }
       is_passkey_login_verified: {
         Args: { _session_hash: string }
         Returns: boolean
@@ -2243,6 +2354,7 @@ export type Database = {
         Args: { _email: string; _ip?: string; _user_agent?: string }
         Returns: Json
       }
+      redact_sensitive_text: { Args: { input: string }; Returns: string }
       reset_rate_limit: {
         Args: { p_action: string; p_identifier: string }
         Returns: undefined
@@ -2277,6 +2389,13 @@ export type Database = {
           confirmed_at: string
           id: string
           user_id: string
+        }[]
+      }
+      verify_audit_chain: {
+        Args: { p_table?: string }
+        Returns: {
+          broken_at: string
+          broken_id: string
         }[]
       }
       write_audit_log:
