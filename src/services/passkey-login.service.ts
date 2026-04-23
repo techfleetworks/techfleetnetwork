@@ -55,10 +55,10 @@ export const PasskeyLoginService = {
     }
   },
 
-  /** Consumes a recovery token (from the email link) to mark the session verified. */
+  /** Consumes a recovery token (from the email link) to mark this device verified. */
   async consumeRecoveryToken(token: string): Promise<void> {
     const { data, error } = await supabase.functions.invoke("passkey-recovery-verify", {
-      body: { token },
+      body: { token, device_id: getDeviceId() },
     });
     if (error || !data?.verified) {
       throw new Error(error?.message || "Recovery link is invalid or expired");

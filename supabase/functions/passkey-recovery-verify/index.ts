@@ -32,9 +32,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { token } = await req.json();
+    const { token, device_id } = await req.json();
     if (!token || typeof token !== "string" || token.length < 32) {
       return new Response(JSON.stringify({ error: "Invalid token" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (typeof device_id !== "string" || device_id.length < 16 || device_id.length > 256) {
+      return new Response(JSON.stringify({ error: "Missing device id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const tokenHash = await sha256Hex(token);
@@ -59,14 +62,15 @@ Deno.serve(async (req) => {
     // Mark token used (single-use)
     await admin.from("passkey_recovery_tokens").update({ used_at: new Date().toISOString() }).eq("id", rec.id);
 
-    // Mark current JWT session verified
-    const sessionHash = await sha256Hex(accessToken);
+    // Mark THIS DEVICE as passkey-verified for 30 days (matches normal gate).
+    const deviceHash = await sha256Hex(`v1:${user.id}:${device_id}`);
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     await admin.from("passkey_login_sessions").upsert({
       user_id: user.id,
-      session_token_hash: sessionHash,
+      session_token_hash: deviceHash,
       verified_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
       ip_address: ip,
     }, { onConflict: "user_id,session_token_hash" });
 
