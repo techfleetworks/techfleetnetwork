@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { applyWaf } from "../_shared/waf.ts";
+import { scrub as dlpScrub } from "../_shared/dlp.ts";
 
 const log = createEdgeLogger("techfleet-chat");
 
@@ -170,6 +172,11 @@ function sanitizeAIOutput(text: string): string {
     sanitized = sanitized.replace(pattern, "[REDACTED]");
   }
 
+  // Defense-in-depth: also run the shared DLP scrubber. This catches
+  // tokens, JWTs, SB/Stripe keys, hex tokens, and CC-shape numbers that
+  // the local PII_PATTERNS list doesn't cover. Belt + suspenders.
+  sanitized = dlpScrub(sanitized);
+
   return sanitized;
 }
 
@@ -332,6 +339,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // WAF: rate-limit / oversize / scanner / SQLi protection. Logged to
+  // security_events for the weekly admin digest.
+  const blocked = await applyWaf(req, "techfleet-chat");
+  if (blocked) return blocked;
 
   // WSTG-CONF-06: Only allow POST
   if (req.method !== "POST") {
