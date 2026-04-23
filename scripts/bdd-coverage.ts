@@ -134,11 +134,11 @@ async function main() {
   }
 
   // ---------------------------------------------------------------------------
-  // CI gates (ratchet pattern — raise threshold over time, never lower it)
+  // CI gates (ratchet pattern — raise thresholds over time, never lower them)
   // ---------------------------------------------------------------------------
   let failed = false;
 
-  // Gate 1: hard-fail on orphaned test_file references (broken catalog data)
+  // Gate 1: hard-fail on orphaned test_file references (broken catalog data).
   if (filesMissing.length > 0) {
     console.error(
       `\n❌ ${filesMissing.length} scenario(s) reference test files that do not exist on disk.`
@@ -146,14 +146,44 @@ async function main() {
     failed = true;
   }
 
-  // Gate 2: coverage threshold ratchet — current real coverage is ~84%.
-  // Set just below to absorb minor churn; raise as new tests land.
+  // Gate 2: implementation-rate ratchet — every scenario marked `implemented`
+  // counts. Current real coverage is ~84%; threshold is set just below to
+  // absorb minor churn.
   const COVERAGE_THRESHOLD = 80;
   if (parseFloat(coveragePct) < COVERAGE_THRESHOLD) {
     console.error(
       `\n❌ BDD coverage ${coveragePct}% is below ${COVERAGE_THRESHOLD}% threshold.`
     );
     failed = true;
+  }
+
+  // Gate 3: an `implemented` scenario MUST point to a real test file.
+  // Without this gate, scenarios can be silently flipped to "implemented"
+  // with test_file = "" and falsely pass Gate 2. We allow `manual` test_type
+  // to remain unlinked because those are intentional human-verified cases.
+  const implementedUnlinked = scenarios.filter(
+    (s) =>
+      s.status === "implemented" &&
+      s.test_type !== "manual" &&
+      (!s.test_file || s.test_file.trim() === "")
+  );
+  // Ratchet baseline: as of 2026-04-23 there are ~750 such scenarios. We
+  // start the gate at the current count + small buffer, then ratchet down
+  // as the team links real test files. Lower this number over time —
+  // never raise it.
+  const IMPLEMENTED_UNLINKED_MAX = 760;
+  if (implementedUnlinked.length > IMPLEMENTED_UNLINKED_MAX) {
+    console.error(
+      `\n❌ ${implementedUnlinked.length} scenario(s) marked "implemented" have no test_file.\n` +
+        `   Allowed ceiling: ${IMPLEMENTED_UNLINKED_MAX}. Either link a real test or downgrade status to "partial".`
+    );
+    failed = true;
+  } else if (implementedUnlinked.length > 0) {
+    // Surface a warning even when under the cap so the number is always visible.
+    console.warn(
+      `\n⚠️  ${implementedUnlinked.length} scenario(s) marked "implemented" have no test_file ` +
+        `(under the current ceiling of ${IMPLEMENTED_UNLINKED_MAX} — please ratchet down).`
+    );
   }
 
   if (failed) process.exit(1);
