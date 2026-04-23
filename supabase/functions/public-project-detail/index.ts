@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // Fetch client
     const { data: client, error: clientErr } = await supabase
       .from("clients")
-      .select("id, name, website, mission, project_summary, primary_contact, status")
+      .select("id, name, website, mission, project_summary, primary_contact, status, logo_url")
       .eq("id", project.client_id)
       .eq("status", "active")
       .maybeSingle();

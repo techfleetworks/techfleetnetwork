@@ -19,6 +19,7 @@ import {
   BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NavLink } from "@/components/NavLink";
+import { ClientLogo } from "@/components/ClientLogo";
 import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
 } from "@/data/project-constants";
@@ -58,6 +59,7 @@ interface ClientDetail {
   project_summary: string;
   primary_contact: string;
   status: string;
+  logo_url?: string | null;
 }
 
 interface MilestoneData {
@@ -247,27 +249,30 @@ export default function ProjectOpeningDetailPage() {
 
       {/* ── Hero Header ───────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-success/10 text-success border-success/30 gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Accepting Applications
-            </Badge>
-            <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
-            <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {client?.name ?? "Project Opening"}
-            {project.friendly_name?.trim() && (
-              <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
+        <div className="flex items-start gap-4 min-w-0">
+          <ClientLogo url={client?.logo_url} name={client?.name} size="lg" className="mt-1" />
+          <div className="space-y-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-success/10 text-success border-success/30 gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Accepting Applications
+              </Badge>
+              <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
+              <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              {client?.name ?? "Project Opening"}
+              {project.friendly_name?.trim() && (
+                <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
+              )}
+            </h1>
+            {project.description?.trim() ? (
+              <p className="text-foreground whitespace-pre-wrap leading-relaxed">{project.description}</p>
+            ) : (
+              <p className="text-muted-foreground">
+                {client?.project_summary || `${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
+              </p>
             )}
-          </h1>
-          {project.description?.trim() ? (
-            <p className="text-foreground whitespace-pre-wrap leading-relaxed">{project.description}</p>
-          ) : (
-            <p className="text-muted-foreground">
-              {client?.project_summary || `${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
-            </p>
-          )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
