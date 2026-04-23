@@ -208,8 +208,6 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
           message: err instanceof Error ? err.message : String(err),
         });
       }
-      // Suppress unused-var warning; baseURL is here for future absolute-URL needs.
-      void baseURL;
     });
   }
 
