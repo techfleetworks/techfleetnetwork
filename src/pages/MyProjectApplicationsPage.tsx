@@ -127,7 +127,7 @@ export default function MyProjectApplicationsPage() {
       const { data, error } = await supabase
         .from("clients").select("id, name, logo_url").in("id", clientIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
+      return (data ?? []) as { id: string; name: string; logo_url: string | null }[];
     },
     enabled: clientIds.length > 0,
   });
