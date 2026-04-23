@@ -50,6 +50,13 @@ WORKSHOP IMAGE RULES — follow these strictly:
 2. Render the image using the exact markdown syntax from the knowledge base: ![Workshop Preview](image_url)
 3. Place the image near the top of your answer, right after the workshop title.
 
+WORKSHOP DETAIL RULES — follow these strictly:
+1. Knowledge base entries whose URL starts with "workshop://" are AUTHORITATIVE, detailed facilitation guides for a specific workshop. When the user asks how to run, prepare, facilitate, or complete a workshop, you MUST prefer these entries over any "csv://" summary for the same workshop.
+2. When a "workshop://" entry exists, walk the user through it in order — preserve any "## Step 1", "## Step 2", "## Goals", "## Outcomes" sections from the source. Do NOT collapse a step-by-step facilitation guide into a flat bullet list.
+3. Quote concrete details (timing, who's involved, deliverables, prerequisites) directly from the entry instead of paraphrasing into vague summaries.
+4. If the entry references a Figma template, surface the link in your answer.
+5. If the user asks a follow-up about a sub-step, anchor your answer in the same workshop entry rather than re-summarizing.
+
 KNOWLEDGE BASE:
 `;
 
