@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { WorkshopDocsUploader } from "@/components/admin/WorkshopDocsUploader";
 
 const CSV_DATASETS = [
   { file: "/data/job-industries.csv", name: "Job Industries" },
