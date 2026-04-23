@@ -91,6 +91,13 @@ jobs:
     needs: vitest
     permissions:
       contents: read
+    env:
+      # Vite needs these at build time so the preview server (started by
+      # playwright.config.ts webServer) renders a working app instead of
+      # a blank shell that would fail every spec.
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

@@ -1,10 +1,57 @@
-import { createLovableConfig } from "lovable-agent-playwright-config/config";
+import { defineConfig, devices } from "@playwright/test";
 
-export default createLovableConfig({
-  // Add your custom playwright configuration overrides here
-  // Example:
-  // timeout: 60000,
-  // use: {
-  //   baseURL: 'http://localhost:3000',
-  // },
+/**
+ * Standalone Playwright config.
+ *
+ * Why not `lovable-agent-playwright-config`?
+ *   That package only exists inside the Lovable sandbox — it's not
+ *   published to npm, so GitHub Actions can't resolve it and `npm ci`
+ *   followed by `npx playwright test` blows up with ERR_MODULE_NOT_FOUND.
+ *   We replicate the same surface here so tests run identically locally,
+ *   in CI, and inside Lovable.
+ *
+ * Base URL precedence:
+ *   1. PLAYWRIGHT_BASE_URL (explicit override)
+ *   2. http://127.0.0.1:4173 (vite preview, used in CI via webServer)
+ */
+const PORT = Number(process.env.PORT ?? 4173);
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
+const isCI = !!process.env.CI;
+
+export default defineConfig({
+  testDir: ".",
+  testMatch: ["e2e/**/*.spec.ts"],
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
+  fullyParallel: false,
+  forbidOnly: isCI,
+  retries: isCI ? 1 : 0,
+  workers: 1,
+  reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
+  use: {
+    baseURL: BASE_URL,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+  },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
+  // Only spin up our own server in CI / when explicitly requested.
+  // Inside the Lovable sandbox the preview is already running on its
+  // managed port, so we skip this to avoid double-binding.
+  webServer:
+    isCI || process.env.PLAYWRIGHT_START_SERVER === "1"
+      ? {
+          command: `npm run build && npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,
+          url: BASE_URL,
+          reuseExistingServer: !isCI,
+          timeout: 180_000,
+          stdout: "pipe",
+          stderr: "pipe",
+        }
+      : undefined,
 });
