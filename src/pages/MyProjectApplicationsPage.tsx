@@ -19,6 +19,7 @@ import {
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import { ClientLogo } from "@/components/ClientLogo";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
