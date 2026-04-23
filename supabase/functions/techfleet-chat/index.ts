@@ -489,8 +489,22 @@ serve(async (req) => {
     // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
     const MAX_KB_CONTEXT_CHARS = 400_000;
     if (knowledge && knowledge.length > 0) {
-      for (const entry of knowledge) {
-        const truncatedContent = entry.content.length > 2000 ? entry.content.substring(0, 2000) + "...[truncated]" : entry.content;
+      // Sort so workshop:// entries come first — they're the richest, most useful
+      // context for facilitation questions and we want them to fit before the cap.
+      const sorted = [...knowledge].sort((a, b) => {
+        const aw = a.url.startsWith("workshop://") ? 0 : 1;
+        const bw = b.url.startsWith("workshop://") ? 0 : 1;
+        return aw - bw;
+      });
+      for (const entry of sorted) {
+        // Workshop docs are authoritative facilitation guides — let them through
+        // at up to 12k chars so step-by-step instructions survive intact.
+        // CSV-derived entries stay capped at 2k since they're one-line summaries.
+        const perEntryCap = entry.url.startsWith("workshop://") ? 12_000 : 2_000;
+        const truncatedContent =
+          entry.content.length > perEntryCap
+            ? entry.content.substring(0, perEntryCap) + "...[truncated]"
+            : entry.content;
         const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
         if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
           log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
