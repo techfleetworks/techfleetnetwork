@@ -132,7 +132,7 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
   });
 
   for (const route of ROUTES) {
-    test(`a11y: ${route.label} (${route.path})`, async ({ page, baseURL }) => {
+    test(`a11y: ${route.label} (${route.path})`, async ({ page }) => {
       // Skip routes that can't be scanned (need real DB ids, email tokens, etc.)
       if (route.skipReason) {
         findings.push({ route, status: "skipped", message: route.skipReason });
