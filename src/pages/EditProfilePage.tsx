@@ -41,6 +41,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
+  useMembershipRealtime();
   const navigate = useNavigate();
   const { setHeader } = usePageHeader();
 
