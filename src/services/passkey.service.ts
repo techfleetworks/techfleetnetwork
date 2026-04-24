@@ -1,6 +1,7 @@
 import { startRegistration } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { getDeviceId } from "@/lib/device-id";
 
 const log = createLogger("PasskeyService");
 
