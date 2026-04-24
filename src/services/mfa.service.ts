@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { getDeviceVerificationHash } from "@/lib/device-id";
 
 const log = createLogger("MfaService");
 
