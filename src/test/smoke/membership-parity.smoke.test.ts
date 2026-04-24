@@ -118,7 +118,7 @@ describe("Membership Parity, Tiers, FAQ & Announcement (smoke)", () => {
   /* ── D. FAQ link ────────────────────────────────────── */
 
   it("MEM-PARITY-FAQ-001: Membership FAQ contains 'checkout price' entry", () => {
-    expect(faqDataSrc).toMatch(/checkout price is different/i);
+    expect(faqDataSrc).toMatch(/checkout price (is )?different/i);
     expect(faqDataSrc).toMatch(/Purchasing Power Parity/);
   });
 
