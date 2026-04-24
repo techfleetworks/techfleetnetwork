@@ -105,6 +105,16 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       await page.goto("/login");
       await page.waitForLoadState("networkidle").catch(() => {});
 
+      // Seed a stable device id up front so any auth-adjacent logic that keys
+      // off device identity behaves consistently across the bootstrap page and
+      // every later route page that replays localStorage.
+      await page.evaluate(() => {
+        const key = "tfn.device_id.v1";
+        if (!window.localStorage.getItem(key)) {
+          window.localStorage.setItem(key, "playwright-a11y-audit-device");
+        }
+      });
+
       await page.getByLabel(/email/i).fill(adminEmail);
 
       const passwordInput = page
@@ -123,40 +133,23 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       await expect(submitButton).toBeVisible({ timeout: 10_000 });
       await submitButton.click();
 
-      // SPA-safe auth bootstrap: a successful password sign-in updates
-      // localStorage almost immediately, but client-side routing does not
-      // always trigger a fresh document "load" event for page.waitForURL()
-      // — and admin sessions are intercepted by the PasskeyLoginGate modal
-      // which can hold the URL on /login briefly while the dialog renders.
-      //
-      // The auth token in localStorage is the only signal we actually need
-      // (we replay it into per-route contexts, the URL itself is irrelevant
-      // to that replay). Use Promise.any so a rejection from the URL race
-      // never aborts the whole bootstrap, and so we proceed the moment the
-      // token shows up — typically <2s after the API call resolves.
-      await Promise.any([
-        page.waitForFunction(
-          () =>
-            Object.keys(window.localStorage).some((key) => {
-              if (!/auth-token/i.test(key)) return false;
-              const value = window.localStorage.getItem(key) ?? "";
-              return value.includes("access_token") || value.includes("refresh_token");
-            }),
-          undefined,
-          { timeout: 30_000 },
-        ),
-        page.waitForURL(
-          (url) => !/\/(login|register|forgot-password)/.test(url.pathname),
-          { timeout: 30_000, waitUntil: "commit" },
-        ),
-      ]).catch((err) => {
-        // Promise.any throws AggregateError only if BOTH branches reject.
-        // Re-throw with a clearer summary so the report's coverageNote
-        // explains exactly what went wrong.
-        const messages = err instanceof AggregateError
-          ? err.errors.map((e) => (e instanceof Error ? e.message : String(e))).join(" | ")
-          : err instanceof Error ? err.message : String(err);
-        throw new Error(`Auth signal never appeared after sign-in click: ${messages}`);
+      // SPA-safe auth bootstrap: do not depend on router navigation here.
+      // The admin passkey gate can intentionally keep the URL on /login while
+      // still establishing a valid session in browser storage. For the audit,
+      // the only signal we need is a real auth token landing in localStorage.
+      await page.waitForFunction(
+        () =>
+          Object.keys(window.localStorage).some((key) => {
+            if (!/auth-token/i.test(key)) return false;
+            const value = window.localStorage.getItem(key) ?? "";
+            return value.includes("access_token") || value.includes("refresh_token");
+          }),
+        undefined,
+        { timeout: 30_000 },
+      ).catch((err) => {
+        throw new Error(
+          `Auth token never appeared in localStorage after sign-in click: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
 
       // Give React auth state + route guards a beat to finish their first
