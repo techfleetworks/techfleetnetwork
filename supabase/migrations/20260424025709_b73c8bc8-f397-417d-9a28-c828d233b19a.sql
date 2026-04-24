@@ -1,0 +1,2 @@
+UPDATE public.bdd_scenarios SET status='implemented', updated_at=now() WHERE scenario_id IN ('38.4','38.6','38.8','38.11','38.13','38.14') AND test_file='src/test/ui/UniversalSearch.test.tsx';
+UPDATE public.bdd_scenarios SET test_file='src/test/smoke/volunteer-teams-course.smoke.test.ts', test_type='unit', updated_at=now() WHERE scenario_id='VT-1';
