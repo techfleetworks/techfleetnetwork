@@ -564,11 +564,8 @@ export default function GenericCoursePage({
         onOpenChange={(open) => !open && setSelectedLesson(null)}
       >
         <DialogContent
-          className={
-            fullscreen
-              ? "w-screen h-[100dvh] max-w-none max-h-none min-h-0 overflow-hidden rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
-              : "w-[95vw] max-w-[1400px] sm:max-w-[92vw] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[92vh] min-h-0 overflow-hidden flex flex-col p-0"
-          }
+          className="w-screen h-[100dvh] max-w-none max-h-none min-h-0 overflow-hidden rounded-none border-0 p-0 gap-0 flex flex-col sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom"
+          })
           onTouchStart={(e) => {
             if (!fullscreen) return;
             const t = e.touches[0];
