@@ -46,6 +46,9 @@ jobs:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+      # The accessibility audit must render authenticated/admin routes without
+      # stalling on interactive WebAuthn prompts in headless CI.
+      VITE_A11Y_AUDIT_BYPASS_ADMIN_PASSKEY_GATE: "1"
     steps:
       - name: Checkout
         # actions/checkout@v5.0.0 — pinned SHA, runs on Node.js 24
