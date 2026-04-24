@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 
 const appSrc = fs.readFileSync(path.join(process.cwd(), "src", "App.tsx"), "utf8");
+const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", "index.ts"))
+  ? fs.readFileSync(path.join(process.cwd(), "src", "services", "index.ts"), "utf8")
+  : "";
+const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
+  ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
+  : [];
 const scenarioIds = ["QP-ADD-001", "QP-ADD-003", "QP-DEL-001", "QP-FIRST-001", "QP-PLAN-001", "QP-PLAN-002", "QP-PROG-001", "QP-PROG-004", "QP-PROG-005", "QP-PROG-006", "QP-STEP-001", "QP-STEP-004", "QP-STEP-006", "QP-STEP-008", "QP-TIME-001"];
 
 describe("Quest Journey Paths" + " (smoke)", () => {

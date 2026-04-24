@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 
 const appSrc = fs.readFileSync(path.join(process.cwd(), "src", "App.tsx"), "utf8");
+const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", "index.ts"))
+  ? fs.readFileSync(path.join(process.cwd(), "src", "services", "index.ts"), "utf8")
+  : "";
+const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
+  ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
+  : [];
 const scenarioIds = ["48.6", "48.7"];
 
 describe("Edit Profile" + " (smoke)", () => {

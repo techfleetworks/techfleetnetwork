@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 
 const appSrc = fs.readFileSync(path.join(process.cwd(), "src", "App.tsx"), "utf8");
+const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", "index.ts"))
+  ? fs.readFileSync(path.join(process.cwd(), "src", "services", "index.ts"), "utf8")
+  : "";
+const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
+  ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
+  : [];
 const scenarioIds = ["56.1", "56.12", "56.13", "56.14", "56.15", "56.2", "56.3", "56.4", "56.5", "56.6", "56.7", "56.8", "56.9"];
 
 describe("Announcements" + " (smoke)", () => {

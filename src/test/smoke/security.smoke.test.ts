@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 
 const appSrc = fs.readFileSync(path.join(process.cwd(), "src", "App.tsx"), "utf8");
+const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", "index.ts"))
+  ? fs.readFileSync(path.join(process.cwd(), "src", "services", "index.ts"), "utf8")
+  : "";
+const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
+  ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
+  : [];
 const scenarioIds = ["ASVS-V13-AUTH-001", "BURP-IDOR-001", "CRS-WAF-001", "LLM01-INJECT-001", "LLM02-PII-001", "LLM05-OUTPUT-001", "LLM07-CANARY-001", "LLM10-INPUT-001", "MASVS-STORAGE-001", "OWASP-AI-INJECT-001", "OWASP-AI-OUTPUT-001", "WSTG-ATHZ-01-001", "WSTG-BUSL-05-001", "WSTG-CLNT-04-001"];
 
 describe("Security" + " (smoke)", () => {

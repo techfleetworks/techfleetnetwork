@@ -5,6 +5,12 @@ import fs from "fs";
 import path from "path";
 
 const appSrc = fs.readFileSync(path.join(process.cwd(), "src", "App.tsx"), "utf8");
+const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", "index.ts"))
+  ? fs.readFileSync(path.join(process.cwd(), "src", "services", "index.ts"), "utf8")
+  : "";
+const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
+  ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
+  : [];
 const scenarioIds = ["ROSTER-003", "ROSTER-004", "ROSTER-005", "ROSTER-006", "ROSTER-007", "ROSTER-008", "ROSTER-009", "ROSTER-010", "ROSTER-011", "ROSTER-012"];
 
 describe("Project Roster Sync" + " (smoke)", () => {
