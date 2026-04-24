@@ -167,11 +167,11 @@ async function main() {
       s.test_type !== "manual" &&
       (!s.test_file || s.test_file.trim() === "")
   );
-  // Ratchet baseline: as of 2026-04-23 there are ~750 such scenarios. We
-  // start the gate at the current count + small buffer, then ratchet down
-  // as the team links real test files. Lower this number over time —
-  // never raise it.
-  const IMPLEMENTED_UNLINKED_MAX = 755;
+  // Ratchet baseline: as of 2026-04-24 every implemented scenario is
+  // linked to a real test file. Hold the line at 0 — any new "implemented"
+  // row without a test_file fails CI immediately. Lower this number over
+  // time, never raise it.
+  const IMPLEMENTED_UNLINKED_MAX = 0;
   if (implementedUnlinked.length > IMPLEMENTED_UNLINKED_MAX) {
     console.error(
       `\n❌ ${implementedUnlinked.length} scenario(s) marked "implemented" have no test_file.\n` +
