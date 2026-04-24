@@ -17,8 +17,9 @@ import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
 import { MembershipFaq } from "@/components/MembershipFaq";
-import type { TierId } from "@/config/membership-tiers";
+
 import { useAuth } from "@/contexts/AuthContext";
+import { useMembershipRealtime } from "@/hooks/use-membership-realtime";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
 import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
@@ -40,6 +41,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
+  useMembershipRealtime();
   const navigate = useNavigate();
   const { setHeader } = usePageHeader();
 
@@ -563,8 +565,8 @@ export default function EditProfilePage() {
               </div>
 
               <MembershipTiersGrid
-                currentTier={((profile as unknown as { membership_tier?: TierId })?.membership_tier) ?? "starter"}
-                isFoundingMember={Boolean((profile as unknown as { is_founding_member?: boolean })?.is_founding_member)}
+                currentTier={profile?.membership_tier ?? "starter"}
+                isFoundingMember={Boolean(profile?.is_founding_member)}
                 onSelect={(intent) => {
                   if (intent.action === "subscribe" && intent.skuUrl) {
                     window.open(intent.skuUrl, "_blank", "noopener,noreferrer");
