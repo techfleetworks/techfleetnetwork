@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
+import type { TierId } from "@/config/membership-tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
@@ -63,7 +65,7 @@ export default function EditProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs = ["basic-info", "background", "preferences", "account"];
+  const validTabs = ["basic-info", "background", "preferences", "membership", "account"];
   const [activeTab, setActiveTab] = useState(
     tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
   );
@@ -298,6 +300,7 @@ export default function EditProfilePage() {
               { value: "basic-info", label: "Basic Info" },
               { value: "background", label: "Background" },
               { value: "preferences", label: "Preferences" },
+              { value: "membership", label: "Membership" },
               { value: "account", label: "Account" },
             ] as TabItem[]}
             value={activeTab}
@@ -543,6 +546,52 @@ export default function EditProfilePage() {
                 <Label className="text-base font-semibold">App installation</Label>
                 <InstallAppCard />
               </div>
+            </div>
+          </ResponsiveTabsContent>
+
+          {/* ── Tab: Membership ── */}
+          <ResponsiveTabsContent value="membership" className="space-y-6">
+            <div className="card-elevated p-6 sm:p-8 space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Membership Tiers</h2>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  Tech Fleet's membership model invites everyone to practice shared
+                  leadership and build a different world. Choose the tier that fits
+                  where you are now — you can switch any time.
+                </p>
+              </div>
+
+              <MembershipTiersGrid
+                currentTier={((profile as unknown as { membership_tier?: TierId })?.membership_tier) ?? "starter"}
+                isFoundingMember={Boolean((profile as unknown as { is_founding_member?: boolean })?.is_founding_member)}
+                onSelect={(intent) => {
+                  if (intent.action === "subscribe" && intent.skuUrl) {
+                    window.open(intent.skuUrl, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+                  if (intent.action === "subscribe" && !intent.skuUrl) {
+                    toast.info(
+                      "This subscription option isn't available yet — check back soon.",
+                      { position: "top-center" },
+                    );
+                    return;
+                  }
+                  if (intent.action === "waitlist") {
+                    toast.success(
+                      `Thanks! We'll let you know when ${intent.tier === "professional" ? "Professional" : "this tier"} is ready.`,
+                      { position: "top-center" },
+                    );
+                    return;
+                  }
+                  if (intent.action === "downgrade") {
+                    toast.info(
+                      "To change or cancel your subscription, use the Gumroad email link from your original receipt.",
+                      { position: "top-center", duration: 6000 },
+                    );
+                    return;
+                  }
+                }}
+              />
             </div>
           </ResponsiveTabsContent>
 
