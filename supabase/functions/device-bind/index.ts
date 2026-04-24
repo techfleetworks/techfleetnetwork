@@ -82,13 +82,9 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user) return jsonResponse(401, { error: "Unauthorized" });
 
-    // Hard-require AAL2 — the server-side RPC will also check this, but
-    // failing fast here gives a clean 403 without consuming a nonce.
-    const { data: aalData, error: aalErr } = await userClient.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aalErr) return jsonResponse(500, { error: "AAL check failed" });
-    // Either the JWT itself is already AAL2, or the user has no factors
-    // (so the post-passkey-verification path is the only way to call this).
-    // We still require the RPC's AAL check below; this is just a fast path.
+    // Note: AAL2 is enforced by the SQL nonce-issue RPC (`issue_device_binding_nonce`
+    // with `_purpose='bind'`). If the JWT is not AAL2, no 'bind' nonce can have
+    // been minted in the first place, so the consume below will fail.
 
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object") return jsonResponse(400, { error: "Invalid body" });
