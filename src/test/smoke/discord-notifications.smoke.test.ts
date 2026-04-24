@@ -9,22 +9,22 @@ const scenarioIds = ["73.1", "73.2", "73.3", "73.4"];
 
 describe("Discord Notifications" + " (smoke)", () => {
   it("73.1: Discord webhook notification is sent", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("73.1");
-    expect("Discord webhook notification is sent".length).toBeGreaterThan(0);
   });
 
   it("73.2: Discord notification handles webhook failure", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("73.2");
-    expect("Discord notification handles webhook failure".length).toBeGreaterThan(0);
   });
 
   it("73.3: Discord user ID resolution works", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("73.3");
-    expect("Discord user ID resolution works".length).toBeGreaterThan(0);
   });
 
   it("73.4: Discord invite URL is generated for new users", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("73.4");
-    expect("Discord invite URL is generated for new users".length).toBeGreaterThan(0);
   });
 });

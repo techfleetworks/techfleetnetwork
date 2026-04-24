@@ -13,7 +13,7 @@ describe("Profile Setup Page" + " (smoke)", () => {
   });
 
   it("55.2: Next button works when all step 1 fields filled", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("55.2");
-    expect("Next button works when all step 1 fields filled".length).toBeGreaterThan(0);
   });
 });

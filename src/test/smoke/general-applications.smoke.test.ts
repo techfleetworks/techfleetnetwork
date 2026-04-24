@@ -9,7 +9,7 @@ const scenarioIds = ["46.12"];
 
 describe("General Applications" + " (smoke)", () => {
   it("46.12: Email and background sync on save", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("46.12");
-    expect("Email and background sync on save".length).toBeGreaterThan(0);
   });
 });

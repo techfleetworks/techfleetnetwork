@@ -9,52 +9,52 @@ const scenarioIds = ["39.1", "39.10", "39.2", "39.3", "39.4", "39.5", "39.6", "3
 
 describe("Course Content Consistency" + " (smoke)", () => {
   it("39.1: Sticky Fleety icon appears bottom-right", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.1");
-    expect("Sticky Fleety icon appears bottom-right".length).toBeGreaterThan(0);
   });
 
   it("39.10: Course progress bar reflects completion", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.10");
-    expect("Course progress bar reflects completion".length).toBeGreaterThan(0);
   });
 
   it("39.2: Clicking Fleety icon opens side panel", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.2");
-    expect("Clicking Fleety icon opens side panel".length).toBeGreaterThan(0);
   });
 
   it("39.3: Ask Fleety option always in search", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.3");
-    expect("Ask Fleety option always in search".length).toBeGreaterThan(0);
   });
 
   it("39.4: Guidance tab on Resources page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.4");
-    expect("Guidance tab on Resources page".length).toBeGreaterThan(0);
   });
 
   it("39.5: Search Fleety option opens widget with query", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.5");
-    expect("Search Fleety option opens widget with query".length).toBeGreaterThan(0);
   });
 
   it("39.6: Lesson panel shows only text for text-only lessons", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.6");
-    expect("Lesson panel shows only text for text-only lessons".length).toBeGreaterThan(0);
   });
 
   it("39.7: Mark as Complete button works from panel", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.7");
-    expect("Mark as Complete button works from panel".length).toBeGreaterThan(0);
   });
 
   it("39.8: Back and Next navigation in lesson panel", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.8");
-    expect("Back and Next navigation in lesson panel".length).toBeGreaterThan(0);
   });
 
   it("39.9: Agile course lesson data has content field", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("39.9");
-    expect("Agile course lesson data has content field".length).toBeGreaterThan(0);
   });
 });

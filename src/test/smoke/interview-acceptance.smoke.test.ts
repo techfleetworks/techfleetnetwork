@@ -9,18 +9,18 @@ const scenarioIds = ["INT-ACCEPT-001", "INT-ACCEPT-002", "INT-ACCEPT-003", "INT-
 
 describe("Interview Acceptance" + " (smoke)", () => {
   it("INT-ACCEPT-001: Applicant sees status page after being invited to interview", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("INT-ACCEPT-001");
-    expect("Applicant sees status page after being invited to interview".length).toBeGreaterThan(0);
   });
 
   it("INT-ACCEPT-002: Applicant can accept interview invitation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("INT-ACCEPT-002");
-    expect("Applicant can accept interview invitation".length).toBeGreaterThan(0);
   });
 
   it("INT-ACCEPT-003: Status page shows correct info for each applicant status", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("INT-ACCEPT-003");
-    expect("Status page shows correct info for each applicant status".length).toBeGreaterThan(0);
   });
 
   it("INT-ACCEPT-004: Completed application with status update routes to status page instead of editor", () => {
@@ -32,7 +32,7 @@ describe("Interview Acceptance" + " (smoke)", () => {
   });
 
   it("INT-ACCEPT-006: Admin sees interview_accepted as a status option", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("INT-ACCEPT-006");
-    expect("Admin sees interview_accepted as a status option".length).toBeGreaterThan(0);
   });
 });

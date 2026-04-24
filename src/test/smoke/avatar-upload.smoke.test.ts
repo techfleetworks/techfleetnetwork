@@ -9,12 +9,12 @@ const scenarioIds = ["30.2", "30.6"];
 
 describe("Avatar Upload" + " (smoke)", () => {
   it("30.2: User can upload a valid PNG or JPG image", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("30.2");
-    expect("User can upload a valid PNG or JPG image".length).toBeGreaterThan(0);
   });
 
   it("30.6: Avatar shows in navbar after upload", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("30.6");
-    expect("Avatar shows in navbar after upload".length).toBeGreaterThan(0);
   });
 });

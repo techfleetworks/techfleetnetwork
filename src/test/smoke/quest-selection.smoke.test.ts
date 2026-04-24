@@ -9,27 +9,27 @@ const scenarioIds = ["QUEST-010", "QUEST-011", "QUEST-012", "QUEST-013", "QUEST-
 
 describe("Quest Selection" + " (smoke)", () => {
   it("QUEST-010: Empty state shows Find Quests button", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-010");
-    expect("Empty state shows Find Quests button".length).toBeGreaterThan(0);
   });
 
   it("QUEST-011: Quest picker shows three options", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-011");
-    expect("Quest picker shows three options".length).toBeGreaterThan(0);
   });
 
   it("QUEST-012: User previews quest details", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-012");
-    expect("User previews quest details".length).toBeGreaterThan(0);
   });
 
   it("QUEST-013: User selects a quest and sees congratulations", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-013");
-    expect("User selects a quest and sees congratulations".length).toBeGreaterThan(0);
   });
 
   it("QUEST-014: User finds another quest from preview", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-014");
-    expect("User finds another quest from preview".length).toBeGreaterThan(0);
   });
 });

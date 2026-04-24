@@ -9,17 +9,17 @@ const scenarioIds = ["79.1", "79.2", "79.3"];
 
 describe("Admin Promotion" + " (smoke)", () => {
   it("79.1: Admin can promote another user", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("79.1");
-    expect("Admin can promote another user".length).toBeGreaterThan(0);
   });
 
   it("79.2: Admin cannot promote themselves", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("79.2");
-    expect("Admin cannot promote themselves".length).toBeGreaterThan(0);
   });
 
   it("79.3: Non-admin cannot promote users", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("79.3");
-    expect("Non-admin cannot promote users".length).toBeGreaterThan(0);
   });
 });

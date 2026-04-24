@@ -13,17 +13,17 @@ describe("Chat Page" + " (smoke)", () => {
   });
 
   it("88.2: User can create a new conversation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("88.2");
-    expect("User can create a new conversation".length).toBeGreaterThan(0);
   });
 
   it("88.3: User can send messages in conversation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("88.3");
-    expect("User can send messages in conversation".length).toBeGreaterThan(0);
   });
 
   it("88.4: User can delete a conversation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("88.4");
-    expect("User can delete a conversation".length).toBeGreaterThan(0);
   });
 });

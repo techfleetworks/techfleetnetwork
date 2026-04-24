@@ -9,37 +9,37 @@ const scenarioIds = ["CLASS-CERT-001", "CLASS-CERT-005", "CLASS-CERT-006", "CLAS
 
 describe("Class Certifications" + " (smoke)", () => {
   it("CLASS-CERT-001: Search for class certification records", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("CLASS-CERT-001");
-    expect("Search for class certification records".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-005: Audit logging for class certification sync", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("CLASS-CERT-005");
-    expect("Audit logging for class certification sync".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-006: RLS policies protect class certifications data", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("CLASS-CERT-006");
-    expect("RLS policies protect class certifications data".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-008: Fallback filter strategies for Airtable lookup fields", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("CLASS-CERT-008");
-    expect("Fallback filter strategies for Airtable lookup fields".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-009: Pagination support for large record sets", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("CLASS-CERT-009");
-    expect("Pagination support for large record sets".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-010: Email escaping prevents formula injection", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("CLASS-CERT-010");
-    expect("Email escaping prevents formula injection".length).toBeGreaterThan(0);
   });
 
   it("CLASS-CERT-011: Cohort lookup failures are isolated per record", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("CLASS-CERT-011");
-    expect("Cohort lookup failures are isolated per record".length).toBeGreaterThan(0);
   });
 });

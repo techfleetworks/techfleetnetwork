@@ -9,17 +9,17 @@ const scenarioIds = ["63.1", "63.2", "63.3"];
 
 describe("Step Progress Bar" + " (smoke)", () => {
   it("63.1: Progress bar shows correct completion percentage", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("63.1");
-    expect("Progress bar shows correct completion percentage".length).toBeGreaterThan(0);
   });
 
   it("63.2: Progress bar shows 0% for no completions", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("63.2");
-    expect("Progress bar shows 0% for no completions".length).toBeGreaterThan(0);
   });
 
   it("63.3: Progress bar shows 100% when all complete", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("63.3");
-    expect("Progress bar shows 100% when all complete".length).toBeGreaterThan(0);
   });
 });

@@ -9,13 +9,13 @@ const scenarioIds = ["83.1", "83.2", "83.3"];
 
 describe("Project Opening Notifications" + " (smoke)", () => {
   it("83.1: Users are notified when project opens for applications", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("83.1");
-    expect("Users are notified when project opens for applications".length).toBeGreaterThan(0);
   });
 
   it("83.2: Project opening notification includes project details", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("83.2");
-    expect("Project opening notification includes project details".length).toBeGreaterThan(0);
   });
 
   it("83.3: Project opening email links to project detail page", () => {

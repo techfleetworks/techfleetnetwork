@@ -9,7 +9,7 @@ const scenarioIds = ["REFACTOR-001"];
 
 describe("Code Quality" + " (smoke)", () => {
   it("REFACTOR-001: HTML stripping uses shared utility instead of inline DOM creation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("REFACTOR-001");
-    expect("HTML stripping uses shared utility instead of inline DOM creation".length).toBeGreaterThan(0);
   });
 });

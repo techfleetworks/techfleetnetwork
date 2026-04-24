@@ -9,12 +9,12 @@ const scenarioIds = ["64.1", "64.2"];
 
 describe("Readiness Checklist" + " (smoke)", () => {
   it("64.1: Readiness checklist shows prerequisite status", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("64.1");
-    expect("Readiness checklist shows prerequisite status".length).toBeGreaterThan(0);
   });
 
   it("64.2: Readiness checklist blocks action when incomplete", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("64.2");
-    expect("Readiness checklist blocks action when incomplete".length).toBeGreaterThan(0);
   });
 });

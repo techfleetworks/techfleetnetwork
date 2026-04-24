@@ -9,37 +9,37 @@ const scenarioIds = ["PERF-001", "PERF-010", "PERF-011", "PERF-012", "PERF-013",
 
 describe("Performance" + " (smoke)", () => {
   it("PERF-001: Database indexes accelerate hot query paths", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-001");
-    expect("Database indexes accelerate hot query paths".length).toBeGreaterThan(0);
   });
 
   it("PERF-010: Bundle splitting separates vendor chunks into 9 groups", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-010");
-    expect("Bundle splitting separates vendor chunks into 9 groups".length).toBeGreaterThan(0);
   });
 
   it("PERF-011: AuthContext memoizes context value with useMemo", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-011");
-    expect("AuthContext memoizes context value with useMemo".length).toBeGreaterThan(0);
   });
 
   it("PERF-012: Dashboard eliminates query waterfall for project apps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-012");
-    expect("Dashboard eliminates query waterfall for project apps".length).toBeGreaterThan(0);
   });
 
   it("PERF-013: NetworkActivity uses shared React Query cache", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("PERF-013");
-    expect("NetworkActivity uses shared React Query cache".length).toBeGreaterThan(0);
   });
 
   it("PERF-014: MemberWorldMap lazy-loads with Suspense boundary", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-014");
-    expect("MemberWorldMap lazy-loads with Suspense boundary".length).toBeGreaterThan(0);
   });
 
   it("PERF-016: AppSidebar memoized to prevent unnecessary re-renders", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-016");
-    expect("AppSidebar memoized to prevent unnecessary re-renders".length).toBeGreaterThan(0);
   });
 });

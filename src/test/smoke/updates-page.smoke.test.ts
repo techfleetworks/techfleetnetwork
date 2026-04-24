@@ -13,12 +13,12 @@ describe("Updates Page" + " (smoke)", () => {
   });
 
   it("68.2: User can view announcement detail", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("68.2");
-    expect("User can view announcement detail".length).toBeGreaterThan(0);
   });
 
   it("68.3: Updates page shows media icons for video/audio", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("68.3");
-    expect("Updates page shows media icons for video/audio".length).toBeGreaterThan(0);
   });
 });

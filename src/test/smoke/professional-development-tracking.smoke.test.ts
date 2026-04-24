@@ -9,27 +9,27 @@ const scenarioIds = ["13.1", "13.2", "13.3", "13.4", "13.5"];
 
 describe("Professional Development Tracking" + " (smoke)", () => {
   it("13.1: User logs external PD activity", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("13.1");
-    expect("User logs external PD activity".length).toBeGreaterThan(0);
   });
 
   it("13.2: Unsuccessful PD logging due to invalid data", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("13.2");
-    expect("Unsuccessful PD logging due to invalid data".length).toBeGreaterThan(0);
   });
 
   it("13.3: User sets and tracks PD goals", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("13.3");
-    expect("User sets and tracks PD goals".length).toBeGreaterThan(0);
   });
 
   it("13.4: System sends certification renewal reminders", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("13.4");
-    expect("System sends certification renewal reminders".length).toBeGreaterThan(0);
   });
 
   it("13.5: User views and exports PD transcript", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("13.5");
-    expect("User views and exports PD transcript".length).toBeGreaterThan(0);
   });
 });

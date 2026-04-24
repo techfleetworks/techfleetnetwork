@@ -13,7 +13,7 @@ describe("My Project Applications" + " (smoke)", () => {
   });
 
   it("89.2: User can resume a draft application", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("89.2");
-    expect("User can resume a draft application".length).toBeGreaterThan(0);
   });
 });

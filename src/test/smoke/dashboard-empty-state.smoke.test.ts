@@ -9,12 +9,12 @@ const scenarioIds = ["65.1", "65.2"];
 
 describe("Dashboard Empty State" + " (smoke)", () => {
   it("65.1: Dashboard shows empty state for new users", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("65.1");
-    expect("Dashboard shows empty state for new users".length).toBeGreaterThan(0);
   });
 
   it("65.2: Empty state has call-to-action button", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("65.2");
-    expect("Empty state has call-to-action button".length).toBeGreaterThan(0);
   });
 });

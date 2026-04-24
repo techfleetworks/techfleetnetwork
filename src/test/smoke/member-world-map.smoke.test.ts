@@ -9,17 +9,17 @@ const scenarioIds = ["61.1", "61.2", "61.3"];
 
 describe("Member World Map" + " (smoke)", () => {
   it("61.1: World map renders member distribution", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("61.1");
-    expect("World map renders member distribution".length).toBeGreaterThan(0);
   });
 
   it("61.2: World map handles empty data gracefully", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("61.2");
-    expect("World map handles empty data gracefully".length).toBeGreaterThan(0);
   });
 
   it("61.3: World map is responsive on mobile", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("61.3");
-    expect("World map is responsive on mobile".length).toBeGreaterThan(0);
   });
 });

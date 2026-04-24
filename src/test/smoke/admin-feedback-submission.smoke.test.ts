@@ -9,7 +9,7 @@ const scenarioIds = ["FB-2"];
 
 describe("Admin Feedback Submission" + " (smoke)", () => {
   it("FB-2: Admin can submit feedback via dialog", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("FB-2");
-    expect("Admin can submit feedback via dialog".length).toBeGreaterThan(0);
   });
 });

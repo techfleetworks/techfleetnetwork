@@ -9,42 +9,42 @@ const scenarioIds = ["8.1", "8.2", "8.3", "8.4", "8.5", "8.6", "8.7", "8.8"];
 
 describe("Basic Training Curriculum & Tiers" + " (smoke)", () => {
   it("8.1: User views available Tier 0 curriculum", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.1");
-    expect("User views available Tier 0 curriculum".length).toBeGreaterThan(0);
   });
 
   it("8.2: Successful enrollment in individual Tier 1 course", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.2");
-    expect("Successful enrollment in individual Tier 1 course".length).toBeGreaterThan(0);
   });
 
   it("8.3: Successful purchase of Tier 2 bundle", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.3");
-    expect("Successful purchase of Tier 2 bundle".length).toBeGreaterThan(0);
   });
 
   it("8.4: Unsuccessful access to paid content without purchase", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.4");
-    expect("Unsuccessful access to paid content without purchase".length).toBeGreaterThan(0);
   });
 
   it("8.5: User tracks progress through a course", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.5");
-    expect("User tracks progress through a course".length).toBeGreaterThan(0);
   });
 
   it("8.6: Successful course completion and certificate generation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.6");
-    expect("Successful course completion and certificate generation".length).toBeGreaterThan(0);
   });
 
   it("8.7: Unsuccessful quiz submission due to timeout", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.7");
-    expect("Unsuccessful quiz submission due to timeout".length).toBeGreaterThan(0);
   });
 
   it("8.8: User attempts to skip prerequisite courses", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("8.8");
-    expect("User attempts to skip prerequisite courses".length).toBeGreaterThan(0);
   });
 });

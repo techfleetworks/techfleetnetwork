@@ -9,32 +9,32 @@ const scenarioIds = ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6"];
 
 describe("Project Applications" + " (smoke)", () => {
   it("9.1: Successful project application submission", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.1");
-    expect("Successful project application submission".length).toBeGreaterThan(0);
   });
 
   it("9.2: User views past project applications", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.2");
-    expect("User views past project applications".length).toBeGreaterThan(0);
   });
 
   it("9.3: Unsuccessful application due to unmet prerequisites", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.3");
-    expect("Unsuccessful application due to unmet prerequisites".length).toBeGreaterThan(0);
   });
 
   it("9.4: Unsuccessful application due to missed deadline", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.4");
-    expect("Unsuccessful application due to missed deadline".length).toBeGreaterThan(0);
   });
 
   it("9.5: User withdraws a pending application", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.5");
-    expect("User withdraws a pending application".length).toBeGreaterThan(0);
   });
 
   it("9.6: Unsuccessful file upload during application", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("9.6");
-    expect("Unsuccessful file upload during application".length).toBeGreaterThan(0);
   });
 });

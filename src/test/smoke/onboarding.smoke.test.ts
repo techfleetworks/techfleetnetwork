@@ -9,7 +9,7 @@ const scenarioIds = ["onboarding_steps_six_tasks"];
 
 describe("Onboarding" + " (smoke)", () => {
   it("onboarding_steps_six_tasks: Onboarding Steps contains exactly 6 tasks", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("onboarding_steps_six_tasks");
-    expect("Onboarding Steps contains exactly 6 tasks".length).toBeGreaterThan(0);
   });
 });

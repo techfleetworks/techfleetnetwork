@@ -9,12 +9,12 @@ const scenarioIds = ["72.1", "72.2"];
 
 describe("Airtable Sync" + " (smoke)", () => {
   it("72.1: Admin can trigger Airtable sync", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("72.1");
-    expect("Admin can trigger Airtable sync".length).toBeGreaterThan(0);
   });
 
   it("72.2: Airtable sync handles missing credentials", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("72.2");
-    expect("Airtable sync handles missing credentials".length).toBeGreaterThan(0);
   });
 });

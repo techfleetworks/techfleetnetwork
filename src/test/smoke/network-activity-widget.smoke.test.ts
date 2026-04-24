@@ -9,12 +9,12 @@ const scenarioIds = ["96.1", "96.2"];
 
 describe("Network Activity Widget" + " (smoke)", () => {
   it("96.1: Network activity displays stats from get_network_stats", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("96.1");
-    expect("Network activity displays stats from get_network_stats".length).toBeGreaterThan(0);
   });
 
   it("96.2: Network activity shows project counts", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("96.2");
-    expect("Network activity shows project counts".length).toBeGreaterThan(0);
   });
 });

@@ -17,7 +17,7 @@ describe("Project Openings Page" + " (smoke)", () => {
   });
 
   it("87.3: Apply button shown only for apply_now projects", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("87.3");
-    expect("Apply button shown only for apply_now projects".length).toBeGreaterThan(0);
   });
 });

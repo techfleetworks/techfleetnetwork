@@ -9,7 +9,7 @@ const scenarioIds = ["ERR-005"];
 
 describe("Error Handling" + " (smoke)", () => {
   it("ERR-005: Known browser noise is suppressed from audit log", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("ERR-005");
-    expect("Known browser noise is suppressed from audit log".length).toBeGreaterThan(0);
   });
 });

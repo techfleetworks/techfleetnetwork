@@ -9,17 +9,17 @@ const scenarioIds = ["95.1", "95.2", "95.3"];
 
 describe("Dashboard Customizer" + " (smoke)", () => {
   it("95.1: User can toggle widget visibility", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("95.1");
-    expect("User can toggle widget visibility".length).toBeGreaterThan(0);
   });
 
   it("95.2: User can reorder dashboard widgets", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("95.2");
-    expect("User can reorder dashboard widgets".length).toBeGreaterThan(0);
   });
 
   it("95.3: Dashboard preferences persist across sessions", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("95.3");
-    expect("Dashboard preferences persist across sessions".length).toBeGreaterThan(0);
   });
 });

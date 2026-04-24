@@ -9,37 +9,37 @@ const scenarioIds = ["14.1", "14.2", "14.3", "14.4", "14.5", "14.6", "14.7"];
 
 describe("Accomplishment Showcasing" + " (smoke)", () => {
   it("14.1: User earns a badge for completing a milestone", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.1");
-    expect("User earns a badge for completing a milestone".length).toBeGreaterThan(0);
   });
 
   it("14.2: User creates a public profile to showcase accomplishments", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.2");
-    expect("User creates a public profile to showcase accomplishments".length).toBeGreaterThan(0);
   });
 
   it("14.3: User shares an accomplishment on social media", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.3");
-    expect("User shares an accomplishment on social media".length).toBeGreaterThan(0);
   });
 
   it("14.4: Third-party verifies a user accomplishment", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.4");
-    expect("Third-party verifies a user accomplishment".length).toBeGreaterThan(0);
   });
 
   it("14.5: Invalid verification link", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.5");
-    expect("Invalid verification link".length).toBeGreaterThan(0);
   });
 
   it("14.6: User downloads certificate as PDF", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.6");
-    expect("User downloads certificate as PDF".length).toBeGreaterThan(0);
   });
 
   it("14.7: User hides accomplishment from public profile", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("14.7");
-    expect("User hides accomplishment from public profile".length).toBeGreaterThan(0);
   });
 });

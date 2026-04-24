@@ -9,12 +9,12 @@ const scenarioIds = ["DASH-PREF-008", "refactor_self_healing_1"];
 
 describe("Dashboard Preferences" + " (smoke)", () => {
   it("DASH-PREF-008: Existing users with old defaults get all widgets", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("DASH-PREF-008");
-    expect("Existing users with old defaults get all widgets".length).toBeGreaterThan(0);
   });
 
   it("refactor_self_healing_1: Hook guarantees arrays regardless of DB shape", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("refactor_self_healing_1");
-    expect("Hook guarantees arrays regardless of DB shape".length).toBeGreaterThan(0);
   });
 });

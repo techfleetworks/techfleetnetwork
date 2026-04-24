@@ -9,12 +9,12 @@ const scenarioIds = ["1.1", "1.2"];
 
 describe("Pre-Platform: Community Call & Invitation" + " (smoke)", () => {
   it("1.1: Prospective member attends community call and receives platform invitation", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("1.1");
-    expect("Prospective member attends community call and receives platform invitation".length).toBeGreaterThan(0);
   });
 
   it("1.2: Prospective member receives invitation without attending a call", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("1.2");
-    expect("Prospective member receives invitation without attending a call".length).toBeGreaterThan(0);
   });
 });

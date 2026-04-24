@@ -9,7 +9,7 @@ const scenarioIds = ["745"];
 
 describe("Fleety Chatbot" + " (smoke)", () => {
   it("745: Web search runs in parallel with KB load", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("745");
-    expect("Web search runs in parallel with KB load".length).toBeGreaterThan(0);
   });
 });

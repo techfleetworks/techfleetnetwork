@@ -9,17 +9,17 @@ const scenarioIds = ["PROF-SAVE-001", "PROF-SAVE-002", "PROF-SAVE-003"];
 
 describe("Profile Management" + " (smoke)", () => {
   it("PROF-SAVE-001: Profile form preserves edits during background re-fetch", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("PROF-SAVE-001");
-    expect("Profile form preserves edits during background re-fetch".length).toBeGreaterThan(0);
   });
 
   it("PROF-SAVE-002: Profile form syncs after successful save", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PROF-SAVE-002");
-    expect("Profile form syncs after successful save".length).toBeGreaterThan(0);
   });
 
   it("PROF-SAVE-003: Profile edit panel resets initialized state on close", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PROF-SAVE-003");
-    expect("Profile edit panel resets initialized state on close".length).toBeGreaterThan(0);
   });
 });

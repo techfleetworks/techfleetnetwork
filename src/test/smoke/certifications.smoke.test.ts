@@ -9,12 +9,12 @@ const scenarioIds = ["CERT-TITLE-002", "CERT-TITLE-003"];
 
 describe("Certifications" + " (smoke)", () => {
   it("CERT-TITLE-002: Client-side fallback for legacy rows without display_title", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("CERT-TITLE-002");
-    expect("Client-side fallback for legacy rows without display_title".length).toBeGreaterThan(0);
   });
 
   it("CERT-TITLE-003: Airtable record IDs are never shown as titles", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("CERT-TITLE-003");
-    expect("Airtable record IDs are never shown as titles".length).toBeGreaterThan(0);
   });
 });

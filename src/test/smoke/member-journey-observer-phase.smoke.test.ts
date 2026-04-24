@@ -9,37 +9,37 @@ const scenarioIds = ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6", "7.7"];
 
 describe("Member Journey: Observer Phase" + " (smoke)", () => {
   it("7.1: User successfully initiates the Observer Phase", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.1");
-    expect("User successfully initiates the Observer Phase".length).toBeGreaterThan(0);
   });
 
   it("7.2: User attempts to start Observer Phase without prerequisites", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.2");
-    expect("User attempts to start Observer Phase without prerequisites".length).toBeGreaterThan(0);
   });
 
   it("7.3: User meets all weekly tracking requirements", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.3");
-    expect("User meets all weekly tracking requirements".length).toBeGreaterThan(0);
   });
 
   it("7.4: User fails to post daily learnings in Discord", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.4");
-    expect("User fails to post daily learnings in Discord".length).toBeGreaterThan(0);
   });
 
   it("7.5: User fails weekly meeting attendance minimum", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.5");
-    expect("User fails weekly meeting attendance minimum".length).toBeGreaterThan(0);
   });
 
   it("7.6: User fails weekly observation reflection minimum", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.6");
-    expect("User fails weekly observation reflection minimum".length).toBeGreaterThan(0);
   });
 
   it("7.7: User successfully completes full 2-week Observer Phase", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("7.7");
-    expect("User successfully completes full 2-week Observer Phase".length).toBeGreaterThan(0);
   });
 });

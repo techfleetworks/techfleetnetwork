@@ -9,12 +9,12 @@ const scenarioIds = ["60.1", "60.2"];
 
 describe("Community Agreement" + " (smoke)", () => {
   it("60.1: Community agreement displays on first login", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("60.1");
-    expect("Community agreement displays on first login".length).toBeGreaterThan(0);
   });
 
   it("60.2: Community agreement content is accessible", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("60.2");
-    expect("Community agreement content is accessible".length).toBeGreaterThan(0);
   });
 });

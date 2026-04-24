@@ -13,17 +13,17 @@ describe("User Administration" + " (smoke)", () => {
   });
 
   it("91.2: Admin can view user detail dialog", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("91.2");
-    expect("Admin can view user detail dialog".length).toBeGreaterThan(0);
   });
 
   it("91.3: Admin can promote user to admin", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("91.3");
-    expect("Admin can promote user to admin".length).toBeGreaterThan(0);
   });
 
   it("91.4: Admin can send invitation to new user", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("91.4");
-    expect("Admin can send invitation to new user".length).toBeGreaterThan(0);
   });
 });

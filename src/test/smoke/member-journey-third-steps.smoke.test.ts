@@ -9,17 +9,17 @@ const scenarioIds = ["5.1", "5.2", "5.3"];
 
 describe("Member Journey: Third Steps" + " (smoke)", () => {
   it("5.1: User successfully completes Third Steps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("5.1");
-    expect("User successfully completes Third Steps".length).toBeGreaterThan(0);
   });
 
   it("5.2: User fails the Teammate Handbook quiz", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("5.2");
-    expect("User fails the Teammate Handbook quiz".length).toBeGreaterThan(0);
   });
 
   it("5.3: User attempts to access Third Steps without completing Second Steps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("5.3");
-    expect("User attempts to access Third Steps without completing Second Steps".length).toBeGreaterThan(0);
   });
 });

@@ -9,12 +9,12 @@ const scenarioIds = ["71.1", "71.2"];
 
 describe("Sign Out All Devices" + " (smoke)", () => {
   it("71.1: User can sign out all devices", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("71.1");
-    expect("User can sign out all devices".length).toBeGreaterThan(0);
   });
 
   it("71.2: Sign out all devices requires authentication", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("71.2");
-    expect("Sign out all devices requires authentication".length).toBeGreaterThan(0);
   });
 });

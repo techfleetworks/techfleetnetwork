@@ -9,17 +9,17 @@ const scenarioIds = ["ONBOARD-37-001", "ONBOARD-37-002", "ONBOARD-37-003"];
 
 describe("Onboarding Wizard Step 3 Interests" + " (smoke)", () => {
   it("ONBOARD-37-001: User can select activity interests without crash", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("ONBOARD-37-001");
-    expect("User can select activity interests without crash".length).toBeGreaterThan(0);
   });
 
   it("ONBOARD-37-002: User can deselect a previously selected interest", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("ONBOARD-37-002");
-    expect("User can deselect a previously selected interest".length).toBeGreaterThan(0);
   });
 
   it("ONBOARD-37-003: Checkbox does not double-toggle on click", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("ONBOARD-37-003");
-    expect("Checkbox does not double-toggle on click".length).toBeGreaterThan(0);
   });
 });

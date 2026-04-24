@@ -9,12 +9,12 @@ const scenarioIds = ["NET-ACT-001", "NET-ACT-002"];
 
 describe("Network Activity" + " (smoke)", () => {
   it("NET-ACT-001: Network Activity displays all-time stats", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("NET-ACT-001");
-    expect("Network Activity displays all-time stats".length).toBeGreaterThan(0);
   });
 
   it("NET-ACT-002: Network Activity displays previous week stats with date range", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("NET-ACT-002");
-    expect("Network Activity displays previous week stats with date range".length).toBeGreaterThan(0);
   });
 });

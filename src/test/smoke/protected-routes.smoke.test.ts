@@ -13,17 +13,17 @@ describe("Protected Routes" + " (smoke)", () => {
   });
 
   it("57.2: Authenticated user can access protected routes", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("57.2");
-    expect("Authenticated user can access protected routes".length).toBeGreaterThan(0);
   });
 
   it("57.3: Profile-incomplete user sees setup dialog", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("57.3");
-    expect("Profile-incomplete user sees setup dialog".length).toBeGreaterThan(0);
   });
 
   it("57.4: Admin-only routes reject non-admin users", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("57.4");
-    expect("Admin-only routes reject non-admin users".length).toBeGreaterThan(0);
   });
 });

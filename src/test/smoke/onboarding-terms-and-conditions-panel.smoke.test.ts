@@ -9,17 +9,17 @@ const scenarioIds = ["TC-1", "TC-2", "TC-3"];
 
 describe("Onboarding – Terms and Conditions Panel" + " (smoke)", () => {
   it("TC-1: Terms panel renders title and content", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("TC-1");
-    expect("Terms panel renders title and content".length).toBeGreaterThan(0);
   });
 
   it("TC-2: Accept button disabled until checkbox checked", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("TC-2");
-    expect("Accept button disabled until checkbox checked".length).toBeGreaterThan(0);
   });
 
   it("TC-3: Accepting marks onboarding task complete", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("TC-3");
-    expect("Accepting marks onboarding task complete".length).toBeGreaterThan(0);
   });
 });

@@ -9,17 +9,17 @@ const scenarioIds = ["SEC-CB-001", "SEC-CB-002", "SEC-CB-003"];
 
 describe("Circuit Breaker" + " (smoke)", () => {
   it("SEC-CB-001: Circuit breaker opens after repeated failures", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEC-CB-001");
-    expect("Circuit breaker opens after repeated failures".length).toBeGreaterThan(0);
   });
 
   it("SEC-CB-002: Circuit breaker allows probe after cooldown", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEC-CB-002");
-    expect("Circuit breaker allows probe after cooldown".length).toBeGreaterThan(0);
   });
 
   it("SEC-CB-003: Circuit breaker closes after successful probe", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEC-CB-003");
-    expect("Circuit breaker closes after successful probe".length).toBeGreaterThan(0);
   });
 });

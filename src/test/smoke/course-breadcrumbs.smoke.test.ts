@@ -9,8 +9,8 @@ const scenarioIds = ["41.1", "41.2", "41.3"];
 
 describe("Course Breadcrumbs" + " (smoke)", () => {
   it("41.1: Breadcrumbs show on course detail page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("41.1");
-    expect("Breadcrumbs show on course detail page".length).toBeGreaterThan(0);
   });
 
   it("41.2: Breadcrumb Courses link navigates to training page", () => {
@@ -18,7 +18,7 @@ describe("Course Breadcrumbs" + " (smoke)", () => {
   });
 
   it("41.3: Breadcrumbs show on locked course prerequisite page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("41.3");
-    expect("Breadcrumbs show on locked course prerequisite page".length).toBeGreaterThan(0);
   });
 });

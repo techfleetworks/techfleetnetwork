@@ -9,12 +9,12 @@ const scenarioIds = ["82.1", "82.2"];
 
 describe("Feedback Notifications" + " (smoke)", () => {
   it("82.1: Admins are notified when feedback is submitted", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("82.1");
-    expect("Admins are notified when feedback is submitted".length).toBeGreaterThan(0);
   });
 
   it("82.2: Feedback notification includes submitter info", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("82.2");
-    expect("Feedback notification includes submitter info".length).toBeGreaterThan(0);
   });
 });

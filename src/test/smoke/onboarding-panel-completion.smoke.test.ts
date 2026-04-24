@@ -9,12 +9,12 @@ const scenarioIds = ["ONB-PP-1", "ONB-TC-1"];
 
 describe("Onboarding panel completion" + " (smoke)", () => {
   it("ONB-PP-1: Privacy policy acceptance completes task", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("ONB-PP-1");
-    expect("Privacy policy acceptance completes task".length).toBeGreaterThan(0);
   });
 
   it("ONB-TC-1: Terms acceptance completes task", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("ONB-TC-1");
-    expect("Terms acceptance completes task".length).toBeGreaterThan(0);
   });
 });

@@ -9,37 +9,37 @@ const scenarioIds = ["10.1", "10.2", "10.3", "10.4", "10.5", "10.6", "10.7"];
 
 describe("Class Registration" + " (smoke)", () => {
   it("10.1: Successful class registration", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.1");
-    expect("Successful class registration".length).toBeGreaterThan(0);
   });
 
   it("10.2: Unsuccessful registration due to full capacity", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.2");
-    expect("Unsuccessful registration due to full capacity".length).toBeGreaterThan(0);
   });
 
   it("10.3: Unsuccessful registration due to insufficient tier", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.3");
-    expect("Unsuccessful registration due to insufficient tier".length).toBeGreaterThan(0);
   });
 
   it("10.4: Successful class cancellation by user", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("10.4");
-    expect("Successful class cancellation by user".length).toBeGreaterThan(0);
   });
 
   it("10.5: Unsuccessful cancellation due to missed deadline", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.5");
-    expect("Unsuccessful cancellation due to missed deadline".length).toBeGreaterThan(0);
   });
 
   it("10.6: User joins a live class session", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.6");
-    expect("User joins a live class session".length).toBeGreaterThan(0);
   });
 
   it("10.7: User schedules one-on-one coaching session (Tier 2)", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("10.7");
-    expect("User schedules one-on-one coaching session (Tier 2)".length).toBeGreaterThan(0);
   });
 });

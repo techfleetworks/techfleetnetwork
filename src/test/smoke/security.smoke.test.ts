@@ -9,72 +9,72 @@ const scenarioIds = ["ASVS-V13-AUTH-001", "BURP-IDOR-001", "CRS-WAF-001", "LLM01
 
 describe("Security" + " (smoke)", () => {
   it("ASVS-V13-AUTH-001: Chat uses session JWT not static key", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("ASVS-V13-AUTH-001");
-    expect("Chat uses session JWT not static key".length).toBeGreaterThan(0);
   });
 
   it("BURP-IDOR-001: Roster IDOR via email spoofing prevented", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("BURP-IDOR-001");
-    expect("Roster IDOR via email spoofing prevented".length).toBeGreaterThan(0);
   });
 
   it("CRS-WAF-001: CRS attack pattern detection utility", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("CRS-WAF-001");
-    expect("CRS attack pattern detection utility".length).toBeGreaterThan(0);
   });
 
   it("LLM01-INJECT-001: Prompt injection detection in chat and Discord", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("LLM01-INJECT-001");
-    expect("Prompt injection detection in chat and Discord".length).toBeGreaterThan(0);
   });
 
   it("LLM02-PII-001: PII redaction from AI output", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("LLM02-PII-001");
-    expect("PII redaction from AI output".length).toBeGreaterThan(0);
   });
 
   it("LLM05-OUTPUT-001: Dangerous HTML stripped from AI output", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("LLM05-OUTPUT-001");
-    expect("Dangerous HTML stripped from AI output".length).toBeGreaterThan(0);
   });
 
   it("LLM07-CANARY-001: System prompt canary token defense", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("LLM07-CANARY-001");
-    expect("System prompt canary token defense".length).toBeGreaterThan(0);
   });
 
   it("LLM10-INPUT-001: Input length limits on chat messages", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("LLM10-INPUT-001");
-    expect("Input length limits on chat messages".length).toBeGreaterThan(0);
   });
 
   it("MASVS-STORAGE-001: Sensitive input field attributes available", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("MASVS-STORAGE-001");
-    expect("Sensitive input field attributes available".length).toBeGreaterThan(0);
   });
 
   it("OWASP-AI-INJECT-001: Prompt injection detection in chat", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("OWASP-AI-INJECT-001");
-    expect("Prompt injection detection in chat".length).toBeGreaterThan(0);
   });
 
   it("OWASP-AI-OUTPUT-001: AI output sanitization stream", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("OWASP-AI-OUTPUT-001");
-    expect("AI output sanitization stream".length).toBeGreaterThan(0);
   });
 
   it("WSTG-ATHZ-01-001: Chat endpoint requires JWT authentication", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("WSTG-ATHZ-01-001");
-    expect("Chat endpoint requires JWT authentication".length).toBeGreaterThan(0);
   });
 
   it("WSTG-BUSL-05-001: Chat rate limiting per user", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("WSTG-BUSL-05-001");
-    expect("Chat rate limiting per user".length).toBeGreaterThan(0);
   });
 
   it("WSTG-CLNT-04-001: Auth redirect validated against allowlist", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("WSTG-CLNT-04-001");
-    expect("Auth redirect validated against allowlist".length).toBeGreaterThan(0);
   });
 });

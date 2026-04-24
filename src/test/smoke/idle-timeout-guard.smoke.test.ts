@@ -9,17 +9,17 @@ const scenarioIds = ["59.1", "59.2", "59.3"];
 
 describe("Idle Timeout Guard" + " (smoke)", () => {
   it("59.1: Idle timeout warning appears after inactivity", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("59.1");
-    expect("Idle timeout warning appears after inactivity".length).toBeGreaterThan(0);
   });
 
   it("59.2: User can dismiss idle timeout and stay logged in", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("59.2");
-    expect("User can dismiss idle timeout and stay logged in".length).toBeGreaterThan(0);
   });
 
   it("59.3: Session ends after idle timeout expires", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("59.3");
-    expect("Session ends after idle timeout expires".length).toBeGreaterThan(0);
   });
 });

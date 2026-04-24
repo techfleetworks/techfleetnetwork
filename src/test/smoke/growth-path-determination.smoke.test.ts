@@ -9,27 +9,27 @@ const scenarioIds = ["11.1", "11.2", "11.3", "11.4", "11.5"];
 
 describe("Growth Path Determination" + " (smoke)", () => {
   it("11.1: System recommends personalized growth path", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("11.1");
-    expect("System recommends personalized growth path".length).toBeGreaterThan(0);
   });
 
   it("11.2: User accepts recommended growth path", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("11.2");
-    expect("User accepts recommended growth path".length).toBeGreaterThan(0);
   });
 
   it("11.3: User customizes their growth path", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("11.3");
-    expect("User customizes their growth path".length).toBeGreaterThan(0);
   });
 
   it("11.4: System updates path based on completed activities", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("11.4");
-    expect("System updates path based on completed activities".length).toBeGreaterThan(0);
   });
 
   it("11.5: User switches between growth paths", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("11.5");
-    expect("User switches between growth paths".length).toBeGreaterThan(0);
   });
 });

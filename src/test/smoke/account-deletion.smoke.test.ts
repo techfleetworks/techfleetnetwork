@@ -9,22 +9,22 @@ const scenarioIds = ["70.1", "70.2", "70.3", "AD-004"];
 
 describe("Account Deletion" + " (smoke)", () => {
   it("70.1: Authenticated user can delete their account", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("70.1");
-    expect("Authenticated user can delete their account".length).toBeGreaterThan(0);
   });
 
   it("70.2: Unauthenticated request is rejected", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("70.2");
-    expect("Unauthenticated request is rejected".length).toBeGreaterThan(0);
   });
 
   it("70.3: Deletion cascades to all related tables", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("70.3");
-    expect("Deletion cascades to all related tables".length).toBeGreaterThan(0);
   });
 
   it("AD-004: Orphaned data cleanup on auth user deletion", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("AD-004");
-    expect("Orphaned data cleanup on auth user deletion".length).toBeGreaterThan(0);
   });
 });

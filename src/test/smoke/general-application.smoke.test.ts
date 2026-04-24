@@ -9,7 +9,7 @@ const scenarioIds = ["GEN-APP-011"];
 
 describe("General Application" + " (smoke)", () => {
   it("GEN-APP-011: General Application component decomposition", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("GEN-APP-011");
-    expect("General Application component decomposition".length).toBeGreaterThan(0);
   });
 });

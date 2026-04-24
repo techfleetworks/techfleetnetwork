@@ -9,17 +9,17 @@ const scenarioIds = ["SEC-EDGE-001", "SEC-EDGE-002", "SEC-EDGE-003"];
 
 describe("Edge Function Hardening" + " (smoke)", () => {
   it("SEC-EDGE-001: Edge functions reject oversized request bodies", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEC-EDGE-001");
-    expect("Edge functions reject oversized request bodies".length).toBeGreaterThan(0);
   });
 
   it("SEC-EDGE-002: Chat edge function validates message structure", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEC-EDGE-002");
-    expect("Chat edge function validates message structure".length).toBeGreaterThan(0);
   });
 
   it("SEC-EDGE-003: Discord notify validates event types against whitelist", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEC-EDGE-003");
-    expect("Discord notify validates event types against whitelist".length).toBeGreaterThan(0);
   });
 });

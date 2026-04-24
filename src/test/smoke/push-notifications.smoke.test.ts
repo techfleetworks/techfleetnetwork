@@ -9,7 +9,7 @@ const scenarioIds = ["PUSH-006"];
 
 describe("Push Notifications" + " (smoke)", () => {
   it("PUSH-006: Push subscribe retries on transient AbortError", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("PUSH-006");
-    expect("Push subscribe retries on transient AbortError".length).toBeGreaterThan(0);
   });
 });

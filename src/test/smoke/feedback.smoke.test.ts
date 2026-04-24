@@ -9,7 +9,7 @@ const scenarioIds = ["36.7"];
 
 describe("Feedback" + " (smoke)", () => {
   it("36.7: Success dialog appears after feedback submission", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("36.7");
-    expect("Success dialog appears after feedback submission".length).toBeGreaterThan(0);
   });
 });

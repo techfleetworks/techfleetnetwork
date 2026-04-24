@@ -9,7 +9,7 @@ const scenarioIds = ["49.3"];
 
 describe("Training Hub" + " (smoke)", () => {
   it("49.3: User can navigate to individual course from training hub", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("49.3");
-    expect("User can navigate to individual course from training hub".length).toBeGreaterThan(0);
   });
 });

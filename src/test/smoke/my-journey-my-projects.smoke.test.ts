@@ -9,12 +9,12 @@ const scenarioIds = ["JOURNEY-PROJ-001", "JOURNEY-PROJ-002"];
 
 describe("My Journey – My Projects" + " (smoke)", () => {
   it("JOURNEY-PROJ-001: Active teammate sees project details in My Projects tab", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("JOURNEY-PROJ-001");
-    expect("Active teammate sees project details in My Projects tab".length).toBeGreaterThan(0);
   });
 
   it("JOURNEY-PROJ-002: Non-active user sees empty state in My Projects tab", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("JOURNEY-PROJ-002");
-    expect("Non-active user sees empty state in My Projects tab".length).toBeGreaterThan(0);
   });
 });

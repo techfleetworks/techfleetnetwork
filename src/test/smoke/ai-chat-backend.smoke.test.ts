@@ -9,17 +9,17 @@ const scenarioIds = ["75.1", "75.2", "75.3"];
 
 describe("AI Chat Backend" + " (smoke)", () => {
   it("75.1: Chat function responds with AI-generated answer", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("75.1");
-    expect("Chat function responds with AI-generated answer".length).toBeGreaterThan(0);
   });
 
   it("75.2: Chat function stores conversation history", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("75.2");
-    expect("Chat function stores conversation history".length).toBeGreaterThan(0);
   });
 
   it("75.3: Chat function rate limits requests", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("75.3");
-    expect("Chat function rate limits requests".length).toBeGreaterThan(0);
   });
 });

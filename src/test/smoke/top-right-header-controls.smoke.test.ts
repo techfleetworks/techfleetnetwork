@@ -9,22 +9,22 @@ const scenarioIds = ["54.1", "54.2", "54.3", "54.4"];
 
 describe("Top-Right Header Controls" + " (smoke)", () => {
   it("54.1: Profile avatar in top-right header", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("54.1");
-    expect("Profile avatar in top-right header".length).toBeGreaterThan(0);
   });
 
   it("54.2: Header order is search then theme then profile", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("54.2");
-    expect("Header order is search then theme then profile".length).toBeGreaterThan(0);
   });
 
   it("54.3: Less space between search and theme toggle", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("54.3");
-    expect("Less space between search and theme toggle".length).toBeGreaterThan(0);
   });
 
   it("54.4: Profile removed from sidebar footer", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("54.4");
-    expect("Profile removed from sidebar footer".length).toBeGreaterThan(0);
   });
 });

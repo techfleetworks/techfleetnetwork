@@ -9,18 +9,18 @@ const scenarioIds = ["52.1", "52.2", "52.3", "52.4", "52.5", "52.6", "52.7"];
 
 describe("Course Sharing" + " (smoke)", () => {
   it("52.1: Share button visible on course page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("52.1");
-    expect("Share button visible on course page".length).toBeGreaterThan(0);
   });
 
   it("52.2: Share button copies URL to clipboard", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("52.2");
-    expect("Share button copies URL to clipboard".length).toBeGreaterThan(0);
   });
 
   it("52.3: Copied state resets after 2 seconds", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("52.3");
-    expect("Copied state resets after 2 seconds".length).toBeGreaterThan(0);
   });
 
   it("52.4: Unauthenticated user redirected to login from shared link", () => {

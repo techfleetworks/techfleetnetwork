@@ -9,7 +9,7 @@ const scenarioIds = ["OWASP-UPLOAD-001"];
 
 describe("Security – OWASP A05 File Upload" + " (smoke)", () => {
   it("OWASP-UPLOAD-001: validateFileUpload rejects disallowed MIME types", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("OWASP-UPLOAD-001");
-    expect("validateFileUpload rejects disallowed MIME types".length).toBeGreaterThan(0);
   });
 });

@@ -9,12 +9,12 @@ const scenarioIds = ["85.1", "85.2"];
 
 describe("New User Onboarding" + " (smoke)", () => {
   it("85.1: Profile is auto-created on user registration", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("85.1");
-    expect("Profile is auto-created on user registration".length).toBeGreaterThan(0);
   });
 
   it("85.2: Google OAuth metadata populates profile", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("85.2");
-    expect("Google OAuth metadata populates profile".length).toBeGreaterThan(0);
   });
 });

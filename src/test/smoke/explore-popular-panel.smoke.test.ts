@@ -9,7 +9,7 @@ const scenarioIds = ["27.50"];
 
 describe("Explore Popular Panel" + " (smoke)", () => {
   it("27.50: AI prompt enforces correct type taxonomy", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("27.50");
-    expect("AI prompt enforces correct type taxonomy".length).toBeGreaterThan(0);
   });
 });

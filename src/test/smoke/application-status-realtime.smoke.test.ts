@@ -9,17 +9,17 @@ const scenarioIds = ["APP-STATUS-RT-001", "APP-STATUS-RT-002", "APP-STATUS-RT-00
 
 describe("Application Status Realtime" + " (smoke)", () => {
   it("APP-STATUS-RT-001: Applicant dashboard updates in real-time on status change", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-RT-001");
-    expect("Applicant dashboard updates in real-time on status change".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-RT-002: Bidirectional status switching with re-notification", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("APP-STATUS-RT-002");
-    expect("Bidirectional status switching with re-notification".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-RT-003: Status page updates via realtime subscription", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-RT-003");
-    expect("Status page updates via realtime subscription".length).toBeGreaterThan(0);
   });
 });

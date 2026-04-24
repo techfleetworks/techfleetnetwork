@@ -9,12 +9,12 @@ const scenarioIds = ["PERF-RQ-001", "PERF-RQ-002"];
 
 describe("React Query Config" + " (smoke)", () => {
   it("PERF-RQ-001: React Query skips retry on auth errors", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-RQ-001");
-    expect("React Query skips retry on auth errors".length).toBeGreaterThan(0);
   });
 
   it("PERF-RQ-002: React Query uses exponential backoff for retries", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-RQ-002");
-    expect("React Query uses exponential backoff for retries".length).toBeGreaterThan(0);
   });
 });

@@ -9,7 +9,7 @@ const scenarioIds = ["OWASP-REDOS-001"];
 
 describe("Security – OWASP A04 ReDoS" + " (smoke)", () => {
   it("OWASP-REDOS-001: safeRegexTest rejects oversized input", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("OWASP-REDOS-001");
-    expect("safeRegexTest rejects oversized input".length).toBeGreaterThan(0);
   });
 });

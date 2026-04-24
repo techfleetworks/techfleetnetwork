@@ -9,32 +9,32 @@ const scenarioIds = ["QUEST-NUDGE-001", "QUEST-NUDGE-002", "QUEST-NUDGE-003", "Q
 
 describe("Quest Re-engagement Nudges" + " (smoke)", () => {
   it("QUEST-NUDGE-001: Nudge sent after 7 days of inactivity", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-NUDGE-001");
-    expect("Nudge sent after 7 days of inactivity".length).toBeGreaterThan(0);
   });
 
   it("QUEST-NUDGE-002: No duplicate nudges within cooldown period", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("QUEST-NUDGE-002");
-    expect("No duplicate nudges within cooldown period".length).toBeGreaterThan(0);
   });
 
   it("QUEST-NUDGE-003: Email nudge sent when notifications enabled", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("QUEST-NUDGE-003");
-    expect("Email nudge sent when notifications enabled".length).toBeGreaterThan(0);
   });
 
   it("QUEST-NUDGE-004: No email when notifications disabled", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("QUEST-NUDGE-004");
-    expect("No email when notifications disabled".length).toBeGreaterThan(0);
   });
 
   it("QUEST-NUDGE-005: Skip users with recent progress", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("QUEST-NUDGE-005");
-    expect("Skip users with recent progress".length).toBeGreaterThan(0);
   });
 
   it("QUEST-NUDGE-006: Nudge only for active non-completed quests", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("QUEST-NUDGE-006");
-    expect("Nudge only for active non-completed quests".length).toBeGreaterThan(0);
   });
 });

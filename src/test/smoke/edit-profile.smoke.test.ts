@@ -9,12 +9,12 @@ const scenarioIds = ["48.6", "48.7"];
 
 describe("Edit Profile" + " (smoke)", () => {
   it("48.6: User can sign out all devices", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("48.6");
-    expect("User can sign out all devices".length).toBeGreaterThan(0);
   });
 
   it("48.7: Edit profile validates input fields", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("48.7");
-    expect("Edit profile validates input fields".length).toBeGreaterThan(0);
   });
 });

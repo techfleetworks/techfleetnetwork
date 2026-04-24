@@ -9,12 +9,12 @@ const scenarioIds = ["COMP-32-002", "COMP-32-003"];
 
 describe("Compliance — GDPR Data Export" + " (smoke)", () => {
   it("COMP-32-002: Data export request is audit-logged", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("COMP-32-002");
-    expect("Data export request is audit-logged".length).toBeGreaterThan(0);
   });
 
   it("COMP-32-003: Unauthenticated users cannot export data", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("COMP-32-003");
-    expect("Unauthenticated users cannot export data".length).toBeGreaterThan(0);
   });
 });

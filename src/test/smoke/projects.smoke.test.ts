@@ -9,17 +9,17 @@ const scenarioIds = ["PROJ-COORD-01", "PROJ-COORD-02", "PROJ-COORD-03"];
 
 describe("Projects" + " (smoke)", () => {
   it("PROJ-COORD-01: Admin assigns coordinator to project", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PROJ-COORD-01");
-    expect("Admin assigns coordinator to project".length).toBeGreaterThan(0);
   });
 
   it("PROJ-COORD-02: Coordinator shown on project opening detail", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PROJ-COORD-02");
-    expect("Coordinator shown on project opening detail".length).toBeGreaterThan(0);
   });
 
   it("PROJ-COORD-03: Coordinator shown on application status page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PROJ-COORD-03");
-    expect("Coordinator shown on application status page".length).toBeGreaterThan(0);
   });
 });

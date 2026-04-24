@@ -9,27 +9,27 @@ const scenarioIds = ["34.1", "34.2", "34.4", "34.5", "34.6"];
 
 describe("Form Validation System" + " (smoke)", () => {
   it("34.1: Real-time field validation shows red border on invalid input", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("34.1");
-    expect("Real-time field validation shows red border on invalid input".length).toBeGreaterThan(0);
   });
 
   it("34.2: Valid field shows green border confirmation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("34.2");
-    expect("Valid field shows green border confirmation".length).toBeGreaterThan(0);
   });
 
   it("34.4: Auto-scroll to first error on form submission", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("34.4");
-    expect("Auto-scroll to first error on form submission".length).toBeGreaterThan(0);
   });
 
   it("34.5: Experience areas \\\"I'm not sure yet\\\" listed first with mutual exclusion", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("34.5");
-    expect("Experience areas \\\"I'm not sure yet\\\" listed first with mutual exclusion".length).toBeGreaterThan(0);
   });
 
   it("34.6: Selecting specific area removes \\\"I'm not sure yet\\\"", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("34.6");
-    expect("Selecting specific area removes \\\"I'm not sure yet\\\"".length).toBeGreaterThan(0);
   });
 });

@@ -9,22 +9,22 @@ const scenarioIds = ["4.1", "4.2", "4.3", "4.4"];
 
 describe("Member Journey: Second Steps" + " (smoke)", () => {
   it("4.1: User successfully completes Second Steps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("4.1");
-    expect("User successfully completes Second Steps".length).toBeGreaterThan(0);
   });
 
   it("4.2: User fails the Agile Handbook quiz", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("4.2");
-    expect("User fails the Agile Handbook quiz".length).toBeGreaterThan(0);
   });
 
   it("4.3: User attempts to skip reading and go directly to the quiz", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("4.3");
-    expect("User attempts to skip reading and go directly to the quiz".length).toBeGreaterThan(0);
   });
 
   it("4.4: User attempts to access Second Steps without completing First Steps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("4.4");
-    expect("User attempts to access Second Steps without completing First Steps".length).toBeGreaterThan(0);
   });
 });

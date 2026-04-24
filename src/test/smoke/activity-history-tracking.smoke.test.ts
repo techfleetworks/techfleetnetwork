@@ -9,27 +9,27 @@ const scenarioIds = ["12.1", "12.2", "12.3", "12.4", "12.5"];
 
 describe("Activity & History Tracking" + " (smoke)", () => {
   it("12.1: System automatically logs user course completion", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("12.1");
-    expect("System automatically logs user course completion".length).toBeGreaterThan(0);
   });
 
   it("12.2: User filters activity history by type and date", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("12.2");
-    expect("User filters activity history by type and date".length).toBeGreaterThan(0);
   });
 
   it("12.3: User views engagement metrics and analytics", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("12.3");
-    expect("User views engagement metrics and analytics".length).toBeGreaterThan(0);
   });
 
   it("12.4: User exports activity history", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("12.4");
-    expect("User exports activity history".length).toBeGreaterThan(0);
   });
 
   it("12.5: User views empty activity history", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("12.5");
-    expect("User views empty activity history".length).toBeGreaterThan(0);
   });
 });

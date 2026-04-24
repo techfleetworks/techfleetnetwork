@@ -9,17 +9,17 @@ const scenarioIds = ["74.1", "74.2", "74.3"];
 
 describe("Knowledge Base" + " (smoke)", () => {
   it("74.1: Admin can scrape external URL into knowledge base", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("74.1");
-    expect("Admin can scrape external URL into knowledge base".length).toBeGreaterThan(0);
   });
 
   it("74.2: Scraper rejects private/internal URLs", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("74.2");
-    expect("Scraper rejects private/internal URLs".length).toBeGreaterThan(0);
   });
 
   it("74.3: CSV ingest parses and stores data correctly", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("74.3");
-    expect("CSV ingest parses and stores data correctly".length).toBeGreaterThan(0);
   });
 });

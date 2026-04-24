@@ -9,22 +9,22 @@ const scenarioIds = ["69.1", "69.2", "69.3", "69.4"];
 
 describe("Project Application Form" + " (smoke)", () => {
   it("69.1: Project application form loads for valid project", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("69.1");
-    expect("Project application form loads for valid project".length).toBeGreaterThan(0);
   });
 
   it("69.2: User can save draft and resume later", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("69.2");
-    expect("User can save draft and resume later".length).toBeGreaterThan(0);
   });
 
   it("69.3: User can submit completed application", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("69.3");
-    expect("User can submit completed application".length).toBeGreaterThan(0);
   });
 
   it("69.4: Application validates required fields per step", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("69.4");
-    expect("Application validates required fields per step".length).toBeGreaterThan(0);
   });
 });

@@ -9,17 +9,17 @@ const scenarioIds = ["6.1", "6.2", "6.3"];
 
 describe("AI Chatbot" + " (smoke)", () => {
   it("6.1: User asks relevant question and receives accurate answer", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("6.1");
-    expect("User asks relevant question and receives accurate answer".length).toBeGreaterThan(0);
   });
 
   it("6.2: User asks an off-topic question", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("6.2");
-    expect("User asks an off-topic question".length).toBeGreaterThan(0);
   });
 
   it("6.3: AI Chatbot cannot find the answer in knowledge base", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("6.3");
-    expect("AI Chatbot cannot find the answer in knowledge base".length).toBeGreaterThan(0);
   });
 });

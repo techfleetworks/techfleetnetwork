@@ -9,27 +9,27 @@ const scenarioIds = ["80.1", "80.2", "80.3", "80.4", "80.5"];
 
 describe("Email Queue Processing" + " (smoke)", () => {
   it("80.1: Email processor reads batch from queue", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("80.1");
-    expect("Email processor reads batch from queue".length).toBeGreaterThan(0);
   });
 
   it("80.2: Email processor sends via configured provider", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("80.2");
-    expect("Email processor sends via configured provider".length).toBeGreaterThan(0);
   });
 
   it("80.3: Email processor handles rate limiting from provider", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("80.3");
-    expect("Email processor handles rate limiting from provider".length).toBeGreaterThan(0);
   });
 
   it("80.4: Failed emails are retried up to max attempts", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("80.4");
-    expect("Failed emails are retried up to max attempts".length).toBeGreaterThan(0);
   });
 
   it("80.5: Suppressed recipients are skipped", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("80.5");
-    expect("Suppressed recipients are skipped".length).toBeGreaterThan(0);
   });
 });

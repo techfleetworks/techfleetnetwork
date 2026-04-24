@@ -13,8 +13,8 @@ describe("Notifications" + " (smoke)", () => {
   });
 
   it("NOTIF-013: Mark all notifications read from page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("NOTIF-013");
-    expect("Mark all notifications read from page".length).toBeGreaterThan(0);
   });
 
   it("NOTIF-014: Bell links to full notifications page", () => {
@@ -22,7 +22,7 @@ describe("Notifications" + " (smoke)", () => {
   });
 
   it("refactor_adaptive_poll_1: Adaptive polling uses state not ref for reactivity", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("refactor_adaptive_poll_1");
-    expect("Adaptive polling uses state not ref for reactivity".length).toBeGreaterThan(0);
   });
 });

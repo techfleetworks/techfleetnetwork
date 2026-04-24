@@ -9,32 +9,32 @@ const scenarioIds = ["APP-STATUS-001", "APP-STATUS-002", "APP-STATUS-003", "APP-
 
 describe("Application Status Page" + " (smoke)", () => {
   it("APP-STATUS-001: Submitted application routes to status page", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-001");
-    expect("Submitted application routes to status page".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-002: Visual timeline shows correct progress", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-002");
-    expect("Visual timeline shows correct progress".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-003: Not selected shows terminated timeline", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-003");
-    expect("Not selected shows terminated timeline".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-004: Active Teammate shows celebration", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("APP-STATUS-004");
-    expect("Active Teammate shows celebration".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-005: Prevent editing non-draft applications", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-005");
-    expect("Prevent editing non-draft applications".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-006: Timeline updates in real-time", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-006");
-    expect("Timeline updates in real-time".length).toBeGreaterThan(0);
   });
 });

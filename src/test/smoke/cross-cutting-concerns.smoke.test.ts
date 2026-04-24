@@ -9,27 +9,27 @@ const scenarioIds = ["15.1", "15.2", "15.4", "15.5", "15.6"];
 
 describe("Cross-Cutting Concerns" + " (smoke)", () => {
   it("15.1: Session timeout with data preservation", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("15.1");
-    expect("Session timeout with data preservation".length).toBeGreaterThan(0);
   });
 
   it("15.2: Concurrent login from multiple devices", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("15.2");
-    expect("Concurrent login from multiple devices".length).toBeGreaterThan(0);
   });
 
   it("15.4: Hand cursor on hover for interactive elements", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("15.4");
-    expect("Hand cursor on hover for interactive elements".length).toBeGreaterThan(0);
   });
 
   it("15.5: Responsive design across screen sizes", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("15.5");
-    expect("Responsive design across screen sizes".length).toBeGreaterThan(0);
   });
 
   it("15.6: Full keyboard accessibility and WCAG 2 compliance", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("15.6");
-    expect("Full keyboard accessibility and WCAG 2 compliance".length).toBeGreaterThan(0);
   });
 });

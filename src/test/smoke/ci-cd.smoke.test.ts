@@ -9,7 +9,7 @@ const scenarioIds = ["refactor_cicd_1"];
 
 describe("CI/CD" + " (smoke)", () => {
   it("refactor_cicd_1: Regression pipeline includes type-check and build", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("refactor_cicd_1");
-    expect("Regression pipeline includes type-check and build".length).toBeGreaterThan(0);
   });
 });

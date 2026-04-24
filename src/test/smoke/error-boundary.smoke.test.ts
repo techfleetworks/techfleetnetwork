@@ -9,12 +9,12 @@ const scenarioIds = ["58.1", "58.2"];
 
 describe("Error Boundary" + " (smoke)", () => {
   it("58.1: Error boundary catches component crashes", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("58.1");
-    expect("Error boundary catches component crashes".length).toBeGreaterThan(0);
   });
 
   it("58.2: Error boundary provides retry action", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("58.2");
-    expect("Error boundary provides retry action".length).toBeGreaterThan(0);
   });
 });

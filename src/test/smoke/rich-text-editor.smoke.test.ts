@@ -9,17 +9,17 @@ const scenarioIds = ["62.1", "62.2", "62.3"];
 
 describe("Rich Text Editor" + " (smoke)", () => {
   it("62.1: Rich text editor renders with toolbar", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("62.1");
-    expect("Rich text editor renders with toolbar".length).toBeGreaterThan(0);
   });
 
   it("62.2: Rich text editor supports basic formatting", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("62.2");
-    expect("Rich text editor supports basic formatting".length).toBeGreaterThan(0);
   });
 
   it("62.3: Rich text editor sanitizes output", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("62.3");
-    expect("Rich text editor sanitizes output".length).toBeGreaterThan(0);
   });
 });

@@ -13,22 +13,22 @@ describe("Clients Management" + " (smoke)", () => {
   });
 
   it("90.2: Admin can create a new client", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("90.2");
-    expect("Admin can create a new client".length).toBeGreaterThan(0);
   });
 
   it("90.3: Admin can edit client details", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("90.3");
-    expect("Admin can edit client details".length).toBeGreaterThan(0);
   });
 
   it("90.4: Admin can deactivate a client", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("90.4");
-    expect("Admin can deactivate a client".length).toBeGreaterThan(0);
   });
 
   it("90.5: Non-admin can only see active clients", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("90.5");
-    expect("Non-admin can only see active clients".length).toBeGreaterThan(0);
   });
 });

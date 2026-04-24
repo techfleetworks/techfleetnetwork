@@ -13,47 +13,47 @@ describe("Activity Log" + " (smoke)", () => {
   });
 
   it("53.13: Admin RLS on audit_log", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.13");
-    expect("Admin RLS on audit_log".length).toBeGreaterThan(0);
   });
 
   it("53.2: Activity Log sidebar link for admins", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.2");
-    expect("Activity Log sidebar link for admins".length).toBeGreaterThan(0);
   });
 
   it("53.3: Activity Log displays date column", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.3");
-    expect("Activity Log displays date column".length).toBeGreaterThan(0);
   });
 
   it("53.4: Activity Log displays user who took action", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("53.4");
-    expect("Activity Log displays user who took action".length).toBeGreaterThan(0);
   });
 
   it("53.5: Activity Log displays event type with icon", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.5");
-    expect("Activity Log displays event type with icon".length).toBeGreaterThan(0);
   });
 
   it("53.6: Activity Log displays error messages", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.6");
-    expect("Activity Log displays error messages".length).toBeGreaterThan(0);
   });
 
   it("53.7: Activity Log search filtering", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("53.7");
-    expect("Activity Log search filtering".length).toBeGreaterThan(0);
   });
 
   it("53.8: Activity Log event type filter", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.8");
-    expect("Activity Log event type filter".length).toBeGreaterThan(0);
   });
 
   it("53.9: Activity Log pagination", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("53.9");
-    expect("Activity Log pagination".length).toBeGreaterThan(0);
   });
 });

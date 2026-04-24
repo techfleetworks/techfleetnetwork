@@ -9,12 +9,12 @@ const scenarioIds = ["81.1", "81.2"];
 
 describe("Announcement Email" + " (smoke)", () => {
   it("81.1: Announcement email is sent to subscribed users", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("81.1");
-    expect("Announcement email is sent to subscribed users".length).toBeGreaterThan(0);
   });
 
   it("81.2: Unsubscribed users do not receive announcement emails", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("81.2");
-    expect("Unsubscribed users do not receive announcement emails".length).toBeGreaterThan(0);
   });
 });

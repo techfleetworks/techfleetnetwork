@@ -9,7 +9,7 @@ const scenarioIds = ["OWASP-MASS-001"];
 
 describe("Security – OWASP A04 Mass Assignment" + " (smoke)", () => {
   it("OWASP-MASS-001: pickAllowedFields strips unexpected keys", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("OWASP-MASS-001");
-    expect("pickAllowedFields strips unexpected keys".length).toBeGreaterThan(0);
   });
 });

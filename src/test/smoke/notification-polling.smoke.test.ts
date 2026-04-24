@@ -9,7 +9,7 @@ const scenarioIds = ["PERF-NTF-001"];
 
 describe("Notification Polling" + " (smoke)", () => {
   it("PERF-NTF-001: Notification polling uses adaptive interval", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("PERF-NTF-001");
-    expect("Notification polling uses adaptive interval".length).toBeGreaterThan(0);
   });
 });

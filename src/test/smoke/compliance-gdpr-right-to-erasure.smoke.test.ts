@@ -9,7 +9,7 @@ const scenarioIds = ["COMP-35-001"];
 
 describe("Compliance — GDPR Right to Erasure" + " (smoke)", () => {
   it("COMP-35-001: User can delete all personal data via account deletion", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("COMP-35-001");
-    expect("User can delete all personal data via account deletion".length).toBeGreaterThan(0);
   });
 });

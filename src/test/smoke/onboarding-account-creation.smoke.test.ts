@@ -9,12 +9,12 @@ const scenarioIds = ["2.10", "2.9"];
 
 describe("Onboarding & Account Creation" + " (smoke)", () => {
   it("2.10: User resumes abandoned onboarding", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("2.10");
-    expect("User resumes abandoned onboarding".length).toBeGreaterThan(0);
   });
 
   it("2.9: Unsuccessful email verification due to expired link", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("2.9");
-    expect("Unsuccessful email verification due to expired link".length).toBeGreaterThan(0);
   });
 });

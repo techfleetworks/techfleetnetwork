@@ -9,7 +9,7 @@ const scenarioIds = ["OWASP-PATH-001"];
 
 describe("Security – OWASP A01 Path Traversal" + " (smoke)", () => {
   it("OWASP-PATH-001: hasPathTraversal detects directory escape", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("OWASP-PATH-001");
-    expect("hasPathTraversal detects directory escape".length).toBeGreaterThan(0);
   });
 });

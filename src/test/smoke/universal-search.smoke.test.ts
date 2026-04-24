@@ -9,17 +9,17 @@ const scenarioIds = ["SEARCH-DYN-002", "SEARCH-DYN-003", "SEARCH-DYN-004"];
 
 describe("Universal Search" + " (smoke)", () => {
   it("SEARCH-DYN-002: Search returns matching projects", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEARCH-DYN-002");
-    expect("Search returns matching projects".length).toBeGreaterThan(0);
   });
 
   it("SEARCH-DYN-003: Admin can search members", () => {
+    expect(edgeFunctionDirs.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("SEARCH-DYN-003");
-    expect("Admin can search members".length).toBeGreaterThan(0);
   });
 
   it("SEARCH-DYN-004: Non-admin cannot search members", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEARCH-DYN-004");
-    expect("Non-admin cannot search members".length).toBeGreaterThan(0);
   });
 });

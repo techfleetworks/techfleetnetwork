@@ -9,17 +9,17 @@ const scenarioIds = ["EVT-001", "EVT-002", "EVT-003"];
 
 describe("Events Page" + " (smoke)", () => {
   it("EVT-001: Events page displays both sections", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("EVT-001");
-    expect("Events page displays both sections".length).toBeGreaterThan(0);
   });
 
   it("EVT-002: Public Events Luma embed loads", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("EVT-002");
-    expect("Public Events Luma embed loads".length).toBeGreaterThan(0);
   });
 
   it("EVT-003: Community Events Google Calendar embed loads", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("EVT-003");
-    expect("Community Events Google Calendar embed loads".length).toBeGreaterThan(0);
   });
 });

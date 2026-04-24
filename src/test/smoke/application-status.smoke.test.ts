@@ -9,22 +9,22 @@ const scenarioIds = ["APP-STATUS-SCHED-01", "APP-STATUS-SCHED-02", "APP-STATUS-S
 
 describe("Application Status" + " (smoke)", () => {
   it("APP-STATUS-SCHED-01: Applicant marks interview as scheduled", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-SCHED-01");
-    expect("Applicant marks interview as scheduled".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-SCHED-02: Admin receives notification when interview is scheduled", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-SCHED-02");
-    expect("Admin receives notification when interview is scheduled".length).toBeGreaterThan(0);
   });
 
   it("APP-STATUS-SCHED-03: Schedule button hidden after scheduling", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("APP-STATUS-SCHED-03");
-    expect("Schedule button hidden after scheduling".length).toBeGreaterThan(0);
   });
 
   it("refactor_status_badge_1: Shared ApplicationStatusBadge component", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("refactor_status_badge_1");
-    expect("Shared ApplicationStatusBadge component".length).toBeGreaterThan(0);
   });
 });

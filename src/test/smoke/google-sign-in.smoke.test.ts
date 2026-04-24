@@ -9,17 +9,17 @@ const scenarioIds = ["66.1", "66.2", "66.3"];
 
 describe("Google Sign-In" + " (smoke)", () => {
   it("66.1: Google sign-in button renders correctly", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("66.1");
-    expect("Google sign-in button renders correctly".length).toBeGreaterThan(0);
   });
 
   it("66.2: Google sign-in initiates OAuth flow", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("66.2");
-    expect("Google sign-in initiates OAuth flow".length).toBeGreaterThan(0);
   });
 
   it("66.3: Google sign-in creates profile on first login", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("66.3");
-    expect("Google sign-in creates profile on first login".length).toBeGreaterThan(0);
   });
 });

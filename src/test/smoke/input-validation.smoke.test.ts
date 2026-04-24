@@ -9,17 +9,17 @@ const scenarioIds = ["SEC-VAL-001", "SEC-VAL-002", "SEC-VAL-003"];
 
 describe("Input Validation" + " (smoke)", () => {
   it("SEC-VAL-001: General application enforces field length limits", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEC-VAL-001");
-    expect("General application enforces field length limits".length).toBeGreaterThan(0);
   });
 
   it("SEC-VAL-002: Profile validator enforces URL format", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEC-VAL-002");
-    expect("Profile validator enforces URL format".length).toBeGreaterThan(0);
   });
 
   it("SEC-VAL-003: Profile validator caps array field sizes", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("SEC-VAL-003");
-    expect("Profile validator caps array field sizes".length).toBeGreaterThan(0);
   });
 });

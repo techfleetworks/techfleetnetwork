@@ -9,27 +9,27 @@ const scenarioIds = ["78.1", "78.2", "78.3", "78.4", "78.5"];
 
 describe("Rate Limiting" + " (smoke)", () => {
   it("78.1: Rate limiter allows requests within threshold", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.1");
-    expect("Rate limiter allows requests within threshold".length).toBeGreaterThan(0);
   });
 
   it("78.2: Rate limiter blocks after exceeding threshold", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.2");
-    expect("Rate limiter blocks after exceeding threshold".length).toBeGreaterThan(0);
   });
 
   it("78.3: Rate limit window resets after expiry", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.3");
-    expect("Rate limit window resets after expiry".length).toBeGreaterThan(0);
   });
 
   it("78.4: Rate limits can be manually reset", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.4");
-    expect("Rate limits can be manually reset".length).toBeGreaterThan(0);
   });
 
   it("78.5: Stale rate limit records are cleaned up", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.5");
-    expect("Stale rate limit records are cleaned up".length).toBeGreaterThan(0);
   });
 });

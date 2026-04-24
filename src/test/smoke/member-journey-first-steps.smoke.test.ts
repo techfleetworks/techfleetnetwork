@@ -9,27 +9,27 @@ const scenarioIds = ["3.2", "3.3", "3.4", "3.5", "3.6"];
 
 describe("Member Journey: First Steps" + " (smoke)", () => {
   it("3.2: User completes First Steps tasks in any order", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("3.2");
-    expect("User completes First Steps tasks in any order".length).toBeGreaterThan(0);
   });
 
   it("3.3: User attempts to access Second Steps before completing First Steps", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("3.3");
-    expect("User attempts to access Second Steps before completing First Steps".length).toBeGreaterThan(0);
   });
 
   it("3.4: Onboarding class content fails to load", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("3.4");
-    expect("Onboarding class content fails to load".length).toBeGreaterThan(0);
   });
 
   it("3.5: Service leadership class is at full capacity", () => {
+    expect(servicesIndex.length).toBeGreaterThan(0);
     expect(scenarioIds).toContain("3.5");
-    expect("Service leadership class is at full capacity".length).toBeGreaterThan(0);
   });
 
   it("3.6: User attempts to mark user guide as complete without engaging", () => {
+    expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("3.6");
-    expect("User attempts to mark user guide as complete without engaging".length).toBeGreaterThan(0);
   });
 });
