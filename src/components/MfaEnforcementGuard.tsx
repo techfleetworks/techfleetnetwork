@@ -4,6 +4,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
+import { PasskeyLoginService } from "@/services/passkey-login.service";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
@@ -53,10 +54,19 @@ export function MfaEnforcementGuard() {
     void (async () => {
       try {
         const { needsChallenge } = await MfaService.getAssuranceLevel();
-        if (!cancelled && needsChallenge) {
-          log.info("check", `User ${user.id} is at AAL1 with enrolled TOTP — prompting challenge`);
-          setChallengeOpen(true);
+        if (!needsChallenge || cancelled) return;
+        // Unified 30-day device trust: if THIS device already passed a
+        // strong second factor (passkey or TOTP) within the trust window,
+        // skip the TOTP prompt entirely. This is what makes the "ask once
+        // every 30 days per device" promise actually hold.
+        const deviceTrusted = await PasskeyLoginService.isCurrentSessionVerified();
+        if (cancelled) return;
+        if (deviceTrusted) {
+          log.info("check", `Device already trusted — skipping TOTP prompt for ${user.id}`);
+          return;
         }
+        log.info("check", `User ${user.id} is at AAL1 with enrolled TOTP — prompting challenge`);
+        setChallengeOpen(true);
       } catch (e) {
         log.warn("check", `AAL check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`);
       }
