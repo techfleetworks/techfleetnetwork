@@ -52,11 +52,17 @@ export function useMembershipRealtime() {
     }
   }, [profile]);
 
-  // 1. One-time reconciliation on mount per session.
+  // 1. One-time reconcile + backfill on mount per session.
+  //    Reconcile runs first (fast — DB-only). Backfill runs second (slower —
+  //    calls Gumroad API) and only refreshes the profile if it imported sales
+  //    that reconcile didn't already cover. Either failing is non-fatal:
+  //    realtime + manual refresh remain available.
   useEffect(() => {
     if (!user || reconciledRef.current) return;
     reconciledRef.current = true;
     (async () => {
+      let appliedFromReconcile = 0;
+
       try {
         const { data, error } = await supabase.functions.invoke(
           "gumroad-reconcile",
@@ -66,9 +72,8 @@ export function useMembershipRealtime() {
           log.warn("reconcile", `Reconcile failed: ${error.message}`, {
             userId: user.id,
           });
-          return;
-        }
-        if (data?.applied && data.applied > 0) {
+        } else if (data?.applied && data.applied > 0) {
+          appliedFromReconcile = data.applied;
           log.info(
             "reconcile",
             `Applied ${data.applied} pending sale(s) for user ${user.id}`,
@@ -80,6 +85,35 @@ export function useMembershipRealtime() {
         log.warn(
           "reconcile",
           `Unexpected reconcile error: ${(err as Error).message}`,
+          { userId: user.id },
+        );
+      }
+
+      // Backfill from Gumroad API — picks up historical sales the webhook
+      // never saw (purchases made before the webhook was wired up).
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "gumroad-backfill",
+          { body: {} },
+        );
+        if (error) {
+          log.warn("backfill", `Backfill failed: ${error.message}`, {
+            userId: user.id,
+          });
+          return;
+        }
+        if (data?.imported && data.imported > appliedFromReconcile) {
+          log.info(
+            "backfill",
+            `Imported ${data.imported} historical sale(s) for user ${user.id}`,
+            { userId: user.id, tier: data.tier, founding: data.founding },
+          );
+          await refreshProfile();
+        }
+      } catch (err) {
+        log.warn(
+          "backfill",
+          `Unexpected backfill error: ${(err as Error).message}`,
           { userId: user.id },
         );
       }
