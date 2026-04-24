@@ -4,6 +4,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
+import { PasskeyLoginService } from "@/services/passkey-login.service";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
