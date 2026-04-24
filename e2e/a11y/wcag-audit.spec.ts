@@ -36,10 +36,18 @@ import { test, expect } from "../../playwright-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { BrowserContext } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 import { ROUTES, SCANNABLE_ROUTES, type RouteSpec } from "./routes";
+import { WCAG_CHECKLIST, PRINCIPLES, type ChecklistItem } from "./wcag-checklist";
+import { DOM_PROBES, type ProbeResult } from "./dom-probes";
+import { STATIC_CHECKS, type StaticResult } from "./static-checks";
 
 const REPORT_DIR = "a11y-report";
+
+// Per-route DOM probe results: { route → { probeId → ProbeResult } }
+const probeResults = new Map<string, Record<string, ProbeResult>>();
+// Static checks run once for the whole audit.
+const staticResults: Record<string, StaticResult> = {};
 
 // Full WCAG 2.2 surface + best-practice rules. Per user Option C we
 // include AAA, but axe-core's AAA coverage is intentionally narrow
