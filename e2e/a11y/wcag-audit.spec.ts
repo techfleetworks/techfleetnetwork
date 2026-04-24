@@ -38,8 +38,16 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { BrowserContext } from "@playwright/test";
 import { ROUTES, SCANNABLE_ROUTES, type RouteSpec } from "./routes";
+import { WCAG_CHECKLIST, PRINCIPLES, type ChecklistItem } from "./wcag-checklist";
+import { DOM_PROBES, type ProbeResult } from "./dom-probes";
+import { STATIC_CHECKS, type StaticResult } from "./static-checks";
 
 const REPORT_DIR = "a11y-report";
+
+// Per-route DOM probe results: { route → { probeId → ProbeResult } }
+const probeResults = new Map<string, Record<string, ProbeResult>>();
+// Static checks run once for the whole audit.
+const staticResults: Record<string, StaticResult> = {};
 
 // Full WCAG 2.2 surface + best-practice rules. Per user Option C we
 // include AAA, but axe-core's AAA coverage is intentionally narrow
@@ -250,6 +258,33 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
           })),
         });
 
+        // Run all DOM probes for this route. Probes are tiny and stateless
+        // — running them inline avoids a second navigation.
+        const probeOutputs: Record<string, ProbeResult> = {};
+        for (const item of WCAG_CHECKLIST) {
+          if (item.kind !== "dom" || !item.domProbe) continue;
+          const probeFn = DOM_PROBES[item.domProbe];
+          if (!probeFn) {
+            probeOutputs[item.domProbe] = { status: "needs_review", details: `Probe "${item.domProbe}" not implemented.` };
+            continue;
+          }
+          try {
+            // Special handling: 1.4.10 Reflow → resize to 320px first.
+            if (item.domProbe === "no-horizontal-scroll-at-320") {
+              await page.setViewportSize({ width: 320, height: 800 });
+              await page.waitForTimeout(150);
+            }
+            const out = await page.evaluate(`(${probeFn.toString()})()`) as ProbeResult;
+            probeOutputs[item.domProbe] = out;
+            if (item.domProbe === "no-horizontal-scroll-at-320") {
+              await page.setViewportSize({ width: 1280, height: 800 });
+            }
+          } catch (e) {
+            probeOutputs[item.domProbe] = { status: "needs_review", details: `Probe error: ${(e as Error).message}` };
+          }
+        }
+        probeResults.set(route.path, probeOutputs);
+
         // We do NOT fail the test on violations during Phase 0 — the goal
         // is a complete baseline report. Phase 3 adds a CI gate that
         // fails on regressions vs this baseline.
@@ -288,6 +323,103 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       }
     }
 
+    // ── Run static repo-wide checks ─────────────────────────────────
+    for (const item of WCAG_CHECKLIST) {
+      if (item.kind !== "static" || !item.staticCheck) continue;
+      const fn = STATIC_CHECKS[item.staticCheck];
+      if (!fn) {
+        staticResults[item.staticCheck] = { status: "needs_review", details: `Static check "${item.staticCheck}" not implemented.` };
+        continue;
+      }
+      try {
+        staticResults[item.staticCheck] = await fn();
+      } catch (e) {
+        staticResults[item.staticCheck] = { status: "needs_review", details: `Static check error: ${(e as Error).message}` };
+      }
+    }
+
+    // ── Build per-criterion checklist roll-up ───────────────────────
+    // For every WCAG SC: roll up axe / probe / static results into a
+    // single status. The audit NEVER silently skips a criterion — every
+    // entry resolves to pass / fail / needs_review with evidence.
+    type CriterionStatus = "pass" | "fail" | "needs_review";
+    interface CriterionResult {
+      sc: string;
+      level: "A" | "AA";
+      principle: string;
+      title: string;
+      kind: ChecklistItem["kind"];
+      status: CriterionStatus;
+      summary: string;
+      evidence?: unknown;
+    }
+
+    const checklist: CriterionResult[] = WCAG_CHECKLIST.map((item) => {
+      const principle = PRINCIPLES[item.sc.split(".")[0]] ?? "Other";
+      let status: CriterionStatus = "pass";
+      let summary = "";
+      let evidence: unknown;
+
+      if (item.kind === "axe") {
+        const ruleSet = new Set(item.axeRules ?? []);
+        const hits: Array<{ route: string; rule: string; nodes: number }> = [];
+        for (const f of findings) {
+          for (const v of f.violations ?? []) {
+            if (ruleSet.has(v.id)) hits.push({ route: f.route.path, rule: v.id, nodes: v.nodes.length });
+          }
+        }
+        if (hits.length === 0) {
+          status = "pass";
+          summary = `axe rules ${[...ruleSet].join(", ")} reported no violations across ${totals.scanned} scanned route(s).`;
+        } else {
+          status = "fail";
+          summary = `${hits.length} violation(s) of ${[...ruleSet].join("/")} across ${new Set(hits.map((h) => h.route)).size} route(s).`;
+          evidence = hits.slice(0, 20);
+        }
+      } else if (item.kind === "dom" && item.domProbe) {
+        const allOutputs: Array<{ route: string; result: ProbeResult }> = [];
+        for (const [routePath, probes] of probeResults.entries()) {
+          if (probes[item.domProbe]) allOutputs.push({ route: routePath, result: probes[item.domProbe] });
+        }
+        const fails = allOutputs.filter((o) => o.result.status === "fail");
+        const reviews = allOutputs.filter((o) => o.result.status === "needs_review");
+        if (fails.length) {
+          status = "fail";
+          summary = `Probe "${item.domProbe}" failed on ${fails.length} route(s).`;
+          evidence = fails.slice(0, 10);
+        } else if (reviews.length) {
+          status = "needs_review";
+          summary = `Probe "${item.domProbe}" flagged ${reviews.length} route(s) for human review.`;
+          evidence = reviews.slice(0, 10);
+        } else {
+          status = "pass";
+          summary = `Probe "${item.domProbe}" passed on ${allOutputs.length} route(s).`;
+        }
+      } else if (item.kind === "static" && item.staticCheck) {
+        const r = staticResults[item.staticCheck];
+        if (!r) {
+          status = "needs_review";
+          summary = `Static check "${item.staticCheck}" produced no result.`;
+        } else {
+          status = r.status;
+          summary = r.details ?? `Static check "${item.staticCheck}" → ${r.status}.`;
+          evidence = r.evidence;
+        }
+      } else if (item.kind === "manual") {
+        status = "needs_review";
+        summary = item.manualReason ?? "Requires human review — not machine-decidable.";
+      }
+
+      return { sc: item.sc, level: item.level, principle, title: item.title, kind: item.kind, status, summary, evidence };
+    });
+
+    const checklistTotals = {
+      total: checklist.length,
+      pass: checklist.filter((c) => c.status === "pass").length,
+      fail: checklist.filter((c) => c.status === "fail").length,
+      needs_review: checklist.filter((c) => c.status === "needs_review").length,
+    };
+
     const report = {
       generatedAt: new Date().toISOString(),
       authedScan: !!authedLocalStorage,
@@ -299,6 +431,11 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       axeTags: AXE_TAGS,
       totals,
       scannableRouteCount: SCANNABLE_ROUTES.length,
+      checklist: {
+        totals: checklistTotals,
+        criteria: checklist,
+      },
+      staticChecks: staticResults,
       results: findings,
     };
 
@@ -314,7 +451,16 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
     console.log(`  errored:         ${totals.errored}`);
     console.log(`Violations total:  ${totals.violationsTotal}`);
     console.log(`By impact:         ${JSON.stringify(totals.byImpact)}`);
-    console.log(`Top rules:`);
+    console.log(`\n────────── WCAG checklist coverage (${checklist.length} criteria) ──────────`);
+    console.log(`  pass:            ${checklistTotals.pass}`);
+    console.log(`  fail:            ${checklistTotals.fail}`);
+    console.log(`  needs_review:    ${checklistTotals.needs_review}`);
+    const fails = checklist.filter((c) => c.status === "fail");
+    if (fails.length) {
+      console.log(`Failing criteria:`);
+      fails.forEach((c) => console.log(`  ${c.sc} (${c.level}) — ${c.title}: ${c.summary}`));
+    }
+    console.log(`Top axe rules:`);
     Object.entries(totals.byRule)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -323,3 +469,4 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
     /* eslint-enable no-console */
   });
 });
+
