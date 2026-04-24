@@ -160,11 +160,43 @@ export const MfaService = {
       throw new Error("Invalid verification code. Please try again.");
     }
     log.info("verifyChallenge", "MFA challenge passed — session elevated to AAL2");
+    // Mark THIS device trusted for 30 days so the same device is not asked
+    // again for either passkey or TOTP within the window. The RPC requires
+    // the caller's JWT to already be at AAL2, which is true at this point.
+    await this.markDeviceTrusted();
   },
 
   /** Submit a 6-digit code during login to elevate the session to AAL2. */
   async challengeAndVerify(factorId: string, code: string): Promise<void> {
     const challengeId = await this.createChallenge(factorId);
     await this.verifyChallenge(factorId, challengeId, code);
+  },
+
+  /**
+   * Records the current (user, device) as having passed a strong second
+   * factor. Shared by passkey and TOTP flows so the 30-day device trust
+   * window is unified — admins are not double-prompted on the same device.
+   *
+   * Best-effort: if the RPC fails (e.g., AAL claim missing in older
+   * sessions), we log and move on rather than blocking the user. Worst case
+   * they get re-prompted on next visit, which is the safe failure mode.
+   */
+  async markDeviceTrusted(): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const hash = await getDeviceVerificationHash(user.id);
+      const { error } = await supabase.rpc("mark_device_trusted_after_mfa", {
+        _session_hash: hash,
+      });
+      if (error) {
+        log.warn("markDeviceTrusted", `RPC failed (non-blocking): ${error.message}`);
+      }
+    } catch (e) {
+      log.warn(
+        "markDeviceTrusted",
+        `Unexpected failure (non-blocking): ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   },
 };
