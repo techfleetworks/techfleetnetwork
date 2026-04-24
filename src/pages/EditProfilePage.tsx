@@ -16,6 +16,7 @@ import {
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
+import { MembershipFaq } from "@/components/MembershipFaq";
 import type { TierId } from "@/config/membership-tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
@@ -592,6 +593,9 @@ export default function EditProfilePage() {
                   }
                 }}
               />
+            </div>
+            <div className="card-elevated p-6 sm:p-8">
+              <MembershipFaq />
             </div>
           </ResponsiveTabsContent>
 
