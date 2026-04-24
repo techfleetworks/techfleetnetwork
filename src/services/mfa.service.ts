@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
-import { getDeviceVerificationHash } from "@/lib/device-id";
-
+import { PasskeyLoginService } from "@/services/passkey-login.service";
 const log = createLogger("MfaService");
 
 export interface TotpFactor {
@@ -173,29 +172,19 @@ export const MfaService = {
   },
 
   /**
-   * Records the current (user, device) as having passed a strong second
-   * factor. Shared by passkey and TOTP flows so the 30-day device trust
-   * window is unified — admins are not double-prompted on the same device.
-   *
-   * Best-effort: if the RPC fails (e.g., AAL claim missing in older
-   * sessions), we log and move on rather than blocking the user. Worst case
-   * they get re-prompted on next visit, which is the safe failure mode.
+   * After a successful TOTP verification, the JWT is at AAL2. Use the
+   * cryptographic device-binding scheme (non-extractable WebCrypto key in
+   * IndexedDB) to mark this physical device trusted for 30 days. Best
+   * effort: failures fall through to "user gets re-prompted next visit",
+   * which is the safe failure mode.
    */
   async markDeviceTrusted(): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const hash = await getDeviceVerificationHash(user.id);
-      const { error } = await supabase.rpc("mark_device_trusted_after_mfa", {
-        _session_hash: hash,
-      });
-      if (error) {
-        log.warn("markDeviceTrusted", `RPC failed (non-blocking): ${error.message}`);
-      }
+      await PasskeyLoginService.bindCurrentDevice();
     } catch (e) {
       log.warn(
         "markDeviceTrusted",
-        `Unexpected failure (non-blocking): ${e instanceof Error ? e.message : String(e)}`,
+        `Device binding failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   },
