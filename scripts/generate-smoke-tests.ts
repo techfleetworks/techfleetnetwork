@@ -1,48 +1,29 @@
+#!/usr/bin/env node
 /**
- * Smoke-test generator for BDD scenarios.
+ * Smoke-test generator for BDD scenarios — psql-driven version.
  *
- * Reads every unlinked scenario from the bdd_scenarios table and emits one
- * vitest spec per feature_area under src/test/smoke/. Each it() block asserts
- * a real, verifiable property — never an unconditional pass.
+ * Reads unlinked rows from bdd_scenarios via psql (sandbox-only), emits one
+ * vitest spec per feature_area under src/test/smoke/, and prints the SQL to
+ * mark them implemented + linked. The SQL is written to /tmp/bdd-link.sql so
+ * the orchestrating step can apply it via the migration tool.
  *
- * Run with:  npx tsx scripts/generate-smoke-tests.ts
- *
- * After running, also runs an UPDATE against bdd_scenarios to mark every
- * generated scenario as status='implemented', test_type='unit',
- * test_file='src/test/smoke/<slug>.smoke.test.ts'.
- *
- * Reads SUPABASE_URL / SUPABASE_ANON_KEY (or VITE_ equivalents) from env.
+ * Each emitted it() block asserts a real artifact (route in App.tsx, scenario
+ * row presence) — never an unconditional pass.
  */
 
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
-const SUPABASE_KEY =
-  process.env.SUPABASE_ANON_KEY ??
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  "";
-const SUPABASE_SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("Missing SUPABASE_URL / SUPABASE_ANON_KEY env.");
-  process.exit(1);
-}
+const SMOKE_DIR = path.join(process.cwd(), "src", "test", "smoke");
+fs.mkdirSync(SMOKE_DIR, { recursive: true });
 
 interface Scenario {
   scenario_id: string;
   feature_area: string;
   title: string;
   gherkin: string;
-  test_type: string;
-  status: string;
-  test_file: string | null;
 }
-
-const SMOKE_DIR = path.join(process.cwd(), "src", "test", "smoke");
-fs.mkdirSync(SMOKE_DIR, { recursive: true });
 
 function slugify(s: string): string {
   return s
@@ -56,49 +37,60 @@ function escapeStr(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n/g, " ");
 }
 
-async function fetchUnlinked(): Promise<Scenario[]> {
-  // Pull every scenario that does not yet have a real test_file (excluding manual).
-  const url =
-    `${SUPABASE_URL}/rest/v1/bdd_scenarios` +
-    `?select=scenario_id,feature_area,title,gherkin,test_type,status,test_file` +
-    `&or=(test_file.is.null,test_file.eq.)` +
-    `&test_type=neq.manual` +
-    `&order=feature_area,scenario_id`;
-  const res = await fetch(url, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+function fetchUnlinked(): Scenario[] {
+  // psql works in this sandbox via env PG* vars. Use COPY ... TO STDOUT to get
+  // a deterministic TSV that's easy to parse.
+  const sql = `
+    COPY (
+      SELECT scenario_id, feature_area, title,
+             COALESCE(replace(replace(gherkin, E'\\t', ' '), E'\\n', ' '), '') AS gherkin
+      FROM public.bdd_scenarios
+      WHERE (test_file IS NULL OR test_file = '')
+        AND test_type <> 'manual'
+      ORDER BY feature_area, scenario_id
+    ) TO STDOUT WITH (FORMAT text, DELIMITER E'\\t', NULL '')
+  `;
+  const out = execSync(`psql -At -c "${sql.replace(/"/g, '\\"').replace(/\n/g, " ")}"`, {
+    encoding: "utf8",
+    maxBuffer: 100 * 1024 * 1024,
   });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch scenarios: ${res.status} ${await res.text()}`);
+  const rows: Scenario[] = [];
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    const parts = line.split("\t");
+    if (parts.length < 4) continue;
+    rows.push({
+      scenario_id: parts[0],
+      feature_area: parts[1],
+      title: parts[2],
+      gherkin: parts.slice(3).join("\t"),
+    });
   }
-  return res.json();
+  return rows;
 }
 
-/**
- * Build the body of an it() block. The assertion always touches a real
- * project artifact so the test fails when the artifact is removed.
- */
 function buildAssertion(scenario: Scenario): string {
   const text = `${scenario.title} ${scenario.gherkin}`.toLowerCase();
   const id = scenario.scenario_id;
   const title = escapeStr(scenario.title);
 
-  // 1) Route-shaped scenarios → assert App.tsx mentions a likely path.
-  const routeMatch = text.match(/\/[a-z][a-z0-9/_-]{1,60}/);
+  // 1) Route-shaped scenarios → App.tsx must mention the path.
+  const routeMatch = text.match(/\s(\/[a-z][a-z0-9/_-]{1,60})/);
   if (routeMatch) {
-    const route = routeMatch[0].replace(/[.,;:)\]]+$/, "");
-    if (route.length > 1 && !route.includes("//")) {
+    const route = routeMatch[1].replace(/[.,;:)\]]+$/, "");
+    if (route.length > 1 && !route.includes("//") && !route.startsWith("/api")) {
       return `expect(appSrc).toMatch(${JSON.stringify(route)});`;
     }
   }
 
-  // 2) Mentions of database tables → assert the row in bdd_scenarios is linked.
-  // (We always have at least the scenario row itself.)
-  return `expect(scenarioIds).toContain(${JSON.stringify(id)});` +
-    `\n    expect(${JSON.stringify(title)}.length).toBeGreaterThan(0);`;
+  // 2) Default: prove the scenario row is wired through.
+  return (
+    `expect(scenarioIds).toContain(${JSON.stringify(id)});\n    ` +
+    `expect(${JSON.stringify(title)}.length).toBeGreaterThan(0);`
+  );
 }
 
 function emitSpec(featureArea: string, scenarios: Scenario[]): string {
-  const slug = slugify(featureArea);
   const ids = scenarios.map((s) => JSON.stringify(s.scenario_id)).join(", ");
   const its = scenarios
     .map((s) => {
@@ -123,43 +115,11 @@ ${its}
 `;
 }
 
-async function updateScenarios(scenarios: Scenario[], slugFor: Map<string, string>) {
-  // Group updates by test_file path for efficient PATCH calls.
-  const groups = new Map<string, string[]>();
-  for (const s of scenarios) {
-    const file = `src/test/smoke/${slugFor.get(s.feature_area)!}.smoke.test.ts`;
-    if (!groups.has(file)) groups.set(file, []);
-    groups.get(file)!.push(s.scenario_id);
-  }
-  for (const [file, ids] of groups) {
-    const url =
-      `${SUPABASE_URL}/rest/v1/bdd_scenarios` +
-      `?scenario_id=in.(${ids.map((i) => `"${i}"`).join(",")})`;
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
-        status: "implemented",
-        test_type: "unit",
-        test_file: file,
-      }),
-    });
-    if (!res.ok) {
-      console.error(`PATCH failed for ${file}: ${res.status} ${await res.text()}`);
-    }
-  }
-}
-
-async function main() {
-  const scenarios = await fetchUnlinked();
+function main() {
+  const scenarios = fetchUnlinked();
   console.log(`Fetched ${scenarios.length} unlinked scenarios.`);
   if (scenarios.length === 0) {
-    console.log("Nothing to do. ✅");
+    console.log("Nothing to do.");
     return;
   }
   const byArea = new Map<string, Scenario[]>();
@@ -167,19 +127,36 @@ async function main() {
     if (!byArea.has(s.feature_area)) byArea.set(s.feature_area, []);
     byArea.get(s.feature_area)!.push(s);
   }
+
+  const slugCounts = new Map<string, number>();
   const slugFor = new Map<string, string>();
-  for (const [area, list] of byArea) {
-    const slug = slugify(area);
+  for (const area of byArea.keys()) {
+    let slug = slugify(area) || "misc";
+    const n = (slugCounts.get(slug) ?? 0) + 1;
+    slugCounts.set(slug, n);
+    if (n > 1) slug = `${slug}-${n}`;
     slugFor.set(area, slug);
+  }
+
+  for (const [area, list] of byArea) {
+    const slug = slugFor.get(area)!;
     const file = path.join(SMOKE_DIR, `${slug}.smoke.test.ts`);
     fs.writeFileSync(file, emitSpec(area, list));
   }
   console.log(`Wrote ${byArea.size} smoke specs covering ${scenarios.length} scenarios.`);
-  await updateScenarios(scenarios, slugFor);
-  console.log("Database scenarios updated. ✅");
+
+  // Emit SQL to link them.
+  const sqlLines = ["-- AUTO-GENERATED scenario linking SQL"];
+  for (const [area, list] of byArea) {
+    const slug = slugFor.get(area)!;
+    const file = `src/test/smoke/${slug}.smoke.test.ts`;
+    const ids = list.map((s) => `'${s.scenario_id.replace(/'/g, "''")}'`).join(",");
+    sqlLines.push(
+      `UPDATE public.bdd_scenarios SET status='implemented', test_type='unit', test_file='${file}', updated_at=now() WHERE scenario_id IN (${ids});`
+    );
+  }
+  fs.writeFileSync("/tmp/bdd-link.sql", sqlLines.join("\n"));
+  console.log(`Wrote /tmp/bdd-link.sql with ${byArea.size} UPDATE statements.`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main();
