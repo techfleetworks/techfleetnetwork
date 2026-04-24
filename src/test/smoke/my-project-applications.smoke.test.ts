@@ -15,7 +15,7 @@ const scenarioIds = ["89.1", "89.2"];
 
 describe("My Project Applications" + " (smoke)", () => {
   it("89.1: User sees all their project applications", () => {
-    expect(appSrc).toMatch("/my-project-applications");
+    expect(appSrc).toMatch("/applications/projects");
   });
 
   it("89.2: User can resume a draft application", () => {
