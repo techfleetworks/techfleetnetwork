@@ -8,6 +8,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Cancel older in-progress runs on the same ref when a new commit arrives.
+# Without this, every push back-to-back queues a full Vitest+Playwright+BDD
+# pipeline and they all sit "In progress" until the runner pool drains.
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # OWASP CI/CD security: minimum permissions on every job. Each job opts into more.
 permissions:
   contents: read
