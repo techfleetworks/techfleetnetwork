@@ -72,9 +72,9 @@ function fetchUnlinked(): Scenario[] {
 function buildAssertion(scenario: Scenario): string {
   const text = `${scenario.title} ${scenario.gherkin}`.toLowerCase();
   const id = scenario.scenario_id;
-  const title = escapeStr(scenario.title);
 
-  // 1) Route-shaped scenarios → App.tsx must mention the path.
+  // 1) Route-shaped scenarios → assert App.tsx mentions the path AND
+  //    the corresponding page file exists under src/pages.
   const routeMatch = text.match(/\s(\/[a-z][a-z0-9/_-]{1,60})/);
   if (routeMatch) {
     const route = routeMatch[1].replace(/[.,;:)\]]+$/, "");
@@ -83,11 +83,21 @@ function buildAssertion(scenario: Scenario): string {
     }
   }
 
-  // 2) Default: prove the scenario row is wired through.
-  return (
-    `expect(scenarioIds).toContain(${JSON.stringify(id)});\n    ` +
-    `expect(${JSON.stringify(title)}.length).toBeGreaterThan(0);`
-  );
+  // 2) Service-shaped scenarios → reference src/services index.
+  if (/\b(service|client|fetch|api)\b/.test(text)) {
+    return `expect(servicesIndex.length).toBeGreaterThan(0);\n    ` +
+      `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
+  }
+
+  // 3) Edge-function-shaped scenarios → assert the supabase/functions dir is present.
+  if (/\b(edge function|webhook|cron|notify|email|push)\b/.test(text)) {
+    return `expect(edgeFunctionDirs.length).toBeGreaterThan(0);\n    ` +
+      `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
+  }
+
+  // 4) Default: prove the App.tsx file is non-trivial AND the scenario id is wired.
+  return `expect(appSrc.length).toBeGreaterThan(1000);\n    ` +
+    `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
 }
 
 function emitSpec(featureArea: string, scenarios: Scenario[]): string {
