@@ -54,7 +54,7 @@ export const PasskeyService = {
     }
 
     const { data: verifyResp, error: verifyErr } = await supabase.functions.invoke("passkey-register-verify", {
-      body: { response: attestation, deviceName: deviceName || "Passkey" },
+      body: { response: attestation, deviceName: deviceName || "Passkey", device_id: getDeviceId() },
     });
     if (verifyErr || !verifyResp?.verified) {
       log.error("enroll", `Verification failed: ${verifyErr?.message}`, undefined, verifyErr);
