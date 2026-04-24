@@ -17,7 +17,7 @@ import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
 import { MembershipFaq } from "@/components/MembershipFaq";
-import type { TierId } from "@/config/membership-tiers";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useMembershipRealtime } from "@/hooks/use-membership-realtime";
 import { ProfileService } from "@/services/profile.service";
