@@ -26,9 +26,14 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { response, deviceName } = body;
+    const { response, deviceName, device_id } = body;
     if (!response) {
       return new Response(JSON.stringify({ error: "Missing response" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // device_id is optional for backwards compat with older clients, but if
+    // present it must be a sane length so we don't store junk.
+    if (device_id !== undefined && (typeof device_id !== "string" || device_id.length < 16 || device_id.length > 256)) {
+      return new Response(JSON.stringify({ error: "Invalid device id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
