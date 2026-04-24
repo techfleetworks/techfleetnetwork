@@ -2380,6 +2380,10 @@ export type Database = {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
       }
+      mark_device_trusted_after_mfa: {
+        Args: { _session_hash: string }
+        Returns: boolean
+      }
       mark_discord_role_grant_result: {
         Args: { p_error?: string; p_id: string; p_success: boolean }
         Returns: undefined
