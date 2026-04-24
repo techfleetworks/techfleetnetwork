@@ -95,35 +95,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: insertErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Mark THIS JWT session as passkey-verified so the user is not immediately
-    // re-prompted by PasskeyLoginGate one second after enrolling. The act of
-    // completing a WebAuthn registration ceremony is a stronger user-presence
-    // proof than the gate's separate authentication assertion, so it is safe
-    // to bridge the just-completed registration to a verified-session marker
-    // for the same JWT. This row otherwise expires on its own (8h) like any
-    // other passkey-verified session.
-    try {
-      const token = authHeader.slice("Bearer ".length);
-      const hashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-      const sessionTokenHash = Array.from(new Uint8Array(hashBuf))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-      const ip =
-        req.headers.get("cf-connecting-ip") ||
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        null;
-      await admin.from("passkey_login_sessions").upsert(
-        {
-          user_id: user.id,
-          session_token_hash: sessionTokenHash,
-          ip_address: ip,
-        },
-        { onConflict: "user_id,session_token_hash" },
-      );
-    } catch (sessErr) {
-      // Non-fatal: enrollment still succeeded; user will just see the gate
-      // dialog once and verify with the new passkey.
-      console.warn("passkey-register-verify: could not bridge verified session", sessErr);
+    // Mark THIS DEVICE (not the rotating JWT) as having passed the second
+    // factor for 30 days. The act of completing a WebAuthn registration
+    // ceremony is a stronger user-presence proof than the gate's separate
+    // authentication assertion, so it is safe to bridge the just-completed
+    // registration to a verified-device marker. This avoids the bug where
+    // a freshly-enrolled admin gets re-prompted seconds later, AND keeps
+    // them un-prompted on the same device for the full 30-day trust window.
+    if (typeof device_id === "string" && device_id.length >= 16) {
+      try {
+        const hashBuf = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(`v1:${user.id}:${device_id}`),
+        );
+        const deviceHash = Array.from(new Uint8Array(hashBuf))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        const ip =
+          req.headers.get("cf-connecting-ip") ||
+          req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          null;
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        await admin.from("passkey_login_sessions").upsert(
+          {
+            user_id: user.id,
+            session_token_hash: deviceHash,
+            verified_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
+            ip_address: ip,
+          },
+          { onConflict: "user_id,session_token_hash" },
+        );
+      } catch (sessErr) {
+        // Non-fatal: enrollment still succeeded; user will just see the gate
+        // dialog once and verify with the new passkey.
+        console.warn("passkey-register-verify: could not bridge verified session", sessErr);
+      }
     }
 
     return new Response(JSON.stringify({ verified: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
