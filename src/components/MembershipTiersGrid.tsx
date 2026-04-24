@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,8 @@ import {
   type TierId,
 } from "@/config/membership-tiers";
 
+export type BillingRecurrence = "monthly" | "yearly";
+
 export interface MembershipTiersGridProps {
   /** The user's current tier; controls per-card CTA state. */
   currentTier?: TierId | null;
@@ -19,7 +22,7 @@ export interface MembershipTiersGridProps {
   /** Triggered when the user picks a CTA. */
   onSelect: (intent: {
     tier: TierId;
-    recurrence?: "monthly" | "yearly";
+    recurrence?: BillingRecurrence;
     skuUrl?: string;
     action: "subscribe" | "waitlist" | "downgrade" | "manage";
   }) => void;
@@ -30,6 +33,10 @@ export interface MembershipTiersGridProps {
  * Three-up tier grid that mirrors techfleet.org/overview content exactly.
  * Stacks on mobile, side-by-side on ≥lg. Community card is visually
  * highlighted as "popular" — matches the .org hierarchy and conversion goal.
+ *
+ * Includes a Monthly / Yearly billing toggle that swaps each card's price
+ * display and CTA target. While the founding-member promo window is open,
+ * the yearly view exposes the discounted founding rate inline.
  */
 export function MembershipTiersGrid({
   currentTier = "starter",
@@ -38,13 +45,24 @@ export function MembershipTiersGrid({
   className,
 }: MembershipTiersGridProps) {
   const promoActive = isFoundingPromoActive();
+  // Default to yearly while the founding promo is live so the discount is
+  // the first thing members see — best-deal-forward (Heuristic #6).
+  const [recurrence, setRecurrence] = useState<BillingRecurrence>(
+    promoActive ? "yearly" : "monthly",
+  );
 
   return (
     <div className={cn("space-y-6", className)}>
+      <BillingToggle
+        value={recurrence}
+        onChange={setRecurrence}
+        promoActive={promoActive}
+      />
+
       <div
         role="list"
         aria-label="Tech Fleet membership tiers"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 pt-2"
       >
         {TIER_ORDER.map((id) => (
           <TierCard
@@ -54,6 +72,7 @@ export function MembershipTiersGrid({
             currentTier={currentTier ?? "starter"}
             isFoundingMember={isFoundingMember}
             promoActive={promoActive}
+            recurrence={recurrence}
             onSelect={onSelect}
           />
         ))}
@@ -68,12 +87,94 @@ export function MembershipTiersGrid({
   );
 }
 
+/* ── Billing toggle ─────────────────────────────────────── */
+
+interface BillingToggleProps {
+  value: BillingRecurrence;
+  onChange: (next: BillingRecurrence) => void;
+  promoActive: boolean;
+}
+
+function BillingToggle({ value, onChange, promoActive }: BillingToggleProps) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div
+        role="radiogroup"
+        aria-label="Billing frequency"
+        className="inline-flex items-center rounded-full border border-border bg-muted p-1"
+      >
+        <ToggleOption
+          label="Monthly"
+          selected={value === "monthly"}
+          onClick={() => onChange("monthly")}
+        />
+        <ToggleOption
+          label="Yearly"
+          selected={value === "yearly"}
+          onClick={() => onChange("yearly")}
+          trailing={
+            promoActive ? (
+              <Badge
+                variant="default"
+                className="ml-2 gap-1 px-2 py-0 text-[10px] uppercase tracking-wide"
+              >
+                <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
+                {FOUNDING_PROMO.savingsLabel}
+              </Badge>
+            ) : null
+          }
+        />
+      </div>
+      {value === "yearly" && promoActive && (
+        <p className="text-xs text-muted-foreground">
+          Founding Member rate — {FOUNDING_PROMO.yearlyPriceDisplay}/yr,{" "}
+          {FOUNDING_PROMO.description.toLowerCase()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ToggleOption({
+  label,
+  selected,
+  onClick,
+  trailing,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        selected
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+      {trailing}
+    </button>
+  );
+}
+
+/* ── Tier card ──────────────────────────────────────────── */
+
 interface TierCardProps {
   tier: MembershipTier;
   isCurrent: boolean;
   currentTier: TierId;
   isFoundingMember: boolean;
   promoActive: boolean;
+  recurrence: BillingRecurrence;
   onSelect: MembershipTiersGridProps["onSelect"];
 }
 
@@ -83,12 +184,15 @@ function TierCard({
   currentTier,
   isFoundingMember,
   promoActive,
+  recurrence,
   onSelect,
 }: TierCardProps) {
   const headingId = `tier-${tier.id}-name`;
   const tierRank: Record<TierId, number> = { starter: 0, community: 1, professional: 2 };
   const isUpgrade = tierRank[tier.id] > tierRank[currentTier];
   const isDowngrade = tierRank[tier.id] < tierRank[currentTier];
+
+  const priceView = derivePriceView(tier, recurrence, promoActive);
 
   return (
     <article
@@ -123,16 +227,28 @@ function TierCard({
 
       {/* Price block */}
       <div className="my-6 space-y-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-foreground">{tier.priceDisplay}</span>
-          <span className="text-sm text-muted-foreground">{tier.priceSubtitle}</span>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-4xl font-bold text-foreground">
+            {priceView.priceDisplay}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {priceView.priceSubtitle}
+          </span>
+          {priceView.strikethroughDisplay && (
+            <span
+              className="text-sm text-muted-foreground line-through"
+              aria-label={`Original price ${priceView.strikethroughDisplay}`}
+            >
+              {priceView.strikethroughDisplay}
+            </span>
+          )}
         </div>
-        {tier.priceFootnote && (
-          <p className="text-xs text-muted-foreground">{tier.priceFootnote}</p>
+        {priceView.priceFootnote && (
+          <p className="text-xs text-muted-foreground">{priceView.priceFootnote}</p>
         )}
 
-        {/* Founding-member promo strip on Community card only */}
-        {tier.id === "community" && promoActive && (
+        {/* Founding-member promo strip on Community + yearly view only */}
+        {tier.id === "community" && recurrence === "yearly" && promoActive && (
           <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-3 space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
@@ -189,12 +305,79 @@ function TierCard({
           isDowngrade={isDowngrade}
           isFoundingMember={isFoundingMember}
           promoActive={promoActive}
+          recurrence={recurrence}
           onSelect={onSelect}
         />
       </div>
     </article>
   );
 }
+
+/* ── Pricing view derivation ────────────────────────────── */
+
+interface PriceView {
+  priceDisplay: string;
+  priceSubtitle: string;
+  priceFootnote?: string;
+  strikethroughDisplay?: string;
+}
+
+function derivePriceView(
+  tier: MembershipTier,
+  recurrence: BillingRecurrence,
+  promoActive: boolean,
+): PriceView {
+  // Starter is always free regardless of recurrence
+  if (tier.id === "starter") {
+    return {
+      priceDisplay: tier.priceDisplay,
+      priceSubtitle: tier.priceSubtitle,
+    };
+  }
+
+  // Community: switch by recurrence; yearly shows founding rate while active
+  if (tier.id === "community") {
+    if (recurrence === "yearly") {
+      if (promoActive) {
+        return {
+          priceDisplay: FOUNDING_PROMO.yearlyPriceDisplay,
+          priceSubtitle: "USD per year",
+          priceFootnote: "Founding Member rate — locked for life",
+          strikethroughDisplay: FOUNDING_PROMO.yearlyOriginalDisplay,
+        };
+      }
+      return {
+        priceDisplay: FOUNDING_PROMO.yearlyOriginalDisplay,
+        priceSubtitle: "USD per year",
+        priceFootnote: "Billed annually via Gumroad",
+      };
+    }
+    // Monthly view — defer to base tier display
+    return {
+      priceDisplay: tier.priceDisplay,
+      priceSubtitle: tier.priceSubtitle,
+      priceFootnote: tier.priceFootnote,
+    };
+  }
+
+  // Professional: yearly view shows ~10× monthly as a placeholder hint
+  // (no live SKU yet — kept neutral until admin configures)
+  if (tier.id === "professional" && recurrence === "yearly") {
+    return {
+      priceDisplay: tier.priceDisplay,
+      priceSubtitle: "USD per month, billed yearly",
+      priceFootnote: tier.priceFootnote,
+    };
+  }
+
+  return {
+    priceDisplay: tier.priceDisplay,
+    priceSubtitle: tier.priceSubtitle,
+    priceFootnote: tier.priceFootnote,
+  };
+}
+
+/* ── Feature row + CTA buttons ──────────────────────────── */
 
 function FeatureRow({ feature, muted = false }: { feature: { label: string; qualifier?: string }; muted?: boolean }) {
   return (
@@ -223,20 +406,20 @@ interface CtaProps {
   isDowngrade: boolean;
   isFoundingMember: boolean;
   promoActive: boolean;
+  recurrence: BillingRecurrence;
   onSelect: MembershipTiersGridProps["onSelect"];
 }
 
 function TierCtaButtons({
   tier,
   isCurrent,
-  isUpgrade,
   isDowngrade,
   isFoundingMember,
   promoActive,
+  recurrence,
   onSelect,
 }: CtaProps) {
-  // Current tier: show non-actionable confirmation (keyboard accessible,
-  // but aria-disabled rather than `disabled` so SR users still hear the state).
+  // Current tier: non-actionable confirmation, keyboard-accessible.
   if (isCurrent) {
     return (
       <div
@@ -269,14 +452,14 @@ function TierCtaButtons({
     );
   }
 
-  // Community: single Subscribe CTA. Routes to the best available SKU
-  // (founding-rate yearly while promo is active, otherwise monthly).
+  // Community: routes to the SKU matching the active recurrence.
   if (tier.cta.type === "dual_recurrence") {
-    const useFoundingYearly = promoActive && Boolean(tier.skus?.yearlyFounding);
-    const skuUrl = useFoundingYearly
-      ? tier.skus?.yearlyFounding
-      : tier.skus?.monthly;
-    const recurrence: "monthly" | "yearly" = useFoundingYearly ? "yearly" : "monthly";
+    const skuUrl =
+      recurrence === "yearly"
+        ? promoActive
+          ? tier.skus?.yearlyFounding
+          : tier.skus?.yearlyRegular
+        : tier.skus?.monthly;
 
     return (
       <Button
@@ -301,7 +484,7 @@ function TierCtaButtons({
     return (
       <Button
         type="button"
-        variant={isUpgrade ? "default" : "outline"}
+        variant="outline"
         className="w-full"
         onClick={() => onSelect({ tier: tier.id, action: "waitlist" })}
       >
@@ -319,6 +502,7 @@ function TierCtaButtons({
         onClick={() =>
           onSelect({
             tier: tier.id,
+            recurrence,
             skuUrl: tier.skus?.primary,
             action: "subscribe",
           })
@@ -329,7 +513,5 @@ function TierCtaButtons({
     );
   }
 
-  // Starter / current_or_signup fallback (only reached when user is on a
-  // higher tier and clicks the Starter card — handled by isDowngrade above)
   return null;
 }
