@@ -23,6 +23,7 @@ import {
   Settings,
   KeyRound,
   Flag,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -110,6 +111,10 @@ function ProfileDropdown({
         <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=account")}>
           <KeyRound className="h-4 w-4 mr-2" />
           Account
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/profile/edit?tab=membership")}>
+          <Sparkles className="h-4 w-4 mr-2" />
+          Membership
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>

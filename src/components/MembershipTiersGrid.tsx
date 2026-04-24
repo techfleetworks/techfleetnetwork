@@ -269,47 +269,30 @@ function TierCtaButtons({
     );
   }
 
-  // Community: dual recurrence (monthly + yearly), yearly = primary
+  // Community: single Subscribe CTA. Routes to the best available SKU
+  // (founding-rate yearly while promo is active, otherwise monthly).
   if (tier.cta.type === "dual_recurrence") {
-    const yearlyUrl = promoActive
+    const useFoundingYearly = promoActive && Boolean(tier.skus?.yearlyFounding);
+    const skuUrl = useFoundingYearly
       ? tier.skus?.yearlyFounding
-      : tier.skus?.yearlyRegular;
-    const yearlyLabel = promoActive
-      ? `Subscribe yearly — ${FOUNDING_PROMO.yearlyPriceDisplay}/yr · locked for life`
-      : "Subscribe yearly";
+      : tier.skus?.monthly;
+    const recurrence: "monthly" | "yearly" = useFoundingYearly ? "yearly" : "monthly";
 
     return (
-      <div className="space-y-2">
-        <Button
-          type="button"
-          className="w-full"
-          onClick={() =>
-            onSelect({
-              tier: tier.id,
-              recurrence: "yearly",
-              skuUrl: yearlyUrl,
-              action: "subscribe",
-            })
-          }
-        >
-          {yearlyLabel}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() =>
-            onSelect({
-              tier: tier.id,
-              recurrence: "monthly",
-              skuUrl: tier.skus?.monthly,
-              action: "subscribe",
-            })
-          }
-        >
-          Subscribe monthly — {tier.priceDisplay}/mo
-        </Button>
-      </div>
+      <Button
+        type="button"
+        className="w-full"
+        onClick={() =>
+          onSelect({
+            tier: tier.id,
+            recurrence,
+            skuUrl,
+            action: "subscribe",
+          })
+        }
+      >
+        Subscribe
+      </Button>
     );
   }
 
@@ -341,7 +324,7 @@ function TierCtaButtons({
           })
         }
       >
-        Subscribe — {tier.priceDisplay}/mo
+        Subscribe
       </Button>
     );
   }
