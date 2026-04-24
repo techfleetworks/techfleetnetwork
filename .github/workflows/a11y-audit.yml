@@ -77,7 +77,15 @@ jobs:
         # suite still runs in `regression.yml`. `|| true` so a failing
         # route test never prevents the artifact upload below — Phase 0
         # is a baseline, not a gate.
-        run: npx playwright test e2e/a11y/wcag-audit.spec.ts --reporter=list || true
+        #
+        # NOTE: Playwright treats the positional arg as a *regex* against
+        # test file paths. Passing `e2e/a11y/wcag-audit.spec.ts` raw made
+        # the runner emit "No tests found" because the unescaped `.` and
+        # `/` characters didn't line up with how `testMatch` resolves the
+        # file under `testDir: "."`. Anchoring on the filename stem with
+        # escaped dots (and `--` to stop shell/CLI flag parsing) matches
+        # the single spec reliably across local + CI.
+        run: npx playwright test --reporter=list -- "wcag-audit\.spec\.ts" || true
 
       - name: Upload a11y report
         if: always()
