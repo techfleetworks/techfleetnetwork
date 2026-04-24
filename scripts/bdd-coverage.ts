@@ -171,7 +171,7 @@ async function main() {
   // start the gate at the current count + small buffer, then ratchet down
   // as the team links real test files. Lower this number over time —
   // never raise it.
-  const IMPLEMENTED_UNLINKED_MAX = 760;
+  const IMPLEMENTED_UNLINKED_MAX = 755;
   if (implementedUnlinked.length > IMPLEMENTED_UNLINKED_MAX) {
     console.error(
       `\n❌ ${implementedUnlinked.length} scenario(s) marked "implemented" have no test_file.\n` +
