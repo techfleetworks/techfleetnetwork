@@ -790,6 +790,63 @@ export type Database = {
         }
         Relationships: []
       }
+      gumroad_sales: {
+        Row: {
+          email: string
+          error_message: string | null
+          id: string
+          is_founding_member: boolean
+          price_cents: number
+          processed_at: string | null
+          product_id: string
+          product_permalink: string
+          raw_payload: Json
+          received_at: string
+          recurrence: string
+          resolved_tier: Database["public"]["Enums"]["membership_tier"] | null
+          resolved_user_id: string | null
+          sale_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          email: string
+          error_message?: string | null
+          id?: string
+          is_founding_member?: boolean
+          price_cents?: number
+          processed_at?: string | null
+          product_id?: string
+          product_permalink?: string
+          raw_payload?: Json
+          received_at?: string
+          recurrence?: string
+          resolved_tier?: Database["public"]["Enums"]["membership_tier"] | null
+          resolved_user_id?: string | null
+          sale_id: string
+          seller_id?: string
+          status?: string
+        }
+        Update: {
+          email?: string
+          error_message?: string | null
+          id?: string
+          is_founding_member?: boolean
+          price_cents?: number
+          processed_at?: string | null
+          product_id?: string
+          product_permalink?: string
+          raw_payload?: Json
+          received_at?: string
+          recurrence?: string
+          resolved_tier?: Database["public"]["Enums"]["membership_tier"] | null
+          resolved_user_id?: string | null
+          sale_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       handbooks: {
         Row: {
           category: string
@@ -1243,9 +1300,13 @@ export type Database = {
           has_discord_account: boolean
           id: string
           interests: string[]
+          is_founding_member: boolean
           last_name: string
           linkedin_url: string
+          membership_gumroad_sale_id: string
+          membership_sku: string
           membership_tier: Database["public"]["Enums"]["membership_tier"]
+          membership_updated_at: string | null
           notify_announcements: boolean
           notify_training_opportunities: boolean
           portfolio_url: string
@@ -1274,9 +1335,13 @@ export type Database = {
           has_discord_account?: boolean
           id?: string
           interests?: string[]
+          is_founding_member?: boolean
           last_name?: string
           linkedin_url?: string
+          membership_gumroad_sale_id?: string
+          membership_sku?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          membership_updated_at?: string | null
           notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
@@ -1305,9 +1370,13 @@ export type Database = {
           has_discord_account?: boolean
           id?: string
           interests?: string[]
+          is_founding_member?: boolean
           last_name?: string
           linkedin_url?: string
+          membership_gumroad_sale_id?: string
+          membership_sku?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
+          membership_updated_at?: string | null
           notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
@@ -2436,7 +2505,7 @@ export type Database = {
         | "project_training"
         | "volunteer"
         | "discord_learning"
-      membership_tier: "free" | "paid"
+      membership_tier: "starter" | "community" | "professional"
       project_phase: "phase_1" | "phase_2" | "phase_3" | "phase_4"
       project_status_enum:
         | "coming_soon"
@@ -2598,7 +2667,7 @@ export const Constants = {
         "volunteer",
         "discord_learning",
       ],
-      membership_tier: ["free", "paid"],
+      membership_tier: ["starter", "community", "professional"],
       project_phase: ["phase_1", "phase_2", "phase_3", "phase_4"],
       project_status_enum: [
         "coming_soon",
