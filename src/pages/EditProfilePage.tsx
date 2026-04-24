@@ -557,7 +557,7 @@ export default function EditProfilePage() {
                 <p className="text-sm text-muted-foreground max-w-2xl">
                   Tech Fleet's membership model invites everyone to practice shared
                   leadership and build a different world. Choose the tier that fits
-                  where you are now — you can switch any time.
+                  where you are now. You can switch any time.
                 </p>
               </div>
 
