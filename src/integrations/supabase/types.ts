@@ -454,6 +454,36 @@ export type Database = {
         }
         Relationships: []
       }
+      device_binding_nonces: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string
+          purpose: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce: string
+          purpose: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string
+          purpose?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       discord_role_grant_queue: {
         Row: {
           attempts: number
@@ -2001,6 +2031,42 @@ export type Database = {
         }
         Relationships: []
       }
+      trusted_devices: {
+        Row: {
+          bound_at: string
+          expires_at: string
+          fingerprint: string
+          id: string
+          ip_address: string | null
+          last_proof_at: string
+          public_key: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          bound_at?: string
+          expires_at?: string
+          fingerprint: string
+          id?: string
+          ip_address?: string | null
+          last_proof_at?: string
+          public_key: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          bound_at?: string
+          expires_at?: string
+          fingerprint?: string
+          id?: string
+          ip_address?: string | null
+          last_proof_at?: string
+          public_key?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_quest_selections: {
         Row: {
           completed_at: string | null
@@ -2258,6 +2324,11 @@ export type Database = {
       }
     }
     Functions: {
+      _consume_device_nonce: {
+        Args: { _nonce: string; _purpose: string; _user_id: string }
+        Returns: boolean
+      }
+      _current_aal: { Args: never; Returns: string }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -2358,6 +2429,14 @@ export type Database = {
         Args: { _issued_at: string; _user_id: string }
         Returns: boolean
       }
+      is_trusted_device_active: {
+        Args: { _fingerprint: string }
+        Returns: boolean
+      }
+      issue_device_binding_nonce: {
+        Args: { _purpose: string }
+        Returns: string
+      }
       list_pending_fanout_jobs: {
         Args: { p_limit?: number }
         Returns: {
@@ -2379,10 +2458,6 @@ export type Database = {
       log_pii_access: {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
-      }
-      mark_device_trusted_after_mfa: {
-        Args: { _session_hash: string }
-        Returns: boolean
       }
       mark_discord_role_grant_result: {
         Args: { p_error?: string; p_id: string; p_success: boolean }
