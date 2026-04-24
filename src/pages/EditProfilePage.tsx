@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
+import type { TierId } from "@/config/membership-tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { AuthService } from "@/services/auth.service";
@@ -63,7 +65,7 @@ export default function EditProfilePage() {
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTabs = ["basic-info", "background", "preferences", "account"];
+  const validTabs = ["basic-info", "background", "preferences", "membership", "account"];
   const [activeTab, setActiveTab] = useState(
     tabParam && validTabs.includes(tabParam) ? tabParam : "basic-info"
   );
@@ -298,6 +300,7 @@ export default function EditProfilePage() {
               { value: "basic-info", label: "Basic Info" },
               { value: "background", label: "Background" },
               { value: "preferences", label: "Preferences" },
+              { value: "membership", label: "Membership" },
               { value: "account", label: "Account" },
             ] as TabItem[]}
             value={activeTab}
