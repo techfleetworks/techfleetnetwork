@@ -437,17 +437,22 @@ function TierCtaButtons({
   onSelect,
 }: CtaProps) {
   // Current tier: non-actionable confirmation, keyboard-accessible.
+  // Uses bg-foreground/text-background for guaranteed ≥7:1 contrast (WCAG AAA)
+  // in both light and dark themes.
   if (isCurrent) {
     return (
       <div
-        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-muted text-muted-foreground text-sm font-medium"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-foreground text-background text-sm font-semibold"
         role="status"
         aria-label={`${tier.name} is your current membership tier`}
       >
-        <Check className="h-4 w-4" aria-hidden="true" />
-        <span>Your current tier</span>
+        <Check className="h-4 w-4" aria-hidden="true" strokeWidth={3} />
+        <span>Your Current Plan</span>
         {tier.id === "community" && isFoundingMember && (
-          <Badge variant="secondary" className="ml-2 text-xs">
+          <Badge
+            variant="secondary"
+            className="ml-2 text-xs bg-background text-foreground"
+          >
             Founding Member
           </Badge>
         )}
