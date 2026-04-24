@@ -243,7 +243,7 @@ export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
   "consistent-help-mechanism": async () => {
     const files = await getSrcFiles();
     // Look for a persistent help affordance (Fleety chatbot, Help link).
-    const hasHelp = files.some((f) => /\b(Fleety|HelpButton|/?help|FloatingHelp)\b/i.test(f.content));
+    const hasHelp = files.some((f) => /\b(Fleety|HelpButton|\/?help|FloatingHelp)\b/i.test(f.content));
     return hasHelp
       ? { status: "pass", details: "Persistent help mechanism (Fleety / Help link) detected." }
       : { status: "fail", details: "No persistent help mechanism detected across pages." };
