@@ -40,6 +40,9 @@ function escapeStr(s: string): string {
 function fetchUnlinked(): Scenario[] {
   // psql works in this sandbox via env PG* vars. Use COPY ... TO STDOUT to get
   // a deterministic TSV that's easy to parse.
+  // Pull every scenario that lacks a real test_file link, regardless of
+  // whether it's marked implemented (catalog drift) or not_built. Manual
+  // scenarios are excluded — those are intentional human-verified cases.
   const sql = `
     COPY (
       SELECT scenario_id, feature_area, title,
