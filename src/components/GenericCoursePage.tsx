@@ -615,33 +615,38 @@ export default function GenericCoursePage({
             className={fullscreen ? "flex-1 min-h-0 overflow-y-auto overscroll-contain" : "flex-1 min-h-0 overflow-y-auto overscroll-contain px-6"}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
-            <div className={fullscreen ? "space-y-4 pb-4" : "space-y-4 py-4"}>
+            <div className="space-y-4 pb-4">
               {selectedLesson?.youtubeId && (
-                <div className={fullscreen ? "space-y-2" : "space-y-2"}>
-                  <div className={fullscreen ? "w-full bg-black" : ""}>
-                    <AspectRatio ratio={16 / 9}>
-                      <iframe
-                        src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
-                        title={selectedLesson.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                        allowFullScreen
-                        className={
-                          fullscreen
-                            ? "w-full h-full border-0"
-                            : "w-full h-full rounded-lg border border-border"
-                        }
-                      />
-                    </AspectRatio>
+                <div className="space-y-2">
+                  {/*
+                    Cap the video so the entire 16:9 frame is visible without
+                    scrolling. Width is limited by available viewport height
+                    (minus header + footer + text-version chrome ~ 22rem) so
+                    the video shrinks on short windows instead of overflowing.
+                  */}
+                  <div className="w-full bg-black flex justify-center">
+                    <div
+                      className="w-full"
+                      style={{
+                        maxWidth: "min(100%, calc((100dvh - 22rem) * 16 / 9))",
+                      }}
+                    >
+                      <AspectRatio ratio={16 / 9}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
+                          title={selectedLesson.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                          allowFullScreen
+                          className="w-full h-full border-0"
+                        />
+                      </AspectRatio>
+                    </div>
                   </div>
                   <a
                     href={`https://www.youtube.com/watch?v=${selectedLesson.youtubeId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={
-                      fullscreen
-                        ? "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-4"
-                        : "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    }
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-4"
                   >
                     <ExternalLink className="h-3 w-3" />
                     Watch on YouTube
