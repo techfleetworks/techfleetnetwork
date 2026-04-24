@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-04-23T22:45:57.374Z",
+  "generatedAt": "2026-04-24T03:45:44.583Z",
   "authedScan": false,
-  "coverageNote": "Public-only scan — admin credentials not provided in this run.",
+  "coverageNote": "Authenticated scan as admin user (TF_ADMIN_EMAIL).",
   "axeTags": [
     "wcag2a",
     "wcag2aa",
@@ -28,5 +28,608 @@
     "byRule": {}
   },
   "scannableRouteCount": 38,
+  "checklist": {
+    "totals": {
+      "total": 55,
+      "pass": 52,
+      "fail": 0,
+      "needs_review": 3
+    },
+    "criteria": [
+      {
+        "sc": "1.1.1",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Non-text Content",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules image-alt, input-image-alt, area-alt, svg-img-alt, object-alt, role-img-alt, input-button-name, button-name, link-name reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.2.1",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Audio-only and Video-only (Prerecorded)",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"media-has-text-alternative\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.2.2",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Captions (Prerecorded)",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"video-has-captions-track\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.2.3",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Audio Description or Media Alternative (Prerecorded)",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"video-has-description-track\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.2.4",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Captions (Live)",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"live-stream-has-captions\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.2.5",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Audio Description (Prerecorded)",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"video-has-description-track\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.3.1",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Info and Relationships",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules label, form-field-multiple-labels, definition-list, dlitem, list, listitem, table-fake-caption, td-headers-attr, th-has-data-cells, scope-attr-valid, aria-required-children, aria-required-parent, heading-order, landmark-one-main, landmark-no-duplicate-banner, landmark-no-duplicate-contentinfo, landmark-no-duplicate-main, landmark-unique, page-has-heading-one reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.3.2",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Meaningful Sequence",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"tabindex-not-positive\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.3.3",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Sensory Characteristics",
+        "kind": "static",
+        "status": "needs_review",
+        "summary": "1 string(s) reference color/shape/position only — verify they include text alternatives.",
+        "evidence": [
+          "src/data/discord-course.ts:647: 1. Go to the \"Support\" menu category in Tech Fleet's Discord. You can find this on the left-hand side at the bottom of the channel list."
+        ]
+      },
+      {
+        "sc": "1.3.4",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Orientation",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"no-orientation-lock-css\" → pass."
+      },
+      {
+        "sc": "1.3.5",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Identify Input Purpose",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules autocomplete-valid reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.4.1",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Use of Color",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules link-in-text-block reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.4.2",
+        "level": "A",
+        "principle": "Perceivable",
+        "title": "Audio Control",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"no-autoplay-audio-without-control\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.4.3",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Contrast (Minimum)",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules color-contrast reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.4.4",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Resize Text",
+        "kind": "static",
+        "status": "pass",
+        "summary": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+      },
+      {
+        "sc": "1.4.5",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Images of Text",
+        "kind": "manual",
+        "status": "needs_review",
+        "summary": "Requires visual interpretation of decorative vs informative images."
+      },
+      {
+        "sc": "1.4.10",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Reflow",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"no-horizontal-scroll-at-320\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.4.11",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Non-text Contrast",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules color-contrast reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "1.4.12",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Text Spacing",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"text-spacing-survives-overrides\" passed on 0 route(s)."
+      },
+      {
+        "sc": "1.4.13",
+        "level": "AA",
+        "principle": "Perceivable",
+        "title": "Content on Hover or Focus",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"tooltips-dismissable\" passed on 0 route(s)."
+      },
+      {
+        "sc": "2.1.1",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Keyboard",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules accesskeys, focus-order-semantics reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.1.2",
+        "level": "A",
+        "principle": "Operable",
+        "title": "No Keyboard Trap",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"tab-traversal-completes\" passed on 0 route(s)."
+      },
+      {
+        "sc": "2.1.4",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Character Key Shortcuts",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"single-char-shortcuts-have-modifier-or-toggle\" → pass."
+      },
+      {
+        "sc": "2.2.1",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Timing Adjustable",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Idle-timeout warning + extension path detected."
+      },
+      {
+        "sc": "2.2.2",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Pause, Stop, Hide",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"no-uncontrollable-moving-content\" passed on 0 route(s)."
+      },
+      {
+        "sc": "2.3.1",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Three Flashes or Below Threshold",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"no-flashing-animations\" → pass."
+      },
+      {
+        "sc": "2.4.1",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Bypass Blocks",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules bypass, skip-link, region reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.4.2",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Page Titled",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules document-title reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.4.3",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Focus Order",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"tabindex-not-positive\" passed on 0 route(s)."
+      },
+      {
+        "sc": "2.4.4",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Link Purpose (In Context)",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules link-name reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.4.5",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Multiple Ways",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Universal search + persistent nav detected."
+      },
+      {
+        "sc": "2.4.6",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Headings and Labels",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules empty-heading, label, form-field-multiple-labels reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.4.7",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Focus Visible",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Focus-visible styles found in 1 CSS file(s) + Tailwind utilities."
+      },
+      {
+        "sc": "2.4.11",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Focus Not Obscured (Minimum) — WCAG 2.2",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"focused-element-not-obscured\" passed on 0 route(s)."
+      },
+      {
+        "sc": "2.5.1",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Pointer Gestures",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"no-multipoint-or-path-only-gestures\" → pass."
+      },
+      {
+        "sc": "2.5.2",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Pointer Cancellation",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"actions-fire-on-pointerup\" → pass."
+      },
+      {
+        "sc": "2.5.3",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Label in Name",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules label-content-name-mismatch reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "2.5.4",
+        "level": "A",
+        "principle": "Operable",
+        "title": "Motion Actuation",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"motion-has-alternative-control\" → pass."
+      },
+      {
+        "sc": "2.5.7",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Dragging Movements — WCAG 2.2",
+        "kind": "static",
+        "status": "needs_review",
+        "summary": "1 drag interaction(s) — verify each has a click/keyboard alternative.",
+        "evidence": [
+          "src/components/DashboardCustomizer.tsx:109: onDragStart={(e) => handleDragStart(e, idx)}"
+        ]
+      },
+      {
+        "sc": "2.5.8",
+        "level": "AA",
+        "principle": "Operable",
+        "title": "Target Size (Minimum) — WCAG 2.2",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules target-size reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "3.1.1",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "Language of Page",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules html-has-lang, html-lang-valid reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "3.1.2",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Language of Parts",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules valid-lang reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "3.2.1",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "On Focus",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"no-onfocus-context-change\" → pass."
+      },
+      {
+        "sc": "3.2.2",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "On Input",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Static check \"no-onchange-auto-submit\" → pass."
+      },
+      {
+        "sc": "3.2.3",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Consistent Navigation",
+        "kind": "static",
+        "status": "pass",
+        "summary": "2 shared layout component(s) provide consistent nav."
+      },
+      {
+        "sc": "3.2.4",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Consistent Identification",
+        "kind": "static",
+        "status": "pass",
+        "summary": "53 shared UI components — consistent identification likely."
+      },
+      {
+        "sc": "3.2.6",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "Consistent Help — WCAG 2.2",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Persistent help mechanism (Fleety / Help link) detected."
+      },
+      {
+        "sc": "3.3.1",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "Error Identification",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules aria-input-field-name, aria-required-attr reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "3.3.2",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "Labels or Instructions",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules label, form-field-multiple-labels reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "3.3.3",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Error Suggestion",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Forms use Zod schemas + <FormMessage>, which surface specific suggestions."
+      },
+      {
+        "sc": "3.3.4",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Error Prevention (Legal, Financial, Data)",
+        "kind": "static",
+        "status": "pass",
+        "summary": "Confirmation dialog patterns are in use."
+      },
+      {
+        "sc": "3.3.7",
+        "level": "A",
+        "principle": "Understandable",
+        "title": "Redundant Entry — WCAG 2.2",
+        "kind": "static",
+        "status": "pass",
+        "summary": "2 form(s) prefill from existing profile data.",
+        "evidence": [
+          "src/components/FleetyChatWidget.tsx",
+          "src/services/general-application.service.ts"
+        ]
+      },
+      {
+        "sc": "3.3.8",
+        "level": "AA",
+        "principle": "Understandable",
+        "title": "Accessible Authentication (Minimum) — WCAG 2.2",
+        "kind": "static",
+        "status": "pass",
+        "summary": "OAuth=true, passkey=true, captcha=false"
+      },
+      {
+        "sc": "4.1.2",
+        "level": "A",
+        "principle": "Robust",
+        "title": "Name, Role, Value",
+        "kind": "axe",
+        "status": "pass",
+        "summary": "axe rules aria-allowed-attr, aria-allowed-role, aria-command-name, aria-hidden-body, aria-hidden-focus, aria-input-field-name, aria-meter-name, aria-progressbar-name, aria-required-attr, aria-required-children, aria-required-parent, aria-roles, aria-toggle-field-name, aria-tooltip-name, aria-valid-attr, aria-valid-attr-value, button-name, duplicate-id-aria, input-button-name, link-name, select-name reported no violations across 0 scanned route(s)."
+      },
+      {
+        "sc": "4.1.3",
+        "level": "AA",
+        "principle": "Robust",
+        "title": "Status Messages",
+        "kind": "dom",
+        "status": "pass",
+        "summary": "Probe \"status-messages-use-live-region\" passed on 0 route(s)."
+      }
+    ]
+  },
+  "staticChecks": {
+    "no-shape-color-only-instructions": {
+      "status": "needs_review",
+      "details": "1 string(s) reference color/shape/position only — verify they include text alternatives.",
+      "evidence": [
+        "src/data/discord-course.ts:647: 1. Go to the \"Support\" menu category in Tech Fleet's Discord. You can find this on the left-hand side at the bottom of the channel list."
+      ]
+    },
+    "no-orientation-lock-css": {
+      "status": "pass"
+    },
+    "no-fixed-px-in-meta-viewport": {
+      "status": "pass",
+      "details": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+    },
+    "single-char-shortcuts-have-modifier-or-toggle": {
+      "status": "pass"
+    },
+    "session-timeout-warns-and-extends": {
+      "status": "pass",
+      "details": "Idle-timeout warning + extension path detected."
+    },
+    "no-flashing-animations": {
+      "status": "pass"
+    },
+    "site-has-search-and-nav": {
+      "status": "pass",
+      "details": "Universal search + persistent nav detected."
+    },
+    "focus-visible-styles-present": {
+      "status": "pass",
+      "details": "Focus-visible styles found in 1 CSS file(s) + Tailwind utilities."
+    },
+    "no-multipoint-or-path-only-gestures": {
+      "status": "pass"
+    },
+    "actions-fire-on-pointerup": {
+      "status": "pass"
+    },
+    "motion-has-alternative-control": {
+      "status": "pass"
+    },
+    "drag-has-single-pointer-alternative": {
+      "status": "needs_review",
+      "details": "1 drag interaction(s) — verify each has a click/keyboard alternative.",
+      "evidence": [
+        "src/components/DashboardCustomizer.tsx:109: onDragStart={(e) => handleDragStart(e, idx)}"
+      ]
+    },
+    "no-onfocus-context-change": {
+      "status": "pass"
+    },
+    "no-onchange-auto-submit": {
+      "status": "pass"
+    },
+    "consistent-nav-shell": {
+      "status": "pass",
+      "details": "2 shared layout component(s) provide consistent nav."
+    },
+    "consistent-component-naming": {
+      "status": "pass",
+      "details": "53 shared UI components — consistent identification likely."
+    },
+    "consistent-help-mechanism": {
+      "status": "pass",
+      "details": "Persistent help mechanism (Fleety / Help link) detected."
+    },
+    "form-errors-include-suggestions": {
+      "status": "pass",
+      "details": "Forms use Zod schemas + <FormMessage>, which surface specific suggestions."
+    },
+    "destructive-actions-have-confirm": {
+      "status": "pass",
+      "details": "Confirmation dialog patterns are in use."
+    },
+    "forms-do-not-re-ask-known-data": {
+      "status": "pass",
+      "details": "2 form(s) prefill from existing profile data.",
+      "evidence": [
+        "src/components/FleetyChatWidget.tsx",
+        "src/services/general-application.service.ts"
+      ]
+    },
+    "no-cognitive-only-auth-without-alternative": {
+      "status": "pass",
+      "details": "OAuth=true, passkey=true, captcha=false"
+    }
+  },
   "results": []
 }
