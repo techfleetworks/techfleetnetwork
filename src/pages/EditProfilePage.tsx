@@ -549,6 +549,52 @@ export default function EditProfilePage() {
             </div>
           </ResponsiveTabsContent>
 
+          {/* ── Tab: Membership ── */}
+          <ResponsiveTabsContent value="membership" className="space-y-6">
+            <div className="card-elevated p-6 sm:p-8 space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Membership Tiers</h2>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  Tech Fleet's membership model invites everyone to practice shared
+                  leadership and build a different world. Choose the tier that fits
+                  where you are now — you can switch any time.
+                </p>
+              </div>
+
+              <MembershipTiersGrid
+                currentTier={((profile as unknown as { membership_tier?: TierId })?.membership_tier) ?? "starter"}
+                isFoundingMember={Boolean((profile as unknown as { is_founding_member?: boolean })?.is_founding_member)}
+                onSelect={(intent) => {
+                  if (intent.action === "subscribe" && intent.skuUrl) {
+                    window.open(intent.skuUrl, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+                  if (intent.action === "subscribe" && !intent.skuUrl) {
+                    toast.info(
+                      "This subscription option isn't available yet — check back soon.",
+                      { position: "top-center" },
+                    );
+                    return;
+                  }
+                  if (intent.action === "waitlist") {
+                    toast.success(
+                      `Thanks! We'll let you know when ${intent.tier === "professional" ? "Professional" : "this tier"} is ready.`,
+                      { position: "top-center" },
+                    );
+                    return;
+                  }
+                  if (intent.action === "downgrade") {
+                    toast.info(
+                      "To change or cancel your subscription, use the Gumroad email link from your original receipt.",
+                      { position: "top-center", duration: 6000 },
+                    );
+                    return;
+                  }
+                }}
+              />
+            </div>
+          </ResponsiveTabsContent>
+
           {/* ── Tab 4: Account ── */}
           <ResponsiveTabsContent value="account" className="space-y-6">
             <div className="card-elevated p-6 sm:p-8 space-y-6">
