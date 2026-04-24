@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PasskeyLoginService } from "@/services/passkey-login.service";
 import { usePasskeyLoginGate } from "@/hooks/use-passkey-login-gate";
 
+const BYPASS_FOR_A11Y_AUDIT = import.meta.env.VITE_A11Y_AUDIT_BYPASS_ADMIN_PASSKEY_GATE === "1";
+
 /**
  * Global gate that intercepts admin sessions immediately after login and
  * forces a WebAuthn passkey verification before allowing further navigation.
@@ -16,6 +18,10 @@ import { usePasskeyLoginGate } from "@/hooks/use-passkey-login-gate";
  * without a passkey, and admins whose session has already been verified.
  */
 export function PasskeyLoginGate() {
+  // CI-only escape hatch for the WCAG route audit. This does NOT weaken
+  // production auth unless the dedicated build-time env var is set.
+  if (BYPASS_FOR_A11Y_AUDIT) return null;
+
   const { needsGate, recheck } = usePasskeyLoginGate();
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
