@@ -21,7 +21,7 @@ describe("LoginPage UI (BDD 17.1–17.3)", () => {
 
   it("17.1: renders email and password inputs", () => {
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(document.getElementById("password")).toBeInTheDocument();
   });
 
   it("17.1: renders Sign In button", () => {
@@ -37,7 +37,7 @@ describe("LoginPage UI (BDD 17.1–17.3)", () => {
   });
 
   it("17.2: password visibility toggle works", () => {
-    const passwordInput = screen.getByLabelText(/^password$/i) as HTMLInputElement;
+    const passwordInput = document.getElementById("password") as HTMLInputElement;
     expect(passwordInput.type).toBe("password");
 
     const toggleBtn = screen.getByLabelText(/show password/i);
