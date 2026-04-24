@@ -258,6 +258,33 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
           })),
         });
 
+        // Run all DOM probes for this route. Probes are tiny and stateless
+        // — running them inline avoids a second navigation.
+        const probeOutputs: Record<string, ProbeResult> = {};
+        for (const item of WCAG_CHECKLIST) {
+          if (item.kind !== "dom" || !item.domProbe) continue;
+          const probeFn = DOM_PROBES[item.domProbe];
+          if (!probeFn) {
+            probeOutputs[item.domProbe] = { status: "needs_review", details: `Probe "${item.domProbe}" not implemented.` };
+            continue;
+          }
+          try {
+            // Special handling: 1.4.10 Reflow → resize to 320px first.
+            if (item.domProbe === "no-horizontal-scroll-at-320") {
+              await page.setViewportSize({ width: 320, height: 800 });
+              await page.waitForTimeout(150);
+            }
+            const out = await page.evaluate(`(${probeFn.toString()})()`) as ProbeResult;
+            probeOutputs[item.domProbe] = out;
+            if (item.domProbe === "no-horizontal-scroll-at-320") {
+              await page.setViewportSize({ width: 1280, height: 800 });
+            }
+          } catch (e) {
+            probeOutputs[item.domProbe] = { status: "needs_review", details: `Probe error: ${(e as Error).message}` };
+          }
+        }
+        probeResults.set(route.path, probeOutputs);
+
         // We do NOT fail the test on violations during Phase 0 — the goal
         // is a complete baseline report. Phase 3 adds a CI gate that
         // fails on regressions vs this baseline.
