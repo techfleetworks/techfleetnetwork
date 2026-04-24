@@ -11,6 +11,10 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.generate-discord-invite]
     verify_jwt = false
+  [functions.gumroad-webhook]
+    verify_jwt = false
+  [functions.gumroad-reconcile]
+    verify_jwt = true
   [functions.handle-email-suppression]
     verify_jwt = false
   [functions.handle-email-unsubscribe]
