@@ -364,8 +364,8 @@ function derivePriceView(
   // (no live SKU yet — kept neutral until admin configures)
   if (tier.id === "professional" && recurrence === "yearly") {
     return {
-      priceDisplay: tier.priceDisplay,
-      priceSubtitle: "USD per month, billed yearly",
+      priceDisplay: "$192",
+      priceSubtitle: "USD per year ($16 × 12)",
       priceFootnote: tier.priceFootnote,
     };
   }
