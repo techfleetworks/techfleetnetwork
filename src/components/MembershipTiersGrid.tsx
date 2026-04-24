@@ -198,15 +198,32 @@ function TierCard({
     <article
       role="listitem"
       aria-labelledby={headingId}
+      aria-current={isCurrent ? "true" : undefined}
       className={cn(
         "relative flex flex-col rounded-lg border bg-card p-6 transition-shadow",
         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-        tier.popular
+        // Current-tier styling takes precedence over "popular" so the user's
+        // own plan is the most visually prominent card on the page.
+        // Uses bg-foreground/text-background tokens elsewhere to guarantee
+        // ≥7:1 contrast in both light and dark modes (WCAG AAA).
+        isCurrent
+          ? "border-foreground border-2 shadow-xl ring-4 ring-foreground/20"
+          : tier.popular
           ? "border-primary/60 shadow-lg ring-1 ring-primary/20"
           : "border-border shadow-sm hover:shadow-md",
       )}
     >
-      {tier.popular && (
+      {isCurrent && (
+        <div
+          className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-bold uppercase tracking-wide text-background shadow-md"
+          role="status"
+          aria-label={`${tier.name} is your current membership tier`}
+        >
+          <Check className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={3} />
+          <span>Your Current Plan</span>
+        </div>
+      )}
+      {tier.popular && !isCurrent && (
         <Badge
           variant="default"
           className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1 px-3 py-1"
@@ -420,17 +437,22 @@ function TierCtaButtons({
   onSelect,
 }: CtaProps) {
   // Current tier: non-actionable confirmation, keyboard-accessible.
+  // Uses bg-foreground/text-background for guaranteed ≥7:1 contrast (WCAG AAA)
+  // in both light and dark themes.
   if (isCurrent) {
     return (
       <div
-        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-muted text-muted-foreground text-sm font-medium"
+        className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-foreground text-background text-sm font-semibold"
         role="status"
         aria-label={`${tier.name} is your current membership tier`}
       >
-        <Check className="h-4 w-4" aria-hidden="true" />
-        <span>Your current tier</span>
+        <Check className="h-4 w-4" aria-hidden="true" strokeWidth={3} />
+        <span>Your Current Plan</span>
         {tier.id === "community" && isFoundingMember && (
-          <Badge variant="secondary" className="ml-2 text-xs">
+          <Badge
+            variant="secondary"
+            className="ml-2 text-xs bg-background text-foreground"
+          >
             Founding Member
           </Badge>
         )}
