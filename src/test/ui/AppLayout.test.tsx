@@ -1,7 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import { render } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { renderWithRouter } from "./test-utils";
 import { AppLayout } from "@/components/AppLayout";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -17,13 +16,11 @@ vi.mock("@/contexts/AuthContext", () => ({
 }));
 
 function renderLayout() {
-  return render(
+  return renderWithRouter(
     <ThemeProvider defaultTheme="dark">
-      <MemoryRouter>
-        <AppLayout>
-          <div data-testid="child">Content</div>
-        </AppLayout>
-      </MemoryRouter>
+      <AppLayout>
+        <div data-testid="child">Content</div>
+      </AppLayout>
     </ThemeProvider>
   );
 }
