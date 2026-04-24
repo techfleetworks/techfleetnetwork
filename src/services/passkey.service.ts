@@ -1,7 +1,7 @@
 import { startRegistration } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
-import { getDeviceId } from "@/lib/device-id";
+import { PasskeyLoginService } from "@/services/passkey-login.service";
 
 const log = createLogger("PasskeyService");
 
@@ -54,11 +54,17 @@ export const PasskeyService = {
     }
 
     const { data: verifyResp, error: verifyErr } = await supabase.functions.invoke("passkey-register-verify", {
-      body: { response: attestation, deviceName: deviceName || "Passkey", device_id: getDeviceId() },
+      body: { response: attestation, deviceName: deviceName || "Passkey" },
     });
     if (verifyErr || !verifyResp?.verified) {
       log.error("enroll", `Verification failed: ${verifyErr?.message}`, undefined, verifyErr);
       throw new Error("Passkey verification failed");
+    }
+    // Bind this device cryptographically so it counts as trusted for 30 days.
+    try {
+      await PasskeyLoginService.bindCurrentDevice();
+    } catch (e) {
+      log.warn("enroll", `Device binding after enrollment failed: ${e instanceof Error ? e.message : String(e)}`);
     }
     log.info("enroll", "Passkey enrolled successfully");
   },
