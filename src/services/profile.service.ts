@@ -28,6 +28,11 @@ export interface Profile {
   education_background: string[];
   has_discord_account: boolean;
   discord_invite_url: string;
+  membership_tier: "starter" | "community" | "professional";
+  is_founding_member: boolean;
+  membership_sku: string;
+  membership_gumroad_sale_id: string;
+  membership_updated_at: string | null;
 }
 
 export const ProfileService = {
