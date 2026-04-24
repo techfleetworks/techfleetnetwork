@@ -17,6 +17,7 @@ import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
 import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
 import { MembershipFaq } from "@/components/MembershipFaq";
+import { CurrentMembershipBanner } from "@/components/CurrentMembershipBanner";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useMembershipRealtime } from "@/hooks/use-membership-realtime";
@@ -554,6 +555,11 @@ export default function EditProfilePage() {
 
           {/* ── Tab: Membership ── */}
           <ResponsiveTabsContent value="membership" className="space-y-6">
+            <CurrentMembershipBanner
+              currentTier={profile?.membership_tier ?? "starter"}
+              isFoundingMember={Boolean(profile?.is_founding_member)}
+              membershipUpdatedAt={profile?.membership_updated_at ?? null}
+            />
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">Membership Tiers</h2>
