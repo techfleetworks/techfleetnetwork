@@ -5,6 +5,7 @@ import { geoEqualEarth, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { COUNTRY_NAME_TO_ID, COUNTRY_ID_TO_NAME } from "@/lib/country-id-map";
+import countriesTopology from "world-atlas/countries-110m.json";
 
 interface CountryCount {
   country: string;
@@ -27,24 +28,17 @@ const projection = geoEqualEarth()
 
 const pathGenerator = geoPath().projection(projection);
 
+const countries = feature(
+  countriesTopology as unknown as Topology<{ countries: GeometryCollection }>,
+  (countriesTopology as unknown as Topology<{ countries: GeometryCollection }>).objects.countries,
+);
+
+const WORLD_GEO_FEATURES = (countries as unknown as GeoJSON.FeatureCollection).features as unknown as GeoFeature[];
+
 export function MemberWorldMap() {
   const [data, setData] = useState<CountryCount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [geoFeatures, setGeoFeatures] = useState<GeoFeature[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
-
-  // Load TopoJSON
-  useEffect(() => {
-    import("world-atlas/countries-110m.json").then((topology) => {
-      const topo = topology.default as unknown as Topology<{
-        countries: GeometryCollection;
-      }>;
-      const countries = feature(topo, topo.objects.countries);
-      setGeoFeatures(
-        (countries as unknown as GeoJSON.FeatureCollection).features as unknown as GeoFeature[]
-      );
-    });
-  }, []);
 
   // Load member distribution (includes empty-country count)
   useEffect(() => {
@@ -99,7 +93,7 @@ export function MemberWorldMap() {
     return COUNTRY_ID_TO_NAME[id];
   }
 
-  if (loading || geoFeatures.length === 0) {
+  if (loading || WORLD_GEO_FEATURES.length === 0) {
     return (
       <div className="card-elevated p-6" style={{ minHeight: 420 }}>
         <div className="h-6 w-48 bg-muted rounded animate-pulse mb-4" />
@@ -137,7 +131,7 @@ export function MemberWorldMap() {
           role="img"
           aria-label="World map showing member locations by country"
         >
-          {geoFeatures.map((feat) => {
+          {WORLD_GEO_FEATURES.map((feat) => {
             const d = pathGenerator(feat as unknown as GeoJSON.Feature) || "";
             const id = feat.id;
             const count = countById.get(id) || 0;
