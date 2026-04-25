@@ -370,60 +370,12 @@ export default function EditProfilePage() {
 
               {/* Country */}
               <ValidatedField id="edit-country" label="Country" required error={errors.country} value={form.country} touched={touched.country}>
-                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={countryOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground", bc("country", form.country))} aria-invalid={!!errors.country}>
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      {form.country || "Search or select a country..."}
-                      <Search className="ml-auto h-4 w-4 shrink-0 opacity-60" aria-hidden="true" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Type a country name to search..." autoFocus />
-                      <CommandList>
-                        <CommandEmpty>No country found.</CommandEmpty>
-                        <CommandGroup>
-                          {COUNTRIES.map((c) => (
-                            <CommandItem key={c.code} value={c.name} onSelect={() => { setForm({ ...form, country: c.name }); setCountryOpen(false); markTouched("country"); }}>
-                              <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
-                              {c.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchFirstCombobox id="edit-country-trigger" open={countryOpen} onOpenChange={setCountryOpen} selectedValue={form.country} selectedLabel={form.country} emptyLabel="Search country" searchPlaceholder="Start typing a country name…" emptyMessage="No country found." options={COUNTRIES.map((c) => ({ value: c.name, label: c.name }))} icon={<Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />} invalid={!!errors.country} triggerClassName={bc("country", form.country)} onSelect={(value) => { setForm({ ...form, country: value }); setCountryOpen(false); markTouched("country"); }} />
               </ValidatedField>
 
               {/* Timezone */}
               <ValidatedField id="edit-timezone" label="Timezone" required error={errors.timezone} value={form.timezone} touched={touched.timezone}>
-                <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={timezoneOpen} className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground", bc("timezone", form.timezone))} aria-invalid={!!errors.timezone}>
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      {form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Search or select a timezone..."}
-                      <Search className="ml-auto h-4 w-4 shrink-0 opacity-60" aria-hidden="true" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Type a city or region to search (e.g. New York, GMT)..." autoFocus />
-                      <CommandList>
-                        <CommandEmpty>No timezone found.</CommandEmpty>
-                        <CommandGroup>
-                          {TIMEZONES.map((tz) => (
-                            <CommandItem key={tz.value} value={tz.label} onSelect={() => { setForm({ ...form, timezone: tz.value }); setTimezoneOpen(false); markTouched("timezone"); }}>
-                              <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
-                              {tz.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <SearchFirstCombobox id="edit-timezone-trigger" open={timezoneOpen} onOpenChange={setTimezoneOpen} selectedValue={form.timezone} selectedLabel={selectedTimezoneLabel} emptyLabel="Search timezone" searchPlaceholder="Start typing a city, region, or GMT offset…" emptyMessage="No timezone found." options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))} icon={<Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />} invalid={!!errors.timezone} triggerClassName={bc("timezone", form.timezone)} onSelect={(value) => { setForm({ ...form, timezone: value }); setTimezoneOpen(false); markTouched("timezone"); }} />
               </ValidatedField>
 
               {/* Discord */}
