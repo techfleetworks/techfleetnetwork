@@ -56,7 +56,7 @@ function FeedbackForm() {
               <CardTitle>Share Your Feedback</CardTitle>
             </div>
             <CardDescription>
-              Help us improve Tech Fleet Network. Select the area your feedback is about and share your thoughts.
+              Help us improve Tech Fleet Network. Use Surveys for ideas about polls, research, or structured member feedback.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
