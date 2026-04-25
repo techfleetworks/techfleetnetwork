@@ -312,11 +312,8 @@ export default function ConnectDiscordPage() {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
       console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
-      if (result.discord_user_id) {
-        // Exact match — auto-verify
-        await finalizeLinking(result.discord_user_id, normalized, result.avatar_url);
-      } else if (result.candidates && result.candidates.length > 0) {
-        // No exact match but candidates found — show picker
+      if (result.candidates && result.candidates.length > 0) {
+        // Always require explicit member selection before linking — even exact matches.
         setCandidates(result.candidates);
         setVerifyError("");
       } else {
