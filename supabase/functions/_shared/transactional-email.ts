@@ -347,6 +347,7 @@ export async function queueTransactionalEmail({
       reason: 'email_suppressed',
     }
   }
+  const unsubscribeToken = unsubscribe.token
 
   const html = await renderAsync(
     React.createElement(template.component, templateData)
@@ -381,7 +382,7 @@ export async function queueTransactionalEmail({
       purpose: 'transactional',
       label: templateName,
       idempotency_key: requestIdempotencyKey,
-      unsubscribe_token: unsubscribe.token,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   })
