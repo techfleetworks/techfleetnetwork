@@ -1,180 +1,99 @@
+I can do this by upgrading the existing Playwright setup from a Chromium-only smoke suite into a recurring cross-browser QA pipeline.
 
+## What already exists
+- Playwright is already installed and runs in GitHub Actions.
+- Current browser coverage is Chromium only.
+- There is already a weekly WCAG audit workflow.
+- Current e2e coverage is small: public navigation, auth screens, profile setup, HMR, and route-level accessibility.
 
-## Three-tier Membership card layout — pulled from techfleet.org/overview
+## What I will implement
 
-The Membership tab shows three side-by-side cards: **Starter**, **Community**, **Professional**. Same copy, same feature lists, same hierarchy as techfleet.org/overview — so what members see on the platform matches what brought them here.
+1. Expand browser coverage
+- Add Playwright projects for:
+  - Desktop Chrome / Chromium
+  - Desktop Firefox
+  - Desktop Safari-equivalent WebKit
+  - Mobile Chrome
+  - Mobile Safari
+  - Tablet viewport
+- Keep traces, videos, and screenshots on failure so bugs are diagnosable.
 
-### One pricing discrepancy to resolve
+2. Add system-wide responsive bug detection
+- Create a reusable viewport audit helper that checks each route for:
+  - horizontal page overflow
+  - clipped dialogs/sheets
+  - hidden focusable controls
+  - console errors
+  - failed network requests
+  - basic keyboard navigation regressions
+- Run this across the app route list already maintained in `e2e/a11y/routes.ts`.
 
-| Tier | techfleet.org | Gumroad SKU |
-|---|---|---|
-| Starter | FREE forever | n/a |
-| **Community** | **$10/mo** | **$9.99/mo** |
-| Community yearly (founding) | not shown | $49.99/yr |
-| Community yearly (regular) | not shown | $99.99/yr |
-| **Professional** | **$16/mo** | **no SKU yet** |
+3. Add critical user-flow tests
+- Add cross-browser flows for the highest-risk paths:
+  - login and logout
+  - admin passkey gate success/failure states where testable
+  - Discord verification requiring explicit account selection
+  - project openings browsing
+  - application entry points
+  - chat/resources/events smoke checks
+  - admin pages load checks when credentials are available
 
-**Two questions for you:**
-1. Display **$10/mo and $16/mo** (matching .org marketing) or **$9.99/mo** (literal Gumroad)? Recommendation: **$10/mo** on the cards with fine-print "$9.99 USD billed via Gumroad" — keeps brand consistent.
-2. Has Professional been created on Gumroad yet? If not, that card shows **"Coming soon — join the waitlist"** instead of a checkout button, and I'll wire a `tier_waitlist` table + admin view.
+4. Make it automated and recurring
+- Update GitHub Actions so tests run:
+  - on every push / pull request for a fast Chromium gate
+  - nightly or weekly for the full cross-browser matrix
+  - manually from the Actions tab when you want a release check
+- Upload Playwright HTML reports, traces, videos, and screenshots as artifacts.
 
-### The three cards (content from techfleet.org/overview, verbatim)
+5. Protect runtime stability
+- Add a CI check that fails on uncaught `pageerror`, unhandled promise rejection, and key frontend console errors.
+- Fail the run on asset/chunk-loading errors like the prior dynamic import failures.
 
-```text
-┌───────────────────┬─────────────────────┬───────────────────┐
-│ STARTER           │ COMMUNITY ⭐ POPULAR │ PROFESSIONAL      │
-│                   │                     │                   │
-│ Shift your        │ Commit to           │ Working           │
-│ mindset to        │ developing as a     │ professionals     │
-│ empowered teams   │ service leader and  │ and executive     │
-│ and build a       │ build empowered     │ leaders are a     │
-│ better future     │ teams.              │ part of the       │
-│ of work.          │                     │ future of work    │
-│                   │                     │ too.              │
-│ FREE              │ $10 USD / month     │ $16 USD / month   │
-│ forever           │ — or —              │                   │
-│                   │ $49.99/yr · founding│                   │
-│                   │ rate, locked for    │                   │
-│                   │ life (thru Sep 30)  │                   │
-│                   │                     │                   │
-│ Includes:         │ Includes:           │ Includes:         │
-│ • Community Access│ • Asynchronous      │ • Career Coaching │
-│ • Free Events     │   Courses           │ • Late-Career     │
-│ • Leadership      │ • Communities of    │   Support         │
-│   Training        │   Practice          │                   │
-│ • Lab-Based       │ • Discounts to      │ Plus everything   │
-│   Classes ($100)  │   Classes           │ in Community:     │
-│ • Online Career   │ • Free Agile        │ • Asynchronous    │
-│   Guidance        │   Training          │   Courses         │
-│ • Platform Access │ • Group Mentoring   │ • Communities of  │
-│ • Project Team    │ • Member-Only Events│   Practice        │
-│   Training        │ • Residencies       │ • Discounts to    │
-│                   │ • Skills Assessments│   Classes         │
-│                   │ • Lab-Based Classes │ • Free Agile      │
-│                   │   ($50)             │   Training        │
-│                   │                     │ • Group Mentoring │
-│                   │ Plus Starter:       │ • Member-Only     │
-│                   │ • Community Access  │   Events          │
-│                   │ • Free Leadership   │ • Residencies     │
-│                   │   Training          │ • Skills          │
-│                   │ • Online Career     │   Assessments     │
-│                   │   Guidance          │ • Lab-Based       │
-│                   │ • Platform Access   │   Classes ($50)   │
-│                   │ • Project Team      │                   │
-│                   │   Training          │ Plus Starter      │
-│                   │                     │ benefits.         │
-│ [Your current ✓]  │ [Subscribe monthly] │ [Coming soon ·    │
-│   (disabled)      │ [Subscribe yearly]  │  join waitlist]   │
-│                   │  yearly = primary   │  or live checkout │
-└───────────────────┴─────────────────────┴───────────────────┘
-```
+6. Track BDD coverage
+- Add BDD scenarios in the database for recurring cross-browser, responsive, and critical-flow regression coverage, matching your project rule that every code change has BDD coverage.
 
-Below all three: the PPP "Fair pricing, wherever you are" notice and the Founding Member promo strip (when the window is active).
+## What you need to do
 
-### Card behavior by user state
+1. Connect GitHub if it is not already connected.
+2. In GitHub Actions secrets, add test credentials if you want authenticated/admin coverage:
+   - `TF_ADMIN_EMAIL`
+   - `TF_ADMIN_PASSWORD`
+3. In GitHub Actions variables, keep the existing app backend variables configured:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_SUPABASE_PROJECT_ID`
+4. For passkey/WebAuthn-specific real-device behavior, expect some manual validation; CI can cover the fallback/loading/error states, but real platform authenticator behavior is browser/OS dependent.
 
-| Current tier | Starter | Community | Professional |
-|---|---|---|---|
-| Starter | Current ✓ (disabled) | Two CTAs (yearly primary) | Coming soon / waitlist |
-| Community monthly | Downgrade (confirm) | Current ✓ + "Switch to yearly" | Upgrade |
-| Community yearly | Downgrade (confirm) | Current ✓ + founding badge if applicable | Upgrade |
-| Professional | Downgrade | Downgrade | Current ✓ |
+## Technical details
 
-Downgrades route to the Gumroad customer portal (no destructive action without confirmation — Heuristic #5).
+Files likely to change:
+- `playwright.config.ts`
+- `.github/workflows/regression.yml`
+- new or updated files under `e2e/`
+- BDD scenario database records
 
-### Visual & interaction rules
-
-- Community card highlighted (subtle border + "POPULAR" badge) — matches .org hierarchy and conversion goal
-- Three-up grid on desktop ≥1024px, stacked on tablet/mobile, full feature parity (responsiveness constraint)
-- Each "Includes" list = semantic `<ul>` with checkmark icons (WCAG 2.0 SC 1.3.1)
-- "Plus everything in [lower tier]" pattern matches .org structure
-- Class price differential ($50 vs $100) shown contextually inside each card so the value calc is obvious (Heuristic #6)
-- Tier comparison toggle below cards: "Compare all features side-by-side" expands a feature matrix table for power users (Heuristic #7)
-
-### What gets built
-
-**1. `src/config/membership-tiers.ts`** — single source of truth for all three tiers, all copy, all SKU URLs. Lint rule bans hardcoded prices/feature lists elsewhere.
-
-**2. `<MembershipTiersGrid>` component** — renders the three cards from the config. Used on:
-- Membership tab in profile / settings
-- Inside `<UpgradeCard>` (gets a "View all tiers" link to expand)
-- Standalone `/membership` route (deep-linkable for marketing)
-
-**3. `<TierComparisonTable>` component** — collapsible side-by-side feature matrix in an accordion below the grid.
-
-**4. Database migration — extend `membership_tier` enum**
+Proposed automation shape:
 
 ```text
-ALTER TYPE membership_tier ADD VALUE 'starter';
-ALTER TYPE membership_tier ADD VALUE 'community';
-ALTER TYPE membership_tier ADD VALUE 'professional';
+Pull request / push
+  -> typecheck
+  -> build
+  -> Vitest
+  -> fast Playwright Chromium smoke gate
 
--- Data migration: 'free' → 'starter', 'paid' → 'community'
--- Phase 2 (post-deploy): drop legacy 'free' / 'paid' values
+Nightly or weekly
+  -> full Playwright browser matrix
+     - Chromium desktop
+     - Firefox desktop
+     - WebKit desktop
+     - Mobile Chrome
+     - Mobile Safari
+  -> upload reports/traces/videos
+
+Manual release check
+  -> same full matrix on demand
 ```
 
-Two-phase so existing rows aren't broken mid-deploy. Audit log captures every tier change.
+## Expected outcome
 
-**5. Professional waitlist table (if no SKU yet)**
-
-```text
-tier_waitlist
-├ id              uuid PK
-├ user_id         uuid FK → profiles
-├ requested_tier  text   -- 'professional'
-├ created_at      timestamptz
-└ notified_at     timestamptz NULL
-```
-
-RLS: users insert/read own; admins read all. Admin dashboard gets "Professional Waitlist" view + CSV export so demand is visible before you stand up the SKU.
-
-**6. `gumroad-webhook` handler updates**
-
-Routes to the right tier by SKU:
-- Founding-membership → `community` + `is_founding_member = true`
-- Community-monthly / yearly → `community`
-- Professional (when it exists) → `professional`
-- Cancellation → `starter`
-
-Idempotent, write-once founding flag, audit-logged.
-
-### Accessibility (WCAG 2.0 + 3.0)
-
-- Each card = `<article>` with `aria-labelledby` → tier name
-- "Popular" badge = visible `<span>` + SR-only "Most popular tier"
-- Disabled "Your current tier" uses `aria-disabled` + visible ✓, NOT `disabled` (Heuristic #1: visibility of system status)
-- Color never the only indicator — checkmarks on every included feature
-- 4.5:1 contrast verified on dark-theme tokens
-- Keyboard order: Starter → Community monthly → Community yearly → Professional → Compare features
-- Comparison table = proper `<table>` with `<th scope>` headers
-- Reduced-motion respected on popular-tier highlight
-
-### BDD scenarios added to `bdd_scenarios`
-
-- All three cards render with copy matching techfleet.org/overview
-- "Your current tier" shows correctly on user's actual tier; keyboard-accessible
-- Community card visually highlighted as popular
-- Yearly CTA is primary on Community
-- Founding-member promo strip only inside active window
-- Professional card → waitlist CTA when no SKU; live checkout when SKU configured
-- Waitlist insert respects RLS (own row only, no dupes)
-- Downgrade prompts confirmation before Gumroad portal
-- Tier change persists, fires audit log, updates UI <500ms
-- Comparison table accordion keyboard-toggleable + SR-announced
-- Mobile ≤640px: cards stack, no horizontal scroll
-- Webhook routing: each SKU → correct tier value
-- All passes axe-core + manual NVDA/VoiceOver smoke
-
-### Performance & scale
-
-- Tier config bundled at build, zero runtime fetches → instant render
-- Comparison table lazy-loads on accordion open (separate chunk)
-- Webhook write uses `ON CONFLICT (user_id) DO UPDATE` for sub-ms upserts
-- Waitlist table indexed on `(user_id, requested_tier)` with unique constraint
-
-### Three things I need from you before building
-
-1. **$10/mo or $9.99/mo on the cards?** Recommendation: $10/mo, fine-print the actual charge.
-2. **Professional Gumroad SKU exists or use the waitlist pattern?**
-3. **"Late-Career Support"** in Professional — keep verbatim from .org or soften the wording for platform context?
-
+After this, bugs like browser-only layout breakage, mobile overflow, uncaught frontend errors, broken dynamic chunks, failed route loads, and critical flow regressions will be caught automatically and repeatedly instead of relying on one-time manual checks.
