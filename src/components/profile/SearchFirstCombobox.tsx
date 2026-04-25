@@ -80,7 +80,7 @@ export function SearchFirstCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn("w-[--radix-popover-trigger-width] p-0", contentClassName)}
+        className={cn("w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] p-0", contentClassName)}
         align="start"
         sideOffset={4}
         onOpenAutoFocus={(event) => {
@@ -89,14 +89,14 @@ export function SearchFirstCombobox({
         }}
       >
         <Command shouldFilter>
-          <CommandInput ref={searchInputRef} placeholder={searchPlaceholder} className="text-base caret-primary" />
-          <CommandList className={listClassName}>
+          <CommandInput ref={searchInputRef} placeholder={searchPlaceholder} className="min-w-0 truncate text-base caret-primary placeholder:text-sm sm:placeholder:text-base" />
+          <CommandList className={cn("max-h-[min(300px,50dvh)]", listClassName)}>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
-                <CommandItem key={option.value} value={option.label} onSelect={() => onSelect(option.value)}>
-                  <Check className={cn("mr-2 h-4 w-4", selectedValue === option.value ? "opacity-100" : "opacity-0")} />
-                  {option.label}
+                <CommandItem key={option.value} value={option.label} onSelect={() => onSelect(option.value)} className="min-h-10 gap-2 text-sm leading-snug">
+                  <Check className={cn("h-4 w-4 shrink-0", selectedValue === option.value ? "opacity-100" : "opacity-0")} />
+                  <span className="min-w-0 flex-1 whitespace-normal break-words">{option.label}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
