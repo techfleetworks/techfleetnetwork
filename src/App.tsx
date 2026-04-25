@@ -69,6 +69,7 @@ const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const AdminRecoveryPage = lazy(() => import("./pages/AdminRecoveryPage"));
+const AccessDeniedPage = lazy(() => import("./pages/AccessDeniedPage"));
 
 function RouteFallback() {
   return (
@@ -171,6 +172,7 @@ const App = () => (
                     <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/admin-recovery" element={<ProtectedRoute><AdminRecoveryPage /></ProtectedRoute>} />
+                    <Route path="/access-denied" element={<ProtectedRoute><AccessDeniedPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
