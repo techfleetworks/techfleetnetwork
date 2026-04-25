@@ -1,22 +1,17 @@
 // Verifies a WebAuthn assertion from an authenticated admin. On success,
-// records the JWT session as passkey-verified for 30 days.
+// the client binds the current browser as a trusted device.
 //
 // Migrated to use the centralized admin-client wrapper (rotation-aware) so
 // that rotating the SUPABASE_SERVICE_ROLE_KEY does not require a code edit
 // to this critical security path.
-import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyAuthenticationResponse } from "npm:@simplewebauthn/server@10.0.0";
 import { getAdminClient, getUserClient } from "../_shared/admin-client.ts";
+import { isElevatedUser } from "../_shared/elevated-roles.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-async function sha256Hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -26,21 +21,19 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const accessToken = authHeader.replace("Bearer ", "");
-
     const supabase = getUserClient(authHeader);
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    if (!(await isElevatedUser(user.id))) {
+      return new Response(JSON.stringify({ error: "Not authorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const body = await req.json();
-    const { response, device_id } = body;
+    const { response } = body;
     if (!response?.id) {
       return new Response(JSON.stringify({ error: "Missing assertion" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (typeof device_id !== "string" || device_id.length < 16 || device_id.length > 256) {
-      return new Response(JSON.stringify({ error: "Missing device id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const admin = getAdminClient();
@@ -91,25 +84,10 @@ Deno.serve(async (req) => {
     }).eq("id", cred.id);
     await admin.from("passkey_login_challenges").delete().eq("user_id", user.id);
 
-    // Mark THIS DEVICE (not the rotating JWT) as passkey-verified for 30 days.
-    // The hash is bound to (user_id + device_id) so JWT refreshes don't trigger
-    // a re-prompt, and the device is forgotten after 30 days of inactivity or
-    // when the user clears site data.
-    const deviceHash = await sha256Hex(`v1:${user.id}:${device_id}`);
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    await admin.from("passkey_login_sessions").upsert({
-      user_id: user.id,
-      session_token_hash: deviceHash,
-      verified_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
-      ip_address: ip,
-    }, { onConflict: "user_id,session_token_hash" });
-
     // Audit
     await admin.rpc("write_audit_log", {
       p_event_type: "admin_passkey_login_verified",
-      p_table_name: "passkey_login_sessions",
+      p_table_name: "passkey_credentials",
       p_record_id: user.id,
       p_user_id: user.id,
       p_changed_fields: ["passkey"],
