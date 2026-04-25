@@ -14,7 +14,40 @@ const corsHeaders = {
 /** Max request body size (4 KB) */
 const MAX_BODY_BYTES = 4 * 1024;
 /** Max username length (Discord limit is 32) */
-const MAX_USERNAME_LENGTH = 32;
+const MAX_USERNAME_LENGTH = 80;
+
+type DiscordMember = {
+  user?: { id?: string; username?: string; global_name?: string | null; avatar?: string | null };
+  nick?: string | null;
+};
+
+function normalizeLookupValue(value: string): string {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/#\d{4}$/, "")
+    .replace(/^\.+/, "")
+    .replace(/\s+/g, " ");
+}
+
+function compactLookupValue(value: string): string {
+  return normalizeLookupValue(value).replace(/[._\-\s]+/g, "");
+}
+
+function buildSearchQueries(rawInput: string): string[] {
+  const raw = rawInput.normalize("NFKC").trim();
+  const normalized = normalizeLookupValue(raw);
+  const tokens = normalized.split(/[\s._-]+/).filter((token) => token.length >= 3);
+  return [...new Set([raw.toLowerCase(), normalized, `.${normalized}`, ...tokens].filter(Boolean))].slice(0, 8);
+}
+
+function memberFields(member: DiscordMember): string[] {
+  return [member.user?.username, member.user?.global_name ?? undefined, member.nick ?? undefined]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeLookupValue);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -105,9 +138,10 @@ serve(async (req) => {
       );
     }
 
-    const rawUsername = discord_username.trim().toLowerCase();
-    const cleanUsername = rawUsername.replace(/^[@.]+/, "");
-    const searchQueries = [...new Set([rawUsername, cleanUsername, `.${cleanUsername}`])];
+    const rawUsername = discord_username.normalize("NFKC").trim().toLowerCase();
+    const cleanUsername = normalizeLookupValue(rawUsername);
+    const compactUsername = compactLookupValue(rawUsername);
+    const searchQueries = buildSearchQueries(rawUsername);
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
       username: cleanUsername,
@@ -116,7 +150,7 @@ serve(async (req) => {
     });
 
     // Run searches and merge results with auto-retry
-    const allMembers: any[] = [];
+    const allMembers: DiscordMember[] = [];
     const seenIds = new Set<string>();
     for (const query of searchQueries) {
       const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=10`;
@@ -132,7 +166,7 @@ serve(async (req) => {
 
         if (res.ok) {
           const members = await res.json();
-          for (const m of members) {
+          for (const m of members as DiscordMember[]) {
             if (m.user?.id && !seenIds.has(m.user.id)) {
               seenIds.add(m.user.id);
               allMembers.push(m);
@@ -181,17 +215,12 @@ serve(async (req) => {
       candidateNicks,
     });
 
-    // Match on cleaned username, raw username, or dot-prefixed variant
-    const matchCandidates = new Set([cleanUsername, rawUsername, `.${cleanUsername}`]);
-    const fieldsOf = (m: any): string[] => [
-      m.user?.username,
-      m.user?.global_name,
-      m.nick,
-    ].filter(Boolean).map((s: string) => s.toLowerCase());
+    // Match on cleaned username, raw username, compact username, or dot-prefixed variant.
+    const matchCandidates = new Set([cleanUsername, normalizeLookupValue(rawUsername), compactUsername, `.${cleanUsername}`]);
 
     // 1) Exact match on username/global_name/nick
-    let match = members.find((m: any) =>
-      fieldsOf(m).some((f) => matchCandidates.has(f))
+    let match = members.find((m) =>
+      memberFields(m).some((f) => matchCandidates.has(f) || matchCandidates.has(compactLookupValue(f)))
     );
 
     // 2) Strong fuzzy match: a field starts with the input followed by a
@@ -199,13 +228,14 @@ serve(async (req) => {
     //    matching Discord username "sainaz.com" or display name "Sainaz Doe".
     if (!match) {
       const needle = cleanUsername;
-      const strongMatches = members.filter((m: any) =>
-        fieldsOf(m).some((f) => {
+      const strongMatches = members.filter((m) =>
+        memberFields(m).some((f) => {
           if (f === needle) return true;
           if (f.startsWith(needle)) {
             const next = f.charAt(needle.length);
-            return next === "" || /[._\-\s]/.test(next);
+            return next === "" || /[._\s-]/.test(next);
           }
+          if (compactLookupValue(f) === compactUsername) return true;
           // Display name like "Sainaz" (no suffix) — exact case-insensitive
           return false;
         })
@@ -238,22 +268,27 @@ serve(async (req) => {
     };
 
     if (match) {
-      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${match.user.id} [${requestId}]`, {
+      const matchedUser = match.user;
+      if (!matchedUser?.id) {
+        throw new Error("Discord returned a matching member without a user ID");
+      }
+
+      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${matchedUser.id} [${requestId}]`, {
         requestId,
         username: cleanUsername,
-        discordUserId: match.user.id,
+        discordUserId: matchedUser.id,
       });
       await auditLog(
         "discord_username_verified",
-        `Verified "${cleanUsername}" → Discord ID ${match.user.id}`,
-        [`username:${cleanUsername}`, `discord_id:${match.user.id}`, `result_count:${members.length}`]
+        `Verified "${cleanUsername}" → Discord ID ${matchedUser.id}`,
+        [`username:${cleanUsername}`, `discord_id:${matchedUser.id}`, `result_count:${members.length}`]
       );
-      const avatarHash = match.user?.avatar;
+      const avatarHash = matchedUser.avatar;
       const avatarUrl = avatarHash
-        ? `https://cdn.discordapp.com/avatars/${match.user.id}/${avatarHash}.png?size=256`
+        ? `https://cdn.discordapp.com/avatars/${matchedUser.id}/${avatarHash}.png?size=256`
         : null;
       return new Response(
-        JSON.stringify({ discord_user_id: match.user.id, avatar_url: avatarUrl }),
+        JSON.stringify({ discord_user_id: matchedUser.id, avatar_url: avatarUrl }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
