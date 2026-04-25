@@ -1,11 +1,15 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
+
+type AnySupabaseClient = SupabaseClient<any, any, any>
+type QueuePayload = Record<string, unknown>
+type QueueMessage = { msg_id: number; read_ct: number; message: QueuePayload }
 
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
@@ -54,20 +58,20 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AnySupabaseClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: payload.message_id,
+    message_id: typeof payload.message_id === 'string' ? payload.message_id : crypto.randomUUID(),
     template_name: (payload.label || queue) as string,
-    recipient_email: payload.to,
+    recipient_email: typeof payload.to === 'string' ? payload.to : '',
     status: 'dlq',
     error_message: reason,
   })
-  const { error } = await supabase.rpc('move_to_dlq', {
+  const { error } = await supabase.rpc('move_to_dlq' as never, {
     source_queue: queue,
     dlq_name: `${queue}_dlq`,
     message_id: msg.msg_id,
