@@ -103,7 +103,11 @@ interface EnrichedApp extends ProjectApp {
   userApplyNowCount: number;
   /** Total number of projects currently accepting applications */
   totalApplyNowProjects: number;
+  completedCoreCourses: number;
 }
+
+const CORE_COURSE_PHASES = ["first_steps", "second_steps", "discord_learning", "third_steps", "project_training", "volunteer"] as const;
+const REQUIRED_CORE_COURSES = CORE_COURSE_PHASES.length;
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -190,6 +194,22 @@ export default function SubmittedApplicationsTab() {
       return (data ?? []) as unknown as ProfileRow[];
     },
     enabled: (apps ?? []).length > 0,
+  });
+
+  const userIds = useMemo(() => [...new Set((apps ?? []).map((a) => a.user_id))], [apps]);
+  const { data: coreProgress = [] } = useQuery({
+    queryKey: ["admin-applicant-core-course-progress", userIds],
+    queryFn: async () => {
+      if (userIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("journey_progress")
+        .select("user_id, phase, completed")
+        .in("user_id", userIds)
+        .eq("completed", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: userIds.length > 0,
   });
 
   const projectMap = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p])), [projects]);
