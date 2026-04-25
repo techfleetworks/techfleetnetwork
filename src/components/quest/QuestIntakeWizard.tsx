@@ -126,7 +126,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
             onClick={handleContinue}
             disabled={selectedInterests.length === 0 || saving}
             size="lg"
-            className="min-w-[200px]"
+            className="w-full sm:w-auto sm:min-w-[200px]"
           >
             {saving ? "Saving..." : "Continue"}
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -160,7 +160,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
           <p className="text-sm text-muted-foreground">
             Total estimated time: ~{getTotalWeeks(recommendedPaths)} weeks (paths can overlap)
           </p>
-          <Button onClick={handleStartJourney} disabled={saving} size="lg" className="min-w-[200px]">
+          <Button onClick={handleStartJourney} disabled={saving} size="lg" className="w-full sm:w-auto sm:min-w-[200px]">
             {saving ? "Setting up..." : "Start Your Journey"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
