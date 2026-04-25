@@ -11,6 +11,11 @@ type AnySupabaseClient = SupabaseClient<any, any, any>
 type QueuePayload = Record<string, unknown>
 type QueueMessage = { msg_id: number; read_ct: number; message: QueuePayload }
 
+function stringField(payload: QueuePayload, key: string, fallback = ''): string {
+  const value = payload[key]
+  return typeof value === 'string' ? value : fallback
+}
+
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
 // falls back to parsing the error message for older versions.
@@ -204,14 +209,15 @@ Deno.serve(async (req) => {
           : 0
 
       // Drop expired messages (TTL exceeded)
-      if (payload.queued_at) {
-        const ageMs = Date.now() - new Date(payload.queued_at).getTime()
+      const queuedAt = stringField(payload, 'queued_at')
+      if (queuedAt) {
+        const ageMs = Date.now() - new Date(queuedAt).getTime()
         const maxAgeMs = ttlMinutes[queue] * 60 * 1000
         if (ageMs > maxAgeMs) {
           console.warn('Email expired (TTL exceeded)', {
             queue,
             msg_id: msg.msg_id,
-            queued_at: payload.queued_at,
+            queued_at: queuedAt,
             ttl_minutes: ttlMinutes[queue],
           })
           await moveToDlq(supabase, queue, msg, `TTL exceeded (${ttlMinutes[queue]} minutes)`)
@@ -253,22 +259,22 @@ Deno.serve(async (req) => {
 
       try {
         // Defensive: generate plain-text fallback if trigger-enqueued emails omit 'text'
-        const emailText = payload.text || (payload.subject ? String(payload.subject) : 'Notification from Tech Fleet');
+        const emailText = stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet'));
 
         await sendLovableEmail(
           {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
+            run_id: stringField(payload, 'run_id') || undefined,
+            to: stringField(payload, 'to'),
+            from: stringField(payload, 'from'),
+            sender_domain: stringField(payload, 'sender_domain') || undefined,
+            subject: stringField(payload, 'subject'),
+            html: stringField(payload, 'html'),
             text: emailText,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
+            purpose: stringField(payload, 'purpose') || undefined,
+            label: stringField(payload, 'label') || undefined,
+            idempotency_key: stringField(payload, 'idempotency_key') || undefined,
+            unsubscribe_token: stringField(payload, 'unsubscribe_token') || undefined,
+            message_id: stringField(payload, 'message_id') || undefined,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).

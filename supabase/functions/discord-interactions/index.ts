@@ -317,13 +317,10 @@ Deno.serve(async (req) => {
 
     // Keep the edge function alive after returning the response
     try {
-      (globalThis as Record<string, unknown>).EdgeRuntime &&
-        (
-          (globalThis as Record<string, unknown>).EdgeRuntime as Record<
-            string,
-            (p: Promise<void>) => void
-          >
-        ).waitUntil(work);
+      const edgeRuntime = (globalThis as Record<string, unknown>).EdgeRuntime as
+        | { waitUntil?: (p: Promise<void>) => void }
+        | undefined;
+      edgeRuntime?.waitUntil?.(work);
     } catch {
       // fallback: if waitUntil is unavailable, the promise still runs
     }
