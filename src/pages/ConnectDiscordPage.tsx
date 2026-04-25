@@ -313,11 +313,9 @@ export default function ConnectDiscordPage() {
       console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
       if (result.candidates && result.candidates.length > 0) {
-        // Always require an explicit user selection before linking a Discord account.
+        // Always require explicit member selection before linking — even exact matches.
         setCandidates(result.candidates);
         setVerifyError("");
-      } else if (result.discord_user_id) {
-        setVerifyError("Select your Discord account from the results before we link it to your profile.");
       } else {
         setVerifyError(
           "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct."
@@ -769,7 +767,7 @@ export default function ConnectDiscordPage() {
             {candidates.length > 0 && (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-foreground">
-                  Select your Discord account to confirm it is you.
+                  We found similar members — is one of these you?
                 </p>
                 <div className="space-y-2" role="list" aria-label="Matching Discord members">
                   {candidates.map((c) => (

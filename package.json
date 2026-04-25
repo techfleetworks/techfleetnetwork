@@ -11,6 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:full": "PLAYWRIGHT_FULL_MATRIX=1 playwright test",
+    "test:e2e:responsive": "playwright test -- \"responsive-stability\\.spec\\.ts\"",
     "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev",
     "audit:signatures": "npm audit signatures"
   },

@@ -194,7 +194,6 @@ export const DiscordNotifyService = {
       avatar: string | null;
     }>;
     message?: string;
-    requires_confirmation?: boolean;
   }> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {
@@ -229,7 +228,6 @@ export const DiscordNotifyService = {
           avatar_url: data?.avatar_url || null,
           candidates,
           message: data?.message || undefined,
-          requires_confirmation: data?.requires_confirmation === true,
         };
       } catch (err) {
         log.warn("resolveDiscordId", `Error resolving Discord ID for "${discordUsername}" — returning null`, { discordUsername }, err);
