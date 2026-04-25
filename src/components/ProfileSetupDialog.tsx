@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -17,9 +17,8 @@ import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { TIMEZONES } from "@/lib/timezones";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 
 
 export function ProfileSetupDialog() {
@@ -205,6 +204,7 @@ export function ProfileSetupDialog() {
         : [...prev.interests, interest],
     }));
   };
+  const selectedTimezoneLabel = TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone;
 
   const handleComplete = async (e: FormEvent) => {
     e.preventDefault();
@@ -349,69 +349,13 @@ export function ProfileSetupDialog() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="dialog-country-trigger">Country <span className="text-destructive">*</span></Label>
-                  <Popover open={countryOpen} onOpenChange={setCountryOpen} modal>
-                    <PopoverTrigger asChild>
-                      <Button id="dialog-country-trigger" variant="outline" role="combobox" aria-expanded={countryOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.country && "text-muted-foreground")} aria-invalid={!!errors.country}>
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                        <span className="truncate">{form.country || "Search or select a country..."}</span>
-                        <Search className="ml-auto h-4 w-4 shrink-0 opacity-60 pointer-events-none" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
-                      <Command>
-                        <CommandInput placeholder="Type a country name to search..." autoFocus />
-                        <CommandList className="max-h-[260px]">
-                          <CommandEmpty>No country found.</CommandEmpty>
-                          <CommandGroup>
-                            {COUNTRIES.map((c) => (
-                              <CommandItem
-                                key={c.code}
-                                value={c.name}
-                                onSelect={() => { setForm((prev) => ({ ...prev, country: c.name })); setCountryOpen(false); }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.country === c.name ? "opacity-100" : "opacity-0")} />
-                                {c.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <SearchFirstCombobox id="dialog-country-trigger" open={countryOpen} onOpenChange={setCountryOpen} selectedValue={form.country} selectedLabel={form.country} emptyLabel="Search country" searchPlaceholder="Start typing a country name…" emptyMessage="No country found." options={COUNTRIES.map((c) => ({ value: c.name, label: c.name }))} icon={<Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />} invalid={!!errors.country} contentClassName="z-[60]" listClassName="max-h-[260px]" modal onSelect={(value) => { setForm((prev) => ({ ...prev, country: value })); setCountryOpen(false); }} />
                   {errors.country && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.country}</p>}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="dialog-timezone-trigger">Timezone <span className="text-destructive">*</span></Label>
-                  <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen} modal>
-                    <PopoverTrigger asChild>
-                      <Button id="dialog-timezone-trigger" variant="outline" role="combobox" aria-expanded={timezoneOpen} aria-haspopup="listbox" className={cn("w-full justify-between pl-10 relative font-normal", !form.timezone && "text-muted-foreground")} aria-invalid={!!errors.timezone}>
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                        <span className="truncate">{form.timezone ? TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone : "Search or select a timezone..."}</span>
-                        <Search className="ml-auto h-4 w-4 shrink-0 opacity-60 pointer-events-none" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]" align="start" sideOffset={4} onOpenAutoFocus={(e) => e.preventDefault()}>
-                      <Command>
-                        <CommandInput placeholder="Type a city or region to search (e.g. New York, GMT)..." autoFocus />
-                        <CommandList className="max-h-[260px]">
-                          <CommandEmpty>No timezone found.</CommandEmpty>
-                          <CommandGroup>
-                            {TIMEZONES.map((tz) => (
-                              <CommandItem
-                                key={tz.value}
-                                value={tz.label}
-                                onSelect={() => { setForm((prev) => ({ ...prev, timezone: tz.value })); setTimezoneOpen(false); }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", form.timezone === tz.value ? "opacity-100" : "opacity-0")} />
-                                {tz.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <SearchFirstCombobox id="dialog-timezone-trigger" open={timezoneOpen} onOpenChange={setTimezoneOpen} selectedValue={form.timezone} selectedLabel={selectedTimezoneLabel} emptyLabel="Search timezone" searchPlaceholder="Start typing a city, region, or GMT offset…" emptyMessage="No timezone found." options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))} icon={<Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />} invalid={!!errors.timezone} contentClassName="z-[60]" listClassName="max-h-[260px]" modal onSelect={(value) => { setForm((prev) => ({ ...prev, timezone: value })); setTimezoneOpen(false); }} />
                   {errors.timezone && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.timezone}</p>}
                 </div>
               </div>
