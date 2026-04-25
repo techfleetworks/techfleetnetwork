@@ -14,7 +14,40 @@ const corsHeaders = {
 /** Max request body size (4 KB) */
 const MAX_BODY_BYTES = 4 * 1024;
 /** Max username length (Discord limit is 32) */
-const MAX_USERNAME_LENGTH = 32;
+const MAX_USERNAME_LENGTH = 80;
+
+type DiscordMember = {
+  user?: { id?: string; username?: string; global_name?: string | null; avatar?: string | null };
+  nick?: string | null;
+};
+
+function normalizeLookupValue(value: string): string {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/#\d{4}$/, "")
+    .replace(/^\.+/, "")
+    .replace(/\s+/g, " ");
+}
+
+function compactLookupValue(value: string): string {
+  return normalizeLookupValue(value).replace(/[._\-\s]+/g, "");
+}
+
+function buildSearchQueries(rawInput: string): string[] {
+  const raw = rawInput.normalize("NFKC").trim();
+  const normalized = normalizeLookupValue(raw);
+  const tokens = normalized.split(/[\s._\-]+/).filter((token) => token.length >= 3);
+  return [...new Set([raw.toLowerCase(), normalized, `.${normalized}`, ...tokens].filter(Boolean))].slice(0, 8);
+}
+
+function memberFields(member: DiscordMember): string[] {
+  return [member.user?.username, member.user?.global_name ?? undefined, member.nick ?? undefined]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeLookupValue);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
