@@ -5,7 +5,7 @@ import { geoEqualEarth, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { COUNTRY_NAME_TO_ID, COUNTRY_ID_TO_NAME } from "@/lib/country-id-map";
-import countriesTopology from "world-atlas/countries-110m.json";
+import countriesTopologyRaw from "world-atlas/countries-110m.json?raw";
 
 interface CountryCount {
   country: string;
@@ -28,9 +28,11 @@ const projection = geoEqualEarth()
 
 const pathGenerator = geoPath().projection(projection);
 
+const countriesTopology = JSON.parse(countriesTopologyRaw) as Topology<{ countries: GeometryCollection }>;
+
 const countries = feature(
-  countriesTopology as unknown as Topology<{ countries: GeometryCollection }>,
-  (countriesTopology as unknown as Topology<{ countries: GeometryCollection }>).objects.countries,
+  countriesTopology,
+  countriesTopology.objects.countries,
 );
 
 const WORLD_GEO_FEATURES = (countries as unknown as GeoJSON.FeatureCollection).features as unknown as GeoFeature[];
