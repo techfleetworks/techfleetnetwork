@@ -52,13 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileLoaded, setProfileLoaded] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const data = await ProfileService.fetch(userId);
-    // Only update profile if we got data — never null-out an existing profile during re-fetches
-    if (data) {
-      setProfile(data);
+    try {
+      const data = await ProfileService.fetch(userId);
+      // Only update profile if we got data — never null-out an existing profile during re-fetches
+      if (data) {
+        setProfile(data);
+      }
+      return data;
+    } catch {
+      return null;
+    } finally {
+      setProfileLoaded(true);
     }
-    setProfileLoaded(true);
-    return data;
   }, []);
 
   /** For Google OAuth users, sync their Google metadata to the profile if names are empty */
@@ -150,14 +155,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    AuthService.getSession().then((session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
+    AuthService.getSession()
+      .then((session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          void fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setProfileLoaded(false);
+        }
+      })
+      .catch(() => {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setProfileLoaded(false);
+      })
+      .finally(() => setLoading(false));
 
     return () => subscription.unsubscribe();
   }, [fetchProfile, syncOAuthProfile]);

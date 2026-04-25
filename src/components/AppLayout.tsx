@@ -331,8 +331,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   // Authenticated: sidebar on desktop, hamburger on mobile
-  if (isMobile) {
-    return (
+  const authenticatedLayout = isMobile ? (
       <div className="min-h-screen flex flex-col bg-background text-foreground">
         <a href="#main-content" className="skip-link">
           Skip to main content
@@ -483,12 +482,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <MfaEnforcementGuard />
         <FleetyChatWidget />
       </div>
-    );
-  }
-
-  // Desktop: sidebar layout
-  return (
-    <PageHeaderProvider>
+    ) : (
       <SidebarProvider defaultOpen={true}>
         <div className="min-h-screen flex w-full bg-background text-foreground">
           <a href="#main-content" className="skip-link">
@@ -517,6 +511,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <MfaEnforcementGuard />
         <FleetyChatWidget />
       </SidebarProvider>
+    );
+
+  return (
+    <PageHeaderProvider>
+      {authenticatedLayout}
     </PageHeaderProvider>
   );
 }
