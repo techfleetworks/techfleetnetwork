@@ -14,10 +14,13 @@ interface QuestNudgeProps {
   questUrl?: string
 }
 
-const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps = 1, questUrl }: QuestNudgeProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your quest "{questTitle}" is waiting for you at {SITE_NAME}!</Preview>
+const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps = 1, questUrl }: QuestNudgeProps) => {
+  const safeQuestTitle = questTitle || 'your quest'
+
+  return (
+    <Html lang="en" dir="ltr">
+      <Head />
+      <Preview>{`Your quest "${safeQuestTitle}" is waiting for you at ${SITE_NAME}!`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={headerSection}>
@@ -31,7 +34,7 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
         </Text>
 
         <Text style={text}>
-          We noticed you haven't made progress on <strong>{questTitle || 'your quest'}</strong> recently.
+          We noticed you haven't made progress on <strong>{safeQuestTitle}</strong> recently.
           No worries — life happens! But your journey is still here, and you're closer than you think.
         </Text>
 
@@ -65,8 +68,9 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
         </Text>
       </Container>
     </Body>
-  </Html>
-)
+    </Html>
+  )
+}
 
 export const template = {
   component: QuestNudgeEmail,

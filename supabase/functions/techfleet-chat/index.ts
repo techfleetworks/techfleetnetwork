@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
@@ -87,7 +87,7 @@ let kbCacheExpiresAt = 0;
 let kbInflight: Promise<KbEntry[]> | null = null;
 
 async function loadKnowledgeBaseCached(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient<any, any, any>,
   requestId: string,
 ): Promise<KbEntry[]> {
   const now = Date.now();

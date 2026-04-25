@@ -171,8 +171,8 @@ Deno.serve(async (req) => {
       }
 
       const errText = await inviteRes.text();
-      inviteErrors.push(`${channel.name ?? channel.id} [${inviteRes.status}]: ${errText}`);
-      logger.warn("create_invite", `Invite creation failed for channel ${channel.name ?? channel.id}`, {
+      inviteErrors.push(`${channel.name} [${inviteRes.status}]: ${errText}`);
+      logger.warn("create_invite", `Invite creation failed for channel ${channel.name}`, {
         channelId: channel.id,
         channelName: channel.name,
         status: inviteRes.status,

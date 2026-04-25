@@ -347,6 +347,15 @@ export async function queueTransactionalEmail({
       reason: 'email_suppressed',
     }
   }
+  if (!('token' in unsubscribe)) {
+    return {
+      ok: false,
+      status: 500,
+      error: 'Failed to prepare email',
+      messageId,
+    }
+  }
+  const unsubscribeToken = unsubscribe.token
 
   const html = await renderAsync(
     React.createElement(template.component, templateData)
@@ -381,7 +390,7 @@ export async function queueTransactionalEmail({
       purpose: 'transactional',
       label: templateName,
       idempotency_key: requestIdempotencyKey,
-      unsubscribe_token: unsubscribe.token,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   })
