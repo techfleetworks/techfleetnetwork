@@ -162,18 +162,29 @@ async function generate(): Promise<StoredKeyPair> {
 }
 
 let memoCache: StoredKeyPair | null = null;
+let pendingPair: Promise<StoredKeyPair> | null = null;
 
 async function getOrCreatePair(): Promise<StoredKeyPair> {
   if (memoCache) return memoCache;
-  const existing = await readStored();
-  if (existing) {
-    memoCache = existing;
-    return existing;
+  if (pendingPair) return pendingPair;
+
+  pendingPair = (async () => {
+    const existing = await readStored();
+    if (existing) {
+      memoCache = existing;
+      return existing;
+    }
+    const fresh = await generate();
+    await writeStored(fresh);
+    memoCache = fresh;
+    return fresh;
+  })();
+
+  try {
+    return await pendingPair;
+  } finally {
+    pendingPair = null;
   }
-  const fresh = await generate();
-  await writeStored(fresh);
-  memoCache = fresh;
-  return fresh;
 }
 
 // ============================================================
@@ -260,6 +271,7 @@ export async function signDeviceNonce(nonce: string): Promise<string> {
  */
 export async function forgetDevice(): Promise<void> {
   memoCache = null;
+  pendingPair = null;
   await clearStored();
 }
 
