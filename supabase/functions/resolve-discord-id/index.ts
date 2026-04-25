@@ -138,9 +138,10 @@ serve(async (req) => {
       );
     }
 
-    const rawUsername = discord_username.trim().toLowerCase();
-    const cleanUsername = rawUsername.replace(/^[@.]+/, "");
-    const searchQueries = [...new Set([rawUsername, cleanUsername, `.${cleanUsername}`])];
+    const rawUsername = discord_username.normalize("NFKC").trim().toLowerCase();
+    const cleanUsername = normalizeLookupValue(rawUsername);
+    const compactUsername = compactLookupValue(rawUsername);
+    const searchQueries = buildSearchQueries(rawUsername);
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
       username: cleanUsername,
@@ -149,7 +150,7 @@ serve(async (req) => {
     });
 
     // Run searches and merge results with auto-retry
-    const allMembers: any[] = [];
+    const allMembers: DiscordMember[] = [];
     const seenIds = new Set<string>();
     for (const query of searchQueries) {
       const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=10`;
@@ -165,7 +166,7 @@ serve(async (req) => {
 
         if (res.ok) {
           const members = await res.json();
-          for (const m of members) {
+          for (const m of members as DiscordMember[]) {
             if (m.user?.id && !seenIds.has(m.user.id)) {
               seenIds.add(m.user.id);
               allMembers.push(m);
