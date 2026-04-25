@@ -268,6 +268,7 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Phase", colId: "phase", flex: 1, valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? "") },
       { headerName: "Project Status", colId: "project_status", flex: 1, valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? "") },
       { headerName: "Previous Participant?", colId: "previous_participant", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No" },
+      { headerName: "Core Courses", colId: "core_courses_completed", flex: 1, minWidth: 130, valueGetter: (p) => `${p.data?.completedCoreCourses ?? 0} of ${REQUIRED_CORE_COURSES}` },
       { headerName: "Active Apps", colId: "other_active_apps", flex: 1, minWidth: 140, valueGetter: (p) => p.data?.userApplyNowCount ?? 0, valueFormatter: (p) => `${p.data?.userApplyNowCount ?? 0} of ${p.data?.totalApplyNowProjects ?? 0}` },
       { headerName: "Date Submitted", colId: "date_submitted", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.completed_at, valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—" },
       { headerName: "Team Hats Interest", colId: "team_hats_interest", flex: 2, valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", ") },
@@ -429,6 +430,9 @@ export default function SubmittedApplicationsTab() {
                   {app.participated_previous_phase
                     ? <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Previous Participant</>
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Core courses: <span className="font-medium text-foreground">{app.completedCoreCourses} of {REQUIRED_CORE_COURSES}</span>
                 </div>
                 {app.userApplyNowCount > 0 && (
                   <div className="flex items-center gap-1.5 text-xs">
