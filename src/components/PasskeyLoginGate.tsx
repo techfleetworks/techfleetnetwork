@@ -18,14 +18,14 @@ const BYPASS_FOR_A11Y_AUDIT = import.meta.env.VITE_A11Y_AUDIT_BYPASS_ADMIN_PASSK
  * without a passkey, and admins whose session has already been verified.
  */
 export function PasskeyLoginGate() {
-  // CI-only escape hatch for the WCAG route audit. This does NOT weaken
-  // production auth unless the dedicated build-time env var is set.
-  if (BYPASS_FOR_A11Y_AUDIT) return null;
-
-  const { needsGate, recheck } = usePasskeyLoginGate();
+  const { needsGate, markVerified } = usePasskeyLoginGate();
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // CI-only escape hatch for the WCAG route audit. This does NOT weaken
+  // production auth unless the dedicated build-time env var is set.
+  if (BYPASS_FOR_A11Y_AUDIT) return null;
 
   if (!needsGate) return null;
 
@@ -33,8 +33,8 @@ export function PasskeyLoginGate() {
     setVerifying(true);
     try {
       await PasskeyLoginService.verify();
+      markVerified();
       toast.success("Passkey verified");
-      await recheck();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
