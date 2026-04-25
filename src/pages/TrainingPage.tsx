@@ -63,13 +63,14 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
 
         if (course.locked) {
           return (
-            <div
+            <Link
               key={course.id}
-              className="card-elevated p-5 opacity-50 cursor-not-allowed relative overflow-hidden"
-              aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
+              to={course.href}
+              className="card-elevated p-5 relative overflow-hidden hover:border-primary/40 transition-all group"
+              aria-label={`${course.title}. Recommended after ${course.prerequisiteLabel}, but available now.`}
             >
-              <div className="absolute inset-x-0 top-0 bg-muted-foreground/80 text-background text-sm font-bold uppercase tracking-widest py-2 text-center pointer-events-none">
-                Locked
+              <div className="absolute inset-x-0 top-0 bg-warning/10 text-warning text-xs font-semibold py-2 text-center pointer-events-none">
+                Recommended after {course.prerequisiteLabel}
               </div>
               <div className="flex items-start justify-between mb-3">
                 <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
@@ -77,7 +78,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
                 </div>
                 <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs gap-1">
                   <Lock className="h-3 w-3" />
-                  Locked
+                  Guided
                 </Badge>
               </div>
               <h3 className="font-semibold text-muted-foreground mb-1">{course.title}</h3>
@@ -85,10 +86,10 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
               <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/10 rounded-md px-2.5 py-1.5 mt-2">
                 <Lock className="h-3 w-3 flex-shrink-0" />
                 <span>
-                  Requires: <strong className="text-warning">{course.prerequisiteLabel}</strong>
+                  Suggested first: <strong className="text-warning">{course.prerequisiteLabel}</strong>
                 </span>
               </div>
-            </div>
+            </Link>
           );
         }
 

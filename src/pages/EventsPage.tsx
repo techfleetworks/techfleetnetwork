@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const eventTabs: TabItem[] = [
   { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
+  { value: "workshops", label: "Workshops", icon: <Users className="h-4 w-4" /> },
   { value: "public", label: "Public Events", icon: <Globe className="h-4 w-4" /> },
 ];
 
@@ -19,6 +20,11 @@ export default function EventsPage() {
   const calendarSrc = useMemo(
     () =>
       `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH`,
+    [userTimezone]
+  );
+  const workshopCalendarSrc = useMemo(
+    () =>
+      `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=AGENDA`,
     [userTimezone]
   );
 
@@ -73,6 +79,19 @@ export default function EventsPage() {
             <iframe
               src={calendarSrc}
               title="Tech Fleet Community Calendar"
+              className="w-full border-0"
+              style={{ minHeight: "680px" }}
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          </div>
+        </ResponsiveTabsContent>
+
+        <ResponsiveTabsContent value="workshops">
+          <div className="rounded-lg border bg-card overflow-hidden">
+            <iframe
+              src={workshopCalendarSrc}
+              title="Tech Fleet Workshop Calendar"
               className="w-full border-0"
               style={{ minHeight: "680px" }}
               loading="lazy"

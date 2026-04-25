@@ -103,7 +103,11 @@ interface EnrichedApp extends ProjectApp {
   userApplyNowCount: number;
   /** Total number of projects currently accepting applications */
   totalApplyNowProjects: number;
+  completedCoreCourses: number;
 }
+
+const CORE_COURSE_PHASES = ["first_steps", "second_steps", "discord_learning", "third_steps", "project_training", "volunteer"] as const;
+const REQUIRED_CORE_COURSES = CORE_COURSE_PHASES.length;
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -192,6 +196,22 @@ export default function SubmittedApplicationsTab() {
     enabled: (apps ?? []).length > 0,
   });
 
+  const userIds = useMemo(() => [...new Set((apps ?? []).map((a) => a.user_id))], [apps]);
+  const { data: coreProgress = [] } = useQuery({
+    queryKey: ["admin-applicant-core-course-progress", userIds],
+    queryFn: async () => {
+      if (userIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("journey_progress")
+        .select("user_id, phase, completed")
+        .in("user_id", userIds)
+        .eq("completed", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: userIds.length > 0,
+  });
+
   const projectMap = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p])), [projects]);
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
   const profileMap = useMemo(() => new Map((profiles ?? []).map((p) => [p.user_id, p])), [profiles]);
@@ -203,6 +223,16 @@ export default function SubmittedApplicationsTab() {
 
   const totalApplyNowProjects = (allApplyNowProjects ?? []).length;
   const applyNowProjectIds = useMemo(() => new Set((allApplyNowProjects ?? []).map((p) => p.id)), [allApplyNowProjects]);
+  const coreProgressMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    coreProgress.forEach((row) => {
+      if (!CORE_COURSE_PHASES.includes(row.phase as (typeof CORE_COURSE_PHASES)[number])) return;
+      const phases = map.get(row.user_id) ?? new Set<string>();
+      phases.add(row.phase);
+      map.set(row.user_id, phases);
+    });
+    return map;
+  }, [coreProgress]);
 
   const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
@@ -223,8 +253,9 @@ export default function SubmittedApplicationsTab() {
       ...item,
       userApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
       totalApplyNowProjects,
+      completedCoreCourses: coreProgressMap.get(item.user_id)?.size ?? 0,
     }));
-  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects]);
+  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects, coreProgressMap]);
 
   // Build AG Grid columnDefs mapped by colId to the ALL_COLUMNS keys
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => {
@@ -237,6 +268,7 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Phase", colId: "phase", flex: 1, valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? "") },
       { headerName: "Project Status", colId: "project_status", flex: 1, valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? "") },
       { headerName: "Previous Participant?", colId: "previous_participant", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.participated_previous_phase ? "Yes" : "No" },
+      { headerName: "Core Courses", colId: "core_courses_completed", flex: 1, minWidth: 130, valueGetter: (p) => `${p.data?.completedCoreCourses ?? 0} of ${REQUIRED_CORE_COURSES}` },
       { headerName: "Active Apps", colId: "other_active_apps", flex: 1, minWidth: 140, valueGetter: (p) => p.data?.userApplyNowCount ?? 0, valueFormatter: (p) => `${p.data?.userApplyNowCount ?? 0} of ${p.data?.totalApplyNowProjects ?? 0}` },
       { headerName: "Date Submitted", colId: "date_submitted", flex: 1, minWidth: 120, valueGetter: (p) => p.data?.completed_at, valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—" },
       { headerName: "Team Hats Interest", colId: "team_hats_interest", flex: 2, valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", ") },
@@ -398,6 +430,9 @@ export default function SubmittedApplicationsTab() {
                   {app.participated_previous_phase
                     ? <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Previous Participant</>
                     : <><XCircle className="h-3.5 w-3.5 text-muted-foreground/60" /> New Participant</>}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Core courses: <span className="font-medium text-foreground">{app.completedCoreCourses} of {REQUIRED_CORE_COURSES}</span>
                 </div>
                 {app.userApplyNowCount > 0 && (
                   <div className="flex items-center gap-1.5 text-xs">

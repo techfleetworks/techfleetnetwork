@@ -165,6 +165,14 @@ export default function ProjectOpeningsPage() {
   const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
   const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
   const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
+  const statusClass = (v: string) =>
+    v === "apply_now"
+      ? "bg-success/10 text-success border-success/20"
+      : v === "coming_soon"
+        ? "bg-warning/10 text-warning border-warning/20"
+        : v === "project_in_progress"
+          ? "bg-primary/10 text-primary border-primary/20"
+          : "bg-info/10 text-info border-info/20";
 
   const columnDefs = useMemo<ColDef<EnrichedProject>[]>(() => [
     { headerName: "Client", field: "clientName", flex: 2 },
@@ -268,13 +276,14 @@ export default function ProjectOpeningsPage() {
         typeLabel={typeLabel}
         phaseLabel={phaseLabel}
         statusLabel={statusLabel}
+        statusClass={statusClass}
       />
 
     </div>
   );
 }
 
-function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, phaseLabel, statusLabel }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string; navigate: (path: string) => void; typeLabel: (v: string) => string; phaseLabel: (v: string) => string; statusLabel: (v: string) => string }) {
+function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, phaseLabel, statusLabel, statusClass }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string; navigate: (path: string) => void; typeLabel: (v: string) => string; phaseLabel: (v: string) => string; statusLabel: (v: string) => string; statusClass: (v: string) => string }) {
   if (items.length === 0) return (
     <div className="rounded-lg border bg-card p-6 text-center">
       <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -306,7 +315,7 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
                     <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
                   </div>
                 </div>
-                <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
+                <Badge className={`${statusClass(p.project_status)} shrink-0`}>{statusLabel(p.project_status)}</Badge>
               </div>
             </CardHeader>
             <CardContent className="flex-1 space-y-3 text-sm">
@@ -359,7 +368,7 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
   );
 }
 
-function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects, typeLabel, phaseLabel, statusLabel }: any) {
+function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects, typeLabel, phaseLabel, statusLabel, statusClass }: any) {
   const [tab, setTab] = useState("client");
 
   const countBadge = (count: number) => (
@@ -436,28 +445,28 @@ function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, 
                 <Handshake className="h-5 w-5 text-success" aria-hidden="true" />
                 Open Applications
               </h3>
-              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} />
+              <ProjectSection icon={Handshake} items={openApplications} emptyText="No projects are currently accepting applications." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} statusClass={statusClass} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-warning" aria-hidden="true" />
                 Opening Soon
               </h3>
-              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} />
+              <ProjectSection icon={Clock} items={comingSoon} emptyText="No projects are opening soon." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} statusClass={statusClass} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Rocket className="h-5 w-5 text-info" aria-hidden="true" />
                 Starting Soon
               </h3>
-              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} />
+              <ProjectSection icon={Rocket} items={startingSoon} emptyText="No projects are starting soon." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} statusClass={statusClass} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />
                 Live Projects
               </h3>
-              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} />
+              <ProjectSection icon={PlayCircle} items={liveProjects} emptyText="No projects are currently in progress." navigate={navigate} typeLabel={typeLabel} phaseLabel={phaseLabel} statusLabel={statusLabel} statusClass={statusClass} />
             </div>
           </div>
         )}

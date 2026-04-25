@@ -32,6 +32,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { key: "phase", label: "Phase", group: "core" },
   { key: "project_status", label: "Project Status", group: "core" },
   { key: "previous_participant", label: "Previous Participant?", group: "core" },
+  { key: "core_courses_completed", label: "Core Courses", group: "core" },
   { key: "other_active_apps", label: "Active Apps", group: "core" },
   { key: "date_submitted", label: "Date Submitted", group: "core" },
   { key: "team_hats_interest", label: "Team Hats Interest", group: "core" },
@@ -84,6 +85,7 @@ export const DEFAULT_VISIBLE_KEYS = [
   "phase",
   "project_status",
   "previous_participant",
+  "core_courses_completed",
   "other_active_apps",
   "date_submitted",
 ];
