@@ -368,7 +368,7 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
   );
 }
 
-function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects, typeLabel, phaseLabel, statusLabel }: any) {
+function ProjectOpeningsTabs({ openApplications, enrichedProjects, projLoading, view, setView, navigate, isAdmin, columnDefs, comingSoon, startingSoon, liveProjects, typeLabel, phaseLabel, statusLabel, statusClass }: any) {
   const [tab, setTab] = useState("client");
 
   const countBadge = (count: number) => (
