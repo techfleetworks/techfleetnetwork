@@ -43,6 +43,12 @@ export function usePasskeyLoginGate() {
     }
   }, [user, session]);
 
+  const markVerified = useCallback(() => {
+    setVerified(true);
+    setLastCheckedToken(session?.access_token ?? null);
+    setChecking(false);
+  }, [session?.access_token]);
+
   useEffect(() => {
     if (authLoading || adminLoading) return;
     if (!user) { setVerified(null); return; }
@@ -57,5 +63,5 @@ export function usePasskeyLoginGate() {
   const ready = !authLoading && !adminLoading && (!user || !isAdmin || passkeyEnrolled !== null);
   const needsGate = ready && !!user && isAdmin && passkeyEnrolled === true && verified === false;
 
-  return { needsGate, ready, checking, recheck };
+  return { needsGate, ready, checking, recheck, markVerified };
 }
