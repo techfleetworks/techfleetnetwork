@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, Search, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
+import { AlertCircle, User, Globe, MessageCircle, Check, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -17,9 +17,8 @@ import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { TIMEZONES } from "@/lib/timezones";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 
 
 export function ProfileSetupDialog() {
@@ -205,6 +204,7 @@ export function ProfileSetupDialog() {
         : [...prev.interests, interest],
     }));
   };
+  const selectedTimezoneLabel = TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone;
 
   const handleComplete = async (e: FormEvent) => {
     e.preventDefault();
