@@ -12,4 +12,4 @@
  * them up via this single import.
  */
 export { test, expect } from "@playwright/test";
-export type { Page, Locator, BrowserContext } from "@playwright/test";
+export type { BrowserContext, ConsoleMessage, Locator, Page, Request } from "@playwright/test";
