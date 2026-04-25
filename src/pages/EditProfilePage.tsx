@@ -9,9 +9,9 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
-  User, Globe, MessageCircle, Check, ChevronsUpDown,
+  User, Globe, MessageCircle, Check,
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
-  Link2, RefreshCw, Search,
+  Link2, RefreshCw,
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
@@ -27,8 +27,6 @@ import { profileSchema, ACTIVITY_OPTIONS } from "@/lib/validators/profile";
 import { EDUCATION_OPTIONS } from "@/lib/application-options";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +37,7 @@ import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
+import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -283,6 +282,7 @@ export default function EditProfilePage() {
     getFieldValidationState(errors[field], value, !!touched[field]);
   const bc = (field: string, value: string | string[] | boolean) =>
     validationBorderClass(vs(field, value));
+  const selectedTimezoneLabel = TIMEZONES.find((tz) => tz.value === form.timezone)?.label || form.timezone;
 
   return (
     <form
