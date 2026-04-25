@@ -17,6 +17,37 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.PORT ?? 4173);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 const isCI = !!process.env.CI;
+const isFullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === "1";
+
+const allProjects = [
+  {
+    name: "chromium-desktop",
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "firefox-desktop",
+    use: { ...devices["Desktop Firefox"] },
+  },
+  {
+    name: "webkit-desktop",
+    use: { ...devices["Desktop Safari"] },
+  },
+  {
+    name: "mobile-chrome",
+    use: { ...devices["Pixel 7"] },
+  },
+  {
+    name: "mobile-safari",
+    use: { ...devices["iPhone 14"] },
+  },
+  {
+    name: "tablet",
+    use: {
+      ...devices["iPad Pro 11"],
+      viewport: { width: 834, height: 1194 },
+    },
+  },
+];
 
 export default defineConfig({
   testDir: ".",
@@ -27,19 +58,16 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   workers: 1,
-  reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
+  reporter: isCI
+    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    : "list",
   use: {
     baseURL: BASE_URL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  projects: isFullMatrix ? allProjects : [allProjects[0]],
   // Only spin up our own server in CI / when explicitly requested.
   // Inside the Lovable sandbox the preview is already running on its
   // managed port, so we skip this to avoid double-binding.
