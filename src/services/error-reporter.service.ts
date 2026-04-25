@@ -153,6 +153,10 @@ const SUPPRESSED_PATTERNS = [
   "Extension context invalidated",
 ] as const;
 
+function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
+  return msg === "Script error." && !event.error && !event.filename && event.lineno === 0 && event.colno === 0;
+}
+
 function isSuppressed(msg: string): boolean {
   return SUPPRESSED_PATTERNS.some((p) => msg.includes(p));
 }
@@ -160,6 +164,7 @@ function isSuppressed(msg: string): boolean {
 export function installGlobalErrorReporter() {
   window.addEventListener("error", async (event) => {
     const msg = formatError(event.error ?? event.message);
+    if (isOpaqueScriptError(event, msg)) return;
     if (isSuppressed(msg)) return;
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
