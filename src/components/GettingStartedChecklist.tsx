@@ -165,16 +165,14 @@ function ChecklistCard({ item }: { item: ChecklistItem }) {
   const { completed, locked } = item;
 
   const statusLabel = locked
-    ? `Locked — complete ${item.prerequisiteLabel ?? "previous step"} first`
+    ? `Recommended after ${item.prerequisiteLabel ?? "previous step"}`
     : completed
       ? "Complete"
       : "Not yet complete";
 
   const cardClass = cn(
     "group relative flex flex-col items-center text-center rounded-lg border bg-card p-4 sm:p-5 min-h-[160px] transition-all",
-    locked
-      ? "opacity-60 cursor-not-allowed"
-      : "hover:border-primary/50 hover:shadow-sm focus-within:ring-2 focus-within:ring-ring"
+    "hover:border-primary/50 hover:shadow-sm focus-within:ring-2 focus-within:ring-ring"
   );
 
   const inner = (
@@ -185,14 +183,14 @@ function ChecklistCard({ item }: { item: ChecklistItem }) {
         className={cn(
           "absolute top-3 right-3 inline-flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors",
           locked
-            ? "border-muted-foreground/30 bg-muted"
+            ? "border-warning/40 bg-warning/10"
             : completed
               ? "border-success bg-success text-success-foreground"
               : "border-muted-foreground/40 bg-transparent"
         )}
       >
         {locked ? (
-          <Lock className="h-3 w-3 text-muted-foreground" />
+          <Lock className="h-3 w-3 text-warning" />
         ) : completed ? (
           <Check className="h-3.5 w-3.5" strokeWidth={3} />
         ) : null}
@@ -221,18 +219,6 @@ function ChecklistCard({ item }: { item: ChecklistItem }) {
       </p>
     </>
   );
-
-  if (locked) {
-    return (
-      <div
-        className={cardClass}
-        aria-label={`${item.title}. ${statusLabel}.`}
-        role="group"
-      >
-        {inner}
-      </div>
-    );
-  }
 
   return (
     <Link
