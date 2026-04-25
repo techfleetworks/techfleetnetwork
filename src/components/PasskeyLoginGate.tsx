@@ -22,7 +22,7 @@ export function PasskeyLoginGate() {
   // production auth unless the dedicated build-time env var is set.
   if (BYPASS_FOR_A11Y_AUDIT) return null;
 
-  const { needsGate, recheck } = usePasskeyLoginGate();
+  const { needsGate, markVerified } = usePasskeyLoginGate();
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -33,8 +33,8 @@ export function PasskeyLoginGate() {
     setVerifying(true);
     try {
       await PasskeyLoginService.verify();
+      markVerified();
       toast.success("Passkey verified");
-      await recheck();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed");
     } finally {
