@@ -313,8 +313,8 @@ export function ThemedAgGrid<T = unknown>({
           {toolbarLeft}
         </div>
       )}
-      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 rounded-lg border border-border/40 bg-card shadow-sm">
-        <div key={themeClass} className={themeClass} style={{ height, width: "100%", minWidth: "600px" }}>
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 rounded-lg border border-border/40 bg-card shadow-sm" role="region" aria-label="Scrollable data table" tabIndex={0}>
+        <div key={themeClass} className={themeClass} style={{ height, width: "100%", minWidth: "min(600px, 100%)" }}>
           <AgGridReact<T>
             defaultColDef={mergedColDef}
             columnDefs={columnDefs}

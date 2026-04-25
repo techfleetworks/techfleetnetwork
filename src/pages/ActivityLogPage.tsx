@@ -263,7 +263,7 @@ export default function ActivityLogPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search events, users, errors…"
@@ -274,7 +274,7 @@ export default function ActivityLogPage() {
           />
         </div>
         <Select value={eventFilter} onValueChange={(v) => { setEventFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[220px]" aria-label="Filter by event type">
+          <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filter by event type">
             <SelectValue placeholder="All events" />
           </SelectTrigger>
           <SelectContent>

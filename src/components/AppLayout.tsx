@@ -346,7 +346,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           >
             <Link
               to="/dashboard"
-              className="flex items-center gap-2 font-bold text-base"
+              className="flex min-w-0 items-center gap-2 font-bold text-base"
               aria-label="Tech Fleet Home"
             >
               <img
@@ -356,9 +356,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                 width={28}
                 height={28}
               />
-              <span>Tech Fleet</span>
+              <span className="truncate min-[360px]:inline hidden">Tech Fleet</span>
             </Link>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <UniversalSearch />
               <ThemeToggle />
               <NotificationBell />
