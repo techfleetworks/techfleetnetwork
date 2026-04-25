@@ -39,7 +39,7 @@ function compactLookupValue(value: string): string {
 function buildSearchQueries(rawInput: string): string[] {
   const raw = rawInput.normalize("NFKC").trim();
   const normalized = normalizeLookupValue(raw);
-  const tokens = normalized.split(/[\s._\-]+/).filter((token) => token.length >= 3);
+  const tokens = normalized.split(/[\s._-]+/).filter((token) => token.length >= 3);
   return [...new Set([raw.toLowerCase(), normalized, `.${normalized}`, ...tokens].filter(Boolean))].slice(0, 8);
 }
 
@@ -215,17 +215,12 @@ serve(async (req) => {
       candidateNicks,
     });
 
-    // Match on cleaned username, raw username, or dot-prefixed variant
-    const matchCandidates = new Set([cleanUsername, rawUsername, `.${cleanUsername}`]);
-    const fieldsOf = (m: any): string[] => [
-      m.user?.username,
-      m.user?.global_name,
-      m.nick,
-    ].filter(Boolean).map((s: string) => s.toLowerCase());
+    // Match on cleaned username, raw username, compact username, or dot-prefixed variant.
+    const matchCandidates = new Set([cleanUsername, normalizeLookupValue(rawUsername), compactUsername, `.${cleanUsername}`]);
 
     // 1) Exact match on username/global_name/nick
-    let match = members.find((m: any) =>
-      fieldsOf(m).some((f) => matchCandidates.has(f))
+    let match = members.find((m) =>
+      memberFields(m).some((f) => matchCandidates.has(f) || matchCandidates.has(compactLookupValue(f)))
     );
 
     // 2) Strong fuzzy match: a field starts with the input followed by a
@@ -233,13 +228,14 @@ serve(async (req) => {
     //    matching Discord username "sainaz.com" or display name "Sainaz Doe".
     if (!match) {
       const needle = cleanUsername;
-      const strongMatches = members.filter((m: any) =>
-        fieldsOf(m).some((f) => {
+      const strongMatches = members.filter((m) =>
+        memberFields(m).some((f) => {
           if (f === needle) return true;
           if (f.startsWith(needle)) {
             const next = f.charAt(needle.length);
-            return next === "" || /[._\-\s]/.test(next);
+            return next === "" || /[._\s-]/.test(next);
           }
+          if (compactLookupValue(f) === compactUsername) return true;
           // Display name like "Sainaz" (no suffix) — exact case-insensitive
           return false;
         })
