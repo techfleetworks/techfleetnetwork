@@ -268,22 +268,27 @@ serve(async (req) => {
     };
 
     if (match) {
-      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${match.user.id} [${requestId}]`, {
+      const matchedUser = match.user;
+      if (!matchedUser?.id) {
+        throw new Error("Discord returned a matching member without a user ID");
+      }
+
+      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${matchedUser.id} [${requestId}]`, {
         requestId,
         username: cleanUsername,
-        discordUserId: match.user.id,
+        discordUserId: matchedUser.id,
       });
       await auditLog(
         "discord_username_verified",
-        `Verified "${cleanUsername}" → Discord ID ${match.user.id}`,
-        [`username:${cleanUsername}`, `discord_id:${match.user.id}`, `result_count:${members.length}`]
+        `Verified "${cleanUsername}" → Discord ID ${matchedUser.id}`,
+        [`username:${cleanUsername}`, `discord_id:${matchedUser.id}`, `result_count:${members.length}`]
       );
-      const avatarHash = match.user?.avatar;
+      const avatarHash = matchedUser.avatar;
       const avatarUrl = avatarHash
-        ? `https://cdn.discordapp.com/avatars/${match.user.id}/${avatarHash}.png?size=256`
+        ? `https://cdn.discordapp.com/avatars/${matchedUser.id}/${avatarHash}.png?size=256`
         : null;
       return new Response(
-        JSON.stringify({ discord_user_id: match.user.id, avatar_url: avatarUrl }),
+        JSON.stringify({ discord_user_id: matchedUser.id, avatar_url: avatarUrl }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
