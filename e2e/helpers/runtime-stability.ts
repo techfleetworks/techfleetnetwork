@@ -1,4 +1,4 @@
-import { expect, type Page } from "../../playwright-fixture";
+import { expect, type ConsoleMessage, type Page, type Request } from "../../playwright-fixture";
 
 const IGNORED_CONSOLE_PATTERNS = [
   /favicon/i,
@@ -41,7 +41,7 @@ export function collectRuntimeIssues(page: Page): RuntimeIssueCollector {
     if (!isIgnored(message)) errors.push(`pageerror: ${message}`);
   };
 
-  const onConsole = (message: { type: () => string; text: () => string }) => {
+  const onConsole = (message: ConsoleMessage) => {
     if (message.type() !== "error") return;
     const text = message.text();
     if (isIgnored(text)) return;
@@ -50,22 +50,22 @@ export function collectRuntimeIssues(page: Page): RuntimeIssueCollector {
     }
   };
 
-  const onRequestFailed = (request: { url: () => string; failure: () => { errorText: string } | null }) => {
+  const onRequestFailed = (request: Request) => {
     const url = request.url();
     if (!FAILED_REQUEST_PATTERNS.some((pattern) => pattern.test(url))) return;
     errors.push(`request failed: ${url} (${request.failure()?.errorText ?? "unknown"})`);
   };
 
   page.on("pageerror", onPageError);
-  page.on("console", onConsole as never);
-  page.on("requestfailed", onRequestFailed as never);
+  page.on("console", onConsole);
+  page.on("requestfailed", onRequestFailed);
 
   return {
     errors,
     dispose: () => {
       page.off("pageerror", onPageError);
-      page.off("console", onConsole as never);
-      page.off("requestfailed", onRequestFailed as never);
+      page.off("console", onConsole);
+      page.off("requestfailed", onRequestFailed);
     },
   };
 }
