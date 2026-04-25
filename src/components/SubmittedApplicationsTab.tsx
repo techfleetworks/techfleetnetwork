@@ -223,6 +223,16 @@ export default function SubmittedApplicationsTab() {
 
   const totalApplyNowProjects = (allApplyNowProjects ?? []).length;
   const applyNowProjectIds = useMemo(() => new Set((allApplyNowProjects ?? []).map((p) => p.id)), [allApplyNowProjects]);
+  const coreProgressMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    coreProgress.forEach((row) => {
+      if (!CORE_COURSE_PHASES.includes(row.phase as (typeof CORE_COURSE_PHASES)[number])) return;
+      const phases = map.get(row.user_id) ?? new Set<string>();
+      phases.add(row.phase);
+      map.set(row.user_id, phases);
+    });
+    return map;
+  }, [coreProgress]);
 
   const enriched = useMemo<EnrichedApp[]>(() => {
     const items = (apps ?? []).map((a) => {
@@ -243,8 +253,9 @@ export default function SubmittedApplicationsTab() {
       ...item,
       userApplyNowCount: userApplyNowCounts.get(item.user_id) ?? 0,
       totalApplyNowProjects,
+      completedCoreCourses: coreProgressMap.get(item.user_id)?.size ?? 0,
     }));
-  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects]);
+  }, [apps, projectMap, clientMap, profileMap, generalAppMap, applyNowProjectIds, totalApplyNowProjects, coreProgressMap]);
 
   // Build AG Grid columnDefs mapped by colId to the ALL_COLUMNS keys
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => {
