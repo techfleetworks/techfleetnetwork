@@ -165,6 +165,14 @@ export default function ProjectOpeningsPage() {
   const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
   const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
   const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
+  const statusClass = (v: string) =>
+    v === "apply_now"
+      ? "bg-success/10 text-success border-success/20"
+      : v === "coming_soon"
+        ? "bg-warning/10 text-warning border-warning/20"
+        : v === "project_in_progress"
+          ? "bg-primary/10 text-primary border-primary/20"
+          : "bg-info/10 text-info border-info/20";
 
   const columnDefs = useMemo<ColDef<EnrichedProject>[]>(() => [
     { headerName: "Client", field: "clientName", flex: 2 },
@@ -268,13 +276,14 @@ export default function ProjectOpeningsPage() {
         typeLabel={typeLabel}
         phaseLabel={phaseLabel}
         statusLabel={statusLabel}
+        statusClass={statusClass}
       />
 
     </div>
   );
 }
 
-function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, phaseLabel, statusLabel }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string; navigate: (path: string) => void; typeLabel: (v: string) => string; phaseLabel: (v: string) => string; statusLabel: (v: string) => string }) {
+function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, phaseLabel, statusLabel, statusClass }: { icon: React.ElementType; items: EnrichedProject[]; emptyText: string; navigate: (path: string) => void; typeLabel: (v: string) => string; phaseLabel: (v: string) => string; statusLabel: (v: string) => string; statusClass: (v: string) => string }) {
   if (items.length === 0) return (
     <div className="rounded-lg border bg-card p-6 text-center">
       <Icon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -306,7 +315,7 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
                     <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
                   </div>
                 </div>
-                <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">{statusLabel(p.project_status)}</Badge>
+                <Badge className={`${statusClass(p.project_status)} shrink-0`}>{statusLabel(p.project_status)}</Badge>
               </div>
             </CardHeader>
             <CardContent className="flex-1 space-y-3 text-sm">
