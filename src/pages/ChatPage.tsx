@@ -280,13 +280,13 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="container-app py-4 sm:py-8 max-w-4xl flex flex-col sm:flex-row h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-8rem)]">
+    <div className="container-app py-4 sm:py-8 max-w-4xl flex min-h-0 flex-col gap-3 sm:flex-row sm:gap-4 h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-8rem)]">
       {/* Conversation sidebar */}
       {user && (
         <div
           className={`${
             showSidebar ? "flex" : "hidden sm:flex"
-          } flex-col w-56 shrink-0 mr-4 border rounded-lg bg-card overflow-hidden`}
+          } flex-col w-full max-h-[35dvh] shrink-0 border rounded-lg bg-card overflow-hidden sm:w-56 sm:max-h-none`}
         >
           <div className="p-3 border-b flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">History</span>
@@ -331,13 +331,13 @@ export default function ChatPage() {
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Bot className="h-6 w-6 text-primary" aria-hidden="true" />
               Fleety
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1 break-words">
               Ask me anything about Tech Fleet, team practices, workshops, and onboarding.
             </p>
           </div>
@@ -345,7 +345,7 @@ export default function ChatPage() {
             <Button
               variant="outline"
               size="sm"
-              className="sm:hidden"
+              className="shrink-0 sm:hidden"
               onClick={() => setShowSidebar(!showSidebar)}
             >
               History
