@@ -114,6 +114,9 @@ export const PasskeyLoginService = {
     if (optsErr || !optsResp) {
       throw new Error(optsErr?.message || "Failed to start passkey verification");
     }
+    if (!isDeviceCryptoSupported()) {
+      throw new Error("This browser cannot securely remember admin verification");
+    }
 
     let assertion;
     try {
@@ -124,22 +127,20 @@ export const PasskeyLoginService = {
       throw new Error("Passkey verification was cancelled");
     }
 
+    const [publicKey, fingerprint, signature] = await Promise.all([
+      getDevicePublicKeySpkiBase64(),
+      getDeviceFingerprint(),
+      signDeviceNonce(optsResp.challenge),
+    ]);
+
     const { data, error } = await supabase.functions.invoke("passkey-auth-verify", {
-      body: { response: assertion },
+      body: {
+        response: assertion,
+        device_binding: { public_key: publicKey, fingerprint, signature },
+      },
     });
     if (error || !data?.verified) {
       throw new Error(error?.message || "Passkey verification failed");
-    }
-    // The passkey edge function elevates the session to AAL2 (the WebAuthn
-    // assertion is the second factor). We can now bind this device for 30
-    // days using the cryptographic scheme.
-    try {
-      await bindCurrentDevice();
-    } catch (e) {
-      log.warn(
-        "verify",
-        `Device binding failed (passkey still verified): ${e instanceof Error ? e.message : String(e)}`,
-      );
     }
   },
 
