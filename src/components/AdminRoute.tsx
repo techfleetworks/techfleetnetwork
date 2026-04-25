@@ -38,7 +38,18 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAdmin) {
+    return (
+      <Navigate
+        to="/access-denied"
+        state={{
+          from: location,
+          reason: "Admin access is required for this page. You can continue using the rest of Tech Fleet Network normally.",
+        }}
+        replace
+      />
+    );
+  }
 
   if (passkeyEnrolled === false) {
     return (
