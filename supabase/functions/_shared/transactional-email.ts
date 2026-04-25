@@ -347,6 +347,14 @@ export async function queueTransactionalEmail({
       reason: 'email_suppressed',
     }
   }
+  if (!('token' in unsubscribe)) {
+    return {
+      ok: false,
+      status: 500,
+      error: 'Failed to prepare email',
+      messageId,
+    }
+  }
   const unsubscribeToken = unsubscribe.token
 
   const html = await renderAsync(

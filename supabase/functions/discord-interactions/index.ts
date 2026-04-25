@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     body,
     req.headers.get("x-signature-ed25519"),
     req.headers.get("x-signature-timestamp"),
-    publicKey,
+    publicKey ?? null,
   );
 
   if (!isValid) {
