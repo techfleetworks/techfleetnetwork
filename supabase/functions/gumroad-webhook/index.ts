@@ -89,6 +89,13 @@ interface TierMapping {
   isFoundingMember: boolean;
 }
 
+function normalizeBillingPeriod(recurrence: string, sale: ParsedSale): "monthly" | "yearly" {
+  const haystack = `${recurrence} ${sale.permalink} ${sale.product_permalink}`.toLowerCase();
+  return haystack.includes("year") || haystack.includes("annual") || haystack.includes("founding")
+    ? "yearly"
+    : "monthly";
+}
+
 function mapToTier(sale: ParsedSale): TierMapping {
   // Gumroad sends both `permalink` (short slug) and `product_permalink` (full URL).
   // Match on either, lowercased, to be resilient.
@@ -189,6 +196,7 @@ Deno.serve(async (req) => {
 
   // 4. Idempotency — try to insert; if conflict, ack 200 without re-applying
   const mapping = mapToTier(sale);
+  const billingPeriod = normalizeBillingPeriod(sale.recurrence, sale);
   const normalizedEmail = sale.email.trim().toLowerCase();
 
   const { data: existing } = await supabase
@@ -250,6 +258,7 @@ Deno.serve(async (req) => {
       .update({
         membership_tier: mapping.tier,
         is_founding_member: mapping.isFoundingMember,
+        membership_billing_period: billingPeriod,
         membership_sku: sale.permalink || sale.product_permalink,
         membership_gumroad_sale_id: sale.sale_id,
         membership_updated_at: new Date().toISOString(),
