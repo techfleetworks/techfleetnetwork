@@ -89,4 +89,18 @@ describe("AuthService session max-age marker", () => {
     await expect(AuthService.getSession()).resolves.toBeNull();
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
   });
+
+  it("clears local auth state when the stored refresh token has been rotated away", async () => {
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ refresh_token: "missing-refresh-token" }));
+    sessionStorage.setItem("session_started_at", JSON.stringify({ version: 1, userId: "user", startedAtMs: Date.now() }));
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: { message: "Invalid Refresh Token: Refresh Token Not Found", status: 400 },
+    });
+
+    await expect(AuthService.getSession()).resolves.toBeNull();
+    expect(localStorage.getItem("sb-project-auth-token")).toBeNull();
+    expect(sessionStorage.getItem("session_started_at")).toBeNull();
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
 });

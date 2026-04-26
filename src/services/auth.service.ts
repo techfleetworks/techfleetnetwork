@@ -6,6 +6,7 @@ const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
+const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
 
 type AuthSession = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>;
 
@@ -37,6 +38,21 @@ function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: n
     return { startedAtMs: marker.startedAtMs, resetReason: null };
   } catch {
     return { startedAtMs: Date.now(), resetReason: "malformed" };
+  }
+}
+
+function isInvalidRefreshTokenError(error: { message?: string; status?: number } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("invalid refresh token") || message.includes("refresh token not found");
+}
+
+function clearLocalAuthArtifacts() {
+  sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let i = storage.length - 1; i >= 0; i -= 1) {
+      const key = storage.key(i);
+      if (key && AUTH_STORAGE_KEY_PATTERN.test(key)) storage.removeItem(key);
+    }
   }
 }
 
@@ -174,7 +190,7 @@ export const AuthService = {
 
   async signOut() {
     log.info("signOut", "Signing out user");
-    sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+    clearLocalAuthArtifacts();
 
     const { error } = await supabase.auth.signOut();
     if (!error) {
@@ -211,6 +227,13 @@ export const AuthService = {
     log.debug("getSession", "Retrieving current session");
     const { data, error } = await supabase.auth.getSession();
     if (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        log.warn("getSession", "Stored refresh token is no longer valid — clearing local auth state", undefined, error);
+        void logAccountActivity("invalid_refresh_token_cleared", { errorMessage: error.message, errorCode: error.status });
+        clearLocalAuthArtifacts();
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+        return null;
+      }
       log.error("getSession", `Failed to retrieve session: ${error.message}`, undefined, error);
       throw new Error(error.message);
     }
