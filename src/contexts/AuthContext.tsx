@@ -45,6 +45,18 @@ if (import.meta.env?.DEV && existingAuthCtx && existingAuthCtx !== freshAuthCtx)
 const AuthContext: React.Context<AuthContextType | undefined> = freshAuthCtx;
 g[GLOBAL_KEY] = AuthContext;
 
+function isInvalidRefreshTokenAuthError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
+  return message.includes("refresh token") &&
+    (message.includes("invalid") ||
+      message.includes("not found") ||
+      message.includes("missing") ||
+      message.includes("expired") ||
+      message.includes("revoked") ||
+      message.includes("already used") ||
+      message.includes("reuse"));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -106,6 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (_event, session) => {
+        if (_event === "SIGNED_OUT") {
+          AuthService.clearLocalAuthState();
+        }
+
         // For token refreshes, only update session/user if the user ID actually changed
         if (_event === "TOKEN_REFRESHED") {
           setSession((prev) => {
@@ -170,7 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfileLoaded(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        if (isInvalidRefreshTokenAuthError(error)) {
+          AuthService.clearLocalAuthState();
+        }
         setSession(null);
         setUser(null);
         setProfile(null);
