@@ -146,17 +146,21 @@ export function useMembershipRealtime() {
           const next = payload.new as {
             membership_tier?: string;
             is_founding_member?: boolean;
+            membership_billing_period?: string;
           };
           const prevTier = lastTierRef.current;
           const prevFounding = lastFoundingRef.current;
+          const prevBilling = lastBillingRef.current;
           const newTier = next.membership_tier ?? null;
           const newFounding = Boolean(next.is_founding_member);
+          const newBilling = next.membership_billing_period ?? null;
 
           const tierChanged = prevTier !== null && prevTier !== newTier;
           const foundingFlipped =
             prevFounding !== null && prevFounding !== newFounding;
+          const billingChanged = prevBilling !== null && prevBilling !== newBilling;
 
-          if (tierChanged || foundingFlipped) {
+          if (tierChanged || foundingFlipped || billingChanged) {
             log.info(
               "realtime",
               `Membership updated for user ${user.id}: ${prevTier} → ${newTier} (founding: ${newFounding})`,
@@ -165,6 +169,7 @@ export function useMembershipRealtime() {
                 from: prevTier,
                 to: newTier,
                 founding: newFounding,
+                billingPeriod: newBilling,
               },
             );
 
@@ -180,6 +185,7 @@ export function useMembershipRealtime() {
 
             lastTierRef.current = newTier;
             lastFoundingRef.current = newFounding;
+            lastBillingRef.current = newBilling;
             void refreshProfile();
           }
         },
@@ -190,4 +196,6 @@ export function useMembershipRealtime() {
       void supabase.removeChannel(channel);
     };
   }, [user, refreshProfile]);
+
+  return { syncing };
 }
