@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FlowMobileNav } from "@/components/FlowMobileNav";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -88,8 +89,9 @@ export function GeneralApplicationTab() {
 
   return (
     <div className="relative">
+      <FlowMobileNav backTo="/applications" backLabel="Back to Applications" title="General Application" />
       {/* ── Sticky Progress Bar ────────────────────────────── */}
-      <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
+      <div className="sticky top-[65px] z-20 border-b bg-background px-4 sm:px-6 py-3 md:top-0">
         <div className="max-w-4xl w-full mx-auto">
         <StepProgressBar
           steps={SECTION_TITLES.map((label, i) => {

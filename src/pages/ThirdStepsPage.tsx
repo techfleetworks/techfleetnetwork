@@ -12,6 +12,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FlowMobileNav } from "@/components/FlowMobileNav";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -208,7 +209,9 @@ export default function ThirdStepsPage() {
   };
 
   return (
-    <div className="container-app py-8 sm:py-12 max-w-3xl">
+    <div>
+      <FlowMobileNav backTo="/courses" backLabel="Back to Courses" title="Agile Cross-Functional Team Dynamics" />
+      <div className="container-app py-6 sm:py-12 max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
         <Breadcrumb className="mt-2">
@@ -551,6 +554,7 @@ export default function ThirdStepsPage() {
             })()}
         </SheetContent>
       </Sheet>
+      </div>
     </div>
   );
 }
