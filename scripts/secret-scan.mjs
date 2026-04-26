@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const allowedFiles = new Set([".env.example"]);
 const ignoredPrefixes = ["node_modules/", "dist/", "coverage/", "playwright-report/", "test-results/"];
@@ -21,6 +21,8 @@ const secretPatterns = [
 const findings = [];
 
 for (const file of trackedFiles) {
+  if (!existsSync(file)) continue;
+
   if ((file === ".env" || /^\.env\./.test(file)) && !allowedFiles.has(file)) {
     findings.push(`${file}: committed environment file is forbidden`);
     continue;
