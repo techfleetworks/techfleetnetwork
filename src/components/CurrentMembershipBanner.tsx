@@ -1,6 +1,6 @@
 import { Sparkles, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { MEMBERSHIP_TIERS, type TierId } from "@/config/membership-tiers";
+import { FOUNDING_PROMO, MEMBERSHIP_TIERS, type TierId } from "@/config/membership-tiers";
 import { cn } from "@/lib/utils";
 
 interface CurrentMembershipBannerProps {
@@ -23,6 +23,12 @@ export function CurrentMembershipBanner({
   className,
 }: CurrentMembershipBannerProps) {
   const tier = MEMBERSHIP_TIERS[currentTier] ?? MEMBERSHIP_TIERS.starter;
+  const priceLabel =
+    currentTier === "community" && isFoundingMember
+      ? `${FOUNDING_PROMO.yearlyPriceDisplay} USD per year`
+      : tier.priceDisplay === "FREE"
+      ? tier.priceDisplay
+      : `${tier.priceDisplay} ${tier.priceSubtitle.replace(/^USD\s*/, "")}`;
 
   const sinceLabel = membershipUpdatedAt
     ? new Date(membershipUpdatedAt).toLocaleDateString(undefined, {
@@ -55,10 +61,7 @@ export function CurrentMembershipBanner({
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <h3 className="text-xl font-bold text-foreground">{tier.name}</h3>
             <span className="text-sm text-muted-foreground">
-              · {tier.priceDisplay}
-              {tier.priceDisplay !== "FREE" && (
-                <> {tier.priceSubtitle.replace(/^USD\s*/, "")}</>
-              )}
+              · {priceLabel}
             </span>
             {isFoundingMember && (
               <Badge
