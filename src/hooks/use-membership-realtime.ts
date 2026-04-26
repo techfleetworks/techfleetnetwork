@@ -17,7 +17,7 @@
  *     subscription lifetimes short and predictable.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,9 +33,11 @@ const TIER_LABEL: Record<string, string> = {
 
 export function useMembershipRealtime() {
   const { user, profile, refreshProfile } = useAuth();
+  const [syncing, setSyncing] = useState(false);
   const reconciledRef = useRef(false);
   const lastTierRef = useRef<string | null>(null);
   const lastFoundingRef = useRef<boolean | null>(null);
+  const lastBillingRef = useRef<string | null>(null);
 
   // Track current state so the realtime callback can detect transitions.
   useEffect(() => {
@@ -46,9 +48,12 @@ export function useMembershipRealtime() {
         (profile as unknown as { is_founding_member?: boolean })
           .is_founding_member,
       );
+      const billing = (profile as unknown as { membership_billing_period?: string })
+        .membership_billing_period ?? null;
       // Only seed on first sight — don't overwrite once realtime is live.
       if (lastTierRef.current === null) lastTierRef.current = tier;
       if (lastFoundingRef.current === null) lastFoundingRef.current = founding;
+      if (lastBillingRef.current === null) lastBillingRef.current = billing;
     }
   }, [profile]);
 
@@ -60,6 +65,7 @@ export function useMembershipRealtime() {
   useEffect(() => {
     if (!user || reconciledRef.current) return;
     reconciledRef.current = true;
+    setSyncing(true);
     (async () => {
       let appliedFromReconcile = 0;
 
@@ -116,6 +122,8 @@ export function useMembershipRealtime() {
           `Unexpected backfill error: ${(err as Error).message}`,
           { userId: user.id },
         );
+      } finally {
+        setSyncing(false);
       }
     })();
   }, [user, refreshProfile]);
