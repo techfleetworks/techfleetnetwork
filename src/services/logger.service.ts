@@ -44,6 +44,8 @@ const MIN_LEVEL: LogLevel =
 const THROTTLE_WINDOW_MS = 10_000; // 10 seconds
 const THROTTLE_MAX_PER_KEY = 5;
 const throttleCounts = new Map<string, { count: number; windowStart: number }>();
+const SENSITIVE_KEY_PATTERN = /email|password|token|secret|key|authorization|cookie|discord|useragent|user_agent|ip/i;
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
 function isThrottled(key: string): boolean {
   const now = Date.now();
@@ -77,12 +79,28 @@ function formatError(err: unknown): LogEntry["error"] | undefined {
   if (err instanceof Error) {
     return {
       name: err.name,
-      message: err.message,
-      stack: err.stack,
+      message: redactText(err.message),
+      stack: err.stack ? redactText(err.stack) : undefined,
       code: (err as any).code,
     };
   }
-  return { name: "UnknownError", message: String(err) };
+  return { name: "UnknownError", message: redactText(String(err)) };
+}
+
+function redactText(value: string): string {
+  return value.replace(EMAIL_PATTERN, "[redacted-email]");
+}
+
+function redactValue(value: unknown, key = ""): unknown {
+  if (SENSITIVE_KEY_PATTERN.test(key)) return "[redacted]";
+  if (typeof value === "string") return redactText(value);
+  if (Array.isArray(value)) return value.map((item) => redactValue(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([childKey, childValue]) => [childKey, redactValue(childValue, childKey)]),
+    );
+  }
+  return value;
 }
 
 function emit(entry: LogEntry) {
@@ -133,7 +151,7 @@ export function createLogger(service: string) {
     action,
     message,
     timestamp: new Date().toISOString(),
-    metadata,
+    metadata: metadata ? redactValue(metadata) as Record<string, unknown> : undefined,
     error: formatError(err),
   });
 

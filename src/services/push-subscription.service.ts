@@ -9,6 +9,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { reportError } from "@/services/error-reporter.service";
+import { createLogger } from "@/services/logger.service";
+
+const log = createLogger("PushSubscriptionService");
 
 export type SubscribeResultStatus = "granted" | "denied" | "dismissed" | "unsupported" | "no_sw" | "error";
 
@@ -243,7 +246,6 @@ export class PushSubscriptionService {
       }
 
       if (!subscription) {
-        console.error("Push subscribe failed after retries:", lastPushError);
         const diagnosticError = new Error(
           `${getErrorMessage(lastPushError)} | ${stringifyPushContext({
             permission,
@@ -265,7 +267,7 @@ export class PushSubscriptionService {
 
       return await upsertSubscription(userId, subscription);
     } catch (err) {
-      console.error("Push subscribe error:", err);
+      log.warn("subscribe", "Push subscription failed", { userId }, err);
       reportError(err, "PushSubscriptionService.subscribe", userId);
       return { status: "error", message: getSubscriptionFailureMessage(err) };
     }
@@ -297,7 +299,7 @@ export class PushSubscriptionService {
 
       return true;
     } catch (err) {
-      console.error("Push unsubscribe error:", err);
+      log.warn("unsubscribe", "Push unsubscribe failed", { userId }, err);
       reportError(err, "PushSubscriptionService.unsubscribe", userId);
       return false;
     }

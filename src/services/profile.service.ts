@@ -104,10 +104,6 @@ export const ProfileService = {
         has_discord_account: input.has_discord_account ?? true,
       };
 
-      if (email) {
-        rawData.email = email;
-      }
-
       // A03/A08: Deep-sanitize all string values to prevent stored XSS
       const updateData = deepSanitize(rawData) as Record<string, unknown>;
 
@@ -140,7 +136,6 @@ export const ProfileService = {
         last_name: lastName,
         display_name: `${firstName} ${lastName}`.trim(),
       };
-      if (email) rawData.email = email;
 
       // A03: Sanitize OAuth-provided names before persisting
       const updateData = deepSanitize(rawData) as Record<string, unknown>;
