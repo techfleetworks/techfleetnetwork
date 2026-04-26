@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     userId,
     saleId: latest.sale_id,
     storedTier: currentProfile?.membership_tier,
-    expectedTier: latest.resolved_tier,
+    expectedTier: latest.resolved_tier as "starter" | "community" | "professional",
     storedBillingPeriod: currentProfile?.membership_billing_period,
     expectedBillingPeriod,
     storedFoundingMember: currentProfile?.is_founding_member,
