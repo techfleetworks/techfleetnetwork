@@ -40,6 +40,11 @@ interface ActivityPayload {
   details?: Record<string, unknown>;
 }
 
+const EMAIL_VISIBLE_EVENTS = new Set<AccountActivity>([
+  "password_reset_requested",
+  "password_reset_failed",
+]);
+
 /** Hash an email so we never store raw PII in audit logs that admins query frequently. */
 async function hashEmail(email: string): Promise<string> {
   try {
@@ -60,7 +65,11 @@ export async function logAccountActivity(
 ): Promise<void> {
   try {
     const fields: string[] = [];
-    if (payload.email) fields.push(`email_hash:${await hashEmail(payload.email)}`);
+    if (payload.email) {
+      const normalizedEmail = payload.email.toLowerCase().trim();
+      if (EMAIL_VISIBLE_EVENTS.has(event)) fields.push(`attempted_email:${normalizedEmail}`);
+      fields.push(`email_hash:${await hashEmail(normalizedEmail)}`);
+    }
     if (payload.errorCode != null) fields.push(`code:${String(payload.errorCode)}`);
     if (payload.details) {
       for (const [k, v] of Object.entries(payload.details)) {
