@@ -14,6 +14,11 @@ const BUILD_ID =
   process.env.GITHUB_SHA ||
   `${Date.now()}`;
 
+const LOVABLE_CLOUD_URL = process.env.VITE_SUPABASE_URL || "https://iqsjhrhsjlgjiaedzmtz.supabase.co";
+const LOVABLE_CLOUD_PUBLISHABLE_KEY =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_NnnYUf3wUfVWGyOlhQf9UQ_92QsC3YE";
+const LOVABLE_CLOUD_PROJECT_ID = process.env.VITE_SUPABASE_PROJECT_ID || "iqsjhrhsjlgjiaedzmtz";
+
 /**
  * Emit /version.json into the build output. This file is intentionally
  * uncached (see public/_headers) so the version watcher always sees fresh data.
@@ -49,6 +54,9 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     __BUILD_ID__: JSON.stringify(BUILD_ID),
+    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(LOVABLE_CLOUD_URL),
+    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(LOVABLE_CLOUD_PUBLISHABLE_KEY),
+    "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(LOVABLE_CLOUD_PROJECT_ID),
   },
   plugins: [
     react(),
