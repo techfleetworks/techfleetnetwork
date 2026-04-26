@@ -197,5 +197,5 @@ export function useMembershipRealtime() {
     };
   }, [user, refreshProfile]);
 
-  return { syncing };
+  return { syncing: Boolean(user) && (!reconciledRef.current || syncing) };
 }
