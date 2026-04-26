@@ -1,36 +1,35 @@
-This looks like the shared test admin credentials were used by an automated/local test session, not a normal user browsing the live app.
+The exposed value ending in `C3YE` is the frontend publishable database key, not the service-role/admin key. It is intended to be visible in browser code, but we should still clean up the repository so scanners stop flagging `.env` and so no future private secrets are committed.
 
-Evidence in the logs:
-- The login is for `morgan@trycatalog.com` / Joe Ferguson.
-- The request referrer is `http://127.0.0.1:4173/`, which is a local preview/test server, not the public website.
-- This account is documented in project memory as a shared browser-based test account.
-- Because it is an admin-capable shared credential, anyone or any automation with access to the project context could potentially use it.
+Plan:
 
-Plan to stop this from happening again:
+1. Remove committed environment file
+- Delete `.env` from tracked source control.
+- Keep `.env`, `.env.*`, and local overrides ignored.
+- Add or verify `.env.example` contains only placeholder values, not real keys.
 
-1. Lock down the test admin account immediately
-   - Revoke active sessions for `morgan@trycatalog.com`.
-   - Rotate its password.
-   - Remove or downgrade admin role unless this account truly needs admin access.
+2. Confirm the app still uses injected environment values
+- Leave generated client code unchanged.
+- Keep frontend reads through `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Do not hardcode runtime keys anywhere in source files.
 
-2. Remove shared admin credentials from project memory
-   - Delete the stored plaintext password reference.
-   - Keep only non-sensitive notes like “test account exists,” without credentials.
+3. Validate no sensitive keys remain in current code
+- Search for the exposed publishable key and any service-role-looking tokens in tracked files.
+- Confirm no private backend secrets are present in docs, scripts, tests, or migrations.
 
-3. Replace shared admin testing with safer access
-   - Use named admin test accounts per developer/tester.
-   - Keep all admin test accounts behind passkey/MFA.
-   - Avoid using real-looking personal names for automation accounts.
+4. Decide whether key rotation is needed
+- Because this specific key is publishable, rotation is optional from a security standpoint.
+- If you want the warning fully closed and a new key used, rotate/regenerate the publishable database key in Lovable Cloud and let the generated environment refresh.
+- If a service-role key, admin token, OAuth secret, Discord token, Airtable PAT, or email key was exposed instead, rotate immediately.
 
-4. Add admin login alerting
-   - Notify admins when any admin account logs in.
-   - Include time, rough location/IP metadata, and whether it came from local preview, published app, or custom domain.
+5. Handle git history warning
+- Removing `.env` from the latest commit will not erase old history.
+- If the repository is private and this was only the publishable key, mark the alert resolved after cleanup.
+- If you need it purged from history, use GitHub secret-scanning guidance or a history rewrite tool such as `git filter-repo`/BFG, then force-push and coordinate with anyone who cloned the repo.
 
-5. Add audit visibility
-   - Add a clear Admin Security Activity view showing recent admin logins, failed logins, session revocations, role changes, and suspicious auth events.
+6. Add a prevention guard
+- Add a lightweight secret-scan check to the repo workflow or local validation so future commits fail if `.env` or private-looking keys are included.
 
-6. Add BDD coverage
-   - Scenario: shared credentials are not stored in app/project memory.
-   - Scenario: admin login creates an audit event.
-   - Scenario: admin session revocation invalidates future use.
-   - Scenario: non-admin test accounts cannot access admin areas.
+Technical details:
+- No database schema change is needed.
+- No app UX change is needed.
+- `.env` should stay local/generated only; frontend publishable keys can exist at runtime, but should not be committed in `.env`.
