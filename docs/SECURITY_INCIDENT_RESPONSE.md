@@ -6,6 +6,7 @@ Owner: Tech Fleet platform admins. Keep this file current — it is the single s
 
 | Signal | Severity | First action |
 |---|---|---|
+| Publishable frontend key committed in `.env` | Low | Step 2a + Step 11 |
 | Service-role key, JWT, or admin password posted publicly | **Critical** | Step 2 + Step 4 |
 | Unknown admin promotion in `admin_promotions` | **Critical** | Step 3 + Step 5 |
 | `verify_audit_chain('audit_log')` returns a row | **Critical** | Step 5 |
@@ -20,6 +21,10 @@ In Lovable Cloud → Backend → Settings → Secrets:
 2. Rotate `LOVABLE_API_KEY` via the rotate tool (do **not** delete and re-add).
 3. Rotate `RESEND_API_KEY`, `DISCORD_BOT_TOKEN`, `AIRTABLE_PAT`, `FIRECRAWL_API_KEY`.
 4. Trigger any deploy (push a no-op) — every edge function reads via `_shared/admin-client.ts` and will pick up new keys on next cold start.
+
+## 2a. Publishable key exposure in git history
+
+If the leaked value is a frontend publishable key, treat it as low severity: it is designed to be present in browser bundles and is not an admin credential. Still remove committed `.env` files, run `npm run scan:secrets`, and mark the scanner alert resolved after verification. Rotate the publishable key only if the security team wants a clean scanner trail or if any private key was exposed in the same commit.
 
 ## 3. Revoke admin access
 
@@ -97,6 +102,10 @@ This is a planned operation, not an emergency one — schedule it during low tra
 - Internal: `#security-incidents` Discord channel.
 - External: only the operations admin posts to users. Do not promise timelines until step 5 is green.
 - Regulatory: if PII confirmed exposed, retain logs for 90 days.
+
+## 11. Git history cleanup decision
+
+Removing a secret from the current tree does not erase old commits. If the leaked value was only a publishable frontend key, do not rewrite history unless required by policy. If a private credential was committed, rotate it first, then purge history with `git filter-repo` or BFG, force-push, and require every clone/fork to rebase or reclone.
 
 ## Defenses in place (reference)
 
