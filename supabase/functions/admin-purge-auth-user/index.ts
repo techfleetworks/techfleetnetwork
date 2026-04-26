@@ -78,8 +78,33 @@ Deno.serve(async (req) => {
   const cleanupResults: Record<string, string> = {}
 
   if (target) {
+    if (target.id === userData.user.id) {
+      return jsonResponse({ error: 'Admins cannot delete their own account.' }, 400)
+    }
+
+    const { data: targetIsAdmin, error: targetRoleErr } = await admin.rpc('has_role', {
+      _user_id: target.id,
+      _role: 'admin',
+    })
+    if (targetRoleErr) return jsonResponse({ error: targetRoleErr.message }, 500)
+    if (targetIsAdmin === true) {
+      const { count: remainingAdmins, error: adminCountErr } = await admin
+        .from('user_roles')
+        .select('id', { head: true, count: 'exact' })
+        .eq('role', 'admin')
+        .neq('user_id', target.id)
+      if (adminCountErr) return jsonResponse({ error: adminCountErr.message }, 500)
+      if ((remainingAdmins ?? 0) < 1) {
+        return jsonResponse({ error: 'Cannot delete the last remaining admin account.' }, 400)
+      }
+    }
+
     const tablesByUserId = [
       'profiles',
+      'user_roles',
+      'revoked_sessions',
+      'security_events',
+      'rate_limits',
       'journey_progress',
       'dashboard_preferences',
       'general_applications',
@@ -102,6 +127,9 @@ Deno.serve(async (req) => {
       const { error } = await admin.from(t).delete().eq('user_id', target.id)
       cleanupResults[t] = error ? `error: ${error.message}` : 'ok'
     }
+
+    const { error: promotedByError } = await admin.from('admin_promotions').delete().eq('promoted_by', target.id)
+    cleanupResults.admin_promotions_promoted_by = promotedByError ? `error: ${promotedByError.message}` : 'ok'
   }
 
   // Always try to clear email-keyed records (covers cases where there is no

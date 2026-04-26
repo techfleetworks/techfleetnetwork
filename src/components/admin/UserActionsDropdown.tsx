@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldPlus, Eye, MailPlus } from "lucide-react";
+import { MoreHorizontal, ShieldPlus, Eye, MailPlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ interface UserActionsDropdownProps {
   onPromote: (user: UserRow) => void;
   onResendInvite: (user: UserRow) => void;
   onView: (user: UserRow) => void;
+  onDelete: (user: UserRow) => void;
 }
 
 export function UserActionsDropdown({
@@ -33,6 +34,7 @@ export function UserActionsDropdown({
   onPromote,
   onResendInvite,
   onView,
+  onDelete,
 }: UserActionsDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -77,6 +79,14 @@ export function UserActionsDropdown({
             Resend Invite
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuItem
+          onClick={() => { setOpen(false); onDelete(user); }}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete User
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
