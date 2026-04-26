@@ -233,40 +233,37 @@ export const AuthService = {
           log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
           void logAccountActivity("session_revoked_serverside", { userId: data.session.user.id });
           await supabase.auth.signOut();
-          sessionStorage.removeItem("session_started_at");
+          sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
           return null;
         }
       } catch (e) {
         log.warn("getSession", `Revocation check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`);
       }
 
-      const startedAt = sessionStorage.getItem("session_started_at");
-      if (startedAt) {
-        const parsedStartedAt = parseInt(startedAt, 10);
-        const startedBeforeCurrentToken = Number.isFinite(parsedStartedAt) && parsedStartedAt < currentTokenIssuedAtMs - 30_000;
-        if (!Number.isFinite(parsedStartedAt) || startedBeforeCurrentToken) {
-          sessionStorage.setItem("session_started_at", Date.now().toString());
-          log.debug("getSession", "Session timestamp reset for newly issued token", { userId: data.session.user.id });
-          return data.session;
-        }
+      const marker = readSessionMarker(data.session);
+      const startedBeforeCurrentToken = marker.startedAtMs < currentTokenIssuedAtMs - 30_000;
+      if (marker.resetReason || startedBeforeCurrentToken) {
+        writeSessionMarker(data.session);
+        log.debug("getSession", "Session timestamp reset for current authenticated user", {
+          userId: data.session.user.id,
+          reason: marker.resetReason ?? "new_token",
+        });
+        return data.session;
+      }
 
-        const elapsed = Date.now() - parsedStartedAt;
-        if (elapsed > MAX_SESSION_AGE_MS) {
-          log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
-            elapsedMs: elapsed,
-            maxMs: MAX_SESSION_AGE_MS,
-          });
-          void logAccountActivity("session_expired_clientside", {
-            userId: data.session.user.id,
-            details: { elapsedMs: elapsed },
-          });
-          await supabase.auth.signOut();
-          sessionStorage.removeItem("session_started_at");
-          return null;
-        }
-      } else {
-        sessionStorage.setItem("session_started_at", Date.now().toString());
-        log.debug("getSession", "Session timestamp set (first access this tab)");
+      const elapsed = Date.now() - marker.startedAtMs;
+      if (elapsed > MAX_SESSION_AGE_MS) {
+        log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
+          elapsedMs: elapsed,
+          maxMs: MAX_SESSION_AGE_MS,
+        });
+        void logAccountActivity("session_expired_clientside", {
+          userId: data.session.user.id,
+          details: { elapsedMs: elapsed },
+        });
+        await supabase.auth.signOut();
+        sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+        return null;
       }
       log.debug("getSession", "Valid session found", { userId: data.session.user.id });
     } else {
