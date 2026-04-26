@@ -205,7 +205,15 @@ export const AuthService = {
 
       const startedAt = sessionStorage.getItem("session_started_at");
       if (startedAt) {
-        const elapsed = Date.now() - parseInt(startedAt, 10);
+        const parsedStartedAt = parseInt(startedAt, 10);
+        const startedBeforeCurrentToken = Number.isFinite(parsedStartedAt) && parsedStartedAt < tokenIssuedAt.getTime() - 30_000;
+        if (!Number.isFinite(parsedStartedAt) || startedBeforeCurrentToken) {
+          sessionStorage.setItem("session_started_at", Date.now().toString());
+          log.debug("getSession", "Session timestamp reset for newly issued token", { userId: data.session.user.id });
+          return data.session;
+        }
+
+        const elapsed = Date.now() - parsedStartedAt;
         if (elapsed > MAX_SESSION_AGE_MS) {
           log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
             elapsedMs: elapsed,
