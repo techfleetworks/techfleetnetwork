@@ -29,6 +29,7 @@ export type AccountActivity =
   | "signout_global"
   | "signout_all_devices"
   | "session_revoked_serverside"
+  | "invalid_refresh_token_cleared"
   | "session_expired_clientside";
 
 interface ActivityPayload {
