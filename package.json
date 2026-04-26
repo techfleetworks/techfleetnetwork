@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:full": "PLAYWRIGHT_FULL_MATRIX=1 playwright test",
     "test:e2e:responsive": "playwright test -- \"responsive-stability\\.spec\\.ts\"",
+    "test:e2e:sandbox": "scripts/playwright-sandbox.sh",
     "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev",
     "audit:signatures": "npm audit signatures"
   },
