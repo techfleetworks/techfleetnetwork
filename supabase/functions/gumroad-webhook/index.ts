@@ -112,7 +112,7 @@ function mapToTier(sale: ParsedSale): TierMapping {
 }
 
 async function logMembershipMetadataMismatch(
-  supabase: ReturnType<typeof createClient>,
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown> },
   details: {
     userId: string;
     saleId: string;
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
 
   // 7. Apply tier to profile if we have a user
   if (profile) {
-    await logMembershipMetadataMismatch(supabase, {
+    await logMembershipMetadataMismatch(supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown> }, {
       userId: profile.user_id,
       saleId: sale.sale_id,
       storedTier: profile.membership_tier,
