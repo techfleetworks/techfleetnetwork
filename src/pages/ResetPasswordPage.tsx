@@ -42,22 +42,33 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // Check if the URL hash contains a recovery token
+    const url = new URL(window.location.href);
     const hash = window.location.hash;
+    const code = url.searchParams.get("code");
     const hasRecoveryInHash = hash.includes("type=recovery");
+    const hasRecoveryInQuery = url.searchParams.get("type") === "recovery" || Boolean(code);
 
-    if (!hasRecoveryInHash) {
-      // No recovery hash — check for an existing session (link may have already been consumed)
+    const settleFromSession = () => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         settle(!!session);
-      });
+      }).catch(() => settle(false));
+    };
+
+    if (!hasRecoveryInHash && !hasRecoveryInQuery) {
+      // No recovery hash — check for an existing session (link may have already been consumed)
+      settleFromSession();
+    } else if (code && typeof supabase.auth.exchangeCodeForSession === "function") {
+      supabase.auth.exchangeCodeForSession(code)
+        .then(({ error }) => {
+          if (error) settleFromSession();
+          else settle(true);
+        })
+        .catch(settleFromSession);
     } else {
       // Hash is present — Supabase SDK will process it asynchronously.
       // Wait up to 5s for the PASSWORD_RECOVERY event before giving up.
       const timeout = setTimeout(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          settle(!!session);
-        });
+        settleFromSession();
       }, 5000);
       return () => {
         clearTimeout(timeout);
@@ -80,6 +91,7 @@ export default function ResetPasswordPage() {
 
     try {
       await AuthService.updatePassword(result.data);
+      await supabase.auth.signOut({ scope: "local" });
       setSuccess(true);
       setTimeout(() => navigate("/login", { replace: true }), 3000);
     } catch (err: any) {
