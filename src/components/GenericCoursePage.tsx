@@ -38,6 +38,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { FlowMobileNav } from "@/components/FlowMobileNav";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -493,7 +494,9 @@ export default function GenericCoursePage({
   }
 
   return (
-    <div className="container-app py-8 sm:py-12 max-w-3xl">
+    <div>
+      <FlowMobileNav backTo={backTo} backLabel={backLabel} title={title} />
+      <div className="container-app py-6 sm:py-12 max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
         <Breadcrumb className="mt-2">
@@ -895,6 +898,7 @@ export default function GenericCoursePage({
             })()}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
