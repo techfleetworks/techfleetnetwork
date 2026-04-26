@@ -41,9 +41,20 @@ function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: n
   }
 }
 
-function isInvalidRefreshTokenError(error: { message?: string; status?: number } | null | undefined) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("invalid refresh token") || message.includes("refresh token not found");
+function isInvalidRefreshTokenError(error: unknown) {
+  const maybeError = error as { message?: string; status?: number; name?: string } | null | undefined;
+  const message = maybeError?.message?.toLowerCase() ?? String(error ?? "").toLowerCase();
+  const mentionsRefreshToken = message.includes("refresh token");
+  const terminalRefreshState =
+    message.includes("invalid") ||
+    message.includes("not found") ||
+    message.includes("missing") ||
+    message.includes("expired") ||
+    message.includes("revoked") ||
+    message.includes("already used") ||
+    message.includes("reuse");
+
+  return mentionsRefreshToken && terminalRefreshState;
 }
 
 function clearLocalAuthArtifacts() {
@@ -54,6 +65,18 @@ function clearLocalAuthArtifacts() {
       if (key && AUTH_STORAGE_KEY_PATTERN.test(key)) storage.removeItem(key);
     }
   }
+}
+
+async function recoverFromInvalidRefreshToken(error: unknown, source: string) {
+  const maybeError = error as { message?: string; status?: number } | null | undefined;
+  log.warn(source, "Stored refresh token is no longer valid — clearing local auth state", undefined, error);
+  void logAccountActivity("invalid_refresh_token_cleared", {
+    errorMessage: maybeError?.message ?? String(error ?? "Invalid refresh token"),
+    errorCode: maybeError?.status,
+    details: { source },
+  });
+  clearLocalAuthArtifacts();
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
 export const AuthService = {
@@ -209,6 +232,10 @@ export const AuthService = {
     void logAccountActivity("signout_local", { errorMessage: error.message });
   },
 
+  clearLocalAuthState() {
+    clearLocalAuthArtifacts();
+  },
+
   async signOutAllDevices() {
     return log.track("signOutAllDevices", "Revoking all user sessions", undefined, async () => {
       const { error } = await supabase.functions.invoke("sign-out-all-devices");
@@ -225,13 +252,21 @@ export const AuthService = {
 
   async getSession() {
     log.debug("getSession", "Retrieving current session");
-    const { data, error } = await supabase.auth.getSession();
+    let authResult: Awaited<ReturnType<typeof supabase.auth.getSession>>;
+    try {
+      authResult = await supabase.auth.getSession();
+    } catch (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        await recoverFromInvalidRefreshToken(error, "getSession");
+        return null;
+      }
+      throw error;
+    }
+
+    const { data, error } = authResult;
     if (error) {
       if (isInvalidRefreshTokenError(error)) {
-        log.warn("getSession", "Stored refresh token is no longer valid — clearing local auth state", undefined, error);
-        void logAccountActivity("invalid_refresh_token_cleared", { errorMessage: error.message, errorCode: error.status });
-        clearLocalAuthArtifacts();
-        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+        await recoverFromInvalidRefreshToken(error, "getSession");
         return null;
       }
       log.error("getSession", `Failed to retrieve session: ${error.message}`, undefined, error);
