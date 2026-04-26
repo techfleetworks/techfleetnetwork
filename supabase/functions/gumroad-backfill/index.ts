@@ -74,6 +74,13 @@ function mapToTier(
   return { tier: "community", isFoundingMember: false };
 }
 
+function normalizeBillingPeriod(sale: GumroadSale, isFoundingMember: boolean): "monthly" | "yearly" {
+  const haystack = `${sale.recurrence ?? ""} ${sale.permalink ?? ""} ${sale.product_permalink ?? ""}`.toLowerCase();
+  return isFoundingMember || haystack.includes("year") || haystack.includes("annual")
+    ? "yearly"
+    : "monthly";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -260,6 +267,7 @@ Deno.serve(async (req) => {
     .update({
       membership_tier: best.resolved_tier,
       is_founding_member: best.is_founding_member,
+      membership_billing_period: normalizeBillingPeriod(best.raw_payload as unknown as GumroadSale, best.is_founding_member),
       membership_sku: best.product_permalink,
       membership_gumroad_sale_id: best.sale_id,
       membership_updated_at: nowIso,

@@ -510,6 +510,7 @@ export default function EditProfilePage() {
             <CurrentMembershipBanner
               currentTier={profile?.membership_tier ?? "starter"}
               isFoundingMember={Boolean(profile?.is_founding_member)}
+              billingPeriod={(profile as { membership_billing_period?: string } | null)?.membership_billing_period ?? null}
               membershipUpdatedAt={profile?.membership_updated_at ?? null}
             />
             <div className="card-elevated p-6 sm:p-8 space-y-6">

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface CurrentMembershipBannerProps {
   currentTier: TierId;
   isFoundingMember?: boolean;
+  billingPeriod?: "monthly" | "yearly" | string | null;
   membershipUpdatedAt?: string | null;
   className?: string;
 }
@@ -19,13 +20,16 @@ interface CurrentMembershipBannerProps {
 export function CurrentMembershipBanner({
   currentTier,
   isFoundingMember = false,
+  billingPeriod = null,
   membershipUpdatedAt,
   className,
 }: CurrentMembershipBannerProps) {
   const tier = MEMBERSHIP_TIERS[currentTier] ?? MEMBERSHIP_TIERS.starter;
   const priceLabel =
-    currentTier === "community" && isFoundingMember
+    currentTier === "community" && billingPeriod === "yearly" && isFoundingMember
       ? `${FOUNDING_PROMO.yearlyPriceDisplay} USD per year`
+      : currentTier === "community" && billingPeriod === "yearly"
+      ? `${FOUNDING_PROMO.yearlyOriginalDisplay} USD per year`
       : tier.priceDisplay === "FREE"
       ? tier.priceDisplay
       : `${tier.priceDisplay} ${tier.priceSubtitle.replace(/^USD\s*/, "")}`;
