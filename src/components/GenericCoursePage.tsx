@@ -765,15 +765,10 @@ export default function GenericCoursePage({
                         maxWidth: "min(100%, calc((100dvh - 22rem) * 16 / 9))",
                       }}
                     >
-                      <AspectRatio ratio={16 / 9}>
-                        <iframe
-                          src={`https://www.youtube.com/embed/${selectedLesson.youtubeId}?playsinline=1&rel=0&modestbranding=1`}
-                          title={selectedLesson.title}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                          allowFullScreen
-                          className="w-full h-full border-0"
-                        />
-                      </AspectRatio>
+                      <CourseVideoEmbed
+                        youtubeId={selectedLesson.youtubeId}
+                        title={selectedLesson.title}
+                      />
                     </div>
                   </div>
                   <a
