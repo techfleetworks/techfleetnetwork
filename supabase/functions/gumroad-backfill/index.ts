@@ -81,6 +81,49 @@ function normalizeBillingPeriod(sale: GumroadSale, isFoundingMember: boolean): "
     : "monthly";
 }
 
+async function logMembershipMetadataMismatch(
+  admin: { rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown> },
+  details: {
+    userId: string;
+    saleId: string;
+    storedTier?: string | null;
+    expectedTier: Tier;
+    storedBillingPeriod?: string | null;
+    expectedBillingPeriod: "monthly" | "yearly";
+    storedFoundingMember?: boolean | null;
+    expectedFoundingMember: boolean;
+  },
+): Promise<void> {
+  if (
+    details.storedTier === details.expectedTier &&
+    details.storedBillingPeriod === details.expectedBillingPeriod &&
+    details.storedFoundingMember === details.expectedFoundingMember
+  ) return;
+
+  try {
+    await admin.rpc("write_audit_log", {
+      p_event_type: "membership_metadata_mismatch",
+      p_table_name: "profiles",
+      p_record_id: details.userId,
+      p_user_id: details.userId,
+      p_changed_fields: [
+        "source:gumroad-backfill",
+        `sale_id:${details.saleId}`,
+        `stored_tier:${details.storedTier ?? "unknown"}`,
+        `expected_tier:${details.expectedTier}`,
+        `stored_billing_period:${details.storedBillingPeriod ?? "unknown"}`,
+        `expected_billing_period:${details.expectedBillingPeriod}`,
+        `stored_founding_member:${String(details.storedFoundingMember ?? false)}`,
+        `expected_founding_member:${String(details.expectedFoundingMember)}`,
+      ],
+      p_error_message:
+        "Stored membership metadata differed from the latest subscription metadata before sync.",
+    });
+  } catch (err) {
+    console.warn("gumroad-backfill: audit log mismatch write failed", err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -262,12 +305,33 @@ Deno.serve(async (req) => {
     }
   }
 
+  const expectedBillingPeriod = normalizeBillingPeriod(
+    best.raw_payload as unknown as GumroadSale,
+    best.is_founding_member,
+  );
+  const { data: currentProfile } = await admin
+    .from("profiles")
+    .select("membership_tier, membership_billing_period, is_founding_member")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  await logMembershipMetadataMismatch(admin as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown> }, {
+    userId,
+    saleId: best.sale_id,
+    storedTier: currentProfile?.membership_tier,
+    expectedTier: best.resolved_tier as Tier,
+    storedBillingPeriod: currentProfile?.membership_billing_period,
+    expectedBillingPeriod,
+    storedFoundingMember: currentProfile?.is_founding_member,
+    expectedFoundingMember: best.is_founding_member,
+  });
+
   const { error: profileErr } = await admin
     .from("profiles")
     .update({
       membership_tier: best.resolved_tier,
       is_founding_member: best.is_founding_member,
-      membership_billing_period: normalizeBillingPeriod(best.raw_payload as unknown as GumroadSale, best.is_founding_member),
+      membership_billing_period: expectedBillingPeriod,
       membership_sku: best.product_permalink,
       membership_gumroad_sale_id: best.sale_id,
       membership_updated_at: nowIso,
