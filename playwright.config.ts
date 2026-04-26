@@ -25,7 +25,7 @@ const allProjects = [
     name: "chromium-desktop",
     use: {
       ...devices["Desktop Chrome"],
-      ...(chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {}),
+      ...(chromiumExecutablePath ? { launchOptions: { executablePath: chromiumExecutablePath } } : {}),
     },
   },
   {
