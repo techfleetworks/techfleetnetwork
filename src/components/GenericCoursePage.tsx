@@ -45,6 +45,140 @@ import { useQueryClient } from "@/lib/react-query";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import type { CourseLesson, CourseSection } from "@/data/project-training-course";
 
+type YouTubePlayerState = -1 | 0 | 1 | 2 | 3 | 5;
+
+type YouTubePlayer = {
+  getCurrentTime: () => number;
+  getPlayerState: () => YouTubePlayerState;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  playVideo: () => void;
+  destroy: () => void;
+};
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (
+        element: HTMLIFrameElement,
+        options: { events: { onReady: () => void; onStateChange: (event: { data: YouTubePlayerState }) => void } }
+      ) => YouTubePlayer;
+      PlayerState?: { PLAYING: 1; PAUSED: 2 };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+const youtubeApiReady = (() => {
+  let promise: Promise<void> | null = null;
+  return () => {
+    if (window.YT?.Player) return Promise.resolve();
+    if (!promise) {
+      promise = new Promise<void>((resolve) => {
+        const previousReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          previousReady?.();
+          resolve();
+        };
+
+        if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+          const script = document.createElement("script");
+          script.src = "https://www.youtube.com/iframe_api";
+          script.async = true;
+          document.head.appendChild(script);
+        }
+      });
+    }
+    return promise;
+  };
+})();
+
+function CourseVideoEmbed({ youtubeId, title }: { youtubeId: string; title: string }) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const lastTimeRef = useRef(0);
+  const wasPlayingRef = useRef(false);
+  const storageKey = `course-video-position:${youtubeId}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    let restoreTimer: number | undefined;
+    const rememberPosition = () => {
+      const player = playerRef.current;
+      if (!player) return;
+      try {
+        const currentTime = player.getCurrentTime();
+        const playerState = player.getPlayerState();
+        if (Number.isFinite(currentTime) && currentTime > 0) {
+          lastTimeRef.current = currentTime;
+          sessionStorage.setItem(storageKey, String(currentTime));
+        }
+        wasPlayingRef.current = playerState === 1;
+      } catch {
+        // YouTube can briefly reject commands while its iframe is reflowing.
+      }
+    };
+
+    const restorePosition = () => {
+      const player = playerRef.current;
+      if (!player) return;
+      const saved = Number(sessionStorage.getItem(storageKey) ?? lastTimeRef.current);
+      if (!Number.isFinite(saved) || saved <= 0) return;
+      try {
+        player.seekTo(saved, true);
+        if (wasPlayingRef.current) player.playVideo();
+      } catch {
+        // The next resize/load tick will retry through the same stable player.
+      }
+    };
+
+    const handleResize = () => {
+      rememberPosition();
+      window.clearTimeout(restoreTimer);
+      restoreTimer = window.setTimeout(restorePosition, 300);
+    };
+
+    youtubeApiReady().then(() => {
+      if (cancelled || !iframeRef.current || !window.YT?.Player) return;
+      playerRef.current = new window.YT.Player(iframeRef.current, {
+        events: {
+          onReady: restorePosition,
+          onStateChange: ({ data }) => {
+            if (data === 1 || data === 2) rememberPosition();
+          },
+        },
+      });
+    });
+
+    const interval = window.setInterval(rememberPosition, 1000);
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleResize, { passive: true });
+
+    return () => {
+      cancelled = true;
+      rememberPosition();
+      window.clearInterval(interval);
+      window.clearTimeout(restoreTimer);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, [storageKey]);
+
+  return (
+    <AspectRatio ratio={16 / 9}>
+      <iframe
+        ref={iframeRef}
+        src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`}
+        title={title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+        className="w-full h-full border-0"
+      />
+    </AspectRatio>
+  );
+}
+
 interface GenericCoursePageProps {
   title: string;
   subtitle: string;
