@@ -25,6 +25,7 @@ export function CurrentMembershipBanner({
   className,
 }: CurrentMembershipBannerProps) {
   const tier = MEMBERSHIP_TIERS[currentTier] ?? MEMBERSHIP_TIERS.starter;
+  const billingPeriodLabel = billingPeriod === "yearly" ? "Yearly" : "Monthly";
   const priceLabel =
     currentTier === "community" && billingPeriod === "yearly" && isFoundingMember
       ? `${FOUNDING_PROMO.yearlyPriceDisplay} USD per year`
@@ -80,6 +81,12 @@ export function CurrentMembershipBanner({
           <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
             {tier.tagline}
           </p>
+          {currentTier !== "starter" && (
+            <dl className="mt-3 grid gap-1 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-2">
+              <dt className="font-medium text-muted-foreground">Billing period</dt>
+              <dd className="font-semibold text-foreground">{billingPeriodLabel}</dd>
+            </dl>
+          )}
           {sinceLabel && (
             <p className="mt-1 text-xs text-muted-foreground">
               Active since {sinceLabel}
