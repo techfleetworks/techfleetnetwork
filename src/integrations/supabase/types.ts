@@ -176,6 +176,7 @@ export type Database = {
       }
       audit_log: {
         Row: {
+          actor_email: string | null
           changed_fields: string[] | null
           created_at: string
           error_fingerprint: string | null
@@ -190,6 +191,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          actor_email?: string | null
           changed_fields?: string[] | null
           created_at?: string
           error_fingerprint?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          actor_email?: string | null
           changed_fields?: string[] | null
           created_at?: string
           error_fingerprint?: string | null
