@@ -18,6 +18,7 @@ import { InstallAppCard } from "@/components/InstallAppCard";
 import { MembershipTiersGrid } from "@/components/MembershipTiersGrid";
 import { MembershipFaq } from "@/components/MembershipFaq";
 import { CurrentMembershipBanner } from "@/components/CurrentMembershipBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useMembershipRealtime } from "@/hooks/use-membership-realtime";
@@ -41,7 +42,7 @@ import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
-  useMembershipRealtime();
+  const { syncing: membershipSyncing } = useMembershipRealtime();
   const navigate = useNavigate();
   const { setHeader } = usePageHeader();
 
@@ -507,12 +508,30 @@ export default function EditProfilePage() {
 
           {/* ── Tab: Membership ── */}
           <ResponsiveTabsContent value="membership" className="space-y-6">
-            <CurrentMembershipBanner
-              currentTier={profile?.membership_tier ?? "starter"}
-              isFoundingMember={Boolean(profile?.is_founding_member)}
-              billingPeriod={(profile as { membership_billing_period?: string } | null)?.membership_billing_period ?? null}
-              membershipUpdatedAt={profile?.membership_updated_at ?? null}
-            />
+            {membershipSyncing ? (
+              <section
+                aria-label="Syncing current membership plan"
+                aria-busy="true"
+                className="rounded-lg border border-primary/40 bg-primary/5 p-5 sm:p-6"
+              >
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="w-full max-w-md space-y-3">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-7 w-64" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <CurrentMembershipBanner
+                currentTier={profile?.membership_tier ?? "starter"}
+                isFoundingMember={Boolean(profile?.is_founding_member)}
+                billingPeriod={(profile as { membership_billing_period?: string } | null)?.membership_billing_period ?? null}
+                membershipUpdatedAt={profile?.membership_updated_at ?? null}
+              />
+            )}
             <div className="card-elevated p-6 sm:p-8 space-y-6">
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">Membership Tiers</h2>
