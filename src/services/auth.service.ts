@@ -79,6 +79,35 @@ async function recoverFromInvalidRefreshToken(error: unknown, source: string) {
   await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
+async function logAdminLoginIfElevated(userId?: string | null) {
+  if (!userId) return;
+
+  try {
+    const { count, error } = await supabase
+      .from("user_roles")
+      .select("id", { head: true, count: "exact" })
+      .eq("user_id", userId)
+      .eq("role", "admin");
+
+    if (error || (count ?? 0) === 0) return;
+
+    await supabase.rpc("write_audit_log", {
+      p_event_type: "authn_admin_login_success",
+      p_table_name: "auth.users",
+      p_record_id: userId,
+      p_user_id: userId,
+      p_changed_fields: [
+        `origin:${window.location.origin}`,
+        `path:${window.location.pathname}`,
+        `user_agent:${navigator.userAgent.slice(0, 160)}`,
+      ],
+      p_error_message: null,
+    });
+  } catch {
+    // Admin login telemetry must never block a successful login.
+  }
+}
+
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
     void logAccountActivity("login_attempt_started", { email });
@@ -92,6 +121,7 @@ export const AuthService = {
       if (data.session) writeSessionMarker(data.session);
       log.info("signInWithPassword", `User ${email} authenticated successfully`, { userId: data.user?.id });
       void logAccountActivity("login_succeeded", { email, userId: data.user?.id });
+      void logAdminLoginIfElevated(data.user?.id);
       return data;
     });
   },
