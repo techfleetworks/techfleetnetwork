@@ -103,4 +103,17 @@ describe("AuthService session max-age marker", () => {
     expect(sessionStorage.getItem("session_started_at")).toBeNull();
     expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
+
+  it("recovers when the auth client throws an invalid refresh token error instead of returning one", async () => {
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ refresh_token: "rotated-refresh-token" }));
+    sessionStorage.setItem("sb-project-auth-token", JSON.stringify({ refresh_token: "duplicate-stale-token" }));
+    sessionStorage.setItem("session_started_at", JSON.stringify({ version: 1, userId: "user", startedAtMs: Date.now() }));
+    vi.mocked(supabase.auth.getSession).mockRejectedValue(new Error("Invalid Refresh Token: refresh token already used"));
+
+    await expect(AuthService.getSession()).resolves.toBeNull();
+    expect(localStorage.getItem("sb-project-auth-token")).toBeNull();
+    expect(sessionStorage.getItem("sb-project-auth-token")).toBeNull();
+    expect(sessionStorage.getItem("session_started_at")).toBeNull();
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
 });
