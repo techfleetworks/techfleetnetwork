@@ -30,7 +30,15 @@ interface SaleRow {
   resolved_tier: "starter" | "community" | "professional" | null;
   is_founding_member: boolean;
   product_permalink: string;
+  recurrence: string;
   received_at: string;
+}
+
+function normalizeBillingPeriod(recurrence: string, productPermalink: string, isFoundingMember: boolean): "monthly" | "yearly" {
+  const haystack = `${recurrence} ${productPermalink}`.toLowerCase();
+  return isFoundingMember || haystack.includes("year") || haystack.includes("annual")
+    ? "yearly"
+    : "monthly";
 }
 
 Deno.serve(async (req) => {
@@ -80,7 +88,7 @@ Deno.serve(async (req) => {
   const { data: sales, error: salesErr } = await admin
     .from("gumroad_sales")
     .select(
-      "sale_id, resolved_tier, is_founding_member, product_permalink, received_at",
+      "sale_id, resolved_tier, is_founding_member, product_permalink, recurrence, received_at",
     )
     .ilike("email", email)
     .neq("status", "applied")
@@ -115,6 +123,7 @@ Deno.serve(async (req) => {
     .update({
       membership_tier: latest.resolved_tier,
       is_founding_member: latest.is_founding_member,
+      membership_billing_period: normalizeBillingPeriod(latest.recurrence, latest.product_permalink, latest.is_founding_member),
       membership_sku: latest.product_permalink,
       membership_gumroad_sale_id: latest.sale_id,
       membership_updated_at: new Date().toISOString(),
