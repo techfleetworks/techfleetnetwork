@@ -40,6 +40,7 @@ interface AuditLogEntry {
   table_name: string;
   record_id: string | null;
   user_id: string | null;
+  actor_email: string | null;
   changed_fields: string[] | null;
   error_message: string | null;
   created_at: string;
@@ -160,6 +161,7 @@ export default function ActivityLogPage() {
       return (
         e.event_type.toLowerCase().includes(q) ||
         e.table_name.toLowerCase().includes(q) ||
+        (e.actor_email?.toLowerCase().includes(q)) ||
         (userInfo?.email?.toLowerCase().includes(q)) ||
         (userInfo?.name?.toLowerCase().includes(q)) ||
         (e.error_message?.toLowerCase().includes(q)) ||
@@ -212,14 +214,14 @@ export default function ActivityLogPage() {
         params.value ? format(new Date(params.value), "MMM d, yyyy HH:mm") : "—",
     },
     {
-      headerName: "User",
+      headerName: "Actor Email",
       flex: 2,
-      minWidth: 140,
+      minWidth: 220,
       valueGetter: (params) => {
         const e = params.data;
         if (!e?.user_id) return "System";
         const info = profiles.get(e.user_id);
-        return info ? `${info.name} (${info.email})` : "Unknown";
+        return e.actor_email || info?.email || e.user_id;
       },
     },
     {
