@@ -47,4 +47,4 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(`Secret scan passed across ${trackedFiles.length} tracked files.`);
+console.log(`Scan passed across ${trackedFiles.length} tracked files.`);
