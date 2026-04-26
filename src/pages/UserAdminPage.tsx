@@ -30,7 +30,7 @@ export default function UserAdminPage() {
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"promote" | "resend">("promote");
+  const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete">("promote");
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
 
   const fetchData = async () => {
@@ -132,6 +132,28 @@ export default function UserAdminPage() {
     }
   };
 
+  const handleDeleteUser = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const res = await supabase.functions.invoke("admin-purge-auth-user", {
+        body: { email: targetUser.email },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to delete user");
+      const result = res.data;
+      if (result?.error) throw new Error(result.error);
+      toast.success(`Deleted ${targetUser.email}`);
+      await fetchData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to delete user";
+      toast.error(message);
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
   const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
@@ -167,6 +189,7 @@ export default function UserAdminPage() {
         onPromote={(usr) => { setConfirmAction("promote"); setConfirmUser(usr); }}
         onResendInvite={(usr) => { setConfirmAction("resend"); setConfirmUser(usr); }}
         onView={(usr) => setViewUser(usr)}
+        onDelete={(usr) => { setConfirmAction("delete"); setConfirmUser(usr); }}
       />
     );
   }, [user?.id]);
@@ -227,11 +250,13 @@ export default function UserAdminPage() {
 
   // Admin access is enforced by AdminRoute wrapper
 
-  const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : "Resend Admin Invite?";
+  const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : confirmAction === "resend" ? "Resend Admin Invite?" : "Delete User?";
   const confirmDesc = confirmAction === "promote"
     ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
-    : `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`;
-  const confirmButton = confirmAction === "promote" ? "Send Confirmation" : "Resend Invite";
+    : confirmAction === "resend"
+      ? `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
+      : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
+  const confirmButton = confirmAction === "promote" ? "Send Confirmation" : confirmAction === "resend" ? "Resend Invite" : "Delete User";
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">
@@ -289,7 +314,8 @@ export default function UserAdminPage() {
               onClick={() => {
                 if (!confirmUser) return;
                 if (confirmAction === "promote") handlePromote(confirmUser);
-                else handleResendInvite(confirmUser);
+                else if (confirmAction === "resend") handleResendInvite(confirmUser);
+                else handleDeleteUser(confirmUser);
               }}
               disabled={!!promoting}
             >
