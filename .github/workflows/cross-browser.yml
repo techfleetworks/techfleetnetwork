@@ -1,0 +1,61 @@
+name: Cross-browser QA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
+
+concurrency:
+  group: cross-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-full-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      PLAYWRIGHT_FULL_MATRIX: "1"
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+      TF_ADMIN_EMAIL: ${{ secrets.TF_ADMIN_EMAIL }}
+      TF_ADMIN_PASSWORD: ${{ secrets.TF_ADMIN_PASSWORD }}
+      VITE_A11Y_AUDIT_BYPASS_ADMIN_PASSKEY_GATE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run desktop, mobile, and tablet browser matrix
+        run: npm run test:e2e:full:ci
+
+      - name: Upload cross-browser artifacts
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: cross-browser-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 90
