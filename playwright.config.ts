@@ -18,11 +18,15 @@ const PORT = Number(process.env.PORT ?? 4173);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 const isCI = !!process.env.CI;
 const isFullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === "1";
+const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 const allProjects = [
   {
     name: "chromium-desktop",
-    use: { ...devices["Desktop Chrome"] },
+    use: {
+      ...devices["Desktop Chrome"],
+      ...(chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {}),
+    },
   },
   {
     name: "firefox-desktop",
