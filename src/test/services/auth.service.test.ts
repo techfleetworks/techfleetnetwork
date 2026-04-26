@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthService } from "@/services/auth.service";
 import { supabase } from "@/integrations/supabase/client";
+import { logAccountActivity } from "@/lib/account-activity";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -13,6 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       updateUser: vi.fn(),
       onAuthStateChange: vi.fn(),
     },
+    from: vi.fn(),
     rpc: vi.fn(),
     functions: { invoke: vi.fn() },
   },
@@ -53,6 +55,28 @@ describe("AuthService session max-age marker", () => {
     sessionStorage.clear();
     vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+    } as never);
+  });
+
+  it("writes a distinct audit event when an admin signs in", async () => {
+    const session = makeSession("admin-user");
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { session, user: session.user }, error: null });
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      then: (resolve: (value: unknown) => void) => resolve({ count: 1, error: null }),
+    } as never);
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null });
+
+    await AuthService.signInWithPassword("admin@example.com", "password");
+    await vi.waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith("write_audit_log", expect.objectContaining({
+      p_event_type: "authn_admin_login_success",
+      p_user_id: "admin-user",
+    })));
+    expect(logAccountActivity).toHaveBeenCalledWith("login_succeeded", expect.objectContaining({ userId: "admin-user" }));
   });
 
   it("does not sign out a user because another account left a stale timestamp", async () => {
