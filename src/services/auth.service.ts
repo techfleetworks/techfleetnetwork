@@ -4,6 +4,41 @@ import { logAccountActivity } from "@/lib/account-activity";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
+const SESSION_STARTED_AT_KEY = "session_started_at";
+const SESSION_MARKER_VERSION = 1;
+
+type AuthSession = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>;
+
+interface SessionMarker {
+  version: number;
+  userId: string;
+  startedAtMs: number;
+}
+
+function writeSessionMarker(session: Pick<AuthSession, "user">, startedAtMs = Date.now()) {
+  sessionStorage.setItem(
+    SESSION_STARTED_AT_KEY,
+    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs } satisfies SessionMarker),
+  );
+}
+
+function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: number; resetReason: string | null } {
+  const raw = sessionStorage.getItem(SESSION_STARTED_AT_KEY);
+  if (!raw) return { startedAtMs: Date.now(), resetReason: "missing" };
+
+  const legacyStartedAt = Number(raw);
+  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), resetReason: "legacy" };
+
+  try {
+    const marker = JSON.parse(raw) as Partial<SessionMarker>;
+    if (marker.version !== SESSION_MARKER_VERSION || marker.userId !== session.user.id || !Number.isFinite(marker.startedAtMs)) {
+      return { startedAtMs: Date.now(), resetReason: "mismatch" };
+    }
+    return { startedAtMs: marker.startedAtMs, resetReason: null };
+  } catch {
+    return { startedAtMs: Date.now(), resetReason: "malformed" };
+  }
+}
 
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
@@ -15,7 +50,7 @@ export const AuthService = {
         void logAccountActivity("login_failed", { email, errorMessage: error.message, errorCode: error.status });
         throw new Error("Invalid email or password. Please try again.");
       }
-      sessionStorage.setItem("session_started_at", Date.now().toString());
+      if (data.session) writeSessionMarker(data.session);
       log.info("signInWithPassword", `User ${email} authenticated successfully`, { userId: data.user?.id });
       void logAccountActivity("login_succeeded", { email, userId: data.user?.id });
       return data;
@@ -139,7 +174,7 @@ export const AuthService = {
 
   async signOut() {
     log.info("signOut", "Signing out user");
-    sessionStorage.removeItem("session_started_at");
+    sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
 
     const { error } = await supabase.auth.signOut();
     if (!error) {
@@ -165,7 +200,7 @@ export const AuthService = {
         log.error("signOutAllDevices", `Failed to revoke all sessions: ${error.message}`, undefined, error);
         throw new Error("Failed to revoke all sessions. Please try again.");
       }
-      sessionStorage.removeItem("session_started_at");
+      sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
       await supabase.auth.signOut();
       log.info("signOutAllDevices", "All sessions revoked and local session cleared");
       void logAccountActivity("signout_all_devices", {});
@@ -198,40 +233,37 @@ export const AuthService = {
           log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
           void logAccountActivity("session_revoked_serverside", { userId: data.session.user.id });
           await supabase.auth.signOut();
-          sessionStorage.removeItem("session_started_at");
+          sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
           return null;
         }
       } catch (e) {
         log.warn("getSession", `Revocation check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`);
       }
 
-      const startedAt = sessionStorage.getItem("session_started_at");
-      if (startedAt) {
-        const parsedStartedAt = parseInt(startedAt, 10);
-        const startedBeforeCurrentToken = Number.isFinite(parsedStartedAt) && parsedStartedAt < currentTokenIssuedAtMs - 30_000;
-        if (!Number.isFinite(parsedStartedAt) || startedBeforeCurrentToken) {
-          sessionStorage.setItem("session_started_at", Date.now().toString());
-          log.debug("getSession", "Session timestamp reset for newly issued token", { userId: data.session.user.id });
-          return data.session;
-        }
+      const marker = readSessionMarker(data.session);
+      const startedBeforeCurrentToken = marker.startedAtMs < currentTokenIssuedAtMs - 30_000;
+      if (marker.resetReason || startedBeforeCurrentToken) {
+        writeSessionMarker(data.session);
+        log.debug("getSession", "Session timestamp reset for current authenticated user", {
+          userId: data.session.user.id,
+          reason: marker.resetReason ?? "new_token",
+        });
+        return data.session;
+      }
 
-        const elapsed = Date.now() - parsedStartedAt;
-        if (elapsed > MAX_SESSION_AGE_MS) {
-          log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
-            elapsedMs: elapsed,
-            maxMs: MAX_SESSION_AGE_MS,
-          });
-          void logAccountActivity("session_expired_clientside", {
-            userId: data.session.user.id,
-            details: { elapsedMs: elapsed },
-          });
-          await supabase.auth.signOut();
-          sessionStorage.removeItem("session_started_at");
-          return null;
-        }
-      } else {
-        sessionStorage.setItem("session_started_at", Date.now().toString());
-        log.debug("getSession", "Session timestamp set (first access this tab)");
+      const elapsed = Date.now() - marker.startedAtMs;
+      if (elapsed > MAX_SESSION_AGE_MS) {
+        log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
+          elapsedMs: elapsed,
+          maxMs: MAX_SESSION_AGE_MS,
+        });
+        void logAccountActivity("session_expired_clientside", {
+          userId: data.session.user.id,
+          details: { elapsedMs: elapsed },
+        });
+        await supabase.auth.signOut();
+        sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+        return null;
       }
       log.debug("getSession", "Valid session found", { userId: data.session.user.id });
     } else {

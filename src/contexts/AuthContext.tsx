@@ -23,6 +23,7 @@ interface AuthContextType {
 // — surfaced to users as "authorization failed" on the login screen.
 const GLOBAL_KEY = "__tfn_auth_context__";
 const GLOBAL_VALUE_KEY = "__tfn_auth_context_value__";
+const SESSION_STARTED_AT_KEY = "session_started_at";
 type GlobalWithCtx = typeof globalThis & {
   [GLOBAL_KEY]?: React.Context<AuthContextType | undefined>;
   [GLOBAL_VALUE_KEY]?: AuthContextType;
@@ -118,8 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           if (_event === "SIGNED_IN") {
-            if (!sessionStorage.getItem("session_started_at")) {
-              sessionStorage.setItem("session_started_at", Date.now().toString());
+            if (!sessionStorage.getItem(SESSION_STARTED_AT_KEY)) {
+              sessionStorage.setItem(
+                SESSION_STARTED_AT_KEY,
+                JSON.stringify({ version: 1, userId: session.user.id, startedAtMs: Date.now() }),
+              );
 
               const createdAt = session.user.created_at ? new Date(session.user.created_at).getTime() : 0;
               const isNewAccount = Date.now() - createdAt < 2 * 60 * 1000;
