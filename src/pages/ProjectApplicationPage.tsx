@@ -11,6 +11,7 @@ import {
   PartyPopper, AlertTriangle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
+import { FlowMobileNav } from "@/components/FlowMobileNav";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -517,7 +518,9 @@ export default function ProjectApplicationPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="sticky top-0 z-20 border-b bg-background px-4 sm:px-6 py-3">
+      <FlowMobileNav backTo="/project-openings" backLabel="Back to Openings" title="Project Application" />
+
+      <div className="sticky top-[65px] z-20 border-b bg-background px-4 sm:px-6 py-3 md:top-0">
         <div className="max-w-3xl w-full mx-auto">
         <StepProgressBar
           steps={STEP_LABELS.map((label, i) => {
