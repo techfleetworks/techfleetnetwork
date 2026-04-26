@@ -7,7 +7,7 @@
  * installed in this environment.
  *
  * Usage:
- *   TF_ADMIN_EMAIL=... TF_AUDIT_PASSWORD=... \
+ *   TF_ADMIN_EMAIL=... TF_ADMIN_PASSWORD=... \
  *   BASE_URL=https://techfleetnetwork.lovable.app \
  *   node e2e/a11y/run-audit.mjs
  */
@@ -69,8 +69,8 @@ const ROUTES = [
 ];
 
 const BASE_URL = process.env.BASE_URL || "https://techfleetnetwork.lovable.app";
-const EMAIL = process.env.TF_ADMIN_EMAIL || "mdenner@techfleet.org";
-const PASSWORD = process.env.TF_AUDIT_PASSWORD || "";
+const EMAIL = process.env.TF_ADMIN_EMAIL || "";
+const PASSWORD = process.env.TF_ADMIN_PASSWORD || "";
 const REPORT_DIR = "a11y-report";
 
 const AXE_TAGS = [
@@ -89,7 +89,7 @@ async function runAxe(page) {
 }
 
 async function login(page) {
-  if (!PASSWORD) { console.log("✗ TF_AUDIT_PASSWORD not set"); return false; }
+  if (!EMAIL || !PASSWORD) { console.log("✗ TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD not set"); return false; }
   console.log(`→ Logging in as ${EMAIL} at ${BASE_URL}/login`);
   await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle", timeout: 30000 });
   try {
