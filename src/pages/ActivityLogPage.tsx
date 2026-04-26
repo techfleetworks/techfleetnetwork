@@ -93,6 +93,11 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
 
 const PAGE_SIZE = 50;
 
+const getFieldValue = (fields: string[] | null | undefined, key: string) => {
+  const prefix = `${key}:`;
+  return fields?.find((field) => field.startsWith(prefix))?.slice(prefix.length) ?? null;
+};
+
 export default function ActivityLogPage() {
   // Admin access is enforced by AdminRoute wrapper
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
@@ -158,9 +163,11 @@ export default function ActivityLogPage() {
     const q = search.toLowerCase();
     return entries.filter((e) => {
       const userInfo = e.user_id ? profiles.get(e.user_id) : null;
+      const attemptedEmail = getFieldValue(e.changed_fields, "attempted_email");
       return (
         e.event_type.toLowerCase().includes(q) ||
         e.table_name.toLowerCase().includes(q) ||
+        (attemptedEmail?.toLowerCase().includes(q)) ||
         (e.actor_email?.toLowerCase().includes(q)) ||
         (userInfo?.email?.toLowerCase().includes(q)) ||
         (userInfo?.name?.toLowerCase().includes(q)) ||
@@ -193,6 +200,10 @@ export default function ActivityLogPage() {
 
   const formatChangedFields = (fields: string[] | null, eventType: string) => {
     if (!fields || fields.length === 0) return "";
+    if (eventType === "password_reset_requested" || eventType === "password_reset_failed") {
+      const attemptedEmail = getFieldValue(fields, "attempted_email");
+      return attemptedEmail ? `Attempted email: ${attemptedEmail}` : fields.filter((field) => !field.startsWith("email_hash:")).join(", ");
+    }
     if (eventType.startsWith("email_")) {
       const [template, recipient, status] = fields;
       return [template, recipient, status].filter(Boolean).join(" · ");
@@ -219,7 +230,7 @@ export default function ActivityLogPage() {
       minWidth: 220,
       valueGetter: (params) => {
         const e = params.data;
-        if (!e?.user_id) return "System";
+        if (!e?.user_id) return getFieldValue(e?.changed_fields, "attempted_email") || "System";
         const info = profiles.get(e.user_id);
         return e.actor_email || info?.email || e.user_id;
       },
