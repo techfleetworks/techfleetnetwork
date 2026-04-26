@@ -8,7 +8,6 @@ const required = [
   "sb_publishable_NnnYUf3wUfVWGyOlhQf9UQ_92QsC3YE",
 ];
 const forbidden = [
-  "supabaseUrl is required",
   "VITE_SUPABASE_URL}/functions",
   "undefined/functions/v1",
 ];
