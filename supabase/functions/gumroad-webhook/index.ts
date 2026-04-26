@@ -111,6 +111,50 @@ function mapToTier(sale: ParsedSale): TierMapping {
   return { tier: "community", isFoundingMember: false };
 }
 
+async function logMembershipMetadataMismatch(
+  supabase: ReturnType<typeof createClient>,
+  details: {
+    userId: string;
+    saleId: string;
+    storedTier?: string | null;
+    expectedTier: Tier;
+    storedBillingPeriod?: string | null;
+    expectedBillingPeriod: "monthly" | "yearly";
+    storedFoundingMember?: boolean | null;
+    expectedFoundingMember: boolean;
+  },
+): Promise<void> {
+  const hasMismatch =
+    details.storedTier !== details.expectedTier ||
+    details.storedBillingPeriod !== details.expectedBillingPeriod ||
+    details.storedFoundingMember !== details.expectedFoundingMember;
+
+  if (!hasMismatch) return;
+
+  try {
+    await supabase.rpc("write_audit_log", {
+      p_event_type: "membership_metadata_mismatch",
+      p_table_name: "profiles",
+      p_record_id: details.userId,
+      p_user_id: details.userId,
+      p_changed_fields: [
+        `source:gumroad-webhook`,
+        `sale_id:${details.saleId}`,
+        `stored_tier:${details.storedTier ?? "unknown"}`,
+        `expected_tier:${details.expectedTier}`,
+        `stored_billing_period:${details.storedBillingPeriod ?? "unknown"}`,
+        `expected_billing_period:${details.expectedBillingPeriod}`,
+        `stored_founding_member:${String(details.storedFoundingMember ?? false)}`,
+        `expected_founding_member:${String(details.expectedFoundingMember)}`,
+      ],
+      p_error_message:
+        "Stored membership metadata differed from the latest subscription metadata before sync.",
+    });
+  } catch (err) {
+    console.warn("gumroad-webhook: audit log mismatch write failed", err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -216,7 +260,7 @@ Deno.serve(async (req) => {
   // 5. Resolve user by email (may be null if user hasn't signed up yet)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("user_id, email, membership_tier")
+    .select("user_id, email, membership_tier, membership_billing_period, is_founding_member")
     .ilike("email", normalizedEmail)
     .maybeSingle();
 
@@ -253,6 +297,17 @@ Deno.serve(async (req) => {
 
   // 7. Apply tier to profile if we have a user
   if (profile) {
+    await logMembershipMetadataMismatch(supabase, {
+      userId: profile.user_id,
+      saleId: sale.sale_id,
+      storedTier: profile.membership_tier,
+      expectedTier: mapping.tier,
+      storedBillingPeriod: profile.membership_billing_period,
+      expectedBillingPeriod: billingPeriod,
+      storedFoundingMember: profile.is_founding_member,
+      expectedFoundingMember: mapping.isFoundingMember,
+    });
+
     const { error: profileErr } = await supabase
       .from("profiles")
       .update({
