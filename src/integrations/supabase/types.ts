@@ -1336,6 +1336,7 @@ export type Database = {
           is_founding_member: boolean
           last_name: string
           linkedin_url: string
+          membership_billing_period: string
           membership_gumroad_sale_id: string
           membership_sku: string
           membership_tier: Database["public"]["Enums"]["membership_tier"]
@@ -1371,6 +1372,7 @@ export type Database = {
           is_founding_member?: boolean
           last_name?: string
           linkedin_url?: string
+          membership_billing_period?: string
           membership_gumroad_sale_id?: string
           membership_sku?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
@@ -1406,6 +1408,7 @@ export type Database = {
           is_founding_member?: boolean
           last_name?: string
           linkedin_url?: string
+          membership_billing_period?: string
           membership_gumroad_sale_id?: string
           membership_sku?: string
           membership_tier?: Database["public"]["Enums"]["membership_tier"]
