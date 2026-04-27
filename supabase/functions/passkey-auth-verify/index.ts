@@ -1,5 +1,4 @@
-// Verifies a WebAuthn assertion from an authenticated admin. On success,
-// the client binds the current browser as a trusted device.
+// Verifies a WebAuthn assertion from an authenticated admin on every new login session.
 //
 // Migrated to use the centralized admin-client wrapper (rotation-aware) so
 // that rotating the SUPABASE_SERVICE_ROLE_KEY does not require a code edit
@@ -147,7 +146,7 @@ Deno.serve(async (req) => {
       public_key: device_binding.public_key,
       bound_at: new Date().toISOString(),
       last_proof_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
       ip_address: ip,
       user_agent: ua,
     }, { onConflict: "user_id,fingerprint" });
