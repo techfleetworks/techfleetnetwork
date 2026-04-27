@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -214,20 +215,7 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2" role="group" aria-labelledby="login-captcha-label">
-              <Label id="login-captcha-label" htmlFor="login-captcha">Human verification: what is {captchaState.question}?</Label>
-              <Input
-                id="login-captcha"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={captchaAnswer}
-                onChange={(event) => setCaptchaAnswer(event.target.value.replace(/\D/g, "").slice(0, 3))}
-                autoComplete="off"
-                required
-                aria-required="true"
-              />
-            </div>
+            <AuthCaptchaField id="login-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign In"}
