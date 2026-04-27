@@ -46,6 +46,20 @@ interface AuditLogEntry {
   created_at: string;
 }
 
+const QUERY_TIMEOUT_MS = 10_000;
+
+async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
+
 const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   profile_created: { label: "Profile Created", variant: "default" },
   profile_updated: { label: "Profile Updated", variant: "secondary" },
@@ -103,15 +117,17 @@ export default function ActivityLogPage() {
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [profiles, setProfiles] = useState<Map<string, { email: string; name: string }>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchProfiles = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, email, first_name, last_name, display_name");
+      const { data } = await withTimeout(
+        supabase.from("profiles").select("user_id, email, first_name, last_name, display_name"),
+        "Profile lookup"
+      );
     if (data) {
       const map = new Map<string, { email: string; name: string }>();
       data.forEach((p) => {
@@ -126,12 +142,13 @@ export default function ActivityLogPage() {
 
   const fetchLogs = async () => {
     setLoading(true);
+    setLoadError("");
     try {
       let countQuery = supabase
         .from("audit_log")
         .select("id", { count: "exact", head: true });
       if (eventFilter !== "all") countQuery = countQuery.eq("event_type", eventFilter);
-      const { count } = await countQuery;
+      const { count } = await withTimeout(countQuery, "Activity log count");
       setTotalCount(count || 0);
 
       let query = supabase
@@ -140,11 +157,12 @@ export default function ActivityLogPage() {
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
-      const { data, error } = await query;
+      const { data, error } = await withTimeout(query, "Activity log load");
       if (error) throw error;
       setEntries((data || []) as unknown as AuditLogEntry[]);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
+      setLoadError(err instanceof Error ? err.message : "Activity log could not load.");
     } finally {
       setLoading(false);
     }
