@@ -11,6 +11,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signOut: vi.fn(),
       signUp: vi.fn(),
       resetPasswordForEmail: vi.fn(),
+      setSession: vi.fn(),
       updateUser: vi.fn(),
       onAuthStateChange: vi.fn(),
     },
@@ -57,6 +58,7 @@ describe("AuthService session max-age marker", () => {
     localStorage.clear();
     vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { valid: true }, error: null });
+    vi.mocked(supabase.auth.setSession).mockReset();
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -66,7 +68,8 @@ describe("AuthService session max-age marker", () => {
 
   it("writes a distinct audit event when an admin signs in", async () => {
     const session = makeSession("admin-user");
-    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { session, user: session.user }, error: null });
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { session, user: session.user }, error: null });
+    vi.mocked(supabase.auth.setSession).mockResolvedValue({ data: { session, user: session.user }, error: null });
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -74,12 +77,18 @@ describe("AuthService session max-age marker", () => {
     } as never);
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null });
 
-    await AuthService.signInWithPassword("admin@example.com", "ValidPass123!");
+    await AuthService.signInWithPassword("admin@example.com", "ValidPass123!", "valid-turnstile-token-with-enough-length");
     await vi.waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith("write_audit_log", expect.objectContaining({
       p_event_type: "authn_admin_login_success",
       p_user_id: "admin-user",
     })));
     expect(logAccountActivity).toHaveBeenCalledWith("login_succeeded", expect.objectContaining({ userId: "admin-user" }));
+  });
+
+  it("requires CAPTCHA before any password login auth request", async () => {
+    await expect(AuthService.signInWithPassword("admin@example.com", "ValidPass123!")).rejects.toThrow("Complete the human verification");
+    expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(supabase.functions.invoke).not.toHaveBeenCalledWith("login-with-captcha", expect.anything());
   });
 
   it("does not sign out a user because another account left a stale timestamp", async () => {

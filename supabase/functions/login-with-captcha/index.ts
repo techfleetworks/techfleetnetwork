@@ -1,10 +1,11 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
-import { validateDomain } from "../validate-email-domain/index.ts";
 
 const log = createEdgeLogger("login-with-captcha");
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const DOMAIN_RE = /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
+const DnsAnswerSchema = z.object({ Answer: z.array(z.unknown()).optional(), Status: z.number().optional() }).passthrough();
 
 const BodySchema = z.object({
   email: z.string().trim().email().max(320),
@@ -29,6 +30,20 @@ function publicAuthError(status = 401) {
 
 function emailDomain(email: string): string {
   return email.toLowerCase().split("@").pop()?.replace(/\.+$/, "") ?? "";
+}
+
+async function hasDnsRecord(domain: string, type: "MX" | "A" | "AAAA"): Promise<boolean> {
+  const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`, {
+    headers: { accept: "application/dns-json" },
+  });
+  if (!response.ok) return false;
+  const parsed = DnsAnswerSchema.safeParse(await response.json());
+  return parsed.success && parsed.data.Status === 0 && Array.isArray(parsed.data.Answer) && parsed.data.Answer.length > 0;
+}
+
+async function validateDomain(domain: string): Promise<boolean> {
+  if (!DOMAIN_RE.test(domain)) return false;
+  return (await hasDnsRecord(domain, "MX")) || (await hasDnsRecord(domain, "A")) || (await hasDnsRecord(domain, "AAAA"));
 }
 
 Deno.serve(async (req) => {

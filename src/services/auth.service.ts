@@ -135,26 +135,27 @@ export const AuthService = {
     if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
       throw blockedAuthInputError;
     }
+    if (!captchaToken?.trim()) {
+      throw new Error("Complete the human verification before trying again.");
+    }
     const safeEmail = parsedEmail.data;
     const domainCheck = await validateEmailDomainExists(safeEmail);
     if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     void logAccountActivity("login_attempt_started", { email: safeEmail });
     return log.track("signInWithPassword", `Authenticating user ${safeEmail}`, { email: safeEmail }, async () => {
-      const { data, error } = captchaToken
-        ? await supabase.functions.invoke<{ session: AuthSession; user: AuthSession["user"] }>("login-with-captcha", {
-            body: { email: safeEmail, password, captchaToken },
-          }).then(async (res) => {
-            if (res.error) return { data: null, error: res.error };
-            if (res.data?.session?.access_token && res.data.session.refresh_token) {
-              const setSessionResult = await supabase.auth.setSession({
-                access_token: res.data.session.access_token,
-                refresh_token: res.data.session.refresh_token,
-              });
-              return setSessionResult;
-            }
-            return { data: null, error: new Error("Invalid login response") };
-          })
-        : await supabase.auth.signInWithPassword({ email: safeEmail, password });
+      const { data, error } = await supabase.functions.invoke<{ session: AuthSession; user: AuthSession["user"] }>("login-with-captcha", {
+        body: { email: safeEmail, password, captchaToken: captchaToken.trim() },
+      }).then(async (res) => {
+        if (res.error) return { data: null, error: res.error };
+        if (res.data?.session?.access_token && res.data.session.refresh_token) {
+          const setSessionResult = await supabase.auth.setSession({
+            access_token: res.data.session.access_token,
+            refresh_token: res.data.session.refresh_token,
+          });
+          return setSessionResult;
+        }
+        return { data: null, error: new Error("Invalid login response") };
+      });
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
         void logAccountActivity("login_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
