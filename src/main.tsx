@@ -5,6 +5,7 @@ import { installGlobalErrorReporter } from "@/services/error-reporter.service";
 import { startDeployWatcher } from "@/lib/deploy-watcher";
 import { installClientRequestThrottle } from "@/lib/client-request-throttle";
 import { clearAppCachesForVersion } from "@/lib/app-cache-reset";
+import { installLoginCaptchaCrossTabSync } from "@/lib/auth-captcha";
 
 // Unregister any existing service workers and clear caches so users always get fresh content
 if ("serviceWorker" in navigator) {
@@ -17,6 +18,7 @@ if ("serviceWorker" in navigator) {
 }
 
 installGlobalErrorReporter();
+installLoginCaptchaCrossTabSync();
 installClientRequestThrottle();
 void clearAppCachesForVersion({ reloadAfterClear: true });
 // Detect new deploys while the tab is open and refresh BEFORE a stale chunk
