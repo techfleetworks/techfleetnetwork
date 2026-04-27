@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } fr
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
@@ -303,10 +304,10 @@ export default function ProjectApplicationPage() {
   /* ── save draft mutation ───────────────────────────────── */
   const saveMutation = useMutation({
     mutationFn: async (opts: { fields: Record<string, unknown>; newStep?: number; submit?: boolean }) => {
-      const payload: Record<string, unknown> = {
+      const payload: Record<string, unknown> = sanitizeRecordFields({
         ...opts.fields,
         current_step: opts.newStep ?? step,
-      };
+      });
       if (opts.submit) {
         payload.status = "completed";
         payload.completed_at = new Date().toISOString();
