@@ -1,20 +1,11 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
-
-type AnySupabaseClient = SupabaseClient<any, any, any>
-type QueuePayload = Record<string, unknown>
-type QueueMessage = { msg_id: number; read_ct: number; message: QueuePayload }
-
-function stringField(payload: QueuePayload, key: string, fallback = ''): string {
-  const value = payload[key]
-  return typeof value === 'string' ? value : fallback
-}
 
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
@@ -63,20 +54,20 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: AnySupabaseClient,
+  supabase: ReturnType<typeof createClient>,
   queue: string,
-  msg: QueueMessage,
+  msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: typeof payload.message_id === 'string' ? payload.message_id : crypto.randomUUID(),
+    message_id: payload.message_id,
     template_name: (payload.label || queue) as string,
-    recipient_email: typeof payload.to === 'string' ? payload.to : '',
+    recipient_email: payload.to,
     status: 'dlq',
     error_message: reason,
   })
-  const { error } = await supabase.rpc('move_to_dlq' as never, {
+  const { error } = await supabase.rpc('move_to_dlq', {
     source_queue: queue,
     dlq_name: `${queue}_dlq`,
     message_id: msg.msg_id,
@@ -157,22 +148,20 @@ Deno.serve(async (req) => {
       continue
     }
 
-    const queueMessages = (messages ?? []) as QueueMessage[]
-
-    if (!queueMessages.length) continue
+    if (!messages?.length) continue
 
     // Retry budget is based on real send failures, not pgmq read_ct.
     // read_ct increments for every message in a claimed batch, including
     // messages not attempted when a 429 stops processing early.
     const messageIds = Array.from(
       new Set(
-        queueMessages
-          .map((msg: QueueMessage) =>
+        messages
+          .map((msg) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id: string | null): id is string => Boolean(id))
+          .filter((id): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()
@@ -200,16 +189,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (let i = 0; i < queueMessages.length; i++) {
-      const msg = queueMessages[i]
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
       const payload = msg.message
       const failedAttempts =
         payload?.message_id && typeof payload.message_id === 'string'
           ? (failedAttemptsByMessageId.get(payload.message_id) ?? 0)
-          : 0
+          : msg.read_ct ?? 0
 
-      // Drop expired messages (TTL exceeded)
-      const queuedAt = stringField(payload, 'queued_at')
+      // Drop expired messages (TTL exceeded).
+      // Prefer payload.queued_at when present; fall back to PGMQ's enqueued_at
+      // which is always set by the queue.
+      const queuedAt = payload.queued_at ?? msg.enqueued_at
       if (queuedAt) {
         const ageMs = Date.now() - new Date(queuedAt).getTime()
         const maxAgeMs = ttlMinutes[queue] * 60 * 1000
@@ -258,23 +249,20 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Defensive: generate plain-text fallback if trigger-enqueued emails omit 'text'
-        const emailText = stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet'));
-
         await sendLovableEmail(
           {
-            run_id: stringField(payload, 'run_id') || undefined,
-            to: stringField(payload, 'to'),
-            from: stringField(payload, 'from'),
-            sender_domain: stringField(payload, 'sender_domain') || undefined,
-            subject: stringField(payload, 'subject'),
-            html: stringField(payload, 'html'),
-            text: emailText,
-            purpose: stringField(payload, 'purpose') || undefined,
-            label: stringField(payload, 'label') || undefined,
-            idempotency_key: stringField(payload, 'idempotency_key') || undefined,
-            unsubscribe_token: stringField(payload, 'unsubscribe_token') || undefined,
-            message_id: stringField(payload, 'message_id') || undefined,
+            run_id: payload.run_id,
+            to: payload.to,
+            from: payload.from,
+            sender_domain: payload.sender_domain,
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+            purpose: payload.purpose,
+            label: payload.label,
+            idempotency_key: payload.idempotency_key,
+            unsubscribe_token: payload.unsubscribe_token,
+            message_id: payload.message_id,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).
@@ -362,7 +350,7 @@ Deno.serve(async (req) => {
       }
 
       // Small delay between sends to smooth bursts
-      if (i < queueMessages.length - 1) {
+      if (i < messages.length - 1) {
         await new Promise((r) => setTimeout(r, sendDelayMs))
       }
     }
