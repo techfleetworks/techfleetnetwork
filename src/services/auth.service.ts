@@ -130,7 +130,6 @@ async function logAdminLoginIfElevated(userId?: string | null) {
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
-    const parsedPassword = passwordSchema.pick ? null : null;
     if (!parsedEmail.success || typeof password !== "string" || password.length < 1 || password.length > 128) {
       throw blockedAuthInputError;
     }
@@ -247,18 +246,21 @@ export const AuthService = {
   },
 
   async resendSignupConfirmation(email: string, redirectTo: string) {
-    void logAccountActivity("signup_confirmation_resend_requested", { email });
-    return log.track("resendSignupConfirmation", `Requesting signup confirmation email for ${email}`, { email }, async () => {
+    const parsedEmail = emailInputSchema.safeParse(email);
+    if (!parsedEmail.success) throw blockedAuthInputError;
+    const safeEmail = parsedEmail.data;
+    void logAccountActivity("signup_confirmation_resend_requested", { email: safeEmail });
+    return log.track("resendSignupConfirmation", `Requesting signup confirmation email for ${safeEmail}`, { email: safeEmail }, async () => {
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email,
+        email: safeEmail,
         options: { emailRedirectTo: redirectTo },
       });
 
       if (error) {
-        log.warn("resendSignupConfirmation", `Confirmation resend failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
+        log.warn("resendSignupConfirmation", `Confirmation resend failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
         void logAccountActivity("signup_confirmation_resend_failed", {
-          email,
+          email: safeEmail,
           errorMessage: error.message,
           errorCode: error.status,
         });
@@ -270,21 +272,24 @@ export const AuthService = {
         throw new Error("We could not resend the verification email right now. Please try again in a minute.");
       }
 
-      log.info("resendSignupConfirmation", `Confirmation resend accepted for ${email}`, { email });
-      void logAccountActivity("signup_confirmation_resend_succeeded", { email });
+      log.info("resendSignupConfirmation", `Confirmation resend accepted for ${safeEmail}`, { email: safeEmail });
+      void logAccountActivity("signup_confirmation_resend_succeeded", { email: safeEmail });
     });
   },
 
   async resetPassword(email: string, redirectTo: string) {
-    return log.track("resetPassword", `Sending password reset for ${email}`, { email }, async () => {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    const parsedEmail = emailInputSchema.safeParse(email);
+    if (!parsedEmail.success) throw blockedAuthInputError;
+    const safeEmail = parsedEmail.data;
+    return log.track("resetPassword", `Sending password reset for ${safeEmail}`, { email: safeEmail }, async () => {
+      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, { redirectTo });
       if (error) {
-        log.warn("resetPassword", `Password reset request failed for ${email}: ${error.message}`, { email }, error);
-        void logAccountActivity("password_reset_failed", { email, errorMessage: error.message, errorCode: error.status });
+        log.warn("resetPassword", `Password reset request failed for ${safeEmail}: ${error.message}`, { email: safeEmail }, error);
+        void logAccountActivity("password_reset_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
         throw new Error("If an account exists with that email, a reset link has been sent.");
       }
-      log.info("resetPassword", `Password reset email sent for ${email}`, { email });
-      void logAccountActivity("password_reset_requested", { email });
+      log.info("resetPassword", `Password reset email sent for ${safeEmail}`, { email: safeEmail });
+      void logAccountActivity("password_reset_requested", { email: safeEmail });
     });
   },
 
