@@ -7,9 +7,7 @@ import { Mail, CheckCircle2 } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
-import { z } from "zod";
-
-const emailSchema = z.string().trim().email("Invalid email address").max(255);
+import { emailInputSchema } from "@/lib/validators/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -19,7 +17,7 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = emailSchema.safeParse(email);
+    const result = emailInputSchema.safeParse(email);
     if (!result.success) {
       setError(result.error.issues[0].message);
       return;
@@ -80,7 +78,7 @@ export default function ForgotPasswordPage() {
               <Label htmlFor="email">Email address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" />
+                <Input id="email" type="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!error} />
               </div>
             </div>
 
