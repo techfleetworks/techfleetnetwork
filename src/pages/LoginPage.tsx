@@ -17,6 +17,7 @@ import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const navigate = useNavigate();
@@ -96,8 +98,20 @@ export default function LoginPage() {
     }
   }, [from]);
 
+  useEffect(() => {
+    if (!lockoutState.locked) return;
+    const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [lockoutState.locked]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const currentLockout = getAuthLockoutState();
+    setLockoutState(currentLockout);
+    if (currentLockout.locked) {
+      setError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      return;
+    }
     setTouched({ email: true, password: true });
 
     const result = loginSchema.safeParse({ email, password });
@@ -110,13 +124,18 @@ export default function LoginPage() {
       setErrors(fieldErrors);
       showFormErrors(fieldErrors, { email: "Email", password: "Password" });
       scrollToFirstError();
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
       const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
       setCaptchaAnswer("");
-      setError("Complete the human verification before trying again.");
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
       return;
     }
     setErrors({});
@@ -142,6 +161,7 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
+        clearAuthLockout();
         clearLoginCaptcha();
         navigate(from, { replace: true });
       } catch (err: unknown) {
@@ -160,15 +180,26 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setError(err.message);
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       setLoading(false);
     }
   };
 
   const verifyCaptchaBeforeOAuth = () => {
+    const currentLockout = getAuthLockoutState();
+    setLockoutState(currentLockout);
+    if (currentLockout.locked) {
+      setError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      return false;
+    }
     if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
     setCaptchaState(refreshLoginCaptcha());
     setCaptchaAnswer("");
-    setError("Complete the human verification before trying again.");
+    const nextLockout = recordInvalidAuthAttempt();
+    setLockoutState(nextLockout);
+    setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
     return false;
   };
 
@@ -224,9 +255,10 @@ export default function LoginPage() {
 
             <AuthCaptchaField id="login-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign In"}
+            <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "login-lockout-status" : undefined}>
+              {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}
             </Button>
+            {lockoutState.locked && <p id="login-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
           </form>
         </div>
 

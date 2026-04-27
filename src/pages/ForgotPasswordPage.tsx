@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,26 +10,45 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { emailInputSchema } from "@/lib/validators/auth";
 import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!lockoutState.locked) return;
+    const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [lockoutState.locked]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const currentLockout = getAuthLockoutState();
+    setLockoutState(currentLockout);
+    if (currentLockout.locked) {
+      setError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      return;
+    }
     const result = emailInputSchema.safeParse(email);
     if (!result.success) {
       setError(result.error.issues[0].message);
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaAnswer("");
-      setError("Complete the human verification before trying again.");
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
       return;
     }
     setError("");
@@ -45,6 +64,7 @@ export default function ForgotPasswordPage() {
       }
 
       await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`);
+      clearAuthLockout();
       setSubmitted(true);
     } catch {
       // Always show success to prevent email enumeration
@@ -94,9 +114,10 @@ export default function ForgotPasswordPage() {
 
             <AuthCaptchaField id="forgot-password-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending…" : "Send Reset Link"}
+            <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "forgot-password-lockout-status" : undefined}>
+              {loading ? "Sending…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Send Reset Link"}
             </Button>
+            {lockoutState.locked && <p id="forgot-password-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
           </form>
         </div>
 
