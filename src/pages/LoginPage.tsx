@@ -16,6 +16,7 @@ import { useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
+import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,6 +25,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const navigate = useNavigate();
@@ -109,6 +112,13 @@ export default function LoginPage() {
       scrollToFirstError();
       return;
     }
+    if (captchaState.required && !verifyLoginCaptchaAnswer(captchaAnswer)) {
+      const nextCaptcha = getLoginCaptchaState();
+      setCaptchaState(nextCaptcha);
+      setCaptchaAnswer("");
+      setError("Complete the human verification before trying again.");
+      return;
+    }
     setErrors({});
     setError("");
     setLoading(true);
@@ -132,8 +142,12 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
+        clearLoginCaptcha();
         navigate(from, { replace: true });
       } catch (err: unknown) {
+        const nextCaptcha = recordFailedLoginAttempt();
+        setCaptchaState(nextCaptcha);
+        setCaptchaAnswer("");
         // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
         try {
           await supabase.rpc("record_failed_login", {
