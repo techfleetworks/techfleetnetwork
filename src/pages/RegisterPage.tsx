@@ -33,6 +33,9 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "success" | "error">("idle");
+  const [resendMessage, setResendMessage] = useState("");
 
   const markTouched = (field: string) =>
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -125,6 +128,34 @@ export default function RegisterPage() {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    setResending(true);
+    setResendStatus("idle");
+    setResendMessage("");
+
+    try {
+      const rateCheck = await RateLimitService.check(email, "signup_attempt");
+      if (!rateCheck.allowed) {
+        const minutes = Math.ceil(rateCheck.retry_after / 60);
+        setResendStatus("error");
+        setResendMessage(`Please wait ${minutes} minute${minutes > 1 ? "s" : ""} before requesting another verification email.`);
+        return;
+      }
+
+      await AuthService.resendSignupConfirmation(
+        email,
+        window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
+      );
+      setResendStatus("success");
+      setResendMessage("If this email is still waiting for verification, a fresh link has been sent. Check your inbox and spam folder.");
+    } catch (err: any) {
+      setResendStatus("error");
+      setResendMessage(err.message || "We could not resend the verification email right now. Please try again in a minute.");
+    } finally {
+      setResending(false);
+    }
+  };
+
   const vs = (field: string, value: string | boolean) =>
     getFieldValidationState(errors[field], value, !!touched[field]);
   const bc = (field: string, value: string | boolean) =>
@@ -136,10 +167,21 @@ export default function RegisterPage() {
         <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
           <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Check your email</h1>
-          <p className="text-muted-foreground">
-            We've sent a verification link to <strong className="text-foreground">{email}</strong>. Click the link to verify your account and get started.
+          <p className="text-muted-foreground leading-relaxed">
+            If <strong className="text-foreground">{email}</strong> needs verification, a confirmation link is on the way. Existing verified accounts will not receive another signup email.
           </p>
-          <Link to="/login" className="inline-block mt-6"><Button variant="outline">Go to Sign In</Button></Link>
+          {resendMessage && (
+            <p className={`mt-4 rounded-md p-3 text-sm ${resendStatus === "success" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`} role="status" aria-live="polite">
+              {resendMessage}
+            </p>
+          )}
+          <div className="mt-6 grid gap-3">
+            <Button type="button" onClick={handleResendConfirmation} disabled={resending}>
+              {resending ? "Sending verification…" : "Resend verification email"}
+            </Button>
+            <Link to="/login"><Button variant="outline" className="w-full">Go to Sign In</Button></Link>
+            <Link to="/reset-password" className="text-sm text-primary-text font-medium hover:underline">Forgot your password?</Link>
+          </div>
         </div>
       </div>
     );
