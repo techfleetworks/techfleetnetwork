@@ -45,16 +45,20 @@ async function bindCurrentDevice(): Promise<void> {
 }
 
 export const PasskeyLoginService = {
-  /**
-   * Returns false by design: admins must complete a fresh WebAuthn assertion
-   * for every JWT session. Trusted device proof is still used after recovery
-   * and MFA setup, but it no longer bypasses the per-login admin gate.
-   *
-   * This means a stolen session cookie cannot satisfy the gate from a
-   * different browser/device.
-   */
   async isCurrentSessionVerified(): Promise<boolean> {
-    return false;
+    const { data, error } = await supabase.rpc("is_passkey_login_verified", {
+      _session_hash: await this.getCurrentSessionHash(),
+    });
+    if (error) return false;
+    return data === true;
+  },
+
+  async getCurrentSessionHash(): Promise<string> {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return "";
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
   },
 
   /** Performs the full WebAuthn assertion flow against the admin's enrolled passkey. */
