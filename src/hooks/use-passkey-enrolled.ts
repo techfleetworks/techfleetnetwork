@@ -24,21 +24,29 @@ export function usePasskeyEnrolled() {
       const timeout = new Promise<never>((_, reject) => {
         window.setTimeout(() => reject(new Error("Passkey enrollment check timed out")), PASSKEY_ENROLLMENT_TIMEOUT_MS);
       });
-      const { count, error } = await Promise.race([
-        supabase
-          .from("passkey_credentials")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .neq("device_name", "_pending_challenge"),
-        timeout,
-      ]);
-      if (cancelled) return;
-      if (error) {
+      let result: Awaited<ReturnType<typeof supabase.from<"passkey_credentials">>> extends never ? never : { count: number | null; error: Error | null };
+      try {
+        result = await Promise.race([
+          supabase
+            .from("passkey_credentials")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .neq("device_name", "_pending_challenge"),
+          timeout,
+        ]) as { count: number | null; error: Error | null };
+      } catch (error) {
+        if (cancelled) return;
         console.warn("Passkey enrollment check failed", error);
         setEnrolled(false);
         return;
       }
-      setEnrolled((count ?? 0) > 0);
+      if (cancelled) return;
+      if (result.error) {
+        console.warn("Passkey enrollment check failed", result.error);
+        setEnrolled(false);
+        return;
+      }
+      setEnrolled((result.count ?? 0) > 0);
     };
     void checkEnrollment();
     window.addEventListener(PASSKEY_ENROLLMENT_CHANGED_EVENT, checkEnrollment);
