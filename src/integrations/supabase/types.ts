@@ -2361,6 +2361,14 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      drain_notification_fanout_jobs: {
+        Args: {
+          p_chunk_size?: number
+          p_job_limit?: number
+          p_max_chunks_per_job?: number
+        }
+        Returns: Json
+      }
       drain_notification_outbox: { Args: { p_limit?: number }; Returns: Json }
       encrypt_pii: { Args: { plain: string }; Returns: string }
       enqueue_email: {
