@@ -17,8 +17,12 @@ const DISPOSABLE_EMAIL_DOMAINS = new Set([
   "yopmail.com",
 ]);
 
+export function normalizeEmailInput(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export function getEmailDomain(value: string): string {
-  return value.trim().toLowerCase().split("@").pop()?.replace(/\.+$/, "") ?? "";
+  return normalizeEmailInput(value).split("@").pop()?.replace(/\.+$/, "") ?? "";
 }
 
 export function isDisposableEmailDomain(value: string): boolean {
@@ -42,10 +46,9 @@ export function isStrongPassword(value: string): boolean {
 
 export const emailInputSchema = z
   .string()
-  .trim()
-  .toLowerCase()
-  .min(3, "Email address is required")
-  .max(254, "Email address must be under 254 characters")
+  .transform(normalizeEmailInput)
+  .refine((val) => val.length >= 3, "Email address is required")
+  .refine((val) => val.length <= 254, "Email address must be under 254 characters")
   .refine((val) => !EMAIL_DANGEROUS_CHARS.test(val), "Enter a valid email address")
   .refine((val) => EMAIL_PATTERN.test(val), "Enter a valid email address")
   .refine((val) => !isDisposableEmailDomain(val), "Use a permanent email address, not a temporary inbox.");

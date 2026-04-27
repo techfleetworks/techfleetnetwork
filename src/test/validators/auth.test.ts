@@ -93,6 +93,12 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toContain("permanent email");
   });
+
+  it("normalizes email before disposable domain validation", () => {
+    const result = loginSchema.safeParse({ email: "  PERSON@MAILINATOR.COM  ", password: "Str0ng!PassWord" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("permanent email"))).toBe(true);
+  });
 });
 
 describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields, 18.5: Confirm password)", () => {
@@ -173,5 +179,11 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields,
       expect(result.data.firstName).toBe("Jane");
       expect(result.data.lastName).toBe("Doe");
     }
+  });
+
+  it("stores normalized casing for accepted email addresses", () => {
+    const result = registerSchema.safeParse({ ...validInput, email: "  Jane.DOE@Example.COM  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.email).toBe("jane.doe@example.com");
   });
 });
