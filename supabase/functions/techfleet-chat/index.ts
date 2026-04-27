@@ -459,25 +459,31 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // ── Server-side rate limiting per user (WSTG-BUSL-05) ─────────────
-    const { data: rateLimitResult } = await supabase.rpc("check_rate_limit", {
-      p_identifier: user.id,
-      p_action: "chat_request",
-      p_max_attempts: 5,
-      p_window_minutes: 1,
-      p_block_minutes: 5,
-    });
+    // ── Server-side shared chatbot rate limiting (WSTG-BUSL-05) ────────
+    const { data: rateLimitResult, error: rateLimitError } = await supabase.rpc("check_chat_system_rate_limit");
+
+    if (rateLimitError) {
+      log.error("rate-limit", `Chat rate-limit check failed open [${requestId}]: ${rateLimitError.message}`, {
+        requestId,
+        userId: user.id,
+      }, rateLimitError);
+    }
 
     if (rateLimitResult && !rateLimitResult.allowed) {
-      log.warn("rate-limit", `User rate limited [${requestId}]`, { requestId, userId: user.id });
+      log.warn("rate-limit", `System chat rate limit exceeded [${requestId}]`, {
+        requestId,
+        userId: user.id,
+        retryAfter: rateLimitResult.retry_after,
+        limit: rateLimitResult.limit,
+      });
       return new Response(
-        JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
+        JSON.stringify({ error: "Too many chat requests across the system. Please try again after the hourly reset." }),
         {
           status: 429,
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
-            "Retry-After": String(rateLimitResult.retry_after || 60),
+            "Retry-After": String(rateLimitResult.retry_after || 3600),
           },
         },
       );
