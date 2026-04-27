@@ -180,7 +180,7 @@ export default function RegisterPage() {
               {resending ? "Sending verification…" : "Resend verification email"}
             </Button>
             <Link to="/login"><Button variant="outline" className="w-full">Go to Sign In</Button></Link>
-            <Link to="/reset-password" className="text-sm text-primary-text font-medium hover:underline">Forgot your password?</Link>
+            <Link to="/forgot-password" className="text-sm text-primary-text font-medium hover:underline">Forgot your password?</Link>
           </div>
         </div>
       </div>
