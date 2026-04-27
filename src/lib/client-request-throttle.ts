@@ -234,4 +234,6 @@ export function installClientRequestThrottle() {
 export const __clientRequestThrottleTestHooks = {
   buckets,
   consumeBucket,
+  logClientRateLimitHit,
+  rateLimitLogDedupe,
 };
