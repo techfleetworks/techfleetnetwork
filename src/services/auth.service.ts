@@ -2,12 +2,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
+import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
+const blockedAuthInputError = new Error("Enter a valid email address.");
 
 type AuthSession = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>;
 
@@ -127,28 +129,39 @@ async function logAdminLoginIfElevated(userId?: string | null) {
 
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
-    void logAccountActivity("login_attempt_started", { email });
-    return log.track("signInWithPassword", `Authenticating user ${email}`, { email }, async () => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const parsedEmail = emailInputSchema.safeParse(email);
+    const parsedPassword = passwordSchema.pick ? null : null;
+    if (!parsedEmail.success || typeof password !== "string" || password.length < 1 || password.length > 128) {
+      throw blockedAuthInputError;
+    }
+    const safeEmail = parsedEmail.data;
+    void logAccountActivity("login_attempt_started", { email: safeEmail });
+    return log.track("signInWithPassword", `Authenticating user ${safeEmail}`, { email: safeEmail }, async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: safeEmail, password });
       if (error) {
-        log.error("signInWithPassword", `Authentication failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
-        void logAccountActivity("login_failed", { email, errorMessage: error.message, errorCode: error.status });
+        log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
+        void logAccountActivity("login_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
         throw new Error("Invalid email or password. Please try again.");
       }
       if (data.session) writeSessionMarker(data.session);
-      log.info("signInWithPassword", `User ${email} authenticated successfully`, { userId: data.user?.id });
-      void logAccountActivity("login_succeeded", { email, userId: data.user?.id });
+      log.info("signInWithPassword", `User ${safeEmail} authenticated successfully`, { userId: data.user?.id });
+      void logAccountActivity("login_succeeded", { email: safeEmail, userId: data.user?.id });
       void logAdminLoginIfElevated(data.user?.id);
       return data;
     });
   },
 
   async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
-    void logAccountActivity("signup_attempt_started", { email, details: { hasName: Boolean(firstName && lastName) } });
-    return log.track("signUp", `Registering new user ${email}`, { email, firstName, lastName }, async () => {
+    const parsedEmail = emailInputSchema.safeParse(email);
+    if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
+      throw blockedAuthInputError;
+    }
+    const safeEmail = parsedEmail.data;
+    void logAccountActivity("signup_attempt_started", { email: safeEmail, details: { hasName: Boolean(firstName && lastName) } });
+    return log.track("signUp", `Registering new user ${safeEmail}`, { email: safeEmail, firstName, lastName }, async () => {
       const attempt = async () =>
         supabase.auth.signUp({
-          email,
+          email: safeEmail,
           password,
           options: {
             data: {
@@ -178,17 +191,17 @@ export const AuthService = {
         } catch (networkErr: any) {
           // Catches the timeoutPromise rejection AND any fetch-level network failures (offline, DNS, CORS).
           lastErr = { message: networkErr?.message ?? "Network error", status: 0 };
-          void logAccountActivity("signup_network_error", { email, errorMessage: lastErr.message });
+          void logAccountActivity("signup_network_error", { email: safeEmail, errorMessage: lastErr.message });
           break;
         }
       }
 
       if (lastErr) {
         // Persist the REAL Supabase error so admins can diagnose, but surface a friendly mapped message to the user.
-        log.error("signUp", `Registration failed for ${email}: [${lastErr.status ?? "?"}] ${lastErr.message}`,
-          { email, errorCode: lastErr.status, errorName: lastErr.code }, lastErr as Error);
+        log.error("signUp", `Registration failed for ${safeEmail}: [${lastErr.status ?? "?"}] ${lastErr.message}`,
+          { email: safeEmail, errorCode: lastErr.status, errorName: lastErr.code }, lastErr as Error);
         void logAccountActivity("signup_supabase_error", {
-          email,
+          email: safeEmail,
           errorMessage: lastErr.message,
           errorCode: lastErr.status ?? lastErr.code ?? "unknown",
         });
@@ -220,12 +233,12 @@ export const AuthService = {
         throw new Error(lastErr.message || "Unable to create account. Please try again or use a different email.");
       }
 
-      log.info("signUp", `User ${email} registered successfully, confirmation email sent`, {
+      log.info("signUp", `User ${safeEmail} registered successfully, confirmation email sent`, {
         userId: data?.user?.id,
         confirmationRequired: !data?.session,
       });
       void logAccountActivity("signup_succeeded", {
-        email,
+        email: safeEmail,
         userId: data?.user?.id,
         details: { confirmationRequired: !data?.session },
       });
