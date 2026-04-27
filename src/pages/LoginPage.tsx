@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
-import { loginSchema } from "@/lib/validators/auth";
+import { EMAIL_INPUT_PATTERN, loginSchema, normalizeEmailInput } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { toast } from "sonner";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
@@ -182,7 +182,7 @@ export default function LoginPage() {
             <ValidatedField id="email" label="Email address" required error={errors.email} value={email} touched={touched.email}>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} />
+                <Input id="email" type="email" inputMode="email" pattern={EMAIL_INPUT_PATTERN} maxLength={254} placeholder="you@example.com" value={email} onChange={(e) => setEmail(normalizeEmailInput(e.target.value))} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} />
               </div>
             </ValidatedField>
 
