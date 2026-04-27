@@ -165,6 +165,14 @@ export default function LoginPage() {
     }
   };
 
+  const verifyCaptchaBeforeOAuth = () => {
+    if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
+    setCaptchaState(refreshLoginCaptcha());
+    setCaptchaAnswer("");
+    setError("Complete the human verification before trying again.");
+    return false;
+  };
+
   const bc = (field: string, value: string) =>
     validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
 
@@ -184,7 +192,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <GoogleSignInButton />
+          <GoogleSignInButton onBeforeSubmit={verifyCaptchaBeforeOAuth} />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
