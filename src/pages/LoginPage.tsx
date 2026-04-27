@@ -15,10 +15,11 @@ import { useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
-import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
-import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha } from "@/lib/auth-captcha";
+import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
+import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -134,11 +135,11 @@ export default function LoginPage() {
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
-    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+    if (!(await verifyTurnstileToken(captchaToken, "login"))) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "login", failedAttempts: captchaState.failedAttempts + 1 });
       const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
-      setCaptchaAnswer("");
+      setCaptchaToken("");
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -173,7 +174,7 @@ export default function LoginPage() {
       } catch (err: unknown) {
         const nextCaptcha = recordFailedLoginAttempt();
         setCaptchaState(nextCaptcha);
-        setCaptchaAnswer("");
+        setCaptchaToken("");
         // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
         try {
           await supabase.rpc("record_failed_login", {
@@ -191,23 +192,6 @@ export default function LoginPage() {
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       setLoading(false);
     }
-  };
-
-  const verifyCaptchaBeforeOAuth = () => {
-    const currentLockout = getAuthLockoutState();
-    setLockoutState(currentLockout);
-    if (currentLockout.locked) {
-      setError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
-      return false;
-    }
-    if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
-    logCaptchaTelemetry("auth_captcha_failed", { surface: "login_oauth", failedAttempts: captchaState.failedAttempts + 1 });
-    setCaptchaState(refreshLoginCaptcha());
-    setCaptchaAnswer("");
-    const nextLockout = recordInvalidAuthAttempt();
-    setLockoutState(nextLockout);
-    setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
-    return false;
   };
 
   const bc = (field: string, value: string) =>
@@ -260,7 +244,7 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            <AuthCaptchaField id="login-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
+            <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "login-lockout-status" : undefined}>
               {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}
