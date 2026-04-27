@@ -75,7 +75,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    mode === "development" && allowPreviewEvalInDev(),
+    allowPreviewEvalInDev(),
     emitVersionManifest(),
   ].filter(Boolean),
   resolve: {
