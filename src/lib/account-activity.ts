@@ -25,7 +25,6 @@ export type AccountActivity =
   | "login_failed"
   | "login_succeeded"
   | "login_rate_limited"
-  | "auth_captcha_challenge_shown"
   | "auth_captcha_failed"
   | "auth_captcha_fetch_blocked"
   | "password_reset_requested"
