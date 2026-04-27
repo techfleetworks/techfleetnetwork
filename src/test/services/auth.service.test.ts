@@ -73,7 +73,7 @@ describe("AuthService session max-age marker", () => {
     } as never);
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null });
 
-    await AuthService.signInWithPassword("admin@example.com", "password");
+    await AuthService.signInWithPassword("admin@example.com", "ValidPass123!");
     await vi.waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith("write_audit_log", expect.objectContaining({
       p_event_type: "authn_admin_login_success",
       p_user_id: "admin-user",
