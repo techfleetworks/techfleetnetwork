@@ -26,6 +26,7 @@ const PROJECT_FIELD_GUIDANCE: Record<string, string> = {
   discord_role_ids: "Select at least one Discord role for participants.",
 };
 import { z } from "zod";
+import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { format } from "date-fns";
 import {
   Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon,
@@ -302,7 +303,7 @@ export default function ProjectFormPage() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (values: ProjectForm) => {
-      const { data, error } = await supabase.from("projects").insert({ ...values, created_by: user!.id } as any).select("id").single();
+      const { data, error } = await supabase.from("projects").insert(sanitizeRecordFields({ ...values, created_by: user!.id }) as any).select("id").single();
       if (error) throw error;
       return data;
     },
@@ -319,7 +320,7 @@ export default function ProjectFormPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (values: ProjectForm) => {
-      const { error } = await supabase.from("projects").update(values as any).eq("id", id!);
+      const { error } = await supabase.from("projects").update(sanitizeRecordFields(values as unknown as Record<string, unknown>) as any).eq("id", id!);
       if (error) throw error;
     },
     onSuccess: (_, values) => {
