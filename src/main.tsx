@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { installGlobalErrorReporter } from "@/services/error-reporter.service";
 import { startDeployWatcher } from "@/lib/deploy-watcher";
+import { installClientRequestThrottle } from "@/lib/client-request-throttle";
 
 // Unregister any existing service workers and clear caches so users always get fresh content
 if ("serviceWorker" in navigator) {
@@ -15,6 +16,7 @@ if ("serviceWorker" in navigator) {
 }
 
 installGlobalErrorReporter();
+installClientRequestThrottle();
 // Detect new deploys while the tab is open and refresh BEFORE a stale chunk
 // fetch can fail. Pairs with lazyWithRetry as the safety net.
 startDeployWatcher();
