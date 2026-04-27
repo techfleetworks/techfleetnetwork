@@ -1,6 +1,7 @@
+import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
+
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
-import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
 
 const WINDOW_MS = 60_000;
 const MAX_IDENTICAL_REQUESTS = 5;
