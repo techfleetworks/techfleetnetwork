@@ -3,6 +3,7 @@ import { hasFreshLoginCaptchaVerification, isLoginCaptchaRequired } from "@/lib/
 import { formatAuthLockoutMessage, getAuthLockoutState } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { hasFreshOAuthUiMarker } from "@/lib/oauth-ui-guard";
+import { AUTH_THROTTLE_CAPTCHA_CODE, AUTH_THROTTLE_CAPTCHA_MESSAGE } from "@/lib/auth-throttle-captcha";
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
@@ -89,13 +90,14 @@ function consumeAuthAttemptBucket(now = Date.now()): { allowed: boolean; retryAf
 }
 
 function rateLimitedResponse(retryAfterSeconds: number): Response {
-  return new Response(JSON.stringify({ error: "Too many rapid requests. Please wait before trying again." }), {
+  return new Response(JSON.stringify({ error: AUTH_THROTTLE_CAPTCHA_MESSAGE, code: AUTH_THROTTLE_CAPTCHA_CODE }), {
     status: 429,
     statusText: "Too Many Requests",
     headers: {
       "Content-Type": "application/json",
       "Retry-After": String(retryAfterSeconds),
       "X-Client-Rate-Limited": "true",
+      "X-Client-Captcha-Required": "true",
     },
   });
 }
