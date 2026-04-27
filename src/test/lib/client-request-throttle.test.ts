@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { __clientRequestThrottleTestHooks } from "@/lib/client-request-throttle";
 
 describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
@@ -24,5 +24,20 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
     }
 
     expect(__clientRequestThrottleTestHooks.consumeBucket(key, 63_000).allowed).toBe(true);
+  });
+
+  it("deduplicates privacy-safe Cloud log events for throttle hits", async () => {
+    const originalFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true })));
+    const url = new URL("https://backend.example/auth/v1/token?grant_type=password&email=private@example.com");
+    __clientRequestThrottleTestHooks.rateLimitLogDedupe.clear();
+
+    __clientRequestThrottleTestHooks.logClientRateLimitHit(originalFetch as unknown as typeof fetch, url, "POST", "auth_throttle_captcha", 45);
+    __clientRequestThrottleTestHooks.logClientRateLimitHit(originalFetch as unknown as typeof fetch, url, "POST", "auth_throttle_captcha", 45);
+
+    expect(originalFetch).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((originalFetch.mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toMatchObject({ reason: "auth_throttle_captcha", method: "POST", path: "/auth/v1/token", retryAfterSeconds: 45 });
+    expect(JSON.stringify(body)).not.toContain("private@example.com");
+    expect(JSON.stringify(body)).not.toContain("grant_type");
   });
 });
