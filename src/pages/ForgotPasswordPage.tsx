@@ -13,6 +13,7 @@ import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { verifyTurnstileToken } from "@/lib/turnstile-verification";
+import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -73,7 +74,14 @@ export default function ForgotPasswordPage() {
       await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`);
       clearAuthLockout();
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      if (isAuthThrottleCaptchaError(err)) {
+        logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "forgot_password", reason: "client_auth_throttle_429" });
+        setCaptchaState(refreshLoginCaptcha());
+        setCaptchaToken("");
+        setError(err.message);
+        return;
+      }
       // Always show success to prevent email enumeration
       setSubmitted(true);
     } finally {
