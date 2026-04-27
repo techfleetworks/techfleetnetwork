@@ -463,9 +463,9 @@ serve(async (req) => {
     const { data: rateLimitResult } = await supabase.rpc("check_rate_limit", {
       p_identifier: user.id,
       p_action: "chat_request",
-      p_max_attempts: 30,
-      p_window_minutes: 5,
-      p_block_minutes: 10,
+      p_max_attempts: 5,
+      p_window_minutes: 1,
+      p_block_minutes: 5,
     });
 
     if (rateLimitResult && !rateLimitResult.allowed) {
