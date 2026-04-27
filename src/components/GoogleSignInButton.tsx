@@ -6,12 +6,14 @@ import { markOAuthUiInitiated } from "@/lib/oauth-ui-guard";
 interface GoogleSignInButtonProps {
   label?: string;
   className?: string;
+  onBeforeSubmit?: () => boolean;
 }
 
-export function GoogleSignInButton({ label = "Sign in with Google", className }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ label = "Sign in with Google", className, onBeforeSubmit }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
+    if (onBeforeSubmit && !onBeforeSubmit()) return;
     setLoading(true);
     try {
       markOAuthUiInitiated("google");
