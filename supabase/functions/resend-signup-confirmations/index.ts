@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
             subject: 'Confirm your email',
             html,
             text,
-            purpose: 'auth',
+            purpose: 'transactional',
             label: 'signup',
             idempotency_key: `signup-fallback-${c.id}-${attemptNumber}`,
             queued_at: new Date().toISOString(),
