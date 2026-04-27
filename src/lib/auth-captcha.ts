@@ -91,6 +91,14 @@ export function hasFreshLoginCaptchaVerification(): boolean {
   }
 }
 
+export function markLoginCaptchaVerified() {
+  try {
+    sessionStorage.setItem(CAPTCHA_VERIFIED_UNTIL_KEY, String(Date.now() + CAPTCHA_VERIFIED_MS));
+  } catch {
+    // Non-critical: auth forms still rely on the Turnstile verification result before submitting.
+  }
+}
+
 export function verifyLoginCaptchaAnswer(answer: string): boolean {
   const state = readState();
   if (!state.required) return true;
