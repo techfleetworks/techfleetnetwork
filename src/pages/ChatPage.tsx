@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 import { Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { SafeMarkdown } from "@/components/security/SafeMarkdown";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -410,7 +409,7 @@ export default function ChatPage() {
                 {msg.role === "assistant" ? (
                   <div>
                     <div className="fleety-prose">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{msg.content}</ReactMarkdown>
+                      <SafeMarkdown>{msg.content}</SafeMarkdown>
                     </div>
                     {!isLoading && msg.content.length > 0 && (
                       <div className="mt-3 pt-2 border-t border-border/50">

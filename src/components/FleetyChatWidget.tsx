@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { SafeMarkdown } from "@/components/security/SafeMarkdown";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -391,7 +390,7 @@ export function FleetyChatWidget() {
                   {msg.role === "assistant" ? (
                     <div>
                       <div className="fleety-prose prose-sm">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{msg.content}</ReactMarkdown>
+                        <SafeMarkdown>{msg.content}</SafeMarkdown>
                       </div>
                       {!isLoading && msg.content.length > 0 && (
                         <div className="mt-2 pt-1 border-t border-border/50">
