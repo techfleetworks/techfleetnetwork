@@ -108,7 +108,7 @@ export function shouldInspectClientInput(url: URL, method: string): boolean {
 export async function blockUnsafeClientInput(input: RequestInfo | URL, init: RequestInit | undefined, url: URL, method: string): Promise<Response | null> {
   if (!shouldInspectClientInput(url, method)) return null;
   const verdict = await inspectBody(input, init);
-  if (verdict.allowed) return null;
+  if (verdict.allowed === true) return null;
   return rejectionResponse(verdict.reason);
 }
 
