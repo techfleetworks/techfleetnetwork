@@ -52,7 +52,9 @@ const makeSession = (userId: string, issuedAgoMs = 60_000) => ({
 describe("AuthService session max-age marker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(supabase.auth.getSession).mockReset();
     sessionStorage.clear();
+    localStorage.clear();
     vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     vi.mocked(supabase.from).mockReturnValue({
@@ -81,6 +83,7 @@ describe("AuthService session max-age marker", () => {
 
   it("does not sign out a user because another account left a stale timestamp", async () => {
     const session = makeSession("current-user");
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
     sessionStorage.setItem("session_started_at", JSON.stringify({ version: 1, userId: "different-user", startedAtMs: Date.now() - 5 * 60 * 60 * 1000 }));
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 
@@ -91,6 +94,7 @@ describe("AuthService session max-age marker", () => {
 
   it("migrates legacy stale numeric timestamps without killing a fresh session", async () => {
     const session = makeSession("legacy-user");
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
     sessionStorage.setItem("session_started_at", String(Date.now() - 5 * 60 * 60 * 1000));
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 
@@ -101,6 +105,7 @@ describe("AuthService session max-age marker", () => {
 
   it("still expires the same user's genuinely over-age session", async () => {
     const session = makeSession("expired-user", 5 * 60 * 60 * 1000);
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
     sessionStorage.setItem(
       "session_started_at",
       JSON.stringify({ version: 1, userId: "expired-user", startedAtMs: Date.now() - 5 * 60 * 60 * 1000 }),
@@ -109,6 +114,11 @@ describe("AuthService session max-age marker", () => {
 
     await expect(AuthService.getSession()).resolves.toBeNull();
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("does not call the backend when no auth token is stored locally", async () => {
+    await expect(AuthService.getSession()).resolves.toBeNull();
+    expect(supabase.auth.getSession).not.toHaveBeenCalled();
   });
 
   it("clears local auth state when the stored refresh token has been rotated away", async () => {
