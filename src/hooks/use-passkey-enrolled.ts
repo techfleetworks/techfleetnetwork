@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PASSKEY_ENROLLMENT_CHANGED_EVENT } from "@/lib/passkey-events";
 
 /**
  * Returns true once the current admin user has at least one enrolled passkey.
@@ -16,15 +17,27 @@ export function usePasskeyEnrolled() {
       setEnrolled(null);
       return;
     }
-    (async () => {
+    const checkEnrollment = async () => {
+      setEnrolled(null);
       const { count, error } = await supabase
         .from("passkey_credentials")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
         .neq("device_name", "_pending_challenge");
-      if (!cancelled) setEnrolled(!error && (count ?? 0) > 0);
-    })();
-    return () => { cancelled = true; };
+      if (cancelled) return;
+      if (error) {
+        console.warn("Passkey enrollment check failed", error);
+        setEnrolled(null);
+        return;
+      }
+      setEnrolled((count ?? 0) > 0);
+    };
+    void checkEnrollment();
+    window.addEventListener(PASSKEY_ENROLLMENT_CHANGED_EVENT, checkEnrollment);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PASSKEY_ENROLLMENT_CHANGED_EVENT, checkEnrollment);
+    };
   }, [user]);
 
   return enrolled;
