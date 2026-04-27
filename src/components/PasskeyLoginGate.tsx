@@ -92,7 +92,7 @@ export function PasskeyLoginGate() {
             </div>
             <DialogTitle className="text-center">Verify your passkey</DialogTitle>
             <DialogDescription className="text-center">
-              Admin access requires a passkey check on each new device, then once every 30 days. We won't ask again on this device until the trust window expires.
+              Admin access requires a passkey check for every new login session. This protects admin tools if a browser token is stolen.
             </DialogDescription>
           </DialogHeader>
         )}
