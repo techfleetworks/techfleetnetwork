@@ -18,6 +18,7 @@ import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -99,6 +100,10 @@ export default function LoginPage() {
   }, [from]);
 
   useEffect(() => {
+    logCaptchaTelemetry("auth_captcha_challenge_shown", { surface: "login", failedAttempts: captchaState.failedAttempts });
+  }, [captchaState.failedAttempts]);
+
+  useEffect(() => {
     if (!lockoutState.locked) return;
     const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
     return () => window.clearInterval(timer);
@@ -130,6 +135,7 @@ export default function LoginPage() {
       return;
     }
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      logCaptchaTelemetry("auth_captcha_failed", { surface: "login", failedAttempts: captchaState.failedAttempts + 1 });
       const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
       setCaptchaAnswer("");
@@ -195,6 +201,7 @@ export default function LoginPage() {
       return false;
     }
     if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
+    logCaptchaTelemetry("auth_captcha_failed", { surface: "login_oauth", failedAttempts: captchaState.failedAttempts + 1 });
     setCaptchaState(refreshLoginCaptcha());
     setCaptchaAnswer("");
     const nextLockout = recordInvalidAuthAttempt();
