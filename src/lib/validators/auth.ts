@@ -2,6 +2,31 @@ import { z } from "zod";
 
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 const EMAIL_DANGEROUS_CHARS = /[<>"'`\\\s]/;
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  "10minutemail.com",
+  "guerrillamail.com",
+  "guerrillamail.net",
+  "mailinator.com",
+  "maildrop.cc",
+  "moakt.com",
+  "sharklasers.com",
+  "tempmail.com",
+  "temp-mail.org",
+  "throwawaymail.com",
+  "trashmail.com",
+  "yopmail.com",
+]);
+
+export function getEmailDomain(value: string): string {
+  return value.trim().toLowerCase().split("@").pop()?.replace(/\.+$/, "") ?? "";
+}
+
+export function isDisposableEmailDomain(value: string): boolean {
+  const domain = getEmailDomain(value);
+  if (!domain) return false;
+  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) return true;
+  return Array.from(DISPOSABLE_EMAIL_DOMAINS).some((blockedDomain) => domain.endsWith(`.${blockedDomain}`));
+}
 
 export function isStrongPassword(value: string): boolean {
   return (
@@ -22,7 +47,8 @@ export const emailInputSchema = z
   .min(3, "Email address is required")
   .max(254, "Email address must be under 254 characters")
   .refine((val) => !EMAIL_DANGEROUS_CHARS.test(val), "Enter a valid email address")
-  .refine((val) => EMAIL_PATTERN.test(val), "Enter a valid email address");
+  .refine((val) => EMAIL_PATTERN.test(val), "Enter a valid email address")
+  .refine((val) => !isDisposableEmailDomain(val), "Use a permanent email address, not a temporary inbox.");
 
 const safeText = (label: string, max: number) =>
   z

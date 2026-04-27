@@ -55,7 +55,7 @@ describe("passwordSchema (BDD 2.3: Weak password rejection)", () => {
 
 describe("loginSchema (BDD 2.5: Invalid email format)", () => {
   it("accepts valid email and password", () => {
-    const result = loginSchema.safeParse({ email: "test@example.com", password: "anything" });
+    const result = loginSchema.safeParse({ email: "test@example.com", password: "Str0ng!PassWord" });
     expect(result.success).toBe(true);
   });
 
@@ -73,11 +73,11 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
   it("rejects empty password", () => {
     const result = loginSchema.safeParse({ email: "test@example.com", password: "" });
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toContain("required");
+    expect(result.error?.issues[0].message).toContain("12 characters");
   });
 
   it("trims whitespace from email", () => {
-    const result = loginSchema.safeParse({ email: "  test@example.com  ", password: "x" });
+    const result = loginSchema.safeParse({ email: "  test@example.com  ", password: "Str0ng!PassWord" });
     expect(result.success).toBe(true);
     expect(result.data?.email).toBe("test@example.com");
   });
@@ -86,6 +86,12 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
     const longEmail = "a".repeat(250) + "@b.com";
     const result = loginSchema.safeParse({ email: longEmail, password: "x" });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects disposable email domains before auth submission", () => {
+    const result = loginSchema.safeParse({ email: "person@mailinator.com", password: "x" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("permanent email");
   });
 });
 
@@ -117,6 +123,12 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields,
   it("rejects invalid email", () => {
     const result = registerSchema.safeParse({ ...validInput, email: "not-an-email" });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects temporary inbox email domains", () => {
+    const result = registerSchema.safeParse({ ...validInput, email: "jane@yopmail.com" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("permanent email"))).toBe(true);
   });
 
   it("rejects weak password", () => {
