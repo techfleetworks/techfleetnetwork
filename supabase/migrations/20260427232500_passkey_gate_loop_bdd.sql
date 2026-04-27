@@ -21,7 +21,7 @@ INSERT INTO public.bdd_scenarios (
     Then the passkey gate is marked verified immediately
     And stale background check results must not reopen the dialog
     And the verified device remains trusted for 30 days unless revoked',
-  'built',
+  'implemented',
   'unit',
   'src/hooks/use-passkey-login-gate.ts',
   'Regression coverage for passkey prompt loops caused by stale async verification checks.'

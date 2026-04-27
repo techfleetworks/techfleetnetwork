@@ -20,8 +20,8 @@ INSERT INTO public.bdd_scenarios (
     Then the outbound request uses the supported app-email purpose
     And auth emails still use the priority auth queue
     And invalid purpose errors do not repeat until dead-letter routing',
-  'built',
-  'smoke',
+  'implemented',
+  'manual',
   'supabase/functions/process-email-queue/index.ts',
   'Regression coverage for invalid purpose failures causing five retries and DLQ events.'
 )

@@ -19,7 +19,7 @@ INSERT INTO public.bdd_scenarios (
     When the app performs trusted-device and passkey verification requests
     Then the generic client request throttle must not block those security requests
     And malicious rapid non-passkey backend requests remain rate limited',
-  'built',
+  'implemented',
   'unit',
   'src/test/lib/client-request-throttle.test.ts',
   'Regression coverage for client-side throttle false positives on passkey MFA flows.'
