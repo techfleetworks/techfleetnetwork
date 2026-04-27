@@ -95,13 +95,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: insertErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Mark THIS DEVICE (not the rotating JWT) as having passed the second
-    // factor for 30 days. The act of completing a WebAuthn registration
-    // ceremony is a stronger user-presence proof than the gate's separate
-    // authentication assertion, so it is safe to bridge the just-completed
-    // registration to a verified-device marker. This avoids the bug where
-    // a freshly-enrolled admin gets re-prompted seconds later, AND keeps
-    // them un-prompted on the same device for the full 30-day trust window.
+    // Legacy bridge for older clients that still send device_id. Current admin
+    // access requires a fresh passkey assertion for every login session.
     if (typeof device_id === "string" && device_id.length >= 16) {
       try {
         const hashBuf = await crypto.subtle.digest(
@@ -115,13 +110,12 @@ Deno.serve(async (req) => {
           req.headers.get("cf-connecting-ip") ||
           req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
           null;
-        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
         await admin.from("passkey_login_sessions").upsert(
           {
             user_id: user.id,
             session_token_hash: deviceHash,
             verified_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
+            expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
             ip_address: ip,
           },
           { onConflict: "user_id,session_token_hash" },
