@@ -22,22 +22,22 @@ export function usePasskeyLoginGate() {
   const passkeyEnrolled = usePasskeyEnrolled();
   const [verified, setVerified] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
-  const [lastCheckedToken, setLastCheckedToken] = useState<string | null>(null);
+  const [lastCheckedUserId, setLastCheckedUserId] = useState<string | null>(null);
 
   const recheck = useCallback(async () => {
     if (!user || !session) {
       setVerified(null);
-      setLastCheckedToken(null);
+      setLastCheckedUserId(null);
       return;
     }
     setChecking(true);
     try {
       const ok = await PasskeyLoginService.isCurrentSessionVerified();
       setVerified(ok);
-      setLastCheckedToken(session.access_token);
+      setLastCheckedUserId(user.id);
     } catch {
       setVerified(false);
-      setLastCheckedToken(session.access_token);
+      setLastCheckedUserId(user.id);
     } finally {
       setChecking(false);
     }
@@ -45,9 +45,9 @@ export function usePasskeyLoginGate() {
 
   const markVerified = useCallback(() => {
     setVerified(true);
-    setLastCheckedToken(session?.access_token ?? null);
+    setLastCheckedUserId(user?.id ?? null);
     setChecking(false);
-  }, [session?.access_token]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
@@ -55,11 +55,11 @@ export function usePasskeyLoginGate() {
     if (!isAdmin) { setVerified(true); return; } // non-admins are not gated
     if (passkeyEnrolled === null) return;        // wait for passkey check
     if (passkeyEnrolled === false) { setVerified(true); return; } // no passkey → gate is no-op
-    if (lastCheckedToken !== session?.access_token) setVerified(null);
-    if (verified === true && lastCheckedToken === session?.access_token) return;
-    if (lastCheckedToken === session?.access_token && checking) return;
+    if (lastCheckedUserId !== user.id) setVerified(null);
+    if (verified === true && lastCheckedUserId === user.id) return;
+    if (lastCheckedUserId === user.id && checking) return;
     void recheck();
-  }, [authLoading, adminLoading, user, isAdmin, passkeyEnrolled, session?.access_token, verified, lastCheckedToken, checking, recheck]);
+  }, [authLoading, adminLoading, user, isAdmin, passkeyEnrolled, verified, lastCheckedUserId, checking, recheck]);
 
   const ready = !authLoading && !adminLoading && (!user || !isAdmin || passkeyEnrolled !== null);
   const needsGate = ready && !!user && isAdmin && passkeyEnrolled === true && verified === false;
