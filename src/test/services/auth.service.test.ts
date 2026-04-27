@@ -56,6 +56,7 @@ describe("AuthService session max-age marker", () => {
     sessionStorage.clear();
     localStorage.clear();
     vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { valid: true }, error: null });
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn().mockReturnThis(),
