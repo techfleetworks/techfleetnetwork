@@ -4,6 +4,7 @@ import { logAccountActivity } from "@/lib/account-activity";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
 import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
+import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
@@ -135,6 +136,8 @@ export const AuthService = {
       throw blockedAuthInputError;
     }
     const safeEmail = parsedEmail.data;
+    const domainCheck = await validateEmailDomainExists(safeEmail);
+    if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     void logAccountActivity("login_attempt_started", { email: safeEmail });
     return log.track("signInWithPassword", `Authenticating user ${safeEmail}`, { email: safeEmail }, async () => {
       const { data, error } = captchaToken
@@ -172,6 +175,8 @@ export const AuthService = {
       throw blockedAuthInputError;
     }
     const safeEmail = parsedEmail.data;
+    const domainCheck = await validateEmailDomainExists(safeEmail);
+    if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     void logAccountActivity("signup_attempt_started", { email: safeEmail, details: { hasName: Boolean(firstName && lastName) } });
     return log.track("signUp", `Registering new user ${safeEmail}`, { email: safeEmail, firstName, lastName }, async () => {
       const attempt = async () =>
@@ -267,6 +272,8 @@ export const AuthService = {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success) throw blockedAuthInputError;
     const safeEmail = parsedEmail.data;
+    const domainCheck = await validateEmailDomainExists(safeEmail);
+    if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     void logAccountActivity("signup_confirmation_resend_requested", { email: safeEmail });
     return log.track("resendSignupConfirmation", `Requesting signup confirmation email for ${safeEmail}`, { email: safeEmail }, async () => {
       const { error } = await supabase.auth.resend({
@@ -299,6 +306,8 @@ export const AuthService = {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success) throw blockedAuthInputError;
     const safeEmail = parsedEmail.data;
+    const domainCheck = await validateEmailDomainExists(safeEmail);
+    if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     return log.track("resetPassword", `Sending password reset for ${safeEmail}`, { email: safeEmail }, async () => {
       const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, { redirectTo });
       if (error) {

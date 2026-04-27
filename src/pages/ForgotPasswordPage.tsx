@@ -14,6 +14,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, record
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
+import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -45,6 +46,14 @@ export default function ForgotPasswordPage() {
     const result = emailInputSchema.safeParse(email);
     if (!result.success) {
       setError(result.error.issues[0].message);
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      return;
+    }
+    const domainCheck = await validateEmailDomainExists(result.data);
+    if (!domainCheck.valid) {
+      setError(domainCheck.message ?? "Use an email address with a real domain.");
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
