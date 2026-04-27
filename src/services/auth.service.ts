@@ -3,7 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
-import { createAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
+import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
@@ -191,6 +191,7 @@ export const AuthService = {
           if (!transient) break;
           await new Promise(r => setTimeout(r, 600 * (i + 1)));
         } catch (networkErr: any) {
+          if (isAuthThrottleCaptchaError(networkErr)) throw networkErr;
           // Catches the timeoutPromise rejection AND any fetch-level network failures (offline, DNS, CORS).
           lastErr = { message: networkErr?.message ?? "Network error", status: 0 };
           void logAccountActivity("signup_network_error", { email: safeEmail, errorMessage: lastErr.message });
