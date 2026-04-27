@@ -216,6 +216,35 @@ export const AuthService = {
     });
   },
 
+  async resendSignupConfirmation(email: string, redirectTo: string) {
+    void logAccountActivity("signup_confirmation_resend_requested", { email });
+    return log.track("resendSignupConfirmation", `Requesting signup confirmation email for ${email}`, { email }, async () => {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: redirectTo },
+      });
+
+      if (error) {
+        log.warn("resendSignupConfirmation", `Confirmation resend failed for ${email}: ${error.message}`, { email, errorCode: error.status }, error);
+        void logAccountActivity("signup_confirmation_resend_failed", {
+          email,
+          errorMessage: error.message,
+          errorCode: error.status,
+        });
+
+        const message = error.message.toLowerCase();
+        if (message.includes("rate") || error.status === 429) {
+          throw new Error("Too many verification email requests. Please wait a few minutes and try again.");
+        }
+        throw new Error("We could not resend the verification email right now. Please try again in a minute.");
+      }
+
+      log.info("resendSignupConfirmation", `Confirmation resend accepted for ${email}`, { email });
+      void logAccountActivity("signup_confirmation_resend_succeeded", { email });
+    });
+  },
+
   async resetPassword(email: string, redirectTo: string) {
     return log.track("resetPassword", `Sending password reset for ${email}`, { email }, async () => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });

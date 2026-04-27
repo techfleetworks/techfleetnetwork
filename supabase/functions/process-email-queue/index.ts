@@ -1,5 +1,5 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -7,9 +7,9 @@ const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
-type AnySupabaseClient = SupabaseClient<any, any, any>
 type QueuePayload = Record<string, unknown>
-type QueueMessage = { msg_id: number; read_ct: number; message: QueuePayload }
+type QueueMessage = { msg_id: number; read_ct: number; enqueued_at?: string; message: QueuePayload }
+type ServiceClient = ReturnType<typeof createClient<any>>
 
 function stringField(payload: QueuePayload, key: string, fallback = ''): string {
   const value = payload[key]
@@ -63,20 +63,20 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: AnySupabaseClient,
+  supabase: ServiceClient,
   queue: string,
   msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: typeof payload.message_id === 'string' ? payload.message_id : crypto.randomUUID(),
-    template_name: (payload.label || queue) as string,
-    recipient_email: typeof payload.to === 'string' ? payload.to : '',
+    message_id: stringField(payload, 'message_id', crypto.randomUUID()),
+    template_name: stringField(payload, 'label', queue),
+    recipient_email: stringField(payload, 'to'),
     status: 'dlq',
     error_message: reason,
   })
-  const { error } = await supabase.rpc('move_to_dlq' as never, {
+  const { error } = await supabase.rpc('move_to_dlq', {
     source_queue: queue,
     dlq_name: `${queue}_dlq`,
     message_id: msg.msg_id,
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient<any>(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
@@ -206,10 +206,12 @@ Deno.serve(async (req) => {
       const failedAttempts =
         payload?.message_id && typeof payload.message_id === 'string'
           ? (failedAttemptsByMessageId.get(payload.message_id) ?? 0)
-          : 0
+          : msg.read_ct ?? 0
 
-      // Drop expired messages (TTL exceeded)
-      const queuedAt = stringField(payload, 'queued_at')
+      // Drop expired messages (TTL exceeded).
+      // Prefer payload.queued_at when present; fall back to PGMQ's enqueued_at
+      // which is always set by the queue.
+      const queuedAt = stringField(payload, 'queued_at', msg.enqueued_at ?? '')
       if (queuedAt) {
         const ageMs = Date.now() - new Date(queuedAt).getTime()
         const maxAgeMs = ttlMinutes[queue] * 60 * 1000
@@ -232,11 +234,12 @@ Deno.serve(async (req) => {
       }
 
       // Guard: skip if another worker already sent this message (VT expired race)
-      if (payload.message_id) {
+      const payloadMessageId = stringField(payload, 'message_id')
+      if (payloadMessageId) {
         const { data: alreadySent } = await supabase
           .from('email_send_log')
           .select('id')
-          .eq('message_id', payload.message_id)
+          .eq('message_id', payloadMessageId)
           .eq('status', 'sent')
           .maybeSingle()
 
@@ -244,7 +247,7 @@ Deno.serve(async (req) => {
           console.warn('Skipping duplicate send (already sent)', {
             queue,
             msg_id: msg.msg_id,
-            message_id: payload.message_id,
+            message_id: payloadMessageId,
           })
           const { error: dupDelError } = await supabase.rpc('delete_email', {
             queue_name: queue,
@@ -258,9 +261,6 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Defensive: generate plain-text fallback if trigger-enqueued emails omit 'text'
-        const emailText = stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet'));
-
         await sendLovableEmail(
           {
             run_id: stringField(payload, 'run_id') || undefined,
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
             sender_domain: stringField(payload, 'sender_domain') || undefined,
             subject: stringField(payload, 'subject'),
             html: stringField(payload, 'html'),
-            text: emailText,
+            text: stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet')),
             purpose: stringField(payload, 'purpose') || undefined,
             label: stringField(payload, 'label') || undefined,
             idempotency_key: stringField(payload, 'idempotency_key') || undefined,
@@ -284,9 +284,9 @@ Deno.serve(async (req) => {
 
         // Log success
         await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
+          message_id: stringField(payload, 'message_id'),
+          template_name: stringField(payload, 'label', queue),
+          recipient_email: stringField(payload, 'to'),
           status: 'sent',
         })
 
@@ -311,9 +311,9 @@ Deno.serve(async (req) => {
 
         if (isRateLimited(error)) {
           await supabase.from('email_send_log').insert({
-            message_id: payload.message_id,
-            template_name: payload.label || queue,
-            recipient_email: payload.to,
+            message_id: stringField(payload, 'message_id'),
+            template_name: stringField(payload, 'label', queue),
+            recipient_email: stringField(payload, 'to'),
             status: 'rate_limited',
             error_message: errorMsg.slice(0, 1000),
           })
@@ -348,9 +348,9 @@ Deno.serve(async (req) => {
 
         // Log non-429 failures to track real retry attempts.
         await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
+          message_id: stringField(payload, 'message_id'),
+          template_name: stringField(payload, 'label', queue),
+          recipient_email: stringField(payload, 'to'),
           status: 'failed',
           error_message: errorMsg.slice(0, 1000),
         })
