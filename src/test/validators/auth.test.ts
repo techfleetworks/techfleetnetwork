@@ -87,6 +87,12 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
     const result = loginSchema.safeParse({ email: longEmail, password: "x" });
     expect(result.success).toBe(false);
   });
+
+  it("rejects disposable email domains before auth submission", () => {
+    const result = loginSchema.safeParse({ email: "person@mailinator.com", password: "x" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].message).toContain("permanent email");
+  });
 });
 
 describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields, 18.5: Confirm password)", () => {
@@ -117,6 +123,12 @@ describe("registerSchema (BDD 2.1: Successful registration, 2.7: Missing fields,
   it("rejects invalid email", () => {
     const result = registerSchema.safeParse({ ...validInput, email: "not-an-email" });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects temporary inbox email domains", () => {
+    const result = registerSchema.safeParse({ ...validInput, email: "jane@yopmail.com" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((i) => i.message.includes("permanent email"))).toBe(true);
   });
 
   it("rejects weak password", () => {
