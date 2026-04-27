@@ -18,6 +18,7 @@ import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { RouteChangeReloader } from "@/components/RouteChangeReloader";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
+import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
 
 // Eagerly loaded routes (critical path)
 import Index from "./pages/Index";
@@ -103,6 +104,8 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+if (consumeQueryCacheResetPending()) queryClient.clear();
 
 
 const App = () => (
