@@ -8,6 +8,7 @@
 // server-side via has_role() — never trust client claims.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { requireFreshAdminPasskey } from '../_shared/admin-step-up.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +47,9 @@ Deno.serve(async (req) => {
     _role: 'admin',
   })
   if (roleErr || isAdmin !== true) return jsonResponse({ error: 'Forbidden' }, 403)
+
+  const stepUp = await requireFreshAdminPasskey(admin, authHeader, userData.user.id, 10)
+  if (!stepUp.ok) return jsonResponse({ error: stepUp.error }, stepUp.status)
 
   // 2) Parse + validate input.
   let email: string
