@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
+const EMAIL_DANGEROUS_CHARS = /[<>"'`\\\s]/;
+
+export const EMAIL_INPUT_PATTERN = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,63}";
+
+export function normalizeEmailInput(value: string) {
+  return value.replace(/[<>"'`\\\s]/g, "").slice(0, 254).toLowerCase();
+}
+
+export const emailInputSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, "Email address is required")
+  .max(254, "Email address must be under 254 characters")
+  .refine((val) => !EMAIL_DANGEROUS_CHARS.test(val), "Enter a valid email address")
+  .refine((val) => EMAIL_PATTERN.test(val), "Enter a valid email address");
+
 const safeText = (label: string, max: number) =>
   z
     .string()
@@ -18,14 +36,14 @@ export const passwordSchema = z
   .regex(/[^A-Za-z0-9]/, "One special character required");
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Invalid email address").max(255),
+  email: emailInputSchema,
   password: z.string().min(1, "Password is required").max(128),
 });
 
 export const registerSchema = z.object({
   firstName: safeText("First name", 100),
   lastName: safeText("Last name", 100),
-  email: z.string().trim().email("Invalid email address").max(255),
+  email: emailInputSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1, "Please confirm your password"),
   agreedToTerms: z.literal(true, {
