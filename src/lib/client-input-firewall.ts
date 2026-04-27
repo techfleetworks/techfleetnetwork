@@ -1,4 +1,5 @@
 import { hasActiveXssPattern } from "@/lib/security";
+import { isStrongPassword } from "@/lib/validators/auth";
 
 type Verdict = { allowed: true } | { allowed: false; reason: string };
 
@@ -11,6 +12,7 @@ const MAX_OBJECT_DEPTH = 12;
 const ATTACK_LOCK_KEY = "tfn:client-input-firewall:attack-lock-until";
 const ATTACK_LOCK_MS = 10 * 60_000;
 const EMAIL_KEY_PATTERN = /(^|_|-)email($|_|-)/i;
+const PASSWORD_KEY_PATTERN = /(^|_|-)password($|_|-)/i;
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 const DANGEROUS_EMAIL_CHARS = /[<>"'`\\\s]/;
 const hasUnsafeControlChar = (value: string) => {
@@ -54,6 +56,7 @@ function inspectString(key: string, value: string): Verdict {
   if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(value) || !EMAIL_PATTERN.test(value))) {
     return blocked("Enter a valid email address.");
   }
+  if (PASSWORD_KEY_PATTERN.test(key) && value && !isStrongPassword(value)) return blocked("Password does not meet the security requirements.");
   if (hasActiveXssPattern(value)) return blocked("Input contains unsafe content.");
   return { allowed: true };
 }
