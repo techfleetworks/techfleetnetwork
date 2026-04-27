@@ -47,8 +47,8 @@ export function isStrongPassword(value: string): boolean {
 export const emailInputSchema = z
   .string()
   .transform(normalizeEmailInput)
-  .min(3, "Email address is required")
-  .max(254, "Email address must be under 254 characters")
+  .refine((val) => val.length >= 3, "Email address is required")
+  .refine((val) => val.length <= 254, "Email address must be under 254 characters")
   .refine((val) => !EMAIL_DANGEROUS_CHARS.test(val), "Enter a valid email address")
   .refine((val) => EMAIL_PATTERN.test(val), "Enter a valid email address")
   .refine((val) => !isDisposableEmailDomain(val), "Use a permanent email address, not a temporary inbox.");
