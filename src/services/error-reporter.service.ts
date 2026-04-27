@@ -151,6 +151,8 @@ const SUPPRESSED_PATTERNS = [
   "Failed to update a ServiceWorker",
   "An unknown error occurred when fetching the script",
   "Extension context invalidated",
+  "Refused to evaluate a string as JavaScript because 'unsafe-eval' is not an allowed source of script",
+  "at predicate (eval at evaluate",
 ] as const;
 
 function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
