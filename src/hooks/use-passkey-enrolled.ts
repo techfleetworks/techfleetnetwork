@@ -24,7 +24,7 @@ export function usePasskeyEnrolled() {
       const timeout = new Promise<never>((_, reject) => {
         window.setTimeout(() => reject(new Error("Passkey enrollment check timed out")), PASSKEY_ENROLLMENT_TIMEOUT_MS);
       });
-      let result: Awaited<ReturnType<typeof supabase.from<"passkey_credentials">>> extends never ? never : { count: number | null; error: Error | null };
+      let result: { count: number | null; error: { message?: string } | null };
       try {
         result = await Promise.race([
           supabase
