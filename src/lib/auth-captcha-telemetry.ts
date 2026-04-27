@@ -1,6 +1,6 @@
 import { logAccountActivity } from "@/lib/account-activity";
 
-type CaptchaTelemetryEvent = "auth_captcha_challenge_shown" | "auth_captcha_failed" | "auth_captcha_fetch_blocked";
+type CaptchaTelemetryEvent = "auth_captcha_failed" | "auth_captcha_fetch_blocked";
 
 const TELEMETRY_DEDUPE_MS = 15_000;
 const lastLoggedAt = new Map<string, number>();
