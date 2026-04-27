@@ -41,6 +41,9 @@ export function hasActiveXssPattern(input: string): boolean {
 
 /** Sanitize a string for safe display (prevents XSS via innerHTML) */
 export function sanitizeText(input: string): string {
+  if (typeof document === "undefined") {
+    return input.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char] ?? char);
+  }
   const div = document.createElement("div");
   div.textContent = input;
   return div.innerHTML;
