@@ -258,7 +258,7 @@ export default function RegisterPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
-          <GoogleSignInButton label="Sign up with Google" onBeforeSubmit={verifyCaptchaBeforeOAuth} />
+          <GoogleSignInButton label="Sign up with Google" />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
