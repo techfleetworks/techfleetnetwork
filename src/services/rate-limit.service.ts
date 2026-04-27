@@ -61,9 +61,9 @@ export const RateLimitService = {
       const { data, error } = await supabase.rpc("check_rate_limit", {
         p_identifier: hashed,
         p_action: action,
-        p_max_attempts: isLogin ? 5 : 3,
+        p_max_attempts: isLogin ? 6 : 3,
         p_window_minutes: 15,
-        p_block_minutes: isLogin ? 30 : 60,
+        p_block_minutes: isLogin ? 60 : 60,
       });
       if (error) {
         log.warn("check", `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action }, error);
