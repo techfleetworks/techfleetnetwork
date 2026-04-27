@@ -129,7 +129,7 @@ async function logAdminLoginIfElevated(userId?: string | null) {
 }
 
 export const AuthService = {
-  async signInWithPassword(email: string, password: string) {
+  async signInWithPassword(email: string, password: string, captchaToken?: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
       throw blockedAuthInputError;
@@ -137,7 +137,21 @@ export const AuthService = {
     const safeEmail = parsedEmail.data;
     void logAccountActivity("login_attempt_started", { email: safeEmail });
     return log.track("signInWithPassword", `Authenticating user ${safeEmail}`, { email: safeEmail }, async () => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: safeEmail, password });
+      const { data, error } = captchaToken
+        ? await supabase.functions.invoke<{ session: AuthSession; user: AuthSession["user"] }>("login-with-captcha", {
+            body: { email: safeEmail, password, captchaToken },
+          }).then(async (res) => {
+            if (res.error) return { data: null, error: res.error };
+            if (res.data?.session?.access_token && res.data.session.refresh_token) {
+              const setSessionResult = await supabase.auth.setSession({
+                access_token: res.data.session.access_token,
+                refresh_token: res.data.session.refresh_token,
+              });
+              return setSessionResult;
+            }
+            return { data: null, error: new Error("Invalid login response") };
+          })
+        : await supabase.auth.signInWithPassword({ email: safeEmail, password });
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
         void logAccountActivity("login_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
