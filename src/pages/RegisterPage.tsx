@@ -16,6 +16,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 import { logAccountActivity } from "@/lib/account-activity";
 import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -71,8 +73,20 @@ export default function RegisterPage() {
     }
   }, [redirectParam]);
 
+  useEffect(() => {
+    if (!lockoutState.locked) return;
+    const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [lockoutState.locked]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const currentLockout = getAuthLockoutState();
+    setLockoutState(currentLockout);
+    if (currentLockout.locked) {
+      setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      return;
+    }
     // Mark all fields as touched
     const allTouched: Record<string, boolean> = {
       firstName: true, lastName: true, email: true,
@@ -97,13 +111,18 @@ export default function RegisterPage() {
         password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
       });
       scrollToFirstError();
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
 
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaAnswer("");
-      setAuthError("Complete the human verification before trying again.");
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
       return;
     }
 
@@ -131,9 +150,13 @@ export default function RegisterPage() {
         result.data.lastName,
         window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
       );
+      clearAuthLockout();
       setSubmitted(true);
     } catch (err: any) {
       setAuthError(err.message);
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
     } finally {
       setLoading(false);
     }
@@ -168,10 +191,18 @@ export default function RegisterPage() {
   };
 
   const verifyCaptchaBeforeOAuth = () => {
+    const currentLockout = getAuthLockoutState();
+    setLockoutState(currentLockout);
+    if (currentLockout.locked) {
+      setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      return false;
+    }
     if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
     setCaptchaState(refreshLoginCaptcha());
     setCaptchaAnswer("");
-    setAuthError("Complete the human verification before trying again.");
+    const nextLockout = recordInvalidAuthAttempt();
+    setLockoutState(nextLockout);
+    setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
     return false;
   };
 
@@ -284,9 +315,10 @@ export default function RegisterPage() {
 
             <AuthCaptchaField id="register-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Create Account"}
+            <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "register-lockout-status" : undefined}>
+              {loading ? "Creating account…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Create Account"}
             </Button>
+            {lockoutState.locked && <p id="register-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
           </form>
         </div>
 
