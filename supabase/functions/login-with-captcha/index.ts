@@ -1,6 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { validateDomain } from "../validate-email-domain/index.ts";
 
 const log = createEdgeLogger("login-with-captcha");
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -26,6 +27,10 @@ function publicAuthError(status = 401) {
   return jsonResponse({ error: "Invalid email or password. Please try again." }, status);
 }
 
+function emailDomain(email: string): string {
+  return email.toLowerCase().split("@").pop()?.replace(/\.+$/, "") ?? "";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -45,6 +50,11 @@ Deno.serve(async (req) => {
     if (!parsed.success) {
       log.warn("validate", `Invalid login payload [${requestId}]`, { requestId });
       return jsonResponse({ error: "Complete the human verification before trying again." }, 400);
+    }
+
+    if (!(await validateDomain(emailDomain(parsed.data.email)))) {
+      log.warn("validate", `Rejected login with non-existent email domain [${requestId}]`, { requestId });
+      return jsonResponse({ error: "Use an email address with a real domain." }, 400);
     }
 
     const verifyForm = new FormData();
