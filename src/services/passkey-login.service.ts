@@ -76,36 +76,15 @@ async function proveCurrentDevice(): Promise<boolean> {
 
 export const PasskeyLoginService = {
   /**
-   * Returns true ONLY when:
-   *   1. A trusted_devices row exists for this (user, device fingerprint),
-   *      is unexpired, AND
-   *   2. The browser can still sign a fresh server nonce with the
-   *      matching non-extractable private key.
+   * Returns false by design: admins must complete a fresh WebAuthn assertion
+   * for every JWT session. Trusted device proof is still used after recovery
+   * and MFA setup, but it no longer bypasses the per-login admin gate.
    *
    * This means a stolen session cookie cannot satisfy the gate from a
    * different browser/device.
    */
   async isCurrentSessionVerified(): Promise<boolean> {
-    if (!isDeviceCryptoSupported()) return false;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    let fingerprint: string;
-    try {
-      fingerprint = await getDeviceFingerprint();
-    } catch {
-      return false;
-    }
-    const { data: active, error } = await supabase.rpc("is_trusted_device_active", {
-      _fingerprint: fingerprint,
-    });
-    if (error) {
-      log.warn("isCurrentSessionVerified", `RPC failed: ${error.message}`);
-      return false;
-    }
-    if (active !== true) return false;
-    // The cheap row check passed — now demand a cryptographic proof to
-    // ensure this is the same physical device, not just a session replay.
-    return await proveCurrentDevice();
+    return false;
   },
 
   /** Performs the full WebAuthn assertion flow against the admin's enrolled passkey. */
