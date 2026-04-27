@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { PASSKEY_ENROLLMENT_CHANGED_EVENT } from "@/lib/passkey-events";
 
 const PASSKEY_ENROLLMENT_TIMEOUT_MS = 8_000;
+const PASSKEY_ENROLLMENT_RETRY_DELAYS_MS = [300, 900, 1_800] as const;
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 /**
  * Returns true once the current admin user has at least one enrolled passkey.
@@ -21,32 +26,36 @@ export function usePasskeyEnrolled() {
     }
     const checkEnrollment = async () => {
       setEnrolled(null);
-      const timeout = new Promise<never>((_, reject) => {
-        window.setTimeout(() => reject(new Error("Passkey enrollment check timed out")), PASSKEY_ENROLLMENT_TIMEOUT_MS);
-      });
-      let result: { count: number | null; error: { message?: string } | null };
-      try {
-        result = await Promise.race([
-          supabase
-            .from("passkey_credentials")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .neq("device_name", "_pending_challenge"),
-          timeout,
-        ]) as { count: number | null; error: Error | null };
-      } catch (error) {
-        if (cancelled) return;
-        console.warn("Passkey enrollment check failed", error);
-        setEnrolled(false);
-        return;
+      for (let attempt = 0; attempt <= PASSKEY_ENROLLMENT_RETRY_DELAYS_MS.length; attempt += 1) {
+        const timeout = new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error("Passkey enrollment check timed out")), PASSKEY_ENROLLMENT_TIMEOUT_MS);
+        });
+        try {
+          const result = await Promise.race([
+            supabase
+              .from("passkey_credentials")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .neq("device_name", "_pending_challenge"),
+            timeout,
+          ]) as { count: number | null; error: Error | null };
+
+          if (cancelled) return;
+          if (result.error) throw result.error;
+          setEnrolled((result.count ?? 0) > 0);
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          console.warn("Passkey enrollment check failed", error);
+          const retryDelay = PASSKEY_ENROLLMENT_RETRY_DELAYS_MS[attempt];
+          if (retryDelay) {
+            await wait(retryDelay);
+            continue;
+          }
+          setEnrolled((current) => current === true ? true : null);
+          return;
+        }
       }
-      if (cancelled) return;
-      if (result.error) {
-        console.warn("Passkey enrollment check failed", result.error);
-        setEnrolled(false);
-        return;
-      }
-      setEnrolled((result.count ?? 0) > 0);
     };
     void checkEnrollment();
     window.addEventListener(PASSKEY_ENROLLMENT_CHANGED_EVENT, checkEnrollment);
