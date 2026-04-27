@@ -14,6 +14,8 @@ import { PasswordRequirementsList } from "@/components/registration/PasswordRequ
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { logAccountActivity } from "@/lib/account-activity";
+import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -30,6 +32,8 @@ export default function RegisterPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -96,6 +100,13 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      setCaptchaState(refreshLoginCaptcha());
+      setCaptchaAnswer("");
+      setAuthError("Complete the human verification before trying again.");
+      return;
+    }
+
     setErrors({});
     setLoading(true);
     setAuthError("");
@@ -156,6 +167,14 @@ export default function RegisterPage() {
     }
   };
 
+  const verifyCaptchaBeforeOAuth = () => {
+    if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
+    setCaptchaState(refreshLoginCaptcha());
+    setCaptchaAnswer("");
+    setAuthError("Complete the human verification before trying again.");
+    return false;
+  };
+
   const vs = (field: string, value: string | boolean) =>
     getFieldValidationState(errors[field], value, !!touched[field]);
   const bc = (field: string, value: string | boolean) =>
@@ -201,7 +220,7 @@ export default function RegisterPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
-          <GoogleSignInButton label="Sign up with Google" />
+          <GoogleSignInButton label="Sign up with Google" onBeforeSubmit={verifyCaptchaBeforeOAuth} />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
@@ -262,6 +281,8 @@ export default function RegisterPage() {
               </Label>
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
+
+            <AuthCaptchaField id="register-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account…" : "Create Account"}

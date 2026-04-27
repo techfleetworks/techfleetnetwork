@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
@@ -16,7 +15,8 @@ import { useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
-import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -112,8 +112,8 @@ export default function LoginPage() {
       scrollToFirstError();
       return;
     }
-    if (captchaState.required && !verifyLoginCaptchaAnswer(captchaAnswer)) {
-      const nextCaptcha = getLoginCaptchaState();
+    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
       setCaptchaAnswer("");
       setError("Complete the human verification before trying again.");
@@ -164,6 +164,14 @@ export default function LoginPage() {
     }
   };
 
+  const verifyCaptchaBeforeOAuth = () => {
+    if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
+    setCaptchaState(refreshLoginCaptcha());
+    setCaptchaAnswer("");
+    setError("Complete the human verification before trying again.");
+    return false;
+  };
+
   const bc = (field: string, value: string) =>
     validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
 
@@ -183,7 +191,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <GoogleSignInButton />
+          <GoogleSignInButton onBeforeSubmit={verifyCaptchaBeforeOAuth} />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
@@ -214,22 +222,7 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            {captchaState.required && (
-              <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2" role="group" aria-labelledby="login-captcha-label">
-                <Label id="login-captcha-label" htmlFor="login-captcha">Human verification: what is {captchaState.question}?</Label>
-                <Input
-                  id="login-captcha"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={captchaAnswer}
-                  onChange={(event) => setCaptchaAnswer(event.target.value.replace(/\D/g, "").slice(0, 3))}
-                  autoComplete="off"
-                  required
-                  aria-required="true"
-                />
-              </div>
-            )}
+            <AuthCaptchaField id="login-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign In"}
