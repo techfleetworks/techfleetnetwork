@@ -1,19 +1,25 @@
-// Scheduled job: find users in auth.users who registered >48h ago and never confirmed,
+// Scheduled job: find users in auth.users who registered shortly ago and never confirmed,
 // generate a fresh signup confirmation link, and email it to them as a reminder.
-// Safeguards: max 2 reminders per user, min 48h between reminders, hard cutoff at 14 days.
+// Safeguards: capped reminders, minimum spacing between reminders, hard cutoff at 14 days.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import * as React from 'npm:react@18.3.1'
+import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const REMINDER_AFTER_HOURS = 48
-const MIN_HOURS_BETWEEN_REMINDERS = 48
-const MAX_REMINDERS_PER_USER = 2
+const REMINDER_AFTER_MINUTES = 10
+const MIN_MINUTES_BETWEEN_REMINDERS = 30
+const MAX_REMINDERS_PER_USER = 4
 const HARD_CUTOFF_DAYS = 14
 const APP_URL = 'https://techfleetnetwork.lovable.app'
+const SITE_NAME = 'Tech Fleet Network'
+const SENDER_DOMAIN = 'notify.techfleet.org'
+const FROM_DOMAIN = 'techfleet.org'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -45,12 +51,12 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, serviceKey)
+  const supabase = createClient<any>(supabaseUrl, serviceKey)
 
   const now = new Date()
-  const reminderThreshold = new Date(now.getTime() - REMINDER_AFTER_HOURS * 3600 * 1000)
+  const reminderThreshold = new Date(now.getTime() - REMINDER_AFTER_MINUTES * 60 * 1000)
   const hardCutoff = new Date(now.getTime() - HARD_CUTOFF_DAYS * 24 * 3600 * 1000)
-  const minGapThreshold = new Date(now.getTime() - MIN_HOURS_BETWEEN_REMINDERS * 3600 * 1000)
+  const minGapThreshold = new Date(now.getTime() - MIN_MINUTES_BETWEEN_REMINDERS * 60 * 1000)
 
   let processed = 0
   let sent = 0
@@ -117,23 +123,52 @@ Deno.serve(async (req) => {
         }
 
         const confirmationUrl = linkData.properties.action_link
-        const hoursAgo = Math.round((now.getTime() - new Date(c.created_at).getTime()) / 3600000)
+        const hoursAgo = Math.max(1, Math.round((now.getTime() - new Date(c.created_at).getTime()) / 3600000))
         const attemptNumber = reminderCount + 1
+        const messageId = `signup-fallback-${c.id}-${attemptNumber}-${crypto.randomUUID()}`
+        const templateProps = {
+          siteName: SITE_NAME,
+          siteUrl: APP_URL,
+          recipient: c.email,
+          confirmationUrl,
+        }
+        const html = await renderAsync(React.createElement(SignupEmail, templateProps))
+        const text = await renderAsync(React.createElement(SignupEmail, templateProps), { plainText: true })
 
-        // Send via the standard transactional pipeline (handles queue, retries, suppression)
-        const { error: sendErr } = await supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName: 'signup-confirmation-reminder',
-            recipientEmail: c.email,
-            idempotencyKey: `signup-reminder-${c.id}-${attemptNumber}`,
-            templateData: {
-              confirmationUrl,
-              hoursAgo,
-            },
+        await supabase.from('email_send_log').insert({
+          message_id: messageId,
+          template_name: 'signup',
+          recipient_email: c.email,
+          status: 'pending',
+        })
+
+        const { error: sendErr } = await supabase.rpc('enqueue_email', {
+          queue_name: 'auth_emails',
+          payload: {
+            message_id: messageId,
+            to: c.email,
+            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+            sender_domain: SENDER_DOMAIN,
+            subject: 'Confirm your email',
+            html,
+            text,
+            purpose: 'transactional',
+            label: 'signup',
+            idempotency_key: `signup-fallback-${c.id}-${attemptNumber}`,
+            queued_at: new Date().toISOString(),
+            recovery_reason: 'unconfirmed_signup_safety_net',
+            hours_since_signup: hoursAgo,
           },
         })
 
         if (sendErr) {
+          await supabase.from('email_send_log').insert({
+            message_id: messageId,
+            template_name: 'signup',
+            recipient_email: c.email,
+            status: 'failed',
+            error_message: 'Failed to enqueue signup confirmation fallback',
+          })
           errors.push({ email: c.email, error: sendErr.message })
           continue
         }
@@ -150,6 +185,35 @@ Deno.serve(async (req) => {
         const msg = err instanceof Error ? err.message : String(err)
         errors.push({ email: c.email, error: msg })
       }
+    }
+
+    const { count: stuckPending } = await supabase
+      .from('email_send_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('template_name', 'signup')
+      .eq('status', 'pending')
+      .lt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+
+    const { count: failedSignupEmails } = await supabase
+      .from('email_send_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('template_name', 'signup')
+      .in('status', ['failed', 'dlq'])
+      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+    if ((stuckPending ?? 0) > 0 || (failedSignupEmails ?? 0) > 0 || errors.length > 0) {
+      await supabase.rpc('write_audit_log', {
+        p_event_type: 'email_signup_confirmation_pipeline_unhealthy',
+        p_table_name: 'email_send_log',
+        p_record_id: null,
+        p_user_id: null,
+        p_changed_fields: [
+          `stuck_pending:${stuckPending ?? 0}`,
+          `failed_last_24h:${failedSignupEmails ?? 0}`,
+          `fallback_errors:${errors.length}`,
+        ],
+        p_error_message: errors.length ? errors.slice(0, 3).map((e) => e.error).join('; ') : null,
+      })
     }
 
     return new Response(
