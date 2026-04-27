@@ -2,6 +2,7 @@ import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
 import { hasFreshLoginCaptchaVerification, isLoginCaptchaRequired } from "@/lib/auth-captcha";
 import { formatAuthLockoutMessage, getAuthLockoutState } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
+import { hasFreshOAuthUiMarker } from "@/lib/oauth-ui-guard";
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
@@ -149,7 +150,7 @@ export function installClientRequestThrottle() {
           const lockout = getAuthLockoutState();
           if (lockout.locked) return localLockoutResponse(lockout.remainingSeconds);
 
-          if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification()) {
+          if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification() && !hasFreshOAuthUiMarker()) {
             logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "fetch_interceptor", authPath: url.pathname });
             return captchaRequiredResponse();
           }
