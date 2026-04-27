@@ -2536,6 +2536,10 @@ export type Database = {
         Returns: string
       }
       sanitize_user_html: { Args: { input: string }; Returns: string }
+      set_email_visibility_timeout: {
+        Args: { message_id: number; queue_name: string; vt: number }
+        Returns: boolean
+      }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
         Args: { p_token: string }
