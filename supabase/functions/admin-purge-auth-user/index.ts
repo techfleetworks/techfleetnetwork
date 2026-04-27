@@ -10,6 +10,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { requireFreshAdminPasskey } from '../_shared/admin-step-up.ts'
 
+const RATE_LIMIT_PEPPER = '::tfn-rate-limit-v1'
+const textEncoder = new TextEncoder()
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -21,6 +24,11 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+}
+
+async function hashRateLimitIdentifier(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', textEncoder.encode(value + RATE_LIMIT_PEPPER))
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 Deno.serve(async (req) => {
@@ -108,7 +116,6 @@ Deno.serve(async (req) => {
       'user_roles',
       'revoked_sessions',
       'security_events',
-      'rate_limits',
       'journey_progress',
       'dashboard_preferences',
       'general_applications',
@@ -143,6 +150,14 @@ Deno.serve(async (req) => {
     const { error } = await admin.from(t).delete().eq('email', email)
     cleanupResults[t] = error ? `error: ${error.message}` : 'ok'
   }
+
+  const hashedRateLimitIdentifier = await hashRateLimitIdentifier(email)
+  const { error: rateLimitError } = await admin
+    .from('rate_limits')
+    .delete()
+    .in('identifier', [hashedRateLimitIdentifier, email])
+    .in('action', ['signup_attempt', 'password_reset', 'login_attempt'])
+  cleanupResults.rate_limits = rateLimitError ? `error: ${rateLimitError.message}` : 'ok'
 
   // 5) Hard-delete the auth user (uses service role; bypasses the SQL grant gap).
   let authDeleted = false
