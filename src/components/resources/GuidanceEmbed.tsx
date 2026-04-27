@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Loader2, Volume2, VolumeX, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { SafeMarkdown } from "@/components/security/SafeMarkdown";
 import { toast } from "sonner";
 import fleetyIcon from "@/assets/fleety-icon.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -210,7 +209,7 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
               {msg.role === "assistant" ? (
                 <div>
                   <div className="fleety-prose">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> }}>{msg.content}</ReactMarkdown>
+                    <SafeMarkdown>{msg.content}</SafeMarkdown>
                   </div>
                   {!isLoading && msg.content.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-border/50">
