@@ -1,5 +1,5 @@
 import { hasActiveXssPattern } from "@/lib/security";
-import { isStrongPassword } from "@/lib/validators/auth";
+import { isDisposableEmailDomain, isStrongPassword } from "@/lib/validators/auth";
 
 type Verdict = { allowed: true } | { allowed: false; reason: string };
 
@@ -55,6 +55,9 @@ function inspectString(key: string, value: string): Verdict {
   if (hasUnsafeControlChar(value)) return blocked("Input contains invalid control characters.");
   if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(value) || !EMAIL_PATTERN.test(value))) {
     return blocked("Enter a valid email address.");
+  }
+  if (EMAIL_KEY_PATTERN.test(key) && value && isDisposableEmailDomain(value)) {
+    return blocked("Use a permanent email address, not a temporary inbox.");
   }
   if (PASSWORD_KEY_PATTERN.test(key) && value && !isStrongPassword(value)) return blocked("Password does not meet the security requirements.");
   if (hasActiveXssPattern(value)) return blocked("Input contains unsafe content.");
