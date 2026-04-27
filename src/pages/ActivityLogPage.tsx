@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { toast } from "sonner";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -19,20 +18,10 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Activity,
-  User,
-  ShieldCheck,
-  FileText,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  UserPlus,
-  Pencil,
-  Copy,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ThemedAgGrid } from "@/components/AgGrid";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type { ColDef } from "ag-grid-community";
 
 interface AuditLogEntry {
   id: string;
@@ -44,6 +33,20 @@ interface AuditLogEntry {
   changed_fields: string[] | null;
   error_message: string | null;
   created_at: string;
+}
+
+const QUERY_TIMEOUT_MS = 10_000;
+
+async function withTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
 }
 
 const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
@@ -103,15 +106,17 @@ export default function ActivityLogPage() {
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [profiles, setProfiles] = useState<Map<string, { email: string; name: string }>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchProfiles = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, email, first_name, last_name, display_name");
+      const { data } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>(
+        supabase.from("profiles").select("user_id, email, first_name, last_name, display_name") as unknown as PromiseLike<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>,
+        "Profile lookup"
+      );
     if (data) {
       const map = new Map<string, { email: string; name: string }>();
       data.forEach((p) => {
@@ -126,12 +131,13 @@ export default function ActivityLogPage() {
 
   const fetchLogs = async () => {
     setLoading(true);
+    setLoadError("");
     try {
       let countQuery = supabase
         .from("audit_log")
         .select("id", { count: "exact", head: true });
       if (eventFilter !== "all") countQuery = countQuery.eq("event_type", eventFilter);
-      const { count } = await countQuery;
+      const { count } = await withTimeout<{ count: number | null }>(countQuery as unknown as PromiseLike<{ count: number | null }>, "Activity log count");
       setTotalCount(count || 0);
 
       let query = supabase
@@ -140,11 +146,12 @@ export default function ActivityLogPage() {
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
-      const { data, error } = await query;
+      const { data, error } = await withTimeout<{ data: unknown[] | null; error: Error | null }>(query as unknown as PromiseLike<{ data: unknown[] | null; error: Error | null }>, "Activity log load");
       if (error) throw error;
       setEntries((data || []) as unknown as AuditLogEntry[]);
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
+      setLoadError(err instanceof Error ? err.message : "Activity log could not load.");
     } finally {
       setLoading(false);
     }
@@ -182,15 +189,6 @@ export default function ActivityLogPage() {
     Object.keys(EVENT_TYPE_CONFIG).forEach((t) => types.add(t));
     return Array.from(types).sort();
   }, [entries]);
-
-  const copyToClipboard = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard");
-    } catch {
-      toast.error("Failed to copy");
-    }
-  }, []);
 
   const getEventConfig = (eventType: string) =>
     EVENT_TYPE_CONFIG[eventType] || {
@@ -310,6 +308,17 @@ export default function ActivityLogPage() {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : loadError ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-medium">Activity log did not finish loading.</p>
+              <p className="mt-1">{loadError}</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={fetchLogs}>Try again</Button>
+            </div>
+          </div>
         </div>
       ) : (
         <>
