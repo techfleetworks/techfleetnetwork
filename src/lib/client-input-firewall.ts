@@ -127,7 +127,7 @@ export function shouldInspectClientInput(url: URL, method: string): boolean {
 export async function blockUnsafeClientInput(input: RequestInfo | URL, init: RequestInit | undefined, url: URL, method: string): Promise<Response | null> {
   if (!shouldInspectClientInput(url, method)) return null;
   const locked = getAttackLockVerdict();
-  if (locked && !locked.allowed) return rejectionResponse(locked.reason);
+  if (locked?.allowed === false) return rejectionResponse(locked.reason);
   const verdict = await inspectBody(input, init);
   if (verdict.allowed === true) return null;
   lockBackendWritesForAttack();
