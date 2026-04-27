@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaFailureCount, setCaptchaFailureCount] = useState(0);
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -140,6 +141,7 @@ export default function LoginPage() {
       const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
       setCaptchaToken("");
+      setCaptchaFailureCount((count) => count + 1);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -175,6 +177,7 @@ export default function LoginPage() {
         const nextCaptcha = recordFailedLoginAttempt();
         setCaptchaState(nextCaptcha);
         setCaptchaToken("");
+        setCaptchaFailureCount((count) => count + 1);
         // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
         try {
           await supabase.rpc("record_failed_login", {
@@ -190,6 +193,7 @@ export default function LoginPage() {
         logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "login", reason: "client_auth_throttle_429" });
         setCaptchaState(refreshLoginCaptcha());
         setCaptchaToken("");
+        setCaptchaFailureCount((count) => count + 1);
         setError(err.message);
         setLoading(false);
         return;
@@ -252,7 +256,7 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} />
+            <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "login-lockout-status" : undefined}>
               {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}

@@ -21,6 +21,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaFailureCount, setCaptchaFailureCount] = useState(0);
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,7 @@ export default function ForgotPasswordPage() {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaToken("");
+      setCaptchaFailureCount((count) => count + 1);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -88,6 +90,7 @@ export default function ForgotPasswordPage() {
         logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "forgot_password", reason: "client_auth_throttle_429" });
         setCaptchaState(refreshLoginCaptcha());
         setCaptchaToken("");
+        setCaptchaFailureCount((count) => count + 1);
         setError(err.message);
         return;
       }
@@ -136,7 +139,7 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
 
-            <TurnstileChallenge action="forgot_password" onTokenChange={setCaptchaToken} />
+            <TurnstileChallenge action="forgot_password" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "forgot-password-lockout-status" : undefined}>
               {loading ? "Sending…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Send Reset Link"}

@@ -16,12 +16,19 @@ declare global {
 type TurnstileChallengeProps = {
   action: "login" | "register" | "forgot_password";
   onTokenChange: (token: string) => void;
+  failureCount?: number;
 };
 
-export function TurnstileChallenge({ action, onTokenChange }: TurnstileChallengeProps) {
+export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: TurnstileChallengeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [scriptReady, setScriptReady] = useState(Boolean(window.turnstile));
+  const [retrySeconds, setRetrySeconds] = useState(0);
+
+  const beginRetryCountdown = () => {
+    onTokenChange("");
+    setRetrySeconds(30);
+  };
 
   useEffect(() => {
     if (window.turnstile) {
@@ -45,9 +52,12 @@ export function TurnstileChallenge({ action, onTokenChange }: TurnstileChallenge
       sitekey: TURNSTILE_SITE_KEY,
       action,
       theme: "auto",
-      callback: (token: string) => onTokenChange(token),
+      callback: (token: string) => {
+        setRetrySeconds(0);
+        onTokenChange(token);
+      },
       "expired-callback": () => onTokenChange(""),
-      "error-callback": () => onTokenChange(""),
+      "error-callback": beginRetryCountdown,
     });
 
     return () => {
@@ -57,10 +67,33 @@ export function TurnstileChallenge({ action, onTokenChange }: TurnstileChallenge
     };
   }, [action, onTokenChange, scriptReady]);
 
+  useEffect(() => {
+    if (failureCount > 0) beginRetryCountdown();
+  }, [failureCount]);
+
+  useEffect(() => {
+    if (retrySeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setRetrySeconds((current) => {
+        if (current <= 1) {
+          if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, [retrySeconds]);
+
   return (
     <div className="rounded-md border border-border bg-muted/40 p-3" role="group" aria-label="Human verification">
-      <div ref={containerRef} className="min-h-[65px]" />
+      <div ref={containerRef} className={retrySeconds > 0 ? "min-h-[65px] pointer-events-none opacity-60" : "min-h-[65px]"} />
       {!scriptReady && <p className="text-sm text-muted-foreground" aria-live="polite">Loading verification…</p>}
+      {retrySeconds > 0 && (
+        <p className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="assertive">
+          Human verification failed. Please retry in {retrySeconds} second{retrySeconds === 1 ? "" : "s"}.
+        </p>
+      )}
     </div>
   );
 }
