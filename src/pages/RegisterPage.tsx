@@ -17,6 +17,7 @@ import { logAccountActivity } from "@/lib/account-activity";
 import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -74,6 +75,10 @@ export default function RegisterPage() {
   }, [redirectParam]);
 
   useEffect(() => {
+    logCaptchaTelemetry("auth_captcha_challenge_shown", { surface: "register", failedAttempts: captchaState.failedAttempts });
+  }, [captchaState.failedAttempts]);
+
+  useEffect(() => {
     if (!lockoutState.locked) return;
     const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
     return () => window.clearInterval(timer);
@@ -118,6 +123,7 @@ export default function RegisterPage() {
     }
 
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      logCaptchaTelemetry("auth_captcha_failed", { surface: "register", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaAnswer("");
       const nextLockout = recordInvalidAuthAttempt();
@@ -198,6 +204,7 @@ export default function RegisterPage() {
       return false;
     }
     if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
+    logCaptchaTelemetry("auth_captcha_failed", { surface: "register_oauth", failedAttempts: captchaState.failedAttempts + 1 });
     setCaptchaState(refreshLoginCaptcha());
     setCaptchaAnswer("");
     const nextLockout = recordInvalidAuthAttempt();
