@@ -1,7 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { safeHtmlSchema, safeRequiredTextSchema, safeUrlSchema } from "@/lib/validators/shared-input";
 
 const log = createLogger("AnnouncementService");
+const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
+const announcementBodySchema = safeHtmlSchema("Update body");
+const mediaUrlSchema = safeUrlSchema("Media URL", 1000).nullable().optional();
 
 export interface Announcement {
   id: string;
@@ -34,9 +38,11 @@ export const AnnouncementService = {
   },
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
-    const row: Record<string, unknown> = { title, body_html: bodyHtml, created_by: userId };
-    if (videoUrl) row.video_url = videoUrl;
-    if (audioUrl) row.audio_url = audioUrl;
+    const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(bodyHtml), created_by: userId };
+    const safeVideoUrl = mediaUrlSchema.parse(videoUrl);
+    const safeAudioUrl = mediaUrlSchema.parse(audioUrl);
+    if (safeVideoUrl) row.video_url = safeVideoUrl;
+    if (safeAudioUrl) row.audio_url = safeAudioUrl;
     const { data, error } = await supabase
       .from("announcements")
       .insert(row as any)
