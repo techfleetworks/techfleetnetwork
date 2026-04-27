@@ -8,6 +8,8 @@ const MAX_JSON_BODY_BYTES = 250_000;
 const MAX_TEXT_VALUE_BYTES = 50_000;
 const MAX_ARRAY_ITEMS = 200;
 const MAX_OBJECT_DEPTH = 12;
+const ATTACK_LOCK_KEY = "tfn:client-input-firewall:attack-lock-until";
+const ATTACK_LOCK_MS = 10 * 60_000;
 const EMAIL_KEY_PATTERN = /(^|_|-)email($|_|-)/i;
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 const DANGEROUS_EMAIL_CHARS = /[<>"'`\\\s]/;
@@ -25,6 +27,25 @@ function byteLength(value: string): number {
 
 function blocked(reason: string): Verdict {
   return { allowed: false, reason };
+}
+
+function lockBackendWritesForAttack() {
+  try {
+    window.sessionStorage.setItem(ATTACK_LOCK_KEY, String(Date.now() + ATTACK_LOCK_MS));
+  } catch {
+    // Storage can be unavailable in private/locked-down contexts; the current request is still blocked.
+  }
+}
+
+function getAttackLockVerdict(): Verdict | null {
+  try {
+    const lockUntil = Number(window.sessionStorage.getItem(ATTACK_LOCK_KEY) || 0);
+    if (lockUntil > Date.now()) return blocked("Unsafe input was detected. Please refresh before trying again.");
+    if (lockUntil) window.sessionStorage.removeItem(ATTACK_LOCK_KEY);
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function inspectString(key: string, value: string): Verdict {
@@ -69,6 +90,13 @@ async function inspectBody(input: RequestInfo | URL, init?: RequestInit): Promis
       return inspectString("body", body);
     }
   }
+  if (body instanceof URLSearchParams) {
+    if (byteLength(body.toString()) > MAX_JSON_BODY_BYTES) return blocked("Request is too large.");
+    for (const [key, value] of body.entries()) {
+      const verdict = inspectString(key, value);
+      if (!verdict.allowed) return verdict;
+    }
+  }
   if (body instanceof FormData) {
     for (const [key, value] of body.entries()) {
       if (typeof value === "string") {
@@ -76,6 +104,10 @@ async function inspectBody(input: RequestInfo | URL, init?: RequestInit): Promis
         if (!verdict.allowed) return verdict;
       }
     }
+  }
+  if (input instanceof Request && !init?.body) {
+    const text = await input.clone().text();
+    if (text) return inspectBody(input, { body: text });
   }
   return { allowed: true };
 }
@@ -94,8 +126,11 @@ export function shouldInspectClientInput(url: URL, method: string): boolean {
 
 export async function blockUnsafeClientInput(input: RequestInfo | URL, init: RequestInit | undefined, url: URL, method: string): Promise<Response | null> {
   if (!shouldInspectClientInput(url, method)) return null;
+  const locked = getAttackLockVerdict();
+  if (locked && !locked.allowed) return rejectionResponse(locked.reason);
   const verdict = await inspectBody(input, init);
   if (verdict.allowed === true) return null;
+  lockBackendWritesForAttack();
   return rejectionResponse(verdict.reason);
 }
 
