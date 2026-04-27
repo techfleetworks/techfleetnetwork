@@ -1,5 +1,5 @@
 import { hasActiveXssPattern } from "@/lib/security";
-import { isDisposableEmailDomain, isStrongPassword } from "@/lib/validators/auth";
+import { isDisposableEmailDomain, isStrongPassword, normalizeEmailInput } from "@/lib/validators/auth";
 
 type Verdict = { allowed: true } | { allowed: false; reason: string };
 
@@ -51,12 +51,13 @@ function getAttackLockVerdict(): Verdict | null {
 }
 
 function inspectString(key: string, value: string): Verdict {
+  const normalizedEmail = EMAIL_KEY_PATTERN.test(key) ? normalizeEmailInput(value) : value;
   if (byteLength(value) > MAX_TEXT_VALUE_BYTES) return blocked("Input is too long.");
   if (hasUnsafeControlChar(value)) return blocked("Input contains invalid control characters.");
-  if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(value) || !EMAIL_PATTERN.test(value))) {
+  if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(normalizedEmail) || !EMAIL_PATTERN.test(normalizedEmail))) {
     return blocked("Enter a valid email address.");
   }
-  if (EMAIL_KEY_PATTERN.test(key) && value && isDisposableEmailDomain(value)) {
+  if (EMAIL_KEY_PATTERN.test(key) && value && isDisposableEmailDomain(normalizedEmail)) {
     return blocked("Use a permanent email address, not a temporary inbox.");
   }
   if (PASSWORD_KEY_PATTERN.test(key) && value && !isStrongPassword(value)) return blocked("Password does not meet the security requirements.");
