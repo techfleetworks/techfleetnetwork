@@ -26,6 +26,13 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
     expect(__clientRequestThrottleTestHooks.consumeBucket(key, 63_000).allowed).toBe(true);
   });
 
+  it("does not throttle passkey security verification requests", () => {
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/is_trusted_device_active"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/passkey_credentials"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/passkey-auth-verify"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/device-prove"))).toBe(false);
+  });
+
   it("deduplicates privacy-safe Cloud log events for throttle hits", async () => {
     const originalFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const url = new URL("https://backend.example/auth/v1/token?grant_type=password&email=private@example.com");
