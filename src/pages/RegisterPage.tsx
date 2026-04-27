@@ -14,6 +14,8 @@ import { PasswordRequirementsList } from "@/components/registration/PasswordRequ
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { logAccountActivity } from "@/lib/account-activity";
+import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -30,6 +32,8 @@ export default function RegisterPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -93,6 +97,13 @@ export default function RegisterPage() {
         password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
       });
       scrollToFirstError();
+      return;
+    }
+
+    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      setCaptchaState(refreshLoginCaptcha());
+      setCaptchaAnswer("");
+      setAuthError("Complete the human verification before trying again.");
       return;
     }
 
@@ -262,6 +273,8 @@ export default function RegisterPage() {
               </Label>
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
+
+            <AuthCaptchaField id="register-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account…" : "Create Account"}
