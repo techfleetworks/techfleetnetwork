@@ -11,6 +11,7 @@ import { emailInputSchema } from "@/lib/validators/auth";
 import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
 import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -26,6 +27,10 @@ export default function ForgotPasswordPage() {
     const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
     return () => window.clearInterval(timer);
   }, [lockoutState.locked]);
+
+  useEffect(() => {
+    logCaptchaTelemetry("auth_captcha_challenge_shown", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts });
+  }, [captchaState.failedAttempts]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,6 +49,7 @@ export default function ForgotPasswordPage() {
       return;
     }
     if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      logCaptchaTelemetry("auth_captcha_failed", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaAnswer("");
       const nextLockout = recordInvalidAuthAttempt();
