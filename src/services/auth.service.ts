@@ -267,6 +267,7 @@ export const AuthService = {
       }
       log.info("updatePassword", "Password updated successfully");
       void logAccountActivity("password_updated", {});
+      await this.signOutAllDevices();
     });
   },
 
