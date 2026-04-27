@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { emailInputSchema } from "@/lib/validators/auth";
+import { safeLongTextSchema } from "@/lib/validators/shared-input";
+import { z } from "zod";
 
 const log = createLogger("FeedbackService");
 
@@ -32,12 +35,20 @@ export const FEEDBACK_AREAS = [
 
 export type FeedbackArea = (typeof FEEDBACK_AREAS)[number];
 
+const feedbackSchema = z.object({
+  email: emailInputSchema,
+  systemArea: z.enum(FEEDBACK_AREAS),
+  message: safeLongTextSchema("Feedback", 5000).min(1, "Feedback is required"),
+});
+
 export const FeedbackService = {
   async submit(userId: string, email: string, systemArea: string, message: string): Promise<boolean> {
     try {
+      const parsed = feedbackSchema.safeParse({ email, systemArea, message });
+      if (!parsed.success) return false;
       const { error } = await supabase
         .from("feedback")
-        .insert({ user_id: userId, user_email: email, system_area: systemArea, message });
+        .insert({ user_id: userId, user_email: parsed.data.email, system_area: parsed.data.systemArea, message: parsed.data.message });
 
       if (error) {
         log.warn("submit", `Failed to submit feedback: ${error.message} (code: ${error.code}, details: ${error.details}, hint: ${error.hint})`, { userId }, error);
