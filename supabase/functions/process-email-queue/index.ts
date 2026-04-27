@@ -7,6 +7,15 @@ const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
+type QueuePayload = Record<string, unknown>
+type QueueMessage = { msg_id: number; read_ct: number; enqueued_at?: string; message: QueuePayload }
+type ServiceClient = ReturnType<typeof createClient<any>>
+
+function stringField(payload: QueuePayload, key: string, fallback = ''): string {
+  const value = payload[key]
+  return typeof value === 'string' ? value : fallback
+}
+
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
 // falls back to parsing the error message for older versions.
@@ -54,16 +63,16 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ServiceClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: payload.message_id,
+    message_id: stringField(payload, 'message_id', crypto.randomUUID()),
     template_name: (payload.label || queue) as string,
-    recipient_email: payload.to,
+    recipient_email: stringField(payload, 'to'),
     status: 'dlq',
     error_message: reason,
   })
@@ -111,7 +120,7 @@ Deno.serve(async (req) => {
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient<any>(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
