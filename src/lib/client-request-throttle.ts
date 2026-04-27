@@ -152,13 +152,16 @@ export function installClientRequestThrottle() {
           const lockout = getAuthLockoutState();
           if (lockout.locked) return localLockoutResponse(lockout.remainingSeconds);
 
-          if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification() && !hasFreshOAuthUiMarker()) {
+          const hasFreshCaptcha = hasFreshLoginCaptchaVerification() || hasFreshOAuthUiMarker();
+          if (isLoginCaptchaRequired() && !hasFreshCaptcha) {
             logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "fetch_interceptor", authPath: url.pathname });
             return captchaRequiredResponse();
           }
 
-          const authResult = consumeAuthAttemptBucket();
-          if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
+          if (!hasFreshCaptcha) {
+            const authResult = consumeAuthAttemptBucket();
+            if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
+          }
         }
 
         const result = consumeBucket(bucketKey(url, method));
