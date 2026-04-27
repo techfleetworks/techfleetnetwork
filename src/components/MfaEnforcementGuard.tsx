@@ -55,10 +55,8 @@ export function MfaEnforcementGuard() {
       try {
         const { needsChallenge } = await MfaService.getAssuranceLevel();
         if (!needsChallenge || cancelled) return;
-        // Unified 30-day device trust: if THIS device already passed a
-        // strong second factor (passkey or TOTP) within the trust window,
-        // skip the TOTP prompt entirely. This is what makes the "ask once
-        // every 30 days per device" promise actually hold.
+        // If THIS device already passed a strong second factor for the
+        // current short-lived session, skip the duplicate TOTP prompt.
         const deviceTrusted = await PasskeyLoginService.isCurrentSessionVerified();
         if (cancelled) return;
         if (deviceTrusted) {
