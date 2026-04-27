@@ -1,4 +1,5 @@
 import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
+import { hasFreshLoginCaptchaVerification, isLoginCaptchaRequired } from "@/lib/auth-captcha";
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
@@ -96,6 +97,17 @@ function rateLimitedResponse(retryAfterSeconds: number): Response {
   });
 }
 
+function captchaRequiredResponse(): Response {
+  return new Response(JSON.stringify({ error: "Complete the human verification before trying again." }), {
+    status: 403,
+    statusText: "Forbidden",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Client-Captcha-Required": "true",
+    },
+  });
+}
+
 function isAuthAttemptRequest(url: URL, method: string): boolean {
   return method === "POST" && url.origin !== window.location.origin && AUTH_ATTEMPT_PATH_PATTERN.test(url.pathname);
 }
@@ -120,6 +132,8 @@ export function installClientRequestThrottle() {
 
       if (shouldThrottle(url)) {
         if (isAuthAttemptRequest(url, method)) {
+          if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification()) return captchaRequiredResponse();
+
           const authResult = consumeAuthAttemptBucket();
           if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
         }
