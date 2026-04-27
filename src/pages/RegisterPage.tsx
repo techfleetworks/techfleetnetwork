@@ -20,6 +20,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, record
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
+import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -117,6 +118,18 @@ export default function RegisterPage() {
         firstName: "First name", lastName: "Last name", email: "Email",
         password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
       });
+      scrollToFirstError();
+      const nextLockout = recordInvalidAuthAttempt();
+      setLockoutState(nextLockout);
+      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      return;
+    }
+
+    const domainCheck = await validateEmailDomainExists(result.data.email);
+    if (!domainCheck.valid) {
+      const fieldErrors = { email: domainCheck.message ?? "Use an email address with a real domain." };
+      setErrors(fieldErrors);
+      showFormErrors(fieldErrors, { email: "Email" });
       scrollToFirstError();
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
