@@ -6,6 +6,10 @@ const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|wo
 const WINDOW_MS = 60_000;
 const MAX_IDENTICAL_REQUESTS = 5;
 const CLEANUP_AFTER_MS = WINDOW_MS * 2;
+const AUTH_ATTEMPT_WINDOW_MS = 60_000;
+const MAX_AUTH_ATTEMPTS_PER_WINDOW = 3;
+const AUTH_ATTEMPT_BUCKET_KEY = "tfn:client-auth-attempt-window";
+const AUTH_ATTEMPT_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend)|rest\/v1\/rpc\/check_rate_limit)$/;
 
 type Bucket = {
   count: number;
@@ -59,6 +63,27 @@ function consumeBucket(key: string, now = Date.now()): { allowed: boolean; retry
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
+function consumeAuthAttemptBucket(now = Date.now()): { allowed: boolean; retryAfterSeconds: number } {
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_ATTEMPT_BUCKET_KEY);
+    const current = raw ? (JSON.parse(raw) as Partial<Bucket>) : null;
+    if (!current?.resetAt || !current?.count || now >= current.resetAt) {
+      window.sessionStorage.setItem(AUTH_ATTEMPT_BUCKET_KEY, JSON.stringify({ count: 1, resetAt: now + AUTH_ATTEMPT_WINDOW_MS, lastSeenAt: now }));
+      return { allowed: true, retryAfterSeconds: 0 };
+    }
+
+    const next = { count: current.count + 1, resetAt: current.resetAt, lastSeenAt: now };
+    window.sessionStorage.setItem(AUTH_ATTEMPT_BUCKET_KEY, JSON.stringify(next));
+    if (next.count > MAX_AUTH_ATTEMPTS_PER_WINDOW) {
+      return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((next.resetAt - now) / 1000)) };
+    }
+  } catch {
+    return consumeBucket(`${window.location.origin}|auth-attempts`, now);
+  }
+
+  return { allowed: true, retryAfterSeconds: 0 };
+}
+
 function rateLimitedResponse(retryAfterSeconds: number): Response {
   return new Response(JSON.stringify({ error: "Too many rapid requests. Please wait before trying again." }), {
     status: 429,
@@ -69,6 +94,10 @@ function rateLimitedResponse(retryAfterSeconds: number): Response {
       "X-Client-Rate-Limited": "true",
     },
   });
+}
+
+function isAuthAttemptRequest(url: URL, method: string): boolean {
+  return method === "POST" && url.origin !== window.location.origin && AUTH_ATTEMPT_PATH_PATTERN.test(url.pathname);
 }
 
 export function installClientRequestThrottle() {
@@ -90,6 +119,11 @@ export function installClientRequestThrottle() {
       if (unsafeInputResponse) return unsafeInputResponse;
 
       if (shouldThrottle(url)) {
+        if (isAuthAttemptRequest(url, method)) {
+          const authResult = consumeAuthAttemptBucket();
+          if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
+        }
+
         const result = consumeBucket(bucketKey(url, method));
         if (!result.allowed) return rateLimitedResponse(result.retryAfterSeconds);
       }
