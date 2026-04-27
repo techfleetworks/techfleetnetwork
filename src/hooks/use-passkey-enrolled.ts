@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PASSKEY_ENROLLMENT_CHANGED_EVENT } from "@/lib/passkey-events";
+import { useQueryClient } from "@/lib/react-query";
+import { queryKeys } from "@/lib/query-config";
 
 const PASSKEY_ENROLLMENT_TIMEOUT_MS = 8_000;
 const PASSKEY_ENROLLMENT_RETRY_DELAYS_MS = [300, 900, 1_800] as const;
@@ -16,6 +18,7 @@ function wait(ms: number) {
  */
 export function usePasskeyEnrolled() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -42,7 +45,9 @@ export function usePasskeyEnrolled() {
 
           if (cancelled) return;
           if (result.error) throw result.error;
-          setEnrolled((result.count ?? 0) > 0);
+          const hasPasskey = (result.count ?? 0) > 0;
+          setEnrolled(hasPasskey);
+          queryClient.setQueryData(queryKeys.passkeyEnrollment(user.id), hasPasskey);
           return;
         } catch (error) {
           if (cancelled) return;
@@ -52,7 +57,8 @@ export function usePasskeyEnrolled() {
             await wait(retryDelay);
             continue;
           }
-          setEnrolled((current) => current === true ? true : null);
+          const cached = queryClient.getQueryData<boolean>(queryKeys.passkeyEnrollment(user.id));
+          setEnrolled((current) => current === true || cached === true ? true : null);
           return;
         }
       }
@@ -63,7 +69,7 @@ export function usePasskeyEnrolled() {
       cancelled = true;
       window.removeEventListener(PASSKEY_ENROLLMENT_CHANGED_EVENT, checkEnrollment);
     };
-  }, [user]);
+  }, [queryClient, user]);
 
   return enrolled;
 }
