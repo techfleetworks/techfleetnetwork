@@ -3,6 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
+import { createAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
@@ -140,6 +141,7 @@ export const AuthService = {
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
         void logAccountActivity("login_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
+        if (error.status === 429 || error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
         throw new Error("Invalid email or password. Please try again.");
       }
       if (data.session) writeSessionMarker(data.session);
