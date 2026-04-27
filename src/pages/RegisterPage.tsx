@@ -14,10 +14,11 @@ import { PasswordRequirementsList } from "@/components/registration/PasswordRequ
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { logAccountActivity } from "@/lib/account-activity";
-import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
-import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { getLoginCaptchaState, refreshLoginCaptcha } from "@/lib/auth-captcha";
+import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
+import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -35,7 +36,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -122,10 +123,10 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+    if (!(await verifyTurnstileToken(captchaToken, "register"))) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "register", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
-      setCaptchaAnswer("");
+      setCaptchaToken("");
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -194,23 +195,6 @@ export default function RegisterPage() {
     } finally {
       setResending(false);
     }
-  };
-
-  const verifyCaptchaBeforeOAuth = () => {
-    const currentLockout = getAuthLockoutState();
-    setLockoutState(currentLockout);
-    if (currentLockout.locked) {
-      setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
-      return false;
-    }
-    if (verifyLoginCaptchaAnswer(captchaAnswer)) return true;
-    logCaptchaTelemetry("auth_captcha_failed", { surface: "register_oauth", failedAttempts: captchaState.failedAttempts + 1 });
-    setCaptchaState(refreshLoginCaptcha());
-    setCaptchaAnswer("");
-    const nextLockout = recordInvalidAuthAttempt();
-    setLockoutState(nextLockout);
-    setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
-    return false;
   };
 
   const vs = (field: string, value: string | boolean) =>
@@ -320,7 +304,7 @@ export default function RegisterPage() {
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
 
-            <AuthCaptchaField id="register-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
+            <TurnstileChallenge action="register" onTokenChange={setCaptchaToken} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "register-lockout-status" : undefined}>
               {loading ? "Creating account…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Create Account"}
