@@ -1,6 +1,5 @@
 const CAPTCHA_STATE_KEY = "tfn:login-captcha-state";
 const CAPTCHA_VERIFIED_UNTIL_KEY = "tfn:login-captcha-verified-until";
-const CAPTCHA_THRESHOLD = 3;
 const CAPTCHA_VERIFIED_MS = 2 * 60_000;
 
 export type LoginCaptchaState = {
@@ -22,7 +21,7 @@ function createChallenge(failedAttempts: number): LoginCaptchaState {
   const right = randomInt(3, 17);
   return {
     failedAttempts,
-    required: failedAttempts >= CAPTCHA_THRESHOLD,
+    required: true,
     question: `${left} + ${right}`,
     answer: left + right,
   };
@@ -36,7 +35,7 @@ function readState(): LoginCaptchaState {
     if (typeof parsed.failedAttempts !== "number" || typeof parsed.answer !== "number" || typeof parsed.question !== "string") {
       return createChallenge(0);
     }
-    return { failedAttempts: parsed.failedAttempts, required: parsed.failedAttempts >= CAPTCHA_THRESHOLD, question: parsed.question, answer: parsed.answer };
+    return { failedAttempts: parsed.failedAttempts, required: true, question: parsed.question, answer: parsed.answer };
   } catch {
     return createChallenge(0);
   }
@@ -72,7 +71,14 @@ export function clearLoginCaptcha() {
 }
 
 export function isLoginCaptchaRequired(): boolean {
-  return readState().required;
+  return true;
+}
+
+export function refreshLoginCaptcha(): LoginCaptchaState {
+  const current = readState();
+  const next = createChallenge(current.failedAttempts);
+  writeState(next);
+  return next;
 }
 
 export function hasFreshLoginCaptchaVerification(): boolean {
