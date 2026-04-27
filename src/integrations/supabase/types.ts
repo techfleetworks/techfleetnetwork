@@ -2335,6 +2335,7 @@ export type Database = {
         Returns: boolean
       }
       _current_aal: { Args: never; Returns: string }
+      check_chat_system_rate_limit: { Args: never; Returns: Json }
       check_rate_limit: {
         Args: {
           p_action: string
