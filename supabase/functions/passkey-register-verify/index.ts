@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
             user_id: user.id,
             session_token_hash: deviceHash,
             verified_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             ip_address: ip,
           },
           { onConflict: "user_id,session_token_hash" },

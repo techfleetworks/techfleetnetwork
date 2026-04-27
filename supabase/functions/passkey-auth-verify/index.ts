@@ -7,6 +7,8 @@ import { verifyAuthenticationResponse } from "npm:@simplewebauthn/server@10.0.0"
 import { getAdminClient, getUserClient } from "../_shared/admin-client.ts";
 import { isElevatedUser } from "../_shared/elevated-roles.ts";
 
+const TRUST_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -151,7 +153,7 @@ Deno.serve(async (req) => {
       public_key: device_binding.public_key,
       bound_at: verifiedAt,
       last_proof_at: verifiedAt,
-      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + TRUST_DURATION_MS).toISOString(),
       ip_address: ip,
       user_agent: ua,
     }, { onConflict: "user_id,fingerprint" });
@@ -160,7 +162,7 @@ Deno.serve(async (req) => {
       user_id: user.id,
       session_token_hash: sessionTokenHash,
       verified_at: verifiedAt,
-      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + TRUST_DURATION_MS).toISOString(),
       ip_address: ip,
     }, { onConflict: "user_id,session_token_hash" });
 

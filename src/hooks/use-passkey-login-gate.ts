@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
@@ -23,27 +23,38 @@ export function usePasskeyLoginGate() {
   const [verified, setVerified] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [lastCheckedUserId, setLastCheckedUserId] = useState<string | null>(null);
+  const verificationStateRef = useRef<boolean | null>(null);
+  const checkRunRef = useRef(0);
 
   const recheck = useCallback(async () => {
     if (!user || !session) {
       setVerified(null);
+      verificationStateRef.current = null;
       setLastCheckedUserId(null);
       return;
     }
+    const runId = checkRunRef.current + 1;
+    checkRunRef.current = runId;
     setChecking(true);
     try {
       const ok = await PasskeyLoginService.isCurrentSessionVerified();
+      if (checkRunRef.current !== runId || verificationStateRef.current === true) return;
+      verificationStateRef.current = ok;
       setVerified(ok);
       setLastCheckedUserId(user.id);
     } catch {
+      if (checkRunRef.current !== runId || verificationStateRef.current === true) return;
+      verificationStateRef.current = false;
       setVerified(false);
       setLastCheckedUserId(user.id);
     } finally {
-      setChecking(false);
+      if (checkRunRef.current === runId) setChecking(false);
     }
   }, [user, session]);
 
   const markVerified = useCallback(() => {
+    checkRunRef.current += 1;
+    verificationStateRef.current = true;
     setVerified(true);
     setLastCheckedUserId(user?.id ?? null);
     setChecking(false);
