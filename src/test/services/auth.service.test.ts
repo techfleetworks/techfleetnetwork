@@ -81,10 +81,7 @@ describe("AuthService session max-age marker", () => {
 
   it("does not sign out a user because another account left a stale timestamp", async () => {
     const session = makeSession("current-user");
-    sessionStorage.setItem(
-      "session_started_at",
-      JSON.stringify({ version: 1, userId: "different-user", startedAtMs: Date.now() - 9 * 60 * 60 * 1000 }),
-    );
+    sessionStorage.setItem("session_started_at", JSON.stringify({ version: 1, userId: "different-user", startedAtMs: Date.now() - 5 * 60 * 60 * 1000 }));
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 
     await expect(AuthService.getSession()).resolves.toEqual(session);
@@ -94,7 +91,7 @@ describe("AuthService session max-age marker", () => {
 
   it("migrates legacy stale numeric timestamps without killing a fresh session", async () => {
     const session = makeSession("legacy-user");
-    sessionStorage.setItem("session_started_at", String(Date.now() - 9 * 60 * 60 * 1000));
+    sessionStorage.setItem("session_started_at", String(Date.now() - 5 * 60 * 60 * 1000));
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 
     await expect(AuthService.getSession()).resolves.toEqual(session);
@@ -103,10 +100,10 @@ describe("AuthService session max-age marker", () => {
   });
 
   it("still expires the same user's genuinely over-age session", async () => {
-    const session = makeSession("expired-user", 9 * 60 * 60 * 1000);
+    const session = makeSession("expired-user", 5 * 60 * 60 * 1000);
     sessionStorage.setItem(
       "session_started_at",
-      JSON.stringify({ version: 1, userId: "expired-user", startedAtMs: Date.now() - 9 * 60 * 60 * 1000 }),
+      JSON.stringify({ version: 1, userId: "expired-user", startedAtMs: Date.now() - 5 * 60 * 60 * 1000 }),
     );
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 

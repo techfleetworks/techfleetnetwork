@@ -159,8 +159,7 @@ export const MfaService = {
       throw new Error("Invalid verification code. Please try again.");
     }
     log.info("verifyChallenge", "MFA challenge passed — session elevated to AAL2");
-    // Mark THIS device trusted for 30 days so the same device is not asked
-    // again for either passkey or TOTP within the window. The RPC requires
+    // Mark THIS device trusted for the current short-lived session. The RPC requires
     // the caller's JWT to already be at AAL2, which is true at this point.
     await this.markDeviceTrusted();
   },
@@ -174,7 +173,7 @@ export const MfaService = {
   /**
    * After a successful TOTP verification, the JWT is at AAL2. Use the
    * cryptographic device-binding scheme (non-extractable WebCrypto key in
-   * IndexedDB) to mark this physical device trusted for 30 days. Best
+   * IndexedDB) to mark this physical device trusted briefly. Best
    * effort: failures fall through to "user gets re-prompted next visit",
    * which is the safe failure mode.
    */

@@ -3,7 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
 
 const log = createLogger("AuthService");
-const MAX_SESSION_AGE_MS = 8 * 60 * 60 * 1000; // 8 hours
+const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
@@ -358,12 +358,11 @@ export const AuthService = {
       }
 
       const marker = readSessionMarker(data.session);
-      const startedBeforeCurrentToken = marker.startedAtMs < currentTokenIssuedAtMs - 30_000;
-      if (marker.resetReason || startedBeforeCurrentToken) {
+      if (marker.resetReason) {
         writeSessionMarker(data.session);
         log.debug("getSession", "Session timestamp reset for current authenticated user", {
           userId: data.session.user.id,
-          reason: marker.resetReason ?? "new_token",
+          reason: marker.resetReason,
         });
         return data.session;
       }

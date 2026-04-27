@@ -1,6 +1,6 @@
 /**
- * Cryptographic device binding for the admin MFA "30-day per-device trust"
- * feature. Replaces the previous random-token-in-localStorage scheme, which
+ * Cryptographic device binding for short-lived admin MFA session proof.
+ * Replaces the previous random-token-in-localStorage scheme, which
  * was vulnerable to theft via XSS or storage exfiltration.
  *
  * How it works
