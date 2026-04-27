@@ -18,7 +18,7 @@ if ("serviceWorker" in navigator) {
 
 installGlobalErrorReporter();
 installClientRequestThrottle();
-void clearAppCachesForVersion();
+void clearAppCachesForVersion({ reloadAfterClear: true });
 // Detect new deploys while the tab is open and refresh BEFORE a stale chunk
 // fetch can fail. Pairs with lazyWithRetry as the safety net.
 startDeployWatcher();
