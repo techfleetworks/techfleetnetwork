@@ -71,7 +71,7 @@ async function moveToDlq(
   const payload = msg.message
   await supabase.from('email_send_log').insert({
     message_id: stringField(payload, 'message_id', crypto.randomUUID()),
-    template_name: (payload.label || queue) as string,
+    template_name: stringField(payload, 'label', queue),
     recipient_email: stringField(payload, 'to'),
     status: 'dlq',
     error_message: reason,
@@ -234,11 +234,12 @@ Deno.serve(async (req) => {
       }
 
       // Guard: skip if another worker already sent this message (VT expired race)
-      if (payload.message_id) {
+      const payloadMessageId = stringField(payload, 'message_id')
+      if (payloadMessageId) {
         const { data: alreadySent } = await supabase
           .from('email_send_log')
           .select('id')
-          .eq('message_id', payload.message_id)
+          .eq('message_id', payloadMessageId)
           .eq('status', 'sent')
           .maybeSingle()
 
@@ -246,7 +247,7 @@ Deno.serve(async (req) => {
           console.warn('Skipping duplicate send (already sent)', {
             queue,
             msg_id: msg.msg_id,
-            message_id: payload.message_id,
+            message_id: payloadMessageId,
           })
           const { error: dupDelError } = await supabase.rpc('delete_email', {
             queue_name: queue,
@@ -310,9 +311,9 @@ Deno.serve(async (req) => {
 
         if (isRateLimited(error)) {
           await supabase.from('email_send_log').insert({
-            message_id: payload.message_id,
-            template_name: payload.label || queue,
-            recipient_email: payload.to,
+            message_id: stringField(payload, 'message_id'),
+            template_name: stringField(payload, 'label', queue),
+            recipient_email: stringField(payload, 'to'),
             status: 'rate_limited',
             error_message: errorMsg.slice(0, 1000),
           })
@@ -347,9 +348,9 @@ Deno.serve(async (req) => {
 
         // Log non-429 failures to track real retry attempts.
         await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
+          message_id: stringField(payload, 'message_id'),
+          template_name: stringField(payload, 'label', queue),
+          recipient_email: stringField(payload, 'to'),
           status: 'failed',
           error_message: errorMsg.slice(0, 1000),
         })
