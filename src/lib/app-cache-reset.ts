@@ -1,0 +1,43 @@
+import { MemoryCache } from "@/lib/memory-cache";
+
+export const APP_CACHE_RESET_VERSION = "2026-04-27-cache-reset-v2";
+
+const CACHE_RESET_VERSION_KEY = "techfleet.cacheResetVersion";
+const QUERY_CACHE_RESET_PENDING_KEY = "techfleet.queryCacheResetPending";
+const SAFE_CACHE_KEY_PATTERNS = [/^techfleet\.(?!cacheResetVersion|queryCacheResetPending)/, /^tf-cache:/, /^app-cache:/, /^workbox-/];
+
+function clearSafeStorage(storage: Storage) {
+  for (let index = storage.length - 1; index >= 0; index -= 1) {
+    const key = storage.key(index);
+    if (key && SAFE_CACHE_KEY_PATTERNS.some((pattern) => pattern.test(key))) storage.removeItem(key);
+  }
+}
+
+export async function clearAppCachesForVersion() {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem(CACHE_RESET_VERSION_KEY) === APP_CACHE_RESET_VERSION) return;
+
+  MemoryCache.clear();
+  clearSafeStorage(localStorage);
+  clearSafeStorage(sessionStorage);
+
+  if ("caches" in window) {
+    const names = await caches.keys();
+    await Promise.all(names.map((name) => caches.delete(name)));
+  }
+
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  }
+
+  localStorage.setItem(QUERY_CACHE_RESET_PENDING_KEY, "1");
+  localStorage.setItem(CACHE_RESET_VERSION_KEY, APP_CACHE_RESET_VERSION);
+}
+
+export function consumeQueryCacheResetPending() {
+  if (typeof window === "undefined") return false;
+  const pending = localStorage.getItem(QUERY_CACHE_RESET_PENDING_KEY) === "1";
+  if (pending) localStorage.removeItem(QUERY_CACHE_RESET_PENDING_KEY);
+  return pending;
+}
