@@ -90,6 +90,18 @@ function consumeAuthAttemptBucket(now = Date.now()): { allowed: boolean; retryAf
 }
 
 function rateLimitedResponse(retryAfterSeconds: number): Response {
+  return new Response(JSON.stringify({ error: "Too many rapid requests. Please wait before trying again." }), {
+    status: 429,
+    statusText: "Too Many Requests",
+    headers: {
+      "Content-Type": "application/json",
+      "Retry-After": String(retryAfterSeconds),
+      "X-Client-Rate-Limited": "true",
+    },
+  });
+}
+
+function authThrottleCaptchaResponse(retryAfterSeconds: number): Response {
   return new Response(JSON.stringify({ error: AUTH_THROTTLE_CAPTCHA_MESSAGE, code: AUTH_THROTTLE_CAPTCHA_CODE }), {
     status: 429,
     statusText: "Too Many Requests",
@@ -158,10 +170,8 @@ export function installClientRequestThrottle() {
             return captchaRequiredResponse();
           }
 
-          if (!hasFreshCaptcha) {
-            const authResult = consumeAuthAttemptBucket();
-            if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
-          }
+          const authResult = consumeAuthAttemptBucket();
+          if (!authResult.allowed && !hasFreshCaptcha) return authThrottleCaptchaResponse(authResult.retryAfterSeconds);
         }
 
         const result = consumeBucket(bucketKey(url, method));
