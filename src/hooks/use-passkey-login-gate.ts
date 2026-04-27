@@ -11,9 +11,9 @@ import { PasskeyLoginService } from "@/services/passkey-login.service";
  *   - user is authenticated
  *   - user is an admin
  *   - user has at least one passkey enrolled
- *   - the current browser/device has not proven active 30-day trust
+ *   - the current JWT session has not completed a passkey proof
  *
- * Non-admins, admins without a passkey enrolled, and verified sessions all
+ * Non-admins, admins without a passkey enrolled, and verified JWT sessions all
  * return needsGate === false (so the gate stays out of their way).
  */
 export function usePasskeyLoginGate() {
@@ -55,7 +55,8 @@ export function usePasskeyLoginGate() {
     if (!isAdmin) { setVerified(true); return; } // non-admins are not gated
     if (passkeyEnrolled === null) return;        // wait for passkey check
     if (passkeyEnrolled === false) { setVerified(true); return; } // no passkey → gate is no-op
-    if (verified === true) return;               // 30-day device trust already proved for this app session
+    if (lastCheckedToken !== session?.access_token) setVerified(null);
+    if (verified === true && lastCheckedToken === session?.access_token) return;
     if (lastCheckedToken === session?.access_token && checking) return;
     void recheck();
   }, [authLoading, adminLoading, user, isAdmin, passkeyEnrolled, session?.access_token, verified, lastCheckedToken, checking, recheck]);
