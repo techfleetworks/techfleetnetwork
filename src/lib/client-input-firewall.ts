@@ -9,7 +9,13 @@ const MAX_OBJECT_DEPTH = 12;
 const EMAIL_KEY_PATTERN = /(^|_|-)email($|_|-)/i;
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 const DANGEROUS_EMAIL_CHARS = /[<>"'`\\\s]/;
-const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+const hasUnsafeControlChar = (value: string) => {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if ((code >= 0 && code <= 8) || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127) return true;
+  }
+  return false;
+};
 const ACTIVE_XSS_PATTERNS = [
   /<\s*script\b/i,
   /<\s*iframe\b/i,
@@ -36,7 +42,7 @@ function blocked(reason: string): Verdict {
 
 function inspectString(key: string, value: string): Verdict {
   if (byteLength(value) > MAX_TEXT_VALUE_BYTES) return blocked("Input is too long.");
-  if (CONTROL_CHARS.test(value)) return blocked("Input contains invalid control characters.");
+  if (hasUnsafeControlChar(value)) return blocked("Input contains invalid control characters.");
   if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(value) || !EMAIL_PATTERN.test(value))) {
     return blocked("Enter a valid email address.");
   }
@@ -102,7 +108,8 @@ export function shouldInspectClientInput(url: URL, method: string): boolean {
 export async function blockUnsafeClientInput(input: RequestInfo | URL, init: RequestInit | undefined, url: URL, method: string): Promise<Response | null> {
   if (!shouldInspectClientInput(url, method)) return null;
   const verdict = await inspectBody(input, init);
-  return verdict.allowed ? null : rejectionResponse(verdict.reason);
+  if (verdict.allowed) return null;
+  return rejectionResponse(verdict.reason);
 }
 
 export const __clientInputFirewallTestHooks = { inspectValue, inspectString };
