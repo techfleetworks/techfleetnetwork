@@ -11,7 +11,7 @@ const servicesIndex = fs.existsSync(path.join(process.cwd(), "src", "services", 
 const edgeFunctionDirs = fs.existsSync(path.join(process.cwd(), "supabase", "functions"))
   ? fs.readdirSync(path.join(process.cwd(), "supabase", "functions"))
   : [];
-const scenarioIds = ["78.1", "78.2", "78.3", "78.4", "78.5"];
+const scenarioIds = ["78.1", "78.2", "78.3", "78.4", "78.5", "78.6"];
 
 describe("Rate Limiting" + " (smoke)", () => {
   it("78.1: Rate limiter allows requests within threshold", () => {
@@ -37,5 +37,10 @@ describe("Rate Limiting" + " (smoke)", () => {
   it("78.5: Stale rate limit records are cleaned up", () => {
     expect(appSrc.length).toBeGreaterThan(1000);
     expect(scenarioIds).toContain("78.5");
+  });
+
+  it("78.6: Chatbot uses shared hourly system rate limit", () => {
+    expect(edgeFunctionDirs).toContain("techfleet-chat");
+    expect(scenarioIds).toContain("78.6");
   });
 });
