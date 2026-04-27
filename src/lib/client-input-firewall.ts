@@ -1,3 +1,5 @@
+import { hasActiveXssPattern } from "@/lib/security";
+
 type Verdict = { allowed: true } | { allowed: false; reason: string };
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
@@ -16,21 +18,6 @@ const hasUnsafeControlChar = (value: string) => {
   }
   return false;
 };
-const ACTIVE_XSS_PATTERNS = [
-  /<\s*script\b/i,
-  /<\s*iframe\b/i,
-  /<\s*object\b/i,
-  /<\s*embed\b/i,
-  /<\s*svg\b/i,
-  /<\s*math\b/i,
-  /on[a-z]+\s*=/i,
-  /javascript\s*:/i,
-  /vbscript\s*:/i,
-  /data\s*:\s*text\/html/i,
-  /expression\s*\(/i,
-  /%3c\s*(script|iframe|object|embed|svg|math)/i,
-  /&#x?0*3c;?\s*(script|iframe|object|embed|svg|math)/i,
-];
 
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
@@ -46,7 +33,7 @@ function inspectString(key: string, value: string): Verdict {
   if (EMAIL_KEY_PATTERN.test(key) && value && (DANGEROUS_EMAIL_CHARS.test(value) || !EMAIL_PATTERN.test(value))) {
     return blocked("Enter a valid email address.");
   }
-  if (ACTIVE_XSS_PATTERNS.some((pattern) => pattern.test(value))) return blocked("Input contains unsafe content.");
+  if (hasActiveXssPattern(value)) return blocked("Input contains unsafe content.");
   return { allowed: true };
 }
 
