@@ -1,8 +1,8 @@
 // device-bind
 // -----------
 // After a successful AAL2 step (passkey or TOTP verification), the client
-// calls this function to register the device's public key as trusted for
-// 30 days. The function ONLY accepts a binding if:
+// calls this function to register the device's public key for the current
+// short-lived admin session. The function ONLY accepts a binding if:
 //   1. The caller's JWT is at AAL2 (the second factor was just satisfied).
 //   2. The supplied signature verifies against the supplied public key
 //      AND the server-issued nonce (replay protection).
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         public_key: publicKey,
         bound_at: new Date().toISOString(),
         last_proof_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
         ip_address: ip,
         user_agent: ua,
       }, { onConflict: "user_id,fingerprint" });
