@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { markLoginCaptchaVerified } from "@/lib/auth-captcha";
 
 type TurnstileAction = "login" | "register" | "forgot_password";
 
@@ -9,6 +10,7 @@ export async function verifyTurnstileToken(token: string, action: TurnstileActio
     body: { token, action },
   });
 
-  if (error) return false;
-  return data?.success === true;
+  if (error || data?.success !== true) return false;
+  markLoginCaptchaVerified();
+  return true;
 }
