@@ -15,6 +15,8 @@ const AUTH_ATTEMPT_WINDOW_MS = 60_000;
 const MAX_AUTH_ATTEMPTS_PER_WINDOW = 3;
 const AUTH_ATTEMPT_BUCKET_KEY = "tfn:client-auth-attempt-window";
 const AUTH_ATTEMPT_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend)|rest\/v1\/rpc\/check_rate_limit)$/;
+const RATE_LIMIT_LOG_DEDUPE_MS = 30_000;
+const rateLimitLogDedupe = new Map<string, number>();
 
 type Bucket = {
   count: number;
@@ -141,6 +143,41 @@ function isAuthAttemptRequest(url: URL, method: string): boolean {
   return method === "POST" && url.origin !== window.location.origin && AUTH_ATTEMPT_PATH_PATTERN.test(url.pathname);
 }
 
+function logClientRateLimitHit(
+  originalFetch: typeof window.fetch,
+  url: URL,
+  method: string,
+  reason: "auth_lockout" | "auth_throttle_captcha" | "request_throttle",
+  retryAfterSeconds: number,
+) {
+  const now = Date.now();
+  const dedupeKey = `${reason}:${method}:${url.pathname}`;
+  const lastLoggedAt = rateLimitLogDedupe.get(dedupeKey) ?? 0;
+  if (now - lastLoggedAt < RATE_LIMIT_LOG_DEDUPE_MS) return;
+  rateLimitLogDedupe.set(dedupeKey, now);
+
+  const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-rate-limit-log`;
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!endpoint || !publishableKey) return;
+
+  void originalFetch(endpoint, {
+    method: "POST",
+    keepalive: true,
+    headers: {
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+    },
+    body: JSON.stringify({
+      reason,
+      method,
+      path: url.pathname,
+      retryAfterSeconds,
+      captchaRequired: reason === "auth_throttle_captcha",
+      surface: "fetch_interceptor",
+    }),
+  }).catch(() => undefined);
+}
+
 export function installClientRequestThrottle() {
   if (typeof window === "undefined" || typeof window.fetch !== "function") return;
 
@@ -162,7 +199,10 @@ export function installClientRequestThrottle() {
       if (shouldThrottle(url)) {
         if (isAuthAttemptRequest(url, method)) {
           const lockout = getAuthLockoutState();
-          if (lockout.locked) return localLockoutResponse(lockout.remainingSeconds);
+          if (lockout.locked) {
+            logClientRateLimitHit(originalFetch, url, method, "auth_lockout", lockout.remainingSeconds);
+            return localLockoutResponse(lockout.remainingSeconds);
+          }
 
           const hasFreshCaptcha = hasFreshLoginCaptchaVerification() || hasFreshOAuthUiMarker();
           if (isLoginCaptchaRequired() && !hasFreshCaptcha) {
@@ -171,11 +211,17 @@ export function installClientRequestThrottle() {
           }
 
           const authResult = consumeAuthAttemptBucket();
-          if (!authResult.allowed && !hasFreshCaptcha) return authThrottleCaptchaResponse(authResult.retryAfterSeconds);
+          if (!authResult.allowed && !hasFreshCaptcha) {
+            logClientRateLimitHit(originalFetch, url, method, "auth_throttle_captcha", authResult.retryAfterSeconds);
+            return authThrottleCaptchaResponse(authResult.retryAfterSeconds);
+          }
         }
 
         const result = consumeBucket(bucketKey(url, method));
-        if (!result.allowed) return rateLimitedResponse(result.retryAfterSeconds);
+        if (!result.allowed) {
+          logClientRateLimitHit(originalFetch, url, method, "request_throttle", result.retryAfterSeconds);
+          return rateLimitedResponse(result.retryAfterSeconds);
+        }
       }
     } catch {
       // If URL parsing fails, preserve native fetch behavior instead of blocking legitimate requests.
