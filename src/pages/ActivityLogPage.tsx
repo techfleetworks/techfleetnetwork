@@ -309,6 +309,17 @@ export default function ActivityLogPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
+      ) : loadError ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-medium">Activity log did not finish loading.</p>
+              <p className="mt-1">{loadError}</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={fetchLogs}>Try again</Button>
+            </div>
+          </div>
+        </div>
       ) : (
         <>
           <ThemedAgGrid<AuditLogEntry>
