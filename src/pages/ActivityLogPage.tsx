@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { toast } from "sonner";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -19,20 +18,10 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Activity,
-  User,
-  ShieldCheck,
-  FileText,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  UserPlus,
-  Pencil,
-  Copy,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ThemedAgGrid } from "@/components/AgGrid";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type { ColDef } from "ag-grid-community";
 
 interface AuditLogEntry {
   id: string;
@@ -48,7 +37,7 @@ interface AuditLogEntry {
 
 const QUERY_TIMEOUT_MS = 10_000;
 
-async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
   let timeoutId: number | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), QUERY_TIMEOUT_MS);
@@ -124,8 +113,8 @@ export default function ActivityLogPage() {
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchProfiles = async () => {
-      const { data } = await withTimeout(
-        supabase.from("profiles").select("user_id, email, first_name, last_name, display_name"),
+      const { data } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>(
+        supabase.from("profiles").select("user_id, email, first_name, last_name, display_name") as unknown as PromiseLike<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>,
         "Profile lookup"
       );
     if (data) {
@@ -148,7 +137,7 @@ export default function ActivityLogPage() {
         .from("audit_log")
         .select("id", { count: "exact", head: true });
       if (eventFilter !== "all") countQuery = countQuery.eq("event_type", eventFilter);
-      const { count } = await withTimeout(countQuery, "Activity log count");
+      const { count } = await withTimeout<{ count: number | null }>(countQuery as unknown as PromiseLike<{ count: number | null }>, "Activity log count");
       setTotalCount(count || 0);
 
       let query = supabase
@@ -157,7 +146,7 @@ export default function ActivityLogPage() {
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
-      const { data, error } = await withTimeout(query, "Activity log load");
+      const { data, error } = await withTimeout<{ data: unknown[] | null; error: Error | null }>(query as unknown as PromiseLike<{ data: unknown[] | null; error: Error | null }>, "Activity log load");
       if (error) throw error;
       setEntries((data || []) as unknown as AuditLogEntry[]);
     } catch (err) {
@@ -200,15 +189,6 @@ export default function ActivityLogPage() {
     Object.keys(EVENT_TYPE_CONFIG).forEach((t) => types.add(t));
     return Array.from(types).sort();
   }, [entries]);
-
-  const copyToClipboard = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard");
-    } catch {
-      toast.error("Failed to copy");
-    }
-  }, []);
 
   const getEventConfig = (eventType: string) =>
     EVENT_TYPE_CONFIG[eventType] || {
