@@ -25,6 +25,12 @@ function authRunId(payload: QueuePayload): string | undefined {
   return stringField(payload, 'idempotency_key') || stringField(payload, 'message_id') || undefined
 }
 
+function emailApiPurpose(_queue: string, _payload: QueuePayload): 'transactional' {
+  // The email provider only accepts the app-email purpose. Auth emails still
+  // flow through the priority auth queue, but must be sent with this purpose.
+  return 'transactional'
+}
+
 function retryDelaySeconds(failedAttempts: number): number {
   const exponent = Math.max(failedAttempts - 1, 0)
   return Math.min(BASE_RETRY_DELAY_SECONDS * 2 ** exponent, MAX_RETRY_DELAY_SECONDS)
@@ -301,7 +307,7 @@ Deno.serve(async (req) => {
             subject: stringField(payload, 'subject'),
             html: stringField(payload, 'html'),
             text: stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet')),
-            purpose: stringField(payload, 'purpose') || undefined,
+            purpose: emailApiPurpose(queue, payload),
             label: stringField(payload, 'label') || undefined,
             idempotency_key: stringField(payload, 'idempotency_key') || undefined,
             unsubscribe_token: stringField(payload, 'unsubscribe_token') || undefined,
