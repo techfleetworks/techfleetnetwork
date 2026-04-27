@@ -1,11 +1,10 @@
 import { z } from "zod";
-import { enforceMaxBytes, hasHeaderInjection, hasPathTraversal, hasSqlInjectionPattern, sanitizeHtml } from "@/lib/security";
+import { deepSanitize, enforceMaxBytes, hasActiveXssPattern, hasHeaderInjection, hasPathTraversal, hasSqlInjectionPattern, sanitizeHtml } from "@/lib/security";
 
-const ACTIVE_CONTENT = /<\s*(script|iframe|object|embed|svg|math|form|input|button|textarea|select)\b|on[a-z]+\s*=|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html|expression\s*\(/i;
 const SAFE_TEXT_MAX_BYTES = 50_000;
 
 function rejectUnsafe(value: string) {
-  return !ACTIVE_CONTENT.test(value) && !hasHeaderInjection(value) && !hasPathTraversal(value) && !hasSqlInjectionPattern(value);
+  return !hasActiveXssPattern(value) && !hasHeaderInjection(value) && !hasPathTraversal(value) && !hasSqlInjectionPattern(value);
 }
 
 export function normalizeSafeText(value: string, maxBytes = SAFE_TEXT_MAX_BYTES) {
@@ -27,9 +26,9 @@ export const safeStringArraySchema = (label: string, maxItems = 30, maxItemLengt
 export function sanitizeRecordFields(fields: Record<string, unknown>) {
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
-    if (typeof value === "string") sanitized[key] = normalizeSafeText(value);
-    else if (Array.isArray(value)) sanitized[key] = value.map((item) => (typeof item === "string" ? normalizeSafeText(item, 2_000) : item));
-    else sanitized[key] = value;
+    if (typeof value === "string") sanitized[key] = deepSanitize(normalizeSafeText(value));
+    else if (Array.isArray(value)) sanitized[key] = value.map((item) => (typeof item === "string" ? deepSanitize(normalizeSafeText(item, 2_000)) : item));
+    else sanitized[key] = deepSanitize(value);
   }
   return sanitized;
 }
