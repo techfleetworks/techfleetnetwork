@@ -121,6 +121,14 @@ describe("AuthService session max-age marker", () => {
     expect(supabase.auth.getSession).not.toHaveBeenCalled();
   });
 
+  it("blocks direct OAuth callback URLs unless OAuth was initiated from the UI", async () => {
+    window.history.replaceState({}, "", "/?code=direct-oauth-code");
+
+    await expect(AuthService.getSession()).resolves.toBeNull();
+    expect(supabase.auth.getSession).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("");
+  });
+
   it("clears local auth state when the stored refresh token has been rotated away", async () => {
     localStorage.setItem("sb-project-auth-token", JSON.stringify({ refresh_token: "missing-refresh-token" }));
     sessionStorage.setItem("session_started_at", JSON.stringify({ version: 1, userId: "user", startedAtMs: Date.now() }));
