@@ -16,6 +16,13 @@ function stringField(payload: QueuePayload, key: string, fallback = ''): string 
   return typeof value === 'string' ? value : fallback
 }
 
+function authRunId(payload: QueuePayload): string | undefined {
+  const explicitRunId = stringField(payload, 'run_id')
+  if (explicitRunId) return explicitRunId
+  if (stringField(payload, 'purpose') !== 'auth') return undefined
+  return stringField(payload, 'idempotency_key') || stringField(payload, 'message_id') || undefined
+}
+
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
 // falls back to parsing the error message for older versions.
@@ -263,7 +270,7 @@ Deno.serve(async (req) => {
       try {
         await sendLovableEmail(
           {
-            run_id: stringField(payload, 'run_id') || undefined,
+            run_id: authRunId(payload),
             to: stringField(payload, 'to'),
             from: stringField(payload, 'from'),
             sender_domain: stringField(payload, 'sender_domain') || undefined,
