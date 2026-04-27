@@ -1,5 +1,6 @@
 import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
 import { hasFreshLoginCaptchaVerification, isLoginCaptchaRequired } from "@/lib/auth-captcha";
+import { formatAuthLockoutMessage, getAuthLockoutState } from "@/lib/auth-lockout";
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
@@ -97,6 +98,18 @@ function rateLimitedResponse(retryAfterSeconds: number): Response {
   });
 }
 
+function localLockoutResponse(retryAfterSeconds: number): Response {
+  return new Response(JSON.stringify({ error: formatAuthLockoutMessage(retryAfterSeconds) }), {
+    status: 429,
+    statusText: "Too Many Requests",
+    headers: {
+      "Content-Type": "application/json",
+      "Retry-After": String(retryAfterSeconds),
+      "X-Client-Auth-Lockout": "true",
+    },
+  });
+}
+
 function captchaRequiredResponse(): Response {
   return new Response(JSON.stringify({ error: "Complete the human verification before trying again." }), {
     status: 403,
@@ -132,6 +145,9 @@ export function installClientRequestThrottle() {
 
       if (shouldThrottle(url)) {
         if (isAuthAttemptRequest(url, method)) {
+          const lockout = getAuthLockoutState();
+          if (lockout.locked) return localLockoutResponse(lockout.remainingSeconds);
+
           if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification()) return captchaRequiredResponse();
 
           const authResult = consumeAuthAttemptBucket();
