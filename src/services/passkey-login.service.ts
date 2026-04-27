@@ -55,16 +55,14 @@ export const PasskeyLoginService = {
       });
       if (activeErr || active !== true) return false;
 
-      const { data: challenge, error: challengeErr } = await supabase.functions.invoke("device-prove", {
+      const { data: challenge, error: challengeErr } = await supabase.functions.invoke("device-prove?step=challenge", {
         body: {},
-        query: { step: "challenge" },
       });
       if (challengeErr || typeof challenge?.nonce !== "string") return false;
 
       const signature = await signDeviceNonce(challenge.nonce);
-      const { data: proof, error: proofErr } = await supabase.functions.invoke("device-prove", {
+      const { data: proof, error: proofErr } = await supabase.functions.invoke("device-prove?step=verify", {
         body: { fingerprint, signature, nonce: challenge.nonce },
-        query: { step: "verify" },
       });
       return !proofErr && proof?.trusted === true;
     } catch (e) {
