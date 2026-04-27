@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
+import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
@@ -70,7 +71,9 @@ function clearLocalAuthArtifacts() {
 function hasStoredAuthSession() {
   const url = new URL(window.location.href);
   const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
-  if (url.searchParams.has("code") || hash.has("access_token") || hash.has("refresh_token")) return true;
+  if (url.searchParams.has("code") || hash.has("access_token") || hash.has("refresh_token")) {
+    return isRootOAuthCallback(url) && hasFreshOAuthUiMarker();
+  }
 
   for (const storage of [localStorage, sessionStorage]) {
     for (let i = 0; i < storage.length; i += 1) {
@@ -326,6 +329,13 @@ export const AuthService = {
 
   async getSession() {
     log.debug("getSession", "Retrieving current session");
+    if (isRootOAuthCallback() && !hasFreshOAuthUiMarker()) {
+      log.warn("getSession", "Blocked direct OAuth callback without a recent UI-initiated sign-in marker");
+      stripRootOAuthCallbackUrl();
+      clearLocalAuthArtifacts();
+      return null;
+    }
+
     if (!hasStoredAuthSession()) {
       log.debug("getSession", "No stored auth session — skipping backend session check");
       return null;
@@ -402,6 +412,10 @@ export const AuthService = {
         return null;
       }
       log.debug("getSession", "Valid session found", { userId: data.session.user.id });
+      if (isRootOAuthCallback()) {
+        clearOAuthUiMarker();
+        stripRootOAuthCallbackUrl();
+      }
     } else {
       log.debug("getSession", "No active session");
     }
