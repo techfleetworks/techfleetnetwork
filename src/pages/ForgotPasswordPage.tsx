@@ -8,10 +8,14 @@ import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { emailInputSchema } from "@/lib/validators/auth";
+import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
+import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +24,12 @@ export default function ForgotPasswordPage() {
     const result = emailInputSchema.safeParse(email);
     if (!result.success) {
       setError(result.error.issues[0].message);
+      return;
+    }
+    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+      setCaptchaState(refreshLoginCaptcha());
+      setCaptchaAnswer("");
+      setError("Complete the human verification before trying again.");
       return;
     }
     setError("");
@@ -81,6 +91,8 @@ export default function ForgotPasswordPage() {
                 <Input id="email" type="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" autoComplete="email" required aria-required="true" aria-invalid={!!error} />
               </div>
             </div>
+
+            <AuthCaptchaField id="forgot-password-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Sending…" : "Send Reset Link"}
