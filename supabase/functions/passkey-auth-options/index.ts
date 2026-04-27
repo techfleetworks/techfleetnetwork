@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
         id: c.credential_id,
         transports: (c.transports ?? []) as AuthenticatorTransport[],
       })),
-      userVerification: "preferred",
+      userVerification: "required",
     });
 
     // Store challenge server-side, keyed by user (one per user, replaced)
