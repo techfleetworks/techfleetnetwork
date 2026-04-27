@@ -8,16 +8,17 @@ import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { emailInputSchema } from "@/lib/validators/auth";
-import { getLoginCaptchaState, refreshLoginCaptcha, verifyLoginCaptchaAnswer } from "@/lib/auth-captcha";
-import { AuthCaptchaField } from "@/components/auth/AuthCaptchaField";
+import { getLoginCaptchaState, refreshLoginCaptcha } from "@/lib/auth-captcha";
+import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
+import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,10 +49,10 @@ export default function ForgotPasswordPage() {
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
-    if (!verifyLoginCaptchaAnswer(captchaAnswer)) {
+    if (!(await verifyTurnstileToken(captchaToken, "forgot_password"))) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
-      setCaptchaAnswer("");
+      setCaptchaToken("");
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -118,7 +119,7 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
 
-            <AuthCaptchaField id="forgot-password-captcha" captchaState={captchaState} value={captchaAnswer} onChange={setCaptchaAnswer} />
+            <TurnstileChallenge action="forgot_password" onTokenChange={setCaptchaToken} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "forgot-password-lockout-status" : undefined}>
               {loading ? "Sending…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Send Reset Link"}
