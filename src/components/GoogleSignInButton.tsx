@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
+import { markOAuthUiInitiated } from "@/lib/oauth-ui-guard";
 
 interface GoogleSignInButtonProps {
   label?: string;
@@ -13,8 +14,9 @@ export function GoogleSignInButton({ label = "Sign in with Google", className }:
   const handleClick = async () => {
     setLoading(true);
     try {
+      markOAuthUiInitiated("google");
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/`,
       });
       if (result.error) {
         // Log generic message only — no PII or tokens

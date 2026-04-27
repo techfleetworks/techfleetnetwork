@@ -3,6 +3,7 @@ import { isSafeRedirectUrl } from "@/lib/security";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
+import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -122,6 +123,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           AuthService.clearLocalAuthState();
         }
 
+        if (_event === "SIGNED_IN" && isRootOAuthCallback() && !hasFreshOAuthUiMarker()) {
+          AuthService.clearLocalAuthState();
+          stripRootOAuthCallbackUrl();
+          await AuthService.signOut();
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setProfileLoaded(false);
+          setLoading(false);
+          return;
+        }
+
         // For token refreshes, only update session/user if the user ID actually changed
         if (_event === "TOKEN_REFRESHED") {
           setSession((prev) => {
@@ -135,6 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           if (_event === "SIGNED_IN") {
+            if (isRootOAuthCallback()) {
+              clearOAuthUiMarker();
+              stripRootOAuthCallbackUrl();
+            }
             if (!sessionStorage.getItem(SESSION_STARTED_AT_KEY)) {
               sessionStorage.setItem(
                 SESSION_STARTED_AT_KEY,
