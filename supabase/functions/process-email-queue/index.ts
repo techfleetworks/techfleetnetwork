@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
       // Drop expired messages (TTL exceeded).
       // Prefer payload.queued_at when present; fall back to PGMQ's enqueued_at
       // which is always set by the queue.
-      const queuedAt = payload.queued_at ?? msg.enqueued_at
+      const queuedAt = stringField(payload, 'queued_at', msg.enqueued_at ?? '')
       if (queuedAt) {
         const ageMs = Date.now() - new Date(queuedAt).getTime()
         const maxAgeMs = ttlMinutes[queue] * 60 * 1000
@@ -262,18 +262,18 @@ Deno.serve(async (req) => {
       try {
         await sendLovableEmail(
           {
-            run_id: payload.run_id,
-            to: payload.to,
-            from: payload.from,
-            sender_domain: payload.sender_domain,
-            subject: payload.subject,
-            html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
+            run_id: stringField(payload, 'run_id') || undefined,
+            to: stringField(payload, 'to'),
+            from: stringField(payload, 'from'),
+            sender_domain: stringField(payload, 'sender_domain') || undefined,
+            subject: stringField(payload, 'subject'),
+            html: stringField(payload, 'html'),
+            text: stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet')),
+            purpose: stringField(payload, 'purpose') || undefined,
+            label: stringField(payload, 'label') || undefined,
+            idempotency_key: stringField(payload, 'idempotency_key') || undefined,
+            unsubscribe_token: stringField(payload, 'unsubscribe_token') || undefined,
+            message_id: stringField(payload, 'message_id') || undefined,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).
@@ -283,9 +283,9 @@ Deno.serve(async (req) => {
 
         // Log success
         await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
+          message_id: stringField(payload, 'message_id'),
+          template_name: stringField(payload, 'label', queue),
+          recipient_email: stringField(payload, 'to'),
           status: 'sent',
         })
 
