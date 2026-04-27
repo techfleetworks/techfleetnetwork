@@ -62,15 +62,15 @@ Deno.serve(async (req) => {
     // Mark token used (single-use)
     await admin.from("passkey_recovery_tokens").update({ used_at: new Date().toISOString() }).eq("id", rec.id);
 
-    // Mark THIS DEVICE as passkey-verified for 30 days (matches normal gate).
+    // Legacy bridge for older clients that still send device_id. Current admin
+    // access requires fresh passkey verification for every login session.
     const deviceHash = await sha256Hex(`v1:${user.id}:${device_id}`);
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
     await admin.from("passkey_login_sessions").upsert({
       user_id: user.id,
       session_token_hash: deviceHash,
       verified_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + THIRTY_DAYS_MS).toISOString(),
+      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
       ip_address: ip,
     }, { onConflict: "user_id,session_token_hash" });
 
