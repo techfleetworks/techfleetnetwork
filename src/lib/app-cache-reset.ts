@@ -1,10 +1,11 @@
 import { MemoryCache } from "@/lib/memory-cache";
 
-export const APP_CACHE_RESET_VERSION = "2026-04-27-cache-reset-v2";
+export const APP_CACHE_RESET_VERSION = "2026-04-27-turnstile-force-cache-reset-v1";
 
 const CACHE_RESET_VERSION_KEY = "techfleet.cacheResetVersion";
+const CACHE_RESET_RELOAD_KEY = "techfleet.cacheResetReloadedVersion";
 const QUERY_CACHE_RESET_PENDING_KEY = "techfleet.queryCacheResetPending";
-const SAFE_CACHE_KEY_PATTERNS = [/^techfleet\.(?!cacheResetVersion|queryCacheResetPending)/, /^tf-cache:/, /^app-cache:/, /^workbox-/];
+const SAFE_CACHE_KEY_PATTERNS = [/^techfleet\.(?!cacheResetVersion|cacheResetReloadedVersion|queryCacheResetPending)/, /^tf-cache:/, /^app-cache:/, /^workbox-/];
 
 function clearSafeStorage(storage: Storage) {
   for (let index = storage.length - 1; index >= 0; index -= 1) {
@@ -13,7 +14,7 @@ function clearSafeStorage(storage: Storage) {
   }
 }
 
-export async function clearAppCachesForVersion() {
+export async function clearAppCachesForVersion({ reloadAfterClear = false }: { reloadAfterClear?: boolean } = {}) {
   if (typeof window === "undefined") return;
   if (localStorage.getItem(CACHE_RESET_VERSION_KEY) === APP_CACHE_RESET_VERSION) return;
 
@@ -33,6 +34,11 @@ export async function clearAppCachesForVersion() {
 
   localStorage.setItem(QUERY_CACHE_RESET_PENDING_KEY, "1");
   localStorage.setItem(CACHE_RESET_VERSION_KEY, APP_CACHE_RESET_VERSION);
+
+  if (reloadAfterClear && sessionStorage.getItem(CACHE_RESET_RELOAD_KEY) !== APP_CACHE_RESET_VERSION) {
+    sessionStorage.setItem(CACHE_RESET_RELOAD_KEY, APP_CACHE_RESET_VERSION);
+    window.location.reload();
+  }
 }
 
 export function consumeQueryCacheResetPending() {
