@@ -20,6 +20,7 @@ import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { verifyTurnstileToken } from "@/lib/turnstile-verification";
+import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -186,6 +187,14 @@ export default function LoginPage() {
         throw err;
       }
     } catch (err: any) {
+      if (isAuthThrottleCaptchaError(err)) {
+        logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "login", reason: "client_auth_throttle_429" });
+        setCaptchaState(refreshLoginCaptcha());
+        setCaptchaToken("");
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
       setError(err.message);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);

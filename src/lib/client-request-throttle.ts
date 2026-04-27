@@ -3,6 +3,7 @@ import { hasFreshLoginCaptchaVerification, isLoginCaptchaRequired } from "@/lib/
 import { formatAuthLockoutMessage, getAuthLockoutState } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { hasFreshOAuthUiMarker } from "@/lib/oauth-ui-guard";
+import { AUTH_THROTTLE_CAPTCHA_CODE, AUTH_THROTTLE_CAPTCHA_MESSAGE } from "@/lib/auth-throttle-captcha";
 
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
@@ -100,6 +101,19 @@ function rateLimitedResponse(retryAfterSeconds: number): Response {
   });
 }
 
+function authThrottleCaptchaResponse(retryAfterSeconds: number): Response {
+  return new Response(JSON.stringify({ error: AUTH_THROTTLE_CAPTCHA_MESSAGE, code: AUTH_THROTTLE_CAPTCHA_CODE }), {
+    status: 429,
+    statusText: "Too Many Requests",
+    headers: {
+      "Content-Type": "application/json",
+      "Retry-After": String(retryAfterSeconds),
+      "X-Client-Rate-Limited": "true",
+      "X-Client-Captcha-Required": "true",
+    },
+  });
+}
+
 function localLockoutResponse(retryAfterSeconds: number): Response {
   return new Response(JSON.stringify({ error: formatAuthLockoutMessage(retryAfterSeconds) }), {
     status: 429,
@@ -150,13 +164,14 @@ export function installClientRequestThrottle() {
           const lockout = getAuthLockoutState();
           if (lockout.locked) return localLockoutResponse(lockout.remainingSeconds);
 
-          if (isLoginCaptchaRequired() && !hasFreshLoginCaptchaVerification() && !hasFreshOAuthUiMarker()) {
+          const hasFreshCaptcha = hasFreshLoginCaptchaVerification() || hasFreshOAuthUiMarker();
+          if (isLoginCaptchaRequired() && !hasFreshCaptcha) {
             logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "fetch_interceptor", authPath: url.pathname });
             return captchaRequiredResponse();
           }
 
           const authResult = consumeAuthAttemptBucket();
-          if (!authResult.allowed) return rateLimitedResponse(authResult.retryAfterSeconds);
+          if (!authResult.allowed && !hasFreshCaptcha) return authThrottleCaptchaResponse(authResult.retryAfterSeconds);
         }
 
         const result = consumeBucket(bucketKey(url, method));

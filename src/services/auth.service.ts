@@ -3,6 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
+import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
@@ -140,6 +141,7 @@ export const AuthService = {
       if (error) {
         log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${error.message}`, { email: safeEmail, errorCode: error.status }, error);
         void logAccountActivity("login_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
+        if (error.status === 429 || error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
         throw new Error("Invalid email or password. Please try again.");
       }
       if (data.session) writeSessionMarker(data.session);
@@ -183,11 +185,13 @@ export const AuthService = {
         try {
           const res = await Promise.race([attempt(), timeoutPromise]);
           if (!res.error) { data = res.data; lastErr = null; break; }
+          if (res.error.status === 429 || res.error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
           lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
           const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
           if (!transient) break;
           await new Promise(r => setTimeout(r, 600 * (i + 1)));
         } catch (networkErr: any) {
+          if (isAuthThrottleCaptchaError(networkErr)) throw networkErr;
           // Catches the timeoutPromise rejection AND any fetch-level network failures (offline, DNS, CORS).
           lastErr = { message: networkErr?.message ?? "Network error", status: 0 };
           void logAccountActivity("signup_network_error", { email: safeEmail, errorMessage: lastErr.message });
@@ -286,6 +290,7 @@ export const AuthService = {
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${safeEmail}: ${error.message}`, { email: safeEmail }, error);
         void logAccountActivity("password_reset_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
+        if (error.status === 429 || error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
         throw new Error("If an account exists with that email, a reset link has been sent.");
       }
       log.info("resetPassword", `Password reset email sent for ${safeEmail}`, { email: safeEmail });
