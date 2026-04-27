@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireFreshAdminPasskey } from "../_shared/admin-step-up.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,9 @@ Deno.serve(async (req) => {
     _role: "admin",
   });
   if (roleError || isAdmin !== true) return json({ error: "Forbidden" }, 403);
+
+  const stepUp = await requireFreshAdminPasskey(admin, authHeader, callerData.user.id, 10);
+  if (!stepUp.ok) return json({ error: stepUp.error }, stepUp.status);
 
   const users: Array<{ id: string; email?: string }> = [];
   for (let page = 1; page <= 100; page += 1) {

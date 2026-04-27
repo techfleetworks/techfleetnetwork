@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireFreshAdminPasskey } from "../_shared/admin-step-up.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,11 @@ Deno.serve(async (req) => {
     const { data: roleRow } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!roleRow) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const stepUp = await requireFreshAdminPasskey(admin, authHeader, user.id, 10);
+    if (!stepUp.ok) {
+      return new Response(JSON.stringify({ error: stepUp.error }), { status: stepUp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const body = await req.json();

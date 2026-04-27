@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       expectedChallenge: chal.challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
+      requireUserVerification: true,
       authenticator: {
         credentialID: cred.credential_id,
         credentialPublicKey: publicKeyBytes,
@@ -140,16 +141,28 @@ Deno.serve(async (req) => {
 
     const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
     const ua = req.headers.get("user-agent") || null;
+    const accessToken = authHeader.slice(7).trim();
+    const sessionDigest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(accessToken));
+    const sessionTokenHash = Array.from(new Uint8Array(sessionDigest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const verifiedAt = new Date().toISOString();
     await admin.from("trusted_devices").upsert({
       user_id: user.id,
       fingerprint: device_binding.fingerprint.toLowerCase(),
       public_key: device_binding.public_key,
-      bound_at: new Date().toISOString(),
-      last_proof_at: new Date().toISOString(),
+      bound_at: verifiedAt,
+      last_proof_at: verifiedAt,
       expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
       ip_address: ip,
       user_agent: ua,
     }, { onConflict: "user_id,fingerprint" });
+
+    await admin.from("passkey_login_sessions").upsert({
+      user_id: user.id,
+      session_token_hash: sessionTokenHash,
+      verified_at: verifiedAt,
+      expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+      ip_address: ip,
+    }, { onConflict: "user_id,session_token_hash" });
 
     // Audit
     await admin.rpc("write_audit_log", {

@@ -10,12 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import { useNavigate } from "react-router-dom";
 
 export function IdleTimeoutGuard() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
+  const timeoutMinutes = isAdmin ? 15 : 20;
 
   const handleTimeout = useCallback(async () => {
     setShowWarning(false);
@@ -28,7 +31,7 @@ export function IdleTimeoutGuard() {
   }, []);
 
   const { resetTimers } = useIdleTimeout({
-    timeoutMs: 20 * 60 * 1000,  // 20 minute idle timeout
+    timeoutMs: timeoutMinutes * 60 * 1000,
     warningMs: 2 * 60 * 1000,   // warn 2 min before
     onWarning: handleWarning,
     onTimeout: handleTimeout,
@@ -46,7 +49,7 @@ export function IdleTimeoutGuard() {
         <AlertDialogHeader>
           <AlertDialogTitle>Session expiring soon</AlertDialogTitle>
           <AlertDialogDescription>
-            You've been inactive for 18 minutes. You'll be signed out in 2 minutes for security. Click below to stay signed in.
+            You've been inactive for {timeoutMinutes - 2} minutes. You'll be signed out in 2 minutes for security. Click below to stay signed in.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
