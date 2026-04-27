@@ -1,3 +1,5 @@
+import { blockUnsafeClientInput } from "@/lib/client-input-firewall";
+
 const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
 
@@ -83,6 +85,9 @@ export function installClientRequestThrottle() {
       const rawUrl = getRequestUrl(input);
       const url = new URL(rawUrl, window.location.href);
       const method = getRequestMethod(input, init);
+
+      const unsafeInputResponse = await blockUnsafeClientInput(input, init, url, method);
+      if (unsafeInputResponse) return unsafeInputResponse;
 
       if (shouldThrottle(url)) {
         const result = consumeBucket(bucketKey(url, method));

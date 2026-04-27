@@ -1,30 +1,13 @@
 import { z } from "zod";
+import { safeRequiredTextSchema, safeShortTextSchema, safeStringArraySchema, safeUrlSchema } from "@/lib/validators/shared-input";
 
 // A03: Input validation with strict sanitization
 const safeText = (label: string, max: number) =>
-  z
-    .string()
-    .trim()
-    .min(1, `${label} is required`)
-    .max(max, `${label} must be under ${max} characters`)
-    .refine((val) => !/<script/i.test(val), `${label} contains invalid content`);
+  safeRequiredTextSchema(label, max);
 
 /** Validate URL format (allow empty) */
 const safeUrl = (label: string, max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max, `${label} must be under ${max} characters`)
-    .refine(
-      (val) => val === "" || /^https?:\/\/.+/.test(val),
-      `${label} must be a valid URL starting with http:// or https://`
-    )
-    .refine(
-      (val) => !/<script/i.test(val),
-      `${label} contains invalid content`
-    )
-    .optional()
-    .default("");
+  safeUrlSchema(label, max).optional().default("");
 
 export const ACTIVITY_OPTIONS = [
   "Get mentorship",
@@ -52,18 +35,15 @@ export const profileSchema = z.object({
     )
     .optional()
     .default(""),
-  interests: z
-    .array(z.string().max(200))
-    .max(20, "Too many interests selected")
-    .default([]),
+  interests: safeStringArraySchema("Activity interests", 20, 200).default([]),
   portfolio_url: safeUrl("Portfolio URL", 500),
   linkedin_url: safeUrl("LinkedIn URL", 500),
   scheduling_url: safeUrl("Scheduling link", 500),
-  experience_areas: z.array(z.string().max(200)).max(30).optional().default([]),
-  professional_goals: z.string().trim().max(2000).optional().default(""),
+  experience_areas: safeStringArraySchema("Experience areas", 30, 200).optional().default([]),
+  professional_goals: safeShortTextSchema("Professional goals", 2000).optional().default(""),
   notify_training_opportunities: z.boolean().optional().default(false),
   notify_announcements: z.boolean().optional().default(false),
-  education_background: z.array(z.string().max(200)).max(20).optional().default([]),
+  education_background: safeStringArraySchema("Education background", 20, 200).optional().default([]),
   has_discord_account: z.boolean().optional().default(true),
   bio: z
     .string()

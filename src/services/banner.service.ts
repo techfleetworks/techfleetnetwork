@@ -3,6 +3,7 @@
  * CRUD operations for admin-managed system banners.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { safeHtmlSchema, safeRequiredTextSchema } from "@/lib/validators/shared-input";
 
 export interface AdminBanner {
   id: string;
@@ -30,6 +31,17 @@ export interface BannerUpdate {
   reopen_after_dismiss?: boolean;
 }
 
+const bannerTitleSchema = safeRequiredTextSchema("Banner title", 200);
+const bannerBodySchema = safeHtmlSchema("Banner body");
+
+function sanitizeBanner<T extends BannerInsert | BannerUpdate>(banner: T): T {
+  return {
+    ...banner,
+    ...(banner.title !== undefined ? { title: bannerTitleSchema.parse(banner.title) } : {}),
+    ...(banner.body_html !== undefined ? { body_html: bannerBodySchema.parse(banner.body_html) } : {}),
+  } as T;
+}
+
 export async function fetchAllBanners(): Promise<AdminBanner[]> {
   const { data, error } = await supabase
     .from("admin_banners")
@@ -52,7 +64,7 @@ export async function fetchPublishedBanners(): Promise<AdminBanner[]> {
 export async function createBanner(banner: BannerInsert): Promise<AdminBanner> {
   const { data, error } = await supabase
     .from("admin_banners")
-    .insert(banner)
+    .insert(sanitizeBanner(banner))
     .select()
     .single();
   if (error) throw error;
@@ -62,7 +74,7 @@ export async function createBanner(banner: BannerInsert): Promise<AdminBanner> {
 export async function updateBanner(id: string, updates: BannerUpdate): Promise<AdminBanner> {
   const { data, error } = await supabase
     .from("admin_banners")
-    .update(updates)
+    .update(sanitizeBanner(updates))
     .eq("id", id)
     .select()
     .single();

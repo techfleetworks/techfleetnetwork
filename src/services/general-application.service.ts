@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { airtableBreaker } from "@/lib/circuit-breaker";
+import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 
 const log = createLogger("GeneralApplicationService");
 
@@ -10,7 +11,7 @@ const MAX_TEXT_LENGTH = 10_000;
 /** Enforce max length on all string fields before persisting */
 function sanitizeFields(fields: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(fields)) {
+  for (const [key, value] of Object.entries(sanitizeRecordFields(fields))) {
     if (typeof value === "string" && value.length > MAX_TEXT_LENGTH) {
       result[key] = value.slice(0, MAX_TEXT_LENGTH);
       log.warn("sanitizeFields", `Truncated field "${key}" from ${value.length} to ${MAX_TEXT_LENGTH} chars`);
