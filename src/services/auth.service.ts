@@ -67,6 +67,20 @@ function clearLocalAuthArtifacts() {
   }
 }
 
+function hasStoredAuthSession() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+  if (url.searchParams.has("code") || hash.has("access_token") || hash.has("refresh_token")) return true;
+
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key && AUTH_STORAGE_KEY_PATTERN.test(key) && storage.getItem(key)) return true;
+    }
+  }
+  return false;
+}
+
 async function recoverFromInvalidRefreshToken(error: unknown, source: string) {
   const maybeError = error as { message?: string; status?: number } | null | undefined;
   log.warn(source, "Stored refresh token is no longer valid — clearing local auth state", undefined, error);
@@ -312,6 +326,11 @@ export const AuthService = {
 
   async getSession() {
     log.debug("getSession", "Retrieving current session");
+    if (!hasStoredAuthSession()) {
+      log.debug("getSession", "No stored auth session — skipping backend session check");
+      return null;
+    }
+
     let authResult: Awaited<ReturnType<typeof supabase.auth.getSession>>;
     try {
       authResult = await supabase.auth.getSession();
