@@ -8,7 +8,8 @@ const log = createEdgeLogger("discord-notify");
  * SECURITY: Originally callable without auth, which made the Discord webhook
  * a spam vector for any anonymous client. Fixed 2026-04-18 audit:
  *  • Requires a valid Supabase JWT
- *  • Server-side rate limit (60 req / 5 min per user) via check_rate_limit
+ *  • Server-side rate limit (5 req / 1 min per user) via check_rate_limit
+ *  • Duplicate payload suppression to stop authenticated session replay/bots
  *  • Strict allow-list of event types (existing) and bounded body
  */
 
@@ -92,6 +93,14 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 }
 
 const MAX_BODY_BYTES = 8 * 1024;
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/techfleet\.network$/,
+  /^https:\/\/www\.techfleet\.network$/,
+  /^https:\/\/techfleetnetwork\.lovable\.app$/,
+  /^https:\/\/id-preview--3ae718a9-cd87-4a00-991b-209d8baa78ad\.lovable\.app$/,
+  /^http:\/\/localhost(?::\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
+];
 
 const VALID_EVENTS = new Set([
   "user_signed_up",
@@ -106,6 +115,29 @@ const VALID_EVENTS = new Set([
   "discord_verified",
 ]);
 
+function isAllowedUiOrigin(req: Request) {
+  const origin = req.headers.get("Origin") || req.headers.get("Referer")?.replace(/\/[^/]*$/, "") || "";
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
+}
+
+async function requestFingerprint(userId: string, payload: NotifyPayload) {
+  const stable = JSON.stringify({
+    userId,
+    event: payload.event,
+    display_name: payload.display_name ?? "",
+    discord_user_id: payload.discord_user_id ?? "",
+    task_name: payload.task_name ?? "",
+    phase_name: payload.phase_name ?? "",
+    class_name: payload.class_name ?? "",
+    project_name: payload.project_name ?? "",
+    application_type: payload.application_type ?? "",
+    feedback_area: payload.feedback_area ?? "",
+    search_query: payload.search_query ?? "",
+  });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stable));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -113,6 +145,11 @@ serve(async (req) => {
 
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
+
+  if (!isAllowedUiOrigin(req)) {
+    log.warn("handler", `Blocked non-UI origin [${requestId}]`, { requestId });
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
 
   // ── JWT auth check ────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
@@ -127,22 +164,24 @@ serve(async (req) => {
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !user) {
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: authErr } = await userClient.auth.getClaims(token);
+  const userId = claimsData?.claims?.sub;
+  if (authErr || !userId) {
     return jsonResponse({ error: "Invalid or expired token" }, 401);
   }
 
-  // ── Server-side rate limit (60 events / 5 min per user) ───────────
+  // ── Server-side rate limit (5 events / 1 min per user, 60 min block) ─
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: rl } = await adminClient.rpc("check_rate_limit", {
-    p_identifier: user.id,
+    p_identifier: userId,
     p_action: "discord_notify",
-    p_max_attempts: 60,
-    p_window_minutes: 5,
-    p_block_minutes: 5,
+    p_max_attempts: 5,
+    p_window_minutes: 1,
+    p_block_minutes: 60,
   });
   if (rl && !rl.allowed) {
-    return jsonResponse({ error: "Too many notifications" }, 429);
+    return jsonResponse({ error: "Too many notifications", retry_after: rl.retry_after ?? 3600 }, 429);
   }
 
   try {
@@ -157,6 +196,19 @@ serve(async (req) => {
     if (!payload?.event || !VALID_EVENTS.has(payload.event)) {
       log.warn("handler", `Missing/invalid event [${requestId}]`, { requestId });
       return jsonResponse({ error: "Missing event" }, 400);
+    }
+
+    const fingerprint = await requestFingerprint(userId, payload);
+    const { data: duplicateRl } = await adminClient.rpc("check_rate_limit", {
+      p_identifier: `${userId}:${fingerprint}`,
+      p_action: "discord_notify_duplicate",
+      p_max_attempts: 1,
+      p_window_minutes: 10,
+      p_block_minutes: 60,
+    });
+    if (duplicateRl && !duplicateRl.allowed) {
+      log.warn("handler", `Blocked duplicate Discord notification payload [${requestId}]`, { requestId, event: payload.event });
+      return jsonResponse({ error: "Duplicate notification blocked", retry_after: duplicateRl.retry_after ?? 3600 }, 429);
     }
 
     const DISCORD_WEBHOOK_URL = Deno.env.get("DISCORD_WEBHOOK_URL");

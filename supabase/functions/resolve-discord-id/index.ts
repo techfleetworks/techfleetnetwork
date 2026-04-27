@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
@@ -15,6 +15,14 @@ const corsHeaders = {
 const MAX_BODY_BYTES = 4 * 1024;
 /** Max username length (Discord limit is 32) */
 const MAX_USERNAME_LENGTH = 80;
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/techfleet\.network$/,
+  /^https:\/\/www\.techfleet\.network$/,
+  /^https:\/\/techfleetnetwork\.lovable\.app$/,
+  /^https:\/\/id-preview--3ae718a9-cd87-4a00-991b-209d8baa78ad\.lovable\.app$/,
+  /^http:\/\/localhost(?::\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
+];
 
 type DiscordMember = {
   user?: { id?: string; username?: string; global_name?: string | null; avatar?: string | null };
@@ -49,6 +57,11 @@ function memberFields(member: DiscordMember): string[] {
     .map(normalizeLookupValue);
 }
 
+function isAllowedUiOrigin(req: Request) {
+  const origin = req.headers.get("Origin") || req.headers.get("Referer")?.replace(/\/[^/]*$/, "") || "";
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -56,6 +69,14 @@ serve(async (req) => {
 
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
+
+  if (!isAllowedUiOrigin(req)) {
+    log.warn("handler", `Blocked non-UI origin [${requestId}]`, { requestId });
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   // ── JWT auth check ────────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization");
@@ -73,27 +94,29 @@ serve(async (req) => {
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !user) {
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: authErr } = await userClient.auth.getClaims(token);
+  const userId = claimsData?.claims?.sub;
+  if (authErr || !userId) {
     return new Response(
       JSON.stringify({ error: "Invalid or expired token" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
-  // ── Server-side rate limit (20 lookups / 5 min per user) ──────────
+  // ── Server-side rate limit (5 lookups / 1 min per user, 60 min block) ─
   // Prevents using this endpoint to enumerate the Discord guild's member list.
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: rl } = await adminClient.rpc("check_rate_limit", {
-    p_identifier: user.id,
+    p_identifier: userId,
     p_action: "resolve_discord_id",
-    p_max_attempts: 20,
-    p_window_minutes: 5,
-    p_block_minutes: 10,
+    p_max_attempts: 5,
+    p_window_minutes: 1,
+    p_block_minutes: 60,
   });
   if (rl && !rl.allowed) {
     return new Response(
-      JSON.stringify({ error: "Too many lookups. Please wait." }),
+      JSON.stringify({ error: "Too many lookups. Please wait.", retry_after: rl.retry_after ?? 3600 }),
       { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -141,6 +164,19 @@ serve(async (req) => {
     const rawUsername = discord_username.normalize("NFKC").trim().toLowerCase();
     const cleanUsername = normalizeLookupValue(rawUsername);
     const compactUsername = compactLookupValue(rawUsername);
+    const { data: duplicateRl } = await adminClient.rpc("check_rate_limit", {
+      p_identifier: `${userId}:${compactUsername}`,
+      p_action: "resolve_discord_id_duplicate",
+      p_max_attempts: 1,
+      p_window_minutes: 10,
+      p_block_minutes: 60,
+    });
+    if (duplicateRl && !duplicateRl.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Duplicate lookup blocked", retry_after: duplicateRl.retry_after ?? 3600 }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const searchQueries = buildSearchQueries(rawUsername);
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
