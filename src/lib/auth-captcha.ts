@@ -50,7 +50,9 @@ function writeState(state: LoginCaptchaState) {
 }
 
 export function getLoginCaptchaState(): LoginCaptchaState {
-  return readState();
+  const state = readState();
+  writeState(state);
+  return state;
 }
 
 export function recordFailedLoginAttempt(): LoginCaptchaState {
