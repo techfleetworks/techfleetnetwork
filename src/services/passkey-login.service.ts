@@ -44,36 +44,6 @@ async function bindCurrentDevice(): Promise<void> {
   }
 }
 
-/**
- * Asks the server to challenge this device, signs the challenge, and submits
- * the proof. Used to upgrade the cheap "trust row exists" check into a
- * cryptographic guarantee that THIS browser still controls the matching
- * private key (so a stolen session cookie on another machine cannot pass).
- */
-async function proveCurrentDevice(): Promise<boolean> {
-  if (!isDeviceCryptoSupported()) return false;
-  try {
-    const { data: chalResp, error: chalErr } = await supabase.functions.invoke(
-      "device-prove?step=challenge",
-    );
-    if (chalErr || !chalResp?.nonce) return false;
-    const nonce: string = chalResp.nonce;
-    const [fingerprint, signature] = await Promise.all([
-      getDeviceFingerprint(),
-      signDeviceNonce(nonce),
-    ]);
-    const { data, error } = await supabase.functions.invoke(
-      "device-prove?step=verify",
-      { body: { fingerprint, signature, nonce } },
-    );
-    if (error || !data?.trusted) return false;
-    return true;
-  } catch (e) {
-    log.warn("proveCurrentDevice", `Proof failed: ${e instanceof Error ? e.message : String(e)}`);
-    return false;
-  }
-}
-
 export const PasskeyLoginService = {
   /**
    * Returns false by design: admins must complete a fresh WebAuthn assertion
