@@ -23,6 +23,22 @@ import DOMPurify from "dompurify";
 
 // ─── XSS Prevention (A03, A07) ─────────────────────────────────────
 
+export const ACTIVE_XSS_PATTERNS = [
+  /<\s*(script|iframe|object|embed|svg|math|form|input|button|textarea|select|meta|link|base)\b/i,
+  /<\s*\/\s*script\s*>/i,
+  /on[a-z]+\s*=/i,
+  /javascript\s*:/i,
+  /vbscript\s*:/i,
+  /data\s*:\s*text\/html/i,
+  /expression\s*\(/i,
+  /%3c\s*\/?\s*(script|iframe|object|embed|svg|math|form|meta|link|base)/i,
+  /&#x?0*3c;?\s*\/?\s*(script|iframe|object|embed|svg|math|form|meta|link|base)/i,
+];
+
+export function hasActiveXssPattern(input: string): boolean {
+  return ACTIVE_XSS_PATTERNS.some((pattern) => pattern.test(input));
+}
+
 /** Sanitize a string for safe display (prevents XSS via innerHTML) */
 export function sanitizeText(input: string): string {
   const div = document.createElement("div");
@@ -33,6 +49,18 @@ export function sanitizeText(input: string): string {
 /** Strip all HTML tags from input */
 export function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, "");
+}
+
+export function safeHref(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) return undefined;
+    if (["http:", "https:"].includes(parsed.protocol) && !isSafeExternalUrl(parsed.href)) return undefined;
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -46,7 +74,7 @@ export function deepSanitize<T>(obj: T, depth = 0): T {
   if (depth > 20) return obj;
 
   if (typeof obj === "string") {
-    return obj
+    const stripped = obj
       .replace(/<script[\s>]/gi, "")
       .replace(/<\/script>/gi, "")
       .replace(/on\w+\s*=/gi, "")
@@ -57,7 +85,8 @@ export function deepSanitize<T>(obj: T, depth = 0): T {
       .replace(/<iframe[\s>]/gi, "")
       .replace(/<object[\s>]/gi, "")
       .replace(/<embed[\s>]/gi, "")
-      .replace(/<form[\s>]/gi, "") as unknown as T;
+      .replace(/<form[\s>]/gi, "");
+    return stripHtml(stripped) as unknown as T;
   }
   if (Array.isArray(obj)) {
     return obj.map((item) => deepSanitize(item, depth + 1)) as unknown as T;
