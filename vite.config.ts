@@ -43,6 +43,20 @@ function emitVersionManifest(): Plugin {
   };
 }
 
+/**
+ * Lovable's preview/debug tooling evaluates small predicates in the browser.
+ * Keep production CSP strict while allowing that tooling only during dev serve.
+ */
+function allowPreviewEvalInDev(): Plugin {
+  return {
+    name: "allow-preview-eval-in-dev-csp",
+    apply: "serve",
+    transformIndexHtml(html) {
+      return html.replace(/script-src 'self' 'unsafe-inline'/g, "script-src 'self' 'unsafe-inline' 'unsafe-eval'");
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -61,6 +75,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    mode === "development" && allowPreviewEvalInDev(),
     emitVersionManifest(),
   ].filter(Boolean),
   resolve: {
