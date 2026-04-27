@@ -38,6 +38,7 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaFailureCount, setCaptchaFailureCount] = useState(0);
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -128,6 +129,7 @@ export default function RegisterPage() {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "register", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaToken("");
+      setCaptchaFailureCount((count) => count + 1);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
       setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
@@ -165,6 +167,7 @@ export default function RegisterPage() {
         logCaptchaTelemetry("auth_captcha_fetch_blocked", { surface: "register", reason: "client_auth_throttle_429" });
         setCaptchaState(refreshLoginCaptcha());
         setCaptchaToken("");
+        setCaptchaFailureCount((count) => count + 1);
         setAuthError(err.message);
         setLoading(false);
         return;
@@ -313,7 +316,7 @@ export default function RegisterPage() {
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
 
-            <TurnstileChallenge action="register" onTokenChange={setCaptchaToken} />
+            <TurnstileChallenge action="register" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "register-lockout-status" : undefined}>
               {loading ? "Creating account…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Create Account"}
