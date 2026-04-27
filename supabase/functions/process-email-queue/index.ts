@@ -6,6 +6,8 @@ const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
+const BASE_RETRY_DELAY_SECONDS = 60
+const MAX_RETRY_DELAY_SECONDS = 15 * 60
 
 type QueuePayload = Record<string, unknown>
 type QueueMessage = { msg_id: number; read_ct: number; enqueued_at?: string; message: QueuePayload }
@@ -21,6 +23,28 @@ function authRunId(payload: QueuePayload): string | undefined {
   if (explicitRunId) return explicitRunId
   if (stringField(payload, 'purpose') !== 'auth') return undefined
   return stringField(payload, 'idempotency_key') || stringField(payload, 'message_id') || undefined
+}
+
+function retryDelaySeconds(failedAttempts: number): number {
+  const exponent = Math.max(failedAttempts - 1, 0)
+  return Math.min(BASE_RETRY_DELAY_SECONDS * 2 ** exponent, MAX_RETRY_DELAY_SECONDS)
+}
+
+async function delayRetry(
+  supabase: ServiceClient,
+  queue: string,
+  msg: QueueMessage,
+  failedAttempts: number
+): Promise<void> {
+  const vt = retryDelaySeconds(failedAttempts)
+  const { error } = await supabase.rpc('set_email_visibility_timeout', {
+    queue_name: queue,
+    message_id: msg.msg_id,
+    vt,
+  })
+  if (error) {
+    console.error('Failed to schedule email retry backoff', { queue, msg_id: msg.msg_id, vt, error })
+  }
 }
 
 // Check if an error is a rate-limit (429) response.
@@ -354,6 +378,7 @@ Deno.serve(async (req) => {
         }
 
         // Log non-429 failures to track real retry attempts.
+        const nextFailedAttempts = failedAttempts + 1
         await supabase.from('email_send_log').insert({
           message_id: stringField(payload, 'message_id'),
           template_name: stringField(payload, 'label', queue),
@@ -362,10 +387,19 @@ Deno.serve(async (req) => {
           error_message: errorMsg.slice(0, 1000),
         })
         if (payload?.message_id && typeof payload.message_id === 'string') {
-          failedAttemptsByMessageId.set(payload.message_id, failedAttempts + 1)
+          failedAttemptsByMessageId.set(payload.message_id, nextFailedAttempts)
         }
 
-        // Non-429 errors: message stays invisible until VT expires, then retried
+        if (nextFailedAttempts >= MAX_RETRIES) {
+          await moveToDlq(supabase, queue, msg, `Max retries (${MAX_RETRIES}) exceeded (attempted ${nextFailedAttempts} times)`)
+          continue
+        }
+
+        if (queue === 'transactional_emails') {
+          await delayRetry(supabase, queue, msg, nextFailedAttempts)
+        }
+
+        // Auth email failures keep the default VT; transactional failures use exponential backoff.
       }
 
       // Small delay between sends to smooth bursts
