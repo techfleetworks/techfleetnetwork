@@ -2,6 +2,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { PasskeyLoginService } from "@/services/passkey-login.service";
+import { notifyPasskeyEnrollmentChanged } from "@/lib/passkey-events";
 
 const log = createLogger("PasskeyService");
 
@@ -66,6 +67,7 @@ export const PasskeyService = {
     } catch (e) {
       log.warn("enroll", `Device binding after enrollment failed: ${e instanceof Error ? e.message : String(e)}`);
     }
+    notifyPasskeyEnrollmentChanged();
     log.info("enroll", "Passkey enrolled successfully");
   },
 
@@ -76,5 +78,6 @@ export const PasskeyService = {
       log.error("remove", `Failed to delete passkey: ${error.message}`, undefined, error);
       throw new Error("Could not remove passkey");
     }
+    notifyPasskeyEnrollmentChanged();
   },
 };
