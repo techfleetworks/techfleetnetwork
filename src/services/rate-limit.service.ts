@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 const log = createLogger("RateLimitService");
 
@@ -66,6 +67,9 @@ export const RateLimitService = {
         p_block_minutes: isLogin ? 60 : 60,
       });
       if (error) {
+        if (isAuthThrottleCaptchaError(error) || error.message?.toLowerCase().includes("too many rapid auth attempts")) {
+          throw createAuthThrottleCaptchaError();
+        }
         log.warn("check", `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action }, error);
         return { allowed: true, remaining: 5, retry_after: 0 };
       }
@@ -84,6 +88,7 @@ export const RateLimitService = {
       }
       return result;
     } catch (err) {
+      if (isAuthThrottleCaptchaError(err)) throw err;
       log.error("check", `Unexpected error during rate limit check for "${action}" — failing open`, { action }, err);
       return { allowed: true, remaining: 5, retry_after: 0 };
     }
