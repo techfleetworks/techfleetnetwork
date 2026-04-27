@@ -185,6 +185,7 @@ export const AuthService = {
         try {
           const res = await Promise.race([attempt(), timeoutPromise]);
           if (!res.error) { data = res.data; lastErr = null; break; }
+          if (res.error.status === 429 || res.error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
           lastErr = { message: res.error.message, status: res.error.status, code: (res.error as any).code };
           const transient = !res.error.status || res.error.status >= 500 || res.error.status === 0;
           if (!transient) break;
@@ -288,6 +289,7 @@ export const AuthService = {
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${safeEmail}: ${error.message}`, { email: safeEmail }, error);
         void logAccountActivity("password_reset_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
+        if (error.status === 429 || error.message.toLowerCase().includes("too many rapid auth attempts")) throw createAuthThrottleCaptchaError();
         throw new Error("If an account exists with that email, a reset link has been sent.");
       }
       log.info("resetPassword", `Password reset email sent for ${safeEmail}`, { email: safeEmail });
