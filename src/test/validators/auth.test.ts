@@ -55,7 +55,7 @@ describe("passwordSchema (BDD 2.3: Weak password rejection)", () => {
 
 describe("loginSchema (BDD 2.5: Invalid email format)", () => {
   it("accepts valid email and password", () => {
-    const result = loginSchema.safeParse({ email: "test@example.com", password: "anything" });
+    const result = loginSchema.safeParse({ email: "test@example.com", password: "Str0ng!PassWord" });
     expect(result.success).toBe(true);
   });
 
@@ -73,11 +73,11 @@ describe("loginSchema (BDD 2.5: Invalid email format)", () => {
   it("rejects empty password", () => {
     const result = loginSchema.safeParse({ email: "test@example.com", password: "" });
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toContain("required");
+    expect(result.error?.issues[0].message).toContain("12 characters");
   });
 
   it("trims whitespace from email", () => {
-    const result = loginSchema.safeParse({ email: "  test@example.com  ", password: "x" });
+    const result = loginSchema.safeParse({ email: "  test@example.com  ", password: "Str0ng!PassWord" });
     expect(result.success).toBe(true);
     expect(result.data?.email).toBe("test@example.com");
   });
