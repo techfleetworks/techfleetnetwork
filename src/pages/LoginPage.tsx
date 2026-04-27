@@ -19,7 +19,6 @@ import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refr
 import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
-import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
 export default function LoginPage() {
@@ -136,7 +135,7 @@ export default function LoginPage() {
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
-    if (!(await verifyTurnstileToken(captchaToken, "login"))) {
+    if (!captchaToken.trim()) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "login", failedAttempts: captchaState.failedAttempts + 1 });
       const nextCaptcha = refreshLoginCaptcha();
       setCaptchaState(nextCaptcha);
@@ -161,7 +160,7 @@ export default function LoginPage() {
 
       queryClient.removeQueries({ queryKey: ["admin-role"] });
       try {
-        await AuthService.signInWithPassword(result.data.email, result.data.password);
+        await AuthService.signInWithPassword(result.data.email, result.data.password, captchaToken);
         // Check if 2FA challenge is required (user has enrolled TOTP factors)
         const { needsChallenge } = await MfaService.getAssuranceLevel();
         if (needsChallenge) {
