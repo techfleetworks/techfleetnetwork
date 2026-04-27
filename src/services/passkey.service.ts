@@ -60,7 +60,7 @@ export const PasskeyService = {
       log.error("enroll", `Verification failed: ${verifyErr?.message}`, undefined, verifyErr);
       throw new Error("Passkey verification failed");
     }
-    // Bind this device cryptographically so it counts as trusted for 30 days.
+    // Bind this device cryptographically for the current short-lived admin session.
     try {
       await PasskeyLoginService.bindCurrentDevice();
     } catch (e) {
