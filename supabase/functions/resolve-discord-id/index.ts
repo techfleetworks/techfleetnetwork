@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
