@@ -130,7 +130,7 @@ async function logAdminLoginIfElevated(userId?: string | null) {
 export const AuthService = {
   async signInWithPassword(email: string, password: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
-    if (!parsedEmail.success || typeof password !== "string" || password.length < 1 || password.length > 128) {
+    if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
       throw blockedAuthInputError;
     }
     const safeEmail = parsedEmail.data;
