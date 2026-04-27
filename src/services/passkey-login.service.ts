@@ -46,11 +46,29 @@ async function bindCurrentDevice(): Promise<void> {
 
 export const PasskeyLoginService = {
   async isCurrentSessionVerified(): Promise<boolean> {
-    const { data, error } = await supabase.rpc("is_passkey_login_verified", {
-      _session_hash: await this.getCurrentSessionHash(),
-    });
-    if (error) return false;
-    return data === true;
+    if (!isDeviceCryptoSupported()) return false;
+
+    try {
+      const fingerprint = await getDeviceFingerprint();
+      const { data: active, error: activeErr } = await supabase.rpc("is_trusted_device_active", {
+        _fingerprint: fingerprint,
+      });
+      if (activeErr || active !== true) return false;
+
+      const { data: challenge, error: challengeErr } = await supabase.functions.invoke("device-prove?step=challenge", {
+        body: {},
+      });
+      if (challengeErr || typeof challenge?.nonce !== "string") return false;
+
+      const signature = await signDeviceNonce(challenge.nonce);
+      const { data: proof, error: proofErr } = await supabase.functions.invoke("device-prove?step=verify", {
+        body: { fingerprint, signature, nonce: challenge.nonce },
+      });
+      return !proofErr && proof?.trusted === true;
+    } catch (e) {
+      log.warn("isCurrentSessionVerified", `Trusted device proof failed: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
   },
 
   async getCurrentSessionHash(): Promise<string> {
