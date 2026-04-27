@@ -52,7 +52,9 @@ const makeSession = (userId: string, issuedAgoMs = 60_000) => ({
 describe("AuthService session max-age marker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(supabase.auth.getSession).mockReset();
     sessionStorage.clear();
+    localStorage.clear();
     vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
     vi.mocked(supabase.from).mockReturnValue({
