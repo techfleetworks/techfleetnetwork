@@ -3,6 +3,18 @@ import { z } from "zod";
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 const EMAIL_DANGEROUS_CHARS = /[<>"'`\\\s]/;
 
+export function isStrongPassword(value: string): boolean {
+  return (
+    typeof value === "string" &&
+    value.length >= 12 &&
+    value.length <= 128 &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /[0-9]/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  );
+}
+
 export const emailInputSchema = z
   .string()
   .trim()
@@ -32,7 +44,7 @@ export const passwordSchema = z
 
 export const loginSchema = z.object({
   email: emailInputSchema,
-  password: z.string().min(1, "Password is required").max(128),
+  password: passwordSchema,
 });
 
 export const registerSchema = z.object({
