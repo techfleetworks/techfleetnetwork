@@ -32,10 +32,6 @@ export default function ForgotPasswordPage() {
     return () => window.clearInterval(timer);
   }, [lockoutState.locked]);
 
-  useEffect(() => {
-    logCaptchaTelemetry("auth_captcha_challenge_shown", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts });
-  }, [captchaState.failedAttempts]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const currentLockout = getAuthLockoutState();

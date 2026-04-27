@@ -102,10 +102,6 @@ export default function LoginPage() {
   }, [from]);
 
   useEffect(() => {
-    logCaptchaTelemetry("auth_captcha_challenge_shown", { surface: "login", failedAttempts: captchaState.failedAttempts });
-  }, [captchaState.failedAttempts]);
-
-  useEffect(() => {
     if (!lockoutState.locked) return;
     const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
     return () => window.clearInterval(timer);
