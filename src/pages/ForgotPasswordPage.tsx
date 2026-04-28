@@ -12,7 +12,6 @@ import { getLoginCaptchaState, refreshLoginCaptcha } from "@/lib/auth-captcha";
 import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
-import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
