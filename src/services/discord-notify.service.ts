@@ -24,6 +24,31 @@ const normalizeDiscordVerificationError = (message?: string | null) => {
   return text;
 };
 
+const readFunctionErrorMessage = async (rawData: unknown, error: unknown) => {
+  const data = parseFunctionPayload(rawData);
+  if (typeof data?.error === "string") return data.error;
+  if (typeof data?.message === "string") return data.message;
+
+  const context = (error as { context?: unknown } | null)?.context;
+  if (context && typeof (context as Response).clone === "function") {
+    const response = context as Response;
+    try {
+      const payload = await response.clone().json();
+      if (typeof payload?.error === "string") return payload.error;
+      if (typeof payload?.message === "string") return payload.message;
+    } catch {
+      try {
+        const text = await response.clone().text();
+        if (text) return text;
+      } catch {
+        // Fall through to generic error handling below.
+      }
+    }
+  }
+
+  return error instanceof Error ? error.message : null;
+};
+
 interface NotifyPayload {
   event:
     | "user_signed_up"
@@ -230,7 +255,7 @@ export const DiscordNotifyService = {
         const data = parseFunctionPayload(rawData);
 
         if (error) {
-          const backendMessage = typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : null;
+          const backendMessage = await readFunctionErrorMessage(rawData, error);
           log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${backendMessage || error.message}`, { discordUsername });
           throw new Error(normalizeDiscordVerificationError(backendMessage || error.message || "Discord verification is temporarily unavailable. Please try again in a minute."));
         }
@@ -274,7 +299,7 @@ export const DiscordNotifyService = {
         });
         const data = parseFunctionPayload(rawData);
         if (error) {
-          const backendMessage = typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : null;
+          const backendMessage = await readFunctionErrorMessage(rawData, error);
           throw new Error(normalizeDiscordVerificationError(backendMessage || error.message));
         }
         if (data?.error) {
