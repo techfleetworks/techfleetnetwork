@@ -179,7 +179,7 @@ export const MfaService = {
       if (!token) return;
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
       const sessionHash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-      const { error } = await supabase.rpc("mark_device_trusted_after_mfa", { _session_hash: sessionHash });
+      const { error } = await (supabase as any).rpc("mark_two_factor_login_verified", { _session_hash: sessionHash });
       if (error) throw error;
     } catch (e) {
       log.warn(

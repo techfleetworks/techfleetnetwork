@@ -27,7 +27,7 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
   });
 
   it("does not throttle 2FA security verification requests", () => {
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/mark_device_trusted_after_mfa"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/mark_two_factor_login_verified"))).toBe(false);
     expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/admin_2fa_grace_deadline"))).toBe(false);
     expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/admin_2fa_grace_active"))).toBe(false);
   });
