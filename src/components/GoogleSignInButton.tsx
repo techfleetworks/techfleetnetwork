@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
+import { isSafeRedirectUrl } from "@/lib/security";
 import { markOAuthUiInitiated } from "@/lib/oauth-ui-guard";
 
 interface GoogleSignInButtonProps {
   label?: string;
   className?: string;
   onBeforeSubmit?: () => boolean;
+  redirectTo?: string;
 }
 
-export function GoogleSignInButton({ label = "Sign in with Google", className, onBeforeSubmit }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ label = "Sign in with Google", className, onBeforeSubmit, redirectTo }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
     if (onBeforeSubmit && !onBeforeSubmit()) return;
     setLoading(true);
     try {
+      if (redirectTo && redirectTo !== "/dashboard" && isSafeRedirectUrl(redirectTo)) {
+        sessionStorage.setItem("auth_redirect", redirectTo);
+      }
       markOAuthUiInitiated("google");
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: `${window.location.origin}/`,
