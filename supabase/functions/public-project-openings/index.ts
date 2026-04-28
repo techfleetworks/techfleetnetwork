@@ -46,6 +46,17 @@ Deno.serve(async (req) => {
       : { data: [], error: null };
     if (appError) throw appError;
 
+    const applicationSummary = new Map<string, { project_id: string; total: number; hatCounts: Record<string, number> }>();
+    for (const application of applicationStats ?? []) {
+      const projectId = application.project_id as string;
+      const entry = applicationSummary.get(projectId) ?? { project_id: projectId, total: 0, hatCounts: {} };
+      entry.total += 1;
+      for (const hat of application.team_hats_interest ?? []) {
+        entry.hatCounts[hat] = (entry.hatCounts[hat] ?? 0) + 1;
+      }
+      applicationSummary.set(projectId, entry);
+    }
+
     const stats = {
       projects_open_applications: projectRows.filter((p) => p.project_status === "apply_now").length,
       projects_coming_soon: projectRows.filter((p) => p.project_status === "coming_soon").length,
@@ -53,7 +64,7 @@ Deno.serve(async (req) => {
       projects_previously_completed: 0,
     };
 
-    return new Response(scrubJson({ projects: projectRows, clients: clients ?? [], applicationStats: applicationStats ?? [], stats }, {
+    return new Response(scrubJson({ projects: projectRows, clients: clients ?? [], applicationStats: [...applicationSummary.values()], stats }, {
       uuids: [...projectIds, ...clientIds],
     }), {
       status: 200,
