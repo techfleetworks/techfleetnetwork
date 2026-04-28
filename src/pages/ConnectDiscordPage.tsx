@@ -245,7 +245,7 @@ export default function ConnectDiscordPage() {
   };
 
   /** Complete linking once we have a confirmed Discord user ID */
-  const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null) => {
+  const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null, selectedLabel?: string) => {
     // Save Discord avatar if available and user doesn't have one yet
     if (avatarUrl) {
       saveDiscordAvatar(avatarUrl, user!.id); // fire-and-forget, don't block linking
@@ -271,9 +271,9 @@ export default function ConnectDiscordPage() {
     setVerified(true);
     setCandidates([]);
     if (communityRoleAssigned) {
-      toast.success("Discord account verified, linked, and added to Community!");
+      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified, linked, and added to Community!` : "Discord account verified, linked, and added to Community!");
     } else {
-      toast.success("Discord account verified and linked!", {
+      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified and linked!` : "Discord account verified and linked!", {
         description:
           "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
       });
@@ -343,9 +343,9 @@ export default function ConnectDiscordPage() {
       await finalizeLinking(
         confirmed.discord_user_id,
         selectedUsername,
-        candidate.avatar
+        candidate.avatar,
+        selectedLabel
       );
-      toast.success(`Selected ${selectedLabel}`, { duration: 30000, position: "top-center" });
     } catch (err: any) {
       const message = err.message || "Verification failed. Please try again.";
       if (message === DISCORD_MEMBER_NOT_VISIBLE_MESSAGE) {
