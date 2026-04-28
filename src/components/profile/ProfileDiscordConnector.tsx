@@ -103,30 +103,6 @@ export function ProfileDiscordConnector() {
   const finalizeLinking = async (discordUserId: string, discordUsername: string) => {
     if (!user) throw new Error("Not authenticated");
 
-    const { data: existing } = await supabase
-      .from("profiles")
-      .select("display_name, user_id")
-      .eq("discord_user_id", discordUserId)
-      .neq("user_id", user.id)
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      const ownerName = existing[0].display_name || "another member";
-      throw new Error(`This Discord account is already linked to ${ownerName}. Each Discord account can only be connected to one Tech Fleet profile.`);
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ discord_username: discordUsername, discord_user_id: discordUserId, has_discord_account: true } as any)
-      .eq("user_id", user.id);
-
-    if (error) {
-      if (error.message?.includes("unique")) {
-        throw new Error("This Discord account is already linked to another Tech Fleet profile.");
-      }
-      throw error;
-    }
-
     await JourneyService.upsertTask(user.id, PHASE, TASK_ID, true);
     try { await assignCommunityRole(discordUserId); } catch { /* role sync retry queue/admin permissions are non-blocking */ }
     DiscordNotifyService.discordVerified(displayName, discordUsername, discordUserId);
