@@ -9,7 +9,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
-  User, Globe, MessageCircle, Check,
+  User, Globe, Check,
   Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
   Link2, RefreshCw,
 } from "lucide-react";
@@ -66,7 +66,6 @@ export default function EditProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
-  const [discordLinking, setDiscordLinking] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
