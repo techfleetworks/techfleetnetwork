@@ -39,7 +39,9 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
   const [captchaToken, setCaptchaToken] = useState("");
+  const [resendCaptchaToken, setResendCaptchaToken] = useState("");
   const [captchaFailureCount, setCaptchaFailureCount] = useState(0);
+  const [resendCaptchaFailureCount, setResendCaptchaFailureCount] = useState(0);
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -196,6 +198,15 @@ export default function RegisterPage() {
     setResendMessage("");
 
     try {
+      if (!(await verifyTurnstileToken(resendCaptchaToken, "signup_confirmation_resend"))) {
+        logCaptchaTelemetry("auth_captcha_failed", { surface: "signup_confirmation_resend", failedAttempts: captchaState.failedAttempts + 1 });
+        setResendCaptchaToken("");
+        setResendCaptchaFailureCount((count) => count + 1);
+        setResendStatus("error");
+        setResendMessage("Complete the human verification before requesting another verification email.");
+        return;
+      }
+
       const rateCheck = await RateLimitService.check(email, "signup_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
@@ -238,6 +249,7 @@ export default function RegisterPage() {
             </p>
           )}
           <div className="mt-6 grid gap-3">
+            <TurnstileChallenge action="signup_confirmation_resend" onTokenChange={setResendCaptchaToken} failureCount={resendCaptchaFailureCount} />
             <Button type="button" onClick={handleResendConfirmation} disabled={resending}>
               {resending ? "Sending verification…" : "Resend verification email"}
             </Button>
