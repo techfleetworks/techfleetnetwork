@@ -1198,123 +1198,6 @@ export type Database = {
         }
         Relationships: []
       }
-      passkey_credentials: {
-        Row: {
-          counter: number
-          created_at: string
-          credential_id: string
-          device_name: string
-          id: string
-          last_used_at: string | null
-          public_key: string
-          transports: string[]
-          user_id: string
-        }
-        Insert: {
-          counter?: number
-          created_at?: string
-          credential_id: string
-          device_name?: string
-          id?: string
-          last_used_at?: string | null
-          public_key: string
-          transports?: string[]
-          user_id: string
-        }
-        Update: {
-          counter?: number
-          created_at?: string
-          credential_id?: string
-          device_name?: string
-          id?: string
-          last_used_at?: string | null
-          public_key?: string
-          transports?: string[]
-          user_id?: string
-        }
-        Relationships: []
-      }
-      passkey_login_challenges: {
-        Row: {
-          challenge: string
-          created_at: string
-          expires_at: string
-          user_id: string
-        }
-        Insert: {
-          challenge: string
-          created_at?: string
-          expires_at?: string
-          user_id: string
-        }
-        Update: {
-          challenge?: string
-          created_at?: string
-          expires_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      passkey_login_sessions: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          ip_address: string | null
-          session_token_hash: string
-          user_id: string
-          verified_at: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: string | null
-          session_token_hash: string
-          user_id: string
-          verified_at?: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: string | null
-          session_token_hash?: string
-          user_id?: string
-          verified_at?: string
-        }
-        Relationships: []
-      }
-      passkey_recovery_tokens: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          ip_address: string | null
-          token_hash: string
-          used_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: string | null
-          token_hash: string
-          used_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          ip_address?: string | null
-          token_hash?: string
-          used_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2070,6 +1953,33 @@ export type Database = {
           public_key?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      two_factor_login_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          session_token_hash: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          session_token_hash: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          session_token_hash?: string
+          user_id?: string
+          verified_at?: string
         }
         Relationships: []
       }
