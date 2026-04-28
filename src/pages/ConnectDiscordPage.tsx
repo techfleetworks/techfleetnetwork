@@ -33,7 +33,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { DiscordNotifyService } from "@/services/discord-notify.service";
+import {
+  DISCORD_MEMBER_NOT_VISIBLE_MESSAGE,
+  DiscordNotifyService,
+} from "@/services/discord-notify.service";
 import { JourneyService } from "@/services/journey.service";
 import { useJourneyProgress } from "@/hooks/use-journey-progress";
 import { useQueryClient } from "@/lib/react-query";
@@ -87,6 +90,11 @@ export default function ConnectDiscordPage() {
     avatar: string | null;
   }>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const clearStaleCandidate = (candidateId: string) => {
+    setCandidates((current) => current.filter((candidate) => candidate.id !== candidateId));
+    setConfirmingId(null);
+  };
 
   // Track whether we've done the initial sync from DB state
   const initialSyncDone = useRef(false);
@@ -310,7 +318,6 @@ export default function ConnectDiscordPage() {
 
     try {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
-      console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
       if (result.candidates && result.candidates.length > 0) {
         // Always require explicit member selection before linking — even exact matches.
@@ -342,7 +349,7 @@ export default function ConnectDiscordPage() {
     try {
       const confirmed = await DiscordNotifyService.confirmDiscordId(candidate.id);
       if (!confirmed?.discord_user_id) {
-        throw new Error("That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.");
+        throw new Error(DISCORD_MEMBER_NOT_VISIBLE_MESSAGE);
       }
       await finalizeLinking(
         confirmed.discord_user_id,
@@ -350,7 +357,13 @@ export default function ConnectDiscordPage() {
         candidate.avatar
       );
     } catch (err: any) {
-      setVerifyError(err.message || "Verification failed. Please try again.");
+      const message = err.message || "Verification failed. Please try again.";
+      if (message === DISCORD_MEMBER_NOT_VISIBLE_MESSAGE) {
+        clearStaleCandidate(candidate.id);
+        setVerifyError(`${message} I removed that stale result so you can search again now.`);
+        return;
+      }
+      setVerifyError(message);
     } finally {
       setConfirmingId(null);
     }
@@ -781,42 +794,42 @@ export default function ConnectDiscordPage() {
                 </p>
                 <div className="space-y-2" role="list" aria-label="Matching Discord members">
                   {candidates.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleCandidateSelect(c)}
-                      disabled={!!confirmingId}
-                      className="w-full flex items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                      role="listitem"
-                      aria-label={`Select ${c.global_name || c.nick || c.username}`}
-                    >
-                      {c.avatar ? (
-                        <img
-                          src={c.avatar}
-                          alt=""
-                          className="h-10 w-10 rounded-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-medium">
-                          {(c.global_name || c.username || "?").charAt(0).toUpperCase()}
+                    <div key={c.id} role="listitem">
+                      <button
+                        type="button"
+                        onClick={() => handleCandidateSelect(c)}
+                        disabled={!!confirmingId}
+                        className="w-full flex items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                        aria-label={`Select ${c.global_name || c.nick || c.username}`}
+                      >
+                        {c.avatar ? (
+                          <img
+                            src={c.avatar}
+                            alt=""
+                            className="h-10 w-10 rounded-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-medium">
+                            {(c.global_name || c.username || "?").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {c.global_name || c.username}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            @{c.username}
+                            {c.nick && c.nick !== c.global_name ? ` · ${c.nick}` : ""}
+                          </p>
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {c.global_name || c.username}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          @{c.username}
-                          {c.nick && c.nick !== c.global_name ? ` · ${c.nick}` : ""}
-                        </p>
-                      </div>
-                      {confirmingId === c.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      )}
-                    </button>
+                        {confirmingId === c.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </button>
+                    </div>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">

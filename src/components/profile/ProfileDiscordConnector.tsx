@@ -7,7 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { DiscordNotifyService } from "@/services/discord-notify.service";
+import {
+  DISCORD_MEMBER_NOT_VISIBLE_MESSAGE,
+  DiscordNotifyService,
+} from "@/services/discord-notify.service";
 import { JourneyService } from "@/services/journey.service";
 import { toast } from "sonner";
 
@@ -44,6 +47,11 @@ export function ProfileDiscordConnector() {
 
   const isLinked = Boolean(profile?.discord_user_id) && !relinking;
   const displayName = profile?.display_name || profile?.first_name || user?.user_metadata?.full_name || "A member";
+
+  const clearStaleCandidate = (candidateId: string) => {
+    setCandidates((current) => current.filter((candidate) => candidate.id !== candidateId));
+    setConfirmingId(null);
+  };
 
   useEffect(() => {
     if (!relinking) setUsername(profile?.discord_username || "");
@@ -163,11 +171,17 @@ export function ProfileDiscordConnector() {
     try {
       const confirmed = await DiscordNotifyService.confirmDiscordId(candidate.id);
       if (!confirmed?.discord_user_id) {
-        throw new Error("That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.");
+        throw new Error(DISCORD_MEMBER_NOT_VISIBLE_MESSAGE);
       }
       await finalizeLinking(confirmed.discord_user_id, confirmed.discord_username || candidate.username);
     } catch (err: any) {
-      setVerifyError(err.message || "Verification failed. Please try again.");
+      const message = err.message || "Verification failed. Please try again.";
+      if (message === DISCORD_MEMBER_NOT_VISIBLE_MESSAGE) {
+        clearStaleCandidate(candidate.id);
+        setVerifyError(`${message} I removed that stale result so you can search again now.`);
+        return;
+      }
+      setVerifyError(message);
     } finally {
       setConfirmingId(null);
     }
@@ -249,23 +263,24 @@ export function ProfileDiscordConnector() {
           {candidates.length > 0 && (
             <div className="space-y-2" role="list" aria-label="Matching Discord members">
               {candidates.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  onClick={() => selectCandidate(candidate)}
-                  disabled={!!confirmingId}
-                  className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                  role="listitem"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                    {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
-                    <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
-                  </div>
-                  {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-                </button>
+                <div key={candidate.id} role="listitem">
+                  <button
+                    type="button"
+                    onClick={() => selectCandidate(candidate)}
+                    disabled={!!confirmingId}
+                    className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    aria-label={`Select ${candidate.global_name || candidate.nick || candidate.username}`}
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                      {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
+                      <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
+                    </div>
+                    {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+                  </button>
+                </div>
               ))}
             </div>
           )}

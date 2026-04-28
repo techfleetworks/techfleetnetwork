@@ -4,6 +4,51 @@ import { discordBreaker } from "@/lib/circuit-breaker";
 
 const log = createLogger("DiscordNotifyService");
 
+export const DISCORD_MEMBER_NOT_VISIBLE_MESSAGE =
+  "That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.";
+
+const parseFunctionPayload = (rawData: unknown) => {
+  if (typeof rawData !== "string") return rawData as any;
+  try {
+    return JSON.parse(rawData);
+  } catch {
+    return rawData;
+  }
+};
+
+const normalizeDiscordVerificationError = (message?: string | null) => {
+  const text = message || "Discord verification failed. Please try again.";
+  if (/no longer visible|not in the Tech Fleet server|not in server|non-member/i.test(text)) {
+    return DISCORD_MEMBER_NOT_VISIBLE_MESSAGE;
+  }
+  return text;
+};
+
+const readFunctionErrorMessage = async (rawData: unknown, error: unknown) => {
+  const data = parseFunctionPayload(rawData);
+  if (typeof data?.error === "string") return data.error;
+  if (typeof data?.message === "string") return data.message;
+
+  const context = (error as { context?: unknown } | null)?.context;
+  if (context && typeof (context as Response).clone === "function") {
+    const response = context as Response;
+    try {
+      const payload = await response.clone().json();
+      if (typeof payload?.error === "string") return payload.error;
+      if (typeof payload?.message === "string") return payload.message;
+    } catch {
+      try {
+        const text = await response.clone().text();
+        if (text) return text;
+      } catch {
+        // Fall through to generic error handling below.
+      }
+    }
+  }
+
+  return error instanceof Error ? error.message : null;
+};
+
 interface NotifyPayload {
   event:
     | "user_signed_up"
@@ -207,16 +252,16 @@ export const DiscordNotifyService = {
         });
 
         // supabase.functions.invoke may return parsed JSON or a raw string
-        const data = typeof rawData === "string" ? (() => { try { return JSON.parse(rawData); } catch { return rawData; } })() : rawData;
+        const data = parseFunctionPayload(rawData);
 
         if (error) {
-          const backendMessage = typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : null;
+          const backendMessage = await readFunctionErrorMessage(rawData, error);
           log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${backendMessage || error.message}`, { discordUsername });
-          throw new Error(backendMessage || "Discord verification is temporarily unavailable. Please try again in a minute.");
+          throw new Error(normalizeDiscordVerificationError(backendMessage || error.message || "Discord verification is temporarily unavailable. Please try again in a minute."));
         }
 
         if (data?.error) {
-          throw new Error(data.error);
+          throw new Error(normalizeDiscordVerificationError(data.error));
         }
 
         const result = data?.discord_user_id || null;
@@ -249,14 +294,16 @@ export const DiscordNotifyService = {
   async confirmDiscordId(discordUserId: string): Promise<{ discord_user_id: string; discord_username?: string | null } | null> {
     return log.track("confirmDiscordId", `Confirming Discord ID ${discordUserId}`, { discordUserId }, async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("resolve-discord-id", {
+        const { data: rawData, error } = await supabase.functions.invoke("resolve-discord-id", {
           body: { confirm_user_id: discordUserId },
         });
+        const data = parseFunctionPayload(rawData);
         if (error) {
-          throw new Error(error.message || "Discord verification failed. Please try again.");
+          const backendMessage = await readFunctionErrorMessage(rawData, error);
+          throw new Error(normalizeDiscordVerificationError(backendMessage || error.message));
         }
         if (data?.error) {
-          throw new Error(data.error);
+          throw new Error(normalizeDiscordVerificationError(data.error));
         }
         return data?.discord_user_id ? {
           discord_user_id: data.discord_user_id,
