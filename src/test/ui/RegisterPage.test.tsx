@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import { renderWithRouter } from "./test-utils";
 import RegisterPage from "@/pages/RegisterPage";
 import { AuthService } from "@/services/auth.service";
@@ -14,7 +15,10 @@ vi.mock("@/integrations/lovable/index", () => ({
   lovable: { auth: { signInWithOAuth: vi.fn().mockResolvedValue({}) } },
 }));
 vi.mock("@/components/auth/TurnstileChallenge", () => ({
-  TurnstileChallenge: ({ action }: { action: string }) => <div data-testid={`turnstile-${action}`} />,
+  TurnstileChallenge: ({ action, onTokenChange }: { action: string; onTokenChange: (token: string) => void }) => {
+    useEffect(() => onTokenChange(`test-token-${action}`), [action, onTokenChange]);
+    return <div data-testid={`turnstile-${action}`} />;
+  },
 }));
 vi.mock("@/lib/email-domain-validation", () => ({
   validateEmailDomainExists: vi.fn().mockResolvedValue({ valid: true }),
@@ -74,6 +78,15 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
+    await waitFor(() => expect(AuthService.signUp).toHaveBeenCalledWith(
+      "jane@example.com",
+      "Str0ng!Pass12",
+      "Jane",
+      "Doe",
+      expect.stringContaining("/profile-setup"),
+      "test-token-register"
+    ));
+
     expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
     expect(screen.getByText(/existing verified accounts will not receive another signup email/i)).toBeInTheDocument();
 
@@ -82,7 +95,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     await waitFor(() => expect(AuthService.resendSignupConfirmation).toHaveBeenCalledWith(
       "jane@example.com",
       expect.stringContaining("/profile-setup"),
-      expect.any(String)
+      "test-token-signup_confirmation_resend"
     ));
     expect(await screen.findByText(/fresh link has been sent/i)).toBeInTheDocument();
   });
