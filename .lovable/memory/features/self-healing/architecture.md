@@ -20,7 +20,7 @@ type: feature
 Admin-only `SystemHealthWidget` mounted at the bottom of `/dashboard`. Shows status pill, top 10 fingerprints (24h), remediation rules with run/success counts, and a manual "Run now" button.
 
 ## Allowlisted remediation functions
-`cleanup_stuck_email_queue`, `cleanup_rate_limits`, `cleanup_passkey_login_artifacts`, `drain_notification_outbox`, `retry_stuck_fanout_jobs`, `retry_pending_discord_role_grants`, `evaluate_system_health`.
+`cleanup_stuck_email_queue`, `cleanup_rate_limits`, `cleanup_two_factor_login_artifacts`, `drain_notification_outbox`, `retry_stuck_fanout_jobs`, `retry_pending_discord_role_grants`, `evaluate_system_health`.
 
 ## Critical guardrails
 - Remediations are **pre-written human-reviewed functions** — no AI auto-codegen at runtime.

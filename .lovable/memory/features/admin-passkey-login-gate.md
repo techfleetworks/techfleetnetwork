@@ -1,24 +1,21 @@
 ---
-name: admin-passkey-login-gate
-description: Admins verify passkey once per device; trust persists 30 days, not bound to JWT refresh.
+name: admin-authenticator-2fa-login-gate
+description: Passkeys are retired; admins must use Google Authenticator-compatible TOTP with a 5-day first-setup grace period.
 type: feature
 ---
 
-Admins must verify their passkey to access the app. Verification is bound to a
-stable per-device id stored in `localStorage` (`tfn.device_id.v1`), NOT to the
-rotating JWT access token. This means:
+Passkey functionality is removed from the active system. Admin security uses
+Google Authenticator-compatible TOTP through the built-in MFA flow.
 
-- One passkey prompt per new device or after 30 days of inactivity
-- JWT refreshes (~10 min) do NOT trigger re-prompts
-- Clearing site data or signing out from a different device → next visit re-prompts (safe default)
-- Recovery via emailed one-time link also marks the current device verified for 30 days
+Rules:
+- Admins get a 5-day grace period for first-time 2FA setup after rollout or promotion.
+- After grace expires, admin routes are blocked until TOTP is enrolled.
+- Any user with verified TOTP must complete Login → 2FA → authenticated before using protected content.
+- Cancelling the required 2FA prompt signs out the AAL1 session.
+- Do not re-add passkey, WebAuthn registration, WebAuthn recovery, or passkey device-trust flows.
 
 Implementation:
-- `src/lib/device-id.ts` — generates/persists the per-device id and computes
-  `sha256(v1:{userId}:{deviceId})` as the verification hash
-- `passkey_login_sessions.session_token_hash` stores the device hash (column
-  name kept for backwards compat); `expires_at` is 30 days from verification
-- Edge functions `passkey-auth-verify` and `passkey-recovery-verify` accept
-  `device_id` in the request body and validate length (16–256 chars)
-- `is_passkey_login_verified(_session_hash)` RPC unchanged — it just checks
-  the hash + expiry, which now represents a device, not a JWT
+- `two_factor_login_sessions` stores short-lived proof for freshly verified admin operations.
+- `mark_two_factor_login_verified(_session_hash)` records proof only when JWT AAL is `aal2`.
+- `is_two_factor_login_verified(_session_hash)` checks active 2FA proof.
+- `cleanup_two_factor_login_artifacts()` purges expired 2FA proof records.

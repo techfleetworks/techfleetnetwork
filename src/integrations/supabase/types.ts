@@ -2258,9 +2258,9 @@ export type Database = {
         }
         Returns: Json
       }
-      cleanup_passkey_login_artifacts: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
+      cleanup_two_factor_login_artifacts: { Args: never; Returns: number }
       clear_rate_limits_for_email: {
         Args: { p_email: string }
         Returns: number
@@ -2347,10 +2347,6 @@ export type Database = {
         Returns: boolean
       }
       is_elevated: { Args: { _user_id: string }; Returns: boolean }
-      is_passkey_login_verified: {
-        Args: { _session_hash: string }
-        Returns: boolean
-      }
       is_remediation_allowed: { Args: { p_fn: string }; Returns: boolean }
       is_session_revoked: {
         Args: { _issued_at: string; _user_id: string }
@@ -2358,6 +2354,10 @@ export type Database = {
       }
       is_trusted_device_active: {
         Args: { _fingerprint: string }
+        Returns: boolean
+      }
+      is_two_factor_login_verified: {
+        Args: { _session_hash: string }
         Returns: boolean
       }
       issue_device_binding_nonce: {
@@ -2386,13 +2386,13 @@ export type Database = {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
       }
-      mark_device_trusted_after_mfa: {
-        Args: { _session_hash: string }
-        Returns: boolean
-      }
       mark_discord_role_grant_result: {
         Args: { p_error?: string; p_id: string; p_success: boolean }
         Returns: undefined
+      }
+      mark_two_factor_login_verified: {
+        Args: { _session_hash: string }
+        Returns: boolean
       }
       move_to_dlq: {
         Args: {
