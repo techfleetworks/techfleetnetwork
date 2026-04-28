@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, type FormEvent } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,7 @@ import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   User, Globe, Check,
-  Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
-  Link2, RefreshCw,
+  Mail, Trash2, KeyRound, Clock, AlertCircle, Loader2,
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
