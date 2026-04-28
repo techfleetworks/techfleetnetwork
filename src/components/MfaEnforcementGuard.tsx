@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("MfaEnforcementGuard");
+const MEMBER_TOTP_PROMPT_ENABLED = import.meta.env.VITE_MEMBER_TOTP_PROMPT_ENABLED === "1";
 
 /**
  * Global TOTP MFA gate. Runs on every authenticated session and forces a TOTP
@@ -30,6 +31,15 @@ export function MfaEnforcementGuard() {
   useEffect(() => {
     if (loading || adminLoading || !user || !session) {
       lastCheckedToken.current = null;
+      setChallengeOpen(false);
+      return;
+    }
+
+    // Only elevated users should receive mandatory MFA prompts. Members can
+    // manage TOTP voluntarily from profile settings, but are never surprised
+    // with a login challenge unless the explicit rollout flag is enabled.
+    if (!isAdmin && !MEMBER_TOTP_PROMPT_ENABLED) {
+      lastCheckedToken.current = session.access_token;
       setChallengeOpen(false);
       return;
     }
