@@ -44,6 +44,11 @@ function compactLookupValue(value: string): string {
   return normalizeLookupValue(value).replace(/[._\-\s]+/g, "");
 }
 
+function digitOnly(value: string): string | null {
+  const digits = value.trim().match(/^<@!?(\d{15,25})>$|^(\d{15,25})$/);
+  return digits ? (digits[1] ?? digits[2]) : null;
+}
+
 function buildSearchQueries(rawInput: string): string[] {
   const raw = rawInput.normalize("NFKC").trim();
   const normalized = normalizeLookupValue(raw);
@@ -167,9 +172,9 @@ serve(async (req) => {
     const { data: duplicateRl } = await adminClient.rpc("check_rate_limit", {
       p_identifier: `${userId}:${compactUsername}`,
       p_action: "resolve_discord_id_duplicate",
-      p_max_attempts: 1,
+      p_max_attempts: 4,
       p_window_minutes: 10,
-      p_block_minutes: 60,
+      p_block_minutes: 10,
     });
     if (duplicateRl && !duplicateRl.allowed) {
       return new Response(
@@ -177,6 +182,22 @@ serve(async (req) => {
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    const directDiscordId = digitOnly(rawUsername);
+    if (directDiscordId) {
+      const memberUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${directDiscordId}`;
+      const { response: directRes } = await discordFetch(memberUrl, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+        maxRetries: 2,
+      });
+      if (directRes.ok) {
+        const member = await directRes.json() as DiscordMember;
+        return new Response(
+          JSON.stringify({ discord_user_id: directDiscordId, discord_username: member.user?.username ?? cleanUsername }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const searchQueries = buildSearchQueries(rawUsername);
     log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
       requestId,
@@ -189,7 +210,7 @@ serve(async (req) => {
     const allMembers: DiscordMember[] = [];
     const seenIds = new Set<string>();
     for (const query of searchQueries) {
-      const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=10`;
+      const searchUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/search?query=${encodeURIComponent(query)}&limit=25`;
       
       try {
         const { response: res, retries } = await discordFetch(searchUrl, {
