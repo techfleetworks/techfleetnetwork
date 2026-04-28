@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
 
     // Parse & validate body
-    const body = await parseJsonBody(req);
+    const body = await parseJsonBody(req) as Record<string, unknown>;
     const queryNormalized = typeof body.query_normalized === "string"
       ? body.query_normalized.trim().slice(0, 500)
       : "";
