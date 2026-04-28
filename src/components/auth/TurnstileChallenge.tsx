@@ -14,7 +14,7 @@ declare global {
 }
 
 type TurnstileChallengeProps = {
-  action: "login" | "register" | "forgot_password";
+  action: "login" | "register" | "forgot_password" | "signup_confirmation_resend";
   onTokenChange: (token: string) => void;
   failureCount?: number;
 };
