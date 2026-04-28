@@ -205,8 +205,21 @@ serve(async (req) => {
       });
       if (directRes.ok) {
         const member = await directRes.json() as DiscordMember;
+        const avatarUrl = member.user?.avatar
+          ? `https://cdn.discordapp.com/avatars/${directDiscordId}/${member.user.avatar}.png?size=64`
+          : null;
         return new Response(
-          JSON.stringify({ discord_user_id: directDiscordId, discord_username: member.user?.username ?? cleanUsername }),
+          JSON.stringify({
+            discord_user_id: null,
+            message: "Select your Discord account to finish linking.",
+            candidates: [{
+              id: directDiscordId,
+              username: member.user?.username ?? cleanUsername,
+              global_name: member.user?.global_name || null,
+              nick: member.nick || null,
+              avatar: avatarUrl,
+            }],
+          }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
