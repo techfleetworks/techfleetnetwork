@@ -88,15 +88,15 @@ interface NetworkActivityProps {
 }
 
 export const NetworkActivity = memo(function NetworkActivity({ showMap = true, showActivity = true }: NetworkActivityProps) {
-  const { data: stats = defaultStats, isLoading: loading } = useQuery({
+  const { data: stats, isError, isLoading: loading } = useQuery({
     queryKey: ["network-stats"],
     queryFn: () => StatsService.getNetworkStats(),
-    staleTime: 60 * 1000, // 60s — keep dashboard near-realtime
-    refetchInterval: 60 * 1000, // auto-refresh every 60s
-    refetchOnWindowFocus: true, // refresh when user tabs back in
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
         <div className="container-app">
@@ -110,6 +110,25 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
       </section>
     );
   }
+
+  if (isError && !stats) {
+    return (
+      <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
+        <div className="container-app">
+          <div className="mb-8">
+            <h2 id="network-activity-heading" className="text-xl font-semibold text-foreground">
+              Network Activity
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              We could not load community activity right now. Please refresh in a moment.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const safeStats = stats ?? defaultStats;
 
   return (
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
@@ -127,12 +146,12 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-              <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.total_signups} label="New Sign-ups" colorClass="bg-primary/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={stats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={stats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={stats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
-              <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={stats.applications_completed} label="General Applications Completed" colorClass="bg-success/10" />
-              <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.badges_earned} label="Badges Earned" colorClass="bg-primary/10" />
+              <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="New Sign-ups" colorClass="bg-primary/10" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
+              <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.applications_completed} label="General Applications Completed" colorClass="bg-success/10" />
+              <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.badges_earned} label="Badges Earned" colorClass="bg-primary/10" />
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
