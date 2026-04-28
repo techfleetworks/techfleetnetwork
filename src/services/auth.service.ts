@@ -170,11 +170,13 @@ export const AuthService = {
     });
   },
 
-  async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string) {
+  async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string, captchaToken: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
       throw blockedAuthInputError;
     }
+    const safeCaptchaToken = captchaToken.trim();
+    if (!safeCaptchaToken) throw new Error("Complete the human verification before trying again.");
     const safeEmail = parsedEmail.data;
     const domainCheck = await validateEmailDomainExists(safeEmail);
     if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
@@ -191,6 +193,7 @@ export const AuthService = {
               last_name: lastName,
             },
             emailRedirectTo: redirectTo,
+            captchaToken: safeCaptchaToken,
           },
         });
 
@@ -269,9 +272,11 @@ export const AuthService = {
     });
   },
 
-  async resendSignupConfirmation(email: string, redirectTo: string) {
+  async resendSignupConfirmation(email: string, redirectTo: string, captchaToken: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success) throw blockedAuthInputError;
+    const safeCaptchaToken = captchaToken.trim();
+    if (!safeCaptchaToken) throw new Error("Complete the human verification before trying again.");
     const safeEmail = parsedEmail.data;
     const domainCheck = await validateEmailDomainExists(safeEmail);
     if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
@@ -280,7 +285,7 @@ export const AuthService = {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: safeEmail,
-        options: { emailRedirectTo: redirectTo },
+        options: { emailRedirectTo: redirectTo, captchaToken: safeCaptchaToken },
       });
 
       if (error) {
@@ -303,14 +308,19 @@ export const AuthService = {
     });
   },
 
-  async resetPassword(email: string, redirectTo: string) {
+  async resetPassword(email: string, redirectTo: string, captchaToken?: string) {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success) throw blockedAuthInputError;
+    const safeCaptchaToken = captchaToken?.trim();
+    if (captchaToken !== undefined && !safeCaptchaToken) throw new Error("Complete the human verification before trying again.");
     const safeEmail = parsedEmail.data;
     const domainCheck = await validateEmailDomainExists(safeEmail);
     if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     return log.track("resetPassword", `Sending password reset for ${safeEmail}`, { email: safeEmail }, async () => {
-      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, { redirectTo });
+      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, {
+        redirectTo,
+        ...(safeCaptchaToken ? { captchaToken: safeCaptchaToken } : {}),
+      });
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${safeEmail}: ${error.message}`, { email: safeEmail }, error);
         void logAccountActivity("password_reset_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });

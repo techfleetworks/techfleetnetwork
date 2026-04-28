@@ -3,7 +3,6 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import RegisterPage from "@/pages/RegisterPage";
 import { AuthService } from "@/services/auth.service";
-import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 vi.mock("@/services/auth.service", () => ({
   AuthService: { signUp: vi.fn(), resendSignupConfirmation: vi.fn() },
@@ -15,10 +14,9 @@ vi.mock("@/integrations/lovable/index", () => ({
   lovable: { auth: { signInWithOAuth: vi.fn().mockResolvedValue({}) } },
 }));
 vi.mock("@/components/auth/TurnstileChallenge", () => ({
-  TurnstileChallenge: ({ action }: { action: string }) => <div data-testid={`turnstile-${action}`} />,
-}));
-vi.mock("@/lib/turnstile-verification", () => ({
-  verifyTurnstileToken: vi.fn().mockResolvedValue(true),
+  TurnstileChallenge: ({ action, onTokenChange }: { action: string; onTokenChange: (token: string) => void }) => {
+    return <button type="button" data-testid={`turnstile-${action}`} onClick={() => onTokenChange(`test-token-${action}`)}>Complete verification</button>;
+  },
 }));
 vi.mock("@/lib/email-domain-validation", () => ({
   validateEmailDomainExists: vi.fn().mockResolvedValue({ valid: true }),
@@ -27,7 +25,6 @@ vi.mock("@/lib/email-domain-validation", () => ({
 describe("RegisterPage UI (BDD 18.1–18.4)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyTurnstileToken).mockResolvedValue(true);
     renderWithRouter(<RegisterPage />);
   });
 
@@ -77,17 +74,28 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass12" } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass12" } });
     fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByTestId("turnstile-register"));
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => expect(AuthService.signUp).toHaveBeenCalledWith(
+      "jane@example.com",
+      "Str0ng!Pass12",
+      "Jane",
+      "Doe",
+      expect.stringContaining("/profile-setup"),
+      "test-token-register"
+    ));
 
     expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
     expect(screen.getByText(/existing verified accounts will not receive another signup email/i)).toBeInTheDocument();
 
+    fireEvent.click(screen.getByTestId("turnstile-signup_confirmation_resend"));
     fireEvent.click(screen.getByRole("button", { name: /resend verification email/i }));
 
-    await waitFor(() => expect(verifyTurnstileToken).toHaveBeenCalledWith("", "signup_confirmation_resend"));
     await waitFor(() => expect(AuthService.resendSignupConfirmation).toHaveBeenCalledWith(
       "jane@example.com",
-      expect.stringContaining("/profile-setup")
+      expect.stringContaining("/profile-setup"),
+      "test-token-signup_confirmation_resend"
     ));
     expect(await screen.findByText(/fresh link has been sent/i)).toBeInTheDocument();
   });
