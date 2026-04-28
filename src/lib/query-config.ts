@@ -58,5 +58,5 @@ export const queryKeys = {
 
   // Admin domain
   adminRole: (userId: string) => ["admin-role", userId] as const,
-  passkeyEnrollment: (userId: string) => ["passkey-enrollment", userId] as const,
+  twoFactorEnrollment: (userId: string) => ["two-factor-enrollment", userId] as const,
 } as const;
