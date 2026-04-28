@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import { loginSchema } from "@/lib/validators/auth";
@@ -221,7 +221,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <GoogleSignInButton />
+          {from !== "/dashboard" && (
+            <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-foreground" role="status" aria-live="polite">
+              <p className="font-semibold">Sign in to continue</p>
+              <p className="mt-1 text-muted-foreground">After sign-in, we’ll take you back to the page you were trying to open.</p>
+            </div>
+          )}
+
+          <GoogleSignInButton redirectTo={from} />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
@@ -258,6 +265,11 @@ export default function LoginPage() {
               {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}
             </Button>
             {lockoutState.locked && <p id="login-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
+            {from !== "/dashboard" && (
+              <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground" aria-live="polite">
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /> Your destination is saved.
+              </p>
+            )}
           </form>
         </div>
 
