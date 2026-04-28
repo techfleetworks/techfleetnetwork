@@ -19,6 +19,7 @@ export function GoogleSignInButton({ label = "Sign in with Google", className, o
       markOAuthUiInitiated("google");
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: `${window.location.origin}/`,
+        extraParams: { prompt: "select_account" },
       });
       if (result.error) {
         // Log generic message only — no PII or tokens
