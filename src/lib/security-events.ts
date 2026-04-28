@@ -4,7 +4,7 @@
  * Wraps `write_audit_log` with prefixes drawn from the OWASP Logging Vocabulary
  * cheat sheet so log queries are predictable across the platform.
  *
- *   authn_*           authentication events (login, MFA, passkey)
+ *   authn_*           authentication events (login, MFA)
  *   authz_*           authorization decisions (admin gate, RLS denials)
  *   excess_*          rate-limit, abuse-throttle, brute-force lockouts
  *   input_validation_* zod failures, sanitizer drops, malformed payloads
@@ -20,7 +20,7 @@ export type SecurityEvent =
   | "authn_mfa_challenge"
   | "authn_mfa_success"
   | "authn_mfa_failure"
-  | "authn_passkey_verified"
+  | "authn_2fa_verified"
   | "authn_session_revoked"
   | "authz_admin_granted"
   | "authz_admin_denied"
