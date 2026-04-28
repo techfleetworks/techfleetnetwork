@@ -35,7 +35,7 @@ drift check.
 export TF_ADMIN_EMAIL='mdenner@techfleet.org'
 export TF_ADMIN_PASSWORD='…'
 npx playwright install --with-deps chromium
-npx playwright test e2e/a11y/wcag-audit.spec.ts --reporter=list
+npx playwright test e2e/a11y/wcag-audit.e2e.ts --reporter=list
 # Report written to a11y-report/a11y-report.json
 ```
 
