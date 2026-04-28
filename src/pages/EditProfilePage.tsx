@@ -39,6 +39,7 @@ import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
+import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -379,13 +380,7 @@ export default function EditProfilePage() {
                 <SearchFirstCombobox id="edit-timezone-trigger" open={timezoneOpen} onOpenChange={setTimezoneOpen} selectedValue={form.timezone} selectedLabel={selectedTimezoneLabel} emptyLabel="Search timezone" searchPlaceholder="Start typing a city, region, or GMT offset…" emptyMessage="No timezone found." options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))} icon={<Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />} invalid={!!errors.timezone} triggerClassName={bc("timezone", form.timezone)} onSelect={(value) => { setForm({ ...form, timezone: value }); setTimezoneOpen(false); markTouched("timezone"); }} />
               </ValidatedField>
 
-              {/* Discord */}
-              <ValidatedField id="edit-discordUsername" label="Discord username" error={errors.discordUsername} value={form.discordUsername} touched={touched.discordUsername}>
-                <div className="relative">
-                  <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input id="edit-discordUsername" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} onBlur={() => markTouched("discordUsername")} placeholder="username" className={cn("pl-10", bc("discordUsername", form.discordUsername))} aria-invalid={!!errors.discordUsername} />
-                </div>
-              </ValidatedField>
+              <ProfileDiscordConnector />
 
               {/* Portfolio & LinkedIn */}
               <ValidatedField id="edit-portfolio" label="Portfolio URL" value={form.portfolio_url} touched={touched.portfolio_url}>
