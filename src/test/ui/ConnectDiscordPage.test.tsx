@@ -81,4 +81,34 @@ describe("ConnectDiscordPage Discord member picker", () => {
     expect(screen.getByText("Current Member")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search again/i })).toBeEnabled();
   });
+
+  it("shows the selected Discord account using the returned display name and username instead of the search term", async () => {
+    const user = userEvent.setup();
+    mockResolveDiscordId.mockResolvedValue({
+      discord_user_id: null,
+      candidates: [
+        { id: "333333333333333333", username: "kmorgan", display_name: "Kim Morgan", global_name: "Kim Morgan", nick: null, avatar: null },
+      ],
+    });
+    mockConfirmDiscordId.mockResolvedValue({
+      discord_user_id: "333333333333333333",
+      discord_username: "kmorgan",
+      discord_display_name: "Kim Morgan",
+      global_name: "Kim Morgan",
+      nick: null,
+    });
+
+    renderWithRouter(<ConnectDiscordPage />);
+
+    await user.click(screen.getByRole("button", { name: /yes, i'm in discord/i }));
+    await user.type(screen.getByLabelText(/discord username or display name/i), "Morgan");
+    await user.click(screen.getByRole("button", { name: /verify/i }));
+
+    expect(await screen.findByText("Kim Morgan - @kmorgan")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /select kim morgan/i }));
+
+    await waitFor(() => {
+      expect(mockConfirmDiscordId).toHaveBeenCalledWith("333333333333333333");
+    });
+  });
 });
