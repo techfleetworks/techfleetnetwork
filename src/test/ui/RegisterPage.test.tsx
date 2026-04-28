@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
-import { useEffect } from "react";
 import { renderWithRouter } from "./test-utils";
 import RegisterPage from "@/pages/RegisterPage";
 import { AuthService } from "@/services/auth.service";
@@ -16,7 +15,7 @@ vi.mock("@/integrations/lovable/index", () => ({
 }));
 vi.mock("@/components/auth/TurnstileChallenge", () => ({
   TurnstileChallenge: ({ action, onTokenChange }: { action: string; onTokenChange: (token: string) => void }) => {
-    useEffect(() => onTokenChange(`test-token-${action}`), [action, onTokenChange]);
+    queueMicrotask(() => onTokenChange(`test-token-${action}`));
     return <div data-testid={`turnstile-${action}`} />;
   },
 }));
