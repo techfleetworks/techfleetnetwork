@@ -6,7 +6,7 @@ import { MfaService } from "@/services/mfa.service";
 import { useEffect, useState } from "react";
 
 /**
- * App-wide nudge for admins who have NOT yet enrolled a passkey.
+ * App-wide nudge for admins who have NOT yet enabled authenticator 2FA.
  *
  * Why this exists:
  *   When a user is promoted to admin, the only signal they currently get is the
@@ -15,13 +15,13 @@ import { useEffect, useState } from "react";
  *   setup proactive and obvious so they can self-serve without admin help.
  *
  * Visibility rules:
- *   - Only renders for authenticated admins with zero passkeys enrolled.
+ *   - Only renders for authenticated admins with no verified TOTP factor.
  *   - Hidden on the page where they enroll (/profile/edit) so it doesn't
  *     overlap the actual setup card and create visual noise.
  *   - Hidden on auth pages (/login, /register, /reset-password) because
  *     `useAdmin` won't be settled there anyway.
  */
-export function AdminPasskeySetupBanner() {
+export function AdminTwoFactorSetupBanner() {
   const { user, profileLoaded } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [hasTotp, setHasTotp] = useState<boolean | null>(null);
