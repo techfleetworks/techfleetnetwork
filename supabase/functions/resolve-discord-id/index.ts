@@ -166,9 +166,33 @@ serve(async (req) => {
       }
 
       const member = await confirmRes.json() as DiscordMember;
+      const confirmedUsername = member.user?.username ?? "";
+      const { data: claimedProfiles, error: claimedError } = await adminClient
+        .from("profiles")
+        .select("user_id, display_name, discord_user_id, discord_username")
+        .neq("user_id", userId)
+        .or(`discord_user_id.eq.${confirm_user_id},discord_username.ilike.${confirmedUsername}`)
+        .limit(1);
+
+      if (claimedError) {
+        log.error("resolve", `Failed claimed Discord lookup [${requestId}]`, { requestId, confirm_user_id }, claimedError);
+        return new Response(
+          JSON.stringify({ discord_user_id: null, error: "Could not safely verify Discord ownership. Please try again." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (claimedProfiles && claimedProfiles.length > 0) {
+        log.warn("resolve", `Rejected already-claimed Discord account ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+        return new Response(
+          JSON.stringify({ discord_user_id: null, error: "This Discord account is already linked to another Tech Fleet profile. Each Discord account can only be connected to one profile." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
       return new Response(
-        JSON.stringify({ discord_user_id: confirm_user_id, discord_username: member.user?.username ?? null }),
+        JSON.stringify({ discord_user_id: confirm_user_id, discord_username: confirmedUsername || null }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
