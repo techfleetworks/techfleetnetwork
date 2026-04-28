@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { handleServiceError } from "@/lib/service-result";
 
 const log = createLogger("NotificationService");
 
@@ -24,10 +25,7 @@ export const NotificationService = {
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error) {
-      log.warn("list", `Failed to fetch notifications: ${error.message}`, { userId }, error);
-      return [];
-    }
+    if (handleServiceError(error, { logger: log, action: "list", message: `Failed to fetch notifications: ${error?.message ?? "Unknown error"}`, metadata: { userId }, level: "warn" })) return [];
     return (data as unknown as AppNotification[]) || [];
   },
 
@@ -39,10 +37,7 @@ export const NotificationService = {
       .eq("user_id", userId)
       .eq("read", false);
 
-    if (error) {
-      log.warn("unreadCount", `Failed to count unread: ${error.message}`, { userId }, error);
-      return 0;
-    }
+    if (handleServiceError(error, { logger: log, action: "unreadCount", message: `Failed to count unread: ${error?.message ?? "Unknown error"}`, metadata: { userId }, level: "warn" })) return 0;
     return count ?? 0;
   },
 
@@ -53,9 +48,7 @@ export const NotificationService = {
       .update({ read: true } as any)
       .eq("id", notificationId);
 
-    if (error) {
-      log.warn("markRead", `Failed to mark notification read: ${error.message}`, { notificationId }, error);
-    }
+    handleServiceError(error, { logger: log, action: "markRead", message: `Failed to mark notification read: ${error?.message ?? "Unknown error"}`, metadata: { notificationId }, level: "warn" });
   },
 
   /** Mark all notifications as read for a user */
@@ -66,8 +59,6 @@ export const NotificationService = {
       .eq("user_id", userId)
       .eq("read", false);
 
-    if (error) {
-      log.warn("markAllRead", `Failed to mark all read: ${error.message}`, { userId }, error);
-    }
+    handleServiceError(error, { logger: log, action: "markAllRead", message: `Failed to mark all read: ${error?.message ?? "Unknown error"}`, metadata: { userId }, level: "warn" });
   },
 };
