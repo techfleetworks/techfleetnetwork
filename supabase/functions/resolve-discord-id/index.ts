@@ -109,22 +109,7 @@ serve(async (req) => {
     );
   }
 
-  // ── Server-side rate limit (5 lookups / 1 min per user, 60 min block) ─
-  // Prevents using this endpoint to enumerate the Discord guild's member list.
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data: rl } = await adminClient.rpc("check_rate_limit", {
-    p_identifier: userId,
-    p_action: "resolve_discord_id",
-    p_max_attempts: 5,
-    p_window_minutes: 1,
-    p_block_minutes: 60,
-  });
-  if (rl && !rl.allowed) {
-    return new Response(
-      JSON.stringify({ error: "Too many lookups. Please wait.", retry_after: rl.retry_after ?? 3600 }),
-      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
 
   const BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN");
   const GUILD_ID = Deno.env.get("DISCORD_GUILD_ID");
@@ -207,19 +192,6 @@ serve(async (req) => {
     const rawUsername = discord_username.normalize("NFKC").trim().toLowerCase();
     const cleanUsername = normalizeLookupValue(rawUsername);
     const compactUsername = compactLookupValue(rawUsername);
-    const { data: duplicateRl } = await adminClient.rpc("check_rate_limit", {
-      p_identifier: `${userId}:${compactUsername}`,
-      p_action: "resolve_discord_id_duplicate",
-      p_max_attempts: 4,
-      p_window_minutes: 10,
-      p_block_minutes: 10,
-    });
-    if (duplicateRl && !duplicateRl.allowed) {
-      return new Response(
-        JSON.stringify({ error: "Duplicate lookup blocked", retry_after: duplicateRl.retry_after ?? 3600 }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
     const directDiscordId = digitOnly(rawUsername);
     if (directDiscordId) {
       const memberUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${directDiscordId}`;
