@@ -271,8 +271,10 @@ export function ProfileDiscordConnector() {
                       {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
-                      <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{formatDiscordAccountLabel(candidate)}</p>
+                      {candidate.nick && candidate.nick !== candidate.global_name && (
+                        <p className="truncate text-xs text-muted-foreground">{candidate.nick}</p>
+                      )}
                     </div>
                     {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
                   </button>
