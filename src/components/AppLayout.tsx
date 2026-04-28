@@ -55,7 +55,7 @@ import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { FleetyChatWidget } from "./FleetyChatWidget";
-import { AdminPasskeySetupBanner } from "./AdminPasskeySetupBanner";
+import { AdminTwoFactorSetupBanner } from "./AdminTwoFactorSetupBanner";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
@@ -474,7 +474,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           )}
         </header>
         <AnnouncementBanner />
-        <AdminPasskeySetupBanner />
+        <AdminTwoFactorSetupBanner />
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
@@ -496,7 +496,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               onSignOut={handleSignOut}
             />
             <AnnouncementBanner />
-            <AdminPasskeySetupBanner />
+            <AdminTwoFactorSetupBanner />
             <main
               id="main-content"
               className="flex-1"
