@@ -151,7 +151,6 @@ export const ProfileService = {
       "display_name",
       "country",
       "timezone",
-      "discord_username",
       "bio",
       "professional_background",
       "professional_goals",
