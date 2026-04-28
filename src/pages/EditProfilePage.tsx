@@ -605,50 +605,8 @@ export default function EditProfilePage() {
                 <PasskeyManagement />
               </div>
 
-              {/* Discord Account Link */}
-              <div className="space-y-1.5 pt-2 border-t">
-                <Label>Link Your Discord Account</Label>
-                {profile?.discord_user_id ? (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
-                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">Discord linked</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        Connected as <strong>{profile.discord_username}</strong>
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground flex-shrink-0"
-                      asChild
-                    >
-                      <Link to="/courses/connect-discord">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Re-link
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Link your Discord account to automatically receive roles and channel access after joining the Tech Fleet Discord server.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      asChild
-                    >
-                      <Link to="/courses/connect-discord">
-                        <Link2 className="h-4 w-4" />
-                        Connect
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+              <div className="pt-2 border-t">
+                <ProfileDiscordConnector />
               </div>
 
               <div className="space-y-1.5 pt-2 border-t">
