@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileInput } from "@/lib/validators/profile";
-import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { createLogger } from "@/services/logger.service";
 import { pickAllowedFields, deepSanitize } from "@/lib/security";
 
@@ -71,26 +70,12 @@ export const ProfileService = {
       interestCount: input.interests?.length ?? 0,
       hasEmail: !!email,
     }, async () => {
-      let discordUserId = "";
-      if (input.discordUsername) {
-        log.info("update", `Resolving Discord ID for username "${input.discordUsername}"`, { userId, discordUsername: input.discordUsername });
-        const resolved = await DiscordNotifyService.resolveDiscordId(input.discordUsername);
-        if (resolved.discord_user_id) {
-          discordUserId = resolved.discord_user_id;
-          log.info("update", `Discord ID resolved: ${resolved}`, { userId, discordUserId: resolved });
-        } else {
-          log.warn("update", `Could not resolve Discord ID for "${input.discordUsername}" — user may not be in the server`, { userId, discordUsername: input.discordUsername });
-        }
-      }
-
       // Build update payload with only known safe fields (A04 mass assignment)
       const rawData: Record<string, unknown> = {
         first_name: input.firstName,
         last_name: input.lastName,
         country: input.country,
         timezone: input.timezone,
-        discord_username: input.discordUsername || "",
-        discord_user_id: discordUserId,
         display_name: `${input.firstName} ${input.lastName}`.trim(),
         interests: input.interests || [],
         profile_completed: true,

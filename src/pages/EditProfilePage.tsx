@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, type FormEvent } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,8 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
-  User, Globe, MessageCircle, Check,
-  Mail, Trash2, KeyRound, Clock, CheckCircle2, AlertCircle, Loader2,
-  Link2, RefreshCw,
+  User, Globe, Check,
+  Mail, Trash2, KeyRound, Clock, AlertCircle, Loader2,
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { InstallAppCard } from "@/components/InstallAppCard";
@@ -39,6 +38,7 @@ import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
+import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -65,7 +65,6 @@ export default function EditProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
-  const [discordLinking, setDiscordLinking] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -379,13 +378,7 @@ export default function EditProfilePage() {
                 <SearchFirstCombobox id="edit-timezone-trigger" open={timezoneOpen} onOpenChange={setTimezoneOpen} selectedValue={form.timezone} selectedLabel={selectedTimezoneLabel} emptyLabel="Search timezone" searchPlaceholder="Start typing a city, region, or GMT offset…" emptyMessage="No timezone found." options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))} icon={<Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />} invalid={!!errors.timezone} triggerClassName={bc("timezone", form.timezone)} onSelect={(value) => { setForm({ ...form, timezone: value }); setTimezoneOpen(false); markTouched("timezone"); }} />
               </ValidatedField>
 
-              {/* Discord */}
-              <ValidatedField id="edit-discordUsername" label="Discord username" error={errors.discordUsername} value={form.discordUsername} touched={touched.discordUsername}>
-                <div className="relative">
-                  <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <Input id="edit-discordUsername" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} onBlur={() => markTouched("discordUsername")} placeholder="username" className={cn("pl-10", bc("discordUsername", form.discordUsername))} aria-invalid={!!errors.discordUsername} />
-                </div>
-              </ValidatedField>
+              <ProfileDiscordConnector />
 
               {/* Portfolio & LinkedIn */}
               <ValidatedField id="edit-portfolio" label="Portfolio URL" value={form.portfolio_url} touched={touched.portfolio_url}>
@@ -611,50 +604,8 @@ export default function EditProfilePage() {
                 <PasskeyManagement />
               </div>
 
-              {/* Discord Account Link */}
-              <div className="space-y-1.5 pt-2 border-t">
-                <Label>Link Your Discord Account</Label>
-                {profile?.discord_user_id ? (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
-                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">Discord linked</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        Connected as <strong>{profile.discord_username}</strong>
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground flex-shrink-0"
-                      asChild
-                    >
-                      <Link to="/courses/connect-discord">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Re-link
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Link your Discord account to automatically receive roles and channel access after joining the Tech Fleet Discord server.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      asChild
-                    >
-                      <Link to="/courses/connect-discord">
-                        <Link2 className="h-4 w-4" />
-                        Connect
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+              <div className="pt-2 border-t">
+                <ProfileDiscordConnector />
               </div>
 
               <div className="space-y-1.5 pt-2 border-t">

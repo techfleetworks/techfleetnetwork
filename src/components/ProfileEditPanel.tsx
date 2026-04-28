@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, User, Globe, MessageCircle, Check, ChevronsUpDown, Mail, Trash2, KeyRound, Clock, Search } from "lucide-react";
+import { AlertCircle, User, Globe, Check, ChevronsUpDown, Mail, Trash2, KeyRound, Clock, Search } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 
 interface ProfileEditPanelProps {
   open: boolean;
@@ -394,25 +395,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-discordUsername">Discord username</Label>
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="edit-discordUsername"
-                  value={form.discordUsername}
-                  onChange={(e) => setForm({ ...form, discordUsername: e.target.value })}
-                  placeholder="username"
-                  className="pl-10"
-                  aria-invalid={!!errors.discordUsername}
-                />
-              </div>
-              {errors.discordUsername && (
-                <p className="text-sm text-destructive flex items-center gap-1" role="alert">
-                  <AlertCircle className="h-3 w-3" /> {errors.discordUsername}
-                </p>
-              )}
-            </div>
+            <ProfileDiscordConnector />
 
             {/* Activity Interests */}
             <div className="space-y-3">
