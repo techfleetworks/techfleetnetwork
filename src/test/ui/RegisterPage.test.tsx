@@ -20,9 +20,14 @@ vi.mock("@/components/auth/TurnstileChallenge", () => ({
 vi.mock("@/lib/turnstile-verification", () => ({
   verifyTurnstileToken: vi.fn().mockResolvedValue(true),
 }));
+vi.mock("@/lib/email-domain-validation", () => ({
+  validateEmailDomainExists: vi.fn().mockResolvedValue({ valid: true }),
+}));
 
 describe("RegisterPage UI (BDD 18.1–18.4)", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(verifyTurnstileToken).mockResolvedValue(true);
     renderWithRouter(<RegisterPage />);
   });
 
@@ -46,7 +51,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     const passwordInput = screen.getByLabelText(/password/i, { selector: "input#reg-password" });
     fireEvent.change(passwordInput, { target: { value: "a" } });
 
-    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+    expect(screen.getByText(/at least 12 characters/i)).toBeInTheDocument();
     expect(screen.getByText(/one uppercase letter/i)).toBeInTheDocument();
     expect(screen.getByText(/one lowercase letter/i)).toBeInTheDocument();
     expect(screen.getByText(/one number/i)).toBeInTheDocument();
