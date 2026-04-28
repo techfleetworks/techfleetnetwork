@@ -46,9 +46,17 @@ async function bindCurrentDevice(): Promise<void> {
 
 export const PasskeyLoginService = {
   async isCurrentSessionVerified(): Promise<boolean> {
-    if (!isDeviceCryptoSupported()) return false;
-
     try {
+      const sessionHash = await this.getCurrentSessionHash();
+      if (!sessionHash) return false;
+
+      const { data: sessionVerified, error: sessionError } = await supabase.rpc("is_passkey_login_verified", {
+        _session_hash: sessionHash,
+      });
+      if (!sessionError && sessionVerified === true) return true;
+
+      if (!isDeviceCryptoSupported()) return false;
+
       const fingerprint = await getDeviceFingerprint();
       const { data: active, error: activeErr } = await supabase.rpc("is_trusted_device_active", {
         _fingerprint: fingerprint,

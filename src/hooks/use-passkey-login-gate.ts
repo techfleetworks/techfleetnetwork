@@ -62,10 +62,27 @@ export function usePasskeyLoginGate() {
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
-    if (!user) { setVerified(null); return; }
-    if (!isAdmin) { setVerified(true); return; } // non-admins are not gated
+    if (!user) {
+      checkRunRef.current += 1;
+      verificationStateRef.current = null;
+      setLastCheckedUserId(null);
+      setVerified(null);
+      return;
+    }
+    if (!isAdmin) {
+      checkRunRef.current += 1;
+      verificationStateRef.current = true;
+      setLastCheckedUserId(user.id);
+      setVerified(true);
+      return;
+    } // non-admins are not gated
     if (passkeyEnrolled === null) return;        // wait for passkey check
-    if (passkeyEnrolled === false) { setVerified(true); return; } // no passkey → gate is no-op
+    if (passkeyEnrolled === false) {
+      verificationStateRef.current = true;
+      setLastCheckedUserId(user.id);
+      setVerified(true);
+      return;
+    } // no passkey → gate is no-op
     if (lastCheckedUserId !== user.id) setVerified(null);
     if (verified === true && lastCheckedUserId === user.id) return;
     if (lastCheckedUserId === user.id && checking) return;
