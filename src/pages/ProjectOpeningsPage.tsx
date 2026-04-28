@@ -38,7 +38,8 @@ interface ClientInfo {
 
 interface ProjectAppStat {
   project_id: string;
-  team_hats_interest: string[];
+  total: number;
+  hatCounts: Record<string, number>;
 }
 
 interface OpeningStats {
@@ -92,15 +93,7 @@ export default function ProjectOpeningsPage() {
   const statsMap = useMemo(() => {
     const map = new Map<string, { total: number; hatCounts: Record<string, number> }>();
     for (const stat of appStats) {
-      let entry = map.get(stat.project_id);
-      if (!entry) {
-        entry = { total: 0, hatCounts: {} };
-        map.set(stat.project_id, entry);
-      }
-      entry.total++;
-      for (const hat of stat.team_hats_interest) {
-        entry.hatCounts[hat] = (entry.hatCounts[hat] ?? 0) + 1;
-      }
+      map.set(stat.project_id, { total: stat.total, hatCounts: stat.hatCounts ?? {} });
     }
     return map;
   }, [appStats]);
