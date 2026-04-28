@@ -245,6 +245,7 @@ serve(async (req) => {
             candidates: [{
               id: directDiscordId,
               username: member.user?.username ?? cleanUsername,
+              display_name: discordDisplayName(member),
               global_name: member.user?.global_name || null,
               nick: member.nick || null,
               avatar: avatarUrl,
@@ -386,6 +387,7 @@ serve(async (req) => {
     const candidates = orderedMembers.slice(0, 10).map((m: any) => ({
       id: m.user?.id,
       username: m.user?.username,
+      display_name: discordDisplayName(m),
       global_name: m.user?.global_name || null,
       nick: m.nick || null,
       avatar: m.user?.avatar
