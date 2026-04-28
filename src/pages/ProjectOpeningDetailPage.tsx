@@ -196,11 +196,15 @@ export default function ProjectOpeningDetailPage() {
     }
   };
 
+  const applicationPath = `/project-openings/${projectId}/apply`;
+
   const handleApply = () => {
     if (user) {
-      navigate(`/project-openings/${projectId}/apply`);
+      navigate(applicationPath);
     } else {
-      navigate("/login", { state: { from: { pathname: `/project-openings/${projectId}/apply` } } });
+      sessionStorage.setItem("auth_redirect", applicationPath);
+      toast.info("Sign in to continue your application. We’ll bring you back here afterward.");
+      navigate(`/login?redirect=${encodeURIComponent(applicationPath)}`, { state: { from: { pathname: applicationPath } } });
     }
   };
 
@@ -609,7 +613,9 @@ export default function ProjectOpeningDetailPage() {
             ? "This project is not currently accepting applications. Share it with others who might be interested."
             : hasApplied
               ? "You've already submitted an application for this project. You can review or edit your responses."
-              : "Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already."
+              : user
+                ? "Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already."
+                : "Sign in or create an account to apply. We’ll bring you back to this application afterward."
           }
         </p>
         <div className="flex items-center justify-center gap-3">

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,6 @@ import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
   Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
-import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +38,22 @@ interface ClientInfo {
 
 interface ProjectAppStat {
   project_id: string;
-  team_hats_interest: string[];
+  total: number;
+  hatCounts: Record<string, number>;
+}
+
+interface OpeningStats {
+  projects_open_applications: number;
+  projects_coming_soon: number;
+  projects_live: number;
+  projects_previously_completed: number;
+}
+
+interface PublicOpeningsResponse {
+  projects: OpenProject[];
+  clients: ClientInfo[];
+  applicationStats: ProjectAppStat[];
+  stats: OpeningStats;
 }
 
 interface EnrichedProject extends OpenProject {
@@ -50,74 +64,36 @@ interface EnrichedProject extends OpenProject {
   userApplied: boolean;
 }
 
-const VISIBLE_STATUSES: Array<"coming_soon" | "apply_now" | "recruiting" | "team_onboarding" | "project_in_progress"> = ["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress"];
-
 export default function ProjectOpeningsPage() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [view, setView] = useState<"card" | "table">("card");
-  const [stats, setStats] = useState<NetworkStats | null>(null);
 
-  useEffect(() => {
-    StatsService.getNetworkStats().then(setStats).catch(() => {});
-  }, []);
-
-  const { data: projects = [], isLoading: projLoading } = useQuery({
-    queryKey: ["project-openings-all"],
+  const { data: publicData, isLoading: projLoading } = useQuery({
+    queryKey: ["public-project-openings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, friendly_name, description")
-        .in("project_status", [...VISIBLE_STATUSES])
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as OpenProject[];
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/public-project-openings`, {
+        headers: { apikey: anonKey, "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to load project openings.");
+      return response.json() as Promise<PublicOpeningsResponse>;
     },
   });
 
-  const clientIds = useMemo(() => [...new Set(projects.map((p) => p.client_id))], [projects]);
-  const { data: clients = [] } = useQuery({
-    queryKey: ["project-opening-clients", clientIds],
-    queryFn: async () => {
-      if (clientIds.length === 0) return [];
-      const { data, error } = await supabase.from("clients").select("id, name, logo_url").in("id", clientIds);
-      if (error) throw error;
-      return (data ?? []) as ClientInfo[];
-    },
-    enabled: clientIds.length > 0,
-  });
+  const projects = publicData?.projects ?? [];
+  const clients = publicData?.clients ?? [];
+  const appStats = publicData?.applicationStats ?? [];
+  const stats = publicData?.stats ?? null;
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-
-  const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
-  const { data: appStats = [] } = useQuery({
-    queryKey: ["project-opening-app-stats", projectIds],
-    queryFn: async () => {
-      if (projectIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("project_applications")
-        .select("project_id, team_hats_interest")
-        .in("project_id", projectIds)
-        .eq("status", "completed");
-      if (error) throw error;
-      return (data ?? []) as ProjectAppStat[];
-    },
-    enabled: projectIds.length > 0,
-  });
 
   const statsMap = useMemo(() => {
     const map = new Map<string, { total: number; hatCounts: Record<string, number> }>();
     for (const stat of appStats) {
-      let entry = map.get(stat.project_id);
-      if (!entry) {
-        entry = { total: 0, hatCounts: {} };
-        map.set(stat.project_id, entry);
-      }
-      entry.total++;
-      for (const hat of stat.team_hats_interest) {
-        entry.hatCounts[hat] = (entry.hatCounts[hat] ?? 0) + 1;
-      }
+      map.set(stat.project_id, { total: stat.total, hatCounts: stat.hatCounts ?? {} });
     }
     return map;
   }, [appStats]);

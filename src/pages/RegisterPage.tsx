@@ -118,9 +118,6 @@ export default function RegisterPage() {
         password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
       });
       scrollToFirstError();
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
 
@@ -130,9 +127,6 @@ export default function RegisterPage() {
       setErrors(fieldErrors);
       showFormErrors(fieldErrors, { email: "Email" });
       scrollToFirstError();
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
 
@@ -275,7 +269,7 @@ export default function RegisterPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
-          <GoogleSignInButton label="Sign up with Google" />
+          <GoogleSignInButton label="Sign up with Google" redirectTo={redirectParam || "/dashboard"} />
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
