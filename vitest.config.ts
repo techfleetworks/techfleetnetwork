@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["e2e/**", "node_modules/**", "dist/**"],
     // Inline @testing-library/jest-dom so Vitest's resolver rewrites its
     // extension-less lodash imports (avoids "Cannot find module .../isEqualWith"
     // under Node ESM strict resolution).
