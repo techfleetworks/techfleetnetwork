@@ -12,7 +12,6 @@ import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
-import { PasskeyLoginGate } from "@/components/PasskeyLoginGate";
 import { SelfHealingRunner } from "@/components/SelfHealingRunner";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { RouteChangeReloader } from "@/components/RouteChangeReloader";
@@ -69,7 +68,6 @@ const ObserverCoursePage = lazy(() => import("./pages/ObserverCoursePage"));
 const ConnectDiscordPage = lazy(() => import("./pages/ConnectDiscordPage"));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
-const AdminRecoveryPage = lazy(() => import("./pages/AdminRecoveryPage"));
 const AccessDeniedPage = lazy(() => import("./pages/AccessDeniedPage"));
 
 function RouteFallback() {
@@ -121,7 +119,6 @@ const App = () => (
               <AnalyticsTracker />
               <AppLayout>
                 <IdleTimeoutGuard />
-                <PasskeyLoginGate />
                 <SelfHealingRunner />
                 <PWAInstallPrompt />
                 <OfflineBanner />
@@ -174,7 +171,6 @@ const App = () => (
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                     <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                    <Route path="/admin-recovery" element={<ProtectedRoute><AdminRecoveryPage /></ProtectedRoute>} />
                     <Route path="/access-denied" element={<ProtectedRoute><AccessDeniedPage /></ProtectedRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
