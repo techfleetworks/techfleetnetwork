@@ -168,15 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 DiscordNotifyService.userSignedUp(name);
               }
 
-              const storedRedirect = sessionStorage.getItem("auth_redirect");
-              if (storedRedirect) {
-                sessionStorage.removeItem("auth_redirect");
-                // WSTG-CLNT-04: Validate redirect target to prevent open redirect
-                if (isSafeRedirectUrl(storedRedirect)) {
-                  setTimeout(() => {
-                    window.location.replace(storedRedirect);
-                  }, 100);
-                }
+            }
+            const storedRedirect = sessionStorage.getItem("auth_redirect");
+            if (storedRedirect) {
+              sessionStorage.removeItem("auth_redirect");
+              // WSTG-CLNT-04: Validate redirect target to prevent open redirect.
+              if (isSafeRedirectUrl(storedRedirect)) {
+                setTimeout(() => {
+                  window.location.replace(storedRedirect);
+                }, 100);
               }
             }
           }
