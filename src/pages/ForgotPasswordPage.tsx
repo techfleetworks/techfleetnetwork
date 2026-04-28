@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
       if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
       return;
     }
-    if (!(await verifyTurnstileToken(captchaToken, "forgot_password"))) {
+    if (!captchaToken.trim()) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "forgot_password", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaToken("");
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`);
+      await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`, captchaToken);
       clearAuthLockout();
       setSubmitted(true);
     } catch (err) {
