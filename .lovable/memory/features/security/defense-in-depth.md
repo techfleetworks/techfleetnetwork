@@ -8,11 +8,11 @@ type: feature
 
 ## Tier 1 (live)
 
-- **PII encryption at rest**: `failed_login_attempts.ip_address`/`user_agent`, `passkey_login_sessions.ip_address`, `passkey_recovery_tokens.ip_address`, `audit_log.ip_address`, `security_events.ip_address` are AES-256 encrypted via `pgp_sym_encrypt` with key in `vault.secrets` (`pii_encryption_key`). Auto-encrypted by `tg_encrypt_pii_columns` triggers. Read via SECURITY-INVOKER views `audit_log_decrypted` / `failed_login_attempts_decrypted` (admin-only via underlying RLS).
+- **PII encryption at rest**: `failed_login_attempts.ip_address`/`user_agent`, `audit_log.ip_address`, `security_events.ip_address` are AES-256 encrypted via `pgp_sym_encrypt` with key in `vault.secrets` (`pii_encryption_key`). Auto-encrypted by `tg_encrypt_pii_columns` triggers. Read via SECURITY-INVOKER views `audit_log_decrypted` / `failed_login_attempts_decrypted` (admin-only via underlying RLS). Passkey tables are retired.
 - **Email/discord_user_id NOT encrypted** — heavily queried by universal search / AG Grid / admin tools; encrypting would regress UX (per `mem://constraints/no-ux-regression`).
 - **Log redaction**: `redact_sensitive_text()` strips emails, JWTs, bearer tokens, sb_*/sk_*/pk_* keys, hex tokens, CC numbers, IPv4 from `audit_log.error_message`, `notification_outbox.last_error`, `notification_dlq.last_error` via BEFORE INSERT/UPDATE triggers.
 - **Append-only hash chain**: `audit_log` and `admin_promotions` carry `prev_hash`/`row_hash` (sha256 of `prev || row_json minus hash cols`). Backfilled for all rows. UPDATE/DELETE on `audit_log` blocked by `tg_block_mutation`. `verify_audit_chain('audit_log')` returns first broken row, NULL if intact.
-- **Centralized admin client**: `supabase/functions/_shared/admin-client.ts` exports `getAdminClient()` / `getUserClient()` / `extractBearerToken()`. Memoizes per isolate, warns when `SUPABASE_SERVICE_ROLE_ROTATED_AT` is >90 days old. Migrated: `passkey-auth-verify`, `public-project-detail`, `techfleet-chat`. Other functions still use direct `Deno.env.get` and migrate opportunistically.
+- **Centralized admin client**: `supabase/functions/_shared/admin-client.ts` exports `getAdminClient()` / `getUserClient()` / `extractBearerToken()`. Memoizes per isolate, warns when `SUPABASE_SERVICE_ROLE_ROTATED_AT` is >90 days old. Migrated: `public-project-detail`, `techfleet-chat`. Other functions still use direct `Deno.env.get` and migrate opportunistically.
 
 ## Tier 2 (live)
 
