@@ -156,10 +156,10 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
 
             <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-              <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={stats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
-              <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={stats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
-              <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.projects_live} label="Live" colorClass="bg-primary/10" />
-              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />} value={stats.projects_previously_completed} label="Previously Completed" colorClass="bg-muted" />
+              <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
+              <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
+              <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.projects_live} label="Live" colorClass="bg-primary/10" />
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />} value={safeStats.projects_previously_completed} label="Previously Completed" colorClass="bg-muted" />
             </div>
 
             <div className="border-t pt-8">
@@ -167,18 +167,18 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
                 <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-foreground">Past 7 Days</h3>
               </div>
-              {stats.prev_week_start && stats.prev_week_end && (
+              {safeStats.prev_week_start && safeStats.prev_week_end && (
                 <p className="text-sm text-muted-foreground mb-4">
-                  {formatDateRange(stats.prev_week_start, stats.prev_week_end)}
+                  {formatDateRange(safeStats.prev_week_start, safeStats.prev_week_end)}
                 </p>
               )}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.prev_week_signups} label="New Sign-ups" colorClass="bg-primary/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={stats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={stats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
-                <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={stats.prev_week_advanced_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
-                <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={stats.prev_week_applications} label="General Applications Completed" colorClass="bg-success/10" />
-                <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={stats.prev_week_badges} label="Badges Earned" colorClass="bg-primary/10" />
+                <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.prev_week_signups} label="New Sign-ups" colorClass="bg-primary/10" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
+                <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.prev_week_advanced_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
+                <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.prev_week_applications} label="General Applications Completed" colorClass="bg-success/10" />
+                <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.prev_week_badges} label="Badges Earned" colorClass="bg-primary/10" />
               </div>
             </div>
           </>
