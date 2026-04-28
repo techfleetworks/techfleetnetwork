@@ -3,7 +3,7 @@ import { z } from "npm:zod@4.3.6";
 
 const BodySchema = z.object({
   token: z.string().trim().min(20).max(4096),
-  action: z.enum(["login", "register", "forgot_password"]),
+  action: z.enum(["login", "register", "forgot_password", "signup_confirmation_resend"]),
 });
 
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
