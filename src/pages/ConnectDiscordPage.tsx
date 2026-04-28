@@ -85,6 +85,7 @@ export default function ConnectDiscordPage() {
   const [candidates, setCandidates] = useState<Array<{
     id: string;
     username: string;
+    display_name?: string | null;
     global_name: string | null;
     nick: string | null;
     avatar: string | null;
@@ -118,6 +119,17 @@ export default function ConnectDiscordPage() {
     profile?.first_name ||
     user?.user_metadata?.full_name ||
     "A member";
+
+  const formatDiscordAccountLabel = (account: {
+    username?: string | null;
+    display_name?: string | null;
+    global_name?: string | null;
+    nick?: string | null;
+  }) => {
+    const accountName = account.display_name || account.nick || account.global_name || account.username || "Discord member";
+    const accountUsername = account.username ? `@${account.username}` : "@unknown";
+    return `${accountName} - ${accountUsername}`;
+  };
 
   const generateInvite = async () => {
     setGenerating(true);
@@ -308,7 +320,9 @@ export default function ConnectDiscordPage() {
   const handleCandidateSelect = async (candidate: {
     id: string;
     username: string;
+    display_name?: string | null;
     global_name: string | null;
+    nick?: string | null;
     avatar?: string | null;
   }) => {
     setConfirmingId(candidate.id);
@@ -318,11 +332,20 @@ export default function ConnectDiscordPage() {
       if (!confirmed?.discord_user_id) {
         throw new Error(DISCORD_MEMBER_NOT_VISIBLE_MESSAGE);
       }
+      const selectedUsername = confirmed.discord_username || candidate.username;
+      const selectedLabel = formatDiscordAccountLabel({
+        username: selectedUsername,
+        display_name: confirmed.discord_display_name || candidate.display_name,
+        global_name: confirmed.global_name || candidate.global_name,
+        nick: confirmed.nick || candidate.nick,
+      });
+      setUsername(selectedUsername);
       await finalizeLinking(
         confirmed.discord_user_id,
-        confirmed.discord_username || candidate.username,
+        selectedUsername,
         candidate.avatar
       );
+      toast.success(`Selected ${selectedLabel}`, { duration: 30000, position: "top-center" });
     } catch (err: any) {
       const message = err.message || "Verification failed. Please try again.";
       if (message === DISCORD_MEMBER_NOT_VISIBLE_MESSAGE) {
