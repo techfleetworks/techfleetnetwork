@@ -271,9 +271,14 @@ export default function ConnectDiscordPage() {
     setVerified(true);
     setCandidates([]);
     if (communityRoleAssigned) {
-      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified, linked, and added to Community!` : "Discord account verified, linked, and added to Community!");
+      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified, linked, and added to Community!` : "Discord account verified, linked, and added to Community!", {
+        duration: 30000,
+        position: "top-center",
+      });
     } else {
       toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified and linked!` : "Discord account verified and linked!", {
+        duration: 30000,
+        position: "top-center",
         description:
           "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
       });
@@ -806,10 +811,9 @@ export default function ConnectDiscordPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
-                            {c.global_name || c.username}
+                            {formatDiscordAccountLabel(c)}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            @{c.username}
                             {c.nick && c.nick !== c.global_name ? ` · ${c.nick}` : ""}
                           </p>
                         </div>
