@@ -320,7 +320,8 @@ export default function ConnectDiscordPage() {
         setVerifyError("");
       } else {
         setVerifyError(
-          "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct."
+          result.message ||
+            "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct."
         );
       }
     } catch (err: any) {
