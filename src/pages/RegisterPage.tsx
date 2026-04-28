@@ -130,7 +130,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!(await verifyTurnstileToken(captchaToken, "register"))) {
+    if (!captchaToken.trim()) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "register", failedAttempts: captchaState.failedAttempts + 1 });
       setCaptchaState(refreshLoginCaptcha());
       setCaptchaToken("");
@@ -163,7 +163,8 @@ export default function RegisterPage() {
         result.data.password,
         result.data.firstName,
         result.data.lastName,
-        window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
+        window.location.origin + (redirectParam ? redirectParam : "/profile-setup"),
+        captchaToken
       );
       clearAuthLockout();
       setSubmitted(true);
@@ -192,7 +193,7 @@ export default function RegisterPage() {
     setResendMessage("");
 
     try {
-      if (!(await verifyTurnstileToken(resendCaptchaToken, "signup_confirmation_resend"))) {
+      if (!resendCaptchaToken.trim()) {
         logCaptchaTelemetry("auth_captcha_failed", { surface: "signup_confirmation_resend", failedAttempts: captchaState.failedAttempts + 1 });
         setResendCaptchaToken("");
         setResendCaptchaFailureCount((count) => count + 1);
@@ -211,7 +212,8 @@ export default function RegisterPage() {
 
       await AuthService.resendSignupConfirmation(
         email,
-        window.location.origin + (redirectParam ? redirectParam : "/profile-setup")
+        window.location.origin + (redirectParam ? redirectParam : "/profile-setup"),
+        resendCaptchaToken
       );
       setResendStatus("success");
       setResendMessage("If this email is still waiting for verification, a fresh link has been sent. Check your inbox and spam folder.");
