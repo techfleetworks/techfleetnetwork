@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import RegisterPage from "@/pages/RegisterPage";
 import { AuthService } from "@/services/auth.service";
+import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 vi.mock("@/services/auth.service", () => ({
   AuthService: { signUp: vi.fn(), resendSignupConfirmation: vi.fn() },
@@ -12,6 +13,12 @@ vi.mock("@/services/rate-limit.service", () => ({
 }));
 vi.mock("@/integrations/lovable/index", () => ({
   lovable: { auth: { signInWithOAuth: vi.fn().mockResolvedValue({}) } },
+}));
+vi.mock("@/components/auth/TurnstileChallenge", () => ({
+  TurnstileChallenge: ({ action }: { action: string }) => <div data-testid={`turnstile-${action}`} />,
+}));
+vi.mock("@/lib/turnstile-verification", () => ({
+  verifyTurnstileToken: vi.fn().mockResolvedValue(true),
 }));
 
 describe("RegisterPage UI (BDD 18.1–18.4)", () => {
@@ -72,6 +79,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /resend verification email/i }));
 
+    await waitFor(() => expect(verifyTurnstileToken).toHaveBeenCalledWith("", "signup_confirmation_resend"));
     await waitFor(() => expect(AuthService.resendSignupConfirmation).toHaveBeenCalledWith(
       "jane@example.com",
       expect.stringContaining("/profile-setup")
