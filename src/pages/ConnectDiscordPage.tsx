@@ -312,12 +312,12 @@ export default function ConnectDiscordPage() {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
       console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
-      if (result.discord_user_id) {
-        await finalizeLinking(result.discord_user_id, result.discord_username || normalized, result.avatar_url);
-      } else if (result.candidates && result.candidates.length > 0) {
+      if (result.candidates && result.candidates.length > 0) {
         // Always require explicit member selection before linking — even exact matches.
         setCandidates(result.candidates);
         setVerifyError("");
+      } else if (result.discord_user_id) {
+        setVerifyError("Please select your Discord account from the search results before linking.");
       } else {
         setVerifyError(
           result.message ||
