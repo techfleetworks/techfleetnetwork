@@ -1,10 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
-import { PasskeyLoginService } from "@/services/passkey-login.service";
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 
@@ -15,16 +13,12 @@ const MEMBER_TOTP_PROMPT_ENABLED = import.meta.env.VITE_MEMBER_TOTP_PROMPT_ENABL
  * Global TOTP MFA gate. Runs on every authenticated session and forces a TOTP
  * challenge whenever the user is at AAL1 but has a verified TOTP factor.
  *
- * Policy: Admins who already have a passkey enrolled are NOT challenged for TOTP
- * here — the PasskeyLoginGate is their primary admin factor, and stacking both
- * prompts on the same sign-in is redundant. They can still manage TOTP voluntarily
- * from /profile/edit. Non-admins (and admins without a passkey) are still
- * TOTP-gated as before.
+ * Policy: anyone with a verified TOTP factor must complete the authenticator
+ * challenge after credential login before using the app.
  */
 export function MfaEnforcementGuard() {
   const { user, session, loading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const passkeyEnrolled = usePasskeyEnrolled();
   const [challengeOpen, setChallengeOpen] = useState(false);
   const lastCheckedToken = useRef<string | null>(null);
 
@@ -44,18 +38,6 @@ export function MfaEnforcementGuard() {
       return;
     }
 
-    // Admins with a passkey use the PasskeyLoginGate as their primary factor —
-    // skip the TOTP prompt to avoid the double-prompt UX.
-    if (isAdmin && passkeyEnrolled === true) {
-      lastCheckedToken.current = session.access_token;
-      setChallengeOpen(false);
-      return;
-    }
-
-    // Wait for the passkey enrollment check to resolve (null = unknown) before
-    // deciding whether to gate, so we don't briefly flash the TOTP dialog.
-    if (isAdmin && passkeyEnrolled === null) return;
-
     // Avoid re-checking the same access token repeatedly (e.g., after re-renders).
     if (lastCheckedToken.current === session.access_token) return;
     lastCheckedToken.current = session.access_token;
@@ -65,14 +47,6 @@ export function MfaEnforcementGuard() {
       try {
         const { needsChallenge } = await MfaService.getAssuranceLevel();
         if (!needsChallenge || cancelled) return;
-        // If THIS device already passed a strong second factor for the
-        // current short-lived session, skip the duplicate TOTP prompt.
-        const deviceTrusted = await PasskeyLoginService.isCurrentSessionVerified();
-        if (cancelled) return;
-        if (deviceTrusted) {
-          log.info("check", `Device already trusted — skipping TOTP prompt for ${user.id}`);
-          return;
-        }
         log.info("check", `User ${user.id} is at AAL1 with enrolled TOTP — prompting challenge`);
         setChallengeOpen(true);
       } catch (e) {
@@ -81,7 +55,7 @@ export function MfaEnforcementGuard() {
     })();
 
     return () => { cancelled = true; };
-  }, [user, session, loading, adminLoading, isAdmin, passkeyEnrolled]);
+  }, [user, session, loading, adminLoading, isAdmin]);
 
   return (
     <MfaChallengeDialog
