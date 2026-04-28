@@ -324,7 +324,7 @@ serve(async (req) => {
         ? `https://cdn.discordapp.com/avatars/${matchedUser.id}/${avatarHash}.png?size=256`
         : null;
       return new Response(
-        JSON.stringify({ discord_user_id: matchedUser.id, avatar_url: avatarUrl }),
+        JSON.stringify({ discord_user_id: matchedUser.id, discord_username: matchedUser.username ?? cleanUsername, avatar_url: avatarUrl }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
