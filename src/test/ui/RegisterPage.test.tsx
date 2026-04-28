@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import RegisterPage from "@/pages/RegisterPage";
 import { AuthService } from "@/services/auth.service";
+import { verifyTurnstileToken } from "@/lib/turnstile-verification";
 
 vi.mock("@/services/auth.service", () => ({
   AuthService: { signUp: vi.fn(), resendSignupConfirmation: vi.fn() },
@@ -13,9 +14,20 @@ vi.mock("@/services/rate-limit.service", () => ({
 vi.mock("@/integrations/lovable/index", () => ({
   lovable: { auth: { signInWithOAuth: vi.fn().mockResolvedValue({}) } },
 }));
+vi.mock("@/components/auth/TurnstileChallenge", () => ({
+  TurnstileChallenge: ({ action }: { action: string }) => <div data-testid={`turnstile-${action}`} />,
+}));
+vi.mock("@/lib/turnstile-verification", () => ({
+  verifyTurnstileToken: vi.fn().mockResolvedValue(true),
+}));
+vi.mock("@/lib/email-domain-validation", () => ({
+  validateEmailDomainExists: vi.fn().mockResolvedValue({ valid: true }),
+}));
 
 describe("RegisterPage UI (BDD 18.1–18.4)", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(verifyTurnstileToken).mockResolvedValue(true);
     renderWithRouter(<RegisterPage />);
   });
 
@@ -39,7 +51,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     const passwordInput = screen.getByLabelText(/password/i, { selector: "input#reg-password" });
     fireEvent.change(passwordInput, { target: { value: "a" } });
 
-    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+    expect(screen.getByText(/at least 12 characters/i)).toBeInTheDocument();
     expect(screen.getByText(/one uppercase letter/i)).toBeInTheDocument();
     expect(screen.getByText(/one lowercase letter/i)).toBeInTheDocument();
     expect(screen.getByText(/one number/i)).toBeInTheDocument();
@@ -62,8 +74,8 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Jane" } });
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Doe" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "jane@example.com" } });
-    fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass" } });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass" } });
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass12" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass12" } });
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
@@ -72,6 +84,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /resend verification email/i }));
 
+    await waitFor(() => expect(verifyTurnstileToken).toHaveBeenCalledWith("", "signup_confirmation_resend"));
     await waitFor(() => expect(AuthService.resendSignupConfirmation).toHaveBeenCalledWith(
       "jane@example.com",
       expect.stringContaining("/profile-setup")
