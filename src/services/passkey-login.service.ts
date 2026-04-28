@@ -85,10 +85,6 @@ export const PasskeyLoginService = {
     if (optsErr || !optsResp) {
       throw new Error(optsErr?.message || "Failed to start passkey verification");
     }
-    if (!isDeviceCryptoSupported()) {
-      throw new Error("This browser cannot securely remember admin verification");
-    }
-
     let assertion;
     try {
       assertion = await startAuthentication(optsResp);
@@ -98,16 +94,24 @@ export const PasskeyLoginService = {
       throw new Error("Passkey verification was cancelled");
     }
 
-    const [publicKey, fingerprint, signature] = await Promise.all([
-      getDevicePublicKeySpkiBase64(),
-      getDeviceFingerprint(),
-      signDeviceNonce(optsResp.challenge),
-    ]);
+    let deviceBinding: { public_key: string; fingerprint: string; signature: string } | undefined;
+    if (isDeviceCryptoSupported()) {
+      try {
+        const [publicKey, fingerprint, signature] = await Promise.all([
+          getDevicePublicKeySpkiBase64(),
+          getDeviceFingerprint(),
+          signDeviceNonce(optsResp.challenge),
+        ]);
+        deviceBinding = { public_key: publicKey, fingerprint, signature };
+      } catch (e) {
+        log.warn("verify", `Device binding skipped after passkey success: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
 
     const { data, error } = await supabase.functions.invoke("passkey-auth-verify", {
       body: {
         response: assertion,
-        device_binding: { public_key: publicKey, fingerprint, signature },
+        ...(deviceBinding ? { device_binding: deviceBinding } : {}),
       },
     });
     if (error || !data?.verified) {

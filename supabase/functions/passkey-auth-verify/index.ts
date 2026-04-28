@@ -74,13 +74,13 @@ Deno.serve(async (req) => {
     if (!response?.id) {
       return new Response(JSON.stringify({ error: "Missing assertion" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (
-      !device_binding ||
+    const hasDeviceBinding = !!device_binding;
+    if (hasDeviceBinding && (
       typeof device_binding.public_key !== "string" || device_binding.public_key.length < 80 || device_binding.public_key.length > 4096 ||
       typeof device_binding.fingerprint !== "string" || !/^[a-f0-9]{64}$/i.test(device_binding.fingerprint) ||
       typeof device_binding.signature !== "string" || device_binding.signature.length < 32 || device_binding.signature.length > 1024
-    ) {
-      return new Response(JSON.stringify({ error: "Missing device binding" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    )) {
+      return new Response(JSON.stringify({ error: "Invalid device binding" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const admin = getAdminClient();
@@ -125,13 +125,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Verification failed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const expectedFingerprint = await fingerprintOf(device_binding.public_key);
-    if (expectedFingerprint.toLowerCase() !== device_binding.fingerprint.toLowerCase()) {
-      return new Response(JSON.stringify({ error: "Device binding mismatch" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const deviceSignatureOk = await verifyDeviceSignature(device_binding.public_key, device_binding.signature, chal.challenge);
-    if (!deviceSignatureOk) {
-      return new Response(JSON.stringify({ error: "Device binding failed" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let trustedDeviceRow: Record<string, string> | null = null;
+    if (hasDeviceBinding) {
+      const expectedFingerprint = await fingerprintOf(device_binding.public_key);
+      const deviceSignatureOk =
+        expectedFingerprint.toLowerCase() === device_binding.fingerprint.toLowerCase() &&
+        await verifyDeviceSignature(device_binding.public_key, device_binding.signature, chal.challenge);
+      if (deviceSignatureOk) {
+        trustedDeviceRow = {
+          fingerprint: device_binding.fingerprint.toLowerCase(),
+          public_key: device_binding.public_key,
+        };
+      } else {
+        console.warn("passkey-auth-verify: device binding skipped after valid passkey assertion");
+      }
     }
 
     // Update counter & last-used; clear challenge
@@ -147,16 +154,17 @@ Deno.serve(async (req) => {
     const sessionDigest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(accessToken));
     const sessionTokenHash = Array.from(new Uint8Array(sessionDigest)).map((b) => b.toString(16).padStart(2, "0")).join("");
     const verifiedAt = new Date().toISOString();
-    await admin.from("trusted_devices").upsert({
-      user_id: user.id,
-      fingerprint: device_binding.fingerprint.toLowerCase(),
-      public_key: device_binding.public_key,
-      bound_at: verifiedAt,
-      last_proof_at: verifiedAt,
-      expires_at: new Date(Date.now() + TRUST_DURATION_MS).toISOString(),
-      ip_address: ip,
-      user_agent: ua,
-    }, { onConflict: "user_id,fingerprint" });
+    if (trustedDeviceRow) {
+      await admin.from("trusted_devices").upsert({
+        user_id: user.id,
+        ...trustedDeviceRow,
+        bound_at: verifiedAt,
+        last_proof_at: verifiedAt,
+        expires_at: new Date(Date.now() + TRUST_DURATION_MS).toISOString(),
+        ip_address: ip,
+        user_agent: ua,
+      }, { onConflict: "user_id,fingerprint" });
+    }
 
     await admin.from("passkey_login_sessions").upsert({
       user_id: user.id,
