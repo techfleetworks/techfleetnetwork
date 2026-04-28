@@ -1,5 +1,5 @@
 /**
- * Server-side helper: is this user "elevated" (must pass passkey MFA gate)?
+ * Server-side helper: is this user "elevated" (must pass authenticator 2FA gate)?
  *
  * Today: admin only.
  * Tomorrow: extend by editing the SQL function `public.is_elevated(uuid)` —
