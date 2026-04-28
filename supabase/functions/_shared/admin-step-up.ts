@@ -38,7 +38,7 @@ export async function requireFreshAdmin2fa(
     .eq("session_token_hash", sessionHash)
     .maybeSingle();
 
-  if (error) return { ok: false, status: 500, error: "Unable to verify admin passkey status" };
+  if (error) return { ok: false, status: 500, error: "Unable to verify admin 2FA status" };
   if (!data) return { ok: false, status: 403, error: "Fresh 2FA verification required" };
 
   const verifiedAt = new Date(data.verified_at).getTime();
