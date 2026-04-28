@@ -3,11 +3,12 @@ import { renderWithRouter } from "./test-utils";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const staleVisibilityMessage =
-  "That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.";
-
-const mockResolveDiscordId = vi.fn();
-const mockConfirmDiscordId = vi.fn();
+const { staleVisibilityMessage, mockResolveDiscordId, mockConfirmDiscordId } = vi.hoisted(() => ({
+  staleVisibilityMessage:
+    "That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.",
+  mockResolveDiscordId: vi.fn(),
+  mockConfirmDiscordId: vi.fn(),
+}));
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
