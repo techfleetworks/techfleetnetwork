@@ -185,6 +185,7 @@ export const DiscordNotifyService = {
 
   async resolveDiscordId(discordUsername: string): Promise<{
     discord_user_id: string | null;
+    discord_username?: string | null;
     avatar_url?: string | null;
     candidates?: Array<{
       id: string;
@@ -225,6 +226,7 @@ export const DiscordNotifyService = {
         }
         return {
           discord_user_id: result,
+          discord_username: data?.discord_username || null,
           avatar_url: data?.avatar_url || null,
           candidates,
           message: data?.message || undefined,
