@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { handleServiceError } from "@/lib/service-result";
 
 const log = createLogger("StatsService");
 
@@ -28,13 +29,12 @@ export const StatsService = {
   async getNetworkStats(): Promise<NetworkStats> {
     return log.track("getNetworkStats", "Fetching network stats from database", undefined, async () => {
       const { data, error } = await supabase.rpc("get_network_stats");
-      if (error) {
-        log.error("getNetworkStats", `Failed to load network stats: ${error.message}`, {
-          errorCode: error.code,
-          errorDetails: error.details,
-        }, error);
-        throw new Error("Failed to load network stats.");
-      }
+      handleServiceError(error, {
+        logger: log,
+        action: "getNetworkStats",
+        message: `Failed to load network stats: ${error?.message ?? "Unknown error"}`,
+        throwMessage: "Failed to load network stats.",
+      });
       const stats = data as unknown as NetworkStats;
       log.info("getNetworkStats", `Network stats loaded: ${stats.total_signups} total signups`, {
         totalSignups: stats.total_signups,
