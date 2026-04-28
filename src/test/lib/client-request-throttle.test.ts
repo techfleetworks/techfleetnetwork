@@ -33,6 +33,10 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
     expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/device-prove"))).toBe(false);
   });
 
+  it("does not throttle the public aggregate Network Activity stats endpoint", () => {
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/get_network_stats"))).toBe(false);
+  });
+
   it("deduplicates privacy-safe Cloud log events for throttle hits", async () => {
     const originalFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true })));
     const url = new URL("https://backend.example/auth/v1/token?grant_type=password&email=private@example.com");
