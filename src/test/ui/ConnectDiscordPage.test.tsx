@@ -70,15 +70,15 @@ describe("ConnectDiscordPage Discord member picker", () => {
     await user.click(screen.getByRole("button", { name: /yes, i'm in discord/i }));
     await user.type(screen.getByLabelText(/discord username or display name/i), "member");
     await user.click(screen.getByRole("button", { name: /verify/i }));
-    await screen.findByText("Stale Member");
+    await screen.findByText("Stale Member - @stale.member");
 
     await user.click(screen.getByRole("button", { name: /select stale member/i }));
 
     await waitFor(() => {
-      expect(screen.queryByText("Stale Member")).not.toBeInTheDocument();
+      expect(screen.queryByText("Stale Member - @stale.member")).not.toBeInTheDocument();
     });
     expect(screen.getByText(/removed that stale result so you can search again now/i)).toBeInTheDocument();
-    expect(screen.getByText("Current Member")).toBeInTheDocument();
+    expect(screen.getByText("Current Member - @current.member")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search again/i })).toBeEnabled();
   });
 
