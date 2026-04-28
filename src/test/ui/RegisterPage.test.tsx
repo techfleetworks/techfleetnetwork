@@ -74,8 +74,8 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Jane" } });
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Doe" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "jane@example.com" } });
-    fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass" } });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass" } });
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass12" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass12" } });
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
