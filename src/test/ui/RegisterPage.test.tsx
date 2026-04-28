@@ -15,8 +15,7 @@ vi.mock("@/integrations/lovable/index", () => ({
 }));
 vi.mock("@/components/auth/TurnstileChallenge", () => ({
   TurnstileChallenge: ({ action, onTokenChange }: { action: string; onTokenChange: (token: string) => void }) => {
-    queueMicrotask(() => onTokenChange(`test-token-${action}`));
-    return <div data-testid={`turnstile-${action}`} />;
+    return <button type="button" data-testid={`turnstile-${action}`} onClick={() => onTokenChange(`test-token-${action}`)}>Complete verification</button>;
   },
 }));
 vi.mock("@/lib/email-domain-validation", () => ({
@@ -75,6 +74,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     fireEvent.change(screen.getByLabelText(/password/i, { selector: "input#reg-password" }), { target: { value: "Str0ng!Pass12" } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "Str0ng!Pass12" } });
     fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByTestId("turnstile-register"));
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => expect(AuthService.signUp).toHaveBeenCalledWith(
@@ -89,6 +89,7 @@ describe("RegisterPage UI (BDD 18.1–18.4)", () => {
     expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
     expect(screen.getByText(/existing verified accounts will not receive another signup email/i)).toBeInTheDocument();
 
+    fireEvent.click(screen.getByTestId("turnstile-signup_confirmation_resend"));
     fireEvent.click(screen.getByRole("button", { name: /resend verification email/i }));
 
     await waitFor(() => expect(AuthService.resendSignupConfirmation).toHaveBeenCalledWith(
