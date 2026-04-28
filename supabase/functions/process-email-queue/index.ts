@@ -98,6 +98,42 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
+function generateUnsubscribeToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function ensureUnsubscribeToken(supabase: ServiceClient, payload: QueuePayload): Promise<string | undefined> {
+  const existing = stringField(payload, 'unsubscribe_token')
+  if (existing) return existing
+
+  const email = stringField(payload, 'to').trim().toLowerCase()
+  if (!email) return undefined
+
+  const { data: rows } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token')
+    .eq('email', email)
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  const storedToken = Array.isArray(rows) && rows[0]?.token
+  if (typeof storedToken === 'string' && storedToken) return storedToken
+
+  const token = generateUnsubscribeToken()
+  const { error } = await supabase
+    .from('email_unsubscribe_tokens')
+    .upsert({ email, token }, { onConflict: 'email', ignoreDuplicates: true })
+
+  if (error) {
+    console.error('Failed to self-heal missing unsubscribe token', { email, error })
+    return undefined
+  }
+
+  return token
+}
+
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
   supabase: ServiceClient,
@@ -298,6 +334,7 @@ Deno.serve(async (req) => {
       }
 
       try {
+        const unsubscribeToken = await ensureUnsubscribeToken(supabase, payload)
         await sendLovableEmail(
           {
             run_id: authRunId(payload),
@@ -310,7 +347,7 @@ Deno.serve(async (req) => {
             purpose: emailApiPurpose(queue, payload),
             label: stringField(payload, 'label') || undefined,
             idempotency_key: stringField(payload, 'idempotency_key') || undefined,
-            unsubscribe_token: stringField(payload, 'unsubscribe_token') || undefined,
+            unsubscribe_token: unsubscribeToken,
             message_id: stringField(payload, 'message_id') || undefined,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
