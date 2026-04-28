@@ -32,7 +32,7 @@ export async function requireFreshAdmin2fa(
   }
 
   const { data, error } = await admin
-    .from("passkey_login_sessions")
+    .from("two_factor_login_sessions")
     .select("verified_at, expires_at")
     .eq("user_id", userId)
     .eq("session_token_hash", sessionHash)
@@ -51,5 +51,3 @@ export async function requireFreshAdmin2fa(
 
   return { ok: true };
 }
-
-export const requireFreshAdminPasskey = requireFreshAdmin2fa;
