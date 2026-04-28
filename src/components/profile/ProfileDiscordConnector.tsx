@@ -161,7 +161,11 @@ export function ProfileDiscordConnector() {
     setConfirmingId(candidate.id);
     setVerifyError("");
     try {
-      await finalizeLinking(candidate.id, candidate.username);
+      const confirmed = await DiscordNotifyService.confirmDiscordId(candidate.id);
+      if (!confirmed?.discord_user_id) {
+        throw new Error("That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.");
+      }
+      await finalizeLinking(confirmed.discord_user_id, confirmed.discord_username || candidate.username);
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {
