@@ -33,6 +33,8 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.public-project-detail]
     verify_jwt = false
+  [functions.public-project-openings]
+    verify_jwt = false
   [functions.push-config]
     verify_jwt = false
   [functions.register-fleety-command]
