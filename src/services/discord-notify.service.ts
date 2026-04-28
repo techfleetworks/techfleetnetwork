@@ -244,11 +244,9 @@ export const DiscordNotifyService = {
   async confirmDiscordId(discordUserId: string): Promise<{ discord_user_id: string; discord_username?: string | null } | null> {
     return log.track("confirmDiscordId", `Confirming Discord ID ${discordUserId}`, { discordUserId }, async () => {
       try {
-        const { data, error } = await discordBreaker.execute(
-          () => supabase.functions.invoke("resolve-discord-id", {
-            body: { confirm_user_id: discordUserId },
-          }),
-        );
+        const { data, error } = await supabase.functions.invoke("resolve-discord-id", {
+          body: { confirm_user_id: discordUserId },
+        });
         if (error) {
           throw new Error(error.message || "Discord verification failed. Please try again.");
         }
