@@ -206,13 +206,18 @@ export const DiscordNotifyService = {
           body: { discord_username: discordUsername },
         });
 
-        if (error) {
-          log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${error.message}`, { discordUsername });
-          throw new Error("Discord verification is temporarily unavailable. Please try again in a minute.");
-        }
-
         // supabase.functions.invoke may return parsed JSON or a raw string
         const data = typeof rawData === "string" ? (() => { try { return JSON.parse(rawData); } catch { return rawData; } })() : rawData;
+
+        if (error) {
+          const backendMessage = typeof data?.error === "string" ? data.error : typeof data?.message === "string" ? data.message : null;
+          log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${backendMessage || error.message}`, { discordUsername });
+          throw new Error(backendMessage || "Discord verification is temporarily unavailable. Please try again in a minute.");
+        }
+
+        if (data?.error) {
+          throw new Error(data.error);
+        }
 
         const result = data?.discord_user_id || null;
         const candidates = Array.isArray(data?.candidates) ? data.candidates : undefined;
