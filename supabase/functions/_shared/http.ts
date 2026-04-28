@@ -1,0 +1,32 @@
+import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
+
+export const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+export function handleCors(req: Request): Response | null {
+  return req.method === "OPTIONS" ? new Response("ok", { headers: corsHeaders }) : null;
+}
+
+export function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+}
+
+export function methodNotAllowed(): Response {
+  return jsonResponse({ error: "Method not allowed" }, 405);
+}
+
+export async function parseJsonBody(req: Request, maxBytes = 16 * 1024): Promise<unknown> {
+  const contentLength = Number.parseInt(req.headers.get("content-length") || "0", 10);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Response(JSON.stringify({ error: "Request body too large" }), { status: 413, headers: jsonHeaders });
+  }
+  try {
+    return await req.json();
+  } catch {
+    throw new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: jsonHeaders });
+  }
+}
+
+export function errorResponse(error: unknown, fallback = "Internal server error"): Response {
+  if (error instanceof Response) return error;
+  return jsonResponse({ error: fallback }, 500);
+}
