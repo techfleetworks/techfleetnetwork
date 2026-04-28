@@ -2258,7 +2258,6 @@ export type Database = {
         }
         Returns: Json
       }
-      cleanup_passkey_login_artifacts: { Args: never; Returns: number }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
       cleanup_two_factor_login_artifacts: { Args: never; Returns: number }
