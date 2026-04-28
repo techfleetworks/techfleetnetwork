@@ -143,10 +143,10 @@ export function ProfileDiscordConnector() {
 
     try {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
-      if (result.discord_user_id) {
-        await finalizeLinking(result.discord_user_id, result.discord_username || normalized);
-      } else if (result.candidates?.length) {
+      if (result.candidates?.length) {
         setCandidates(result.candidates);
+      } else if (result.discord_user_id) {
+        setVerifyError("Please select your Discord account from the search results before linking.");
       } else {
         setVerifyError(result.message || "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct.");
       }
