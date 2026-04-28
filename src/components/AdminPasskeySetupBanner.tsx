@@ -2,7 +2,8 @@ import { Link, useLocation } from "react-router-dom";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
+import { MfaService } from "@/services/mfa.service";
+import { useEffect, useState } from "react";
 
 /**
  * App-wide nudge for admins who have NOT yet enrolled a passkey.
@@ -23,12 +24,24 @@ import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
 export function AdminPasskeySetupBanner() {
   const { user, profileLoaded } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const passkeyEnrolled = usePasskeyEnrolled();
+  const [hasTotp, setHasTotp] = useState<boolean | null>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !isAdmin) {
+      setHasTotp(null);
+      return;
+    }
+    void MfaService.hasVerifiedTotp()
+      .then((enabled) => { if (!cancelled) setHasTotp(enabled); })
+      .catch(() => { if (!cancelled) setHasTotp(null); });
+    return () => { cancelled = true; };
+  }, [user, isAdmin]);
 
   if (!user || !profileLoaded || adminLoading) return null;
   if (!isAdmin) return null;
-  if (passkeyEnrolled !== false) return null; // null = unknown, true = done
+  if (hasTotp !== false) return null; // null = unknown, true = done
   if (location.pathname.startsWith("/profile/edit")) return null;
   if (
     location.pathname.startsWith("/login") ||
@@ -42,7 +55,7 @@ export function AdminPasskeySetupBanner() {
   return (
     <div
       role="region"
-      aria-label="Admin passkey setup required"
+      aria-label="Admin 2FA setup required"
       className="border-b border-primary/30 bg-primary/10"
     >
       <div className="container-app flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -53,9 +66,8 @@ export function AdminPasskeySetupBanner() {
               Finish your admin security setup
             </p>
             <p className="text-muted-foreground">
-              You're now an admin. Add a passkey (Face ID, Touch ID, Windows Hello, or
-              a hardware key) to unlock the admin area. This is a one-time step you
-              can do yourself in under a minute.
+              You're now an admin. Set up Google Authenticator-compatible 2FA within
+              your 5-day grace period to keep admin access uninterrupted.
             </p>
           </div>
         </div>
@@ -63,7 +75,7 @@ export function AdminPasskeySetupBanner() {
           to="/profile/edit?tab=account"
           className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0"
         >
-          Set up passkey
+          Set up 2FA
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
