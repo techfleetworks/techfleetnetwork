@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,6 @@ import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
   Rocket, PlayCircle, Clock, Briefcase,
 } from "lucide-react";
-import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +63,6 @@ interface EnrichedProject extends OpenProject {
   userApplied: boolean;
 }
 
-const VISIBLE_STATUSES: Array<"coming_soon" | "apply_now" | "recruiting" | "team_onboarding" | "project_in_progress"> = ["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress"];
-
 export default function ProjectOpeningsPage() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
@@ -90,11 +87,7 @@ export default function ProjectOpeningsPage() {
   const appStats = publicData?.applicationStats ?? [];
   const stats = publicData?.stats ?? null;
 
-  const clientIds = useMemo(() => [...new Set(projects.map((p) => p.client_id))], [projects]);
-
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-
-  const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
 
   const statsMap = useMemo(() => {
     const map = new Map<string, { total: number; hatCounts: Record<string, number> }>();
