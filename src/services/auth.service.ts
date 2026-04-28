@@ -312,12 +312,15 @@ export const AuthService = {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success) throw blockedAuthInputError;
     const safeCaptchaToken = captchaToken?.trim();
-    if (!safeCaptchaToken) throw new Error("Complete the human verification before trying again.");
+    if (captchaToken !== undefined && !safeCaptchaToken) throw new Error("Complete the human verification before trying again.");
     const safeEmail = parsedEmail.data;
     const domainCheck = await validateEmailDomainExists(safeEmail);
     if (!domainCheck.valid) throw new Error(domainCheck.message ?? "Use an email address with a real domain.");
     return log.track("resetPassword", `Sending password reset for ${safeEmail}`, { email: safeEmail }, async () => {
-      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, { redirectTo, captchaToken: safeCaptchaToken });
+      const { error } = await supabase.auth.resetPasswordForEmail(safeEmail, {
+        redirectTo,
+        ...(safeCaptchaToken ? { captchaToken: safeCaptchaToken } : {}),
+      });
       if (error) {
         log.warn("resetPassword", `Password reset request failed for ${safeEmail}: ${error.message}`, { email: safeEmail }, error);
         void logAccountActivity("password_reset_failed", { email: safeEmail, errorMessage: error.message, errorCode: error.status });
