@@ -150,11 +150,25 @@ serve(async (req) => {
     const body = await req.json();
     const discord_username = body.discord_username;
     const confirm_user_id = body.confirm_user_id; // Optional: user picked a candidate
-    if (confirm_user_id && typeof confirm_user_id === "string" && confirm_user_id.length <= 20) {
-      // Direct confirmation — no search needed
-      log.info("resolve", `Direct confirmation of Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+    if (confirm_user_id && typeof confirm_user_id === "string" && /^\d{15,25}$/.test(confirm_user_id)) {
+      const memberUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${confirm_user_id}`;
+      const { response: confirmRes } = await discordFetch(memberUrl, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+        maxRetries: 2,
+      });
+
+      if (!confirmRes.ok) {
+        log.warn("resolve", `Rejected confirmation for non-member Discord ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id, httpStatus: confirmRes.status });
+        return new Response(
+          JSON.stringify({ discord_user_id: null, error: "Selected Discord account is not in the Tech Fleet server" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const member = await confirmRes.json() as DiscordMember;
+      log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
       return new Response(
-        JSON.stringify({ discord_user_id: confirm_user_id }),
+        JSON.stringify({ discord_user_id: confirm_user_id, discord_username: member.user?.username ?? null }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
