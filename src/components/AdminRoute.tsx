@@ -9,8 +9,8 @@ import { ShieldCheck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * Route guard requiring authentication, admin role, AND at least one enrolled passkey (MFA).
- * Non-admins are redirected to /dashboard. Admins without a passkey see an inline enrollment prompt.
+ * Route guard requiring authentication, admin role, and admin authenticator 2FA after the setup grace period.
+ * Non-admins are redirected to /dashboard. Admins without 2FA get a setup path.
  */
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, profileLoaded } = useAuth();
