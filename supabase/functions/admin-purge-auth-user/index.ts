@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       'feedback',
       'grid_view_states',
       'notifications',
-      'passkey_credentials',
+      'two_factor_login_sessions',
       'push_subscriptions',
       'signup_confirmation_reminders',
     ]
