@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
+import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { toast } from "sonner";
@@ -287,49 +288,7 @@ export default function ProfileSetupPage() {
             <SearchFirstCombobox id="setup-timezone-trigger" open={timezoneOpen} onOpenChange={setTimezoneOpen} selectedValue={form.timezone} selectedLabel={selectedTimezoneLabel} emptyLabel="Search timezone" searchPlaceholder="Start typing a city, region, or GMT offset…" emptyMessage="No timezone found." options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))} icon={<Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />} invalid={!!errors.timezone} triggerClassName={bc("timezone", form.timezone)} onSelect={(value) => { setForm({ ...form, timezone: value }); setTimezoneOpen(false); markTouched("timezone"); }} />
           </ValidatedField>
 
-          {/* Discord account detection */}
-          <div className="space-y-3">
-            <Label>Do you have a Discord account?</Label>
-            <p className="text-xs text-muted-foreground">Tech Fleet's community lives on Discord. Let us know if you already have an account.</p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, has_discord_account: true })}
-                className={cn(
-                  "flex-1 p-3 rounded-lg border transition-all text-sm font-medium",
-                  form.has_discord_account ? "border-primary bg-primary/5 text-foreground" : "border-border hover:border-primary/50 text-muted-foreground"
-                )}
-              >
-                Yes, I have one
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, has_discord_account: false, discordUsername: "" })}
-                className={cn(
-                  "flex-1 p-3 rounded-lg border transition-all text-sm font-medium",
-                  !form.has_discord_account ? "border-primary bg-primary/5 text-foreground" : "border-border hover:border-primary/50 text-muted-foreground"
-                )}
-              >
-                No, I'm new to Discord
-              </button>
-            </div>
-          </div>
-
-          {/* Discord username — only if they have an account */}
-          {form.has_discord_account && (
-            <ValidatedField id="setup-discord" label="Discord username" error={errors.discordUsername} value={form.discordUsername} touched={touched.discordUsername} description="Enter your Discord username so we can connect with you.">
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="setup-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} onBlur={() => markTouched("discordUsername")} placeholder="username" className={cn("pl-10", bc("discordUsername", form.discordUsername))} aria-invalid={!!errors.discordUsername} />
-              </div>
-            </ValidatedField>
-          )}
-
-          {!form.has_discord_account && (
-            <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-              <p>No worries! After you complete your profile, we'll generate a <strong className="text-foreground">personal Discord invite link</strong> just for you.</p>
-            </div>
-          )}
+          <ProfileDiscordConnector />
 
           {/* Activity Interests */}
           <div className="space-y-3">
