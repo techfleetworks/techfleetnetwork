@@ -8,7 +8,7 @@
 // server-side via has_role() — never trust client claims.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { requireFreshAdminPasskey } from '../_shared/admin-step-up.ts'
+import { requireFreshAdmin2fa } from '../_shared/admin-step-up.ts'
 
 const RATE_LIMIT_PEPPER = '::tfn-rate-limit-v1'
 const textEncoder = new TextEncoder()
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   })
   if (roleErr || isAdmin !== true) return jsonResponse({ error: 'Forbidden' }, 403)
 
-  const stepUp = await requireFreshAdminPasskey(admin, authHeader, userData.user.id, 10)
+  const stepUp = await requireFreshAdmin2fa(admin, authHeader, userData.user.id, 10)
   if (!stepUp.ok) return jsonResponse({ error: stepUp.error }, stepUp.status)
 
   // 2) Parse + validate input.
