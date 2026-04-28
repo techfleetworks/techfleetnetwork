@@ -58,7 +58,8 @@ describe("MfaEnforcementGuard (BDD AUTH-2FA-LOGIN-GATE-002)", () => {
   it("signs out an AAL1 session when the user cancels the required 2FA challenge", async () => {
     render(<MfaEnforcementGuard />);
 
-    screen.getByRole("button", { name: /cancel 2fa/i }).click();
+    const cancelButton = await screen.findByRole("button", { name: /cancel 2fa/i });
+    cancelButton.click();
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
     expect(window.location.replace).toHaveBeenCalledWith("/login");
