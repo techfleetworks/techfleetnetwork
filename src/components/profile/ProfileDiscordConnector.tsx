@@ -263,23 +263,24 @@ export function ProfileDiscordConnector() {
           {candidates.length > 0 && (
             <div className="space-y-2" role="list" aria-label="Matching Discord members">
               {candidates.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  onClick={() => selectCandidate(candidate)}
-                  disabled={!!confirmingId}
-                  className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                  role="listitem"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                    {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
-                    <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
-                  </div>
-                  {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-                </button>
+                <div key={candidate.id} role="listitem">
+                  <button
+                    type="button"
+                    onClick={() => selectCandidate(candidate)}
+                    disabled={!!confirmingId}
+                    className="flex w-full items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    aria-label={`Select ${candidate.global_name || candidate.nick || candidate.username}`}
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                      {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
+                      <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
+                    </div>
+                    {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+                  </button>
+                </div>
               ))}
             </div>
           )}
