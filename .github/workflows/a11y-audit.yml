@@ -82,13 +82,13 @@ jobs:
         # is a baseline, not a gate.
         #
         # NOTE: Playwright treats the positional arg as a *regex* against
-        # test file paths. Passing `e2e/a11y/wcag-audit.spec.ts` raw made
+        # test file paths. Passing `e2e/a11y/wcag-audit.e2e.ts` raw made
         # the runner emit "No tests found" because the unescaped `.` and
         # `/` characters didn't line up with how `testMatch` resolves the
         # file under `testDir: "."`. Anchoring on the filename stem with
         # escaped dots (and `--` to stop shell/CLI flag parsing) matches
         # the single spec reliably across local + CI.
-        run: npx playwright test --reporter=list -- "wcag-audit\.spec\.ts" || true
+        run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts" || true
 
       - name: Upload a11y report
         if: always()

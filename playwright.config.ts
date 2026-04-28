@@ -55,7 +55,7 @@ const allProjects = [
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["e2e/**/*.spec.ts"],
+  testMatch: ["e2e/**/*.e2e.ts"],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
