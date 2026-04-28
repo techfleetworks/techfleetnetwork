@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { AlertCircle, User, Globe, MessageCircle, Check, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
+import { AlertCircle, User, Globe, Check, Mail, Clock, CheckCircle2, CloudUpload, CloudOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { JourneyService } from "@/services/journey.service";
@@ -19,6 +19,7 @@ import { ExperienceAreasSelect } from "@/components/ExperienceAreasSelect";
 import { TIMEZONES } from "@/lib/timezones";
 import { cn } from "@/lib/utils";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
+import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 
 
 export function ProfileSetupDialog() {
@@ -120,7 +121,6 @@ export function ProfileSetupDialog() {
       display_name: `${form.firstName} ${form.lastName}`.trim(),
       country: form.country,
       timezone: form.timezone,
-      discord_username: form.discordUsername || "",
       interests: form.interests || [],
       portfolio_url: form.portfolio_url || "",
       linkedin_url: form.linkedin_url || "",
@@ -360,16 +360,7 @@ export function ProfileSetupDialog() {
                 </div>
               </div>
 
-              {/* Discord */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dialog-discord">Discord username</Label>
-                <div className="relative">
-                  <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                  <Input id="dialog-discord" value={form.discordUsername} onChange={(e) => setForm({ ...form, discordUsername: e.target.value })} placeholder="username" className="pl-10" aria-invalid={!!errors.discordUsername} />
-                </div>
-                <p className="text-xs text-muted-foreground">Tech Fleet's community lives on Discord. Enter your username if you have one.</p>
-                {errors.discordUsername && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><AlertCircle className="h-3 w-3" /> {errors.discordUsername}</p>}
-              </div>
+              <ProfileDiscordConnector />
             </section>
 
             {/* Section: Links */}
