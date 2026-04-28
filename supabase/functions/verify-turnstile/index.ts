@@ -1,5 +1,5 @@
-import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 import { z } from "npm:zod@4.3.6";
+import { errorResponse, handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 
 const BodySchema = z.object({
   token: z.string().trim().min(20).max(4096),
@@ -8,22 +8,16 @@ const BodySchema = z.object({
 
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
   if (req.method !== "POST") return jsonResponse({ success: false, error: "Method not allowed" }, 405);
 
   const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
   if (!secret) return jsonResponse({ success: false, error: "Verification is not configured" }, 500);
 
   try {
-    const parsed = BodySchema.safeParse(await req.json());
+    const parsed = BodySchema.safeParse(await parseJsonBody(req, 8 * 1024));
     if (!parsed.success) {
       return jsonResponse({ success: false, error: "Complete the human verification before trying again." }, 400);
     }
@@ -43,6 +37,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true });
   } catch (error) {
     console.error("Turnstile verification error", error);
-    return jsonResponse({ success: false, error: "Verification failed. Please try again." }, 500);
+    if (error instanceof Response) return error;
+    return errorResponse(error, "Verification failed. Please try again.");
   }
 });
