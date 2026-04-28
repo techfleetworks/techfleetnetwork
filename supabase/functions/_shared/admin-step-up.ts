@@ -13,7 +13,7 @@ export async function hashAccessTokenFromHeader(authHeader: string): Promise<str
   return bytesToHex(new Uint8Array(digest));
 }
 
-export async function requireFreshAdminPasskey(
+export async function requireFreshAdmin2fa(
   admin: SupabaseClient,
   authHeader: string,
   userId: string,
@@ -21,6 +21,15 @@ export async function requireFreshAdminPasskey(
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const sessionHash = await hashAccessTokenFromHeader(authHeader);
   if (!sessionHash) return { ok: false, status: 401, error: "Unauthorized" };
+
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const [, payload] = token.split(".");
+  try {
+    const claims = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    if (claims?.aal !== "aal2") return { ok: false, status: 403, error: "Fresh 2FA verification required" };
+  } catch {
+    return { ok: false, status: 403, error: "Fresh 2FA verification required" };
+  }
 
   const { data, error } = await admin
     .from("passkey_login_sessions")
@@ -30,15 +39,17 @@ export async function requireFreshAdminPasskey(
     .maybeSingle();
 
   if (error) return { ok: false, status: 500, error: "Unable to verify admin passkey status" };
-  if (!data) return { ok: false, status: 403, error: "Fresh admin passkey verification required" };
+  if (!data) return { ok: false, status: 403, error: "Fresh 2FA verification required" };
 
   const verifiedAt = new Date(data.verified_at).getTime();
   const expiresAt = new Date(data.expires_at).getTime();
   const freshAfter = Date.now() - maxAgeMinutes * 60 * 1000;
 
   if (!Number.isFinite(verifiedAt) || !Number.isFinite(expiresAt) || expiresAt <= Date.now() || verifiedAt < freshAfter) {
-    return { ok: false, status: 403, error: "Fresh admin passkey verification required" };
+    return { ok: false, status: 403, error: "Fresh 2FA verification required" };
   }
 
   return { ok: true };
 }
+
+export const requireFreshAdminPasskey = requireFreshAdmin2fa;
