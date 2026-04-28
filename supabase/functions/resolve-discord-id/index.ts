@@ -29,6 +29,10 @@ type DiscordMember = {
   nick?: string | null;
 };
 
+function discordDisplayName(member: DiscordMember): string | null {
+  return member.nick || member.user?.global_name || member.user?.username || null;
+}
+
 function normalizeLookupValue(value: string): string {
   return value
     .normalize("NFKC")
@@ -152,6 +156,7 @@ serve(async (req) => {
 
       const member = await confirmRes.json() as DiscordMember;
       const confirmedUsername = member.user?.username ?? "";
+      const confirmedDisplayName = discordDisplayName(member);
       const { data: claimedProfiles, error: claimedError } = await adminClient
         .from("profiles")
         .select("user_id, display_name, discord_user_id, discord_username")
@@ -200,7 +205,13 @@ serve(async (req) => {
 
       log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
       return new Response(
-        JSON.stringify({ discord_user_id: confirm_user_id, discord_username: confirmedUsername || null }),
+        JSON.stringify({
+          discord_user_id: confirm_user_id,
+          discord_username: confirmedUsername || null,
+          discord_display_name: confirmedDisplayName,
+          global_name: member.user?.global_name || null,
+          nick: member.nick || null,
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -234,6 +245,7 @@ serve(async (req) => {
             candidates: [{
               id: directDiscordId,
               username: member.user?.username ?? cleanUsername,
+              display_name: discordDisplayName(member),
               global_name: member.user?.global_name || null,
               nick: member.nick || null,
               avatar: avatarUrl,
@@ -375,6 +387,7 @@ serve(async (req) => {
     const candidates = orderedMembers.slice(0, 10).map((m: any) => ({
       id: m.user?.id,
       username: m.user?.username,
+      display_name: discordDisplayName(m),
       global_name: m.user?.global_name || null,
       nick: m.nick || null,
       avatar: m.user?.avatar

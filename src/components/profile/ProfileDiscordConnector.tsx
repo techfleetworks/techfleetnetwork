@@ -21,10 +21,22 @@ const COMMUNITY_ROLE_ID = "1083439364975112293";
 type Candidate = {
   id: string;
   username: string;
+  display_name?: string | null;
   global_name: string | null;
   nick?: string | null;
   avatar?: string | null;
 };
+
+function formatDiscordAccountLabel(account: {
+  username?: string | null;
+  display_name?: string | null;
+  global_name?: string | null;
+  nick?: string | null;
+}) {
+  const accountName = account.display_name || account.nick || account.global_name || account.username || "Discord member";
+  const accountUsername = account.username ? `@${account.username}` : "@unknown";
+  return `${accountName} - ${accountUsername}`;
+}
 
 function normalizeDiscordUsername(raw: string): string {
   let name = raw.trim();
@@ -100,7 +112,7 @@ export function ProfileDiscordConnector() {
     if (res.error) throw new Error(res.error.message || "Failed to assign the Community role");
   };
 
-  const finalizeLinking = async (discordUserId: string, discordUsername: string) => {
+  const finalizeLinking = async (discordUserId: string, discordUsername: string, selectedLabel?: string) => {
     if (!user) throw new Error("Not authenticated");
 
     await JourneyService.upsertTask(user.id, PHASE, TASK_ID, true);
@@ -110,7 +122,7 @@ export function ProfileDiscordConnector() {
     setRelinking(false);
     setCandidates([]);
     setVerifyError("");
-    toast.success("Discord account verified and linked!", { duration: 5000, position: "top-center" });
+    toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified and linked!` : "Discord account verified and linked!", { duration: 30000, position: "top-center" });
   };
 
   const verifyUsername = async () => {
@@ -149,7 +161,15 @@ export function ProfileDiscordConnector() {
       if (!confirmed?.discord_user_id) {
         throw new Error(DISCORD_MEMBER_NOT_VISIBLE_MESSAGE);
       }
-      await finalizeLinking(confirmed.discord_user_id, confirmed.discord_username || candidate.username);
+      const selectedUsername = confirmed.discord_username || candidate.username;
+      const selectedLabel = formatDiscordAccountLabel({
+        username: selectedUsername,
+        display_name: confirmed.discord_display_name || candidate.display_name,
+        global_name: confirmed.global_name || candidate.global_name,
+        nick: confirmed.nick || candidate.nick,
+      });
+      setUsername(selectedUsername);
+      await finalizeLinking(confirmed.discord_user_id, selectedUsername, selectedLabel);
     } catch (err: any) {
       const message = err.message || "Verification failed. Please try again.";
       if (message === DISCORD_MEMBER_NOT_VISIBLE_MESSAGE) {
@@ -251,8 +271,10 @@ export function ProfileDiscordConnector() {
                       {(candidate.global_name || candidate.username || "?").charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{candidate.global_name || candidate.username}</p>
-                      <p className="truncate text-xs text-muted-foreground">@{candidate.username}{candidate.nick ? ` · ${candidate.nick}` : ""}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{formatDiscordAccountLabel(candidate)}</p>
+                      {candidate.nick && candidate.nick !== candidate.global_name && (
+                        <p className="truncate text-xs text-muted-foreground">{candidate.nick}</p>
+                      )}
                     </div>
                     {confirmingId === candidate.id ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
                   </button>

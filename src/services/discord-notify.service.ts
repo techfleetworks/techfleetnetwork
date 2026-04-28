@@ -235,6 +235,7 @@ export const DiscordNotifyService = {
     candidates?: Array<{
       id: string;
       username: string;
+      display_name?: string | null;
       global_name: string | null;
       nick: string | null;
       avatar: string | null;
@@ -291,7 +292,13 @@ export const DiscordNotifyService = {
     });
   },
 
-  async confirmDiscordId(discordUserId: string): Promise<{ discord_user_id: string; discord_username?: string | null } | null> {
+  async confirmDiscordId(discordUserId: string): Promise<{
+    discord_user_id: string;
+    discord_username?: string | null;
+    discord_display_name?: string | null;
+    global_name?: string | null;
+    nick?: string | null;
+  } | null> {
     return log.track("confirmDiscordId", `Confirming Discord ID ${discordUserId}`, { discordUserId }, async () => {
       try {
         const { data: rawData, error } = await supabase.functions.invoke("resolve-discord-id", {
@@ -308,6 +315,9 @@ export const DiscordNotifyService = {
         return data?.discord_user_id ? {
           discord_user_id: data.discord_user_id,
           discord_username: data.discord_username || null,
+          discord_display_name: data.discord_display_name || data.nick || data.global_name || data.discord_username || null,
+          global_name: data.global_name || null,
+          nick: data.nick || null,
         } : null;
       } catch (err) {
         log.warn("confirmDiscordId", `Error confirming Discord ID ${discordUserId}`, { discordUserId }, err);

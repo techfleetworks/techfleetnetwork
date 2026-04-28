@@ -85,6 +85,7 @@ export default function ConnectDiscordPage() {
   const [candidates, setCandidates] = useState<Array<{
     id: string;
     username: string;
+    display_name?: string | null;
     global_name: string | null;
     nick: string | null;
     avatar: string | null;
@@ -118,6 +119,17 @@ export default function ConnectDiscordPage() {
     profile?.first_name ||
     user?.user_metadata?.full_name ||
     "A member";
+
+  const formatDiscordAccountLabel = (account: {
+    username?: string | null;
+    display_name?: string | null;
+    global_name?: string | null;
+    nick?: string | null;
+  }) => {
+    const accountName = account.display_name || account.nick || account.global_name || account.username || "Discord member";
+    const accountUsername = account.username ? `@${account.username}` : "@unknown";
+    return `${accountName} - ${accountUsername}`;
+  };
 
   const generateInvite = async () => {
     setGenerating(true);
@@ -233,7 +245,7 @@ export default function ConnectDiscordPage() {
   };
 
   /** Complete linking once we have a confirmed Discord user ID */
-  const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null) => {
+  const finalizeLinking = async (discordUserId: string, discordUsername: string, avatarUrl?: string | null, selectedLabel?: string) => {
     // Save Discord avatar if available and user doesn't have one yet
     if (avatarUrl) {
       saveDiscordAvatar(avatarUrl, user!.id); // fire-and-forget, don't block linking
@@ -259,9 +271,14 @@ export default function ConnectDiscordPage() {
     setVerified(true);
     setCandidates([]);
     if (communityRoleAssigned) {
-      toast.success("Discord account verified, linked, and added to Community!");
+      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified, linked, and added to Community!` : "Discord account verified, linked, and added to Community!", {
+        duration: 30000,
+        position: "top-center",
+      });
     } else {
-      toast.success("Discord account verified and linked!", {
+      toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified and linked!` : "Discord account verified and linked!", {
+        duration: 30000,
+        position: "top-center",
         description:
           "Invite generation now works without role-assignment permissions. If the Community role does not appear in Discord, an admin only needs to check Fleety's role permissions and hierarchy once.",
       });
@@ -308,7 +325,9 @@ export default function ConnectDiscordPage() {
   const handleCandidateSelect = async (candidate: {
     id: string;
     username: string;
+    display_name?: string | null;
     global_name: string | null;
+    nick?: string | null;
     avatar?: string | null;
   }) => {
     setConfirmingId(candidate.id);
@@ -318,10 +337,19 @@ export default function ConnectDiscordPage() {
       if (!confirmed?.discord_user_id) {
         throw new Error(DISCORD_MEMBER_NOT_VISIBLE_MESSAGE);
       }
+      const selectedUsername = confirmed.discord_username || candidate.username;
+      const selectedLabel = formatDiscordAccountLabel({
+        username: selectedUsername,
+        display_name: confirmed.discord_display_name || candidate.display_name,
+        global_name: confirmed.global_name || candidate.global_name,
+        nick: confirmed.nick || candidate.nick,
+      });
+      setUsername(selectedUsername);
       await finalizeLinking(
         confirmed.discord_user_id,
-        confirmed.discord_username || candidate.username,
-        candidate.avatar
+        selectedUsername,
+        candidate.avatar,
+        selectedLabel
       );
     } catch (err: any) {
       const message = err.message || "Verification failed. Please try again.";
@@ -783,10 +811,9 @@ export default function ConnectDiscordPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
-                            {c.global_name || c.username}
+                            {formatDiscordAccountLabel(c)}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            @{c.username}
                             {c.nick && c.nick !== c.global_name ? ` · ${c.nick}` : ""}
                           </p>
                         </div>
