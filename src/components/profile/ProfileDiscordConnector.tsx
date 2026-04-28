@@ -143,10 +143,10 @@ export function ProfileDiscordConnector() {
 
     try {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
-      if (result.discord_user_id) {
-        await finalizeLinking(result.discord_user_id, result.discord_username || normalized);
-      } else if (result.candidates?.length) {
+      if (result.candidates?.length) {
         setCandidates(result.candidates);
+      } else if (result.discord_user_id) {
+        setVerifyError("Please select your Discord account from the search results before linking.");
       } else {
         setVerifyError(result.message || "We couldn't find that name in the Tech Fleet Discord server. Please make sure you've joined and that the username or display name is correct.");
       }
@@ -161,7 +161,11 @@ export function ProfileDiscordConnector() {
     setConfirmingId(candidate.id);
     setVerifyError("");
     try {
-      await finalizeLinking(candidate.id, candidate.username);
+      const confirmed = await DiscordNotifyService.confirmDiscordId(candidate.id);
+      if (!confirmed?.discord_user_id) {
+        throw new Error("That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.");
+      }
+      await finalizeLinking(confirmed.discord_user_id, confirmed.discord_username || candidate.username);
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {

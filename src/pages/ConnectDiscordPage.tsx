@@ -312,12 +312,12 @@ export default function ConnectDiscordPage() {
       const result = await DiscordNotifyService.resolveDiscordId(normalized);
       console.log("[ConnectDiscord] resolveDiscordId result:", JSON.stringify(result));
 
-      if (result.discord_user_id) {
-        await finalizeLinking(result.discord_user_id, result.discord_username || normalized, result.avatar_url);
-      } else if (result.candidates && result.candidates.length > 0) {
+      if (result.candidates && result.candidates.length > 0) {
         // Always require explicit member selection before linking — even exact matches.
         setCandidates(result.candidates);
         setVerifyError("");
+      } else if (result.discord_user_id) {
+        setVerifyError("Please select your Discord account from the search results before linking.");
       } else {
         setVerifyError(
           result.message ||
@@ -340,8 +340,15 @@ export default function ConnectDiscordPage() {
     setConfirmingId(candidate.id);
     setVerifyError("");
     try {
-      const discordUsername = candidate.username;
-      await finalizeLinking(candidate.id, discordUsername, candidate.avatar);
+      const confirmed = await DiscordNotifyService.confirmDiscordId(candidate.id);
+      if (!confirmed?.discord_user_id) {
+        throw new Error("That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.");
+      }
+      await finalizeLinking(
+        confirmed.discord_user_id,
+        confirmed.discord_username || candidate.username,
+        candidate.avatar
+      );
     } catch (err: any) {
       setVerifyError(err.message || "Verification failed. Please try again.");
     } finally {

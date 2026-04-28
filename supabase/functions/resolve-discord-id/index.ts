@@ -150,11 +150,25 @@ serve(async (req) => {
     const body = await req.json();
     const discord_username = body.discord_username;
     const confirm_user_id = body.confirm_user_id; // Optional: user picked a candidate
-    if (confirm_user_id && typeof confirm_user_id === "string" && confirm_user_id.length <= 20) {
-      // Direct confirmation — no search needed
-      log.info("resolve", `Direct confirmation of Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+    if (confirm_user_id && typeof confirm_user_id === "string" && /^\d{15,25}$/.test(confirm_user_id)) {
+      const memberUrl = `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${confirm_user_id}`;
+      const { response: confirmRes } = await discordFetch(memberUrl, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+        maxRetries: 2,
+      });
+
+      if (!confirmRes.ok) {
+        log.warn("resolve", `Rejected confirmation for non-member Discord ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id, httpStatus: confirmRes.status });
+        return new Response(
+          JSON.stringify({ discord_user_id: null, error: "Selected Discord account is not in the Tech Fleet server" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const member = await confirmRes.json() as DiscordMember;
+      log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
       return new Response(
-        JSON.stringify({ discord_user_id: confirm_user_id }),
+        JSON.stringify({ discord_user_id: confirm_user_id, discord_username: member.user?.username ?? null }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -191,8 +205,21 @@ serve(async (req) => {
       });
       if (directRes.ok) {
         const member = await directRes.json() as DiscordMember;
+        const avatarUrl = member.user?.avatar
+          ? `https://cdn.discordapp.com/avatars/${directDiscordId}/${member.user.avatar}.png?size=64`
+          : null;
         return new Response(
-          JSON.stringify({ discord_user_id: directDiscordId, discord_username: member.user?.username ?? cleanUsername }),
+          JSON.stringify({
+            discord_user_id: null,
+            message: "Select your Discord account to finish linking.",
+            candidates: [{
+              id: directDiscordId,
+              username: member.user?.username ?? cleanUsername,
+              global_name: member.user?.global_name || null,
+              nick: member.nick || null,
+              avatar: avatarUrl,
+            }],
+          }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -324,34 +351,9 @@ serve(async (req) => {
       } catch { /* swallow */ }
     };
 
-    if (match) {
-      const matchedUser = match.user;
-      if (!matchedUser?.id) {
-        throw new Error("Discord returned a matching member without a user ID");
-      }
-
-      log.info("resolve", `Found exact match for "${cleanUsername}": Discord ID ${matchedUser.id} [${requestId}]`, {
-        requestId,
-        username: cleanUsername,
-        discordUserId: matchedUser.id,
-      });
-      await auditLog(
-        "discord_username_verified",
-        `Verified "${cleanUsername}" → Discord ID ${matchedUser.id}`,
-        [`username:${cleanUsername}`, `discord_id:${matchedUser.id}`, `result_count:${members.length}`]
-      );
-      const avatarHash = matchedUser.avatar;
-      const avatarUrl = avatarHash
-        ? `https://cdn.discordapp.com/avatars/${matchedUser.id}/${avatarHash}.png?size=256`
-        : null;
-      return new Response(
-        JSON.stringify({ discord_user_id: matchedUser.id, discord_username: matchedUser.username ?? cleanUsername, avatar_url: avatarUrl }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Build candidate list for the UI picker
-    const candidates = members.slice(0, 10).map((m: any) => ({
+    const orderedMembers = match ? [match, ...members.filter((m) => m.user?.id !== match?.user?.id)] : members;
+    const candidates = orderedMembers.slice(0, 10).map((m: any) => ({
       id: m.user?.id,
       username: m.user?.username,
       global_name: m.user?.global_name || null,
@@ -361,7 +363,7 @@ serve(async (req) => {
         : null,
     }));
 
-    log.warn("resolve", `No exact match for "${cleanUsername}" in guild — returning ${candidates.length} candidates [${requestId}]`, {
+    log.info("resolve", `Returning ${candidates.length} selectable Discord candidates for "${cleanUsername}" [${requestId}]`, {
       requestId,
       username: cleanUsername,
       candidateUsernames,
@@ -377,7 +379,7 @@ serve(async (req) => {
       JSON.stringify({
         discord_user_id: null,
         message: candidates.length > 0
-          ? "No exact username match found. Did you mean one of these members?"
+          ? "Select your Discord account to finish linking."
           : "User not found in server",
         candidates: candidates.length > 0 ? candidates : undefined,
       }),
