@@ -198,15 +198,17 @@ export const DiscordNotifyService = {
   }> {
     return log.track("resolveDiscordId", `Resolving Discord ID for "${discordUsername}"`, { discordUsername }, async () => {
       try {
-        const { data: rawData, error } = await discordBreaker.execute(
-          () => supabase.functions.invoke("resolve-discord-id", {
-            body: { discord_username: discordUsername },
-          }),
-        );
+        // This is an account-linking verification path, not a non-critical Discord notification.
+        // Do not route it through the shared Discord circuit breaker: notification outages can open
+        // that browser-local breaker and make real members look like "not found" without contacting
+        // the verification backend.
+        const { data: rawData, error } = await supabase.functions.invoke("resolve-discord-id", {
+          body: { discord_username: discordUsername },
+        });
 
         if (error) {
           log.warn("resolveDiscordId", `Edge function error for "${discordUsername}": ${error.message}`, { discordUsername });
-          return { discord_user_id: null };
+          throw new Error("Discord verification is temporarily unavailable. Please try again in a minute.");
         }
 
         // supabase.functions.invoke may return parsed JSON or a raw string
@@ -232,8 +234,9 @@ export const DiscordNotifyService = {
           message: data?.message || undefined,
         };
       } catch (err) {
-        log.warn("resolveDiscordId", `Error resolving Discord ID for "${discordUsername}" — returning null`, { discordUsername }, err);
-        return { discord_user_id: null };
+        log.warn("resolveDiscordId", `Error resolving Discord ID for "${discordUsername}"`, { discordUsername }, err);
+        if (err instanceof Error) throw err;
+        throw new Error("Discord verification is temporarily unavailable. Please try again in a minute.");
       }
     });
   },
