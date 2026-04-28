@@ -241,7 +241,7 @@ export const DiscordNotifyService = {
     });
   },
 
-  async confirmDiscordId(discordUserId: string): Promise<string | null> {
+  async confirmDiscordId(discordUserId: string): Promise<{ discord_user_id: string; discord_username?: string | null } | null> {
     return log.track("confirmDiscordId", `Confirming Discord ID ${discordUserId}`, { discordUserId }, async () => {
       try {
         const { data } = await discordBreaker.execute(
@@ -249,7 +249,10 @@ export const DiscordNotifyService = {
             body: { confirm_user_id: discordUserId },
           }),
         );
-        return data?.discord_user_id || null;
+        return data?.discord_user_id ? {
+          discord_user_id: data.discord_user_id,
+          discord_username: data.discord_username || null,
+        } : null;
       } catch (err) {
         log.warn("confirmDiscordId", `Error confirming Discord ID ${discordUserId}`, { discordUserId }, err);
         return null;
