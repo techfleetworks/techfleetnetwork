@@ -175,6 +175,29 @@ serve(async (req) => {
         );
       }
 
+      const { error: linkError } = await adminClient
+        .from("profiles")
+        .update({
+          discord_username: confirmedUsername,
+          discord_user_id: confirm_user_id,
+          has_discord_account: true,
+        })
+        .eq("user_id", userId);
+
+      if (linkError) {
+        log.error("resolve", `Failed to persist confirmed Discord link [${requestId}]`, { requestId, confirm_user_id }, linkError);
+        const isUniqueConflict = linkError.message?.toLowerCase().includes("unique") || linkError.code === "23505";
+        return new Response(
+          JSON.stringify({
+            discord_user_id: null,
+            error: isUniqueConflict
+              ? "This Discord account is already linked to another Tech Fleet profile. Each Discord account can only be connected to one profile."
+              : "Could not safely save the verified Discord account. Please try again.",
+          }),
+          { status: isUniqueConflict ? 409 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
       return new Response(
         JSON.stringify({ discord_user_id: confirm_user_id, discord_username: confirmedUsername || null }),
