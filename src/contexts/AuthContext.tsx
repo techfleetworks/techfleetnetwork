@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useMemo, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef, type ReactNode } from "react";
 import { isSafeRedirectUrl } from "@/lib/security";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const authEventSessionRef = useRef<Session | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        authEventSessionRef.current = session;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -193,11 +195,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     AuthService.getSession()
-      .then((session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          void fetchProfile(session.user.id);
+      .then((initialSession) => {
+        const freshEventSession = authEventSessionRef.current;
+        const resolvedSession = initialSession ?? freshEventSession;
+
+        if (!initialSession && freshEventSession) {
+          return;
+        }
+
+        setSession(resolvedSession);
+        setUser(resolvedSession?.user ?? null);
+        if (resolvedSession?.user) {
+          void fetchProfile(resolvedSession.user.id);
         } else {
           setProfile(null);
           setProfileLoaded(false);
