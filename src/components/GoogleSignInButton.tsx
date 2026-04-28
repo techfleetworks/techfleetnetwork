@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
 import { isSafeRedirectUrl } from "@/lib/security";
 import { markOAuthUiInitiated } from "@/lib/oauth-ui-guard";
+import { toast } from "sonner";
 
 interface GoogleSignInButtonProps {
   label?: string;
@@ -13,9 +14,12 @@ interface GoogleSignInButtonProps {
 
 export function GoogleSignInButton({ label = "Sign in with Google", className, onBeforeSubmit, redirectTo }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
+  const oauthInFlightRef = useRef(false);
 
   const handleClick = async () => {
+    if (oauthInFlightRef.current) return;
     if (onBeforeSubmit && !onBeforeSubmit()) return;
+    oauthInFlightRef.current = true;
     setLoading(true);
     try {
       if (redirectTo && redirectTo !== "/dashboard" && isSafeRedirectUrl(redirectTo)) {
@@ -23,16 +27,19 @@ export function GoogleSignInButton({ label = "Sign in with Google", className, o
       }
       markOAuthUiInitiated("google");
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/`,
+        redirect_uri: window.location.origin,
         extraParams: { prompt: "select_account" },
       });
       if (result.error) {
         // Log generic message only — no PII or tokens
         console.error("OAuth provider error occurred");
+        toast.error("Google sign-in could not start. Please try again.", { duration: 30000, position: "top-center" });
       }
     } catch {
       console.error("OAuth sign-in failed");
+      toast.error("Google sign-in could not start. Please try again.", { duration: 30000, position: "top-center" });
     } finally {
+      oauthInFlightRef.current = false;
       setLoading(false);
     }
   };
