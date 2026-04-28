@@ -2335,6 +2335,8 @@ export type Database = {
         Returns: boolean
       }
       _current_aal: { Args: never; Returns: string }
+      admin_2fa_grace_active: { Args: { _user_id: string }; Returns: boolean }
+      admin_2fa_grace_deadline: { Args: { _user_id: string }; Returns: string }
       check_chat_system_rate_limit: { Args: never; Returns: Json }
       check_rate_limit: {
         Args: {
@@ -2473,6 +2475,10 @@ export type Database = {
       log_pii_access: {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
+      }
+      mark_device_trusted_after_mfa: {
+        Args: { _session_hash: string }
+        Returns: boolean
       }
       mark_discord_role_grant_result: {
         Args: { p_error?: string; p_id: string; p_success: boolean }
