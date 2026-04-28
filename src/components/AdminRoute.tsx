@@ -38,8 +38,8 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
       setMfaState(null);
       const [hasTotpResult, deadlineResult, graceResult] = await Promise.allSettled([
         MfaService.hasVerifiedTotp(),
-        supabase.rpc("admin_2fa_grace_deadline", { _user_id: user.id }),
-        supabase.rpc("admin_2fa_grace_active", { _user_id: user.id }),
+        (supabase as any).rpc("admin_2fa_grace_deadline", { _user_id: user.id }),
+        (supabase as any).rpc("admin_2fa_grace_active", { _user_id: user.id }),
       ]);
       if (cancelled) return;
       const hasTotp = hasTotpResult.status === "fulfilled" ? hasTotpResult.value : false;
