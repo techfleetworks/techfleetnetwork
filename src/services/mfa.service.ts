@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
-import { PasskeyLoginService } from "@/services/passkey-login.service";
 const log = createLogger("MfaService");
 
 export interface TotpFactor {
@@ -139,6 +138,11 @@ export const MfaService = {
     };
   },
 
+  async hasVerifiedTotp(): Promise<boolean> {
+    const factors = await this.listFactors();
+    return factors.some((f) => f.factor_type === "totp" && f.status === "verified");
+  },
+
 
   /** Pre-create a challenge so the user's verify is a single round-trip. */
   async createChallenge(factorId: string): Promise<string> {
@@ -158,10 +162,8 @@ export const MfaService = {
       log.warn("verifyChallenge", `Invalid code: ${error.message}`);
       throw new Error("Invalid verification code. Please try again.");
     }
-    log.info("verifyChallenge", "MFA challenge passed — session elevated to AAL2");
-    // Mark THIS device trusted for the current short-lived session. The RPC requires
-    // the caller's JWT to already be at AAL2, which is true at this point.
-    await this.markDeviceTrusted();
+    log.info("verifyChallenge", "2FA challenge passed — session elevated to AAL2");
+    await this.markCurrentSessionVerified();
   },
 
   /** Submit a 6-digit code during login to elevate the session to AAL2. */
@@ -170,20 +172,19 @@ export const MfaService = {
     await this.verifyChallenge(factorId, challengeId, code);
   },
 
-  /**
-   * After a successful TOTP verification, the JWT is at AAL2. Use the
-   * cryptographic device-binding scheme (non-extractable WebCrypto key in
-   * IndexedDB) to mark this physical device trusted briefly. Best
-   * effort: failures fall through to "user gets re-prompted next visit",
-   * which is the safe failure mode.
-   */
-  async markDeviceTrusted(): Promise<void> {
+  async markCurrentSessionVerified(): Promise<void> {
     try {
-      await PasskeyLoginService.bindCurrentDevice();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+      const sessionHash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const { error } = await supabase.rpc("mark_device_trusted_after_mfa", { _session_hash: sessionHash });
+      if (error) throw error;
     } catch (e) {
       log.warn(
-        "markDeviceTrusted",
-        `Device binding failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`,
+        "markCurrentSessionVerified",
+        `2FA session proof failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   },

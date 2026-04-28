@@ -32,8 +32,6 @@ vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => mockUseAuth() }));
 const mockUseAdmin = vi.fn();
 vi.mock("@/hooks/use-admin", () => ({ useAdmin: () => mockUseAdmin() }));
 
-vi.mock("@/hooks/use-passkey-enrolled", () => ({ usePasskeyEnrolled: () => true }));
-
 vi.mock("@/hooks/use-milestone-reference", async () => {
   const actual = await vi.importActual<any>("@/hooks/use-milestone-reference");
   return {

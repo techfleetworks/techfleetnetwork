@@ -30,7 +30,6 @@ import { TIMEZONES } from "@/lib/timezones";
 import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { supabase } from "@/integrations/supabase/client";
-import { PasskeyManagement } from "@/components/PasskeyManagement";
 import { TotpMfaManagement } from "@/components/TotpMfaManagement";
 import { toast } from "sonner";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
@@ -597,11 +596,6 @@ export default function EditProfilePage() {
               {/* Two-Factor Authentication (TOTP) — Google Authenticator, Authy, etc. */}
               <div className="pt-2 border-t">
                 <TotpMfaManagement />
-              </div>
-
-              {/* Passkey / WebAuthn MFA */}
-              <div className="pt-2 border-t">
-                <PasskeyManagement />
               </div>
 
               <div className="pt-2 border-t">

@@ -15,7 +15,7 @@ const AUTH_ATTEMPT_WINDOW_MS = 60_000;
 const MAX_AUTH_ATTEMPTS_PER_WINDOW = 3;
 const AUTH_ATTEMPT_BUCKET_KEY = "tfn:client-auth-attempt-window";
 const AUTH_ATTEMPT_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend)|rest\/v1\/rpc\/check_rate_limit)$/;
-const PASSKEY_SECURITY_PATH_PATTERN = /\/(functions\/v1\/(passkey-auth-options|passkey-auth-verify|device-prove|device-bind|passkey-recovery-request|passkey-recovery-verify)|rest\/v1\/(rpc\/is_trusted_device_active|passkey_credentials))$/;
+const MFA_SECURITY_PATH_PATTERN = /\/rest\/v1\/rpc\/(mark_device_trusted_after_mfa|admin_2fa_grace_deadline|admin_2fa_grace_active)$/;
 const PUBLIC_AGGREGATE_READ_PATH_PATTERN = /\/rest\/v1\/rpc\/get_network_stats$/;
 const RATE_LIMIT_LOG_DEDUPE_MS = 30_000;
 const rateLimitLogDedupe = new Map<string, number>();
@@ -43,7 +43,7 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
 function shouldThrottle(url: URL): boolean {
   if (url.origin === window.location.origin) return false;
   if (STATIC_ASSET_PATTERN.test(url.pathname)) return false;
-  if (PASSKEY_SECURITY_PATH_PATTERN.test(url.pathname)) return false;
+  if (MFA_SECURITY_PATH_PATTERN.test(url.pathname)) return false;
   if (PUBLIC_AGGREGATE_READ_PATH_PATTERN.test(url.pathname)) return false;
   return BACKEND_PATH_PATTERN.test(url.pathname);
 }

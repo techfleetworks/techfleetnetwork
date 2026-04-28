@@ -26,11 +26,10 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
     expect(__clientRequestThrottleTestHooks.consumeBucket(key, 63_000).allowed).toBe(true);
   });
 
-  it("does not throttle passkey security verification requests", () => {
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/is_trusted_device_active"))).toBe(false);
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/passkey_credentials"))).toBe(false);
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/passkey-auth-verify"))).toBe(false);
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/device-prove"))).toBe(false);
+  it("does not throttle 2FA security verification requests", () => {
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/mark_device_trusted_after_mfa"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/admin_2fa_grace_deadline"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/admin_2fa_grace_active"))).toBe(false);
   });
 
   it("does not throttle the public aggregate Network Activity stats endpoint", () => {

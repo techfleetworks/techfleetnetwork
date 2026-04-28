@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireFreshAdminPasskey } from "../_shared/admin-step-up.ts";
+import { requireFreshAdmin2fa } from "../_shared/admin-step-up.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const stepUp = await requireFreshAdminPasskey(admin, authHeader, user.id, 10);
+    const stepUp = await requireFreshAdmin2fa(admin, authHeader, user.id, 10);
     if (!stepUp.ok) {
       return new Response(JSON.stringify({ error: stepUp.error }), { status: stepUp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

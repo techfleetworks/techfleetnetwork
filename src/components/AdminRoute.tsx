@@ -1,20 +1,21 @@
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { usePasskeyEnrolled } from "@/hooks/use-passkey-enrolled";
+import { MfaService } from "@/services/mfa.service";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useEffect, useRef } from "react";
-import { ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ShieldCheck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * Route guard requiring authentication, admin role, AND at least one enrolled passkey (MFA).
- * Non-admins are redirected to /dashboard. Admins without a passkey see an inline enrollment prompt.
+ * Route guard requiring authentication, admin role, and admin authenticator 2FA after the setup grace period.
+ * Non-admins are redirected to /dashboard. Admins without 2FA get a setup path.
  */
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, profileLoaded } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const passkeyEnrolled = usePasskeyEnrolled();
+  const [mfaState, setMfaState] = useState<{ hasTotp: boolean; graceActive: boolean | null; deadline: string | null } | null>(null);
   const location = useLocation();
   const toastShown = useRef(false);
 
@@ -27,7 +28,33 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     }
   }, [showAccessDenied]);
 
-  if (authLoading || adminLoading || !profileLoaded || (isAdmin && passkeyEnrolled === null)) {
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !isAdmin) {
+      setMfaState(null);
+      return;
+    }
+    void (async () => {
+      setMfaState(null);
+      const [hasTotpResult, deadlineResult, graceResult] = await Promise.allSettled([
+        MfaService.hasVerifiedTotp(),
+        (supabase as any).rpc("admin_2fa_grace_deadline", { _user_id: user.id }),
+        (supabase as any).rpc("admin_2fa_grace_active", { _user_id: user.id }),
+      ]);
+      if (cancelled) return;
+      const hasTotp = hasTotpResult.status === "fulfilled" ? hasTotpResult.value : false;
+      const deadline = deadlineResult.status === "fulfilled" && !deadlineResult.value.error
+        ? (deadlineResult.value.data as string | null)
+        : null;
+      const graceActive = graceResult.status === "fulfilled" && !graceResult.value.error
+        ? graceResult.value.data === true
+        : null;
+      setMfaState({ hasTotp, graceActive, deadline });
+    })();
+    return () => { cancelled = true; };
+  }, [user, isAdmin]);
+
+  if (authLoading || adminLoading || !profileLoaded || (isAdmin && mfaState === null)) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" role="status">
@@ -51,27 +78,50 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (passkeyEnrolled === false) {
+  if (mfaState && !mfaState.hasTotp && mfaState.graceActive === false) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-4 rounded-lg border bg-card p-6">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <ShieldCheck className="h-6 w-6 text-primary" aria-hidden="true" />
           </div>
-          <h1 className="text-xl font-semibold">One-time admin security setup</h1>
+          <h1 className="text-xl font-semibold">Admin 2FA setup required</h1>
           <p className="text-sm text-muted-foreground">
-            You're signed in as an admin — there's no login problem. Before you can open
-            the admin area, please add a passkey (Face ID, Touch ID, Windows Hello, or a
-            hardware key). It takes about 30 seconds and you only do it once per device.
+            You're signed in, but admin access now requires a Google Authenticator-compatible
+            2FA code. Set it up from your account settings to continue.
           </p>
           <Button asChild>
-            <Link to="/profile/edit?tab=account">Set up my passkey</Link>
+            <Link to="/profile/edit?tab=account">Set up 2FA</Link>
           </Button>
           <p className="text-xs text-muted-foreground">
             You can keep using the rest of Tech Fleet Network normally in the meantime.
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (mfaState && !mfaState.hasTotp && mfaState.graceActive === true) {
+    return (
+      <>
+        <div className="border-b border-primary/30 bg-primary/10">
+          <div className="container-app flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3 text-sm">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div>
+                <p className="font-semibold text-foreground">Admin 2FA setup grace period</p>
+                <p className="text-muted-foreground">
+                  Set up Google Authenticator-compatible 2FA before {mfaState.deadline ? new Date(mfaState.deadline).toLocaleDateString() : "the deadline"} to keep admin access uninterrupted.
+                </p>
+              </div>
+            </div>
+            <Button asChild size="sm">
+              <Link to="/profile/edit?tab=account">Set up 2FA</Link>
+            </Button>
+          </div>
+        </div>
+        {children}
+      </>
     );
   }
 
