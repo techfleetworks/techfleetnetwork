@@ -9,7 +9,7 @@ import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
-const IDLE_SESSION_AGE_MS = 20 * 60 * 1000;
+const IDLE_SESSION_AGE_MS = 30 * 60 * 1000;
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
