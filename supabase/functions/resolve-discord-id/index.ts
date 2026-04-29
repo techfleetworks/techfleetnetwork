@@ -263,10 +263,9 @@ serve(async (req) => {
     }
 
     const searchQueries = buildSearchQueries(rawUsername);
-    log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
+    log.info("resolve", `Searching Discord guild for redacted username [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      rawUsername,
+      username: redactDiscordIdentifier(cleanUsername),
       guildId: GUILD_ID,
     });
 
@@ -282,7 +281,7 @@ serve(async (req) => {
         });
 
         if (retries > 0) {
-          log.info("resolve", `Discord search for "${query}" succeeded after ${retries} retries [${requestId}]`, { requestId, retries });
+          log.info("resolve", `Discord search succeeded after ${retries} retries [${requestId}]`, { requestId, retries });
         }
 
         if (res.ok) {
@@ -296,7 +295,7 @@ serve(async (req) => {
         } else {
           await res.text();
           log.error("resolve", `Discord API error during member search [${requestId}]: HTTP ${res.status}`, {
-            requestId, httpStatus: res.status, query,
+            requestId, httpStatus: res.status,
           });
           if (allMembers.length === 0) {
             if (res.status === 404 || res.status === 403) {
@@ -312,7 +311,7 @@ serve(async (req) => {
           }
         }
       } catch (fetchErr) {
-        log.error("resolve", `Network error for query "${query}" after retries [${requestId}]: ${fetchErr}`, { requestId, query });
+        log.error("resolve", `Network error during Discord lookup after retries [${requestId}]`, { requestId }, fetchErr);
         if (allMembers.length === 0) {
           return new Response(
             JSON.stringify({ error: "Failed to reach Discord API", discord_user_id: null }),
@@ -323,17 +322,10 @@ serve(async (req) => {
     }
 
     const members = allMembers;
-    const candidateUsernames = members.map((m: any) => m.user?.username).filter(Boolean);
-    const candidateGlobalNames = members.map((m: any) => m.user?.global_name).filter(Boolean);
-    const candidateNicks = members.map((m: any) => m.nick).filter(Boolean);
-    log.info("resolve", `Discord returned ${members.length} members for query "${cleanUsername}" [${requestId}]`, {
+    log.info("resolve", `Discord returned ${members.length} members for redacted query [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      rawUsername,
+      username: redactDiscordIdentifier(cleanUsername),
       resultCount: members.length,
-      candidateUsernames,
-      candidateGlobalNames,
-      candidateNicks,
     });
 
     // Match on cleaned username, raw username, compact username, or dot-prefixed variant.
@@ -363,8 +355,8 @@ serve(async (req) => {
       );
       if (strongMatches.length === 1) {
         match = strongMatches[0];
-        log.info("resolve", `Strong fuzzy match for "${cleanUsername}" → "${match.user?.username}" [${requestId}]`, {
-          requestId, username: cleanUsername, matched: match.user?.username,
+        log.info("resolve", `Strong fuzzy Discord match [${requestId}]`, {
+          requestId, username: redactDiscordIdentifier(cleanUsername), matched: Boolean(match.user?.username),
         });
       }
     }
