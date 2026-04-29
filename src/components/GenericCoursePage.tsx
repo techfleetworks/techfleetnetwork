@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { SafeExternalLink } from "@/components/security/SafeExternalLink";
 import {
   Dialog,
   DialogContent,
@@ -774,15 +775,13 @@ export default function GenericCoursePage({
                       />
                     </div>
                   </div>
-                  <a
+                  <SafeExternalLink
                     href={`https://www.youtube.com/watch?v=${selectedLesson.youtubeId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-4"
                   >
                     <ExternalLink className="h-3 w-3" />
                     Watch on YouTube
-                  </a>
+                  </SafeExternalLink>
                 </div>
               )}
 
@@ -813,16 +812,14 @@ export default function GenericCoursePage({
                 ) : null}
 
                 <div className="pt-2">
-                  <a
+                  <SafeExternalLink
                     href={selectedLesson?.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
                   >
                     <Button variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4 mr-1.5" />
                       Read on Guide
                     </Button>
-                  </a>
+                  </SafeExternalLink>
                 </div>
               </div>
             </div>
