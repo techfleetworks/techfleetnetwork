@@ -1,78 +1,56 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
+import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+import { parseSyncAirtableRequest, validateAirtableConfig } from "./validation.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const log = createEdgeLogger("sync-airtable");
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   try {
-    // --- Auth ---
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await requireAuthenticatedRequest(req);
+    if (auth instanceof Response) return auth;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
-    const userEmail = (claimsData.claims.email as string) ?? "";
-
-    // --- Env ---
     const AIRTABLE_PAT = Deno.env.get("AIRTABLE_PAT");
-    if (!AIRTABLE_PAT) throw new Error("AIRTABLE_PAT is not configured");
+    if (!AIRTABLE_PAT) return jsonResponse({ error: "Airtable sync is not configured" }, 500);
 
     const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
-    if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
+    const tableName = validateAirtableConfig(AIRTABLE_BASE_ID, Deno.env.get("AIRTABLE_TABLE_NAME"));
+    if (tableName instanceof Response) return tableName;
 
-    const AIRTABLE_TABLE_NAME = Deno.env.get("AIRTABLE_TABLE_NAME");
-    if (!AIRTABLE_TABLE_NAME) throw new Error("AIRTABLE_TABLE_NAME is not configured");
+    const parsed = parseSyncAirtableRequest(await parseJsonBody(req, 1024));
+    if (parsed instanceof Response) return parsed;
 
-    // --- Body ---
-    const body = await req.json();
-    const { application_id, title, about_yourself, status, created_at, updated_at, email } = body;
+    const { data: app, error: appError } = await auth.userClient
+      .from("general_applications")
+      .select("id,email,title,about_yourself,status,created_at,updated_at")
+      .eq("id", parsed.application_id)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
 
-    if (!application_id || typeof application_id !== "string") {
-      return new Response(JSON.stringify({ error: "Missing application_id" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (appError) {
+      log.error("application_lookup_failed", "Unable to load general application for Airtable sync", { applicationId: parsed.application_id }, appError);
+      return jsonResponse({ success: false, error: "Unable to sync application" }, 500);
+    }
+    if (!app) {
+      return jsonResponse({ success: false, error: "Application not found" }, 404);
     }
 
-    // --- Airtable upsert ---
-    // Use Airtable's native upsert support so sync only requires one write request.
-    const encodedTable = encodeURIComponent(AIRTABLE_TABLE_NAME);
+    const encodedTable = encodeURIComponent(tableName);
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodedTable}`;
 
     const fields = {
-      application_id,
-      user_id: userId,
-      user_email: email || userEmail,
-      title: title ?? "General Application",
-      about_yourself: about_yourself ?? "",
-      status: status ?? "draft",
-      created_at: created_at ?? new Date().toISOString(),
-      updated_at: updated_at ?? new Date().toISOString(),
+      application_id: app.id,
+      user_id: auth.userId,
+      user_email: app.email ?? "",
+      title: app.title ?? "General Application",
+      about_yourself: app.about_yourself ?? "",
+      status: app.status ?? "draft",
+      created_at: app.created_at ?? new Date().toISOString(),
+      updated_at: app.updated_at ?? new Date().toISOString(),
     };
 
     const airtableRes = await fetch(airtableUrl, {
@@ -88,37 +66,18 @@ Deno.serve(async (req) => {
     });
 
     if (!airtableRes.ok) {
-      const errBody = await airtableRes.text();
-      console.error("sync-airtable Airtable upsert failed", {
-        status: airtableRes.status,
-        baseId: AIRTABLE_BASE_ID,
-        tableName: AIRTABLE_TABLE_NAME,
-        patLength: AIRTABLE_PAT.length,
-        response: errBody,
-      });
-
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Airtable upsert failed [${airtableRes.status}]: ${errBody}`,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      await airtableRes.text();
+      log.error("airtable_upsert_failed", "Airtable upsert failed", { status: airtableRes.status, applicationId: app.id });
+      return jsonResponse({ success: false, error: "Airtable sync failed" }, 200);
     }
 
     const result = await airtableRes.json();
     const firstRecord = result.records?.[0];
 
-    return new Response(JSON.stringify({ success: true, airtable_id: firstRecord?.id ?? null }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true, airtable_id: firstRecord?.id ?? null });
   } catch (error: unknown) {
-    console.error("sync-airtable error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ success: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (error instanceof Response) return error;
+    log.error("sync_failed", "General application Airtable sync failed", undefined, error);
+    return jsonResponse({ success: false, error: "Airtable sync failed" }, 500);
   }
 });
