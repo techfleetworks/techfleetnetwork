@@ -24,6 +24,7 @@ import {
   KeyRound,
   Flag,
   Sparkles,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
@@ -220,6 +221,7 @@ const mobileAdminLinks = [
   { label: "Banners", href: "/admin/banners", icon: Flag },
   { label: "Clients & Projects", href: "/admin/clients", icon: Building2 },
   { label: "Recruiting Center", href: "/admin/roster", icon: Users },
+  { label: "System Health", href: "/admin/system-health", icon: HeartPulse },
   { label: "User Admin", href: "/admin/users", icon: ShieldCheck },
 ];
 
