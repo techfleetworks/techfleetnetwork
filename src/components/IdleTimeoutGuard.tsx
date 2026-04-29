@@ -15,10 +15,10 @@ import { useNavigate } from "react-router-dom";
 
 export function IdleTimeoutGuard() {
   const { user, signOut } = useAuth();
-  const { isAdmin } = useAdmin();
+  useAdmin();
   const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
-  const timeoutMinutes = isAdmin ? 15 : 20;
+  const timeoutMinutes = 30;
 
   const handleTimeout = useCallback(async () => {
     setShowWarning(false);
