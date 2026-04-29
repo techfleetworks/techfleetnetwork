@@ -3,6 +3,12 @@ import { screen } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import DashboardPage from "@/pages/DashboardPage";
 
+const mockState = vi.hoisted(() => ({
+  dashboardOverview: undefined as unknown,
+  visibleWidgets: ["core_courses"],
+  widgetOrder: ["core_courses"],
+}));
+
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", user_metadata: { full_name: "Test User" } },
@@ -12,14 +18,22 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 vi.mock("@/hooks/use-dashboard-preferences", () => ({
   useDashboardPreferences: () => ({
-    visibleWidgets: { broken: true } as any,
-    widgetOrder: ["core_courses"],
+    visibleWidgets: mockState.visibleWidgets,
+    widgetOrder: mockState.widgetOrder,
     isVisible: () => true,
     toggleWidget: vi.fn(),
     reorderWidgets: vi.fn(),
     isNewUser: false,
     isLoading: false,
   }),
+}));
+
+vi.mock("@/hooks/use-dashboard-overview", () => ({
+  useDashboardOverview: () => ({ data: mockState.dashboardOverview }),
+}));
+
+vi.mock("@/hooks/use-admin", () => ({
+  useAdmin: () => ({ isAdmin: false, loading: false }),
 }));
 
 vi.mock("@/hooks/use-journey-progress", () => ({
@@ -30,13 +44,17 @@ vi.mock("@/hooks/use-announcements", () => ({
   useLatestAnnouncements: () => ({ data: [] }),
 }));
 
-vi.mock("@/lib/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
-  useQuery: ({ queryFn, enabled = true }: { queryFn?: () => unknown; enabled?: boolean }) => {
-    if (!enabled) return { data: undefined };
-    return { data: queryFn ? queryFn() : undefined };
-  },
-}));
+vi.mock("@/lib/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/react-query")>();
+  return {
+    ...actual,
+    useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+    useQuery: ({ queryFn, enabled = true }: { queryFn?: () => unknown; enabled?: boolean }) => {
+      if (!enabled) return { data: undefined };
+      return { data: queryFn ? queryFn() : undefined };
+    },
+  };
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -85,12 +103,37 @@ vi.mock("@/components/NetworkActivity", () => ({
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.dashboardOverview = undefined;
+    mockState.visibleWidgets = ["core_courses"];
+    mockState.widgetOrder = ["core_courses"];
   });
 
-  it("renders without crashing when visibleWidgets is malformed", async () => {
+  it("renders the dashboard course section", async () => {
     renderWithRouter(<DashboardPage />);
 
     expect(await screen.findByText(/welcome back, test/i)).toBeInTheDocument();
-    expect(screen.getByText(/course completion/i)).toBeInTheDocument();
+    expect(screen.getByText(/getting started/i)).toBeInTheDocument();
+  });
+
+  it("DASH-APP-STATUS-001: shows submitted general application status on the dashboard", async () => {
+    mockState.visibleWidgets = ["my_project_apps"];
+    mockState.widgetOrder = ["my_project_apps"];
+    mockState.dashboardOverview = {
+      phase_counts: {},
+      general_application: {
+        id: "general-app-1",
+        status: "completed",
+        completed_at: "2026-04-20T12:00:00Z",
+        updated_at: "2026-04-20T12:00:00Z",
+        current_section: 5,
+      },
+      project_applications: [],
+    };
+
+    renderWithRouter(<DashboardPage />);
+
+    expect(await screen.findByText("General Application")).toBeInTheDocument();
+    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.queryByText("Draft")).not.toBeInTheDocument();
   });
 });
