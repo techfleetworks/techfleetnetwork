@@ -144,13 +144,26 @@ describe("AuthService session max-age marker", () => {
     localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
     sessionStorage.setItem(
       "session_started_at",
-      JSON.stringify({ version: 1, userId: "idle-user", startedAtMs: Date.now() - 30 * 60 * 1000, lastActivityAtMs: Date.now() - 25 * 60 * 1000 }),
+      JSON.stringify({ version: 1, userId: "idle-user", startedAtMs: Date.now() - 40 * 60 * 1000, lastActivityAtMs: Date.now() - 35 * 60 * 1000 }),
     );
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
 
     await expect(AuthService.getSession()).resolves.toBeNull();
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
     expect(logAccountActivity).toHaveBeenCalledWith("session_idle_timeout", expect.objectContaining({ userId: "idle-user" }));
+  });
+
+  it("keeps the same user's session active at 25 minutes of inactivity", async () => {
+    const session = makeSession("active-idle-user");
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
+    sessionStorage.setItem(
+      "session_started_at",
+      JSON.stringify({ version: 1, userId: "active-idle-user", startedAtMs: Date.now() - 30 * 60 * 1000, lastActivityAtMs: Date.now() - 25 * 60 * 1000 }),
+    );
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
+
+    await expect(AuthService.getSession()).resolves.toEqual(session);
+    expect(supabase.auth.signOut).not.toHaveBeenCalled();
   });
 
   it("does not call the backend when no auth token is stored locally", async () => {
