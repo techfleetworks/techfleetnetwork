@@ -87,6 +87,21 @@ export interface EmailPipelineHealth {
   recent_logs: EmailPipelineLog[];
 }
 
+export const SYSTEM_REMEDIATION_COLUMNS = [
+  "id",
+  "signature_pattern",
+  "event_type_filter",
+  "remediation_function",
+  "description",
+  "enabled",
+  "cooldown_seconds",
+  "last_run_at",
+  "last_status",
+  "last_error",
+  "run_count",
+  "success_count",
+].join(", ");
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
@@ -113,7 +128,7 @@ export const SystemHealthService = {
   async getRemediations(): Promise<RemediationRule[]> {
     const { data, error } = await sb
       .from("system_remediations")
-      .select("*")
+      .select(SYSTEM_REMEDIATION_COLUMNS)
       .order("description", { ascending: true });
     if (error) throw error;
     return (data as RemediationRule[]) ?? [];
