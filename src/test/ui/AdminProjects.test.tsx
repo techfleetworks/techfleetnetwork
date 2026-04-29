@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@/lib/react-query";
  *   PROJECT-004 — Computed milestone fields surface in the project card
  *   PROJECT-005 — Only Active clients are returned for the form (RLS-shaped query)
  *   PROJECT-006 — Selected client metadata surfaces (logo, name) on the project card
- *   PROJECT-007 — Non-admin route guard redirects to /dashboard
+  *   PROJECT-007 — Non-admin route guard redirects to /access-denied
  *
  * These tests intentionally exercise the PRESENTATION + WIRING surface only.
  * The Discord/role/coordinator picker behavior is covered separately and is
@@ -209,14 +209,14 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
         <MemoryRouter initialEntries={["/admin/clients"]}>
           <Routes>
             <Route path="/admin/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
-            <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+            <Route path="/access-denied" element={<div data-testid="access-denied-page">Access denied</div>} />
             <Route path="/login" element={<div>Login</div>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
+    expect(await screen.findByTestId("access-denied-page")).toBeInTheDocument();
     expect(screen.queryByText(/Clients & Projects/i)).not.toBeInTheDocument();
   });
 });
