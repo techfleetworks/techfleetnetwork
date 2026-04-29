@@ -57,11 +57,12 @@ describe("SystemHealthPage", () => {
 
     const deliveryTab = screen.getByRole("tab", { name: "Delivery" });
     await user.click(deliveryTab);
-    expect(await screen.findByText("member@example.com")).toBeInTheDocument();
+    expect(await screen.findByText("me••••@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("member@example.com")).not.toBeInTheDocument();
 
     const errorsTab = screen.getByRole("tab", { name: "Errors" });
     await user.click(errorsTab);
     const errorsPanel = await screen.findByRole("tabpanel");
-    expect(within(errorsPanel).getByText("Provider rejected the sender domain")).toBeInTheDocument();
+    expect(within(errorsPanel).getByText("Delivery issue detected. Review provider configuration and retry from the runbook.")).toBeInTheDocument();
   });
 });
