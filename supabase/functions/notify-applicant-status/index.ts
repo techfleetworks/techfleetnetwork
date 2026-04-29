@@ -260,8 +260,8 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
     await res.text() // consume body
     return { ok: true }
   } catch (e) {
-    console.error('Discord role assignment error after retries', e)
-    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
+    console.error('Discord role assignment error after retries', { error: summarizeError(e) })
+    return { ok: false, error: 'Discord role assignment failed' }
   }
 }
 
@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
     .eq('id', applicationId)
 
   if (updateError) {
-    console.error('Status update failed', { applicationId, newStatus, error: updateError.message })
+    console.error('Status update failed', { applicationId, newStatus, error: updateError.code ?? 'status_update_error' })
     return errorResponse('Failed to update status', 500)
   }
 
