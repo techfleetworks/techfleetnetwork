@@ -17,7 +17,10 @@ export function handleCors(req: Request): Response | null {
 
 export function jsonResponse(body: unknown, status = 200): Response {
   const safeStatus = status >= 100 && status <= 599 ? status : 500;
-  return new Response(JSON.stringify(body), { status: safeStatus, headers: jsonHeaders });
+  return new Response(JSON.stringify(body), {
+    status: safeStatus,
+    headers: jsonHeaders,
+  });
 }
 
 export function methodNotAllowed(): Response {
