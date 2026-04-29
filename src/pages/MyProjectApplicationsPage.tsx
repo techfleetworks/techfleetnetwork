@@ -21,6 +21,28 @@ import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { ClientLogo } from "@/components/ClientLogo";
 
+export const MY_PROJECT_APPLICATION_COLUMNS = [
+  "id",
+  "project_id",
+  "status",
+  "applicant_status",
+  "current_step",
+  "completed_at",
+  "created_at",
+  "updated_at",
+  "participated_previous_phase",
+  "team_hats_interest",
+].join(", ");
+
+export const MY_PROJECT_APPLICATION_PROJECT_COLUMNS = [
+  "id",
+  "project_type",
+  "phase",
+  "project_status",
+  "client_id",
+  "team_hats",
+].join(", ");
+
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
@@ -95,7 +117,7 @@ export default function MyProjectApplicationsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(MY_PROJECT_APPLICATION_COLUMNS)
         .eq("user_id", user!.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -111,7 +133,7 @@ export default function MyProjectApplicationsPage() {
     queryFn: async () => {
       if (projectIds.length === 0) return [];
       const { data, error } = await supabase
-        .from("projects").select("*").in("id", projectIds);
+        .from("projects").select(MY_PROJECT_APPLICATION_PROJECT_COLUMNS).in("id", projectIds);
       if (error) throw error;
       return (data ?? []) as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] }[];
     },
