@@ -23,6 +23,44 @@ export interface TotpFactor {
   updated_at: string;
 }
 
+type FactorListResponse = {
+  all?: unknown[];
+  totp?: unknown[];
+  phone?: unknown[];
+};
+
+export function normalizeMfaFactors(data: FactorListResponse | null | undefined): TotpFactor[] {
+  const candidates = [
+    ...(Array.isArray(data?.all) ? data.all : []),
+    ...(Array.isArray(data?.totp) ? data.totp : []),
+    ...(Array.isArray(data?.phone) ? data.phone : []),
+  ];
+  const byId = new Map<string, TotpFactor>();
+
+  for (const item of candidates) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    if (typeof record.id !== "string" || !record.id) continue;
+
+    const factorType = record.factor_type ?? record.factorType;
+    if (factorType !== "totp" && factorType !== "phone") continue;
+
+    const status = record.status;
+    if (status !== "verified" && status !== "unverified") continue;
+
+    byId.set(record.id, {
+      id: record.id,
+      friendly_name: typeof record.friendly_name === "string" ? record.friendly_name : undefined,
+      factor_type: factorType,
+      status,
+      created_at: typeof record.created_at === "string" ? record.created_at : "",
+      updated_at: typeof record.updated_at === "string" ? record.updated_at : "",
+    });
+  }
+
+  return [...byId.values()];
+}
+
 export interface EnrollTotpResult {
   factorId: string;
   qrCode: string; // SVG data URI
@@ -41,7 +79,7 @@ export const MfaService = {
     let lastError: unknown;
     for (let attempt = 0; attempt < MFA_RETRY_DELAYS_MS.length; attempt += 1) {
       const { data, error } = await supabase.auth.mfa.listFactors();
-      if (!error) return (data?.all ?? []) as TotpFactor[];
+      if (!error) return normalizeMfaFactors(data as FactorListResponse);
       lastError = error;
       log.warn("listFactors", `Attempt ${attempt + 1} failed: ${error.message}`);
       if (attempt < MFA_RETRY_DELAYS_MS.length - 1) await wait(MFA_RETRY_DELAYS_MS[attempt]);
