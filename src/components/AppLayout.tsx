@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -59,6 +59,8 @@ import { FleetyChatWidget } from "./FleetyChatWidget";
 import { AdminTwoFactorSetupBanner } from "./AdminTwoFactorSetupBanner";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
+import { extractAvatarPath } from "@/lib/avatar-storage";
+import { supabase } from "@/integrations/supabase/client";
 
 function ProfileDropdown({
   profile,
@@ -70,9 +72,25 @@ function ProfileDropdown({
   onSignOut: () => void;
 }) {
   const navigate = useNavigate();
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const avatarInitials = profile
     ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
     : (user?.user_metadata?.full_name?.[0] || "U").toUpperCase();
+
+  useEffect(() => {
+    let cancelled = false;
+    const avatarPath = extractAvatarPath(profile?.avatar_url);
+    if (!avatarPath) {
+      setAvatarSrc(null);
+      return;
+    }
+    supabase.storage.from("avatars").createSignedUrl(avatarPath, 60 * 15).then(({ data }) => {
+      if (!cancelled) setAvatarSrc(data?.signedUrl ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.avatar_url]);
 
   return (
     <DropdownMenu>
@@ -82,7 +100,7 @@ function ProfileDropdown({
           aria-label="Account menu"
         >
           <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-            <AvatarImage src={profile?.avatar_url || undefined} alt="Profile" />
+            <AvatarImage src={avatarSrc || undefined} alt="Profile" />
             <AvatarFallback className="text-xs">{avatarInitials}</AvatarFallback>
           </Avatar>
         </button>
