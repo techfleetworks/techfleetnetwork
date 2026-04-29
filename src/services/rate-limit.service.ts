@@ -10,22 +10,6 @@ interface RateLimitResult {
   retry_after: number;
 }
 
-/**
- * Hash an identifier in the browser before sending it to the database.
- * Mirrors the legacy edge-function behaviour (server-side digest with the
- * service-role key) closely enough for rate-limit bucketing while keeping
- * raw emails out of `public.rate_limits`. We use a fixed pepper baked into
- * the build because the service-role key cannot leave the server.
- */
-async function hashIdentifier(value: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(value + "::tfn-rate-limit-v1");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 const VALID_ACTIONS = new Set(["login_attempt", "signup_attempt", "password_reset"]);
 
 /**
