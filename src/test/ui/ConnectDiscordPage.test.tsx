@@ -3,19 +3,23 @@ import { renderWithRouter } from "./test-utils";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { staleVisibilityMessage, mockResolveDiscordId, mockConfirmDiscordId } = vi.hoisted(() => ({
+const { staleVisibilityMessage, mockResolveDiscordId, mockConfirmDiscordId, mockRefreshProfile, mockAuthState } = vi.hoisted(() => ({
   staleVisibilityMessage:
     "That Discord account is no longer visible in the Tech Fleet server. Please join the server, then search again.",
   mockResolveDiscordId: vi.fn(),
   mockConfirmDiscordId: vi.fn(),
+  mockRefreshProfile: vi.fn(),
+  mockAuthState: {
+    user: { id: "user-1", user_metadata: { full_name: "Test Member" } },
+    profile: { discord_user_id: "", discord_username: "", display_name: "Test Member" },
+    profileLoaded: true,
+  },
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
-    user: { id: "user-1", user_metadata: { full_name: "Test Member" } },
-    profile: { discord_user_id: "", discord_username: "", display_name: "Test Member" },
-    profileLoaded: true,
-    refreshProfile: vi.fn(),
+    ...mockAuthState,
+    refreshProfile: mockRefreshProfile,
   }),
 }));
 
@@ -52,6 +56,9 @@ import ConnectDiscordPage from "@/pages/ConnectDiscordPage";
 describe("ConnectDiscordPage Discord member picker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthState.user = { id: "user-1", user_metadata: { full_name: "Test Member" } };
+    mockAuthState.profile = { discord_user_id: "", discord_username: "", display_name: "Test Member" };
+    mockAuthState.profileLoaded = true;
   });
 
   it("removes a stale candidate after visibility confirmation fails so the user can search again", async () => {
@@ -110,5 +117,39 @@ describe("ConnectDiscordPage Discord member picker", () => {
     await waitFor(() => {
       expect(mockConfirmDiscordId).toHaveBeenCalledWith("333333333333333333");
     });
+  });
+
+  it("shows the newly selected username immediately after re-linking even while profile data is stale", async () => {
+    const user = userEvent.setup();
+    mockAuthState.profile = {
+      discord_user_id: "111111111111111111",
+      discord_username: "old.member",
+      display_name: "Test Member",
+    };
+    mockResolveDiscordId.mockResolvedValue({
+      discord_user_id: null,
+      candidates: [
+        { id: "444444444444444444", username: "new.member", display_name: "New Member", global_name: "New Member", nick: null, avatar: null },
+      ],
+    });
+    mockConfirmDiscordId.mockResolvedValue({
+      discord_user_id: "444444444444444444",
+      discord_username: "new.member",
+      discord_display_name: "New Member",
+      global_name: "New Member",
+      nick: null,
+    });
+
+    renderWithRouter(<ConnectDiscordPage />);
+
+    expect(await screen.findByText(/@old\.member/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /re-link a different account/i }));
+    await user.type(screen.getByLabelText(/discord username or display name/i), "new member");
+    await user.click(screen.getByRole("button", { name: /verify/i }));
+    await user.click(await screen.findByRole("button", { name: /select new member/i }));
+
+    expect(await screen.findByText(/@new\.member/)).toBeInTheDocument();
+    expect(screen.queryByText(/@old\.member/)).not.toBeInTheDocument();
+    expect(mockRefreshProfile).toHaveBeenCalled();
   });
 });

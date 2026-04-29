@@ -54,6 +54,7 @@ export function ProfileDiscordConnector() {
   const [verifyError, setVerifyError] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [linkedDiscordUsername, setLinkedDiscordUsername] = useState(profile?.discord_username || "");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [relinking, setRelinking] = useState(false);
 
@@ -66,7 +67,10 @@ export function ProfileDiscordConnector() {
   };
 
   useEffect(() => {
-    if (!relinking) setUsername(profile?.discord_username || "");
+    if (!relinking) {
+      setUsername(profile?.discord_username || "");
+      setLinkedDiscordUsername(profile?.discord_username || "");
+    }
   }, [profile?.discord_username, relinking]);
 
   const generateInvite = async () => {
@@ -118,6 +122,7 @@ export function ProfileDiscordConnector() {
     await JourneyService.upsertTask(user.id, PHASE, TASK_ID, true);
     try { await assignCommunityRole(discordUserId); } catch { /* role sync retry queue/admin permissions are non-blocking */ }
     DiscordNotifyService.discordVerified(displayName, discordUsername, discordUserId);
+    setLinkedDiscordUsername(discordUsername);
     await refreshProfile();
     setRelinking(false);
     setCandidates([]);
@@ -206,7 +211,7 @@ export function ProfileDiscordConnector() {
       {isLinked ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Connected as <strong className="text-foreground">@{profile?.discord_username}</strong>.
+            Connected as <strong className="text-foreground">@{linkedDiscordUsername || profile?.discord_username}</strong>.
           </p>
           <Button type="button" variant="outline" size="sm" onClick={() => setRelinking(true)}>
             Re-link a different account

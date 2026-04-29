@@ -82,6 +82,7 @@ export default function ConnectDiscordPage() {
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [linkedDiscordUsername, setLinkedDiscordUsername] = useState("");
   const [candidates, setCandidates] = useState<Array<{
     id: string;
     username: string;
@@ -106,7 +107,10 @@ export default function ConnectDiscordPage() {
     if (!dataReady || initialSyncDone.current) return;
     initialSyncDone.current = true;
 
-    if (profile?.discord_username) setUsername(profile.discord_username);
+    if (profile?.discord_username) {
+      setUsername(profile.discord_username);
+      setLinkedDiscordUsername(profile.discord_username);
+    }
 
     if (isLinked) {
       setVerified(true);
@@ -269,6 +273,7 @@ export default function ConnectDiscordPage() {
     await refreshProfile();
 
     setVerified(true);
+    setLinkedDiscordUsername(discordUsername);
     setCandidates([]);
     if (communityRoleAssigned) {
       toast.success(selectedLabel ? `Selected ${selectedLabel}. Discord account verified, linked, and added to Community!` : "Discord account verified, linked, and added to Community!", {
@@ -423,7 +428,7 @@ export default function ConnectDiscordPage() {
             <p className="text-sm text-muted-foreground">
               Your Discord account{" "}
               <strong className="text-foreground">
-                @{profile?.discord_username || username}
+                @{linkedDiscordUsername || profile?.discord_username || username}
               </strong>{" "}
               is linked to your Tech Fleet Network profile.
             </p>
@@ -434,6 +439,7 @@ export default function ConnectDiscordPage() {
               onClick={() => {
                 setVerified(false);
                 setUsername("");
+                setLinkedDiscordUsername("");
                 setVerifyError("");
                 setStep("yes-discord");
               }}
