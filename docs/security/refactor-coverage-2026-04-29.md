@@ -25,6 +25,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Email unsubscribe endpoint | `supabase/functions/handle-email-unsubscribe/index.ts` | A02 Data Minimization | Replaces token wildcard lookup and broad update return with explicit email/used-at allowlists | Verified |
 | Announcement service | `src/services/announcement.service.ts` | A02 Data Minimization | Replaces announcement implicit insert/read projections with explicit announcement and read-receipt allowlists | Verified |
 | General application service | `src/services/general-application.service.ts` | A02 Data Minimization | Replaces repeated long-form inline projections and implicit create returns with explicit application/profile-email allowlists | Verified |
+| Admin roster views | `src/pages/AdminRosterPage.tsx`, `src/pages/RosterProjectDetailPage.tsx`, `src/test/ui/AdminProjects.test.tsx` | A02 Data Minimization | Converts roster list/detail projections and stale test fixture wildcard reads to explicit allowlists | Verified |
 
 ## BDD coverage records
 
@@ -47,6 +48,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-EMAIL-UNSUBSCRIBE-PROJECTION-052` | Public email unsubscribe endpoint avoids wildcard token projections and metadata over-fetching | `supabase/functions/handle-email-unsubscribe/security_test.ts` |
 | `SEC-ANNOUNCEMENT-SERVICE-PROJECTION-053` | Announcement service avoids wildcard/implicit projections and keeps read receipts bounded | `src/test/services/announcement.service.security.test.ts` |
 | `SEC-GENERAL-APPLICATION-SERVICE-PROJECTION-054` | General application service avoids wildcard/implicit projections and keeps profile lookup email-only | `src/test/services/general-application.service.security.test.ts` |
+| `SEC-ADMIN-ROSTER-PROJECTION-055` | Admin roster list/detail views avoid wildcard/implicit projections and bound project/client fields | `src/test/ui/AdminRosterProjection.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -68,6 +70,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused function tests confirm the public unsubscribe endpoint reads and returns only email/used-at token fields.
 - Focused service tests confirm announcement list/create/read-receipt flows use explicit projections and avoid private/device metadata over-fetching.
 - Focused service tests confirm general application list/fetch/create/latest-completed reads use a shared allowlist and profile prefill reads email only.
+- Focused UI source tests confirm admin roster list/detail reads use named project/application count allowlists and test fixtures no longer exercise wildcard client reads.
 
 ## Remaining security-refactor gaps
 
