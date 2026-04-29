@@ -37,6 +37,9 @@ describe("sanitizeHtml", () => {
   it("strips id attributes (DOM clobbering / :target abuse)", () => {
     expect(sanitizeHtml('<p id="evil">text</p>')).not.toContain('id=');
   });
+  it("strips name attributes (DOM clobbering)", () => {
+    expect(sanitizeHtml('<a name="location" href="https://example.com">text</a>')).not.toContain('name=');
+  });
   it("strips <style> blocks entirely", () => {
     const out = sanitizeHtml("<style>body{display:none}</style><p>ok</p>");
     expect(out).not.toContain("<style");

@@ -377,7 +377,7 @@ export function safeJsonParse<T = unknown>(json: string): T {
  *
  *   • No `style` attribute (forbids inline CSS)
  *   • No `class` attribute (forbids referencing global Tailwind/utility CSS)
- *   • No `id` attribute (forbids `:target` CSS pseudo-class abuse + DOM clobbering)
+   *   • No `id` or `name` attributes (forbids `:target` abuse + DOM clobbering)
  *   • No `<style>`, `<link>`, `<svg>`, `<math>`, `<iframe>`, `<object>`, `<embed>`
  *   • No `<div>`, `<span>`, `<img>`, `<table>` (positional/visual abuse vectors)
  *
@@ -407,7 +407,7 @@ export function sanitizeHtml(dirty: string): string {
       "tr", "th", "td", "colgroup", "col", "caption",
     ],
     FORBID_ATTR: [
-      "style", "class", "id", "srcset", "sizes", "loading",
+      "style", "class", "id", "name", "srcset", "sizes", "loading",
       "ping", "formaction", "background", "poster",
     ],
     KEEP_CONTENT: true,            // keep inner text of stripped wrapper tags

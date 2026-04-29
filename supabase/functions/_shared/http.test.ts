@@ -31,3 +31,19 @@ Deno.test("parseJsonBody rejects oversized bodies before parsing", async () => {
     assertEquals((error as Response).status, 413);
   }
 });
+
+Deno.test("parseJsonBody rejects non-JSON content types before parsing", async () => {
+  const req = new Request("https://example.test", {
+    method: "POST",
+    headers: { "content-type": "text/plain" },
+    body: JSON.stringify({ ok: true }),
+  });
+
+  try {
+    await parseJsonBody(req);
+    throw new Error("Expected parseJsonBody to reject non-JSON content");
+  } catch (error) {
+    assertEquals(error instanceof Response, true);
+    assertEquals((error as Response).status, 415);
+  }
+});
