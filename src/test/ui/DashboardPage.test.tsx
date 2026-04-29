@@ -5,6 +5,7 @@ import DashboardPage from "@/pages/DashboardPage";
 
 const mockState = vi.hoisted(() => ({
   dashboardOverview: undefined as unknown,
+  visibleWidgets: ["core_courses"],
   widgetOrder: ["core_courses"],
 }));
 
@@ -17,7 +18,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 vi.mock("@/hooks/use-dashboard-preferences", () => ({
   useDashboardPreferences: () => ({
-    visibleWidgets: { broken: true } as any,
+    visibleWidgets: mockState.visibleWidgets,
     widgetOrder: mockState.widgetOrder,
     isVisible: () => true,
     toggleWidget: vi.fn(),
@@ -99,10 +100,11 @@ describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.dashboardOverview = undefined;
+    mockState.visibleWidgets = ["core_courses"];
     mockState.widgetOrder = ["core_courses"];
   });
 
-  it("renders without crashing when visibleWidgets is malformed", async () => {
+  it("renders the dashboard course section", async () => {
     renderWithRouter(<DashboardPage />);
 
     expect(await screen.findByText(/welcome back, test/i)).toBeInTheDocument();
@@ -110,6 +112,7 @@ describe("DashboardPage", () => {
   });
 
   it("DASH-APP-STATUS-001: shows submitted general application status on the dashboard", async () => {
+    mockState.visibleWidgets = ["my_project_apps"];
     mockState.widgetOrder = ["my_project_apps"];
     mockState.dashboardOverview = {
       phase_counts: {},
