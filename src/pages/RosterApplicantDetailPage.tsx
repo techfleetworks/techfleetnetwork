@@ -79,7 +79,7 @@ export default function RosterApplicantDetailPage() {
         .eq("id", applicationId!)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!applicationId && !!user && isAdmin,
   });
@@ -94,7 +94,7 @@ export default function RosterApplicantDetailPage() {
         .eq("id", projectId!)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown> & { clients: { name: string } | null };
+      return data as unknown as Record<string, unknown> & { clients: { name: string } | null };
     },
     enabled: !!projectId && !!user && isAdmin,
   });
@@ -127,7 +127,7 @@ export default function RosterApplicantDetailPage() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Record<string, unknown> | null;
+      return data as unknown as Record<string, unknown> | null;
     },
     enabled: !!projApp?.user_id,
   });
