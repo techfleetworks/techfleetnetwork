@@ -7,6 +7,8 @@ import {
 } from "../_shared/http.ts";
 
 // @public-route Token-bound RFC 8058 unsubscribe endpoint. Authorization is the single-use unsubscribe token.
+const UNSUBSCRIBE_TOKEN_COLUMNS = "email, used_at";
+const UNSUBSCRIBE_TOKEN_UPDATE_COLUMNS = "email, used_at";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
     // Look up the token
     const { data: tokenRecord, error: lookupError } = await supabase
       .from("email_unsubscribe_tokens")
-      .select("*")
+      .select(UNSUBSCRIBE_TOKEN_COLUMNS)
       .eq("token", token)
       .maybeSingle();
 
@@ -85,7 +87,7 @@ Deno.serve(async (req) => {
       .update({ used_at: new Date().toISOString() })
       .eq("token", token)
       .is("used_at", null)
-      .select()
+      .select(UNSUBSCRIBE_TOKEN_UPDATE_COLUMNS)
       .maybeSingle();
 
     if (updateError) {

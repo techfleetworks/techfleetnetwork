@@ -22,6 +22,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Admin clients/projects tabs | `src/components/clients/ClientsTab.tsx`, `src/components/clients/ProjectsTab.tsx` | A02 Data Minimization | Replaces admin management wildcard reads with explicit client and project allowlists | Verified |
 | Admin project readiness analysis | `src/components/admin/ProjectAnalysisContent.tsx` | A02 Data Minimization | Replaces analysis wildcard reads with explicit staffing, cross-application, project, and profile allowlists while excluding long-form answers | Verified |
 | Announcement banner service | `src/services/banner.service.ts` | A02 Data Minimization | Replaces admin/published banner wildcard reads with an explicit banner allowlist and keeps dismissal reads identifier-only | Verified |
+| Email unsubscribe endpoint | `supabase/functions/handle-email-unsubscribe/index.ts` | A02 Data Minimization | Replaces token wildcard lookup and broad update return with explicit email/used-at allowlists | Verified |
 
 ## BDD coverage records
 
@@ -41,6 +42,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-CLIENTS-PROJECTS-TABS-PROJECTION-049` | Admin clients/projects tabs avoid wildcard projections and unrelated metadata over-fetching | `src/test/ui/ClientsProjectsTabs.security.test.tsx` |
 | `SEC-PROJECT-ANALYSIS-PROJECTION-050` | Admin project readiness analysis avoids wildcard projections and long-form answer over-fetching | `src/test/ui/ProjectAnalysisContent.security.test.tsx` |
 | `SEC-BANNER-SERVICE-PROJECTION-051` | Announcement banner service avoids wildcard projections and keeps dismissal reads bounded | `src/test/services/banner.service.security.test.ts` |
+| `SEC-EMAIL-UNSUBSCRIBE-PROJECTION-052` | Public email unsubscribe endpoint avoids wildcard token projections and metadata over-fetching | `supabase/functions/handle-email-unsubscribe/security_test.ts` |
 
 ## Targeted validation performed
 
@@ -59,6 +61,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused UI source tests confirm admin client/project tab reads use explicit projections and avoid unrelated billing/private metadata.
 - Focused UI source tests confirm admin project readiness analysis uses explicit projections and avoids loading long-form application responses.
 - Focused service tests confirm announcement banner reads use explicit projections and dismissal reads remain identifier-only.
+- Focused function tests confirm the public unsubscribe endpoint reads and returns only email/used-at token fields.
 
 ## Remaining security-refactor gaps
 
