@@ -6,6 +6,8 @@ import {
   parseJsonBody,
 } from "../_shared/http.ts";
 
+// @public-route Token-bound RFC 8058 unsubscribe endpoint. Authorization is the single-use unsubscribe token.
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

@@ -8,6 +8,8 @@ const BodySchema = z.object({
 
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+// @public-route Browser pre-auth verification endpoint. Authorization is the Cloudflare Turnstile token.
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
