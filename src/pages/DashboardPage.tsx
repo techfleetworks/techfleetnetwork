@@ -5,15 +5,12 @@ import {
   Briefcase,
   ChevronRight,
   ClipboardCheck,
-  Clock,
   FolderKanban,
   Heart,
   Lock,
   Megaphone,
   MessageSquare,
   PartyPopper,
-  
-  CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-celebration.png";
 import { Badge } from "@/components/ui/badge";
@@ -200,6 +197,7 @@ export default function DashboardPage() {
 
   // General application status — sourced from overview RPC
   const generalApp = overview?.general_application ?? null;
+  const isGeneralAppSubmitted = generalApp?.status === "completed" || !!generalApp?.completed_at;
 
   // Project apps come from RPC; still need projects + clients lookup for display.
   const projectApps = overview?.project_applications ?? [];
@@ -464,21 +462,11 @@ export default function DashboardPage() {
                           <h3 className="font-semibold text-sm text-foreground truncate">
                             General Application
                           </h3>
-                          {generalApp.status === "submitted" ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Submitted
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                              <Clock className="h-3 w-3" />
-                              Draft
-                            </Badge>
-                          )}
+                          <ApplicationStatusBadge status={isGeneralAppSubmitted ? "completed" : generalApp.status} />
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {generalApp.status === "submitted" && generalApp.completed_at
-                            ? `Submitted ${format(new Date(generalApp.completed_at), "MMM d, yyyy")}`
+                          {isGeneralAppSubmitted
+                            ? `Submitted ${format(new Date(generalApp.completed_at ?? generalApp.updated_at), "MMM d, yyyy")}`
                             : `Section ${generalApp.current_section} of 5 · Updated ${format(new Date(generalApp.updated_at), "MMM d")}`}
                         </p>
                       </div>
