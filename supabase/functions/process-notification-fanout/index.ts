@@ -15,6 +15,8 @@ const corsHeaders = {
 
 const MAX_CHUNKS_PER_INVOCATION = 20; // 20 * 500 = up to 10k recipients per run
 const CHUNK_SIZE = 500;
+const ADMIN_ROLE_COLUMNS = "role";
+const SAFE_SERVER_ERROR = "Unable to process notification fanout jobs.";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -37,7 +39,7 @@ Deno.serve(async (req) => {
       if (!error && data?.user) {
         const { data: roleRow } = await userClient
           .from("user_roles")
-          .select("role")
+          .select(ADMIN_ROLE_COLUMNS)
           .eq("user_id", data.user.id)
           .eq("role", "admin")
           .maybeSingle();
@@ -91,9 +93,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, processed: summary }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (_err) {
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ error: SAFE_SERVER_ERROR }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
