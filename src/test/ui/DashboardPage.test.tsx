@@ -3,6 +3,9 @@ import { screen } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import DashboardPage from "@/pages/DashboardPage";
 
+let dashboardOverview: unknown = undefined;
+let widgetOrder = ["core_courses"];
+
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", user_metadata: { full_name: "Test User" } },
@@ -13,13 +16,17 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/hooks/use-dashboard-preferences", () => ({
   useDashboardPreferences: () => ({
     visibleWidgets: { broken: true } as any,
-    widgetOrder: ["core_courses"],
+    widgetOrder,
     isVisible: () => true,
     toggleWidget: vi.fn(),
     reorderWidgets: vi.fn(),
     isNewUser: false,
     isLoading: false,
   }),
+}));
+
+vi.mock("@/hooks/use-dashboard-overview", () => ({
+  useDashboardOverview: () => ({ data: dashboardOverview }),
 }));
 
 vi.mock("@/hooks/use-journey-progress", () => ({
@@ -85,6 +92,8 @@ vi.mock("@/components/NetworkActivity", () => ({
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    dashboardOverview = undefined;
+    widgetOrder = ["core_courses"];
   });
 
   it("renders without crashing when visibleWidgets is malformed", async () => {
@@ -92,5 +101,26 @@ describe("DashboardPage", () => {
 
     expect(await screen.findByText(/welcome back, test/i)).toBeInTheDocument();
     expect(screen.getByText(/course completion/i)).toBeInTheDocument();
+  });
+
+  it("DASH-APP-STATUS-001: shows submitted general application status on the dashboard", async () => {
+    widgetOrder = ["my_project_apps"];
+    dashboardOverview = {
+      phase_counts: {},
+      general_application: {
+        id: "general-app-1",
+        status: "completed",
+        completed_at: "2026-04-20T12:00:00Z",
+        updated_at: "2026-04-20T12:00:00Z",
+        current_section: 5,
+      },
+      project_applications: [],
+    };
+
+    renderWithRouter(<DashboardPage />);
+
+    expect(await screen.findByText("General Application")).toBeInTheDocument();
+    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.queryByText("Draft")).not.toBeInTheDocument();
   });
 });
