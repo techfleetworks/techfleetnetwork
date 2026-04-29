@@ -816,6 +816,42 @@ export const SENSITIVE_INPUT_ATTRS = {
   "data-1p-ignore": "true", // 1Password
 } as const;
 
+export interface PrivacyDisclosurePolicy {
+  purpose: string;
+  dataCategories: readonly string[];
+  consentGranted: boolean;
+  retentionDays: number;
+  thirdPartySharing?: boolean;
+}
+
+export function isPrivacyDisclosureAllowed(policy: PrivacyDisclosurePolicy): boolean {
+  if (!policy.purpose || policy.dataCategories.length === 0) return false;
+  if (!policy.consentGranted) return false;
+  if (!Number.isInteger(policy.retentionDays) || policy.retentionDays < 1 || policy.retentionDays > 365) return false;
+  if (policy.thirdPartySharing && policy.dataCategories.some((category) => /ssn|password|token|secret|mfa/i.test(category))) return false;
+  return true;
+}
+
+export interface ZeroTrustAccessContext extends ObjectAccessScope {
+  authenticated: boolean;
+  deviceTrusted?: boolean;
+  networkTrusted?: boolean;
+  requestedAction: "read" | "write" | "delete" | "admin";
+  allowedActions: readonly string[];
+  mfaVerified?: boolean;
+}
+
+export function isZeroTrustAccessAllowed(context: ZeroTrustAccessContext): boolean {
+  if (!context.authenticated) return false;
+  if (!isAuthorizedObjectAccess(context)) return false;
+  if (!context.allowedActions.includes(context.requestedAction)) return false;
+  if ((context.requestedAction === "delete" || context.requestedAction === "admin") && !context.mfaVerified) return false;
+  // Never trust the network by itself; a trusted device can lower friction only
+  // after identity, resource scope, and action checks have passed.
+  if (context.networkTrusted && !context.deviceTrusted && context.requestedAction !== "read") return false;
+  return true;
+}
+
 // ─── Dependency Track: SBOM Metadata ────────────────────────────────
 
 /**
@@ -835,6 +871,22 @@ export function getSBOMMetadata() {
     toolsUsed: ["npm audit", "lovable-dependency-scan"],
     lastScanDate: new Date().toISOString(),
   };
+}
+
+export interface DependencyRiskInput {
+  name: string;
+  version: string;
+  license?: string;
+  knownVulnerabilitySeverity?: "low" | "moderate" | "high" | "critical";
+  maintained?: boolean;
+  pinned?: boolean;
+}
+
+export function isDependencyAcceptableForUse(dep: DependencyRiskInput): boolean {
+  if (!dep.name || !dep.version || dep.version === "latest" || dep.pinned === false) return false;
+  if (dep.maintained === false) return false;
+  if (dep.knownVulnerabilitySeverity === "high" || dep.knownVulnerabilitySeverity === "critical") return false;
+  return true;
 }
 
 // ─── Content Integrity ──────────────────────────────────────────────
