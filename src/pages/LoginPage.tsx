@@ -176,10 +176,13 @@ export default function LoginPage() {
         setCaptchaFailureCount((count) => count + 1);
         // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
         try {
-          await supabase.rpc("record_failed_login", {
-            _email: result.data.email,
-            _ip: null,
-            _user_agent: navigator.userAgent.substring(0, 200),
+          await supabase.functions.invoke("public-auth-helpers", {
+            body: {
+              action: "record_failed_login",
+              email: result.data.email,
+              ip: null,
+              user_agent: navigator.userAgent.substring(0, 200),
+            },
           });
         } catch { /* non-blocking */ }
         throw err;
