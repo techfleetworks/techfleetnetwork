@@ -1,11 +1,12 @@
-import { handleCors, jsonResponse, methodNotAllowed } from "../_shared/http.ts";
+import { handleCors, jsonResponse, methodNotAllowed, parseJsonBody } from "../_shared/http.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 
 type PublicAction = "network_stats" | "country_distribution";
 
-function parseAction(req: Request): PublicAction | null {
-  const url = new URL(req.url);
-  const action = url.searchParams.get("action");
+function parseAction(value: unknown): PublicAction | null {
+  const action = typeof value === "object" && value !== null && "action" in value
+    ? (value as { action?: unknown }).action
+    : null;
   if (action === "network_stats" || action === "country_distribution") return action;
   return null;
 }
@@ -13,9 +14,16 @@ function parseAction(req: Request): PublicAction | null {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
-  if (req.method !== "GET") return methodNotAllowed();
+  if (req.method !== "POST") return methodNotAllowed();
 
-  const action = parseAction(req);
+  let body: unknown;
+  try {
+    body = await parseJsonBody(req, 1024);
+  } catch (error) {
+    return error instanceof Response ? error : jsonResponse({ error: "Invalid request" }, 400);
+  }
+
+  const action = parseAction(body);
   if (!action) return jsonResponse({ error: "Invalid action" }, 400);
 
   const admin = getAdminClient();
