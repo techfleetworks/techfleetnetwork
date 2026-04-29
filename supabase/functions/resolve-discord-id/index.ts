@@ -393,17 +393,14 @@ serve(async (req) => {
         : null,
     }));
 
-    log.info("resolve", `Returning ${candidates.length} selectable Discord candidates for "${cleanUsername}" [${requestId}]`, {
+    log.info("resolve", `Returning ${candidates.length} selectable Discord candidates [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      candidateUsernames,
-      candidateGlobalNames,
-      candidateNicks,
+      username: redactDiscordIdentifier(cleanUsername),
     });
     await auditLog(
       "discord_username_not_found",
-      `No match for "${cleanUsername}" — Discord returned ${members.length} candidates: usernames=[${candidateUsernames.join(",")}] display_names=[${candidateGlobalNames.join(",")}] nicknames=[${candidateNicks.join(",")}]`,
-      [`username:${cleanUsername}`, `result_count:${members.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
+      `No exact match for redacted Discord lookup; candidate_count:${members.length}`,
+      [`username_redacted:${redactDiscordIdentifier(cleanUsername)}`, `result_count:${members.length}`]
     );
     return new Response(
       JSON.stringify({
