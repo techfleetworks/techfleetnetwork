@@ -23,6 +23,27 @@ const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
+const SUBMISSION_PROJECT_APPLICATION_COLUMNS = [
+  "id", "project_id", "user_id", "completed_at", "participated_previous_phase", "team_hats_interest",
+  "previous_phase_position", "previous_phase_learnings", "previous_phase_help_teammates", "prior_engagement_preparation",
+  "passion_for_project", "client_project_knowledge", "cross_functional_contribution", "project_success_contribution",
+].join(", ");
+
+const SUBMISSION_PROJECT_COLUMNS = "id, client_id, project_type, phase, project_status";
+const SUBMISSION_CLIENT_COLUMNS = "id, name";
+
+const SUBMISSION_PROFILE_COLUMNS = [
+  "user_id", "display_name", "first_name", "last_name", "email", "country", "timezone", "discord_username",
+  "linkedin_url", "portfolio_url", "experience_areas", "education_background", "interests",
+  "professional_background", "professional_goals", "bio",
+].join(", ");
+
+const SUBMISSION_GENERAL_APPLICATION_COLUMNS = [
+  "completed_at", "hours_commitment", "previous_engagement", "previous_engagement_ways", "teammate_learnings",
+  "agile_vs_waterfall", "psychological_safety", "agile_philosophies", "collaboration_challenges",
+  "servant_leadership_definition", "servant_leadership_actions", "servant_leadership_challenges", "servant_leadership_situation",
+].join(", ");
+
 export default function ApplicationSubmissionDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
@@ -33,11 +54,11 @@ export default function ApplicationSubmissionDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(SUBMISSION_PROJECT_APPLICATION_COLUMNS)
         .eq("id", applicationId!)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!applicationId,
   });
@@ -47,9 +68,9 @@ export default function ApplicationSubmissionDetailPage() {
     queryKey: ["admin-proj-detail-for-app", projApp?.project_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("projects").select("*").eq("id", projApp!.project_id as string).single();
+        .from("projects").select(SUBMISSION_PROJECT_COLUMNS).eq("id", projApp!.project_id as string).single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!projApp?.project_id,
   });
@@ -59,9 +80,9 @@ export default function ApplicationSubmissionDetailPage() {
     queryKey: ["admin-client-detail-for-app", project?.client_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clients").select("*").eq("id", project!.client_id as string).single();
+        .from("clients").select(SUBMISSION_CLIENT_COLUMNS).eq("id", project!.client_id as string).single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!project?.client_id,
   });
@@ -71,9 +92,9 @@ export default function ApplicationSubmissionDetailPage() {
     queryKey: ["admin-profile-for-app", projApp?.user_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles").select("*").eq("user_id", projApp!.user_id as string).single();
+        .from("profiles").select(SUBMISSION_PROFILE_COLUMNS).eq("user_id", projApp!.user_id as string).single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!projApp?.user_id,
   });
@@ -84,14 +105,14 @@ export default function ApplicationSubmissionDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select(SUBMISSION_GENERAL_APPLICATION_COLUMNS)
         .eq("user_id", projApp!.user_id as string)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Record<string, unknown> | null;
+      return data as unknown as Record<string, unknown> | null;
     },
     enabled: !!projApp?.user_id,
   });
