@@ -43,6 +43,16 @@ const JSON_HEADERS = { ...CORS_HEADERS, 'Content-Type': 'application/json' } as 
 const INTERVIEW_GUIDE_URL =
   'https://guide.techfleet.org/team-portal/new-teammate-handbook/project-training-teams/applying-to-tech-fleet-project-training/interview-guide-for-tech-fleet-project-training/teammate-interview-guide-for-project-coordinators'
 
+function summarizeError(error: unknown): string {
+  return error instanceof Error ? error.name : 'UnknownError'
+}
+
+function redactEmail(email: string): string {
+  const [local = '', domain = ''] = email.split('@')
+  const [domainName = '', ...rest] = domain.split('.')
+  return `${local.slice(0, 2) || '**'}***@${[domainName.slice(0, 1) ? `${domainName.slice(0, 1)}***` : '***', ...rest].filter(Boolean).join('.')}`
+}
+
 /* ------------------------------------------------------------------ */
 /*  Notification content map                                           */
 /* ------------------------------------------------------------------ */
