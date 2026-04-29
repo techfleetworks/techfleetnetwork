@@ -128,17 +128,18 @@ export const SystemHealthService = {
   },
 
   async runRemediationsNow(): Promise<{ ran: number }> {
-    const { data, error } = await sb.rpc("run_auto_remediations");
+    const { data, error } = await sb.functions.invoke("admin-system-health", {
+      body: { action: "run_remediations" },
+    });
     if (error) throw error;
-    return (data as { ran: number }) ?? { ran: 0 };
+    return (data?.data as { ran: number }) ?? { ran: 0 };
   },
 
   async getEmailPipelineHealth(hours = 24, limit = 50): Promise<EmailPipelineHealth> {
-    const { data, error } = await sb.rpc("get_email_pipeline_health", {
-      p_hours: hours,
-      p_limit: limit,
+    const { data, error } = await sb.functions.invoke("admin-system-health", {
+      body: { action: "email_pipeline_health", hours, limit },
     });
     if (error) throw error;
-    return data as EmailPipelineHealth;
+    return data?.data as EmailPipelineHealth;
   },
 };
