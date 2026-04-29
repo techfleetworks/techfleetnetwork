@@ -428,7 +428,7 @@ export default function ConnectDiscordPage() {
             <p className="text-sm text-muted-foreground">
               Your Discord account{" "}
               <strong className="text-foreground">
-                @{profile?.discord_username || username}
+                @{linkedDiscordUsername || profile?.discord_username || username}
               </strong>{" "}
               is linked to your Tech Fleet Network profile.
             </p>
@@ -439,6 +439,7 @@ export default function ConnectDiscordPage() {
               onClick={() => {
                 setVerified(false);
                 setUsername("");
+                setLinkedDiscordUsername("");
                 setVerifyError("");
                 setStep("yes-discord");
               }}
