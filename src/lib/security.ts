@@ -446,10 +446,19 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   "audio/mp4",
 ]);
 
+const ALLOWED_UPLOAD_EXTENSIONS = new Set([
+  "jpg", "jpeg", "png", "gif", "webp", "pdf", "mp4", "webm", "mp3", "m4a",
+]);
+
 /** Max file size in bytes (10 MB) */
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 
 export function validateFileUpload(file: File): { valid: boolean; error?: string } {
+  const safeName = sanitizeFileName(file.name);
+  const extension = safeName.split(".").pop()?.toLowerCase() ?? "";
+  if (!extension || !ALLOWED_UPLOAD_EXTENSIONS.has(extension)) {
+    return { valid: false, error: "File extension is not allowed" };
+  }
   if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
     return { valid: false, error: `File type "${file.type}" is not allowed` };
   }
