@@ -9,7 +9,9 @@ export interface AuthenticatedRequestContext {
   userClient: SupabaseClient;
 }
 
-export async function requireAuthenticatedRequest(req: Request): Promise<AuthenticatedRequestContext | Response> {
+export async function requireAuthenticatedRequest(
+  req: Request,
+): Promise<AuthenticatedRequestContext | Response> {
   const token = extractBearerToken(req);
   if (!token) return jsonResponse({ error: "Unauthorized" }, 401);
 
