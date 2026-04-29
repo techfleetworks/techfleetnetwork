@@ -20,7 +20,6 @@ const ProjectRosterContent = lazy(() => import("@/components/admin/ProjectRoster
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
-const ROSTER_PROJECT_DETAIL_COLUMNS = "id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, clients(name)";
 
 const rosterTabs: TabItem[] = [
   { value: "analysis", label: "Application Analysis" },
@@ -47,7 +46,7 @@ export default function RosterProjectDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select(ROSTER_PROJECT_DETAIL_COLUMNS)
+        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, clients(name)")
         .eq("id", projectId!)
         .single();
       if (error) throw error;

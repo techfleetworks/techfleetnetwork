@@ -255,16 +255,14 @@ describe("isSessionWithinPolicy", () => {
   });
   it("rejects revoked, idle, and absolute-timeout sessions", () => {
     expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })).toBe(false);
-    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe(true);
-    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 35 * 60 * 1000 })).toBe(false);
+    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe(false);
     expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 4 * 60 * 60 * 1000, now: 5 * 60 * 60 * 1000 })).toBe(false);
   });
   it("returns precise failure reasons for session enforcement telemetry", () => {
     expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000 })).toBeNull();
     expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })).toBe("revoked");
     expect(getSessionPolicyFailureReason({ startedAt: 2_000, lastActivityAt: 1_000, now: 3_000 })).toBe("invalid");
-    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBeNull();
-    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 35 * 60 * 1000 })).toBe("idle_timeout");
+    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe("idle_timeout");
   });
 });
 

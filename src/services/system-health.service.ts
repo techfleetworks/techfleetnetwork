@@ -87,21 +87,6 @@ export interface EmailPipelineHealth {
   recent_logs: EmailPipelineLog[];
 }
 
-export const SYSTEM_REMEDIATION_COLUMNS = [
-  "id",
-  "signature_pattern",
-  "event_type_filter",
-  "remediation_function",
-  "description",
-  "enabled",
-  "cooldown_seconds",
-  "last_run_at",
-  "last_status",
-  "last_error",
-  "run_count",
-  "success_count",
-].join(", ");
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
@@ -128,7 +113,7 @@ export const SystemHealthService = {
   async getRemediations(): Promise<RemediationRule[]> {
     const { data, error } = await sb
       .from("system_remediations")
-      .select(SYSTEM_REMEDIATION_COLUMNS)
+      .select("*")
       .order("description", { ascending: true });
     if (error) throw error;
     return (data as RemediationRule[]) ?? [];
@@ -143,18 +128,17 @@ export const SystemHealthService = {
   },
 
   async runRemediationsNow(): Promise<{ ran: number }> {
-    const { data, error } = await sb.functions.invoke("admin-system-health", {
-      body: { action: "run_remediations" },
-    });
+    const { data, error } = await sb.rpc("run_auto_remediations");
     if (error) throw error;
-    return (data?.data as { ran: number }) ?? { ran: 0 };
+    return (data as { ran: number }) ?? { ran: 0 };
   },
 
   async getEmailPipelineHealth(hours = 24, limit = 50): Promise<EmailPipelineHealth> {
-    const { data, error } = await sb.functions.invoke("admin-system-health", {
-      body: { action: "email_pipeline_health", hours, limit },
+    const { data, error } = await sb.rpc("get_email_pipeline_health", {
+      p_hours: hours,
+      p_limit: limit,
     });
     if (error) throw error;
-    return data?.data as EmailPipelineHealth;
+    return data as EmailPipelineHealth;
   },
 };

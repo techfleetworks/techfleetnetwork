@@ -233,12 +233,15 @@ export default function ConnectDiscordPage() {
         return null;
       }
 
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
       await supabase
         .from("profiles")
-        .update({ avatar_url: path } as any)
+        .update({ avatar_url: publicUrl } as any)
         .eq("user_id", userId);
 
-      return path;
+      return publicUrl;
     } catch (err) {
       console.warn("[ConnectDiscord] Avatar save failed:", err);
       return null;

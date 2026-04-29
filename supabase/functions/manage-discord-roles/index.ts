@@ -38,10 +38,6 @@ interface RemoveAction {
 
 type RequestBody = ListAction | CreateAction | AssignAction | RemoveAction;
 
-function summarizeExternalError(status: number, requestId: string): string {
-  return `HTTP ${status}; request_id:${requestId}`;
-}
-
 function isValidAction(body: unknown): body is RequestBody {
   if (!body || typeof body !== "object") return false;
   const b = body as Record<string, unknown>;
@@ -54,7 +50,7 @@ function isValidAction(body: unknown): body is RequestBody {
   return false;
 }
 
-async function logDiscordError(action: string, status: number, requestId: string) {
+async function logDiscordError(action: string, status: number, errorText: string, requestId: string) {
   try {
     const srk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const url = Deno.env.get("SUPABASE_URL");
@@ -65,7 +61,7 @@ async function logDiscordError(action: string, status: number, requestId: string
         p_table_name: "discord_integration",
         p_record_id: `manage-discord-roles:${action}`,
         p_user_id: "00000000-0000-0000-0000-000000000000",
-        p_error_message: `[${action}] ${summarizeExternalError(status, requestId)}`,
+        p_error_message: `[${action}] HTTP ${status} — ${errorText}`.substring(0, 4000),
         p_changed_fields: [`request_id:${requestId}`, `http_status:${status}`],
       });
     }
@@ -165,9 +161,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        await res.text();
-        log.error("list", `Discord API error [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
-        await logDiscordError("list", res.status, requestId);
+        const errorText = await res.text();
+        log.error("list", `Discord API error [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("list", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to fetch Discord roles" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -229,9 +225,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        await res.text();
-        log.error("create", `Discord API error creating role [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
-        await logDiscordError("create", res.status, requestId);
+        const errorText = await res.text();
+        log.error("create", `Discord API error creating role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("create", res.status, errorText.substring(0, 500), requestId);
         return new Response(
           JSON.stringify({ error: "Failed to create Discord role" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -265,9 +261,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        await res.text();
-        log.error("assign", `Discord API error assigning role [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
-        await logDiscordError("assign", res.status, requestId);
+        const errorText = await res.text();
+        log.error("assign", `Discord API error assigning role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("assign", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to assign Discord role";
@@ -287,7 +283,7 @@ serve(async (req) => {
                 p_discord_user_id: discord_user_id,
                 p_role_id: role_id,
                 p_reason: "manage-discord-roles assign failed",
-                p_error: summarizeExternalError(status, requestId),
+                p_error: `HTTP ${status}: ${errorText.substring(0, 300)}`,
               });
             }
           } catch { /* swallow */ }
@@ -342,9 +338,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        await res.text();
-        log.error("remove", `Discord API error removing role [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
-        await logDiscordError("remove", res.status, requestId);
+        const errorText = await res.text();
+        log.error("remove", `Discord API error removing role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
+        await logDiscordError("remove", res.status, errorText.substring(0, 500), requestId);
 
         const status = res.status;
         let userMessage = "Failed to remove Discord role";

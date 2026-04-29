@@ -33,7 +33,7 @@ describe("client request throttle (BDD SECURITY-CLIENT-THROTTLE-001)", () => {
   });
 
   it("does not throttle the public aggregate Network Activity stats endpoint", () => {
-    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/functions/v1/public-network-activity"))).toBe(false);
+    expect(__clientRequestThrottleTestHooks.shouldThrottle(new URL("https://backend.example/rest/v1/rpc/get_network_stats"))).toBe(false);
   });
 
   it("deduplicates privacy-safe Cloud log events for throttle hits", async () => {

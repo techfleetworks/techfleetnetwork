@@ -25,36 +25,6 @@ const PROJECT_FIELD_GUIDANCE: Record<string, string> = {
   description: "Summarize the project's goals and scope.",
   discord_role_ids: "Select at least one Discord role for participants.",
 };
-export const PROJECT_FORM_PROJECT_COLUMNS = [
-  "id",
-  "client_id",
-  "friendly_name",
-  "description",
-  "project_type",
-  "phase",
-  "team_hats",
-  "project_status",
-  "current_phase_milestones",
-  "timezone_range",
-  "anticipated_start_date",
-  "anticipated_end_date",
-  "client_intake_url",
-  "notion_repository_url",
-  "discord_role_id",
-  "discord_role_name",
-  "coordinator_id",
-].join(", ");
-
-export const PROJECT_FORM_CLIENT_COLUMNS = [
-  "id",
-  "name",
-  "status",
-  "logo_url",
-  "website",
-  "primary_contact",
-  "mission",
-  "project_summary",
-].join(", ");
 import { z } from "zod";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { format } from "date-fns";
@@ -150,9 +120,9 @@ export default function ProjectFormPage() {
   const { isLoading: projectLoading } = useQuery({
     queryKey: ["project", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select(PROJECT_FORM_PROJECT_COLUMNS).eq("id", id!).single();
+      const { data, error } = await supabase.from("projects").select("*").eq("id", id!).single();
       if (error) throw error;
-      return data as unknown as ProjectForm;
+      return data;
     },
     enabled: isEditing,
     meta: {
@@ -186,9 +156,9 @@ export default function ProjectFormPage() {
   const { data: existingProject } = useQuery({
     queryKey: ["project-init", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select(PROJECT_FORM_PROJECT_COLUMNS).eq("id", id!).single();
+      const { data, error } = await supabase.from("projects").select("*").eq("id", id!).single();
       if (error) throw error;
-      return data as unknown as ProjectForm;
+      return data;
     },
     enabled: isEditing && !initialized,
     staleTime: 0,
@@ -221,7 +191,7 @@ export default function ProjectFormPage() {
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select(PROJECT_FORM_CLIENT_COLUMNS).order("name");
+      const { data, error } = await supabase.from("clients").select("*").order("name");
       if (error) throw error;
       return (data ?? []) as unknown as Client[];
     },

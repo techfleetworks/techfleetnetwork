@@ -43,16 +43,6 @@ const JSON_HEADERS = { ...CORS_HEADERS, 'Content-Type': 'application/json' } as 
 const INTERVIEW_GUIDE_URL =
   'https://guide.techfleet.org/team-portal/new-teammate-handbook/project-training-teams/applying-to-tech-fleet-project-training/interview-guide-for-tech-fleet-project-training/teammate-interview-guide-for-project-coordinators'
 
-function summarizeError(error: unknown): string {
-  return error instanceof Error ? error.name : 'UnknownError'
-}
-
-function redactEmail(email: string): string {
-  const [local = '', domain = ''] = email.split('@')
-  const [domainName = '', ...rest] = domain.split('.')
-  return `${local.slice(0, 2) || '**'}***@${[domainName.slice(0, 1) ? `${domainName.slice(0, 1)}***` : '***', ...rest].filter(Boolean).join('.')}`
-}
-
 /* ------------------------------------------------------------------ */
 /*  Notification content map                                           */
 /* ------------------------------------------------------------------ */
@@ -248,20 +238,20 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
     )
 
     if (retries > 0) {
-      console.info('Discord role assignment succeeded after retries', { retries })
+      console.info('Discord role assignment succeeded after retries', { retries, discordUserId, roleId })
     }
 
     if (!res.ok) {
-      await res.text()
-      console.error('Discord role assignment failed', { status: res.status })
+      const errorText = await res.text()
+      console.error('Discord role assignment failed', { status: res.status, error: errorText.substring(0, 500) })
       return { ok: false, error: `Discord API ${res.status}` }
     }
 
     await res.text() // consume body
     return { ok: true }
   } catch (e) {
-    console.error('Discord role assignment error after retries', { error: summarizeError(e) })
-    return { ok: false, error: 'Discord role assignment failed' }
+    console.error('Discord role assignment error after retries', e)
+    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
   }
 }
 
@@ -342,7 +332,7 @@ Deno.serve(async (req) => {
     .eq('id', applicationId)
 
   if (updateError) {
-    console.error('Status update failed', { applicationId, newStatus, error: updateError.code ?? 'status_update_error' })
+    console.error('Status update failed', { applicationId, newStatus, error: updateError.message })
     return errorResponse('Failed to update status', 500)
   }
 
@@ -364,7 +354,7 @@ Deno.serve(async (req) => {
     const friendly = (projectRow as any)?.friendly_name || ''
     projectName = [clientName, friendly].filter(Boolean).join(' — ')
   } catch (e) {
-    console.warn('Project lookup failed (non-critical)', { error: summarizeError(e) })
+    console.warn('Project lookup failed (non-critical)', e)
   }
 
   // Look up applicant preferences + fallback contact info.
@@ -385,7 +375,7 @@ Deno.serve(async (req) => {
       resolvedEmail = resolvedEmail || (applicantProfile.email as string) || ''
     }
   } catch (e) {
-    console.warn('Applicant profile lookup failed (non-critical)', { error: summarizeError(e) })
+    console.warn('Applicant profile lookup failed (non-critical)', e)
   }
 
   /* ---- 2. In-app notification (always sent, non-blocking) ---- */
@@ -408,13 +398,13 @@ Deno.serve(async (req) => {
     })
 
     if (notifError) {
-      console.error('Notification enqueue failed', { applicationId, error: notifError.code ?? 'notification_error' })
+      console.error('Notification enqueue failed', { applicantUserId, error: notifError.message })
     } else {
       notificationCreated = true
-      console.info('Notification queued', { applicationId, type: content.type, outboxId })
+      console.info('Notification queued', { applicantUserId, type: content.type, outboxId })
     }
   } catch (e) {
-    console.error('Notification error', { error: summarizeError(e) })
+    console.error('Notification error', e)
   }
 
   /* ---- 3. Audit log (non-blocking) ---- */
@@ -424,10 +414,10 @@ Deno.serve(async (req) => {
       p_table_name: 'project_applications',
       p_record_id: applicationId,
       p_user_id: user.id,
-      p_changed_fields: [`status:${newStatus}`],
+      p_changed_fields: [applicantUserId, newStatus],
     })
   } catch (e) {
-    console.warn('Audit log failed (non-critical)', { error: summarizeError(e) })
+    console.warn('Audit log failed (non-critical)', e)
   }
 
   /* ---- 4a. Email — branded interview invite (non-blocking) ---- */
@@ -456,21 +446,21 @@ Deno.serve(async (req) => {
       if (!emailResult.ok) {
         console.error('Interview email queue failed', {
           status: emailResult.status,
-          error: emailResult.error ? 'queue_error' : 'unknown_error',
-          applicant: redactEmail(resolvedEmail),
+          error: emailResult.error,
+          applicantEmail: resolvedEmail,
           applicationId,
         })
       } else {
         emailSent = !emailResult.suppressed
         console.info('Interview email processed', {
-          applicant: redactEmail(resolvedEmail),
+          applicantEmail: resolvedEmail,
           queued: !emailResult.suppressed,
           suppressed: emailResult.suppressed,
           messageId: emailResult.messageId,
         })
       }
     } catch (e) {
-      console.error('Interview email send error', { error: summarizeError(e) })
+      console.error('Interview email send error', e)
     }
   } else if (resolvedEmail && applicantWantsEmail) {
     /* ---- 4b. Email — generic status change (all other transitions) ---- */
@@ -496,15 +486,15 @@ Deno.serve(async (req) => {
       if (!emailResult.ok) {
         console.error('Status email queue failed', {
           status: emailResult.status,
-          error: emailResult.error ? 'queue_error' : 'unknown_error',
-          applicant: redactEmail(resolvedEmail),
+          error: emailResult.error,
+          applicantEmail: resolvedEmail,
           applicationId,
           newStatus,
         })
       } else {
         emailSent = !emailResult.suppressed
         console.info('Status email processed', {
-          applicant: redactEmail(resolvedEmail),
+          applicantEmail: resolvedEmail,
           newStatus,
           queued: !emailResult.suppressed,
           suppressed: emailResult.suppressed,
@@ -512,11 +502,11 @@ Deno.serve(async (req) => {
         })
       }
     } catch (e) {
-      console.error('Status email send error', { error: summarizeError(e) })
+      console.error('Status email send error', e)
     }
   } else if (!applicantWantsEmail) {
     console.info('Skipped status email — applicant has notify_announcements disabled', {
-      applicationId,
+      applicantUserId,
       newStatus,
     })
   }
@@ -552,9 +542,10 @@ Deno.serve(async (req) => {
           if (result.ok) {
             discordRoleAssigned = true
             console.info('Discord role assigned', {
-              applicationId,
-              hasDiscordUser: Boolean(applicantDiscordUserId),
-              hasRole: Boolean(discordRoleId),
+              applicantUserId,
+              discordUserId: applicantDiscordUserId,
+              roleId: discordRoleId,
+              roleName: discordRoleName,
             })
 
             // Log to audit
@@ -564,15 +555,15 @@ Deno.serve(async (req) => {
                 p_table_name: 'project_applications',
                 p_record_id: applicationId,
                 p_user_id: user.id,
-                p_changed_fields: ['discord_role_assigned', `role_present:${Boolean(discordRoleId)}`],
+                p_changed_fields: [applicantUserId, discordRoleId, discordRoleName || ''],
               })
             } catch (auditErr) {
-              console.warn('Discord role audit log failed', { error: summarizeError(auditErr) })
+              console.warn('Discord role audit log failed', auditErr)
             }
           } else {
             console.error('Discord role assignment failed', {
-              applicationId,
-              error: result.error ? 'discord_assignment_error' : 'unknown_error',
+              applicantUserId,
+              error: result.error,
             })
 
             // Log failure to audit
@@ -582,17 +573,17 @@ Deno.serve(async (req) => {
                 p_table_name: 'project_applications',
                 p_record_id: applicationId,
                 p_user_id: user.id,
-                p_changed_fields: ['discord_role_assignment_failed', `role_present:${Boolean(discordRoleId)}`],
-                p_error_message: result.error ? 'Discord role assignment failed' : 'Unknown error',
+                p_changed_fields: [applicantUserId, discordRoleId],
+                p_error_message: result.error || 'Unknown error',
               })
             } catch (auditErr) {
-              console.warn('Discord role failure audit log failed', { error: summarizeError(auditErr) })
+              console.warn('Discord role failure audit log failed', auditErr)
             }
           }
         }
       }
     } catch (e) {
-      console.error('Discord role assignment flow error', { error: summarizeError(e) })
+      console.error('Discord role assignment flow error', e)
     }
   }
 

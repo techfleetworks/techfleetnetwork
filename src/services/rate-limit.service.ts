@@ -10,6 +10,22 @@ interface RateLimitResult {
   retry_after: number;
 }
 
+/**
+ * Hash an identifier in the browser before sending it to the database.
+ * Mirrors the legacy edge-function behaviour (server-side digest with the
+ * service-role key) closely enough for rate-limit bucketing while keeping
+ * raw emails out of `public.rate_limits`. We use a fixed pepper baked into
+ * the build because the service-role key cannot leave the server.
+ */
+async function hashIdentifier(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value + "::tfn-rate-limit-v1");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const VALID_ACTIONS = new Set(["login_attempt", "signup_attempt", "password_reset"]);
 
 /**
@@ -41,12 +57,14 @@ export const RateLimitService = {
     }
 
     try {
+      const hashed = await hashIdentifier(identifier);
       const isLogin = action === "login_attempt";
-      const { data, error } = await supabase.functions.invoke("rate-limit", {
-        body: {
-          identifier,
-          action,
-        },
+      const { data, error } = await supabase.rpc("check_rate_limit", {
+        p_identifier: hashed,
+        p_action: action,
+        p_max_attempts: isLogin ? 6 : 3,
+        p_window_minutes: 15,
+        p_block_minutes: isLogin ? 60 : 60,
       });
       if (error) {
         if (isAuthThrottleCaptchaError(error) || error.message?.toLowerCase().includes("too many rapid auth attempts")) {
@@ -55,7 +73,7 @@ export const RateLimitService = {
         log.warn("check", `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action }, error);
         return { allowed: true, remaining: 5, retry_after: 0 };
       }
-      const result = (data ?? { allowed: true, remaining: isLogin ? 6 : 3, retry_after: 0 }) as unknown as RateLimitResult;
+      const result = (data ?? { allowed: true, remaining: 5, retry_after: 0 }) as unknown as RateLimitResult;
       if (!result.allowed) {
         log.warn("check", `Rate limit exceeded for "${action}" — blocked for ${result.retry_after}s`, {
           action,

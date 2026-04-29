@@ -46,10 +46,8 @@ export function MemberWorldMap() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: result } = await supabase.functions.invoke("public-network-activity", {
-          body: { action: "country_distribution" },
-        });
-        if (result?.data) setData(result.data as unknown as CountryCount[]);
+        const { data: result } = await supabase.rpc("get_member_country_distribution");
+        if (result) setData(result as unknown as CountryCount[]);
       } catch {
         // ignore
       }

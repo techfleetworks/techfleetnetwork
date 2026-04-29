@@ -5,27 +5,27 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
+import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { SelfHealingRunner } from "@/components/SelfHealingRunner";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { RouteChangeReloader } from "@/components/RouteChangeReloader";
-import { PublicShell } from "@/components/layout/PublicShell";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
 
 // Eagerly loaded routes (critical path)
 import Index from "./pages/Index";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import NotFound from "./pages/NotFound";
 
 // Lazily loaded routes (reduce initial JS bundle)
-const LoginPage = lazy(() => import("./pages/LoginPage"));
-const RegisterPage = lazy(() => import("./pages/RegisterPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const AuthenticatedShell = lazy(() => import("./components/layout/AuthenticatedShell").then((m) => ({ default: m.AuthenticatedShell })));
-const AdminShell = lazy(() => import("./components/layout/AdminShell").then((m) => ({ default: m.AdminShell })));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
@@ -118,23 +118,18 @@ const App = () => (
             <ErrorBoundary>
               <RouteChangeReloader />
               <AnalyticsTracker />
-              <PWAInstallPrompt />
-              <OfflineBanner />
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  <Route element={<PublicShell />}>
+              <AppLayout>
+                <IdleTimeoutGuard />
+                <SelfHealingRunner />
+                <PWAInstallPrompt />
+                <OfflineBanner />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/project-openings" element={<ProjectOpeningsPage />} />
-                    <Route path="/project-openings/:projectId" element={<ProjectOpeningDetailPage />} />
-                    <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
-                    <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                  <Route element={<AuthenticatedShell />}>
                     <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                     <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
                     <Route path="/my-journey" element={<ProtectedRoute><MyJourneyPage /></ProtectedRoute>} />
@@ -155,14 +150,9 @@ const App = () => (
                     <Route path="/applications/general" element={<ProtectedRoute><GeneralApplicationPage /></ProtectedRoute>} />
                     <Route path="/applications/projects" element={<ProtectedRoute><MyProjectApplicationsPage /></ProtectedRoute>} />
                     <Route path="/applications/projects/:applicationId/status" element={<ProtectedRoute><ProjectApplicationStatusPage /></ProtectedRoute>} />
+                    <Route path="/project-openings" element={<ProjectOpeningsPage />} />
+                    <Route path="/project-openings/:projectId" element={<ProjectOpeningDetailPage />} />
                     <Route path="/project-openings/:projectId/apply" element={<ProtectedRoute><ProjectApplicationPage /></ProtectedRoute>} />
-                    <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
-                    <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
-                    <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-                    <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-                    <Route path="/access-denied" element={<ProtectedRoute><AccessDeniedPage /></ProtectedRoute>} />
-                  </Route>
-                  <Route element={<AdminShell />}>
                     <Route path="/admin/ingest" element={<AdminRoute><AdminIngestPage /></AdminRoute>} />
                     <Route path="/admin/users" element={<AdminRoute><UserAdminPage /></AdminRoute>} />
                     <Route path="/admin/activity-log" element={<AdminRoute><ActivityLogPage /></AdminRoute>} />
@@ -171,15 +161,24 @@ const App = () => (
                     <Route path="/admin/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
                     <Route path="/admin/clients/projects/new" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
                     <Route path="/admin/clients/projects/:id/edit" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
+                    <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+                    <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
+                    <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
                     <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
                     <Route path="/admin/banners" element={<AdminRoute><BannerManagementPage /></AdminRoute>} />
                     <Route path="/admin/system-health" element={<AdminRoute><SystemHealthPage /></AdminRoute>} />
                     <Route path="/admin/roster/project/:projectId" element={<AdminRoute><RosterProjectDetailPage /></AdminRoute>} />
                     <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<AdminRoute><RosterApplicantDetailPage /></AdminRoute>} />
-                  </Route>
-                </Routes>
-              </Suspense>
+                    <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
+                    <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+                    <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                    <Route path="/access-denied" element={<ProtectedRoute><AccessDeniedPage /></ProtectedRoute>} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </AppLayout>
             </ErrorBoundary>
           </AuthProvider>
         </BrowserRouter>

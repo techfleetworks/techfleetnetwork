@@ -6,13 +6,11 @@ import { SafeMarkdown } from "@/components/security/SafeMarkdown";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { createLogger } from "@/services/logger.service";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Conversation = { id: string; title: string; updated_at: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
-const log = createLogger("ChatPage");
 
 async function streamChat({
   messages,
@@ -193,10 +191,7 @@ export default function ChatPage() {
       .select("id")
       .single();
     if (error || !data) {
-      log.error("createConversation", "Failed to create chat conversation", {
-        hasData: Boolean(data),
-        errorCode: error?.code,
-      }, error);
+      console.error("Create conversation error:", error);
       return null;
     }
     await loadConversations();
@@ -277,13 +272,9 @@ export default function ChatPage() {
         },
       });
     } catch (e: any) {
-      log.error("send", "Chat response request failed", {
-        messageCount: messages.length + 1,
-        hasConversation: Boolean(convoId),
-        errorName: e instanceof Error ? e.name : "UnknownError",
-      }, e);
+      console.error(e);
       setIsLoading(false);
-      toast.error("Failed to get a response. Please try again.");
+      toast.error(e.message || "Failed to get a response. Please try again.");
     }
   };
 

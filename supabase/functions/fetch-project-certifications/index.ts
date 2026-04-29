@@ -14,14 +14,6 @@ function escapeAirtableFormulaValue(value: string) {
   return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').trim();
 }
 
-function redactEmail(email: string): string {
-  const [local = "", domain = ""] = email.split("@");
-  const safeLocal = local.length <= 2 ? "**" : `${local.slice(0, 2)}***`;
-  const [domainName = "", ...domainRest] = domain.split(".");
-  const safeDomain = domainName ? `${domainName.slice(0, 1)}***` : "***";
-  return `${safeLocal}@${[safeDomain, ...domainRest].filter(Boolean).join(".")}`;
-}
-
 async function fetchAllAirtableRecords(
   baseId: string,
   tableName: string,
@@ -145,7 +137,7 @@ Deno.serve(async (req) => {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown Airtable error";
-      console.error("fetch-project-certifications Airtable query failed", { message, user: redactEmail(userEmail) });
+      console.error("fetch-project-certifications Airtable query failed", { message, userEmail });
 
       await adminClient.rpc("write_audit_log", {
         p_event_type: "client_error",
@@ -166,7 +158,7 @@ Deno.serve(async (req) => {
     }
 
     console.log("Project certification lookup result", {
-      user: redactEmail(userEmail),
+      userEmail,
       strategy: usedStrategy,
       totalFound: records.length,
     });
@@ -178,7 +170,7 @@ Deno.serve(async (req) => {
       p_record_id: userId,
       p_user_id: userId,
       p_changed_fields: [
-        `email_redacted:${redactEmail(userEmail)}`,
+        `email:${userEmail}`,
         `strategy:${usedStrategy}`,
         `airtable_records_found:${records.length}`,
         `table:${TABLE_NAME}`,
@@ -213,7 +205,7 @@ Deno.serve(async (req) => {
           console.error("Project lookup failed", {
             projectId: id,
             status: projectRes.status,
-            response_status: projectRes.statusText,
+            response: await projectRes.text(),
           });
           continue;
         }
@@ -296,7 +288,7 @@ Deno.serve(async (req) => {
       p_record_id: userId,
       p_user_id: userId,
       p_changed_fields: [
-        `email_redacted:${redactEmail(userEmail)}`,
+        `email:${userEmail}`,
         `strategy:${usedStrategy}`,
         `airtable_found:${records.length}`,
         `upserted:${upserted}`,

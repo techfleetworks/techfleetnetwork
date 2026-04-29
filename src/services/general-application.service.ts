@@ -7,8 +7,6 @@ const log = createLogger("GeneralApplicationService");
 
 /** Max length for free-text fields (OWASP A3 — injection prevention) */
 const MAX_TEXT_LENGTH = 10_000;
-const GENERAL_APPLICATION_COLUMNS = "id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at";
-const PROFILE_EMAIL_COLUMNS = "email";
 
 /** Enforce max length on all string fields before persisting */
 function sanitizeFields(fields: Record<string, unknown>): Record<string, unknown> {
@@ -89,7 +87,7 @@ export interface GeneralApplication {
 async function getProfileEmail(userId: string): Promise<string> {
   const { data } = await supabase
     .from("profiles")
-    .select(PROFILE_EMAIL_COLUMNS)
+    .select("email")
     .eq("user_id", userId)
     .single();
   return data?.email ?? "";
@@ -116,7 +114,7 @@ export const GeneralApplicationService = {
     return log.track("list", `Listing general apps for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select(GENERAL_APPLICATION_COLUMNS)
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("user_id", userId)
         .order("updated_at", { ascending: false });
       if (error) {
@@ -132,7 +130,7 @@ export const GeneralApplicationService = {
     return log.track("fetch", `Fetching general app ${id}`, { id }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select(GENERAL_APPLICATION_COLUMNS)
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("id", id)
         .single();
       if (error) {
@@ -156,7 +154,7 @@ export const GeneralApplicationService = {
       const { data, error } = await supabase
         .from("general_applications")
         .insert(sanitizeFields(insertData) as any)
-        .select(GENERAL_APPLICATION_COLUMNS)
+        .select()
         .single();
       if (error) {
         log.error("create", `Failed to create general app: ${error.message}`, { userId }, error);
@@ -209,7 +207,7 @@ export const GeneralApplicationService = {
     return log.track("getLatestCompleted", `Fetching latest completed app for user ${userId}`, { userId }, async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select(GENERAL_APPLICATION_COLUMNS)
+        .select("id, user_id, email, status, title, about_yourself, hours_commitment, portfolio_url, linkedin_url, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation, current_section, created_at, updated_at")
         .eq("user_id", userId)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })

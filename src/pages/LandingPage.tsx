@@ -2,7 +2,6 @@ import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "luci
 import { Link } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
-import { DeferredSection } from "@/components/DeferredSection";
 import heroImage from "@/assets/hero-space.png";
 
 const NetworkActivity = lazy(() =>
@@ -63,6 +62,7 @@ export default function LandingPage() {
                 width={448}
                 height={224}
                 loading="eager"
+                fetchPriority="high"
                 decoding="async"
               />
             </div>
@@ -70,17 +70,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Network Activity Section — deferred and lazy loaded with reserved space */}
-      <DeferredSection
-        className="border-t bg-muted/30"
-        minHeight={800}
-        fallback={<NetworkActivityFallback />}
-        aria-label="Network activity"
-      >
+      {/* Network Activity Section — lazy loaded with reserved space */}
+      <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
         <Suspense fallback={<NetworkActivityFallback />}>
           <NetworkActivity />
         </Suspense>
-      </DeferredSection>
+      </section>
 
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">

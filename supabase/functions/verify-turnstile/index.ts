@@ -1,20 +1,22 @@
+import { z } from "npm:zod@4.3.6";
 import {
   errorResponse,
   handleCors,
   jsonResponse,
   parseJsonBody,
 } from "../_shared/http.ts";
-import { createEdgeLogger } from "../_shared/logger.ts";
-import {
-  isTurnstileProviderSuccess,
-  parseTurnstileVerificationRequest,
-  sanitizeTurnstileErrorCodes,
-  type TurnstileProviderResult,
-} from "./validation.ts";
+
+const BodySchema = z.object({
+  token: z.string().trim().min(20).max(4096),
+  action: z.enum([
+    "login",
+    "register",
+    "forgot_password",
+    "signup_confirmation_resend",
+  ]),
+});
 
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const REQUEST_TIMEOUT_MS = 5_000;
-const log = createEdgeLogger("verify-turnstile");
 
 // @public-route Browser pre-auth verification endpoint. Authorization is the Cloudflare Turnstile token.
 
@@ -27,7 +29,6 @@ Deno.serve(async (req) => {
 
   const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
   if (!secret) {
-    log.error("secret_missing", "Turnstile verification secret is not configured");
     return jsonResponse({
       success: false,
       error: "Verification is not configured",
@@ -35,28 +36,30 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const parsed = parseTurnstileVerificationRequest(await parseJsonBody(req, 8 * 1024));
-    if (parsed instanceof Response) return parsed;
+    const parsed = BodySchema.safeParse(await parseJsonBody(req, 8 * 1024));
+    if (!parsed.success) {
+      return jsonResponse({
+        success: false,
+        error: "Complete the human verification before trying again.",
+      }, 400);
+    }
 
     const form = new FormData();
     form.set("secret", secret);
-    form.set("response", parsed.token);
+    form.set("response", parsed.data.token);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let response: Response;
-    try {
-      response = await fetch(VERIFY_URL, { method: "POST", body: form, signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const response = await fetch(VERIFY_URL, { method: "POST", body: form });
+    const result = await response.json().catch(() => ({})) as {
+      success?: boolean;
+      hostname?: string;
+      "error-codes"?: string[];
+    };
 
-    const result = await response.json().catch(() => ({})) as TurnstileProviderResult;
-    if (!response.ok || !isTurnstileProviderSuccess(result, parsed.action)) {
-      log.warn("verification_failed", "Turnstile verification failed", {
-        action: parsed.action,
+    if (!response.ok || result.success !== true) {
+      console.warn("Turnstile verification failed", {
+        action: parsed.data.action,
         status: response.status,
-        errorCodes: sanitizeTurnstileErrorCodes(result["error-codes"]),
+        errorCodes: result["error-codes"] ?? [],
       });
       return jsonResponse({
         success: false,
@@ -66,7 +69,7 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ success: true });
   } catch (error) {
-    log.error("verification_error", "Turnstile verification request failed", undefined, error);
+    console.error("Turnstile verification error", error);
     if (error instanceof Response) return error;
     return errorResponse(error, "Verification failed. Please try again.");
   }

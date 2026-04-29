@@ -1,65 +1,37 @@
-I’ll implement the six-step performance refactor as a no-UX-regression architecture change once approved.
+I checked the live backend first: the email domain is verified, the queue tables and queue processor exist, and recent true email signups show `pending → sent`. The likely current failure is that a repeat signup for an already-confirmed email returns success but does not send another confirmation email, while the UI still says “Check your email.” I’ll fix that and add a self-healing fallback so this path is not single-point-of-failure.
 
-Scope:
+Plan:
 
-1. Create route shells
-   - Add a `PublicShell` for public routes that should not mount authenticated layout/background services.
-   - Add an `AuthenticatedShell` for member routes.
-   - Add an `AdminShell` for admin routes.
-   - Keep the current visual behavior intact for authenticated/admin pages by preserving `AppLayout` there.
+1. Repair and re-deploy the mission-critical email path
+   - Refresh the managed email infrastructure so the queue credentials/cron wiring are current.
+   - Re-deploy the auth email handler and queue processor.
+   - Verify the signup email queue drains and logs `sent`, not just `pending`.
 
-2. Move authenticated-only services out of public routes
-   - Keep these inside authenticated/admin shells only:
-     - `AppLayout`
-     - `IdleTimeoutGuard`
-     - `SelfHealingRunner`
-     - authenticated background behavior tied to session/user state
-   - Keep global-safe providers/services at the top level where needed:
-     - `QueryClientProvider`
-     - `ThemeProvider`
-     - `TooltipProvider`
-     - `BrowserRouter`
-     - error boundary/toasters as appropriate
-   - Ensure public pages such as `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/project-openings`, `/project-openings/:projectId`, `/confirm-admin`, and `/unsubscribe` do not pay authenticated shell cost.
+2. Fix the misleading signup UX
+   - Update the registration success screen so it no longer guarantees a new email was sent for already-existing accounts.
+   - Add clear actions: “Resend verification email,” “Go to sign in,” and “Reset password.”
+   - Make resend rate-limited, accessible, and status-visible.
 
-3. Lazy-load Login/Register/NotFound
-   - Convert `LoginPage`, `RegisterPage`, and `NotFound` from eager imports to `lazyWithRetry` imports.
-   - Keep `Index` eager only if it remains the critical landing entry; otherwise evaluate lazy-loading it safely.
-   - Preserve the existing accessible route fallback.
+3. Add an automatic fallback for missed confirmation emails
+   - Upgrade the existing confirmation reminder job into a near-real-time safety net.
+   - If a new email/password account remains unconfirmed after a short delay, generate a fresh confirmation link and send it through the high-priority auth email queue.
+   - Cap attempts and spacing to prevent abuse or spam.
+   - Keep responses generic so attackers cannot enumerate accounts.
 
-4. Add `DeferredSection` and defer NetworkActivity
-   - Add a reusable `DeferredSection` component using `IntersectionObserver` with an idle/timeout fallback.
-   - Use it in `LandingPage` so `NetworkActivity` does not mount/load until the user scrolls near it or the browser has had time to finish initial work.
-   - Preserve reserved height to avoid CLS.
-   - Ensure it degrades safely if `IntersectionObserver` is unavailable.
+4. Add monitoring and alerting
+   - Detect stuck auth emails, dead-lettered confirmation emails, missing queue processor jobs, and unconfirmed accounts with no successful email log.
+   - Surface admin alerts when the confirmation pipeline is unhealthy.
 
-5. Add BDD scenarios
-   - Create a migration registering BDD scenarios in `bdd_scenarios` for public-route lightweight loading.
-   - Scenarios will cover:
-     - landing route does not mount authenticated-only shell services
-     - public auth routes lazy-load without authenticated background services
-     - deferred network activity preserves layout while delaying heavy work
+5. Add BDD scenarios and tests
+   - Store BDD scenarios for: successful signup email, repeat signup UX, manual resend, fallback resend, stuck queue alert, and abuse/rate-limit protection.
+   - Add UI tests for the registration confirmation/resend flow.
+   - Add backend tests for the fallback confirmation sender and queue behavior.
 
-6. Add tests
-   - Add focused source-level/unit tests verifying:
-     - `LoginPage`, `RegisterPage`, and `NotFound` are lazy imports in `App.tsx`
-     - public routes are wrapped in `PublicShell`, not `AuthenticatedShell`/`AdminShell`
-     - `AppLayout`, `IdleTimeoutGuard`, and `SelfHealingRunner` are only mounted in authenticated/admin shells
-     - `LandingPage` uses `DeferredSection` around `NetworkActivity`
-   - Add a lightweight component test for `DeferredSection` fallback/visibility behavior if practical in jsdom.
+6. Validate end-to-end
+   - Run type checks/tests.
+   - Run a live smoke test through the signup email path and confirm the queue records the confirmation email as sent.
 
-Expected outcome:
-
-- Lower landing-page initial JavaScript execution.
-- Fewer authenticated-only components mounted for public visitors.
-- Lower initial heap and main-thread cost on `/`.
-- No extra clicks, no new prompts, no visual regression.
-- BDD-backed coverage for the performance architecture decision.
-
-Technical notes:
-
-- I will use semantic design-system classes only if any UI wrapper/fallback markup is added.
-- I will not edit generated backend client/types files.
-- No backend function changes are needed for this specific refactor.
-- Any new BDD scenario migration will use `ON CONFLICT` to avoid duplicate scenario failures.
-- I’ll run focused tests for the changed shell/deferred loading behavior after implementation.
+Technical details:
+- Touchpoints: `RegisterPage`, `AuthService`, auth email handler, queue processor, existing signup confirmation reminder function, BDD migrations, and tests.
+- Security: no anonymous admin access, no account enumeration, rate limits preserved, no weakening of email verification.
+- Reliability: primary auth email + manual resend + automatic fallback + admin monitoring.

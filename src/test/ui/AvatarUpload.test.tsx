@@ -8,7 +8,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     storage: {
       from: () => ({
         upload: vi.fn().mockResolvedValue({ error: null }),
-        createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: "https://example.com/signed-avatar.jpg" }, error: null }),
+        getPublicUrl: () => ({ data: { publicUrl: "https://example.com/avatar.jpg" } }),
         list: vi.fn().mockResolvedValue({ data: [] }),
         remove: vi.fn().mockResolvedValue({ error: null }),
       }),
@@ -74,9 +74,9 @@ describe("AvatarUpload — BDD 30.x", () => {
   });
 
   // BDD 30.5: User can remove their avatar
-  it("shows remove button when avatar exists", async () => {
-    render(<AvatarUpload {...defaultProps} currentUrl="user-123/avatar.jpg" />);
-    await waitFor(() => expect(screen.getByText("Remove")).toBeInTheDocument());
+  it("shows remove button when avatar exists", () => {
+    render(<AvatarUpload {...defaultProps} currentUrl="https://example.com/pic.jpg" />);
+    expect(screen.getByText("Remove")).toBeInTheDocument();
   });
 
   it("hides remove button when no avatar", () => {

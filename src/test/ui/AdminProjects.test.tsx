@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@/lib/react-query";
  *   PROJECT-004 — Computed milestone fields surface in the project card
  *   PROJECT-005 — Only Active clients are returned for the form (RLS-shaped query)
  *   PROJECT-006 — Selected client metadata surfaces (logo, name) on the project card
-  *   PROJECT-007 — Non-admin route guard redirects to /access-denied
+ *   PROJECT-007 — Non-admin route guard redirects to /dashboard
  *
  * These tests intentionally exercise the PRESENTATION + WIRING surface only.
  * The Discord/role/coordinator picker behavior is covered separately and is
@@ -182,9 +182,9 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
   });
 
   it("PROJECT-005: Active-clients query path returns only Active clients", async () => {
-    // Mirrors the form's filter with the bounded client projection used by the project form.
+    // Mirrors the form's filter: .from('clients').select('*').eq('status','active')
     const { supabase } = await import("@/integrations/supabase/client");
-    const result = await (supabase.from("clients").select("id, name") as any).eq("status", "active").order("name");
+    const result = await (supabase.from("clients").select("*") as any).eq("status", "active").order("name");
     expect(result.error).toBeNull();
     expect(result.data).toHaveLength(1);
     expect((result.data as any[])[0].name).toBe("Acme Co");
@@ -198,7 +198,7 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
     expect(screen.getByText(/Marketing Site/)).toBeInTheDocument();
   });
 
-  it("PROJECT-007: Non-admin visiting /admin/clients is redirected to /access-denied", async () => {
+  it("PROJECT-007: Non-admin visiting /admin/clients is redirected to /dashboard", async () => {
     mockUseAdmin.mockReturnValue({ isAdmin: false, loading: false });
     const { AdminRoute } = await import("@/components/AdminRoute");
     const ClientsPage = (await import("@/pages/ClientsPage")).default;
@@ -209,14 +209,14 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
         <MemoryRouter initialEntries={["/admin/clients"]}>
           <Routes>
             <Route path="/admin/clients" element={<AdminRoute><ClientsPage /></AdminRoute>} />
-            <Route path="/access-denied" element={<div data-testid="access-denied-page">Access denied</div>} />
+            <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
             <Route path="/login" element={<div>Login</div>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByTestId("access-denied-page")).toBeInTheDocument();
+    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
     expect(screen.queryByText(/Clients & Projects/i)).not.toBeInTheDocument();
   });
 });

@@ -725,7 +725,7 @@ export function isSessionWithinPolicy({
   startedAt,
   lastActivityAt,
   now = Date.now(),
-  idleTimeoutMs = 30 * 60 * 1000,
+  idleTimeoutMs = 20 * 60 * 1000,
   absoluteTimeoutMs = 4 * 60 * 60 * 1000,
   revoked = false,
 }: SessionPolicyInput): boolean {
@@ -738,7 +738,7 @@ export function isSessionWithinPolicy({
 
 export function getSessionPolicyFailureReason(input: SessionPolicyInput): "revoked" | "invalid" | "idle_timeout" | "absolute_timeout" | null {
   const now = input.now ?? Date.now();
-  const idleTimeoutMs = input.idleTimeoutMs ?? 30 * 60 * 1000;
+  const idleTimeoutMs = input.idleTimeoutMs ?? 20 * 60 * 1000;
   const absoluteTimeoutMs = input.absoluteTimeoutMs ?? 4 * 60 * 60 * 1000;
   if (input.revoked) return "revoked";
   if (!Number.isFinite(input.startedAt) || !Number.isFinite(input.lastActivityAt) || input.lastActivityAt < input.startedAt) return "invalid";

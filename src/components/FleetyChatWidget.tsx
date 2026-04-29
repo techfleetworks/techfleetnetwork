@@ -7,12 +7,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
-import { createLogger } from "@/services/logger.service";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
-const log = createLogger("FleetyChatWidget");
 
 /**
  * OWASP LLM02/ASVS V13.2: Use session JWT for API auth, never static keys.
@@ -49,7 +47,10 @@ async function streamChat({
     body: JSON.stringify({ messages: sanitizedMessages }),
   });
 
-  if (!resp.ok) throw new Error(`Chat request failed (${resp.status})`);
+  if (!resp.ok) {
+    const errData = await resp.json().catch(() => ({}));
+    throw new Error(errData.error || `Request failed (${resp.status})`);
+  }
 
   if (!resp.body) throw new Error("No response stream");
 
@@ -245,14 +246,10 @@ export function FleetyChatWidget() {
           }
         },
       });
-    } catch (e: unknown) {
-      log.error("send", "Fleety widget response request failed", {
-        messageCount: messages.length + 1,
-        hasConversation: Boolean(convoId),
-        errorName: e instanceof Error ? e.name : "UnknownError",
-      }, e);
+    } catch (e: any) {
+      console.error(e);
       setIsLoading(false);
-      toast.error("Failed to get a response. Please try again.");
+      toast.error(e.message || "Failed to get a response.");
     }
   };
 
@@ -440,7 +437,7 @@ export function FleetyChatWidget() {
               <textarea
                 ref={inputRef as React.RefObject<HTMLTextAreaElement>}
                 value={input}
-                onChange={(e) => { if (e.target.value.length <= MAX_INPUT_LENGTH) setInput(e.target.value); }}
+                onChange={(e) => { if (e.target.value.length <= 20000) setInput(e.target.value); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -453,7 +450,7 @@ export function FleetyChatWidget() {
                 rows={1}
                 autoComplete="off"
                 aria-label="Type your question"
-                maxLength={MAX_INPUT_LENGTH}
+                maxLength={20000}
                 style={{ height: "auto", overflow: "auto" }}
                 onInput={(e) => {
                   const el = e.currentTarget;
