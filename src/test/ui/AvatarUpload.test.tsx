@@ -8,7 +8,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     storage: {
       from: () => ({
         upload: vi.fn().mockResolvedValue({ error: null }),
-        getPublicUrl: () => ({ data: { publicUrl: "https://example.com/avatar.jpg" } }),
+        createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: "https://example.com/signed-avatar.jpg" }, error: null }),
         list: vi.fn().mockResolvedValue({ data: [] }),
         remove: vi.fn().mockResolvedValue({ error: null }),
       }),
