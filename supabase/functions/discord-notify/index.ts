@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { getAdminClient } from "../_shared/admin-client.ts";
+import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 import { buildMessage, validateNotifyPayload, type NotifyPayload } from "./notify-utils.ts";
 
 const log = createEdgeLogger("discord-notify");
@@ -13,19 +15,6 @@ const log = createEdgeLogger("discord-notify");
  *  • Duplicate payload suppression to stop authenticated session replay/bots
  *  • Strict allow-list of event types (existing) and bounded body
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function jsonResponse(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
 
 const MAX_BODY_BYTES = 8 * 1024;
 const ALLOWED_ORIGIN_PATTERNS = [
@@ -61,9 +50,8 @@ async function requestFingerprint(userId: string, payload: NotifyPayload) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   const requestId = crypto.randomUUID().substring(0, 8);
   log.info("handler", `Request received [${requestId}]`, { requestId });
@@ -73,28 +61,12 @@ serve(async (req) => {
     return jsonResponse({ error: "Forbidden" }, 403);
   }
 
-  // ── JWT auth check ────────────────────────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Authentication required" }, 401);
-  }
-
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: authErr } = await userClient.auth.getClaims(token);
-  const userId = claimsData?.claims?.sub;
-  if (authErr || !userId) {
-    return jsonResponse({ error: "Invalid or expired token" }, 401);
-  }
+  const auth = await requireAuthenticatedRequest(req);
+  if (auth instanceof Response) return auth;
+  const userId = auth.userId;
 
   // ── Server-side rate limit (5 events / 1 min per user, 60 min block) ─
-  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const adminClient = getAdminClient();
   const { data: rl } = await adminClient.rpc("check_rate_limit", {
     p_identifier: userId,
     p_action: "discord_notify",
@@ -113,7 +85,7 @@ serve(async (req) => {
       return jsonResponse({ error: "Request body too large" }, 413);
     }
 
-    const validation = validateNotifyPayload(await req.json());
+    const validation = validateNotifyPayload(await parseJsonBody(req, MAX_BODY_BYTES));
     if (!validation.ok) {
       log.warn("handler", `Missing/invalid event [${requestId}]`, { requestId });
       return jsonResponse({ error: validation.error }, 400);
