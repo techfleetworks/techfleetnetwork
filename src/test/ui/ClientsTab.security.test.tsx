@@ -9,7 +9,7 @@ describe("ClientsTab security coverage", () => {
     expect(source).toContain("function createClientActionCell");
     expect(source).toContain("document.createElement");
     expect(source).toContain("return createClientActionCell(params.data)");
-    expect(source).not.toContain("return `<div style=\"display:flex;gap:4px;align-items:center;height:100%\">`);
+    expect(source).not.toContain('return `<div style="display:flex;gap:4px;align-items:center;height:100%">');
   });
 
   it("SEC-CLIENTS-GRID-XSS-030: does not interpolate client names into an HTML string renderer", () => {
