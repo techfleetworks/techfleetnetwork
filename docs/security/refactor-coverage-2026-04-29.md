@@ -15,6 +15,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | System health diagnostics | `src/services/system-health.service.ts`, `src/pages/SystemHealthPage.tsx` | A02 Data Minimization, A09 Security Logging/Monitoring | Replaces remediation wildcard projection with explicit allowlist, masks recipient email identifiers, and converts provider/database failures into safe operational guidance | Verified |
 | Quest learning journey service | `src/services/quest.service.ts` | A02 Data Minimization | Replaces wildcard projections for quest paths, quest steps, and user quest selections with explicit UI-required field allowlists | Verified |
 | Admin project form | `src/pages/ProjectFormPage.tsx` | A02 Data Minimization | Replaces project/client wildcard reads with explicit allowlists for editable project fields and displayed client metadata | Verified |
+| Member application status | `src/pages/ProjectApplicationStatusPage.tsx` | A02 Data Minimization | Replaces wildcard reads for application, profile, general application, and notification data with explicit rendered-field allowlists | Verified |
 
 ## BDD coverage records
 
@@ -27,6 +28,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-SYSTEM-HEALTH-ERROR-DATA-MIN-042` | Admin health diagnostics minimize data and avoid raw operational error disclosure | `src/test/ui/SystemHealthPage.security.test.tsx` |
 | `SEC-QUEST-SERVICE-PROJECTION-043` | Quest service avoids wildcard projections and bounds user journey selection data | `src/test/services/quest.service.security.test.ts` |
 | `SEC-PROJECT-FORM-PROJECTION-044` | Admin project form avoids wildcard projections and bounds project/client fields | `src/test/ui/ProjectFormPage.security.test.tsx` |
+| `SEC-APPLICATION-STATUS-PROJECTION-045` | Member application status avoids wildcard projections and bounds rendered review data | `src/test/ui/ProjectApplicationStatusPage.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -38,6 +40,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused UI/service tests confirm system health diagnostics avoid wildcard remediation projections, mask recipient emails, and redact raw provider/database errors.
 - Focused service tests confirm quest learning journey reads use explicit projections and do not over-fetch unrelated user data.
 - Focused UI source tests confirm admin project editing reads use explicit projections and avoid unrelated sensitive metadata.
+- Focused UI source tests confirm member application status reads use explicit projections for application/profile/general-application/notification data.
 
 ## Remaining security-refactor gaps
 

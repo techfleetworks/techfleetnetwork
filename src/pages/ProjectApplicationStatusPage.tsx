@@ -33,6 +33,82 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { sanitizeHtml } from "@/lib/security";
 
+export const APPLICATION_STATUS_APPLICATION_COLUMNS = [
+  "id",
+  "user_id",
+  "project_id",
+  "status",
+  "applicant_status",
+  "completed_at",
+  "team_hats_interest",
+  "participated_previous_phase",
+  "previous_phase_position",
+  "previous_phase_learnings",
+  "previous_phase_help_teammates",
+  "prior_engagement_preparation",
+  "passion_for_project",
+  "client_project_knowledge",
+  "cross_functional_contribution",
+  "project_success_contribution",
+].join(", ");
+
+export const APPLICATION_STATUS_PROFILE_COLUMNS = [
+  "user_id",
+  "display_name",
+  "first_name",
+  "last_name",
+  "email",
+  "country",
+  "timezone",
+  "discord_username",
+  "linkedin_url",
+  "portfolio_url",
+  "experience_areas",
+  "education_background",
+  "interests",
+  "professional_background",
+  "professional_goals",
+  "bio",
+].join(", ");
+
+export const APPLICATION_STATUS_GENERAL_APPLICATION_COLUMNS = [
+  "id",
+  "user_id",
+  "status",
+  "completed_at",
+  "updated_at",
+  "hours_commitment",
+  "previous_engagement",
+  "previous_engagement_ways",
+  "teammate_learnings",
+  "agile_vs_waterfall",
+  "psychological_safety",
+  "agile_philosophies",
+  "collaboration_challenges",
+  "servant_leadership_definition",
+  "servant_leadership_actions",
+  "servant_leadership_challenges",
+  "servant_leadership_situation",
+].join(", ");
+
+export const APPLICATION_STATUS_NOTIFICATION_COLUMNS = [
+  "id",
+  "user_id",
+  "title",
+  "body_html",
+  "notification_type",
+  "created_at",
+].join(", ");
+
+type InterviewNotification = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  body_html: string | null;
+  notification_type: string;
+  created_at: string;
+};
+
 /* ── status display config ─────────────────────────────────── */
 
 const STATUS_CONFIG: Record<string, {
@@ -369,12 +445,12 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(APPLICATION_STATUS_APPLICATION_COLUMNS)
         .eq("id", applicationId!)
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!applicationId && !!user,
   });
@@ -434,11 +510,11 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(APPLICATION_STATUS_PROFILE_COLUMNS)
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!user,
   });
@@ -449,14 +525,14 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select(APPLICATION_STATUS_GENERAL_APPLICATION_COLUMNS)
         .eq("user_id", user!.id)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Record<string, unknown> | null;
+      return data as unknown as Record<string, unknown> | null;
     },
     enabled: !!user,
   });
@@ -474,14 +550,14 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("*")
+        .select(APPLICATION_STATUS_NOTIFICATION_COLUMNS)
         .eq("user_id", user!.id)
         .eq("notification_type", "interview_invite")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as unknown as InterviewNotification | null;
     },
     enabled: !!user && showInviteStatuses.includes(applicantStatus),
   });
