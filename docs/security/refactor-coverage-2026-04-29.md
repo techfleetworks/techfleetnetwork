@@ -12,6 +12,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Airtable diagnostics | `supabase/functions/airtable-diag/index.ts`, `supabase/functions/_shared/airtable-validation.ts` | A01 Broken Access Control, A05 Security Misconfiguration, A09 Sensitive Error Disclosure | Requires admin request before diagnostics, validates config, returns redacted/generic provider errors instead of raw response bodies | Verified |
 | Exploration cache writes | `supabase/functions/write-exploration-cache/index.ts`, `supabase/functions/write-exploration-cache/validation.ts` | A01 Broken Access Control, A03 Injection, A05 Security Misconfiguration, A09 Sensitive Data Exposure | Requires authenticated request, validates JSON shape and query pattern, enforces 500-character query and 32KB response limits, scrubs emails/tokens/internal IDs before storage | Verified |
 | RPC least privilege | `supabase/migrations/20260429041135_99335185-99f1-459e-a55b-97b08f1290de.sql` | A01 Broken Access Control, A05 Security Misconfiguration | Revokes public/anonymous execution from sensitive SECURITY DEFINER helpers, grants authenticated/service-role access explicitly, keeps only required pre-auth flows public | Verified |
+| System health diagnostics | `src/services/system-health.service.ts`, `src/pages/SystemHealthPage.tsx` | A02 Data Minimization, A09 Security Logging/Monitoring | Replaces remediation wildcard projection with explicit allowlist, masks recipient email identifiers, and converts provider/database failures into safe operational guidance | Verified |
 
 ## BDD coverage records
 
@@ -21,6 +22,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-AIRTABLE-DIAG-007` | Airtable diagnostics are admin-only and avoid leaking provider internals | `supabase/functions/sync-airtable/validation_test.ts` |
 | `SEC-CACHE-DLP-005` | Exploration cache validates input and redacts sensitive output | `supabase/functions/write-exploration-cache/validation_test.ts` |
 | `SEC-RPC-LEAST-PRIVILEGE-004` | SECURITY DEFINER helpers are least-privilege by default | `supabase/migrations/20260429041135_99335185-99f1-459e-a55b-97b08f1290de.sql` |
+| `SEC-SYSTEM-HEALTH-ERROR-DATA-MIN-042` | Admin health diagnostics minimize data and avoid raw operational error disclosure | `src/test/ui/SystemHealthPage.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -29,6 +31,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - File inspection confirmed `airtable-diag` is admin-gated and returns generic diagnostic errors.
 - File inspection confirmed `write-exploration-cache` rejects malformed/oversized payloads and applies DLP scrubbing before storage.
 - Migration inspection confirmed sensitive RPC grants were revoked from public/anonymous roles and re-granted explicitly.
+- Focused UI/service tests confirm system health diagnostics avoid wildcard remediation projections, mask recipient emails, and redact raw provider/database errors.
 
 ## Remaining security-refactor gaps
 

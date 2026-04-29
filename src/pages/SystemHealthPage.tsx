@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@/lib/react-query";
+import { safeErrorMessage } from "@/lib/security";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 
@@ -20,6 +21,21 @@ const statusVariant = (status: string) => {
 function relativeTime(value: string | null | undefined) {
   if (!value) return "None";
   return `${formatDistanceToNow(new Date(value), { addSuffix: true })}`;
+}
+
+export function maskEmailForDisplay(email: string): string {
+  const [localPart = "", domain = ""] = email.split("@");
+  if (!localPart || !domain) return "Hidden recipient";
+  const visibleLocal = localPart.slice(0, 2).padEnd(Math.min(localPart.length, 2), "•");
+  return `${visibleLocal}${"•".repeat(Math.max(localPart.length - 2, 3))}@${domain}`;
+}
+
+export function safeOperationalMessage(message: string | null | undefined): string {
+  if (!message) return "—";
+  if (/provider|smtp|api|token|secret|database|sql|postgres|supabase|sender domain|internal/i.test(message)) {
+    return "Delivery issue detected. Review provider configuration and retry from the runbook.";
+  }
+  return safeErrorMessage(new Error(message));
 }
 
 function StatCard({ label, value, detail, tone = "default" }: { label: string; value: number | string; detail: string; tone?: "default" | "warning" | "danger" }) {
@@ -39,10 +55,10 @@ function LogRow({ log }: { log: EmailPipelineLog }) {
   return (
     <tr className="border-b last:border-b-0">
       <td className="px-3 py-3 font-medium text-foreground">{log.template_name}</td>
-      <td className="px-3 py-3 text-muted-foreground">{log.recipient_email}</td>
+      <td className="px-3 py-3 text-muted-foreground">{maskEmailForDisplay(log.recipient_email)}</td>
       <td className="px-3 py-3"><Badge variant={statusVariant(log.status)}>{log.status}</Badge></td>
       <td className="px-3 py-3 text-muted-foreground">{relativeTime(log.created_at)}</td>
-      <td className="px-3 py-3 text-muted-foreground">{log.error_message || "—"}</td>
+      <td className="px-3 py-3 text-muted-foreground">{safeOperationalMessage(log.error_message)}</td>
     </tr>
   );
 }
@@ -90,7 +106,7 @@ export default function SystemHealthPage() {
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle id="system-health-heading" className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" />System Health unavailable</CardTitle>
-            <CardDescription>{error instanceof Error ? error.message : "The health dashboard could not load."}</CardDescription>
+            <CardDescription>{error ? safeErrorMessage(error) : "The health dashboard could not load."}</CardDescription>
           </CardHeader>
           <CardContent><Button onClick={() => refetch()}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button></CardContent>
         </Card>
@@ -207,7 +223,7 @@ function ErrorList({ errors }: { errors: Array<{ error_message: string; status: 
               <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
               <span className="text-xs text-muted-foreground">{item.occurrences} occurrences · {relativeTime(item.last_seen)}</span>
             </div>
-            <p className="mt-2 text-sm text-foreground">{item.error_message}</p>
+            <p className="mt-2 text-sm text-foreground">{safeOperationalMessage(item.error_message)}</p>
           </div>
         )) : <p className="text-sm text-muted-foreground">No recent email errors in this window.</p>}
       </CardContent>
