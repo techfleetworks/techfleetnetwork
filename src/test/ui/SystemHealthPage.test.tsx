@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "./test-utils";
 
 const { mockGetEmailPipelineHealth } = vi.hoisted(() => ({
@@ -44,6 +45,7 @@ describe("SystemHealthPage", () => {
   });
 
   it("SYS-HEALTH-EMAIL-PIPELINE-001: shows admin email pipeline status, queues, delivery, and errors", async () => {
+    const user = userEvent.setup();
     renderWithRouter(<SystemHealthPage />);
 
     expect(await screen.findByRole("heading", { name: "System Health" })).toBeInTheDocument();
@@ -54,11 +56,11 @@ describe("SystemHealthPage", () => {
     expect(screen.getByText("transactional emails")).toBeInTheDocument();
 
     const deliveryTab = screen.getByRole("tab", { name: "Delivery" });
-    fireEvent.click(deliveryTab);
+    await user.click(deliveryTab);
     expect(await screen.findByText("member@example.com")).toBeInTheDocument();
 
     const errorsTab = screen.getByRole("tab", { name: "Errors" });
-    fireEvent.click(errorsTab);
+    await user.click(errorsTab);
     const errorsPanel = await screen.findByRole("tabpanel");
     expect(within(errorsPanel).getByText("Provider rejected the sender domain")).toBeInTheDocument();
   });
