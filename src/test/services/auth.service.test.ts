@@ -126,6 +126,20 @@ describe("AuthService session max-age marker", () => {
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
   });
 
+  it("expires the same user's stale idle marker before reusing a stored session", async () => {
+    const session = makeSession("idle-user");
+    localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
+    sessionStorage.setItem(
+      "session_started_at",
+      JSON.stringify({ version: 1, userId: "idle-user", startedAtMs: Date.now() - 30 * 60 * 1000, lastActivityAtMs: Date.now() - 25 * 60 * 1000 }),
+    );
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session }, error: null });
+
+    await expect(AuthService.getSession()).resolves.toBeNull();
+    expect(supabase.auth.signOut).toHaveBeenCalledOnce();
+    expect(logAccountActivity).toHaveBeenCalledWith("session_idle_timeout", expect.objectContaining({ userId: "idle-user" }));
+  });
+
   it("does not call the backend when no auth token is stored locally", async () => {
     await expect(AuthService.getSession()).resolves.toBeNull();
     expect(supabase.auth.getSession).not.toHaveBeenCalled();
