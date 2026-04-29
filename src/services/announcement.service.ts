@@ -46,8 +46,8 @@ export const AnnouncementService = {
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
     const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(bodyHtml), created_by: userId };
-    const safeVideoUrl = mediaInputSchema.parse(videoUrl);
-    const safeAudioUrl = mediaInputSchema.parse(audioUrl);
+    const safeVideoUrl = extractAnnouncementMediaPath(mediaInputSchema.parse(videoUrl));
+    const safeAudioUrl = extractAnnouncementMediaPath(mediaInputSchema.parse(audioUrl));
     if (safeVideoUrl) row.video_url = safeVideoUrl;
     if (safeAudioUrl) row.audio_url = safeAudioUrl;
     const { data, error } = await supabase
