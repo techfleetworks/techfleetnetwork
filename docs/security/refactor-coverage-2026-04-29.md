@@ -17,6 +17,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Admin project form | `src/pages/ProjectFormPage.tsx` | A02 Data Minimization | Replaces project/client wildcard reads with explicit allowlists for editable project fields and displayed client metadata | Verified |
 | Member application status | `src/pages/ProjectApplicationStatusPage.tsx` | A02 Data Minimization | Replaces wildcard reads for application, profile, general application, and notification data with explicit rendered-field allowlists | Verified |
 | Member project applications list | `src/pages/MyProjectApplicationsPage.tsx` | A02 Data Minimization | Replaces listing wildcard reads with explicit application/project summary allowlists and avoids long-form response over-fetching | Verified |
+| Admin submitted applications grid | `src/components/SubmittedApplicationsTab.tsx` | A02 Data Minimization | Replaces admin review wildcard reads with explicit project application, general application, project, and client allowlists | Verified |
 
 ## BDD coverage records
 
@@ -31,6 +32,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-PROJECT-FORM-PROJECTION-044` | Admin project form avoids wildcard projections and bounds project/client fields | `src/test/ui/ProjectFormPage.security.test.tsx` |
 | `SEC-APPLICATION-STATUS-PROJECTION-045` | Member application status avoids wildcard projections and bounds rendered review data | `src/test/ui/ProjectApplicationStatusPage.security.test.tsx` |
 | `SEC-MY-PROJECT-APPLICATIONS-PROJECTION-046` | Member project application listing avoids wildcard projections and long-form response over-fetching | `src/test/ui/MyProjectApplicationsPage.security.test.tsx` |
+| `SEC-SUBMITTED-APPLICATIONS-PROJECTION-047` | Admin submitted applications review avoids wildcard projections and unrelated metadata over-fetching | `src/test/ui/SubmittedApplicationsTab.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -44,6 +46,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused UI source tests confirm admin project editing reads use explicit projections and avoid unrelated sensitive metadata.
 - Focused UI source tests confirm member application status reads use explicit projections for application/profile/general-application/notification data.
 - Focused UI source tests confirm member project application listings use explicit projections and avoid loading long-form responses.
+- Focused UI source tests confirm admin submitted application review reads use explicit projections and avoid unrelated administrative/billing metadata.
 
 ## Remaining security-refactor gaps
 
