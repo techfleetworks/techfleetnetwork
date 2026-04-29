@@ -9,6 +9,8 @@ import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
+const ADMIN_ROSTER_PROJECT_COLUMNS = "id, project_type, phase, project_status, team_hats, client_id, friendly_name, clients(name)";
+const ADMIN_ROSTER_APPLICATION_COUNT_COLUMNS = "project_id, id";
 
 interface ProjectWithClient {
   id: string;
@@ -31,7 +33,7 @@ export default function AdminRosterPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, clients(name)")
+        .select(ADMIN_ROSTER_PROJECT_COLUMNS)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as ProjectWithClient[];
@@ -53,7 +55,7 @@ export default function AdminRosterPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("project_id, id")
+        .select(ADMIN_ROSTER_APPLICATION_COUNT_COLUMNS)
         .eq("status", "completed");
       if (error) throw error;
       const counts = new Map<string, number>();

@@ -182,9 +182,9 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
   });
 
   it("PROJECT-005: Active-clients query path returns only Active clients", async () => {
-    // Mirrors the form's filter: .from('clients').select('*').eq('status','active')
+    // Mirrors the form's filter with the bounded client projection used by the project form.
     const { supabase } = await import("@/integrations/supabase/client");
-    const result = await (supabase.from("clients").select("*") as any).eq("status", "active").order("name");
+    const result = await (supabase.from("clients").select("id, name") as any).eq("status", "active").order("name");
     expect(result.error).toBeNull();
     expect(result.data).toHaveLength(1);
     expect((result.data as any[])[0].name).toBe("Acme Co");
