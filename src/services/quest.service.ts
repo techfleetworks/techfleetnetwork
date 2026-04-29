@@ -3,6 +3,40 @@ import { createLogger } from "@/services/logger.service";
 
 const log = createLogger("QuestService");
 
+export const QUEST_PATH_COLUMNS = [
+  "id",
+  "slug",
+  "title",
+  "description",
+  "level",
+  "icon",
+  "sort_order",
+  "estimated_duration",
+  "duration_phases",
+  "prerequisites",
+].join(", ");
+
+export const QUEST_PATH_STEP_COLUMNS = [
+  "id",
+  "path_id",
+  "title",
+  "description",
+  "step_type",
+  "sort_order",
+  "linked_phase",
+  "linked_table",
+  "linked_filter",
+].join(", ");
+
+export const USER_QUEST_SELECTION_COLUMNS = [
+  "id",
+  "user_id",
+  "path_id",
+  "started_at",
+  "completed_at",
+  "created_at",
+].join(", ");
+
 export interface QuestPath {
   id: string;
   slug: string;
@@ -65,7 +99,7 @@ export const QuestService = {
     return log.track("getPaths", "Loading all quest paths", {}, async () => {
       const { data, error } = await supabase
         .from("quest_paths")
-        .select("*")
+        .select(QUEST_PATH_COLUMNS)
         .order("sort_order", { ascending: true });
       if (error) {
         log.error("getPaths", error.message, {}, error);
@@ -79,7 +113,7 @@ export const QuestService = {
     return log.track("getSteps", `Loading steps for path ${pathId}`, { pathId }, async () => {
       const { data, error } = await supabase
         .from("quest_path_steps")
-        .select("*")
+        .select(QUEST_PATH_STEP_COLUMNS)
         .eq("path_id", pathId)
         .order("sort_order", { ascending: true });
       if (error) {
@@ -94,7 +128,7 @@ export const QuestService = {
     return log.track("getAllSteps", "Loading all quest steps", {}, async () => {
       const { data, error } = await supabase
         .from("quest_path_steps")
-        .select("*")
+        .select(QUEST_PATH_STEP_COLUMNS)
         .order("sort_order", { ascending: true });
       if (error) {
         log.error("getAllSteps", error.message, {}, error);
@@ -108,7 +142,7 @@ export const QuestService = {
     return log.track("getUserSelections", "Loading user quest selections", { userId }, async () => {
       const { data, error } = await supabase
         .from("user_quest_selections")
-        .select("*")
+        .select(USER_QUEST_SELECTION_COLUMNS)
         .eq("user_id", userId);
       if (error) {
         log.error("getUserSelections", error.message, { userId }, error);
