@@ -1,18 +1,11 @@
-import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 import { z } from "npm:zod@4.3.6";
+import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 const log = createEdgeLogger("validate-email-domain");
 const DOMAIN_RE = /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
 const DnsAnswerSchema = z.object({ Answer: z.array(z.unknown()).optional(), Status: z.number().optional() }).passthrough();
 const BodySchema = z.object({ domain: z.string().trim().toLowerCase().min(4).max(253).regex(DOMAIN_RE) });
-
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
 
 async function hasDnsRecord(domain: string, type: "MX" | "A" | "AAAA"): Promise<boolean> {
   const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`, {
@@ -28,12 +21,14 @@ export async function validateDomain(domain: string): Promise<boolean> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // @public-route Pre-auth email signup helper. Input is domain-only and server-side validated.
+  const cors = handleCors(req);
+  if (cors) return cors;
   if (req.method !== "POST") return jsonResponse({ valid: false, error: "Method not allowed" }, 405);
 
   const requestId = crypto.randomUUID().slice(0, 8);
   try {
-    const parsed = BodySchema.safeParse(await req.json());
+    const parsed = BodySchema.safeParse(await parseJsonBody(req, 2 * 1024));
     if (!parsed.success) return jsonResponse({ valid: false, error: "Enter a valid email address." }, 400);
 
     const valid = await validateDomain(parsed.data.domain);
