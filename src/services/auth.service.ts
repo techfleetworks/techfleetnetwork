@@ -464,20 +464,30 @@ export const AuthService = {
         return data.session;
       }
 
-      const elapsed = Date.now() - marker.startedAtMs;
-      if (elapsed > MAX_SESSION_AGE_MS) {
-        log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
-          elapsedMs: elapsed,
+      const now = Date.now();
+      const sessionPolicyFailure = getSessionPolicyFailureReason({
+        startedAt: marker.startedAtMs,
+        lastActivityAt: marker.lastActivityAtMs,
+        now,
+        idleTimeoutMs: IDLE_SESSION_AGE_MS,
+        absoluteTimeoutMs: MAX_SESSION_AGE_MS,
+      });
+      if (sessionPolicyFailure) {
+        log.warn("getSession", `Session failed policy (${sessionPolicyFailure}) — forcing sign-out`, {
+          reason: sessionPolicyFailure,
+          elapsedMs: now - marker.startedAtMs,
+          idleMs: now - marker.lastActivityAtMs,
           maxMs: MAX_SESSION_AGE_MS,
         });
-        void logAccountActivity("session_expired_clientside", {
+        void logAccountActivity(sessionPolicyFailure === "idle_timeout" ? "session_idle_timeout" : "session_expired_clientside", {
           userId: data.session.user.id,
-          details: { elapsedMs: elapsed },
+          details: { reason: sessionPolicyFailure, elapsedMs: now - marker.startedAtMs },
         });
         await supabase.auth.signOut();
         sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
         return null;
       }
+      touchSessionMarker(data.session, marker);
       log.debug("getSession", "Valid session found", { userId: data.session.user.id });
       if (isRootOAuthCallback()) {
         clearOAuthUiMarker();
