@@ -18,7 +18,9 @@ Deno.serve(async (req) => {
 
   let body: unknown;
   try {
-    body = await parseJsonBody(req, 1024);
+    body = req.headers.get("content-type")
+      ? await parseJsonBody(req, 1024)
+      : await req.json();
   } catch (error) {
     return error instanceof Response ? error : jsonResponse({ error: "Invalid request" }, 400);
   }
