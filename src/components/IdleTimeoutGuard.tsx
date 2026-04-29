@@ -10,12 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/use-admin";
 import { useNavigate } from "react-router-dom";
 
 export function IdleTimeoutGuard() {
   const { user, signOut } = useAuth();
-  useAdmin();
   const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
   const timeoutMinutes = 30;
