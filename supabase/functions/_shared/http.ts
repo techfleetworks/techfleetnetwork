@@ -31,6 +31,14 @@ export async function parseJsonBody(
   req: Request,
   maxBytes = 16 * 1024,
 ): Promise<unknown> {
+  const contentType = req.headers.get("content-type") || "";
+  if (!/^application\/(?:[a-z.+-]*\+)?json\b/i.test(contentType)) {
+    throw new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
+      status: 415,
+      headers: jsonHeaders,
+    });
+  }
+
   const contentLength = Number.parseInt(
     req.headers.get("content-length") || "0",
     10,
