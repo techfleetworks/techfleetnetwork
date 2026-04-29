@@ -135,7 +135,7 @@ export default function MyProjectApplicationsPage() {
       const { data, error } = await supabase
         .from("projects").select(MY_PROJECT_APPLICATION_PROJECT_COLUMNS).in("id", projectIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] }[];
+      return (data ?? []) as unknown as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] }[];
     },
     enabled: projectIds.length > 0,
   });
