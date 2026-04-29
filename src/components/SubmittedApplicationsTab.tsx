@@ -108,6 +108,18 @@ interface EnrichedApp extends ProjectApp {
 
 const CORE_COURSE_PHASES = ["first_steps", "second_steps", "discord_learning", "third_steps", "project_training", "volunteer"] as const;
 const REQUIRED_CORE_COURSES = CORE_COURSE_PHASES.length;
+const SUBMITTED_PROJECT_APPLICATION_COLUMNS = [
+  "id", "user_id", "project_id", "completed_at", "participated_previous_phase", "team_hats_interest",
+  "passion_for_project", "client_project_knowledge", "project_success_contribution", "cross_functional_contribution",
+  "prior_engagement_preparation", "previous_phase_position", "previous_phase_learnings", "previous_phase_help_teammates",
+] as const;
+const SUBMITTED_GENERAL_APPLICATION_COLUMNS = [
+  "id", "user_id", "status", "completed_at", "hours_commitment", "previous_engagement", "previous_engagement_ways",
+  "agile_philosophies", "agile_vs_waterfall", "collaboration_challenges", "teammate_learnings", "psychological_safety",
+  "servant_leadership_definition", "servant_leadership_situation", "servant_leadership_actions", "servant_leadership_challenges",
+] as const;
+const SUBMITTED_PROJECT_COLUMNS = ["id", "project_type", "phase", "project_status", "client_id"] as const;
+const SUBMITTED_CLIENT_COLUMNS = ["id", "name", "logo_url"] as const;
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -126,7 +138,7 @@ export default function SubmittedApplicationsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(SUBMITTED_PROJECT_APPLICATION_COLUMNS.join(", "))
         .eq("status", "completed")
         .order("completed_at", { ascending: false });
       if (error) throw error;
@@ -140,7 +152,7 @@ export default function SubmittedApplicationsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*");
+        .select(SUBMITTED_GENERAL_APPLICATION_COLUMNS.join(", "));
       if (error) throw error;
       return (data ?? []) as unknown as GeneralApp[];
     },
@@ -152,7 +164,7 @@ export default function SubmittedApplicationsTab() {
     queryKey: ["admin-projects-for-apps", projectIds],
     queryFn: async () => {
       if (projectIds.length === 0) return [];
-      const { data, error } = await supabase.from("projects").select("*").in("id", projectIds);
+      const { data, error } = await supabase.from("projects").select(SUBMITTED_PROJECT_COLUMNS.join(", ")).in("id", projectIds);
       if (error) throw error;
       return (data ?? []) as unknown as ProjectRow[];
     },
@@ -164,7 +176,7 @@ export default function SubmittedApplicationsTab() {
     queryKey: ["admin-clients-for-apps", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
-      const { data, error } = await supabase.from("clients").select("*").in("id", clientIds);
+      const { data, error } = await supabase.from("clients").select(SUBMITTED_CLIENT_COLUMNS.join(", ")).in("id", clientIds);
       if (error) throw error;
       return (data ?? []) as unknown as ClientRow[];
     },
