@@ -238,12 +238,12 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
     )
 
     if (retries > 0) {
-      console.info('Discord role assignment succeeded after retries', { retries, discordUserId, roleId })
+      console.info('Discord role assignment succeeded after retries', { retries })
     }
 
     if (!res.ok) {
-      const errorText = await res.text()
-      console.error('Discord role assignment failed', { status: res.status, error: errorText.substring(0, 500) })
+      await res.text()
+      console.error('Discord role assignment failed', { status: res.status })
       return { ok: false, error: `Discord API ${res.status}` }
     }
 
