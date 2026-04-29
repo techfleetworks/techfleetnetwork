@@ -109,7 +109,7 @@ export default function RosterApplicantDetailPage() {
         .eq("user_id", projApp!.user_id as string)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!projApp?.user_id,
   });
