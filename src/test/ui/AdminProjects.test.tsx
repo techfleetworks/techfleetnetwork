@@ -198,7 +198,7 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
     expect(screen.getByText(/Marketing Site/)).toBeInTheDocument();
   });
 
-  it("PROJECT-007: Non-admin visiting /admin/clients is redirected to /dashboard", async () => {
+  it("PROJECT-007: Non-admin visiting /admin/clients is redirected to /access-denied", async () => {
     mockUseAdmin.mockReturnValue({ isAdmin: false, loading: false });
     const { AdminRoute } = await import("@/components/AdminRoute");
     const ClientsPage = (await import("@/pages/ClientsPage")).default;
