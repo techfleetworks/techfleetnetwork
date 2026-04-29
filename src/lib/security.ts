@@ -14,7 +14,8 @@
  *   A10 SSRF — URL allowlisting, blocked host patterns
  *
  * Additional: ReDoS protection, header injection prevention,
- * open redirect prevention, mass assignment guards.
+ * open redirect prevention, mass assignment guards, supply-chain,
+ * third-party script/payment, WebSocket/XML, privacy, and zero-trust guards.
  *
  * No PII should ever pass through console.log in production.
  */
@@ -187,6 +188,88 @@ export function isSafeRedirectUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function normalizeSafeRedirectTarget(value: string, fallback = "/dashboard"): string {
+  if (!isSafeRedirectUrl(value)) return fallback;
+  const parsed = new URL(value, window.location.origin);
+  if (parsed.origin === window.location.origin) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  return parsed.href;
+}
+
+export function isSecureTlsUrl(value: string, allowedHosts?: readonly string[]): boolean {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:") return false;
+    if (isPrivateNetworkHost(parsed.hostname)) return false;
+    return !allowedHosts || allowedHosts.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// ─── Third-Party JavaScript and Payment Integrity ───────────────────
+
+const TRUSTED_THIRD_PARTY_SCRIPT_HOSTS = new Set([
+  "js.stripe.com",
+  "www.googletagmanager.com",
+  "challenges.cloudflare.com",
+]);
+
+export function isTrustedThirdPartyScriptUrl(src: string, integrity?: string): boolean {
+  try {
+    const parsed = new URL(src, window.location.origin);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.origin === window.location.origin) return true;
+    if (!TRUSTED_THIRD_PARTY_SCRIPT_HOSTS.has(parsed.hostname)) return false;
+    // SRI is required where providers support static assets. Dynamic providers
+    // that cannot support SRI must be explicitly allowlisted above and covered by CSP.
+    if (parsed.hostname === "js.stripe.com" || parsed.hostname === "challenges.cloudflare.com") return true;
+    return typeof integrity === "string" && /^sha(256|384|512)-[A-Za-z0-9+/=]+$/.test(integrity);
+  } catch {
+    return false;
+  }
+}
+
+export interface PaymentWebhookReplayInput {
+  timestampMs: number;
+  nowMs?: number;
+  toleranceMs?: number;
+  idempotencyKey: string;
+  seenIdempotencyKeys?: ReadonlySet<string>;
+}
+
+export function isPaymentWebhookReplaySafe({
+  timestampMs,
+  nowMs = Date.now(),
+  toleranceMs = 5 * 60 * 1000,
+  idempotencyKey,
+  seenIdempotencyKeys,
+}: PaymentWebhookReplayInput): boolean {
+  if (!idempotencyKey || idempotencyKey.length < 12 || idempotencyKey.length > 200) return false;
+  if (!Number.isFinite(timestampMs) || Math.abs(nowMs - timestampMs) > toleranceMs) return false;
+  if (seenIdempotencyKeys?.has(idempotencyKey)) return false;
+  return true;
+}
+
+export interface TransactionAuthorizationInput {
+  actorUserId: string;
+  confirmationUserId: string;
+  action: string;
+  resourceId: string;
+  nonce: string;
+  replayedNonce?: boolean;
+  amountCents?: number;
+  requiresMfa?: boolean;
+  mfaVerified?: boolean;
+}
+
+export function isHighRiskTransactionAuthorized(input: TransactionAuthorizationInput): boolean {
+  if (!isValidUuid(input.actorUserId) || input.actorUserId !== input.confirmationUserId) return false;
+  if (!input.action || !input.resourceId || input.nonce.length < 16 || input.replayedNonce) return false;
+  if (input.amountCents !== undefined && (!Number.isInteger(input.amountCents) || input.amountCents < 0)) return false;
+  if (input.requiresMfa && !input.mfaVerified) return false;
+  return true;
 }
 
 // ─── Cryptographic Helpers (A02) ────────────────────────────────────
@@ -651,6 +734,32 @@ export function isSessionWithinPolicy({
   return true;
 }
 
+// ─── WebSocket / Web Service / XML Safety ───────────────────────────
+
+export interface WebSocketHandshakePolicy {
+  origin: string | null;
+  allowedOrigins: readonly string[];
+  authenticated: boolean;
+  channel: string;
+  allowedChannels: readonly string[];
+}
+
+export function isWebSocketHandshakeAllowed(policy: WebSocketHandshakePolicy): boolean {
+  if (!policy.authenticated) return false;
+  if (!policy.origin || !policy.allowedOrigins.includes(policy.origin)) return false;
+  if (!policy.allowedChannels.includes(policy.channel)) return false;
+  return /^[a-z0-9:_-]{1,100}$/i.test(policy.channel);
+}
+
+export function isXmlPayloadSafe(xml: string): boolean {
+  if (xml.length > 100_000) return false;
+  return !/(<!DOCTYPE|<!ENTITY|SYSTEM\s+["']|PUBLIC\s+["']|xinclude|file:\/\/|expect:\/\/|php:\/\/)/i.test(xml);
+}
+
+export function isJsonOnlyContentType(contentType: string | null): boolean {
+  return isExpectedContentType(contentType, "application/json") && !/xml|html|text\/plain/i.test(contentType ?? "");
+}
+
 // ─── CRS-Inspired WAF Patterns (ModSecurity CRS) ───────────────────
 
 /**
@@ -688,6 +797,10 @@ export function hasCRSAttackPattern(input: string): boolean {
   return CRS_ATTACK_PATTERNS.some((p) => p.test(input));
 }
 
+export function shouldApplyVirtualPatch(input: string, activeSignatures: readonly RegExp[] = CRS_ATTACK_PATTERNS): boolean {
+  return activeSignatures.some((signature) => signature.test(input));
+}
+
 // ─── MASVS: Sensitive Field Protection ──────────────────────────────
 
 /**
@@ -702,6 +815,42 @@ export const SENSITIVE_INPUT_ATTRS = {
   "data-lpignore": "true", // LastPass
   "data-1p-ignore": "true", // 1Password
 } as const;
+
+export interface PrivacyDisclosurePolicy {
+  purpose: string;
+  dataCategories: readonly string[];
+  consentGranted: boolean;
+  retentionDays: number;
+  thirdPartySharing?: boolean;
+}
+
+export function isPrivacyDisclosureAllowed(policy: PrivacyDisclosurePolicy): boolean {
+  if (!policy.purpose || policy.dataCategories.length === 0) return false;
+  if (!policy.consentGranted) return false;
+  if (!Number.isInteger(policy.retentionDays) || policy.retentionDays < 1 || policy.retentionDays > 365) return false;
+  if (policy.thirdPartySharing && policy.dataCategories.some((category) => /ssn|password|token|secret|mfa/i.test(category))) return false;
+  return true;
+}
+
+export interface ZeroTrustAccessContext extends ObjectAccessScope {
+  authenticated: boolean;
+  deviceTrusted?: boolean;
+  networkTrusted?: boolean;
+  requestedAction: "read" | "write" | "delete" | "admin";
+  allowedActions: readonly string[];
+  mfaVerified?: boolean;
+}
+
+export function isZeroTrustAccessAllowed(context: ZeroTrustAccessContext): boolean {
+  if (!context.authenticated) return false;
+  if (!isAuthorizedObjectAccess(context)) return false;
+  if (!context.allowedActions.includes(context.requestedAction)) return false;
+  if ((context.requestedAction === "delete" || context.requestedAction === "admin") && !context.mfaVerified) return false;
+  // Never trust the network by itself; a trusted device can lower friction only
+  // after identity, resource scope, and action checks have passed.
+  if (context.networkTrusted && !context.deviceTrusted && context.requestedAction !== "read") return false;
+  return true;
+}
 
 // ─── Dependency Track: SBOM Metadata ────────────────────────────────
 
@@ -722,6 +871,22 @@ export function getSBOMMetadata() {
     toolsUsed: ["npm audit", "lovable-dependency-scan"],
     lastScanDate: new Date().toISOString(),
   };
+}
+
+export interface DependencyRiskInput {
+  name: string;
+  version: string;
+  license?: string;
+  knownVulnerabilitySeverity?: "low" | "moderate" | "high" | "critical";
+  maintained?: boolean;
+  pinned?: boolean;
+}
+
+export function isDependencyAcceptableForUse(dep: DependencyRiskInput): boolean {
+  if (!dep.name || !dep.version || dep.version === "latest" || dep.pinned === false) return false;
+  if (dep.maintained === false) return false;
+  if (dep.knownVulnerabilitySeverity === "high" || dep.knownVulnerabilitySeverity === "critical") return false;
+  return true;
 }
 
 // ─── Content Integrity ──────────────────────────────────────────────
