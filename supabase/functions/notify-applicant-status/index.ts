@@ -456,21 +456,21 @@ Deno.serve(async (req) => {
       if (!emailResult.ok) {
         console.error('Interview email queue failed', {
           status: emailResult.status,
-          error: emailResult.error,
-          applicantEmail: resolvedEmail,
+          error: emailResult.error ? 'queue_error' : 'unknown_error',
+          applicant: redactEmail(resolvedEmail),
           applicationId,
         })
       } else {
         emailSent = !emailResult.suppressed
         console.info('Interview email processed', {
-          applicantEmail: resolvedEmail,
+          applicant: redactEmail(resolvedEmail),
           queued: !emailResult.suppressed,
           suppressed: emailResult.suppressed,
           messageId: emailResult.messageId,
         })
       }
     } catch (e) {
-      console.error('Interview email send error', e)
+      console.error('Interview email send error', { error: summarizeError(e) })
     }
   } else if (resolvedEmail && applicantWantsEmail) {
     /* ---- 4b. Email — generic status change (all other transitions) ---- */
@@ -496,15 +496,15 @@ Deno.serve(async (req) => {
       if (!emailResult.ok) {
         console.error('Status email queue failed', {
           status: emailResult.status,
-          error: emailResult.error,
-          applicantEmail: resolvedEmail,
+          error: emailResult.error ? 'queue_error' : 'unknown_error',
+          applicant: redactEmail(resolvedEmail),
           applicationId,
           newStatus,
         })
       } else {
         emailSent = !emailResult.suppressed
         console.info('Status email processed', {
-          applicantEmail: resolvedEmail,
+          applicant: redactEmail(resolvedEmail),
           newStatus,
           queued: !emailResult.suppressed,
           suppressed: emailResult.suppressed,
@@ -512,11 +512,11 @@ Deno.serve(async (req) => {
         })
       }
     } catch (e) {
-      console.error('Status email send error', e)
+      console.error('Status email send error', { error: summarizeError(e) })
     }
   } else if (!applicantWantsEmail) {
     console.info('Skipped status email — applicant has notify_announcements disabled', {
-      applicantUserId,
+      applicationId,
       newStatus,
     })
   }
