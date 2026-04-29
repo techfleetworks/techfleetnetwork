@@ -91,6 +91,12 @@ describe("validateFileUpload", () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain("not allowed");
   });
+  it("rejects allowed MIME with disallowed extension", () => {
+    const file = new File(["data"], "photo.svg", { type: "image/png" });
+    const result = validateFileUpload(file);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("extension");
+  });
   it("rejects path traversal in filename", () => {
     const file = new File(["data"], "../../../etc/passwd", { type: "image/jpeg" });
     const result = validateFileUpload(file);
