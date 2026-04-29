@@ -3,6 +3,10 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 export const jsonHeaders = {
   ...corsHeaders,
   "Content-Type": "application/json",
+  "Cache-Control": "no-store, max-age=0",
+  "Pragma": "no-cache",
+  "X-Content-Type-Options": "nosniff",
+  "Vary": "Origin",
 };
 
 export function handleCors(req: Request): Response | null {
@@ -12,7 +16,11 @@ export function handleCors(req: Request): Response | null {
 }
 
 export function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+  const safeStatus = status >= 100 && status <= 599 ? status : 500;
+  return new Response(JSON.stringify(body), {
+    status: safeStatus,
+    headers: jsonHeaders,
+  });
 }
 
 export function methodNotAllowed(): Response {

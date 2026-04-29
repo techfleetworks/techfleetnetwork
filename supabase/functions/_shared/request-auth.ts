@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { extractBearerToken, getUserClient } from "./admin-client.ts";
+import {
+  extractBearerToken,
+  getAdminClient,
+  getUserClient,
+} from "./admin-client.ts";
 import { jsonResponse } from "./http.ts";
 
 export interface AuthenticatedRequestContext {
@@ -22,4 +26,25 @@ export async function requireAuthenticatedRequest(
 
   if (error || !userId) return jsonResponse({ error: "Unauthorized" }, 401);
   return { authHeader, token, userId, userClient };
+}
+
+export async function requireAdminRequest(
+  req: Request,
+): Promise<AuthenticatedRequestContext | Response> {
+  const auth = await requireAuthenticatedRequest(req);
+  if (auth instanceof Response) return auth;
+
+  const { data, error } = await getAdminClient().rpc("has_role", {
+    _user_id: auth.userId,
+    _role: "admin",
+  });
+
+  if (error) {
+    console.error(
+      JSON.stringify({ level: "error", action: "admin_authorization_check" }),
+    );
+    return jsonResponse({ error: "Unable to verify authorization" }, 500);
+  }
+
+  return data === true ? auth : jsonResponse({ error: "Forbidden" }, 403);
 }
