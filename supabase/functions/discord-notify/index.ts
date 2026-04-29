@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { buildMessage, validateNotifyPayload, type NotifyPayload } from "./notify-utils.ts";
 
 const log = createEdgeLogger("discord-notify");
 
@@ -19,72 +20,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface NotifyPayload {
-  event:
-    | "user_signed_up"
-    | "profile_completed"
-    | "task_completed"
-    | "phase_completed"
-    | "class_registered"
-    | "application_submitted"
-    | "project_applied"
-    | "feedback_submitted"
-    | "resource_explored"
-    | "discord_verified";
-  display_name?: string;
-  discord_username?: string;
-  discord_user_id?: string;
-  task_name?: string;
-  phase_name?: string;
-  class_name?: string;
-  country?: string;
-  project_name?: string;
-  application_type?: string;
-  feedback_area?: string;
-  search_query?: string;
-}
-
-function buildActionText(payload: NotifyPayload): string {
-  switch (payload.event) {
-    case "user_signed_up":
-      return "Signed up to Tech Fleet Network 🎉";
-    case "profile_completed":
-      return `Completed their profile setup${payload.country ? ` (🌍 ${payload.country})` : ""} ✅`;
-    case "task_completed":
-      return `Completed task: ${payload.task_name || "a task"} 📋`;
-    case "phase_completed":
-      return `Completed all tasks in ${payload.phase_name || "a phase"} 🏆🚀`;
-    case "class_registered":
-      return `Registered for ${payload.class_name || "a class"} 📚`;
-    case "application_submitted":
-      return `Submitted their ${payload.application_type || "General"} Application 📝`;
-    case "project_applied":
-      return `Applied to project: ${payload.project_name || "a project"} 🚀`;
-    case "feedback_submitted":
-      return `Submitted feedback about ${payload.feedback_area || "the platform"} 💬`;
-    case "resource_explored":
-      return `Explored resources: "${payload.search_query || "a topic"}" 🔍`;
-    case "discord_verified":
-      return `has verified their Discord account from the Tech Fleet Network Platform ✅🔗`;
-    default:
-      return "Performed an action on the platform 📢";
-  }
-}
-
-function buildMessage(payload: NotifyPayload): string {
-  let userTag: string;
-  if (payload.discord_user_id) {
-    userTag = `<@${payload.discord_user_id}>`;
-  } else if (payload.discord_username) {
-    userTag = `**@${payload.discord_username.replace(/^@/, "")}**`;
-  } else {
-    userTag = `**${payload.display_name || "A member"}**`;
-  }
-
-  const action = buildActionText(payload);
-  return `${userTag} just did the following in Tech Fleet Network: **${action}**`;
-}
-
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -101,19 +36,6 @@ const ALLOWED_ORIGIN_PATTERNS = [
   /^http:\/\/localhost(?::\d+)?$/,
   /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
 ];
-
-const VALID_EVENTS = new Set([
-  "user_signed_up",
-  "profile_completed",
-  "task_completed",
-  "phase_completed",
-  "class_registered",
-  "application_submitted",
-  "project_applied",
-  "feedback_submitted",
-  "resource_explored",
-  "discord_verified",
-]);
 
 function isAllowedUiOrigin(req: Request) {
   const origin = req.headers.get("Origin") || req.headers.get("Referer")?.replace(/\/[^/]*$/, "") || "";
@@ -191,12 +113,12 @@ serve(async (req) => {
       return jsonResponse({ error: "Request body too large" }, 413);
     }
 
-    const payload: NotifyPayload = await req.json();
-
-    if (!payload?.event || !VALID_EVENTS.has(payload.event)) {
+    const validation = validateNotifyPayload(await req.json());
+    if (!validation.ok) {
       log.warn("handler", `Missing/invalid event [${requestId}]`, { requestId });
-      return jsonResponse({ error: "Missing event" }, 400);
+      return jsonResponse({ error: validation.error }, 400);
     }
+    const payload = validation.payload;
 
     const fingerprint = await requestFingerprint(userId, payload);
     const { data: duplicateRl } = await adminClient.rpc("check_rate_limit", {
