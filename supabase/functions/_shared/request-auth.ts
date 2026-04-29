@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { extractBearerToken, getAdminClient, getUserClient } from "./admin-client.ts";
+import {
+  extractBearerToken,
+  getAdminClient,
+  getUserClient,
+} from "./admin-client.ts";
 import { jsonResponse } from "./http.ts";
 
 export interface AuthenticatedRequestContext {
@@ -36,7 +40,9 @@ export async function requireAdminRequest(
   });
 
   if (error) {
-    console.error(JSON.stringify({ level: "error", action: "admin_authorization_check" }));
+    console.error(
+      JSON.stringify({ level: "error", action: "admin_authorization_check" }),
+    );
     return jsonResponse({ error: "Unable to verify authorization" }, 500);
   }
 
