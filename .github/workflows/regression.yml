@@ -32,7 +32,7 @@ permissions:
   contents: read
 
 jobs:
-  vitest:
+  static-verification:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,8 +61,30 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
-      - name: Run Vitest regression suite
-        run: npm run test
+  vitest:
+    runs-on: ubuntu-latest
+    needs: static-verification
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest regression shard ${{ matrix.shard }}/4
+        run: npm run test:unit:shard:${{ matrix.shard }}
 
   sbom:
     runs-on: ubuntu-latest
