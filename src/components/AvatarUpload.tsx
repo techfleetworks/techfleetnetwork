@@ -5,6 +5,7 @@ import { Camera, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { extractAvatarPath } from "@/lib/avatar-storage";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -19,8 +20,16 @@ interface AvatarUploadProps {
 
 export function AvatarUpload({ userId, currentUrl, initials, onUploaded, className }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useState(() => {
+    const avatarPath = extractAvatarPath(currentUrl);
+    if (!avatarPath) return;
+    supabase.storage.from("avatars").createSignedUrl(avatarPath, 60 * 15).then(({ data }) => {
+      setPreviewUrl(data?.signedUrl ?? null);
+    });
+  });
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,17 +56,15 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
       // Update profile with new avatar URL
       await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl } as any)
+        .update({ avatar_url: path } as any)
         .eq("user_id", userId);
 
-      setPreviewUrl(publicUrl);
-      onUploaded(publicUrl);
+      const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 15);
+      setPreviewUrl(signed?.signedUrl ?? null);
+      onUploaded(path);
       toast.success("Profile picture updated!");
     } catch (err: any) {
       toast.error(err.message || "Failed to upload image.");
