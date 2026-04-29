@@ -60,6 +60,12 @@ function buildSearchQueries(rawInput: string): string[] {
   return [...new Set([raw.toLowerCase(), normalized, `.${normalized}`, ...tokens].filter(Boolean))].slice(0, 8);
 }
 
+function redactDiscordIdentifier(value: string): string {
+  const normalized = normalizeLookupValue(value);
+  if (!normalized) return 'empty';
+  return `${normalized.slice(0, 2)}***:${normalized.length}`;
+}
+
 function memberFields(member: DiscordMember): string[] {
   return [member.user?.username, member.user?.global_name ?? undefined, member.nick ?? undefined]
     .filter((value): value is string => Boolean(value))
@@ -147,7 +153,7 @@ serve(async (req) => {
       });
 
       if (!confirmRes.ok) {
-        log.warn("resolve", `Rejected confirmation for non-member Discord ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id, httpStatus: confirmRes.status });
+        log.warn("resolve", `Rejected confirmation for non-member Discord ID [${requestId}]`, { requestId, httpStatus: confirmRes.status });
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "Selected Discord account is not in the Tech Fleet server" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -165,7 +171,7 @@ serve(async (req) => {
         .limit(1);
 
       if (claimedError) {
-        log.error("resolve", `Failed claimed Discord lookup [${requestId}]`, { requestId, confirm_user_id }, claimedError);
+        log.error("resolve", `Failed claimed Discord lookup [${requestId}]`, { requestId }, claimedError);
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "Could not safely verify Discord ownership. Please try again." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -173,7 +179,7 @@ serve(async (req) => {
       }
 
       if (claimedProfiles && claimedProfiles.length > 0) {
-        log.warn("resolve", `Rejected already-claimed Discord account ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+        log.warn("resolve", `Rejected already-claimed Discord account [${requestId}]`, { requestId });
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "This Discord account is already linked to another Tech Fleet profile. Each Discord account can only be connected to one profile." }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -190,7 +196,7 @@ serve(async (req) => {
         .eq("user_id", userId);
 
       if (linkError) {
-        log.error("resolve", `Failed to persist confirmed Discord link [${requestId}]`, { requestId, confirm_user_id }, linkError);
+        log.error("resolve", `Failed to persist confirmed Discord link [${requestId}]`, { requestId }, linkError);
         const isUniqueConflict = linkError.message?.toLowerCase().includes("unique") || linkError.code === "23505";
         return new Response(
           JSON.stringify({
@@ -203,7 +209,7 @@ serve(async (req) => {
         );
       }
 
-      log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+      log.info("resolve", `Confirmed selected Discord user ID [${requestId}]`, { requestId });
       return new Response(
         JSON.stringify({
           discord_user_id: confirm_user_id,
