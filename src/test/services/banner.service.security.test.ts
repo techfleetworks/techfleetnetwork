@@ -8,12 +8,13 @@ describe("banner.service OWASP A02 data minimization", () => {
   it("SEC-BANNER-SERVICE-PROJECTION-051: avoids wildcard projections", () => {
     expect(source).not.toContain('.select("*")');
     expect(source).not.toContain(".select('*')");
+    expect(source).not.toMatch(/\.select\(\s*\)/);
   });
 
-  it("SEC-BANNER-SERVICE-PROJECTION-051: uses an allowlist for admin banner reads", () => {
+  it("SEC-BANNER-SERVICE-PROJECTION-051: uses an allowlist for admin banner reads and mutation returns", () => {
     expect(source).toContain("ADMIN_BANNER_COLUMNS");
     expect(source).toContain(".select(ADMIN_BANNER_COLUMNS)");
-    expect(source.match(/\.select\(ADMIN_BANNER_COLUMNS\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source.match(/\.select\(ADMIN_BANNER_COLUMNS\)/g)?.length).toBeGreaterThanOrEqual(4);
   });
 
   it("SEC-BANNER-SERVICE-PROJECTION-051: keeps dismissal reads narrow", () => {

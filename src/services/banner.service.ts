@@ -66,7 +66,7 @@ export async function createBanner(banner: BannerInsert): Promise<AdminBanner> {
   const { data, error } = await supabase
     .from("admin_banners")
     .insert(sanitizeBanner(banner))
-    .select()
+    .select(ADMIN_BANNER_COLUMNS)
     .single();
   if (error) throw error;
   return data as AdminBanner;
@@ -77,7 +77,7 @@ export async function updateBanner(id: string, updates: BannerUpdate): Promise<A
     .from("admin_banners")
     .update(sanitizeBanner(updates))
     .eq("id", id)
-    .select()
+    .select(ADMIN_BANNER_COLUMNS)
     .single();
   if (error) throw error;
   return data as AdminBanner;
