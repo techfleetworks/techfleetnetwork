@@ -28,14 +28,19 @@ export interface NetworkStats {
 export const StatsService = {
   async getNetworkStats(): Promise<NetworkStats> {
     return log.track("getNetworkStats", "Fetching network stats from database", undefined, async () => {
-      const { data, error } = await supabase.rpc("get_network_stats");
+      const { data, error } = await supabase.functions.invoke("public-network-activity", {
+        method: "GET",
+        body: undefined,
+        headers: {},
+        query: { action: "network_stats" },
+      });
       handleServiceError(error, {
         logger: log,
         action: "getNetworkStats",
         message: `Failed to load network stats: ${error?.message ?? "Unknown error"}`,
         throwMessage: "Failed to load network stats.",
       });
-      const stats = data as unknown as NetworkStats;
+      const stats = data?.data as unknown as NetworkStats;
       log.info("getNetworkStats", `Network stats loaded: ${stats.total_signups} total signups`, {
         totalSignups: stats.total_signups,
       });
