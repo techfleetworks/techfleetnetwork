@@ -27,6 +27,26 @@ const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
+const PROJECT_APPLICATION_DETAIL_COLUMNS = [
+  "id", "user_id", "completed_at", "participated_previous_phase", "applicant_status", "team_hats_interest",
+  "previous_phase_position", "previous_phase_learnings", "previous_phase_help_teammates", "prior_engagement_preparation",
+  "passion_for_project", "client_project_knowledge", "cross_functional_contribution", "project_success_contribution",
+].join(", ");
+
+const PROJECT_DETAIL_COLUMNS = "id, project_type, phase, project_status, discord_role_id, discord_role_name, clients(name)";
+
+const PROFILE_DETAIL_COLUMNS = [
+  "user_id", "display_name", "first_name", "last_name", "email", "country", "timezone", "discord_username",
+  "linkedin_url", "portfolio_url", "experience_areas", "education_background", "interests",
+  "professional_background", "professional_goals", "bio", "discord_user_id",
+].join(", ");
+
+const GENERAL_APPLICATION_DETAIL_COLUMNS = [
+  "completed_at", "hours_commitment", "previous_engagement", "previous_engagement_ways", "teammate_learnings",
+  "agile_vs_waterfall", "psychological_safety", "agile_philosophies", "collaboration_challenges",
+  "servant_leadership_definition", "servant_leadership_actions", "servant_leadership_challenges", "servant_leadership_situation",
+].join(", ");
+
 export default function RosterApplicantDetailPage() {
   const { projectId, applicationId } = useParams<{ projectId: string; applicationId: string }>();
   const navigate = useNavigate();
@@ -55,11 +75,11 @@ export default function RosterApplicantDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(PROJECT_APPLICATION_DETAIL_COLUMNS)
         .eq("id", applicationId!)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!applicationId && !!user && isAdmin,
   });
@@ -70,11 +90,11 @@ export default function RosterApplicantDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("*, clients(name)")
+        .select(PROJECT_DETAIL_COLUMNS)
         .eq("id", projectId!)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown> & { clients: { name: string } | null };
+      return data as unknown as Record<string, unknown> & { clients: { name: string } | null };
     },
     enabled: !!projectId && !!user && isAdmin,
   });
@@ -85,11 +105,11 @@ export default function RosterApplicantDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(PROFILE_DETAIL_COLUMNS)
         .eq("user_id", projApp!.user_id as string)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!projApp?.user_id,
   });
@@ -100,14 +120,14 @@ export default function RosterApplicantDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select(GENERAL_APPLICATION_DETAIL_COLUMNS)
         .eq("user_id", projApp!.user_id as string)
         .eq("status", "completed")
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Record<string, unknown> | null;
+      return data as unknown as Record<string, unknown> | null;
     },
     enabled: !!projApp?.user_id,
   });
