@@ -26,6 +26,18 @@ import {
   sanitizeAIMarkdown,
   redactPIIFromOutput,
   deepSanitize,
+  normalizeSafeRedirectTarget,
+  isSecureTlsUrl,
+  isTrustedThirdPartyScriptUrl,
+  isPaymentWebhookReplaySafe,
+  isHighRiskTransactionAuthorized,
+  isWebSocketHandshakeAllowed,
+  isXmlPayloadSafe,
+  isJsonOnlyContentType,
+  shouldApplyVirtualPatch,
+  isPrivacyDisclosureAllowed,
+  isZeroTrustAccessAllowed,
+  isDependencyAcceptableForUse,
 } from "@/lib/security";
 
 describe("sanitizeHtml", () => {
@@ -370,5 +382,65 @@ describe("deepSanitize", () => {
     const result = deepSanitize({ __proto__: "evil", name: "safe" });
     expect(result).not.toHaveProperty("__proto__");
     expect(result).toHaveProperty("name", "safe");
+  });
+});
+
+describe("OWASP extended secure coding helpers", () => {
+  const userId = "550e8400-e29b-41d4-a716-446655440000";
+
+  it("normalizes redirects to safe same-origin targets", () => {
+    expect(normalizeSafeRedirectTarget("/dashboard?tab=home")).toBe("/dashboard?tab=home");
+    expect(normalizeSafeRedirectTarget("//evil.example", "/safe")).toBe("/safe");
+  });
+
+  it("requires secure TLS URLs for integrations", () => {
+    expect(isSecureTlsUrl("https://api.example.com/v1", ["api.example.com"])).toBe(true);
+    expect(isSecureTlsUrl("http://api.example.com/v1", ["api.example.com"])).toBe(false);
+  });
+
+  it("allowlists third-party scripts and requires integrity when needed", () => {
+    expect(isTrustedThirdPartyScriptUrl("https://www.googletagmanager.com/gtm.js", "sha384-abcDEF123+/=")).toBe(true);
+    expect(isTrustedThirdPartyScriptUrl("https://evil.example/app.js")).toBe(false);
+  });
+
+  it("rejects payment webhook replay and stale events", () => {
+    const seen = new Set(["existing-key-12345"]);
+    expect(isPaymentWebhookReplaySafe({ timestampMs: Date.now(), idempotencyKey: "new-key-123456" })).toBe(true);
+    expect(isPaymentWebhookReplaySafe({ timestampMs: Date.now(), idempotencyKey: "existing-key-12345", seenIdempotencyKeys: seen })).toBe(false);
+  });
+
+  it("binds high-risk transaction authorization to actor, nonce, and MFA", () => {
+    expect(isHighRiskTransactionAuthorized({ actorUserId: userId, confirmationUserId: userId, action: "delete", resourceId: "r1", nonce: "nonce-123456789012", requiresMfa: true, mfaVerified: true })).toBe(true);
+    expect(isHighRiskTransactionAuthorized({ actorUserId: userId, confirmationUserId: userId, action: "delete", resourceId: "r1", nonce: "nonce-123456789012", requiresMfa: true })).toBe(false);
+  });
+
+  it("requires authenticated allowed-origin WebSocket handshakes", () => {
+    expect(isWebSocketHandshakeAllowed({ origin: "https://techfleetnetwork.lovable.app", allowedOrigins: ["https://techfleetnetwork.lovable.app"], authenticated: true, channel: "notifications:user", allowedChannels: ["notifications:user"] })).toBe(true);
+    expect(isWebSocketHandshakeAllowed({ origin: "https://evil.example", allowedOrigins: ["https://techfleetnetwork.lovable.app"], authenticated: true, channel: "notifications:user", allowedChannels: ["notifications:user"] })).toBe(false);
+  });
+
+  it("blocks XXE payloads and non-JSON service content types", () => {
+    expect(isXmlPayloadSafe('<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>')).toBe(false);
+    expect(isJsonOnlyContentType("application/json; charset=utf-8")).toBe(true);
+    expect(isJsonOnlyContentType("application/xml")).toBe(false);
+  });
+
+  it("supports virtual patch signatures for known exploit payloads", () => {
+    expect(shouldApplyVirtualPatch("<script>alert(1)</script>")).toBe(true);
+  });
+
+  it("enforces privacy disclosure minimization and retention", () => {
+    expect(isPrivacyDisclosureAllowed({ purpose: "notifications", dataCategories: ["email"], consentGranted: true, retentionDays: 90 })).toBe(true);
+    expect(isPrivacyDisclosureAllowed({ purpose: "share", dataCategories: ["mfa_token"], consentGranted: true, retentionDays: 90, thirdPartySharing: true })).toBe(false);
+  });
+
+  it("requires zero-trust identity, scope, action, and MFA checks", () => {
+    expect(isZeroTrustAccessAllowed({ authenticated: true, actorUserId: userId, ownerUserId: userId, requestedAction: "delete", allowedActions: ["delete"], mfaVerified: true })).toBe(true);
+    expect(isZeroTrustAccessAllowed({ authenticated: true, actorUserId: userId, ownerUserId: userId, requestedAction: "delete", allowedActions: ["delete"] })).toBe(false);
+  });
+
+  it("rejects risky vulnerable dependencies", () => {
+    expect(isDependencyAcceptableForUse({ name: "safe-lib", version: "1.2.3", pinned: true, maintained: true })).toBe(true);
+    expect(isDependencyAcceptableForUse({ name: "risky-lib", version: "latest", knownVulnerabilitySeverity: "critical" })).toBe(false);
   });
 });
