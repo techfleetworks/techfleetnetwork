@@ -108,7 +108,7 @@ describe("DashboardPage", () => {
     renderWithRouter(<DashboardPage />);
 
     expect(await screen.findByText(/welcome back, test/i)).toBeInTheDocument();
-    expect(screen.getByText(/course completion/i)).toBeInTheDocument();
+    expect(screen.getByText(/getting started/i)).toBeInTheDocument();
   });
 
   it("DASH-APP-STATUS-001: shows submitted general application status on the dashboard", async () => {
