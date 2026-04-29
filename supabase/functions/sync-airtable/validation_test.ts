@@ -4,7 +4,7 @@ import { parseSyncAirtableRequest, validateAirtableConfig } from "./validation.t
 Deno.test("parseSyncAirtableRequest only accepts UUID application ids", () => {
   assertInstanceOf(parseSyncAirtableRequest(null), Response);
   assertInstanceOf(parseSyncAirtableRequest({ application_id: "abc" }), Response);
-  assertInstanceOf(parseSyncAirtableRequest({ application_id: "123e4567-e89b-12d3-a456-426614174000" }), Response);
+  assertInstanceOf(parseSyncAirtableRequest({ application_id: "123e4567-e89b-92d3-a456-426614174000" }), Response);
 
   const parsed = parseSyncAirtableRequest({ application_id: "123e4567-e89b-42d3-a456-426614174000" });
   assertEquals(parsed instanceof Response, false);
