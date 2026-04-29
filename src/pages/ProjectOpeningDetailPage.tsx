@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NavLink } from "@/components/NavLink";
 import { ClientLogo } from "@/components/ClientLogo";
+import { SafeExternalLink, getSafeLinkHostname } from "@/components/security/SafeExternalLink";
 import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
 } from "@/data/project-constants";
@@ -309,15 +310,13 @@ export default function ProjectOpeningDetailPage() {
             <DetailRow
               label="Website"
               value={
-                <a
+                <SafeExternalLink
                   href={client.website.startsWith("http") ? client.website : `https://${client.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
                   {client.website}
                   <ExternalLink className="h-3 w-3" />
-                </a>
+                </SafeExternalLink>
               }
             />
           )}
@@ -390,15 +389,13 @@ export default function ProjectOpeningDetailPage() {
               <DetailRow
                 label="Client Intake"
                 value={
-                  <a
+                  <SafeExternalLink
                     href={project.client_intake_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="text-primary hover:underline inline-flex items-center gap-1"
                   >
-                    {(() => { try { return new URL(project.client_intake_url).hostname; } catch { return project.client_intake_url; } })()}
+                    {getSafeLinkHostname(project.client_intake_url) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </SafeExternalLink>
                 }
               />
             )}
@@ -406,15 +403,13 @@ export default function ProjectOpeningDetailPage() {
               <DetailRow
                 label="Project Repository (Notion)"
                 value={
-                  <a
+                  <SafeExternalLink
                     href={project.notion_repository_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="text-primary hover:underline inline-flex items-center gap-1"
                   >
-                    {(() => { try { return new URL(project.notion_repository_url).hostname; } catch { return project.notion_repository_url; } })()}
+                    {getSafeLinkHostname(project.notion_repository_url) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </SafeExternalLink>
                 }
               />
             )}

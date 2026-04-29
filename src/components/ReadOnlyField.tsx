@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { SafeExternalLink } from "@/components/security/SafeExternalLink";
 import type { ReactNode } from "react";
 
 interface ReadOnlyFieldProps {
@@ -34,14 +35,13 @@ export function ReadOnlyLinkField({ label, href, linkText }: ReadOnlyLinkFieldPr
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-foreground">{label}</p>
-      <a
+      <SafeExternalLink
         href={href}
-        target="_blank"
-        rel="noopener noreferrer"
+        fallback={<p className="text-xs text-muted-foreground pl-3">Unavailable</p>}
         className="text-xs text-primary hover:underline pl-3"
       >
         {linkText ?? href}
-      </a>
+      </SafeExternalLink>
     </div>
   );
 }

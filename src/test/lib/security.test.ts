@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   sanitizeText, stripHtml, isSafeUrl, maskPii, safeCompare,
   deepSanitize, isSafeExternalUrl, maskEmail, enforceMaxBytes,
-  hasSqlInjectionPattern, safeJsonParse, generateCsrfToken,
+  hasSqlInjectionPattern, safeJsonParse, generateCsrfToken, safeHref,
 } from "@/lib/security";
 
 describe("sanitizeText", () => {
@@ -73,6 +73,19 @@ describe("isSafeExternalUrl", () => {
   it("blocks AWS metadata endpoint", () => { expect(isSafeExternalUrl("http://169.254.169.254/latest/meta-data")).toBe(false); });
   it("allows legitimate external URL", () => { expect(isSafeExternalUrl("https://techfleet.org")).toBe(true); });
   it("rejects non-http protocols", () => { expect(isSafeExternalUrl("ftp://example.com")).toBe(false); });
+});
+
+describe("safeHref", () => {
+  it("normalizes safe web and email links", () => {
+    expect(safeHref("https://techfleet.org/about")).toBe("https://techfleet.org/about");
+    expect(safeHref("mailto:test@example.com")).toBe("mailto:test@example.com");
+  });
+  it("rejects active content, header injection, malformed email, and private hosts", () => {
+    expect(safeHref("javascript:alert(1)")).toBeUndefined();
+    expect(safeHref("https://example.com/%0d%0aSet-Cookie:x=y")).toBeUndefined();
+    expect(safeHref("mailto:not-an-email")).toBeUndefined();
+    expect(safeHref("http://127.0.0.1/admin")).toBeUndefined();
+  });
 });
 
 describe("maskEmail", () => {

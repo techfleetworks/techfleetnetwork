@@ -57,9 +57,11 @@ export function stripHtml(input: string): string {
 
 export function safeHref(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
+  if (value.length > 2_048 || hasHeaderInjection(value) || hasActiveXssPattern(value)) return undefined;
   try {
     const parsed = new URL(value, window.location.origin);
     if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) return undefined;
+    if (parsed.protocol === "mailto:" && !/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(parsed.href)) return undefined;
     if (["http:", "https:"].includes(parsed.protocol) && !isSafeExternalUrl(parsed.href)) return undefined;
     return parsed.href;
   } catch {
