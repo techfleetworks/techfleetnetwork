@@ -38,6 +38,8 @@ import {
   isPrivacyDisclosureAllowed,
   isZeroTrustAccessAllowed,
   isDependencyAcceptableForUse,
+  getSessionPolicyFailureReason,
+  isValidTotpCode,
 } from "@/lib/security";
 
 describe("sanitizeHtml", () => {
@@ -255,6 +257,22 @@ describe("isSessionWithinPolicy", () => {
     expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })).toBe(false);
     expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe(false);
     expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 4 * 60 * 60 * 1000, now: 5 * 60 * 60 * 1000 })).toBe(false);
+  });
+  it("returns precise failure reasons for session enforcement telemetry", () => {
+    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000 })).toBeNull();
+    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })).toBe("revoked");
+    expect(getSessionPolicyFailureReason({ startedAt: 2_000, lastActivityAt: 1_000, now: 3_000 })).toBe("invalid");
+    expect(getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe("idle_timeout");
+  });
+});
+
+describe("isValidTotpCode", () => {
+  it("allows only normalized 6-digit authenticator codes", () => {
+    expect(isValidTotpCode("123456")).toBe(true);
+    expect(isValidTotpCode("123 456")).toBe(true);
+    expect(isValidTotpCode("12345")).toBe(false);
+    expect(isValidTotpCode("1234567")).toBe(false);
+    expect(isValidTotpCode("abcdef")).toBe(false);
   });
 });
 
