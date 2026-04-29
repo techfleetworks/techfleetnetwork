@@ -6,7 +6,16 @@ import { handleServiceError } from "@/lib/service-result";
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
 const announcementBodySchema = safeHtmlSchema("Update body");
-const mediaUrlSchema = safeUrlSchema("Media URL", 1000).nullable().optional();
+const mediaPathSchema = safeRequiredTextSchema("Media path", 180)
+  .regex(/^(video|audio)\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.webm$/i, "Media path must reference a recorded announcement file");
+const mediaInputSchema = safeUrlSchema("Media URL", 1000).or(mediaPathSchema).nullable().optional();
+
+export function extractAnnouncementMediaPath(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const pathOnly = trimmed.match(/(?:^|\/)announcement-videos\/([^?#]+)/)?.[1] ?? trimmed;
+  return mediaPathSchema.parse(decodeURIComponent(pathOnly));
+}
 
 export interface Announcement {
   id: string;
@@ -37,8 +46,8 @@ export const AnnouncementService = {
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
     const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(bodyHtml), created_by: userId };
-    const safeVideoUrl = mediaUrlSchema.parse(videoUrl);
-    const safeAudioUrl = mediaUrlSchema.parse(audioUrl);
+    const safeVideoUrl = mediaInputSchema.parse(videoUrl);
+    const safeAudioUrl = mediaInputSchema.parse(audioUrl);
     if (safeVideoUrl) row.video_url = safeVideoUrl;
     if (safeAudioUrl) row.audio_url = safeAudioUrl;
     const { data, error } = await supabase
