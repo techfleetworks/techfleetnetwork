@@ -3,8 +3,10 @@ import { screen } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import DashboardPage from "@/pages/DashboardPage";
 
-let dashboardOverview: unknown = undefined;
-let widgetOrder = ["core_courses"];
+const mockState = vi.hoisted(() => ({
+  dashboardOverview: undefined as unknown,
+  widgetOrder: ["core_courses"],
+}));
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
@@ -16,7 +18,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/hooks/use-dashboard-preferences", () => ({
   useDashboardPreferences: () => ({
     visibleWidgets: { broken: true } as any,
-    widgetOrder,
+    widgetOrder: mockState.widgetOrder,
     isVisible: () => true,
     toggleWidget: vi.fn(),
     reorderWidgets: vi.fn(),
@@ -26,7 +28,7 @@ vi.mock("@/hooks/use-dashboard-preferences", () => ({
 }));
 
 vi.mock("@/hooks/use-dashboard-overview", () => ({
-  useDashboardOverview: () => ({ data: dashboardOverview }),
+  useDashboardOverview: () => ({ data: mockState.dashboardOverview }),
 }));
 
 vi.mock("@/hooks/use-journey-progress", () => ({
@@ -92,8 +94,8 @@ vi.mock("@/components/NetworkActivity", () => ({
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dashboardOverview = undefined;
-    widgetOrder = ["core_courses"];
+    mockState.dashboardOverview = undefined;
+    mockState.widgetOrder = ["core_courses"];
   });
 
   it("renders without crashing when visibleWidgets is malformed", async () => {
@@ -104,8 +106,8 @@ describe("DashboardPage", () => {
   });
 
   it("DASH-APP-STATUS-001: shows submitted general application status on the dashboard", async () => {
-    widgetOrder = ["my_project_apps"];
-    dashboardOverview = {
+    mockState.widgetOrder = ["my_project_apps"];
+    mockState.dashboardOverview = {
       phase_counts: {},
       general_application: {
         id: "general-app-1",
