@@ -28,6 +28,11 @@ import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 const CORE_HATS = ["Project Management", "Product Management", "UX Research", "UX Design"];
 const IDEAL_PER_HAT = 4;
 const READY_THRESHOLD = 2;
+const PROJECT_ANALYSIS_COMPLETED_APPLICATION_COLUMNS = "id, user_id, project_id, completed_at, created_at, team_hats_interest, participated_previous_phase";
+const PROJECT_ANALYSIS_CROSS_APPLICATION_COLUMNS = "user_id, project_id";
+const PROJECT_ANALYSIS_PROJECT_COLUMNS = "id, client_id, project_type, phase, project_status, team_hats, clients(name)";
+const PROJECT_ANALYSIS_APPLY_NOW_COLUMNS = "id, project_type, phase, client_id, clients(name)";
+const PROJECT_ANALYSIS_PROFILE_COLUMNS = "user_id, display_name, first_name, last_name, email";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -42,8 +47,6 @@ interface ProjectApp {
   created_at: string;
   team_hats_interest: string[];
   participated_previous_phase: boolean;
-  passion_for_project: string;
-  client_project_knowledge: string;
 }
 
 interface ProjectInfo {
@@ -160,7 +163,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, client_id, project_type, phase, project_status, team_hats, clients(name)")
+        .select(PROJECT_ANALYSIS_PROJECT_COLUMNS)
         .eq("id", projectId)
         .maybeSingle();
       if (error) throw error;
@@ -174,7 +177,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(PROJECT_ANALYSIS_COMPLETED_APPLICATION_COLUMNS)
         .eq("project_id", projectId)
         .eq("status", "completed");
       if (error) throw error;
@@ -188,7 +191,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("user_id, project_id")
+        .select(PROJECT_ANALYSIS_CROSS_APPLICATION_COLUMNS)
         .eq("status", "completed");
       if (error) throw error;
       return data ?? [];
@@ -201,7 +204,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, client_id, clients(name)")
+        .select(PROJECT_ANALYSIS_APPLY_NOW_COLUMNS)
         .eq("project_status", "apply_now");
       if (error) throw error;
       return (data ?? []) as unknown as { id: string; project_type: string; phase: string; client_id: string; clients: { name: string } | null }[];
@@ -217,7 +220,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
       if (userIds.length === 0) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, display_name, first_name, last_name, email")
+        .select(PROJECT_ANALYSIS_PROFILE_COLUMNS)
         .in("user_id", userIds);
       if (error) throw error;
       return (data ?? []) as ProfileRow[];
