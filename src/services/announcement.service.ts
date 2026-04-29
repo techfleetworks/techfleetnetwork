@@ -6,6 +6,8 @@ import { handleServiceError } from "@/lib/service-result";
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
 const announcementBodySchema = safeHtmlSchema("Update body");
+const ANNOUNCEMENT_COLUMNS = "id, title, body_html, video_url, audio_url, created_by, created_at, updated_at";
+const ANNOUNCEMENT_READ_COLUMNS = "announcement_id";
 const mediaPathSchema = safeRequiredTextSchema("Media path", 180)
   .regex(/^(video|audio)\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.webm$/i, "Media path must reference a recorded announcement file");
 const mediaInputSchema = safeUrlSchema("Media URL", 1000).or(mediaPathSchema).nullable().optional();
@@ -33,7 +35,7 @@ export const AnnouncementService = {
   async list(limit = 50): Promise<Announcement[]> {
     const { data, error } = await supabase
       .from("announcements")
-      .select("id, title, body_html, video_url, audio_url, created_by, created_at, updated_at")
+      .select(ANNOUNCEMENT_COLUMNS)
       .order("created_at", { ascending: false })
       .limit(limit);
     handleServiceError(error, { logger: log, action: "list", message: `Failed to fetch announcements: ${error?.message ?? "Unknown error"}`, throwMessage: "Failed to load announcements." });
@@ -53,7 +55,7 @@ export const AnnouncementService = {
     const { data, error } = await supabase
       .from("announcements")
       .insert(row as any)
-      .select()
+      .select(ANNOUNCEMENT_COLUMNS)
       .single();
     handleServiceError(error, { logger: log, action: "create", message: `Failed to create announcement: ${error?.message ?? "Unknown error"}`, throwMessage: "Failed to create announcement." });
     return data as unknown as Announcement;
@@ -80,7 +82,7 @@ export const AnnouncementService = {
   async getReadIds(userId: string): Promise<Set<string>> {
     const { data, error } = await supabase
       .from("announcement_reads")
-      .select("announcement_id")
+      .select(ANNOUNCEMENT_READ_COLUMNS)
       .eq("user_id", userId);
     if (handleServiceError(error, { logger: log, action: "getReadIds", message: `Failed to fetch read IDs: ${error?.message ?? "Unknown error"}` })) return new Set();
     return new Set((data ?? []).map((r: any) => r.announcement_id));
@@ -90,7 +92,7 @@ export const AnnouncementService = {
     const { error } = await supabase
       .from("announcement_reads")
       .insert({ user_id: userId, announcement_id: announcementId } as any)
-      .select()
+      .select(ANNOUNCEMENT_READ_COLUMNS)
       .maybeSingle();
     if (error && !error.message.includes("duplicate")) handleServiceError(error, { logger: log, action: "markRead", message: `Failed to mark read: ${error.message}` });
   },
