@@ -38,6 +38,9 @@ interface Project {
   updated_at: string;
 }
 
+const PROJECTS_TAB_CLIENT_COLUMNS = "id, name, logo_url";
+const PROJECTS_TAB_PROJECT_COLUMNS = "id, client_id, project_type, phase, team_hats, project_status, current_phase_milestones, friendly_name, description, updated_at";
+
 export function ProjectsTab() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,7 +50,7 @@ export function ProjectsTab() {
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("*").order("name");
+      const { data, error } = await supabase.from("clients").select(PROJECTS_TAB_CLIENT_COLUMNS).order("name");
       if (error) throw error;
       return (data ?? []) as unknown as Client[];
     },
@@ -58,7 +61,7 @@ export function ProjectsTab() {
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("projects").select(PROJECTS_TAB_PROJECT_COLUMNS).order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Project[];
     },

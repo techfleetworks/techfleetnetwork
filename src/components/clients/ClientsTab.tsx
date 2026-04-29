@@ -65,6 +65,8 @@ export interface Client extends ClientForm {
   logo_url: string;
 }
 
+export const CLIENTS_TAB_COLUMNS = "id, name, website, mission, project_summary, status, primary_contact, logo_url, updated_at";
+
 const EMPTY_FORM: ClientForm = {
   name: "", website: "", mission: "", project_summary: "", status: "active", primary_contact: "",
 };
@@ -138,7 +140,7 @@ export function ClientsTab() {
     queryKey: ["clients"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clients").select("*").order("created_at", { ascending: false });
+        .from("clients").select(CLIENTS_TAB_COLUMNS).order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Client[];
     },
