@@ -1,7 +1,7 @@
 import { handleCors, jsonResponse } from "../_shared/http.ts";
 import { requireAdminRequest } from "../_shared/request-auth.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
-import { validateAirtableConfig } from "../sync-airtable/validation.ts";
+import { validateAirtableConfig } from "../_shared/airtable-validation.ts";
 
 /**
  * SECURITY: This endpoint exposes Airtable schema and field names. It must
