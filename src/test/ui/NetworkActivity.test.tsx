@@ -36,7 +36,7 @@ describe("NetworkActivity", () => {
       projects_open_applications: 1,
       projects_coming_soon: 3,
       projects_live: 0,
-      projects_previously_completed: 4,
+      projects_previously_completed: 120,
     });
 
     renderWithRouter(<NetworkActivity showMap={false} />);
@@ -44,6 +44,7 @@ describe("NetworkActivity", () => {
     expect(await screen.findByText("190")).toBeInTheDocument();
     expect(screen.getByText("76")).toBeInTheDocument();
     expect(screen.getByText("86")).toBeInTheDocument();
+    expect(screen.getByText("120")).toBeInTheDocument();
   });
 
   it("shows an unavailable state instead of rendering every stat as zero when stats fail", async () => {
