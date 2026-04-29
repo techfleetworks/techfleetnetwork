@@ -63,7 +63,7 @@ export default function LandingPage() {
                 width={448}
                 height={224}
                 loading="eager"
-                fetchPriority="high"
+                fetchpriority="high"
                 decoding="async"
               />
             </div>
