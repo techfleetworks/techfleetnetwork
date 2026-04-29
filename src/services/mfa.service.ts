@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { isValidTotpCode } from "@/lib/security";
 const log = createLogger("MfaService");
 
 export interface TotpFactor {
@@ -62,6 +63,8 @@ export const MfaService = {
 
   /** Verify the 6-digit code from the authenticator app to activate the factor. */
   async verifyEnrollment(factorId: string, code: string): Promise<void> {
+    const normalizedCode = code.replace(/\s/g, "");
+    if (!isValidTotpCode(normalizedCode)) throw new Error("Enter the 6-digit code from your authenticator app.");
     const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId });
     if (challengeErr || !challengeData) {
       log.error("verifyEnrollment", `Challenge failed: ${challengeErr?.message}`, undefined, challengeErr);
@@ -70,7 +73,7 @@ export const MfaService = {
     const { error: verifyErr } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challengeData.id,
-      code: code.replace(/\s/g, ""),
+      code: normalizedCode,
     });
     if (verifyErr) {
       log.warn("verifyEnrollment", `Invalid code: ${verifyErr.message}`);
@@ -153,10 +156,12 @@ export const MfaService = {
 
   /** Verify a previously created challenge with the user's 6-digit code. */
   async verifyChallenge(factorId: string, challengeId: string, code: string): Promise<void> {
+    const normalizedCode = code.replace(/\s/g, "");
+    if (!isValidTotpCode(normalizedCode)) throw new Error("Enter the 6-digit code from your authenticator app.");
     const { error } = await supabase.auth.mfa.verify({
       factorId,
       challengeId,
-      code: code.replace(/\s/g, ""),
+      code: normalizedCode,
     });
     if (error) {
       log.warn("verifyChallenge", `Invalid code: ${error.message}`);

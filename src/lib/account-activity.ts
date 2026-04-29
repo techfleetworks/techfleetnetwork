@@ -35,6 +35,7 @@ export type AccountActivity =
   | "signout_all_devices"
   | "session_revoked_serverside"
   | "invalid_refresh_token_cleared"
+  | "session_idle_timeout"
   | "session_expired_clientside";
 
 interface ActivityPayload {

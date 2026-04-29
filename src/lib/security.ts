@@ -734,6 +734,21 @@ export function isSessionWithinPolicy({
   return true;
 }
 
+export function getSessionPolicyFailureReason(input: SessionPolicyInput): "revoked" | "invalid" | "idle_timeout" | "absolute_timeout" | null {
+  const now = input.now ?? Date.now();
+  const idleTimeoutMs = input.idleTimeoutMs ?? 20 * 60 * 1000;
+  const absoluteTimeoutMs = input.absoluteTimeoutMs ?? 4 * 60 * 60 * 1000;
+  if (input.revoked) return "revoked";
+  if (!Number.isFinite(input.startedAt) || !Number.isFinite(input.lastActivityAt) || input.lastActivityAt < input.startedAt) return "invalid";
+  if (now - input.lastActivityAt > idleTimeoutMs) return "idle_timeout";
+  if (now - input.startedAt > absoluteTimeoutMs) return "absolute_timeout";
+  return null;
+}
+
+export function isValidTotpCode(value: string): boolean {
+  return /^\d{6}$/.test(value.replace(/\s/g, ""));
+}
+
 // ─── WebSocket / Web Service / XML Safety ───────────────────────────
 
 export interface WebSocketHandshakePolicy {

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
+import { getSessionPolicyFailureReason } from "@/lib/security";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import { emailInputSchema, passwordSchema } from "@/lib/validators/auth";
 import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
@@ -8,6 +9,7 @@ import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 const log = createLogger("AuthService");
 const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
+const IDLE_SESSION_AGE_MS = 20 * 60 * 1000;
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
@@ -19,6 +21,7 @@ interface SessionMarker {
   version: number;
   userId: string;
   startedAtMs: number;
+  lastActivityAtMs?: number;
 }
 
 function writeSessionMarker(session: Pick<AuthSession, "user">, startedAtMs = Date.now()) {
@@ -28,21 +31,28 @@ function writeSessionMarker(session: Pick<AuthSession, "user">, startedAtMs = Da
   );
 }
 
-function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: number; resetReason: string | null } {
+function touchSessionMarker(session: Pick<AuthSession, "user">, marker: { startedAtMs: number }) {
+  sessionStorage.setItem(
+    SESSION_STARTED_AT_KEY,
+    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs: marker.startedAtMs, lastActivityAtMs: Date.now() } satisfies SessionMarker),
+  );
+}
+
+function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: number; lastActivityAtMs: number; resetReason: string | null } {
   const raw = sessionStorage.getItem(SESSION_STARTED_AT_KEY);
-  if (!raw) return { startedAtMs: Date.now(), resetReason: "missing" };
+  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "missing" };
 
   const legacyStartedAt = Number(raw);
-  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), resetReason: "legacy" };
+  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "legacy" };
 
   try {
     const marker = JSON.parse(raw) as Partial<SessionMarker>;
     if (marker.version !== SESSION_MARKER_VERSION || marker.userId !== session.user.id || !Number.isFinite(marker.startedAtMs)) {
-      return { startedAtMs: Date.now(), resetReason: "mismatch" };
+      return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "mismatch" };
     }
-    return { startedAtMs: marker.startedAtMs, resetReason: null };
+    return { startedAtMs: marker.startedAtMs, lastActivityAtMs: Number.isFinite(marker.lastActivityAtMs) ? marker.lastActivityAtMs! : marker.startedAtMs, resetReason: null };
   } catch {
-    return { startedAtMs: Date.now(), resetReason: "malformed" };
+    return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "malformed" };
   }
 }
 
@@ -454,20 +464,30 @@ export const AuthService = {
         return data.session;
       }
 
-      const elapsed = Date.now() - marker.startedAtMs;
-      if (elapsed > MAX_SESSION_AGE_MS) {
-        log.warn("getSession", `Session expired after ${Math.round(elapsed / 60000)} minutes — forcing sign-out`, {
-          elapsedMs: elapsed,
+      const now = Date.now();
+      const sessionPolicyFailure = getSessionPolicyFailureReason({
+        startedAt: marker.startedAtMs,
+        lastActivityAt: marker.lastActivityAtMs,
+        now,
+        idleTimeoutMs: IDLE_SESSION_AGE_MS,
+        absoluteTimeoutMs: MAX_SESSION_AGE_MS,
+      });
+      if (sessionPolicyFailure) {
+        log.warn("getSession", `Session failed policy (${sessionPolicyFailure}) — forcing sign-out`, {
+          reason: sessionPolicyFailure,
+          elapsedMs: now - marker.startedAtMs,
+          idleMs: now - marker.lastActivityAtMs,
           maxMs: MAX_SESSION_AGE_MS,
         });
-        void logAccountActivity("session_expired_clientside", {
+        void logAccountActivity(sessionPolicyFailure === "idle_timeout" ? "session_idle_timeout" : "session_expired_clientside", {
           userId: data.session.user.id,
-          details: { elapsedMs: elapsed },
+          details: { reason: sessionPolicyFailure, elapsedMs: now - marker.startedAtMs },
         });
         await supabase.auth.signOut();
         sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
         return null;
       }
+      touchSessionMarker(data.session, marker);
       log.debug("getSession", "Valid session found", { userId: data.session.user.id });
       if (isRootOAuthCallback()) {
         clearOAuthUiMarker();
