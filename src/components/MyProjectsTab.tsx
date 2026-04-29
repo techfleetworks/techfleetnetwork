@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { FolderKanban } from "lucide-react";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
+import { SafeExternalLink, getSafeLinkHostname } from "@/components/security/SafeExternalLink";
 
 /* ── Label helpers ───────────────────────────────────────── */
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
@@ -285,10 +286,10 @@ function ActiveProjectDetail({
               <DetailRow
                 label="Client Intake"
                 value={
-                  <a href={project.client_intake_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                    {(() => { try { return new URL(project.client_intake_url).hostname; } catch { return project.client_intake_url; } })()}
+                  <SafeExternalLink href={project.client_intake_url} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(project.client_intake_url) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </SafeExternalLink>
                 }
               />
             )}
@@ -296,10 +297,10 @@ function ActiveProjectDetail({
               <DetailRow
                 label="Project Repository (Notion)"
                 value={
-                  <a href={project.notion_repository_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                    {(() => { try { return new URL(project.notion_repository_url).hostname; } catch { return project.notion_repository_url; } })()}
+                  <SafeExternalLink href={project.notion_repository_url} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(project.notion_repository_url) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </SafeExternalLink>
                 }
               />
             )}
