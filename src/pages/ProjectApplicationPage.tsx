@@ -75,6 +75,11 @@ interface ClientInfo {
 }
 
 const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
+const PROJECT_APPLICATION_PROJECT_COLUMNS = "id, client_id, project_type, phase, team_hats, coordinator_id, friendly_name";
+const PROJECT_APPLICATION_CLIENT_COLUMNS = "id, name, website, primary_contact";
+const PROJECT_APPLICATION_GENERAL_COLUMNS = "user_id, email, status, linkedin_url, portfolio_url, hours_commitment, previous_engagement, previous_engagement_ways, teammate_learnings, agile_vs_waterfall, psychological_safety, agile_philosophies, collaboration_challenges, servant_leadership_definition, servant_leadership_actions, servant_leadership_challenges, servant_leadership_situation";
+const PROJECT_APPLICATION_PROFILE_COLUMNS = "first_name, last_name, country, timezone, display_name, discord_username, discord_user_id";
+const PROJECT_APPLICATION_EXISTING_COLUMNS = "id, user_id, project_id, status, current_step, team_hats_interest, participated_previous_phase, previous_phase_position, previous_phase_learnings, previous_phase_help_teammates, prior_engagement_preparation, passion_for_project, client_project_knowledge, cross_functional_contribution, project_success_contribution, completed_at";
 
 /* ── read-only display helpers ───────────────────────────── */
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -136,7 +141,7 @@ export default function ProjectApplicationPage() {
     queryKey: ["project-detail", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("projects").select("*").eq("id", projectId!).single();
+        .from("projects").select(PROJECT_APPLICATION_PROJECT_COLUMNS).eq("id", projectId!).single();
       if (error) throw error;
       return data as unknown as ProjectInfo;
     },
@@ -147,7 +152,7 @@ export default function ProjectApplicationPage() {
     queryKey: ["client-detail", project?.client_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clients").select("*").eq("id", project!.client_id).single();
+        .from("clients").select(PROJECT_APPLICATION_CLIENT_COLUMNS).eq("id", project!.client_id).single();
       if (error) throw error;
       return data as unknown as ClientInfo;
     },
@@ -179,7 +184,7 @@ export default function ProjectApplicationPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("general_applications")
-        .select("*")
+        .select(PROJECT_APPLICATION_GENERAL_COLUMNS)
         .eq("user_id", user!.id)
         .order("updated_at", { ascending: false })
         .limit(1)
@@ -196,7 +201,7 @@ export default function ProjectApplicationPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(PROJECT_APPLICATION_PROFILE_COLUMNS)
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
@@ -210,7 +215,7 @@ export default function ProjectApplicationPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("*")
+        .select(PROJECT_APPLICATION_EXISTING_COLUMNS)
         .eq("user_id", user!.id)
         .eq("project_id", projectId!)
         .maybeSingle();
