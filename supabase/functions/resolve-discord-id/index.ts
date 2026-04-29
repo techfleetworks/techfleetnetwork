@@ -288,8 +288,8 @@ serve(async (req) => {
             }
           }
         } else {
-          const errorText = await res.text();
-          log.error("resolve", `Discord API error for query "${query}" [${requestId}]: HTTP ${res.status} — ${errorText}`, {
+          await res.text();
+          log.error("resolve", `Discord API error during member search [${requestId}]: HTTP ${res.status}`, {
             requestId, httpStatus: res.status, query,
           });
           if (allMembers.length === 0) {
