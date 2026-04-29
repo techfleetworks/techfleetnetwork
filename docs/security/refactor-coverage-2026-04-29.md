@@ -24,6 +24,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Announcement banner service | `src/services/banner.service.ts` | A02 Data Minimization | Replaces admin/published banner wildcard and implicit mutation-return reads with an explicit banner allowlist and keeps dismissal reads identifier-only | Verified |
 | Email unsubscribe endpoint | `supabase/functions/handle-email-unsubscribe/index.ts` | A02 Data Minimization | Replaces token wildcard lookup and broad update return with explicit email/used-at allowlists | Verified |
 | Announcement service | `src/services/announcement.service.ts` | A02 Data Minimization | Replaces announcement implicit insert/read projections with explicit announcement and read-receipt allowlists | Verified |
+| General application service | `src/services/general-application.service.ts` | A02 Data Minimization | Replaces repeated long-form inline projections and implicit create returns with explicit application/profile-email allowlists | Verified |
 
 ## BDD coverage records
 
@@ -45,6 +46,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-BANNER-SERVICE-PROJECTION-051` | Announcement banner service avoids wildcard/implicit projections and keeps dismissal reads bounded | `src/test/services/banner.service.security.test.ts` |
 | `SEC-EMAIL-UNSUBSCRIBE-PROJECTION-052` | Public email unsubscribe endpoint avoids wildcard token projections and metadata over-fetching | `supabase/functions/handle-email-unsubscribe/security_test.ts` |
 | `SEC-ANNOUNCEMENT-SERVICE-PROJECTION-053` | Announcement service avoids wildcard/implicit projections and keeps read receipts bounded | `src/test/services/announcement.service.security.test.ts` |
+| `SEC-GENERAL-APPLICATION-SERVICE-PROJECTION-054` | General application service avoids wildcard/implicit projections and keeps profile lookup email-only | `src/test/services/general-application.service.security.test.ts` |
 
 ## Targeted validation performed
 
@@ -65,6 +67,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused service tests confirm announcement banner reads and mutation returns use explicit projections while dismissal reads remain identifier-only.
 - Focused function tests confirm the public unsubscribe endpoint reads and returns only email/used-at token fields.
 - Focused service tests confirm announcement list/create/read-receipt flows use explicit projections and avoid private/device metadata over-fetching.
+- Focused service tests confirm general application list/fetch/create/latest-completed reads use a shared allowlist and profile prefill reads email only.
 
 ## Remaining security-refactor gaps
 
