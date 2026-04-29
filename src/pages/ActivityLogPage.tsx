@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createLogger } from "@/services/logger.service";
 
 
 import { Input } from "@/components/ui/input";
@@ -95,6 +96,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
 };
 
 const PAGE_SIZE = 50;
+const log = createLogger("ActivityLogPage");
+const AUDIT_LOG_COLUMNS = "id, event_type, table_name, record_id, user_id, actor_email, changed_fields, error_message, created_at";
+const PROFILE_LOOKUP_COLUMNS = "user_id, email, first_name, last_name, display_name";
 
 const getFieldValue = (fields: string[] | null | undefined, key: string) => {
   const prefix = `${key}:`;
@@ -112,24 +116,29 @@ export default function ActivityLogPage() {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchProfiles = async () => {
-      const { data } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>(
-        supabase.from("profiles").select("user_id, email, first_name, last_name, display_name") as unknown as PromiseLike<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>,
+  const fetchProfiles = useCallback(async () => {
+    try {
+      const { data, error } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null; error: Error | null }>(
+        supabase.from("profiles").select(PROFILE_LOOKUP_COLUMNS) as unknown as PromiseLike<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null; error: Error | null }>,
         "Profile lookup"
       );
-    if (data) {
-      const map = new Map<string, { email: string; name: string }>();
-      data.forEach((p) => {
-        const name = p.first_name || p.last_name
-          ? `${p.first_name} ${p.last_name}`.trim()
-          : p.display_name || "Unknown";
-        map.set(p.user_id, { email: p.email, name });
-      });
-      setProfiles(map);
+      if (error) throw error;
+      if (data) {
+        const map = new Map<string, { email: string; name: string }>();
+        data.forEach((p) => {
+          const name = p.first_name || p.last_name
+            ? `${p.first_name} ${p.last_name}`.trim()
+            : p.display_name || "Unknown";
+          map.set(p.user_id, { email: p.email, name });
+        });
+        setProfiles(map);
+      }
+    } catch (err) {
+      log.warn("fetchProfiles", "Activity log profile enrichment failed", { profileCount: profiles.size }, err);
     }
-  };
+  }, [profiles.size]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     setLoadError("");
     try {
@@ -142,7 +151,7 @@ export default function ActivityLogPage() {
 
       let query = supabase
         .from("audit_log")
-        .select("*")
+        .select(AUDIT_LOG_COLUMNS)
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
@@ -150,20 +159,20 @@ export default function ActivityLogPage() {
       if (error) throw error;
       setEntries((data || []) as unknown as AuditLogEntry[]);
     } catch (err) {
-      console.error("Failed to fetch audit logs:", err);
-      setLoadError(err instanceof Error ? err.message : "Activity log could not load.");
+      log.error("fetchLogs", "Activity log load failed", { page, eventFilter }, err);
+      setLoadError("Activity log could not load. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventFilter, page]);
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [fetchProfiles]);
 
   useEffect(() => {
     fetchLogs();
-  }, [page, eventFilter]);
+  }, [fetchLogs]);
 
   const filteredEntries = useMemo(() => {
     if (!search.trim()) return entries;
