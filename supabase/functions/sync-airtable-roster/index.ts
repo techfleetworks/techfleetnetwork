@@ -1,4 +1,3 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { requireAdminRequest } from "../_shared/request-auth.ts";
@@ -7,12 +6,6 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 const log = createEdgeLogger("sync-airtable-roster");
 const DEFAULT_TABLE_NAME = "Project Roster";
 const AIRTABLE_TABLE_NAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N}\s_\-()&./]{0,79}$/u;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 /**
  * Fetches all records from a given Airtable table using pagination.
@@ -50,10 +43,10 @@ async function fetchAllAirtableRecords(
 
 function parseTableName(input: unknown): string {
   if (input == null || input === "") return DEFAULT_TABLE_NAME;
-  if (typeof input !== "string") throw new Response(JSON.stringify({ error: "Invalid table name" }), { status: 400, headers: corsHeaders });
+  if (typeof input !== "string") throw jsonResponse({ error: "Invalid table name" }, 400);
   const tableName = input.trim().replace(/\s+/g, " ");
   if (!AIRTABLE_TABLE_NAME_PATTERN.test(tableName)) {
-    throw new Response(JSON.stringify({ error: "Invalid table name" }), { status: 400, headers: corsHeaders });
+    throw jsonResponse({ error: "Invalid table name" }, 400);
   }
   return tableName;
 }
