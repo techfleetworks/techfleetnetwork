@@ -39,13 +39,17 @@ vi.mock("@/hooks/use-announcements", () => ({
   useLatestAnnouncements: () => ({ data: [] }),
 }));
 
-vi.mock("@/lib/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
-  useQuery: ({ queryFn, enabled = true }: { queryFn?: () => unknown; enabled?: boolean }) => {
-    if (!enabled) return { data: undefined };
-    return { data: queryFn ? queryFn() : undefined };
-  },
-}));
+vi.mock("@/lib/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/react-query")>();
+  return {
+    ...actual,
+    useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+    useQuery: ({ queryFn, enabled = true }: { queryFn?: () => unknown; enabled?: boolean }) => {
+      if (!enabled) return { data: undefined };
+      return { data: queryFn ? queryFn() : undefined };
+    },
+  };
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
