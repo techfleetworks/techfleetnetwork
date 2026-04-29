@@ -627,6 +627,30 @@ export function clearSensitiveSessionData(): void {
   }
 }
 
+export interface SessionPolicyInput {
+  startedAt: number;
+  lastActivityAt: number;
+  now?: number;
+  idleTimeoutMs?: number;
+  absoluteTimeoutMs?: number;
+  revoked?: boolean;
+}
+
+export function isSessionWithinPolicy({
+  startedAt,
+  lastActivityAt,
+  now = Date.now(),
+  idleTimeoutMs = 20 * 60 * 1000,
+  absoluteTimeoutMs = 4 * 60 * 60 * 1000,
+  revoked = false,
+}: SessionPolicyInput): boolean {
+  if (revoked) return false;
+  if (!Number.isFinite(startedAt) || !Number.isFinite(lastActivityAt)) return false;
+  if (now - lastActivityAt > idleTimeoutMs) return false;
+  if (now - startedAt > absoluteTimeoutMs) return false;
+  return true;
+}
+
 // ─── CRS-Inspired WAF Patterns (ModSecurity CRS) ───────────────────
 
 /**
@@ -720,6 +744,11 @@ export function isExpectedContentType(
 ): boolean {
   if (!actual) return false;
   return actual.toLowerCase().startsWith(expected.toLowerCase());
+}
+
+export function isTrustedCssToken(value: string): boolean {
+  return /^(?:[a-z][a-z0-9-]*:)?(?:bg|text|border|ring|shadow|from|to|via|fill|stroke|accent|muted|primary|secondary|destructive|card|popover|background|foreground)(?:-[a-z0-9/.[\]:]+)*$/i.test(value) &&
+    !/[;{}()@]|url\s*\(|expression\s*\(|import/i.test(value);
 }
 
 // ─── OWASP LLM Top 10: Client-Side AI Security ─────────────────────
