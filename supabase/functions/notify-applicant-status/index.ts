@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
     const friendly = (projectRow as any)?.friendly_name || ''
     projectName = [clientName, friendly].filter(Boolean).join(' — ')
   } catch (e) {
-    console.warn('Project lookup failed (non-critical)', e)
+    console.warn('Project lookup failed (non-critical)', { error: summarizeError(e) })
   }
 
   // Look up applicant preferences + fallback contact info.
@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
       resolvedEmail = resolvedEmail || (applicantProfile.email as string) || ''
     }
   } catch (e) {
-    console.warn('Applicant profile lookup failed (non-critical)', e)
+    console.warn('Applicant profile lookup failed (non-critical)', { error: summarizeError(e) })
   }
 
   /* ---- 2. In-app notification (always sent, non-blocking) ---- */
@@ -408,13 +408,13 @@ Deno.serve(async (req) => {
     })
 
     if (notifError) {
-      console.error('Notification enqueue failed', { applicantUserId, error: notifError.message })
+      console.error('Notification enqueue failed', { applicationId, error: notifError.code ?? 'notification_error' })
     } else {
       notificationCreated = true
-      console.info('Notification queued', { applicantUserId, type: content.type, outboxId })
+      console.info('Notification queued', { applicationId, type: content.type, outboxId })
     }
   } catch (e) {
-    console.error('Notification error', e)
+    console.error('Notification error', { error: summarizeError(e) })
   }
 
   /* ---- 3. Audit log (non-blocking) ---- */
@@ -424,10 +424,10 @@ Deno.serve(async (req) => {
       p_table_name: 'project_applications',
       p_record_id: applicationId,
       p_user_id: user.id,
-      p_changed_fields: [applicantUserId, newStatus],
+      p_changed_fields: [`status:${newStatus}`],
     })
   } catch (e) {
-    console.warn('Audit log failed (non-critical)', e)
+    console.warn('Audit log failed (non-critical)', { error: summarizeError(e) })
   }
 
   /* ---- 4a. Email — branded interview invite (non-blocking) ---- */
