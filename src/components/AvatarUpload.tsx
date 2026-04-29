@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, X } from "lucide-react";
@@ -23,13 +23,21 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
     const avatarPath = extractAvatarPath(currentUrl);
-    if (!avatarPath) return;
+    if (!avatarPath) {
+      setPreviewUrl(null);
+      return;
+    }
     supabase.storage.from("avatars").createSignedUrl(avatarPath, 60 * 15).then(({ data }) => {
+      if (cancelled) return;
       setPreviewUrl(data?.signedUrl ?? null);
     });
-  });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUrl]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
