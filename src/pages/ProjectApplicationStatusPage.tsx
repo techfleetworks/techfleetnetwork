@@ -100,6 +100,15 @@ export const APPLICATION_STATUS_NOTIFICATION_COLUMNS = [
   "created_at",
 ].join(", ");
 
+type InterviewNotification = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  body_html: string | null;
+  notification_type: string;
+  created_at: string;
+};
+
 /* ── status display config ─────────────────────────────────── */
 
 const STATUS_CONFIG: Record<string, {
@@ -441,7 +450,7 @@ export default function ProjectApplicationStatusPage() {
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!applicationId && !!user,
   });
@@ -505,7 +514,7 @@ export default function ProjectApplicationStatusPage() {
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
-      return data as Record<string, unknown>;
+      return data as unknown as Record<string, unknown>;
     },
     enabled: !!user,
   });
@@ -523,7 +532,7 @@ export default function ProjectApplicationStatusPage() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Record<string, unknown> | null;
+      return data as unknown as Record<string, unknown> | null;
     },
     enabled: !!user,
   });
@@ -548,7 +557,7 @@ export default function ProjectApplicationStatusPage() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as unknown as InterviewNotification | null;
     },
     enabled: !!user && showInviteStatuses.includes(applicantStatus),
   });
