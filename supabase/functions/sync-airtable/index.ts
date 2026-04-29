@@ -1,7 +1,7 @@
 import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
-import { parseSyncAirtableRequest, validateAirtableConfig } from "./validation.ts";
+import { parseSyncAirtableRequest, validateAirtableConfig } from "../_shared/airtable-validation.ts";
 
 const log = createEdgeLogger("sync-airtable");
 
