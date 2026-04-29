@@ -2,9 +2,12 @@ import { Outlet, Link } from "react-router-dom";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 export function PublicShell() {
+  const { user, loading } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <a href="#main-content" className="skip-link">
@@ -20,10 +23,10 @@ export function PublicShell() {
           </a>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link to="/login">
+            <Link to={!loading && user ? "/dashboard" : "/login"}>
               <Button variant="outline" size="sm">
                 <LogIn className="h-4 w-4 mr-1" />
-                Connect
+                {!loading && user ? "Dashboard" : "Connect"}
               </Button>
             </Link>
           </div>
