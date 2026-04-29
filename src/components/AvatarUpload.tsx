@@ -9,6 +9,11 @@ import { extractAvatarPath } from "@/lib/avatar-storage";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const EXT_BY_MIME: Record<string, "png" | "jpg"> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+};
 
 interface AvatarUploadProps {
   userId: string;
@@ -56,8 +61,7 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
 
     setUploading(true);
     try {
-      const rawExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "jpg";
+      const ext = EXT_BY_MIME[file.type] ?? "jpg";
       const path = `${userId}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
