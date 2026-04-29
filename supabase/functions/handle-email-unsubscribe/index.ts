@@ -1,40 +1,20 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-}
-
-function jsonResponse(data: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
+import { getAdminClient } from '../_shared/admin-client.ts'
+import { errorResponse, handleCors, jsonResponse, parseJsonBody } from '../_shared/http.ts'
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  const cors = handleCors(req)
+  if (cors) return cors
 
   if (req.method !== 'GET' && req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  try {
+    // Extract token from query params (GET) or body (POST)
+    const url = new URL(req.url)
+    let token: string | null = url.searchParams.get('token')
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return jsonResponse({ error: 'Server configuration error' }, 500)
-  }
-
-  // Extract token from query params (GET) or body (POST)
-  const url = new URL(req.url)
-  let token: string | null = url.searchParams.get('token')
-
-  if (req.method === 'POST') {
+    if (req.method === 'POST') {
     // Detect RFC 8058 one-click unsubscribe: POST with form-encoded body
     // containing "List-Unsubscribe=One-Click". Email clients (Gmail, Apple Mail,
     // etc.) send this when the user clicks "Unsubscribe" in the mail UI.
@@ -53,21 +33,21 @@ Deno.serve(async (req) => {
     } else {
       // JSON body (from the app's unsubscribe page)
       try {
-        const body = await req.json()
-        if (body.token) {
+        const body = await parseJsonBody(req, 4 * 1024) as { token?: unknown }
+        if (typeof body.token === 'string') {
           token = body.token
         }
       } catch {
         // Fall through — token stays from query param
       }
     }
-  }
+    }
 
-  if (!token) {
-    return jsonResponse({ error: 'Token is required' }, 400)
-  }
+    if (!token) {
+      return jsonResponse({ error: 'Token is required' }, 400)
+    }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = getAdminClient()
 
   // Look up the token
   const { data: tokenRecord, error: lookupError } = await supabase
@@ -124,7 +104,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
-  console.log('Email unsubscribed', { email: tokenRecord.email })
+    console.log('Email unsubscribed', { email: tokenRecord.email })
 
-  return jsonResponse({ success: true })
+    return jsonResponse({ success: true })
+  } catch (error) {
+    console.error('Email unsubscribe failed', error)
+    return errorResponse(error, 'Failed to process unsubscribe')
+  }
 })
