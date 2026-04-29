@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MfaEnforcementGuard } from "@/components/MfaEnforcementGuard";
 
 const mockUseAuth = vi.fn();
@@ -59,7 +59,7 @@ describe("MfaEnforcementGuard (BDD AUTH-2FA-LOGIN-GATE-002)", () => {
     render(<MfaEnforcementGuard />);
 
     const cancelButton = await screen.findByRole("button", { name: /cancel 2fa/i });
-    cancelButton.click();
+    fireEvent.click(cancelButton);
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
     expect(window.location.replace).toHaveBeenCalledWith("/login");
