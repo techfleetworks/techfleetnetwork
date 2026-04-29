@@ -27,7 +27,7 @@ VALUES (
     When applicant, project, and client data is loaded
     Then only UI-required review fields are requested
     And unrelated administrative, billing, and secret metadata is not over-fetched',
-  'built',
+  'implemented',
   'unit',
   'src/test/ui/SubmittedApplicationsTab.security.test.tsx',
   'Covers OWASP A02 data minimization for the admin submitted applications review grid.'
