@@ -2314,6 +2314,10 @@ export type Database = {
         }[]
       }
       get_dashboard_overview: { Args: { p_user_id: string }; Returns: Json }
+      get_email_pipeline_health: {
+        Args: { p_hours?: number; p_limit?: number }
+        Returns: Json
+      }
       get_member_country_distribution: { Args: never; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
       get_own_promotions: {
