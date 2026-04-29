@@ -14,7 +14,8 @@
  *   A10 SSRF — URL allowlisting, blocked host patterns
  *
  * Additional: ReDoS protection, header injection prevention,
- * open redirect prevention, mass assignment guards.
+ * open redirect prevention, mass assignment guards, supply-chain,
+ * third-party script/payment, WebSocket/XML, privacy, and zero-trust guards.
  *
  * No PII should ever pass through console.log in production.
  */
@@ -187,6 +188,88 @@ export function isSafeRedirectUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function normalizeSafeRedirectTarget(value: string, fallback = "/dashboard"): string {
+  if (!isSafeRedirectUrl(value)) return fallback;
+  const parsed = new URL(value, window.location.origin);
+  if (parsed.origin === window.location.origin) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  return parsed.href;
+}
+
+export function isSecureTlsUrl(value: string, allowedHosts?: readonly string[]): boolean {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:") return false;
+    if (isPrivateNetworkHost(parsed.hostname)) return false;
+    return !allowedHosts || allowedHosts.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// ─── Third-Party JavaScript and Payment Integrity ───────────────────
+
+const TRUSTED_THIRD_PARTY_SCRIPT_HOSTS = new Set([
+  "js.stripe.com",
+  "www.googletagmanager.com",
+  "challenges.cloudflare.com",
+]);
+
+export function isTrustedThirdPartyScriptUrl(src: string, integrity?: string): boolean {
+  try {
+    const parsed = new URL(src, window.location.origin);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.origin === window.location.origin) return true;
+    if (!TRUSTED_THIRD_PARTY_SCRIPT_HOSTS.has(parsed.hostname)) return false;
+    // SRI is required where providers support static assets. Dynamic providers
+    // that cannot support SRI must be explicitly allowlisted above and covered by CSP.
+    if (parsed.hostname === "js.stripe.com" || parsed.hostname === "challenges.cloudflare.com") return true;
+    return typeof integrity === "string" && /^sha(256|384|512)-[A-Za-z0-9+/=]+$/.test(integrity);
+  } catch {
+    return false;
+  }
+}
+
+export interface PaymentWebhookReplayInput {
+  timestampMs: number;
+  nowMs?: number;
+  toleranceMs?: number;
+  idempotencyKey: string;
+  seenIdempotencyKeys?: ReadonlySet<string>;
+}
+
+export function isPaymentWebhookReplaySafe({
+  timestampMs,
+  nowMs = Date.now(),
+  toleranceMs = 5 * 60 * 1000,
+  idempotencyKey,
+  seenIdempotencyKeys,
+}: PaymentWebhookReplayInput): boolean {
+  if (!idempotencyKey || idempotencyKey.length < 12 || idempotencyKey.length > 200) return false;
+  if (!Number.isFinite(timestampMs) || Math.abs(nowMs - timestampMs) > toleranceMs) return false;
+  if (seenIdempotencyKeys?.has(idempotencyKey)) return false;
+  return true;
+}
+
+export interface TransactionAuthorizationInput {
+  actorUserId: string;
+  confirmationUserId: string;
+  action: string;
+  resourceId: string;
+  nonce: string;
+  replayedNonce?: boolean;
+  amountCents?: number;
+  requiresMfa?: boolean;
+  mfaVerified?: boolean;
+}
+
+export function isHighRiskTransactionAuthorized(input: TransactionAuthorizationInput): boolean {
+  if (!isValidUuid(input.actorUserId) || input.actorUserId !== input.confirmationUserId) return false;
+  if (!input.action || !input.resourceId || input.nonce.length < 16 || input.replayedNonce) return false;
+  if (input.amountCents !== undefined && (!Number.isInteger(input.amountCents) || input.amountCents < 0)) return false;
+  if (input.requiresMfa && !input.mfaVerified) return false;
+  return true;
 }
 
 // ─── Cryptographic Helpers (A02) ────────────────────────────────────
