@@ -3,6 +3,17 @@ import { createLogger } from "@/services/logger.service";
 import { isValidTotpCode } from "@/lib/security";
 const log = createLogger("MfaService");
 
+const MFA_RETRY_DELAYS_MS = [200, 500, 900] as const;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const normalizeFriendlyName = (friendlyName: string) => {
+  const normalized = friendlyName.replace(/\s+/g, " ").trim();
+  return normalized || `Authenticator ${new Date().toLocaleDateString()}`;
+};
+
+const isDuplicateFriendlyNameError = (message = "") => /factor.*friendly name.*already exists/i.test(message);
+
 export interface TotpFactor {
   id: string;
   friendly_name?: string;
@@ -27,31 +38,64 @@ export interface EnrollTotpResult {
 export const MfaService = {
   /** List all enrolled MFA factors for the current user. */
   async listFactors(): Promise<TotpFactor[]> {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error) {
-      log.error("listFactors", `Failed: ${error.message}`, undefined, error);
-      throw new Error("Could not load MFA factors");
+    let lastError: unknown;
+    for (let attempt = 0; attempt < MFA_RETRY_DELAYS_MS.length; attempt += 1) {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (!error) return (data?.all ?? []) as TotpFactor[];
+      lastError = error;
+      log.warn("listFactors", `Attempt ${attempt + 1} failed: ${error.message}`);
+      if (attempt < MFA_RETRY_DELAYS_MS.length - 1) await wait(MFA_RETRY_DELAYS_MS[attempt]);
     }
-    return (data?.all ?? []) as TotpFactor[];
+    log.error("listFactors", "Failed after retries", undefined, lastError);
+    throw new Error("Could not load 2FA methods. Please retry in a moment.");
+  },
+
+  /** Remove incomplete TOTP setup attempts so retries never collide with stale friendly names. */
+  async cleanupPendingTotp(friendlyName?: string): Promise<number> {
+    const normalizedName = friendlyName ? normalizeFriendlyName(friendlyName) : null;
+    const existing = await this.listFactors();
+    const staleFactors = existing.filter((factor) => {
+      if (factor.factor_type !== "totp" || factor.status !== "unverified") return false;
+      if (!normalizedName) return true;
+      return (factor.friendly_name || "") === normalizedName;
+    });
+
+    let removed = 0;
+    for (const factor of staleFactors) {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+      if (error) {
+        log.warn("cleanupPendingTotp", `Could not remove stale factor ${factor.id}: ${error.message}`);
+      } else {
+        removed += 1;
+      }
+    }
+    return removed;
   },
 
   /** Begin TOTP enrollment. Returns QR code + secret to display to the user. */
   async enrollTotp(friendlyName: string): Promise<EnrollTotpResult> {
-    // Clean up any prior unverified factors with the same name to avoid conflicts
-    const existing = await this.listFactors();
-    for (const f of existing) {
-      if (f.factor_type === "totp" && f.status === "unverified") {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
-    }
+    const normalizedName = normalizeFriendlyName(friendlyName);
+    await this.cleanupPendingTotp(normalizedName);
 
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
-      friendlyName: friendlyName || `Authenticator ${new Date().toLocaleDateString()}`,
+      friendlyName: normalizedName,
     });
     if (error || !data) {
+      if (isDuplicateFriendlyNameError(error?.message)) {
+        await this.cleanupPendingTotp(normalizedName);
+        const retry = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: normalizedName });
+        if (!retry.error && retry.data) {
+          return {
+            factorId: retry.data.id,
+            qrCode: retry.data.totp.qr_code,
+            secret: retry.data.totp.secret,
+            uri: retry.data.totp.uri,
+          };
+        }
+      }
       log.error("enrollTotp", `Failed: ${error?.message}`, undefined, error);
-      throw new Error(error?.message || "Failed to start MFA enrollment");
+      throw new Error("Could not start 2FA setup. Please retry in a moment.");
     }
     return {
       factorId: data.id,
