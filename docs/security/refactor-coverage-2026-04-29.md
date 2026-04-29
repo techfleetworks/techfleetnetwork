@@ -16,6 +16,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Quest learning journey service | `src/services/quest.service.ts` | A02 Data Minimization | Replaces wildcard projections for quest paths, quest steps, and user quest selections with explicit UI-required field allowlists | Verified |
 | Admin project form | `src/pages/ProjectFormPage.tsx` | A02 Data Minimization | Replaces project/client wildcard reads with explicit allowlists for editable project fields and displayed client metadata | Verified |
 | Member application status | `src/pages/ProjectApplicationStatusPage.tsx` | A02 Data Minimization | Replaces wildcard reads for application, profile, general application, and notification data with explicit rendered-field allowlists | Verified |
+| Member project applications list | `src/pages/MyProjectApplicationsPage.tsx` | A02 Data Minimization | Replaces listing wildcard reads with explicit application/project summary allowlists and avoids long-form response over-fetching | Verified |
 
 ## BDD coverage records
 
@@ -29,6 +30,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-QUEST-SERVICE-PROJECTION-043` | Quest service avoids wildcard projections and bounds user journey selection data | `src/test/services/quest.service.security.test.ts` |
 | `SEC-PROJECT-FORM-PROJECTION-044` | Admin project form avoids wildcard projections and bounds project/client fields | `src/test/ui/ProjectFormPage.security.test.tsx` |
 | `SEC-APPLICATION-STATUS-PROJECTION-045` | Member application status avoids wildcard projections and bounds rendered review data | `src/test/ui/ProjectApplicationStatusPage.security.test.tsx` |
+| `SEC-MY-PROJECT-APPLICATIONS-PROJECTION-046` | Member project application listing avoids wildcard projections and long-form response over-fetching | `src/test/ui/MyProjectApplicationsPage.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -41,6 +43,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused service tests confirm quest learning journey reads use explicit projections and do not over-fetch unrelated user data.
 - Focused UI source tests confirm admin project editing reads use explicit projections and avoid unrelated sensitive metadata.
 - Focused UI source tests confirm member application status reads use explicit projections for application/profile/general-application/notification data.
+- Focused UI source tests confirm member project application listings use explicit projections and avoid loading long-form responses.
 
 ## Remaining security-refactor gaps
 
