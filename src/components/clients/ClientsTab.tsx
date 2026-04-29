@@ -72,6 +72,38 @@ const EMPTY_FORM: ClientForm = {
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
 
+function createClientActionCell(client: Pick<Client, "id" | "name">): HTMLDivElement {
+  const container = document.createElement("div");
+  container.style.display = "flex";
+  container.style.gap = "4px";
+  container.style.alignItems = "center";
+  container.style.height = "100%";
+
+  const editButton = document.createElement("button");
+  editButton.dataset.action = "edit";
+  editButton.dataset.id = client.id;
+  editButton.style.padding = "4px";
+  editButton.style.cursor = "pointer";
+  editButton.style.background = "none";
+  editButton.style.border = "none";
+  editButton.setAttribute("aria-label", `Edit ${client.name}`);
+  editButton.textContent = "✏️";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.dataset.action = "delete";
+  deleteButton.dataset.id = client.id;
+  deleteButton.style.padding = "4px";
+  deleteButton.style.cursor = "pointer";
+  deleteButton.style.background = "none";
+  deleteButton.style.border = "none";
+  deleteButton.style.color = "hsl(var(--destructive))";
+  deleteButton.setAttribute("aria-label", `Delete ${client.name}`);
+  deleteButton.textContent = "🗑️";
+
+  container.append(editButton, deleteButton);
+  return container;
+}
+
 async function uploadClientLogo(clientId: string, file: File): Promise<string> {
   const rawExt = file.name.split(".").pop()?.toLowerCase() ?? "png";
   const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "png";
@@ -151,7 +183,7 @@ export function ClientsTab() {
           const { error: updateError } = await supabase.from("clients").update({ logo_url: logoUrl } as any).eq("id", clientId);
           if (updateError) throw updateError;
         } catch (error) {
-          console.error("Client logo upload failed after client creation", error);
+          console.warn("Client logo upload failed after client creation", { errorName: error instanceof Error ? error.name : "UnknownError" });
           logoUploadFailed = true;
         }
       }
@@ -292,11 +324,7 @@ export function ClientsTab() {
       maxWidth: 120,
       cellRenderer: (params: ICellRendererParams<Client>) => {
         if (!params.data) return null;
-        const c = params.data;
-        return `<div style="display:flex;gap:4px;align-items:center;height:100%">
-          <button data-action="edit" data-id="${c.id}" style="padding:4px;cursor:pointer;background:none;border:none" aria-label="Edit ${c.name}">✏️</button>
-          <button data-action="delete" data-id="${c.id}" style="padding:4px;cursor:pointer;background:none;border:none;color:hsl(var(--destructive))" aria-label="Delete ${c.name}">🗑️</button>
-        </div>`;
+        return createClientActionCell(params.data);
       },
     },
   ], []);
