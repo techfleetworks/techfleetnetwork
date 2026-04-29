@@ -1,13 +1,19 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { extractAvatarPath } from "@/lib/avatar-storage";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const EXT_BY_MIME: Record<string, "png" | "jpg"> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+};
 
 interface AvatarUploadProps {
   userId: string;
@@ -19,8 +25,26 @@ interface AvatarUploadProps {
 
 export function AvatarUpload({ userId, currentUrl, initials, onUploaded, className }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentAvatarPath = extractAvatarPath(currentUrl);
+  const hasAvatar = Boolean(previewUrl || currentAvatarPath);
+
+  useEffect(() => {
+    let cancelled = false;
+    const avatarPath = extractAvatarPath(currentUrl);
+    if (!avatarPath) {
+      setPreviewUrl(null);
+      return;
+    }
+    supabase.storage.from("avatars").createSignedUrl(avatarPath, 60 * 15).then(({ data }) => {
+      if (cancelled) return;
+      setPreviewUrl(data?.signedUrl ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUrl]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,8 +61,7 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
 
     setUploading(true);
     try {
-      const rawExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : "jpg";
+      const ext = EXT_BY_MIME[file.type] ?? "jpg";
       const path = `${userId}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
@@ -47,17 +70,15 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
       // Update profile with new avatar URL
       await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl } as any)
+        .update({ avatar_url: path } as any)
         .eq("user_id", userId);
 
-      setPreviewUrl(publicUrl);
-      onUploaded(publicUrl);
+      const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 15);
+      setPreviewUrl(signed?.signedUrl ?? null);
+      onUploaded(path);
       toast.success("Profile picture updated!");
     } catch (err: any) {
       toast.error(err.message || "Failed to upload image.");
@@ -126,9 +147,9 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? "Uploading…" : previewUrl ? "Change Photo" : "Upload Photo"}
+          {uploading ? "Uploading…" : hasAvatar ? "Change Photo" : "Upload Photo"}
         </Button>
-        {previewUrl && (
+        {hasAvatar && (
           <Button
             type="button"
             variant="ghost"
