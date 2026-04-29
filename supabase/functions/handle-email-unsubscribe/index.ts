@@ -89,7 +89,6 @@ Deno.serve(async (req) => {
     if (updateError) {
       console.error("Failed to mark token as used", {
         error: updateError,
-        token,
       });
       return jsonResponse({ error: "Failed to process unsubscribe" }, 500);
     }
@@ -109,12 +108,11 @@ Deno.serve(async (req) => {
     if (suppressError) {
       console.error("Failed to suppress email", {
         error: suppressError,
-        email: tokenRecord.email,
       });
       return jsonResponse({ error: "Failed to process unsubscribe" }, 500);
     }
 
-    console.log("Email unsubscribed", { email: tokenRecord.email });
+    console.log("Email unsubscribed");
 
     return jsonResponse({ success: true });
   } catch (error) {
