@@ -728,6 +728,21 @@ export function sanitizeAIMarkdown(markdown: string): string {
     .replace(/data\s*:\s*text\/html/gi, "");
 }
 
+export interface AiToolPolicy {
+  toolName: string;
+  allowedTools: readonly string[];
+  requiresHumanApproval?: boolean;
+  touchesSecrets?: boolean;
+  writesData?: boolean;
+}
+
+export function isAllowedAiToolCall(policy: AiToolPolicy): boolean {
+  if (!policy.allowedTools.includes(policy.toolName)) return false;
+  if (policy.touchesSecrets) return false;
+  if (policy.writesData && !policy.requiresHumanApproval) return false;
+  return true;
+}
+
 /**
  * LLM01: Detect prompt injection patterns in user input (client-side).
  * Use as pre-flight check before sending to AI endpoint.
@@ -740,6 +755,8 @@ export function hasPromptInjectionPattern(input: string): boolean {
     /\[SYSTEM\]/i,
     /reveal\s+(your|the)\s+(system|initial)\s+(prompt|instructions?)/i,
     /bypass\s+(the\s+)?(restrictions?|filters?|safety)/i,
+    /tool\s*call|function\s*call|mcp\s*server/i,
+    /exfiltrate|send\s+(secrets?|tokens?|keys?)\s+to/i,
   ];
   return patterns.some((p) => p.test(input));
 }
