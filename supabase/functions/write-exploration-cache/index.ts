@@ -1,6 +1,10 @@
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { errorResponse, handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
 import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
+import { parseExplorationCachePayload } from "./validation.ts";
+
+const log = createEdgeLogger("write-exploration-cache");
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -11,18 +15,8 @@ Deno.serve(async (req) => {
     const auth = await requireAuthenticatedRequest(req);
     if (auth instanceof Response) return auth;
 
-    // Parse & validate body
-    const body = await parseJsonBody(req) as Record<string, unknown>;
-    const queryNormalized = typeof body.query_normalized === "string"
-      ? body.query_normalized.trim().slice(0, 500)
-      : "";
-    const responseMarkdown = typeof body.response_markdown === "string"
-      ? body.response_markdown.slice(0, 32_768)
-      : "";
-
-    if (!queryNormalized || !responseMarkdown) {
-      return jsonResponse({ error: "query_normalized and response_markdown are required" }, 400);
-    }
+    const parsed = parseExplorationCachePayload(await parseJsonBody(req, 36 * 1024));
+    if (parsed instanceof Response) return parsed;
 
     // Use service role to write to the cache
     const serviceClient = getAdminClient();
@@ -30,18 +24,18 @@ Deno.serve(async (req) => {
     const { error: upsertError } = await serviceClient
       .from("exploration_cache")
       .upsert(
-        { query_normalized: queryNormalized, response_markdown: responseMarkdown },
+        { query_normalized: parsed.query_normalized, response_markdown: parsed.response_markdown },
         { onConflict: "query_normalized" },
       );
 
     if (upsertError) {
-      console.error("write-exploration-cache upsert failed:", upsertError);
+      log.error("cache_write", "Cache upsert failed", { userId: auth.userId }, upsertError);
       return jsonResponse({ error: "Cache write failed" }, 500);
     }
 
     return jsonResponse({ success: true });
   } catch (err) {
-    console.error("write-exploration-cache error:", err);
+    log.error("handler", "Unhandled cache write error", undefined, err);
     return errorResponse(err);
   }
 });
