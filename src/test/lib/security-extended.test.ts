@@ -4,6 +4,7 @@ import {
   validateFileUpload,
   hasPathTraversal,
   hasHeaderInjection,
+  validateRestQueryParams,
   pickAllowedFields,
   getUnexpectedFields,
   isAuthorizedObjectAccess,
@@ -12,11 +13,15 @@ import {
   isAllowedAiToolCall,
   sanitizeFileName,
   isSafeRedirectUrl,
+  requireSafeOutboundUrl,
+  isPrivateNetworkHost,
   isClientRateLimited,
+  isSessionWithinPolicy,
   resetClientRateLimit,
   hasCRSAttackPattern,
   hasNullBytes,
   isExpectedContentType,
+  isTrustedCssToken,
   hasPromptInjectionPattern,
   sanitizeAIMarkdown,
   redactPIIFromOutput,
@@ -132,6 +137,16 @@ describe("hasHeaderInjection", () => {
   });
 });
 
+describe("validateRestQueryParams", () => {
+  it("allows known parameters with safe values", () => {
+    expect(validateRestQueryParams(new URLSearchParams("page=1&sort=created_at"), ["page", "sort"]).valid).toBe(true);
+  });
+  it("rejects unexpected parameters and injection patterns", () => {
+    expect(validateRestQueryParams(new URLSearchParams("role=admin"), ["page"]).unexpected).toEqual(["role"]);
+    expect(validateRestQueryParams(new URLSearchParams("q='; DROP TABLE users; --"), ["q"]).valid).toBe(false);
+  });
+});
+
 describe("pickAllowedFields", () => {
   it("only keeps allowed keys", () => {
     const data = { name: "John", role: "admin", email: "j@test.com" };
@@ -197,6 +212,17 @@ describe("isSafeRedirectUrl", () => {
   });
 });
 
+describe("requireSafeOutboundUrl", () => {
+  it("blocks private network and metadata targets", () => {
+    expect(isPrivateNetworkHost("127.0.0.1")).toBe(true);
+    expect(requireSafeOutboundUrl("http://169.254.169.254/latest/meta-data")).toBeNull();
+  });
+  it("enforces optional host allowlists", () => {
+    expect(requireSafeOutboundUrl("https://api.example.com/v1", ["api.example.com"])?.hostname).toBe("api.example.com");
+    expect(requireSafeOutboundUrl("https://evil.example/v1", ["api.example.com"])).toBeNull();
+  });
+});
+
 describe("isClientRateLimited", () => {
   it("allows first attempts", () => {
     resetClientRateLimit("test-action-rl");
@@ -206,6 +232,17 @@ describe("isClientRateLimited", () => {
     resetClientRateLimit("test-action-rl2");
     for (let i = 0; i < 5; i++) isClientRateLimited("test-action-rl2", 5, 60000);
     expect(isClientRateLimited("test-action-rl2", 5, 60000)).toBe(true);
+  });
+});
+
+describe("isSessionWithinPolicy", () => {
+  it("accepts active non-revoked sessions", () => {
+    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000 })).toBe(true);
+  });
+  it("rejects revoked, idle, and absolute-timeout sessions", () => {
+    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })).toBe(false);
+    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })).toBe(false);
+    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 4 * 60 * 60 * 1000, now: 5 * 60 * 60 * 1000 })).toBe(false);
   });
 });
 
@@ -248,6 +285,17 @@ describe("isExpectedContentType", () => {
   });
   it("handles null", () => {
     expect(isExpectedContentType(null, "application/json")).toBe(false);
+  });
+});
+
+describe("isTrustedCssToken", () => {
+  it("allows design-system token classes", () => {
+    expect(isTrustedCssToken("bg-primary")).toBe(true);
+    expect(isTrustedCssToken("md:text-foreground")).toBe(true);
+  });
+  it("rejects CSS injection constructs", () => {
+    expect(isTrustedCssToken("bg-[url(https://evil)]")).toBe(false);
+    expect(isTrustedCssToken("text-primary;position:fixed")).toBe(false);
   });
 });
 

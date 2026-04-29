@@ -125,6 +125,7 @@ export function isSafeUrl(url: string): boolean {
 const BLOCKED_HOST_PATTERNS = [
   /^localhost$/i,
   /^127\.\d+\.\d+\.\d+$/,
+  /^::1$/,
   /^10\.\d+\.\d+\.\d+$/,
   /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,
   /^192\.168\.\d+\.\d+$/,
@@ -148,6 +149,22 @@ export function isSafeExternalUrl(url: string): boolean {
     return !BLOCKED_HOST_PATTERNS.some((p) => p.test(host));
   } catch {
     return false;
+  }
+}
+
+export function isPrivateNetworkHost(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, "");
+  return BLOCKED_HOST_PATTERNS.some((p) => p.test(normalized));
+}
+
+export function requireSafeOutboundUrl(value: string, allowedHosts?: readonly string[]): URL | null {
+  try {
+    const parsed = new URL(value);
+    if (!isSafeExternalUrl(parsed.href)) return null;
+    if (allowedHosts && !allowedHosts.includes(parsed.hostname)) return null;
+    return parsed;
+  } catch {
+    return null;
   }
 }
 
@@ -336,6 +353,18 @@ export function hasPathTraversal(input: string): boolean {
  */
 export function hasHeaderInjection(input: string): boolean {
   return /[\r\n]/.test(input) || /%0[aAdD]/i.test(input);
+}
+
+export function validateRestQueryParams(
+  params: URLSearchParams,
+  allowedKeys: readonly string[],
+): { valid: boolean; unexpected: string[] } {
+  const allowed = new Set(allowedKeys);
+  const unexpected = [...params.keys()].filter((key) => !allowed.has(key));
+  const hasUnsafeValue = [...params.values()].some((value) =>
+    value.length > 1_000 || hasSqlInjectionPattern(value) || hasHeaderInjection(value) || hasCRSAttackPattern(value),
+  );
+  return { valid: unexpected.length === 0 && !hasUnsafeValue, unexpected };
 }
 
 /**
@@ -598,6 +627,30 @@ export function clearSensitiveSessionData(): void {
   }
 }
 
+export interface SessionPolicyInput {
+  startedAt: number;
+  lastActivityAt: number;
+  now?: number;
+  idleTimeoutMs?: number;
+  absoluteTimeoutMs?: number;
+  revoked?: boolean;
+}
+
+export function isSessionWithinPolicy({
+  startedAt,
+  lastActivityAt,
+  now = Date.now(),
+  idleTimeoutMs = 20 * 60 * 1000,
+  absoluteTimeoutMs = 4 * 60 * 60 * 1000,
+  revoked = false,
+}: SessionPolicyInput): boolean {
+  if (revoked) return false;
+  if (!Number.isFinite(startedAt) || !Number.isFinite(lastActivityAt)) return false;
+  if (now - lastActivityAt > idleTimeoutMs) return false;
+  if (now - startedAt > absoluteTimeoutMs) return false;
+  return true;
+}
+
 // ─── CRS-Inspired WAF Patterns (ModSecurity CRS) ───────────────────
 
 /**
@@ -691,6 +744,11 @@ export function isExpectedContentType(
 ): boolean {
   if (!actual) return false;
   return actual.toLowerCase().startsWith(expected.toLowerCase());
+}
+
+export function isTrustedCssToken(value: string): boolean {
+  return /^(?:[a-z][a-z0-9-]*:)?(?:bg|text|border|ring|shadow|from|to|via|fill|stroke|accent|muted|primary|secondary|destructive|card|popover|background|foreground)(?:-[a-z0-9/.[\]:]+)*$/i.test(value) &&
+    !/[;{}()@]|url\s*\(|expression\s*\(|import/i.test(value);
 }
 
 // ─── OWASP LLM Top 10: Client-Side AI Security ─────────────────────
