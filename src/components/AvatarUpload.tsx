@@ -22,6 +22,8 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentAvatarPath = extractAvatarPath(currentUrl);
+  const hasAvatar = Boolean(previewUrl || currentAvatarPath);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,9 +143,9 @@ export function AvatarUpload({ userId, currentUrl, initials, onUploaded, classNa
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? "Uploading…" : previewUrl ? "Change Photo" : "Upload Photo"}
+          {uploading ? "Uploading…" : hasAvatar ? "Change Photo" : "Upload Photo"}
         </Button>
-        {previewUrl && (
+        {hasAvatar && (
           <Button
             type="button"
             variant="ghost"
