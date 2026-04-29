@@ -265,9 +265,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        const errorText = await res.text();
-        log.error("assign", `Discord API error assigning role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
-        await logDiscordError("assign", res.status, errorText.substring(0, 500), requestId);
+        await res.text();
+        log.error("assign", `Discord API error assigning role [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
+        await logDiscordError("assign", res.status, requestId);
 
         const status = res.status;
         let userMessage = "Failed to assign Discord role";
@@ -287,7 +287,7 @@ serve(async (req) => {
                 p_discord_user_id: discord_user_id,
                 p_role_id: role_id,
                 p_reason: "manage-discord-roles assign failed",
-                p_error: `HTTP ${status}: ${errorText.substring(0, 300)}`,
+                p_error: summarizeExternalError(status, requestId),
               });
             }
           } catch { /* swallow */ }
@@ -342,9 +342,9 @@ serve(async (req) => {
       }
 
       if (!res.ok) {
-        const errorText = await res.text();
-        log.error("remove", `Discord API error removing role [${requestId}]: ${res.status} — ${errorText.substring(0, 500)}`);
-        await logDiscordError("remove", res.status, errorText.substring(0, 500), requestId);
+        await res.text();
+        log.error("remove", `Discord API error removing role [${requestId}]: ${summarizeExternalError(res.status, requestId)}`);
+        await logDiscordError("remove", res.status, requestId);
 
         const status = res.status;
         let userMessage = "Failed to remove Discord role";
