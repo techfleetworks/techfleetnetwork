@@ -6,6 +6,9 @@
  */
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
+type EventOutcome = "success" | "failure" | "denied" | "error";
+
+const SENSITIVE_LOG_KEY_PATTERN = /password|passcode|secret|token|jwt|authorization|cookie|api[_-]?key|private[_-]?key|session|otp|totp|mfa|ssn|credit|card/i;
 
 interface LogEntry {
   level: LogLevel;
@@ -15,19 +18,36 @@ interface LogEntry {
   ts: string;
   durationMs?: number;
   meta?: Record<string, unknown>;
+  "event.action": string;
+  "event.outcome"?: EventOutcome;
+  "trace.id"?: string;
   error?: {
     name: string;
     message: string;
-    stack?: string;
   };
+}
+
+function redactLogValue(value: unknown, key = ""): unknown {
+  if (SENSITIVE_LOG_KEY_PATTERN.test(key)) return "[REDACTED]";
+  if (typeof value === "string") {
+    return value
+      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]")
+      .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]")
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]");
+  }
+  if (Array.isArray(value)) return value.map((item) => redactLogValue(item, key));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([childKey, childValue]) => [childKey, redactLogValue(childValue, childKey)]));
+  }
+  return value;
 }
 
 function formatError(err: unknown): LogEntry["error"] | undefined {
   if (!err) return undefined;
   if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
+    return { name: err.name, message: String(redactLogValue(err.message)) };
   }
-  return { name: "UnknownError", message: String(err) };
+  return { name: "UnknownError", message: String(redactLogValue(err)) };
 }
 
 function emit(entry: LogEntry) {
@@ -57,9 +77,12 @@ export function createEdgeLogger(fnName: string) {
     level,
     fn: fnName,
     action,
+    "event.action": action,
+    "event.outcome": level === "error" ? "error" : undefined,
     msg,
     ts: new Date().toISOString(),
-    meta,
+    meta: meta ? redactLogValue(meta) as Record<string, unknown> : undefined,
+    "trace.id": typeof meta?.traceId === "string" ? meta.traceId : undefined,
     error: formatError(err),
   });
 
