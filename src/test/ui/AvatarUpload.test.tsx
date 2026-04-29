@@ -75,7 +75,7 @@ describe("AvatarUpload — BDD 30.x", () => {
 
   // BDD 30.5: User can remove their avatar
   it("shows remove button when avatar exists", () => {
-    render(<AvatarUpload {...defaultProps} currentUrl="https://example.com/pic.jpg" />);
+    render(<AvatarUpload {...defaultProps} currentUrl="user-123/avatar.jpg" />);
     expect(screen.getByText("Remove")).toBeInTheDocument();
   });
 
