@@ -26,6 +26,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | Announcement service | `src/services/announcement.service.ts` | A02 Data Minimization | Replaces announcement implicit insert/read projections with explicit announcement and read-receipt allowlists | Verified |
 | General application service | `src/services/general-application.service.ts` | A02 Data Minimization | Replaces repeated long-form inline projections and implicit create returns with explicit application/profile-email allowlists | Verified |
 | Admin roster views | `src/pages/AdminRosterPage.tsx`, `src/pages/RosterProjectDetailPage.tsx`, `src/test/ui/AdminProjects.test.tsx` | A02 Data Minimization | Converts roster list/detail projections and stale test fixture wildcard reads to explicit allowlists | Verified |
+| Notification fanout backend | `supabase/functions/process-notification-fanout/index.ts` | A01 Broken Access Control, A02 Data Minimization, A09 Error Disclosure | Confirms service-key/admin-JWT authorization, role allowlist projection, and generic server errors for job processing failures | Verified |
 
 ## BDD coverage records
 
@@ -49,6 +50,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-ANNOUNCEMENT-SERVICE-PROJECTION-053` | Announcement service avoids wildcard/implicit projections and keeps read receipts bounded | `src/test/services/announcement.service.security.test.ts` |
 | `SEC-GENERAL-APPLICATION-SERVICE-PROJECTION-054` | General application service avoids wildcard/implicit projections and keeps profile lookup email-only | `src/test/services/general-application.service.security.test.ts` |
 | `SEC-ADMIN-ROSTER-PROJECTION-055` | Admin roster list/detail views avoid wildcard/implicit projections and bound project/client fields | `src/test/ui/AdminRosterProjection.security.test.tsx` |
+| `SEC-NOTIFICATION-FANOUT-EDGE-056` | Notification fanout backend requires trusted authorization, bounds role lookup, and redacts server errors | `supabase/functions/process-notification-fanout/security_test.ts` |
 
 ## Targeted validation performed
 
@@ -71,6 +73,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Focused service tests confirm announcement list/create/read-receipt flows use explicit projections and avoid private/device metadata over-fetching.
 - Focused service tests confirm general application list/fetch/create/latest-completed reads use a shared allowlist and profile prefill reads email only.
 - Focused UI source tests confirm admin roster list/detail reads use named project/application count allowlists and test fixtures no longer exercise wildcard client reads.
+- Focused edge-function tests confirm notification fanout requires service/admin authorization, uses a role projection allowlist, and avoids raw exception disclosure.
 
 ## Remaining security-refactor gaps
 
