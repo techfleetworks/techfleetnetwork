@@ -325,12 +325,7 @@ export default function AnnouncementMediaRecorder({
         .upload(fileName, blob, { contentType, upsert: false });
 
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("announcement-videos")
-        .getPublicUrl(fileName);
-
-      onMediaReady(urlData.publicUrl, type);
+      onMediaReady(fileName, type);
       toast.success(`${type === "audio" ? "Audio" : "Video"} uploaded successfully!`);
     } catch (err: any) {
       toast.error("Failed to upload. Please try again.");

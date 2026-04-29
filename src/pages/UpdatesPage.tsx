@@ -29,10 +29,11 @@ import {
 } from "@/hooks/use-announcements";
 import { stripHtml } from "@/lib/html";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import type { Announcement } from "@/services/announcement.service";
+import { extractAnnouncementMediaPath, type Announcement } from "@/services/announcement.service";
 import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
+import { supabase } from "@/integrations/supabase/client";
 
 const MediaRecorder = lazy(() => import("@/components/VideoRecorder"));
 
@@ -70,12 +71,42 @@ export default function UpdatesPage() {
   const [newVideoUrl, setNewVideoUrl] = useState<string | null>(null);
   const [newAudioUrl, setNewAudioUrl] = useState<string | null>(null);
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [signedMediaUrl, setSignedMediaUrl] = useState<string | null>(null);
+  const [signedMediaError, setSignedMediaError] = useState(false);
 
   const selectAndMarkRead = (a: Announcement) => {
     setSelectedAnnouncement(a);
     markReadMutation.mutate(a.id);
     recordViewMutation.mutate(a.id);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setSignedMediaUrl(null);
+    setSignedMediaError(false);
+
+    const mediaPath = selectedAnnouncement
+      ? extractAnnouncementMediaPath(selectedAnnouncement.video_url || selectedAnnouncement.audio_url)
+      : null;
+
+    if (!mediaPath) return;
+
+    supabase.storage
+      .from("announcement-videos")
+      .createSignedUrl(mediaPath, 60 * 15)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data?.signedUrl) {
+          setSignedMediaError(true);
+          return;
+        }
+        setSignedMediaUrl(data.signedUrl);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAnnouncement]);
 
   const handleCreate = async () => {
     if (!newTitle.trim()) { toast.error("Title is required."); return; }
@@ -251,24 +282,35 @@ export default function UpdatesPage() {
           </SheetHeader>
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-6 py-4 space-y-4">
-              {selectedAnnouncement?.video_url && (
+              {selectedAnnouncement?.video_url && signedMediaUrl && (
                 <video
-                  src={selectedAnnouncement.video_url}
+                  src={signedMediaUrl}
                   controls
                   playsInline
                   className="w-full rounded-lg aspect-video bg-black"
                   aria-label="Announcement video"
                 />
               )}
-              {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
+              {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && signedMediaUrl && (
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
                   <Mic className="h-5 w-5 text-primary shrink-0" />
                   <audio
-                    src={selectedAnnouncement.audio_url}
+                    src={signedMediaUrl}
                     controls
                     className="w-full h-10"
                     aria-label="Announcement audio"
                   />
+                </div>
+              )}
+              {(selectedAnnouncement?.video_url || selectedAnnouncement?.audio_url) && !signedMediaUrl && !signedMediaError && (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading secure media…
+                </div>
+              )}
+              {signedMediaError && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  Media could not be loaded. Please close and reopen this update.
                 </div>
               )}
               {selectedAnnouncement && (
