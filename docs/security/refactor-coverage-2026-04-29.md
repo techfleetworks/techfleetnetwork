@@ -14,6 +14,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | RPC least privilege | `supabase/migrations/20260429041135_99335185-99f1-459e-a55b-97b08f1290de.sql` | A01 Broken Access Control, A05 Security Misconfiguration | Revokes public/anonymous execution from sensitive SECURITY DEFINER helpers, grants authenticated/service-role access explicitly, keeps only required pre-auth flows public | Verified |
 | System health diagnostics | `src/services/system-health.service.ts`, `src/pages/SystemHealthPage.tsx` | A02 Data Minimization, A09 Security Logging/Monitoring | Replaces remediation wildcard projection with explicit allowlist, masks recipient email identifiers, and converts provider/database failures into safe operational guidance | Verified |
 | Quest learning journey service | `src/services/quest.service.ts` | A02 Data Minimization | Replaces wildcard projections for quest paths, quest steps, and user quest selections with explicit UI-required field allowlists | Verified |
+| Admin project form | `src/pages/ProjectFormPage.tsx` | A02 Data Minimization | Replaces project/client wildcard reads with explicit allowlists for editable project fields and displayed client metadata | Verified |
 
 ## BDD coverage records
 
@@ -25,6 +26,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 | `SEC-RPC-LEAST-PRIVILEGE-004` | SECURITY DEFINER helpers are least-privilege by default | `supabase/migrations/20260429041135_99335185-99f1-459e-a55b-97b08f1290de.sql` |
 | `SEC-SYSTEM-HEALTH-ERROR-DATA-MIN-042` | Admin health diagnostics minimize data and avoid raw operational error disclosure | `src/test/ui/SystemHealthPage.security.test.tsx` |
 | `SEC-QUEST-SERVICE-PROJECTION-043` | Quest service avoids wildcard projections and bounds user journey selection data | `src/test/services/quest.service.security.test.ts` |
+| `SEC-PROJECT-FORM-PROJECTION-044` | Admin project form avoids wildcard projections and bounds project/client fields | `src/test/ui/ProjectFormPage.security.test.tsx` |
 
 ## Targeted validation performed
 
@@ -35,6 +37,7 @@ This document records the verified coverage from the latest OWASP-focused refact
 - Migration inspection confirmed sensitive RPC grants were revoked from public/anonymous roles and re-granted explicitly.
 - Focused UI/service tests confirm system health diagnostics avoid wildcard remediation projections, mask recipient emails, and redact raw provider/database errors.
 - Focused service tests confirm quest learning journey reads use explicit projections and do not over-fetch unrelated user data.
+- Focused UI source tests confirm admin project editing reads use explicit projections and avoid unrelated sensitive metadata.
 
 ## Remaining security-refactor gaps
 
