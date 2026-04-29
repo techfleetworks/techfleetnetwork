@@ -240,6 +240,13 @@ export function TotpMfaManagement() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading…
             </div>
+          ) : loadError ? (
+            <div role="alert" className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <p>{loadError}</p>
+              <Button type="button" variant="outline" size="sm" onClick={refresh}>
+                Retry loading 2FA methods
+              </Button>
+            </div>
           ) : totpFactors.length === 0 ? (
             <p className="text-sm text-muted-foreground">No authenticator apps registered yet.</p>
           ) : (
@@ -294,6 +301,11 @@ export function TotpMfaManagement() {
                 disabled={enrolling}
                 autoFocus
               />
+              {enrollError ? (
+                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  {enrollError}
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-4 py-2">
