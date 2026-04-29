@@ -203,6 +203,44 @@ export function maskEmail(email: string): string {
   return email[0] + "***" + email.slice(at);
 }
 
+const SENSITIVE_LOG_KEY_PATTERN = /password|passcode|secret|token|jwt|authorization|cookie|api[_-]?key|private[_-]?key|session|otp|totp|mfa|ssn|credit|card/i;
+
+export type SecurityEventOutcome = "success" | "failure" | "denied" | "error";
+
+export interface SecurityLogEntry {
+  "event.category": "authentication" | "authorization" | "data_access" | "validation" | "system" | "ai_tool";
+  "event.action": string;
+  "event.outcome": SecurityEventOutcome;
+  "user.id"?: string;
+  "resource.id"?: string;
+  "trace.id"?: string;
+  details?: Record<string, unknown>;
+}
+
+function redactLogValue(value: unknown, key = ""): unknown {
+  if (SENSITIVE_LOG_KEY_PATTERN.test(key)) return "[REDACTED]";
+  if (typeof value === "string") {
+    return value
+      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]")
+      .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]")
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]");
+  }
+  if (Array.isArray(value)) return value.map((item) => redactLogValue(item, key));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([childKey, childValue]) => [childKey, redactLogValue(childValue, childKey)]),
+    );
+  }
+  return value;
+}
+
+export function createSecurityLogEntry(entry: SecurityLogEntry): SecurityLogEntry {
+  return {
+    ...entry,
+    details: entry.details ? redactLogValue(entry.details) as Record<string, unknown> : undefined,
+  };
+}
+
 /**
  * Safe error message formatter that strips sensitive details.
  * Prevents internal details from leaking to the client (A09).
@@ -319,12 +357,39 @@ export function pickAllowedFields<T extends Record<string, unknown>>(
   return result;
 }
 
+export function getUnexpectedFields<T extends Record<string, unknown>>(
+  data: T,
+  allowedKeys: string[],
+): string[] {
+  const allowedSet = new Set(allowedKeys);
+  return Object.keys(data).filter((key) => !allowedSet.has(key));
+}
+
 /**
  * Validate UUID format to prevent IDOR attacks (A01).
  * Ensures IDs follow the standard UUID v4 pattern.
  */
 export function isValidUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export interface ObjectAccessScope {
+  actorUserId: string;
+  ownerUserId: string;
+  actorTenantId?: string;
+  resourceTenantId?: string;
+  isAdmin?: boolean;
+}
+
+export function isAuthorizedObjectAccess(scope: ObjectAccessScope): boolean {
+  if (!isValidUuid(scope.actorUserId) || !isValidUuid(scope.ownerUserId)) return false;
+  if (scope.isAdmin === true) return true;
+  if (scope.actorUserId !== scope.ownerUserId) return false;
+  if (scope.actorTenantId !== undefined || scope.resourceTenantId !== undefined) {
+    if (!scope.actorTenantId || !scope.resourceTenantId) return false;
+    return scope.actorTenantId === scope.resourceTenantId;
+  }
+  return true;
 }
 
 /**
