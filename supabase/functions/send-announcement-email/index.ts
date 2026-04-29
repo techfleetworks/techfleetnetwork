@@ -1,62 +1,24 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { getAdminClient } from "../_shared/admin-client.ts";
+import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
+import { requireAdminRequest } from "../_shared/request-auth.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+import { parseSendAnnouncementEmailRequest, toPlainAnnouncementText } from "./validation.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const log = createEdgeLogger("send-announcement-email");
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const auth = await requireAdminRequest(req);
+    if (auth instanceof Response) return auth;
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Verify the caller is admin
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleData } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { announcement_id } = await req.json();
-    if (!announcement_id) {
-      return new Response(JSON.stringify({ error: "announcement_id is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const adminClient = getAdminClient();
+    const parsed = parseSendAnnouncementEmailRequest(await parseJsonBody(req, 1024));
+    if (parsed instanceof Response) return parsed;
+    const { announcement_id } = parsed;
 
     // Fetch the announcement
     const { data: announcement, error: annError } = await adminClient
@@ -66,10 +28,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (annError || !announcement) {
-      return new Response(JSON.stringify({ error: "Announcement not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Announcement not found" }, 404);
     }
 
     // Fetch opted-in profiles
@@ -80,20 +39,14 @@ Deno.serve(async (req) => {
       .neq("email", "");
 
     if (profError) {
-      console.error("Failed to fetch profiles:", profError);
-      return new Response(JSON.stringify({ error: "Failed to fetch recipients" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      log.error("recipients", "Failed to fetch announcement recipients", undefined, profError);
+      return jsonResponse({ error: "Failed to fetch recipients" }, 500);
     }
 
     const recipients = (profiles ?? []).filter((p: any) => p.email);
 
     if (recipients.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, message: "No opted-in recipients" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ sent: 0, message: "No opted-in recipients" });
     }
 
     // Enqueue emails for each recipient
@@ -180,7 +133,7 @@ Deno.serve(async (req) => {
         });
         enqueued++;
       } catch (e) {
-        console.error(`Failed to enqueue email to ${normalizedEmail}:`, e);
+        log.error("enqueue", "Failed to enqueue announcement email", { announcementId: announcement_id }, e);
       }
     }
 
@@ -231,31 +184,26 @@ Deno.serve(async (req) => {
         if (discordRes.ok) {
           discordPosted = true;
         } else {
-          const errText = await discordRes.text();
-          console.warn(`Discord webhook failed [${discordRes.status}]: ${errText.substring(0, 300)}`);
+          await discordRes.text();
+          log.warn("discord", "Discord announcement cross-post failed", { status: discordRes.status, announcementId: announcement_id });
         }
         // Consume body if not already
         if (!discordPosted) await discordRes.text().catch(() => {});
       } catch (discordErr) {
-        console.warn("Discord cross-post failed (non-critical):", discordErr);
+        log.warn("discord", "Discord announcement cross-post failed", { announcementId: announcement_id }, discordErr);
       }
     } else {
-      console.warn("DISCORD_PLATFORM_UPDATES_WEBHOOK not configured; skipping Discord cross-post");
+      log.warn("discord", "Discord platform updates webhook not configured", { announcementId: announcement_id });
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       sent: enqueued,
       total_recipients: recipients.length,
       discord_posted: discordPosted,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("send-announcement-email error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (err instanceof Response) return err;
+    log.error("handler", "Announcement email send failed", undefined, err);
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 });
