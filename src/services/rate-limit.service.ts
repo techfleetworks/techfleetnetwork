@@ -57,14 +57,12 @@ export const RateLimitService = {
     }
 
     try {
-      const hashed = await hashIdentifier(identifier);
       const isLogin = action === "login_attempt";
-      const { data, error } = await supabase.rpc("check_rate_limit", {
-        p_identifier: hashed,
-        p_action: action,
-        p_max_attempts: isLogin ? 6 : 3,
-        p_window_minutes: 15,
-        p_block_minutes: isLogin ? 60 : 60,
+      const { data, error } = await supabase.functions.invoke("rate-limit", {
+        body: {
+          identifier,
+          action,
+        },
       });
       if (error) {
         if (isAuthThrottleCaptchaError(error) || error.message?.toLowerCase().includes("too many rapid auth attempts")) {
@@ -73,7 +71,7 @@ export const RateLimitService = {
         log.warn("check", `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action }, error);
         return { allowed: true, remaining: 5, retry_after: 0 };
       }
-      const result = (data ?? { allowed: true, remaining: 5, retry_after: 0 }) as unknown as RateLimitResult;
+      const result = (data ?? { allowed: true, remaining: isLogin ? 6 : 3, retry_after: 0 }) as unknown as RateLimitResult;
       if (!result.allowed) {
         log.warn("check", `Rate limit exceeded for "${action}" — blocked for ${result.retry_after}s`, {
           action,
