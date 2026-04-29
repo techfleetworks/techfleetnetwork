@@ -33,6 +33,60 @@ export interface RemediationRule {
   success_count: number;
 }
 
+export interface EmailQueueStat {
+  queue_name: string;
+  queued: number;
+  ready: number;
+  delayed_or_inflight: number;
+  max_attempts: number;
+  oldest_enqueued_at: string | null;
+  archived_last_24h: number;
+}
+
+export interface EmailDeliveryTotals {
+  total: number;
+  sent: number;
+  failed: number;
+  pending: number;
+  suppressed: number;
+  bounced: number;
+  complained: number;
+}
+
+export interface EmailPipelineLog {
+  message_id: string;
+  template_name: string;
+  recipient_email: string;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface EmailPipelineError {
+  error_message: string;
+  status: string;
+  occurrences: number;
+  last_seen: string;
+}
+
+export interface EmailPipelineHealth {
+  generated_at: string;
+  window_hours: number;
+  health: { status: "healthy" | "degraded" | "overloaded"; reason: string };
+  send_state: {
+    retry_after_until: string | null;
+    batch_size: number;
+    send_delay_ms: number;
+    auth_email_ttl_minutes: number;
+    transactional_email_ttl_minutes: number;
+    updated_at: string;
+  } | null;
+  queue_stats: EmailQueueStat[];
+  delivery_totals: EmailDeliveryTotals;
+  recent_errors: EmailPipelineError[];
+  recent_logs: EmailPipelineLog[];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
@@ -77,5 +131,14 @@ export const SystemHealthService = {
     const { data, error } = await sb.rpc("run_auto_remediations");
     if (error) throw error;
     return (data as { ran: number }) ?? { ran: 0 };
+  },
+
+  async getEmailPipelineHealth(hours = 24, limit = 50): Promise<EmailPipelineHealth> {
+    const { data, error } = await sb.rpc("get_email_pipeline_health", {
+      p_hours: hours,
+      p_limit: limit,
+    });
+    if (error) throw error;
+    return data as EmailPipelineHealth;
   },
 };
