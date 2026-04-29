@@ -32,6 +32,8 @@ export function TotpMfaManagement() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [secretCopied, setSecretCopied] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
 
   // Disable-all dialog state (re-auth required)
   const [disableOpen, setDisableOpen] = useState(false);
@@ -43,11 +45,14 @@ export function TotpMfaManagement() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const list = await MfaService.listFactors();
       setFactors(list);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load 2FA settings");
+      const message = e instanceof Error ? e.message : "Failed to load 2FA settings";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -62,17 +67,21 @@ export function TotpMfaManagement() {
     setFactorId(null);
     setOtpCode("");
     setSecretCopied(false);
+    setEnrollError(null);
   };
 
   const handleStartEnroll = async () => {
     setEnrolling(true);
+    setEnrollError(null);
     try {
       const result = await MfaService.enrollTotp(friendlyName);
       setQrCode(result.qrCode);
       setSecret(result.secret);
       setFactorId(result.factorId);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not start enrollment");
+      const message = e instanceof Error ? e.message : "Could not start enrollment";
+      setEnrollError(message);
+      toast.error(message);
     } finally {
       setEnrolling(false);
     }
@@ -119,7 +128,15 @@ export function TotpMfaManagement() {
   };
 
   const handleDialogChange = (open: boolean) => {
-    if (!open) resetEnrollment();
+    if (!open) {
+      const pendingFactorId = factorId;
+      resetEnrollment();
+      if (pendingFactorId) {
+        void MfaService.unenroll(pendingFactorId).catch(() => undefined);
+      } else {
+        void MfaService.cleanupPendingTotp(friendlyName).catch(() => undefined);
+      }
+    }
     setEnrollOpen(open);
   };
 
