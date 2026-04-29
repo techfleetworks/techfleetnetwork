@@ -105,7 +105,7 @@ export const QuestService = {
         log.error("getPaths", error.message, {}, error);
         throw new Error("Failed to load quest paths");
       }
-      return (data ?? []).map(toQuestPath);
+      return ((data ?? []) as Record<string, unknown>[]).map(toQuestPath);
     });
   },
 
@@ -120,7 +120,7 @@ export const QuestService = {
         log.error("getSteps", error.message, { pathId }, error);
         throw new Error("Failed to load path steps");
       }
-      return (data ?? []).map(toQuestPathStep);
+      return ((data ?? []) as Record<string, unknown>[]).map(toQuestPathStep);
     });
   },
 
@@ -134,7 +134,7 @@ export const QuestService = {
         log.error("getAllSteps", error.message, {}, error);
         throw new Error("Failed to load all steps");
       }
-      return (data ?? []).map(toQuestPathStep);
+      return ((data ?? []) as Record<string, unknown>[]).map(toQuestPathStep);
     });
   },
 
@@ -148,7 +148,7 @@ export const QuestService = {
         log.error("getUserSelections", error.message, { userId }, error);
         throw new Error("Failed to load quest selections");
       }
-      return data ?? [];
+      return ((data ?? []) as unknown as UserQuestSelection[]);
     });
   },
 
