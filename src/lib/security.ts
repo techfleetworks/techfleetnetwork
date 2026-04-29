@@ -734,6 +734,32 @@ export function isSessionWithinPolicy({
   return true;
 }
 
+// ─── WebSocket / Web Service / XML Safety ───────────────────────────
+
+export interface WebSocketHandshakePolicy {
+  origin: string | null;
+  allowedOrigins: readonly string[];
+  authenticated: boolean;
+  channel: string;
+  allowedChannels: readonly string[];
+}
+
+export function isWebSocketHandshakeAllowed(policy: WebSocketHandshakePolicy): boolean {
+  if (!policy.authenticated) return false;
+  if (!policy.origin || !policy.allowedOrigins.includes(policy.origin)) return false;
+  if (!policy.allowedChannels.includes(policy.channel)) return false;
+  return /^[a-z0-9:_-]{1,100}$/i.test(policy.channel);
+}
+
+export function isXmlPayloadSafe(xml: string): boolean {
+  if (xml.length > 100_000) return false;
+  return !/(<!DOCTYPE|<!ENTITY|SYSTEM\s+["']|PUBLIC\s+["']|xinclude|file:\/\/|expect:\/\/|php:\/\/)/i.test(xml);
+}
+
+export function isJsonOnlyContentType(contentType: string | null): boolean {
+  return isExpectedContentType(contentType, "application/json") && !/xml|html|text\/plain/i.test(contentType ?? "");
+}
+
 // ─── CRS-Inspired WAF Patterns (ModSecurity CRS) ───────────────────
 
 /**
@@ -769,6 +795,10 @@ const CRS_ATTACK_PATTERNS = [
 export function hasCRSAttackPattern(input: string): boolean {
   if (input.length > 50_000) return true; // Oversized payload = suspicious
   return CRS_ATTACK_PATTERNS.some((p) => p.test(input));
+}
+
+export function shouldApplyVirtualPatch(input: string, activeSignatures: readonly RegExp[] = CRS_ATTACK_PATTERNS): boolean {
+  return activeSignatures.some((signature) => signature.test(input));
 }
 
 // ─── MASVS: Sensitive Field Protection ──────────────────────────────
