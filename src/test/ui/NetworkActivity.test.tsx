@@ -35,7 +35,7 @@ describe("NetworkActivity", () => {
       prev_week_badges: 26,
       projects_open_applications: 1,
       projects_coming_soon: 3,
-      projects_live: 0,
+      projects_live: 11,
       projects_previously_completed: 120,
     });
 
@@ -44,6 +44,7 @@ describe("NetworkActivity", () => {
     expect(await screen.findByText("190")).toBeInTheDocument();
     expect(screen.getByText("76")).toBeInTheDocument();
     expect(screen.getByText("86")).toBeInTheDocument();
+    expect(screen.getByText("11")).toBeInTheDocument();
     expect(screen.getByText("120")).toBeInTheDocument();
   });
 
