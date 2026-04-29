@@ -32,6 +32,10 @@ vi.mock("@/hooks/use-dashboard-overview", () => ({
   useDashboardOverview: () => ({ data: mockState.dashboardOverview }),
 }));
 
+vi.mock("@/hooks/use-admin", () => ({
+  useAdmin: () => ({ isAdmin: false, loading: false }),
+}));
+
 vi.mock("@/hooks/use-journey-progress", () => ({
   useCompletedCount: () => ({ data: 0 }),
 }));
