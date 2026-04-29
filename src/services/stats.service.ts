@@ -29,10 +29,7 @@ export const StatsService = {
   async getNetworkStats(): Promise<NetworkStats> {
     return log.track("getNetworkStats", "Fetching network stats from database", undefined, async () => {
       const { data, error } = await supabase.functions.invoke("public-network-activity", {
-        method: "GET",
-        body: undefined,
-        headers: {},
-        query: { action: "network_stats" },
+        body: { action: "network_stats" },
       });
       handleServiceError(error, {
         logger: log,
