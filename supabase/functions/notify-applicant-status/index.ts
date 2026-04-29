@@ -552,10 +552,9 @@ Deno.serve(async (req) => {
           if (result.ok) {
             discordRoleAssigned = true
             console.info('Discord role assigned', {
-              applicantUserId,
-              discordUserId: applicantDiscordUserId,
-              roleId: discordRoleId,
-              roleName: discordRoleName,
+              applicationId,
+              hasDiscordUser: Boolean(applicantDiscordUserId),
+              hasRole: Boolean(discordRoleId),
             })
 
             // Log to audit
@@ -565,15 +564,15 @@ Deno.serve(async (req) => {
                 p_table_name: 'project_applications',
                 p_record_id: applicationId,
                 p_user_id: user.id,
-                p_changed_fields: [applicantUserId, discordRoleId, discordRoleName || ''],
+                p_changed_fields: ['discord_role_assigned', `role_present:${Boolean(discordRoleId)}`],
               })
             } catch (auditErr) {
-              console.warn('Discord role audit log failed', auditErr)
+              console.warn('Discord role audit log failed', { error: summarizeError(auditErr) })
             }
           } else {
             console.error('Discord role assignment failed', {
-              applicantUserId,
-              error: result.error,
+              applicationId,
+              error: result.error ? 'discord_assignment_error' : 'unknown_error',
             })
 
             // Log failure to audit
@@ -583,17 +582,17 @@ Deno.serve(async (req) => {
                 p_table_name: 'project_applications',
                 p_record_id: applicationId,
                 p_user_id: user.id,
-                p_changed_fields: [applicantUserId, discordRoleId],
-                p_error_message: result.error || 'Unknown error',
+                p_changed_fields: ['discord_role_assignment_failed', `role_present:${Boolean(discordRoleId)}`],
+                p_error_message: result.error ? 'Discord role assignment failed' : 'Unknown error',
               })
             } catch (auditErr) {
-              console.warn('Discord role failure audit log failed', auditErr)
+              console.warn('Discord role failure audit log failed', { error: summarizeError(auditErr) })
             }
           }
         }
       }
     } catch (e) {
-      console.error('Discord role assignment flow error', e)
+      console.error('Discord role assignment flow error', { error: summarizeError(e) })
     }
   }
 
