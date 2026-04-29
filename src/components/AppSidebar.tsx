@@ -15,6 +15,7 @@ import {
   Users,
   Map,
   Flag,
+  HeartPulse,
 } from "lucide-react";
 import {
   Sidebar,
@@ -183,6 +184,18 @@ export const AppSidebar = memo(function AppSidebar() {
                     <Link to="/admin/users">
                       <ShieldCheck className="h-4 w-4" />
                       <span>User Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/system-health")}
+                    tooltip="System Health"
+                  >
+                    <Link to="/admin/system-health">
+                      <HeartPulse className="h-4 w-4" />
+                      <span>System Health</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
