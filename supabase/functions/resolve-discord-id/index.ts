@@ -60,6 +60,12 @@ function buildSearchQueries(rawInput: string): string[] {
   return [...new Set([raw.toLowerCase(), normalized, `.${normalized}`, ...tokens].filter(Boolean))].slice(0, 8);
 }
 
+function redactDiscordIdentifier(value: string): string {
+  const normalized = normalizeLookupValue(value);
+  if (!normalized) return 'empty';
+  return `${normalized.slice(0, 2)}***:${normalized.length}`;
+}
+
 function memberFields(member: DiscordMember): string[] {
   return [member.user?.username, member.user?.global_name ?? undefined, member.nick ?? undefined]
     .filter((value): value is string => Boolean(value))
@@ -147,7 +153,7 @@ serve(async (req) => {
       });
 
       if (!confirmRes.ok) {
-        log.warn("resolve", `Rejected confirmation for non-member Discord ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id, httpStatus: confirmRes.status });
+        log.warn("resolve", `Rejected confirmation for non-member Discord ID [${requestId}]`, { requestId, httpStatus: confirmRes.status });
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "Selected Discord account is not in the Tech Fleet server" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -165,7 +171,7 @@ serve(async (req) => {
         .limit(1);
 
       if (claimedError) {
-        log.error("resolve", `Failed claimed Discord lookup [${requestId}]`, { requestId, confirm_user_id }, claimedError);
+        log.error("resolve", `Failed claimed Discord lookup [${requestId}]`, { requestId }, claimedError);
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "Could not safely verify Discord ownership. Please try again." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -173,7 +179,7 @@ serve(async (req) => {
       }
 
       if (claimedProfiles && claimedProfiles.length > 0) {
-        log.warn("resolve", `Rejected already-claimed Discord account ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+        log.warn("resolve", `Rejected already-claimed Discord account [${requestId}]`, { requestId });
         return new Response(
           JSON.stringify({ discord_user_id: null, error: "This Discord account is already linked to another Tech Fleet profile. Each Discord account can only be connected to one profile." }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -190,7 +196,7 @@ serve(async (req) => {
         .eq("user_id", userId);
 
       if (linkError) {
-        log.error("resolve", `Failed to persist confirmed Discord link [${requestId}]`, { requestId, confirm_user_id }, linkError);
+        log.error("resolve", `Failed to persist confirmed Discord link [${requestId}]`, { requestId }, linkError);
         const isUniqueConflict = linkError.message?.toLowerCase().includes("unique") || linkError.code === "23505";
         return new Response(
           JSON.stringify({
@@ -203,7 +209,7 @@ serve(async (req) => {
         );
       }
 
-      log.info("resolve", `Confirmed selected Discord user ID ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id });
+      log.info("resolve", `Confirmed selected Discord user ID [${requestId}]`, { requestId });
       return new Response(
         JSON.stringify({
           discord_user_id: confirm_user_id,
@@ -257,10 +263,9 @@ serve(async (req) => {
     }
 
     const searchQueries = buildSearchQueries(rawUsername);
-    log.info("resolve", `Searching Discord guild for username "${cleanUsername}" (raw: "${rawUsername}") [${requestId}]`, {
+    log.info("resolve", `Searching Discord guild for redacted username [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      rawUsername,
+      username: redactDiscordIdentifier(cleanUsername),
       guildId: GUILD_ID,
     });
 
@@ -276,7 +281,7 @@ serve(async (req) => {
         });
 
         if (retries > 0) {
-          log.info("resolve", `Discord search for "${query}" succeeded after ${retries} retries [${requestId}]`, { requestId, retries });
+          log.info("resolve", `Discord search succeeded after ${retries} retries [${requestId}]`, { requestId, retries });
         }
 
         if (res.ok) {
@@ -290,7 +295,7 @@ serve(async (req) => {
         } else {
           await res.text();
           log.error("resolve", `Discord API error during member search [${requestId}]: HTTP ${res.status}`, {
-            requestId, httpStatus: res.status, query,
+            requestId, httpStatus: res.status,
           });
           if (allMembers.length === 0) {
             if (res.status === 404 || res.status === 403) {
@@ -306,7 +311,7 @@ serve(async (req) => {
           }
         }
       } catch (fetchErr) {
-        log.error("resolve", `Network error for query "${query}" after retries [${requestId}]: ${fetchErr}`, { requestId, query });
+        log.error("resolve", `Network error during Discord lookup after retries [${requestId}]`, { requestId }, fetchErr);
         if (allMembers.length === 0) {
           return new Response(
             JSON.stringify({ error: "Failed to reach Discord API", discord_user_id: null }),
@@ -317,17 +322,10 @@ serve(async (req) => {
     }
 
     const members = allMembers;
-    const candidateUsernames = members.map((m: any) => m.user?.username).filter(Boolean);
-    const candidateGlobalNames = members.map((m: any) => m.user?.global_name).filter(Boolean);
-    const candidateNicks = members.map((m: any) => m.nick).filter(Boolean);
-    log.info("resolve", `Discord returned ${members.length} members for query "${cleanUsername}" [${requestId}]`, {
+    log.info("resolve", `Discord returned ${members.length} members for redacted query [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      rawUsername,
+      username: redactDiscordIdentifier(cleanUsername),
       resultCount: members.length,
-      candidateUsernames,
-      candidateGlobalNames,
-      candidateNicks,
     });
 
     // Match on cleaned username, raw username, compact username, or dot-prefixed variant.
@@ -357,8 +355,8 @@ serve(async (req) => {
       );
       if (strongMatches.length === 1) {
         match = strongMatches[0];
-        log.info("resolve", `Strong fuzzy match for "${cleanUsername}" → "${match.user?.username}" [${requestId}]`, {
-          requestId, username: cleanUsername, matched: match.user?.username,
+        log.info("resolve", `Strong fuzzy Discord match [${requestId}]`, {
+          requestId, username: redactDiscordIdentifier(cleanUsername), matched: Boolean(match.user?.username),
         });
       }
     }
@@ -395,17 +393,14 @@ serve(async (req) => {
         : null,
     }));
 
-    log.info("resolve", `Returning ${candidates.length} selectable Discord candidates for "${cleanUsername}" [${requestId}]`, {
+    log.info("resolve", `Returning ${candidates.length} selectable Discord candidates [${requestId}]`, {
       requestId,
-      username: cleanUsername,
-      candidateUsernames,
-      candidateGlobalNames,
-      candidateNicks,
+      username: redactDiscordIdentifier(cleanUsername),
     });
     await auditLog(
       "discord_username_not_found",
-      `No match for "${cleanUsername}" — Discord returned ${members.length} candidates: usernames=[${candidateUsernames.join(",")}] display_names=[${candidateGlobalNames.join(",")}] nicknames=[${candidateNicks.join(",")}]`,
-      [`username:${cleanUsername}`, `result_count:${members.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
+      `No exact match for redacted Discord lookup; candidate_count:${members.length}`,
+      [`username_redacted:${redactDiscordIdentifier(cleanUsername)}`, `result_count:${members.length}`]
     );
     return new Response(
       JSON.stringify({
