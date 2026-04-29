@@ -33,6 +33,7 @@ export interface BannerUpdate {
 
 const bannerTitleSchema = safeRequiredTextSchema("Banner title", 200);
 const bannerBodySchema = safeHtmlSchema("Banner body");
+const ADMIN_BANNER_COLUMNS = "id, title, body_html, status, reopen_after_dismiss, created_by, created_at, updated_at";
 
 function sanitizeBanner<T extends BannerInsert | BannerUpdate>(banner: T): T {
   return {
@@ -45,7 +46,7 @@ function sanitizeBanner<T extends BannerInsert | BannerUpdate>(banner: T): T {
 export async function fetchAllBanners(): Promise<AdminBanner[]> {
   const { data, error } = await supabase
     .from("admin_banners")
-    .select("*")
+    .select(ADMIN_BANNER_COLUMNS)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as AdminBanner[];
@@ -54,7 +55,7 @@ export async function fetchAllBanners(): Promise<AdminBanner[]> {
 export async function fetchPublishedBanners(): Promise<AdminBanner[]> {
   const { data, error } = await supabase
     .from("admin_banners")
-    .select("*")
+    .select(ADMIN_BANNER_COLUMNS)
     .eq("status", "published")
     .order("created_at", { ascending: false });
   if (error) throw error;
