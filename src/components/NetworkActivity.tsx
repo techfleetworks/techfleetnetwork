@@ -96,7 +96,14 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     refetchOnWindowFocus: false,
   });
 
-  if (loading && !stats) {
+  // Graceful degradation: if the live RPC failed and the service-layer cache
+  // also threw, try the cache directly here so the widget still renders
+  // last-known stats instead of an empty error state.
+  const cached = !stats ? StatsService.getCachedNetworkStats() : null;
+  const effectiveStats = stats ?? cached?.stats ?? null;
+  const isStale = !stats && !!cached;
+
+  if (loading && !effectiveStats) {
     return (
       <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
         <div className="container-app">
@@ -111,7 +118,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     );
   }
 
-  if (isError && !stats) {
+  if (isError && !effectiveStats) {
     return (
       <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
         <div className="container-app">
@@ -128,7 +135,10 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     );
   }
 
-  const safeStats = stats ?? defaultStats;
+  const safeStats = effectiveStats ?? defaultStats;
+  const lastUpdatedLabel = isStale && cached
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(cached.cachedAt))
+    : null;
 
   return (
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
@@ -140,6 +150,15 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
           <p className="text-muted-foreground mt-2">
             See what our community members are working on right now
           </p>
+          {isStale && lastUpdatedLabel && (
+            <p
+              className="text-xs text-muted-foreground/80 mt-2"
+              role="status"
+              aria-live="polite"
+            >
+              Showing last known activity from {lastUpdatedLabel}. We'll refresh automatically when the live feed is back.
+            </p>
+          )}
         </div>
 
         {showActivity && (
