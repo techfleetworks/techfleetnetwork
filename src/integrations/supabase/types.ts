@@ -2197,7 +2197,7 @@ export type Database = {
           end_date?: string | null
           id?: string | null
           linked_project_ids?: string[] | null
-          member_email?: string | null
+          member_email?: never
           member_name?: string | null
           member_role?: string | null
           phase?: string | null
@@ -2216,7 +2216,7 @@ export type Database = {
           end_date?: string | null
           id?: string | null
           linked_project_ids?: string[] | null
-          member_email?: string | null
+          member_email?: never
           member_name?: string | null
           member_role?: string | null
           phase?: string | null
