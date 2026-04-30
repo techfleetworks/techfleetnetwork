@@ -2461,6 +2461,17 @@ export type Database = {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
       }
+      try_write_audit_log: {
+        Args: {
+          p_changed_fields?: string[]
+          p_error_message?: string
+          p_event_type: string
+          p_record_id: string
+          p_table_name: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
         Args: { p_token: string }
