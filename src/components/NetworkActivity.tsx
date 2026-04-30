@@ -136,9 +136,12 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
   }
 
   const safeStats = effectiveStats ?? defaultStats;
+  const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
   const lastUpdatedLabel = isStale && cached
-    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(cached.cachedAt))
-    : null;
+    ? formatter.format(new Date(cached.cachedAt))
+    : stats
+      ? formatter.format(new Date())
+      : null;
 
   return (
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
@@ -150,7 +153,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
           <p className="text-muted-foreground mt-2">
             See what our community members are working on right now
           </p>
-          {isStale && lastUpdatedLabel && (
+          {isStale && lastUpdatedLabel ? (
             <p
               className="text-xs text-muted-foreground/80 mt-2"
               role="status"
@@ -158,7 +161,11 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             >
               Showing last known activity from {lastUpdatedLabel}. We'll refresh automatically when the live feed is back.
             </p>
-          )}
+          ) : lastUpdatedLabel ? (
+            <p className="text-xs text-muted-foreground/80 mt-2" aria-live="polite">
+              Last updated {lastUpdatedLabel}
+            </p>
+          ) : null}
         </div>
 
         {showActivity && (
