@@ -1,11 +1,10 @@
-import { getAdminClient } from "../_shared/admin-client.ts";
-import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
-import { requireAdminRequest } from "../_shared/request-auth.ts";
-import { createEdgeLogger } from "../_shared/logger.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-const log = createEdgeLogger("sync-airtable-roster");
-const DEFAULT_TABLE_NAME = "Project Roster";
-const AIRTABLE_TABLE_NAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N}\s_\-()&./]{0,79}$/u;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 /**
  * Fetches all records from a given Airtable table using pagination.
@@ -30,7 +29,8 @@ async function fetchAllAirtableRecords(
     });
 
     if (!res.ok) {
-      throw new Error(`Airtable fetch failed with status ${res.status}`);
+      const body = await res.text();
+      throw new Error(`Airtable fetch failed [${res.status}]: ${body}`);
     }
 
     const data = await res.json();
@@ -39,16 +39,6 @@ async function fetchAllAirtableRecords(
   } while (offset);
 
   return records;
-}
-
-function parseTableName(input: unknown): string {
-  if (input == null || input === "") return DEFAULT_TABLE_NAME;
-  if (typeof input !== "string") throw jsonResponse({ error: "Invalid table name" }, 400);
-  const tableName = input.trim().replace(/\s+/g, " ");
-  if (!AIRTABLE_TABLE_NAME_PATTERN.test(tableName)) {
-    throw jsonResponse({ error: "Invalid table name" }, 400);
-  }
-  return tableName;
 }
 
 /**
@@ -127,14 +117,53 @@ function mapToRosterRow(
 }
 
 Deno.serve(async (req) => {
-  const cors = handleCors(req);
-  if (cors) return cors;
-  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    const auth = await requireAdminRequest(req);
-    if (auth instanceof Response) return auth;
-    const supabaseAdmin = getAdminClient();
+    // --- Auth: require admin ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const supabaseUser = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const { data: userData, error: userErr } = await supabaseUser.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check admin role
+    const { data: roleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", userData.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // --- Env ---
     const AIRTABLE_PAT = Deno.env.get("AIRTABLE_PAT");
@@ -143,16 +172,23 @@ Deno.serve(async (req) => {
     const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
     if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
 
-    const body = await parseJsonBody(req, 1024).catch((error) => {
-      if (error instanceof Response && error.status === 415) return {};
-      throw error;
-    }) as Record<string, unknown>;
-    const tableName = parseTableName(body.table_name);
+    // Allow overriding table name from request body, default to "Project Roster"
+    let tableName = "Project Roster";
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body.table_name && typeof body.table_name === "string") {
+          tableName = body.table_name.trim();
+        }
+      } catch {
+        // No body or invalid JSON — use default
+      }
+    }
 
     // --- Fetch all records from Airtable ---
-    log.info("airtable_fetch_start", "Fetching Airtable roster records", { tableName });
+    console.log(`sync-airtable-roster: Fetching from "${tableName}" in base ${AIRTABLE_BASE_ID}`);
     const records = await fetchAllAirtableRecords(AIRTABLE_BASE_ID, tableName, AIRTABLE_PAT);
-    log.info("airtable_fetch_complete", "Fetched Airtable roster records", { tableName, recordCount: records.length });
+    console.log(`sync-airtable-roster: Fetched ${records.length} records`);
 
     if (records.length === 0) {
       return new Response(
@@ -178,7 +214,7 @@ Deno.serve(async (req) => {
         .select("id");
 
       if (upsertErr) {
-        log.error("roster_upsert_batch", "Roster batch upsert failed", { batchStart: i }, upsertErr);
+        console.error(`sync-airtable-roster batch ${i} error:`, upsertErr.message);
         errors.push(`Batch ${i}: ${upsertErr.message}`);
       } else {
         // Count created vs updated (simplified — upsert doesn't distinguish)
@@ -191,7 +227,7 @@ Deno.serve(async (req) => {
       event_type: "roster_sync_completed",
       table_name: "project_roster",
       record_id: "bulk",
-      user_id: auth.userId,
+      user_id: userData.user.id,
       changed_fields: [`synced:${records.length}`, `errors:${errors.length}`],
     });
 
@@ -205,8 +241,11 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
-    if (error instanceof Response) return error;
-    log.error("sync_failed", "Roster sync failed", undefined, error);
-    return jsonResponse({ success: false, error: "Roster sync failed. Please try again or check System Health." }, 500);
+    console.error("sync-airtable-roster error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

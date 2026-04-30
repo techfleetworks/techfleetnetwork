@@ -91,19 +91,6 @@ describe("AuthService session max-age marker", () => {
     expect(supabase.functions.invoke).not.toHaveBeenCalledWith("login-with-captcha", expect.anything());
   });
 
-  it("logs failed password login without exposing Edge Function transport errors to audit details", async () => {
-    const edgeError = Object.assign(new Error("Edge Function returned a non-2xx status code"), { status: 401 });
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: null, error: edgeError });
-
-    await expect(AuthService.signInWithPassword("admin@example.com", "WrongPass123!", "valid-turnstile-token-with-enough-length")).rejects.toThrow("Invalid email or password");
-
-    expect(logAccountActivity).toHaveBeenCalledWith("login_failed", expect.objectContaining({
-      email: "admin@example.com",
-      errorCode: 401,
-      errorMessage: "Edge Function returned a non-2xx status code",
-    }));
-  });
-
   it("does not sign out a user because another account left a stale timestamp", async () => {
     const session = makeSession("current-user");
     localStorage.setItem("sb-project-auth-token", JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));

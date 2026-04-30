@@ -51,14 +51,6 @@ const EMAIL_VISIBLE_EVENTS = new Set<AccountActivity>([
   "password_reset_failed",
 ]);
 
-const GENERIC_AUTH_FAILURE_MESSAGE = "Authentication attempt failed.";
-
-function safeErrorMessage(event: AccountActivity, message?: string | null): string | null {
-  if (!message) return null;
-  if (event === "login_failed") return GENERIC_AUTH_FAILURE_MESSAGE;
-  return message.slice(0, 500);
-}
-
 /** Hash an email so we never store raw PII in audit logs that admins query frequently. */
 async function hashEmail(email: string): Promise<string> {
   try {
@@ -99,7 +91,7 @@ export async function logAccountActivity(
       p_record_id: null,
       p_user_id: payload.userId ?? null,
       p_changed_fields: fields.length ? fields : null,
-      p_error_message: safeErrorMessage(event, payload.errorMessage),
+      p_error_message: payload.errorMessage ?? null,
     });
   } catch {
     // Telemetry must never break the user flow.

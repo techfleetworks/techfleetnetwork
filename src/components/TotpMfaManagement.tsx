@@ -32,8 +32,6 @@ export function TotpMfaManagement() {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [secretCopied, setSecretCopied] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [enrollError, setEnrollError] = useState<string | null>(null);
 
   // Disable-all dialog state (re-auth required)
   const [disableOpen, setDisableOpen] = useState(false);
@@ -45,14 +43,11 @@ export function TotpMfaManagement() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
     try {
       const list = await MfaService.listFactors();
       setFactors(list);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load 2FA settings";
-      setLoadError(message);
-      toast.error(message);
+      toast.error(e instanceof Error ? e.message : "Failed to load 2FA settings");
     } finally {
       setLoading(false);
     }
@@ -67,21 +62,17 @@ export function TotpMfaManagement() {
     setFactorId(null);
     setOtpCode("");
     setSecretCopied(false);
-    setEnrollError(null);
   };
 
   const handleStartEnroll = async () => {
     setEnrolling(true);
-    setEnrollError(null);
     try {
       const result = await MfaService.enrollTotp(friendlyName);
       setQrCode(result.qrCode);
       setSecret(result.secret);
       setFactorId(result.factorId);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not start enrollment";
-      setEnrollError(message);
-      toast.error(message);
+      toast.error(e instanceof Error ? e.message : "Could not start enrollment");
     } finally {
       setEnrolling(false);
     }
@@ -128,15 +119,7 @@ export function TotpMfaManagement() {
   };
 
   const handleDialogChange = (open: boolean) => {
-    if (!open) {
-      const pendingFactorId = factorId;
-      resetEnrollment();
-      if (pendingFactorId) {
-        void MfaService.unenroll(pendingFactorId).catch(() => undefined);
-      } else {
-        void MfaService.cleanupPendingTotp(friendlyName).catch(() => undefined);
-      }
-    }
+    if (!open) resetEnrollment();
     setEnrollOpen(open);
   };
 
@@ -240,13 +223,6 @@ export function TotpMfaManagement() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading…
             </div>
-          ) : loadError ? (
-            <div role="alert" className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              <p>{loadError}</p>
-              <Button type="button" variant="outline" size="sm" onClick={refresh}>
-                Retry loading 2FA methods
-              </Button>
-            </div>
           ) : totpFactors.length === 0 ? (
             <p className="text-sm text-muted-foreground">No authenticator apps registered yet.</p>
           ) : (
@@ -301,11 +277,6 @@ export function TotpMfaManagement() {
                 disabled={enrolling}
                 autoFocus
               />
-              {enrollError ? (
-                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                  {enrollError}
-                </div>
-              ) : null}
             </div>
           ) : (
             <div className="space-y-4 py-2">
