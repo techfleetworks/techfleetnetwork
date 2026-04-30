@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_member_country_distribution() TO anon, authenticated;
