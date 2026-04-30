@@ -136,9 +136,12 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
   }
 
   const safeStats = effectiveStats ?? defaultStats;
+  const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
   const lastUpdatedLabel = isStale && cached
-    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(cached.cachedAt))
-    : null;
+    ? formatter.format(new Date(cached.cachedAt))
+    : stats
+      ? formatter.format(new Date())
+      : null;
 
   return (
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
