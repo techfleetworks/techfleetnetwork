@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS requires_interview boolean NOT NULL DEFAULT true;
