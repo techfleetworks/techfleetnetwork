@@ -1,7 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-const TURNSTILE_SITE_KEY = "0x4AAAAAADEF72dWIkFxiGOU";
+const PRODUCTION_SITE_KEY = "0x4AAAAAADEF72dWIkFxiGOU";
+// Cloudflare-published "always passes" test site key. Used ONLY on non-production
+// hostnames (Lovable preview/sandbox/localhost) where the production site key is
+// not allowlisted in Cloudflare and would render an "invalid domain" error.
+// Reference: https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+const TEST_SITE_KEY = "1x00000000000000000000AA";
+
+const PRODUCTION_HOSTNAMES = new Set<string>([
+  "techfleetnetwork.lovable.app",
+  "www.techfleet.network",
+  "techfleet.network",
+]);
+
+function resolveSiteKey(): string {
+  if (typeof window === "undefined") return PRODUCTION_SITE_KEY;
+  const host = window.location.hostname.toLowerCase();
+  return PRODUCTION_HOSTNAMES.has(host) ? PRODUCTION_SITE_KEY : TEST_SITE_KEY;
+}
+
+const TURNSTILE_SITE_KEY = resolveSiteKey();
 
 declare global {
   interface Window {
