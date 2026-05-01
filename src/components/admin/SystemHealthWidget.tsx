@@ -59,6 +59,10 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
     refetchOnWindowFocus: false,
   });
 
+  // Subscribe to live changes — invalidates queries on the server-side push,
+  // not on a client poll. Eliminates idle-tab traffic.
+  useSystemHealthRealtime(isAdmin);
+
   if (adminLoading || !isAdmin) return null;
 
   const health = healthQuery.data;
