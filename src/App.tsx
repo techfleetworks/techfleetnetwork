@@ -85,10 +85,23 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,       // 5 min — avoid refetching on every mount
       gcTime: 10 * 60 * 1000,         // 10 min — keep cache warm
       retry: (failureCount, error) => {
-        // Don't retry on auth errors (401/403) or validation errors (400)
+        // Don't retry on auth/permission/validation errors. A single permission
+        // misconfig must NEVER turn into a refetch storm — that's exactly what
+        // produced the "loop and glitch when saving as a draft" report:
+        // get_email_pipeline_health was throwing permission_denied (42501) and
+        // every cache invalidation re-flooded the backend with retries.
         if (error instanceof Error) {
           const msg = error.message.toLowerCase();
-          if (msg.includes("unauthorized") || msg.includes("forbidden") || msg.includes("not authenticated")) {
+          if (
+            msg.includes("unauthorized") ||
+            msg.includes("forbidden") ||
+            msg.includes("not authenticated") ||
+            msg.includes("permission denied") ||
+            msg.includes("admin access required") ||
+            msg.includes("row-level security") ||
+            msg.includes("violates row-level") ||
+            msg.includes("42501")
+          ) {
             return false;
           }
         }
