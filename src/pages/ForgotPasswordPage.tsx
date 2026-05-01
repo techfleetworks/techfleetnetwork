@@ -14,6 +14,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, record
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
+import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -77,7 +78,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`, captchaToken);
+      await AuthService.resetPassword(result.data, `${getCanonicalAppOrigin()}/reset-password`, captchaToken);
       clearAuthLockout();
       setSubmitted(true);
     } catch (err) {

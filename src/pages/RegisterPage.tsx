@@ -20,6 +20,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, record
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
+import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -162,7 +163,7 @@ export default function RegisterPage() {
         result.data.password,
         result.data.firstName,
         result.data.lastName,
-        window.location.origin + (redirectParam ? redirectParam : "/profile-setup"),
+        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
         captchaToken
       );
       clearAuthLockout();
@@ -211,7 +212,7 @@ export default function RegisterPage() {
 
       await AuthService.resendSignupConfirmation(
         email,
-        window.location.origin + (redirectParam ? redirectParam : "/profile-setup"),
+        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
         resendCaptchaToken
       );
       setResendStatus("success");
