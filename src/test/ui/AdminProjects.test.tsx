@@ -68,6 +68,7 @@ const fixtures: { clients: Row[]; projects: Row[]; activeOnly: boolean; lastDele
       id: "p1", client_id: "c1", project_type: "website_design", phase: "phase_1",
       team_hats: ["Designer"], project_status: "recruiting", current_phase_milestones: ["Discovery"],
       friendly_name: "Marketing Site", description: "Build it", created_by: "admin-1",
+      requires_interview: true,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
   ],
