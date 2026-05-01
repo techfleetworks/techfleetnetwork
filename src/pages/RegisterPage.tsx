@@ -20,6 +20,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, record
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
+import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 
 export default function RegisterPage() {
   const location = useLocation();
