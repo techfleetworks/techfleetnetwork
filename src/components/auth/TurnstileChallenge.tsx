@@ -93,12 +93,26 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
       sitekey: TURNSTILE_SITE_KEY,
       action,
       theme: "auto",
+      "refresh-expired": "auto",
+      "retry": "auto",
       callback: (token: string) => {
+        consecutiveFailuresRef.current = 0;
+        setTransientError(null);
         setRetrySeconds(0);
         onTokenChange(token);
       },
-      "expired-callback": () => onTokenChange(""),
-      "error-callback": beginRetryCountdown,
+      "expired-callback": () => {
+        // Token expired before submit — silently get a fresh one, don't penalize the user.
+        setTransientError("expired");
+        onTokenChange("");
+        resetWidget();
+      },
+      "error-callback": (code?: string) => {
+        consecutiveFailuresRef.current += 1;
+        const kind = classifyTurnstileError(code);
+        setTransientError(kind);
+        beginRetryCountdown();
+      },
     });
 
     return () => {
@@ -109,7 +123,13 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
   }, [action, onTokenChange, scriptReady]);
 
   useEffect(() => {
-    if (failureCount > 0) beginRetryCountdown();
+    // Only treat external failures (e.g. server-side CAPTCHA rejection) as a real failure.
+    if (failureCount > lastFailureCountRef.current) {
+      consecutiveFailuresRef.current += 1;
+      setTransientError("challenge");
+      beginRetryCountdown();
+    }
+    lastFailureCountRef.current = failureCount;
   }, [failureCount]);
 
   useEffect(() => {
@@ -117,7 +137,7 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
     const timer = window.setInterval(() => {
       setRetrySeconds((current) => {
         if (current <= 1) {
-          if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
+          resetWidget();
           return 0;
         }
         return current - 1;
@@ -126,13 +146,29 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
     return () => window.clearInterval(timer);
   }, [retrySeconds]);
 
+  const errorMessage = (() => {
+    if (retrySeconds > 0) {
+      const base = transientError === "network"
+        ? "Verification couldn't reach Cloudflare."
+        : "Human verification didn't go through.";
+      return `${base} Please retry in ${retrySeconds} second${retrySeconds === 1 ? "" : "s"}.`;
+    }
+    if (transientError === "expired") return "Verification refreshed — please wait a moment.";
+    if (transientError === "network") return "Verification is having trouble reaching Cloudflare. Retrying…";
+    return null;
+  })();
+
   return (
     <div className="rounded-md border border-border bg-muted/40 p-3" role="group" aria-label="Human verification">
       <div ref={containerRef} className={retrySeconds > 0 ? "min-h-[65px] pointer-events-none opacity-60" : "min-h-[65px]"} />
       {!scriptReady && <p className="text-sm text-muted-foreground" aria-live="polite">Loading verification…</p>}
-      {retrySeconds > 0 && (
-        <p className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="assertive">
-          Human verification failed. Please retry in {retrySeconds} second{retrySeconds === 1 ? "" : "s"}.
+      {errorMessage && (
+        <p
+          className={`mt-2 rounded-md px-3 py-2 text-sm ${retrySeconds > 0 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}
+          role={retrySeconds > 0 ? "alert" : "status"}
+          aria-live={retrySeconds > 0 ? "assertive" : "polite"}
+        >
+          {errorMessage}
         </p>
       )}
     </div>
