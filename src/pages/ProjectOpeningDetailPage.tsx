@@ -545,7 +545,7 @@ export default function ProjectOpeningDetailPage() {
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">Rough timeline after applications close:</p>
           <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>One week after applications close: Tech Fleet Project Coordinator will interview and choose teammates for the project. The entire process of building team can take up to 3–4 weeks.</li>
+            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>One week after applications close: Tech Fleet Project Coordinator will {project.requires_interview === false ? "review applications and choose teammates" : "interview and choose teammates"} for the project. The entire process of building team can take up to 3–4 weeks.</li>
             <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Project Week 1–3 (3 weeks): Pre-kickoff</li>
             <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>Project Week 3–10 (8 weeks): Project teamwork</li>
             <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Project Week 11 (1 week): Hand-off</li>
@@ -553,53 +553,61 @@ export default function ProjectOpeningDetailPage() {
         </div>
       </InfoSection>
 
-      {/* ── Interview Process ─────────────────────────────── */}
-      <InfoSection icon={UserSearch} title="Interview Process">
-        <p className="text-sm text-foreground">
-          Learn more in the Tech Fleet user guide:{" "}
-          <a
-            href="https://guide.techfleet.org/project-portal/applying-to-tech-fleet-project-training/project-timelines-and-application-process"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline inline-flex items-center gap-1"
-          >
-            guide.techfleet.org/.../project-timelines-and-application-process
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </p>
-        <p className="text-sm text-foreground">
-          Here are some important pieces of information about interviewing with Tech Fleet projects:
-        </p>
+      {/* ── Selection / Interview Process ─────────────────── */}
+      {project.requires_interview === false ? (
+        <InfoSection icon={UserSearch} title="Selection Process">
+          <p className="text-sm text-foreground">
+            This project does not include interviews. The project coordinator will review applications and select teammates directly. You'll be notified by email and on your application status page when a decision is made.
+          </p>
+        </InfoSection>
+      ) : (
+        <InfoSection icon={UserSearch} title="Interview Process">
+          <p className="text-sm text-foreground">
+            Learn more in the Tech Fleet user guide:{" "}
+            <a
+              href="https://guide.techfleet.org/project-portal/applying-to-tech-fleet-project-training/project-timelines-and-application-process"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline inline-flex items-center gap-1"
+            >
+              guide.techfleet.org/.../project-timelines-and-application-process
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </p>
+          <p className="text-sm text-foreground">
+            Here are some important pieces of information about interviewing with Tech Fleet projects:
+          </p>
 
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">How leads get selected:</p>
-          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>The project coordinator will interview selected leads.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The leads who interview may be chosen for the project team.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>There may be times when people from a previous phase are chosen to automatically continue as teammates for the sake of keeping people with project experience and knowledge, but the coordinator will communicate this, and will provide as close to 100% fair treatment as possible.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All teammates train on the project with peer learning and are operating with pro bono volunteer work.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>Not all teammates are experts or experienced, some teammates are doing this for the first-time ever, as is designed in Tech Fleet to open more space for first-time learners.</li>
-          </ul>
-        </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">How leads get selected:</p>
+            <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>The project coordinator will interview selected leads.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The leads who interview may be chosen for the project team.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>There may be times when people from a previous phase are chosen to automatically continue as teammates for the sake of keeping people with project experience and knowledge, but the coordinator will communicate this, and will provide as close to 100% fair treatment as possible.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All teammates train on the project with peer learning and are operating with pro bono volunteer work.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>Not all teammates are experts or experienced, some teammates are doing this for the first-time ever, as is designed in Tech Fleet to open more space for first-time learners.</li>
+            </ul>
+          </div>
 
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">How apprentices get selected:</p>
-          <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Submit the video ask responses.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will interview selected apprentices.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Typically, for each team function, up to 4 apprentices will be chosen, but sometimes more or less will be chosen depending on circumstances.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All apprentices train on the project with peer learning and are operating with pro bono volunteer work.</li>
-          </ul>
-        </div>
-      </InfoSection>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">How apprentices get selected:</p>
+            <ul className="space-y-2 text-sm text-muted-foreground mt-2">
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Submit the video ask responses.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will interview selected apprentices.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Typically, for each team function, up to 4 apprentices will be chosen, but sometimes more or less will be chosen depending on circumstances.</li>
+              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All apprentices train on the project with peer learning and are operating with pro bono volunteer work.</li>
+            </ul>
+          </div>
+        </InfoSection>
+      )}
 
       {/* ── Considerations ────────────────────────────────── */}
       <InfoSection icon={AlertTriangle} title="Considerations">
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>While the expectations are for projects to start 4 weeks after applications close, this is not guaranteed, as this is a community-driven effort with pro bono volunteers giving their time back to coordinate projects for the betterment of the community. Please provide them patience, and thanks for understanding that the community is doing the best it can to coordinate these projects.</li>
-          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Not everyone who applies will be interviewed, or contacted individually due to demand on the project applications.</li>
+          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Not everyone who applies will be {project.requires_interview === false ? "selected" : "interviewed"}, or contacted individually due to demand on the project applications.</li>
           <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will communicate in the platform, through Email, and #project-openings channel in Tech Fleet Discord with updates.</li>
         </ul>
       </InfoSection>
