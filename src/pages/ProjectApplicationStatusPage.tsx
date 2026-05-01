@@ -103,29 +103,10 @@ interface TimelineStep {
   description?: string;
 }
 
-/** Build the timeline steps based on the current applicant status */
-function buildTimeline(applicantStatus: string): TimelineStep[] {
-  // Define the "happy path" order
+/** Build the timeline steps based on the current applicant status and whether the project requires interviews. */
+function buildTimeline(applicantStatus: string, requiresInterview: boolean = true): TimelineStep[] {
   const NOT_SELECTED_STATUSES = new Set(["not_selected"]);
   const isNotSelected = NOT_SELECTED_STATUSES.has(applicantStatus);
-
-  // Map statuses to a numeric order for comparison
-  const STATUS_ORDER: Record<string, number> = {
-    pending_review: 0,
-    invited_to_interview: 1,
-    interview_scheduled: 1.5,
-    active_participant: 2,
-    not_selected: -1,
-    left_the_project: -2,
-  };
-
-  const currentOrder = STATUS_ORDER[applicantStatus] ?? 0;
-
-  function stepStatus(stepOrder: number): "completed" | "active" | "upcoming" {
-    if (currentOrder >= stepOrder) return "completed";
-    if (Math.floor(currentOrder) === stepOrder - 1 && currentOrder > stepOrder - 1) return "completed"; // fractional
-    return "upcoming";
-  }
 
   const steps: TimelineStep[] = [
     {
@@ -148,15 +129,49 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
     return steps;
   }
 
-  // Interview step
+  if (!requiresInterview) {
+    // No-interview flow: Submitted → Under Review → Active Teammate
+    const isActive = applicantStatus === "active_participant";
+    steps.push({
+      key: "review",
+      label: "Under Review",
+      icon: Clock,
+      status: isActive ? "completed" : "active",
+      description: isActive
+        ? "The coordinator has reviewed your application and selected you for the team."
+        : "The coordinator is reviewing applications and selecting teammates directly. You'll be notified by email and on this page when a decision is made.",
+    });
+    steps.push({
+      key: "active",
+      label: "Active Teammate",
+      icon: Users,
+      status: isActive ? "active" : "upcoming",
+      description: isActive
+        ? "You're actively contributing to the project team!"
+        : "You'll become an active teammate once the coordinator selects you and onboarding is complete.",
+    });
+    return steps;
+  }
+
+  // Interview flow: Submitted → Invited for Interview → Active Teammate
+  const STATUS_ORDER: Record<string, number> = {
+    pending_review: 0,
+    invited_to_interview: 1,
+    interview_scheduled: 1.5,
+    active_participant: 2,
+    not_selected: -1,
+    left_the_project: -2,
+  };
+
+  const currentOrder = STATUS_ORDER[applicantStatus] ?? 0;
+
   const interviewCompleted = currentOrder >= 1;
-  const interviewActive = applicantStatus === "pending_review";
   const isScheduled = applicantStatus === "interview_scheduled";
   steps.push({
     key: "interview",
     label: "Invited for Interview",
     icon: Calendar,
-    status: interviewCompleted ? "completed" : interviewActive ? "upcoming" : "upcoming",
+    status: interviewCompleted ? "completed" : "upcoming",
     description: isScheduled
       ? "You've scheduled your interview. The coordinator has been notified."
       : interviewCompleted
@@ -164,20 +179,17 @@ function buildTimeline(applicantStatus: string): TimelineStep[] {
       : "Awaiting interview invitation from the coordinator.",
   });
 
-  // Active Teammate
   const activeCompleted = currentOrder >= 2;
   steps.push({
     key: "active",
     label: "Active Teammate",
     icon: Users,
-    status: activeCompleted ? "completed" : currentOrder >= 1 ? "upcoming" : "upcoming",
+    status: activeCompleted ? "completed" : "upcoming",
     description: activeCompleted
       ? "You're actively contributing to the project team!"
       : "You'll become an active teammate once you're selected and onboarding is complete.",
   });
 
-  // Now mark the current step as "active" instead of "completed"
-  // Find the last completed step and mark it active if it matches current status
   const currentStepMap: Record<string, string> = {
     pending_review: "submitted",
     invited_to_interview: "interview",
@@ -385,7 +397,7 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id")
+        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id, requires_interview")
         .eq("id", app!.project_id as string)
         .single();
       if (error) throw error;
@@ -487,8 +499,11 @@ export default function ProjectApplicationStatusPage() {
   });
 
   /* ── build timeline ─────────────────────────────────────── */
-  const timelineSteps = useMemo(() => buildTimeline(applicantStatus), [applicantStatus]);
-
+  const requiresInterview = (project as any)?.requires_interview !== false;
+  const timelineSteps = useMemo(
+    () => buildTimeline(applicantStatus, requiresInterview),
+    [applicantStatus, requiresInterview],
+  );
 
   /* ── mark interview scheduled mutation ──────────────────── */
   const scheduleMutation = useMutation({

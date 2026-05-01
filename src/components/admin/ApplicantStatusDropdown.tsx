@@ -36,6 +36,12 @@ export type ApplicantStatus = (typeof APPLICANT_STATUSES)[number]["value"];
 /** Selectable statuses (excludes pending_review from the dropdown). */
 const SELECTABLE_STATUSES = APPLICANT_STATUSES.filter((s) => s.value !== "pending_review");
 
+/** Statuses hidden when a project does NOT require interviews. */
+const INTERVIEW_ONLY_STATUSES: ReadonlySet<ApplicantStatus> = new Set([
+  "invited_to_interview",
+  "interview_scheduled",
+]);
+
 const STATUS_ICONS: Record<string, typeof Calendar> = {
   invited_to_interview: Calendar,
   interview_scheduled: Calendar,
@@ -59,6 +65,8 @@ interface Props {
   applicantEmail: string;
   projectId: string;
   currentStatus: string;
+  /** When false, "Invite to Interview" and "Interview Scheduled" are hidden. Defaults to true. */
+  requiresInterview?: boolean;
   /** Query keys to invalidate after a successful status change. */
   invalidateKeys?: string[][];
   /** Renders a labeled button instead of the icon-only trigger. */
@@ -105,6 +113,7 @@ export function ApplicantStatusDropdown({
   applicantEmail,
   projectId,
   currentStatus,
+  requiresInterview = true,
   invalidateKeys = [],
   triggerLabel,
 }: Props) {
@@ -282,22 +291,26 @@ export function ApplicantStatusDropdown({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-xs text-muted-foreground">Change Status</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {SELECTABLE_STATUSES.map((status) => {
-          const Icon = STATUS_ICONS[status.value] ?? UserCheck;
-          const isActive = currentStatus === status.value;
-          return (
-            <DropdownMenuItem
-              key={status.value}
-              onClick={() => handleStatusChange(status.value)}
-              disabled={isActive}
-              className={isActive ? "opacity-50" : ""}
-            >
-              <Icon className="h-4 w-4 mr-2" />
-              {status.label}
-              {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
-            </DropdownMenuItem>
-          );
-        })}
+        {SELECTABLE_STATUSES
+          .filter((status) =>
+            requiresInterview || !INTERVIEW_ONLY_STATUSES.has(status.value),
+          )
+          .map((status) => {
+            const Icon = STATUS_ICONS[status.value] ?? UserCheck;
+            const isActive = currentStatus === status.value;
+            return (
+              <DropdownMenuItem
+                key={status.value}
+                onClick={() => handleStatusChange(status.value)}
+                disabled={isActive}
+                className={isActive ? "opacity-50" : ""}
+              >
+                <Icon className="h-4 w-4 mr-2" />
+                {status.label}
+                {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
+              </DropdownMenuItem>
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

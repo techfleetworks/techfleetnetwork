@@ -77,6 +77,22 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: JSON_HEADERS })
   }
 
+  // Defense-in-depth: refuse to mark interview scheduled on a no-interview project.
+  // Even if the UI somehow exposed a stale button, the server still says no.
+  if (application.project_id) {
+    const { data: projectFlag } = await supabase
+      .from('projects')
+      .select('requires_interview')
+      .eq('id', application.project_id)
+      .maybeSingle()
+    if (projectFlag && projectFlag.requires_interview === false) {
+      return new Response(
+        JSON.stringify({ error: 'This project does not require interviews' }),
+        { status: 400, headers: JSON_HEADERS },
+      )
+    }
+  }
+
   const validFromStatuses = ['invited_to_interview']
   if (!validFromStatuses.includes(application.applicant_status)) {
     return new Response(JSON.stringify({ error: 'Cannot mark as scheduled from current status' }), { status: 400, headers: JSON_HEADERS })

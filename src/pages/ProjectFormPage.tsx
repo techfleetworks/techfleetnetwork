@@ -29,8 +29,9 @@ import { z } from "zod";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { format } from "date-fns";
 import {
-  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon,
+  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon, AlertTriangle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +82,7 @@ const projectSchema = z.object({
   discord_role_id: z.string().min(1, "Discord role is required"),
   discord_role_name: z.string().min(1, "Discord role is required"),
   coordinator_id: z.string().nullable(),
+  requires_interview: z.boolean().default(true),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -102,6 +104,7 @@ const EMPTY_FORM: ProjectForm = {
   discord_role_id: "",
   discord_role_name: "",
   coordinator_id: null,
+  requires_interview: true,
 };
 
 export default function ProjectFormPage() {
@@ -145,6 +148,7 @@ export default function ProjectFormPage() {
             discord_role_id: (data as any).discord_role_id ?? "",
             discord_role_name: (data as any).discord_role_name ?? "",
             coordinator_id: (data as any).coordinator_id ?? null,
+            requires_interview: (data as any).requires_interview ?? true,
           });
           setInitialized(true);
         }
@@ -183,6 +187,7 @@ export default function ProjectFormPage() {
       discord_role_id: (existingProject as any).discord_role_id ?? "",
       discord_role_name: (existingProject as any).discord_role_name ?? "",
       coordinator_id: (existingProject as any).coordinator_id ?? null,
+      requires_interview: (existingProject as any).requires_interview ?? true,
     });
     setInitialized(true);
   }
@@ -226,6 +231,24 @@ export default function ProjectFormPage() {
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
+
+  // For the "interview toggle" warning when admins flip an existing project from
+  // requires_interview=true to false while applicants are mid-interview.
+  const { data: midInterviewCount = 0 } = useQuery({
+    queryKey: ["project-mid-interview-count", id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("project_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", id!)
+        .in("applicant_status", ["invited_to_interview", "interview_scheduled"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: isEditing && !!id,
+  });
+  const showInterviewToggleWarning =
+    isEditing && !form.requires_interview && midInterviewCount > 0;
 
   // Milestone reference
   const { data: milestoneRefs = [] } = useMilestoneReference();
@@ -582,6 +605,35 @@ export default function ProjectFormPage() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">Only admins can be assigned as project coordinators.</p>
+        </div>
+
+        {/* Interview Toggle */}
+        <div className="space-y-2 rounded-md border p-4 bg-muted/20">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="requires-interview" className="text-sm font-medium">
+                This project includes applicant interviews
+              </Label>
+              <p id="requires-interview-help" className="text-xs text-muted-foreground">
+                Turn off if the coordinator selects teammates directly from applications without scheduling interviews.
+              </p>
+            </div>
+            <Switch
+              id="requires-interview"
+              checked={form.requires_interview}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, requires_interview: v }))}
+              aria-describedby="requires-interview-help"
+            />
+          </div>
+          {showInterviewToggleWarning && (
+            <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-foreground">
+                {midInterviewCount} applicant{midInterviewCount === 1 ? " is" : "s are"} mid-interview.
+                Their flow will continue; the change applies to new applicants only.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Current Phase Milestones */}
