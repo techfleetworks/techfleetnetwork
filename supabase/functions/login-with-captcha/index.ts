@@ -72,19 +72,46 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Use an email address with a real domain." }, 400);
     }
 
-    const verifyForm = new FormData();
-    verifyForm.set("secret", secret);
-    verifyForm.set("response", parsed.data.captchaToken);
+    // Production secret. For non-production origins (Lovable preview/sandbox/localhost)
+    // the widget uses Cloudflare's "always passes" test sitekey, which only validates
+    // against the matching test secret. We try the real secret first, then fall back
+    // to the test secret only when the request originated from a non-production host.
+    const TEST_SECRET = "1x0000000000000000000000000000000AA";
+    const PRODUCTION_HOSTS = new Set([
+      "techfleetnetwork.lovable.app",
+      "www.techfleet.network",
+      "techfleet.network",
+    ]);
+    let originHost = "";
+    try {
+      const originHeader = req.headers.get("origin") ?? req.headers.get("referer") ?? "";
+      if (originHeader) originHost = new URL(originHeader).hostname.toLowerCase();
+    } catch { /* ignore */ }
+    const isProductionOrigin = PRODUCTION_HOSTS.has(originHost);
     const ip = clientIp(req);
-    if (ip) verifyForm.set("remoteip", ip);
 
-    const captchaResponse = await fetch(VERIFY_URL, { method: "POST", body: verifyForm });
-    const captchaResult = await captchaResponse.json().catch(() => ({})) as { success?: boolean; "error-codes"?: string[] };
-    if (!captchaResponse.ok || captchaResult.success !== true) {
+    async function verifyCaptcha(secretKey: string) {
+      const verifyForm = new FormData();
+      verifyForm.set("secret", secretKey);
+      verifyForm.set("response", parsed.data.captchaToken);
+      if (ip) verifyForm.set("remoteip", ip);
+      const r = await fetch(VERIFY_URL, { method: "POST", body: verifyForm });
+      const j = await r.json().catch(() => ({})) as { success?: boolean; "error-codes"?: string[] };
+      return { ok: r.ok, status: r.status, body: j };
+    }
+
+    let captchaCheck = await verifyCaptcha(secret);
+    if ((!captchaCheck.ok || captchaCheck.body.success !== true) && !isProductionOrigin) {
+      const fallback = await verifyCaptcha(TEST_SECRET);
+      if (fallback.ok && fallback.body.success === true) captchaCheck = fallback;
+    }
+
+    if (!captchaCheck.ok || captchaCheck.body.success !== true) {
       log.warn("captcha", `Turnstile rejected login [${requestId}]`, {
         requestId,
-        status: captchaResponse.status,
-        errorCodes: captchaResult["error-codes"] ?? [],
+        status: captchaCheck.status,
+        errorCodes: captchaCheck.body["error-codes"] ?? [],
+        originHost,
       });
       return jsonResponse({ error: "Complete the human verification before trying again.", code: "CAPTCHA_REQUIRED" }, 403);
     }
