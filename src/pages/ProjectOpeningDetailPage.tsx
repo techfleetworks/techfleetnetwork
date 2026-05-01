@@ -50,6 +50,7 @@ interface ProjectDetail {
   coordinator_id?: string | null;
   friendly_name?: string;
   description?: string;
+  requires_interview?: boolean;
 }
 
 interface ClientDetail {
