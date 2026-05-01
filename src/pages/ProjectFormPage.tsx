@@ -607,6 +607,35 @@ export default function ProjectFormPage() {
           <p className="text-xs text-muted-foreground">Only admins can be assigned as project coordinators.</p>
         </div>
 
+        {/* Interview Toggle */}
+        <div className="space-y-2 rounded-md border p-4 bg-muted/20">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="requires-interview" className="text-sm font-medium">
+                This project includes applicant interviews
+              </Label>
+              <p id="requires-interview-help" className="text-xs text-muted-foreground">
+                Turn off if the coordinator selects teammates directly from applications without scheduling interviews.
+              </p>
+            </div>
+            <Switch
+              id="requires-interview"
+              checked={form.requires_interview}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, requires_interview: v }))}
+              aria-describedby="requires-interview-help"
+            />
+          </div>
+          {showInterviewToggleWarning && (
+            <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-foreground">
+                {midInterviewCount} applicant{midInterviewCount === 1 ? " is" : "s are"} mid-interview.
+                Their flow will continue; the change applies to new applicants only.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Current Phase Milestones */}
         <div className="space-y-1.5">
           <Label>Current Phase Milestones <span className="text-destructive">*</span></Label>
