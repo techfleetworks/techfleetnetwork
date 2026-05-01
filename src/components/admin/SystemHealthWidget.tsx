@@ -27,28 +27,35 @@ function StatusPill({ status }: { status: SystemHealthState["status"] }) {
 export const SystemHealthWidget = memo(function SystemHealthWidget() {
   const { isAdmin, loading: adminLoading } = useAdmin();
 
+  // 5-minute cadence: System Health is observability — instant updates flow
+  // through Supabase Realtime; polling is a safety net only.
+  const FIVE_MIN = 5 * 60 * 1000;
+
   const healthQuery = useQuery({
     queryKey: ["system-health"],
     queryFn: () => SystemHealthService.getHealth(),
     enabled: isAdmin,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
 
   const errorsQuery = useQuery({
     queryKey: ["system-top-errors", 24],
     queryFn: () => SystemHealthService.getTopErrors(24, 10),
     enabled: isAdmin,
-    refetchInterval: 90_000,
-    staleTime: 60_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
 
   const remediationsQuery = useQuery({
     queryKey: ["system-remediations"],
     queryFn: () => SystemHealthService.getRemediations(),
     enabled: isAdmin,
-    refetchInterval: 120_000,
-    staleTime: 60_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
 
   if (adminLoading || !isAdmin) return null;
