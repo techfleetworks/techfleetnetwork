@@ -64,28 +64,41 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
-    const form = new FormData();
-    form.set("secret", secret);
-    form.set("response", parsed.data.token);
+    async function verifyWith(secretKey: string) {
+      const form = new FormData();
+      form.set("secret", secretKey);
+      form.set("response", parsed.data.token);
+      const r = await fetch(VERIFY_URL, { method: "POST", body: form });
+      const j = await r.json().catch(() => ({})) as {
+        success?: boolean;
+        hostname?: string;
+        "error-codes"?: string[];
+      };
+      return { ok: r.ok, status: r.status, body: j };
+    }
 
-    const response = await fetch(VERIFY_URL, { method: "POST", body: form });
-    const result = await response.json().catch(() => ({})) as {
-      success?: boolean;
-      hostname?: string;
-      "error-codes"?: string[];
-    };
+    let result = await verifyWith(secret);
 
-    if (!response.ok || result.success !== true) {
+    // On non-production origins, the widget uses Cloudflare's test sitekey which
+    // only validates against the matching test secret. Fall back transparently.
+    if ((!result.ok || result.body.success !== true) && !isProductionOrigin && secret !== TEST_SECRET) {
+      const fallback = await verifyWith(TEST_SECRET);
+      if (fallback.ok && fallback.body.success === true) result = fallback;
+    }
+
+    if (!result.ok || result.body.success !== true) {
       console.warn("Turnstile verification failed", {
         action: parsed.data.action,
-        status: response.status,
-        errorCodes: result["error-codes"] ?? [],
+        status: result.status,
+        errorCodes: result.body["error-codes"] ?? [],
+        originHost,
       });
       return jsonResponse({
         success: false,
         error: "Complete the human verification before trying again.",
       }, 403);
     }
+
 
     return jsonResponse({ success: true });
   } catch (error) {
