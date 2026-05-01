@@ -636,8 +636,8 @@ export default function ProjectApplicationStatusPage() {
         </CardContent>
       </Card>
 
-      {/* What to Expect Timeline — shown for early-stage applicants */}
-      {["pending_review", "invited_to_interview", "interview_scheduled"].includes(applicantStatus) && (
+      {/* What to Expect Timeline — shown for early-stage applicants on interview projects only */}
+      {requiresInterview && ["pending_review", "invited_to_interview", "interview_scheduled"].includes(applicantStatus) && (
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
