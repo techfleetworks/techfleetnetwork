@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      await AuthService.resetPassword(result.data, `${window.location.origin}/reset-password`, captchaToken);
+      await AuthService.resetPassword(result.data, `${getCanonicalAppOrigin()}/reset-password`, captchaToken);
       clearAuthLockout();
       setSubmitted(true);
     } catch (err) {
