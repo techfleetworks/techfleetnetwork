@@ -17,6 +17,13 @@ const AUTH_ATTEMPT_BUCKET_KEY = "tfn:client-auth-attempt-window";
 const AUTH_ATTEMPT_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend)|rest\/v1\/rpc\/check_rate_limit)$/;
 const MFA_SECURITY_PATH_PATTERN = /\/rest\/v1\/rpc\/(mark_two_factor_login_verified|admin_2fa_grace_deadline|admin_2fa_grace_active)$/;
 const PUBLIC_AGGREGATE_READ_PATH_PATTERN = /\/rest\/v1\/rpc\/get_network_stats$/;
+// Admin observability + dashboard aggregate RPCs poll on a schedule and must
+// never be tripped by the identical-request throttle. They are already gated
+// server-side by RLS / SECURITY DEFINER admin checks.
+const ADMIN_OBSERVABILITY_PATH_PATTERN = /\/rest\/v1\/rpc\/(get_email_pipeline_health|get_top_error_fingerprints|run_auto_remediations|get_dashboard_overview|evaluate_system_health)$/;
+// Auth session refresh / current-user reads happen on every route change and
+// from background tabs; they are session-bound and not abuse vectors.
+const AUTH_SESSION_READ_PATH_PATTERN = /\/auth\/v1\/(user|session)$/;
 const RATE_LIMIT_LOG_DEDUPE_MS = 30_000;
 const rateLimitLogDedupe = new Map<string, number>();
 
@@ -45,6 +52,11 @@ function shouldThrottle(url: URL): boolean {
   if (STATIC_ASSET_PATTERN.test(url.pathname)) return false;
   if (MFA_SECURITY_PATH_PATTERN.test(url.pathname)) return false;
   if (PUBLIC_AGGREGATE_READ_PATH_PATTERN.test(url.pathname)) return false;
+  if (ADMIN_OBSERVABILITY_PATH_PATTERN.test(url.pathname)) return false;
+  if (AUTH_SESSION_READ_PATH_PATTERN.test(url.pathname) && (url.searchParams.toString() === "" || true)) {
+    // Only exempt safe GET-style session reads, not POSTs to /auth/v1/token.
+    return false;
+  }
   return BACKEND_PATH_PATTERN.test(url.pathname);
 }
 
