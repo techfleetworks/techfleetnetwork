@@ -232,6 +232,24 @@ export default function ProjectFormPage() {
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const selectedClient = useMemo(() => clientMap.get(form.client_id), [form.client_id, clientMap]);
 
+  // For the "interview toggle" warning when admins flip an existing project from
+  // requires_interview=true to false while applicants are mid-interview.
+  const { data: midInterviewCount = 0 } = useQuery({
+    queryKey: ["project-mid-interview-count", id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("project_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", id!)
+        .in("applicant_status", ["invited_to_interview", "interview_scheduled"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: isEditing && !!id,
+  });
+  const showInterviewToggleWarning =
+    isEditing && !form.requires_interview && midInterviewCount > 0;
+
   // Milestone reference
   const { data: milestoneRefs = [] } = useMilestoneReference();
   const computed = useMemo(
