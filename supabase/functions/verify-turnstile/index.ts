@@ -27,13 +27,33 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Method not allowed" }, 405);
   }
 
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
+  // Production secret. For non-production origins (Lovable preview/sandbox/localhost)
+  // we fall back to Cloudflare's "always passes" test secret so previews stay usable
+  // without weakening production verification.
+  const PROD_SECRET = Deno.env.get("TURNSTILE_SECRET_KEY");
+  const TEST_SECRET = "1x0000000000000000000000000000000AA";
+  const PRODUCTION_HOSTS = new Set([
+    "techfleetnetwork.lovable.app",
+    "www.techfleet.network",
+    "techfleet.network",
+  ]);
+
+  let originHost = "";
+  try {
+    const originHeader = req.headers.get("origin") ?? req.headers.get("referer") ?? "";
+    if (originHeader) originHost = new URL(originHeader).hostname.toLowerCase();
+  } catch { /* ignore malformed */ }
+
+  const isProductionOrigin = PRODUCTION_HOSTS.has(originHost);
+  const secret = isProductionOrigin ? PROD_SECRET : (PROD_SECRET ?? TEST_SECRET);
+
   if (!secret) {
     return jsonResponse({
       success: false,
       error: "Verification is not configured",
     }, 500);
   }
+
 
   try {
     const parsed = BodySchema.safeParse(await parseJsonBody(req, 8 * 1024));
