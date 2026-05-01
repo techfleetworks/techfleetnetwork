@@ -124,16 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           AuthService.clearLocalAuthState();
         }
 
+        // Note: We previously force-signed-out users on SIGNED_IN at the root
+        // OAuth callback URL when the local "UI initiated" marker was missing.
+        // That guard was redundant — Supabase already validates the OAuth code
+        // / PKCE state cryptographically before emitting SIGNED_IN — and it
+        // caused real users to bounce to the logged-out home page whenever the
+        // marker was lost (cross-origin redirects between apex/www, Safari ITP
+        // partitioning sessionStorage during the third-party bounce, private
+        // browsing modes, etc.). We now just clean the URL and continue.
         if (_event === "SIGNED_IN" && isRootOAuthCallback() && !hasFreshOAuthUiMarker()) {
-          AuthService.clearLocalAuthState();
           stripRootOAuthCallbackUrl();
-          await AuthService.signOut();
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setProfileLoaded(false);
-          setLoading(false);
-          return;
         }
 
         // For token refreshes, only update session/user if the user ID actually changed
