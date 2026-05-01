@@ -1518,6 +1518,7 @@ export type Database = {
           phase: Database["public"]["Enums"]["project_phase"]
           project_status: Database["public"]["Enums"]["project_status_enum"]
           project_type: Database["public"]["Enums"]["project_type"]
+          requires_interview: boolean
           team_hats: string[]
           timezone_range: string
           updated_at: string
@@ -1540,6 +1541,7 @@ export type Database = {
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
           project_type: Database["public"]["Enums"]["project_type"]
+          requires_interview?: boolean
           team_hats?: string[]
           timezone_range?: string
           updated_at?: string
@@ -1562,6 +1564,7 @@ export type Database = {
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
           project_type?: Database["public"]["Enums"]["project_type"]
+          requires_interview?: boolean
           team_hats?: string[]
           timezone_range?: string
           updated_at?: string
