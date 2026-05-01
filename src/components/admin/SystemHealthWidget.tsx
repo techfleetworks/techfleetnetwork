@@ -2,6 +2,7 @@ import { memo } from "react";
 import { useQuery } from "@/lib/react-query";
 import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
+import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type SystemHealthState, type ErrorFingerprint, type RemediationRule } from "@/services/system-health.service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -27,29 +28,40 @@ function StatusPill({ status }: { status: SystemHealthState["status"] }) {
 export const SystemHealthWidget = memo(function SystemHealthWidget() {
   const { isAdmin, loading: adminLoading } = useAdmin();
 
+  // 5-minute cadence: System Health is observability — instant updates flow
+  // through Supabase Realtime; polling is a safety net only.
+  const FIVE_MIN = 5 * 60 * 1000;
+
   const healthQuery = useQuery({
     queryKey: ["system-health"],
     queryFn: () => SystemHealthService.getHealth(),
     enabled: isAdmin,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
 
   const errorsQuery = useQuery({
     queryKey: ["system-top-errors", 24],
     queryFn: () => SystemHealthService.getTopErrors(24, 10),
     enabled: isAdmin,
-    refetchInterval: 90_000,
-    staleTime: 60_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
 
   const remediationsQuery = useQuery({
     queryKey: ["system-remediations"],
     queryFn: () => SystemHealthService.getRemediations(),
     enabled: isAdmin,
-    refetchInterval: 120_000,
-    staleTime: 60_000,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
+
+  // Subscribe to live changes — invalidates queries on the server-side push,
+  // not on a client poll. Eliminates idle-tab traffic.
+  useSystemHealthRealtime(isAdmin);
 
   if (adminLoading || !isAdmin) return null;
 
@@ -126,9 +138,16 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
-            Top errors (24h)
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Top errors (24h)
+            </h3>
+            {errorsQuery.dataUpdatedAt > 0 && (
+              <span className="text-[10px] text-muted-foreground">
+                Updated {formatDistanceToNow(new Date(errorsQuery.dataUpdatedAt), { addSuffix: true })}
+              </span>
+            )}
+          </div>
           {errorsQuery.isLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : errors.length === 0 ? (
@@ -161,9 +180,16 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
-            Active remediations
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Active remediations
+            </h3>
+            {remediationsQuery.dataUpdatedAt > 0 && (
+              <span className="text-[10px] text-muted-foreground">
+                Updated {formatDistanceToNow(new Date(remediationsQuery.dataUpdatedAt), { addSuffix: true })}
+              </span>
+            )}
+          </div>
           {remediationsQuery.isLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : remediations.length === 0 ? (

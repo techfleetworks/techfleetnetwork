@@ -5,8 +5,18 @@ import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { hasFreshOAuthUiMarker } from "@/lib/oauth-ui-guard";
 import { AUTH_THROTTLE_CAPTCHA_CODE, AUTH_THROTTLE_CAPTCHA_MESSAGE } from "@/lib/auth-throttle-captcha";
 
-const BACKEND_PATH_PATTERN = /\/(auth|rest|functions)\/v1\//;
+// ─────────────────────────────────────────────────────────────────────────────
+// Scoped abuse guard — only the actual auth attack surface is rate-limited
+// here. General reads (RPCs, REST list endpoints, /auth/v1/user, /auth/v1/session)
+// are NOT throttled because they are already gated server-side by RLS / Auth and
+// caused false-positive "unavailable" states on legitimate admin dashboards.
+//
+// HIGH_RISK_AUTH_PATH_PATTERN matches credential-bearing or account-recovery
+// endpoints — these are the only paths where credential-stuffing or spam is a
+// real concern at the browser layer.
+// ─────────────────────────────────────────────────────────────────────────────
 const STATIC_ASSET_PATTERN = /\.(?:js|css|map|json|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|pdf)$/i;
+const HIGH_RISK_AUTH_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend|verify|magiclink)|functions\/v1\/(client-rate-limit-log|techfleet-chat))$/;
 
 const WINDOW_MS = 60_000;
 const MAX_IDENTICAL_REQUESTS = 5;
@@ -15,15 +25,6 @@ const AUTH_ATTEMPT_WINDOW_MS = 60_000;
 const MAX_AUTH_ATTEMPTS_PER_WINDOW = 3;
 const AUTH_ATTEMPT_BUCKET_KEY = "tfn:client-auth-attempt-window";
 const AUTH_ATTEMPT_PATH_PATTERN = /\/(auth\/v1\/(token|signup|recover|otp|resend)|rest\/v1\/rpc\/check_rate_limit)$/;
-const MFA_SECURITY_PATH_PATTERN = /\/rest\/v1\/rpc\/(mark_two_factor_login_verified|admin_2fa_grace_deadline|admin_2fa_grace_active)$/;
-const PUBLIC_AGGREGATE_READ_PATH_PATTERN = /\/rest\/v1\/rpc\/get_network_stats$/;
-// Admin observability + dashboard aggregate RPCs poll on a schedule and must
-// never be tripped by the identical-request throttle. They are already gated
-// server-side by RLS / SECURITY DEFINER admin checks.
-const ADMIN_OBSERVABILITY_PATH_PATTERN = /\/rest\/v1\/rpc\/(get_email_pipeline_health|get_top_error_fingerprints|run_auto_remediations|get_dashboard_overview|evaluate_system_health)$/;
-// Auth session refresh / current-user reads happen on every route change and
-// from background tabs; they are session-bound and not abuse vectors.
-const AUTH_SESSION_READ_PATH_PATTERN = /\/auth\/v1\/(user|session)$/;
 const RATE_LIMIT_LOG_DEDUPE_MS = 30_000;
 const rateLimitLogDedupe = new Map<string, number>();
 
@@ -50,14 +51,9 @@ function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string 
 function shouldThrottle(url: URL): boolean {
   if (url.origin === window.location.origin) return false;
   if (STATIC_ASSET_PATTERN.test(url.pathname)) return false;
-  if (MFA_SECURITY_PATH_PATTERN.test(url.pathname)) return false;
-  if (PUBLIC_AGGREGATE_READ_PATH_PATTERN.test(url.pathname)) return false;
-  if (ADMIN_OBSERVABILITY_PATH_PATTERN.test(url.pathname)) return false;
-  if (AUTH_SESSION_READ_PATH_PATTERN.test(url.pathname) && (url.searchParams.toString() === "" || true)) {
-    // Only exempt safe GET-style session reads, not POSTs to /auth/v1/token.
-    return false;
-  }
-  return BACKEND_PATH_PATTERN.test(url.pathname);
+  // Whitelist model: only high-risk auth/edge paths are throttled at the
+  // client. Everything else is gated by RLS + server-side rate-limits.
+  return HIGH_RISK_AUTH_PATH_PATTERN.test(url.pathname);
 }
 
 function bucketKey(url: URL, method: string): string {

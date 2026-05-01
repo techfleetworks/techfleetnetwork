@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, CheckCircle2, Clock, HeartPulse, Mail, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Mail, RadioTower, RefreshCw, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@/lib/react-query";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
+import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
+
+const FIVE_MIN = 5 * 60 * 1000;
 
 const statusVariant = (status: string) => {
   if (["sent", "healthy"].includes(status)) return "default" as const;
@@ -22,7 +25,24 @@ function relativeTime(value: string | null | undefined) {
   return `${formatDistanceToNow(new Date(value), { addSuffix: true })}`;
 }
 
-function StatCard({ label, value, detail, tone = "default" }: { label: string; value: number | string; detail: string; tone?: "default" | "warning" | "danger" }) {
+/**
+ * StatCard with self-evident "Last updated" footnote. Every metric tells the
+ * admin precisely when the underlying data was generated, satisfying Nielsen
+ * Heuristic #1 (Visibility of System Status).
+ */
+function StatCard({
+  label,
+  value,
+  detail,
+  generatedAt,
+  tone = "default",
+}: {
+  label: string;
+  value: number | string;
+  detail: string;
+  generatedAt: string;
+  tone?: "default" | "warning" | "danger";
+}) {
   const toneClass = tone === "danger" ? "border-destructive/40" : tone === "warning" ? "border-warning/40" : "";
   return (
     <Card className={toneClass}>
@@ -30,6 +50,9 @@ function StatCard({ label, value, detail, tone = "default" }: { label: string; v
         <p className="text-sm text-muted-foreground">{label}</p>
         <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
         <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground/80" aria-label={`Last updated ${relativeTime(generatedAt)}`}>
+          <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)}
+        </p>
       </CardContent>
     </Card>
   );
@@ -60,18 +83,28 @@ export default function SystemHealthPage() {
     return () => setHeader(null);
   }, [setHeader]);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  // 5-minute polling — Realtime push handles instant updates, the poll is a
+  // safety net only. Prior 60s cadence drove ~5× more backend traffic than
+  // needed and contributed to client-side throttle false positives.
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ["system-health", "email-pipeline", hours],
     queryFn: () => SystemHealthService.getEmailPipelineHealth(Number(hours), 50),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: FIVE_MIN,
+    refetchInterval: FIVE_MIN,
+    refetchOnWindowFocus: false,
   });
+
+  // Realtime: invalidate cache whenever the source-of-truth row changes.
+  useSystemHealthRealtime(true);
 
   const totals = data?.delivery_totals;
   const failureRate = useMemo(() => {
     if (!totals?.total) return 0;
     return Math.round(((totals.failed + totals.bounced + totals.complained) / totals.total) * 100);
   }, [totals]);
+
+  const generatedAt = data?.generated_at ?? new Date(dataUpdatedAt || Date.now()).toISOString();
+  const lastClientFetch = new Date(dataUpdatedAt || Date.now()).toISOString();
 
   if (isLoading && !data) {
     return (
@@ -103,7 +136,15 @@ export default function SystemHealthPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 id="system-health-heading" className="text-2xl font-semibold text-foreground">System Health</h1>
-          <p className="text-sm text-muted-foreground">Last refreshed {relativeTime(data.generated_at)}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+            <span>Snapshot generated {relativeTime(data.generated_at)}</span>
+            <span aria-hidden>·</span>
+            <span>Client refreshed {relativeTime(lastClientFetch)}</span>
+            <span aria-hidden>·</span>
+            <span className="inline-flex items-center gap-1 text-success">
+              <RadioTower className="h-3.5 w-3.5" aria-hidden /> Live updates on
+            </span>
+          </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Select value={hours} onValueChange={setHours}>
@@ -117,7 +158,7 @@ export default function SystemHealthPage() {
               <SelectItem value="720">Last 30 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh now">
             <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
@@ -130,14 +171,17 @@ export default function SystemHealthPage() {
             Email Pipeline Status <Badge variant={statusVariant(data.health.status)}>{data.health.status}</Badge>
           </CardTitle>
           <CardDescription>{data.health.reason}</CardDescription>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
+            <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(data.send_state?.updated_at ?? generatedAt)}
+          </p>
         </CardHeader>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Unique Emails" value={totals.total} detail={`Deduplicated over ${data.window_hours}h`} />
-        <StatCard label="Sent" value={totals.sent} detail="Successfully handed to the sender" />
-        <StatCard label="Pending" value={totals.pending} detail="Waiting or still processing" tone={totals.pending > 0 ? "warning" : "default"} />
-        <StatCard label="Failure Rate" value={`${failureRate}%`} detail={`${totals.failed} failed or dead-lettered`} tone={failureRate > 0 ? "danger" : "default"} />
+        <StatCard label="Unique Emails" value={totals.total} detail={`Deduplicated over ${data.window_hours}h`} generatedAt={generatedAt} />
+        <StatCard label="Sent" value={totals.sent} detail="Successfully handed to the sender" generatedAt={generatedAt} />
+        <StatCard label="Pending" value={totals.pending} detail="Waiting or still processing" generatedAt={generatedAt} tone={totals.pending > 0 ? "warning" : "default"} />
+        <StatCard label="Failure Rate" value={`${failureRate}%`} detail={`${totals.failed} failed or dead-lettered`} generatedAt={generatedAt} tone={failureRate > 0 ? "danger" : "default"} />
       </div>
 
       <Tabs defaultValue="queues" className="space-y-4">
@@ -151,7 +195,12 @@ export default function SystemHealthPage() {
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
           {data.queue_stats.map((queue) => (
             <Card key={queue.queue_name}>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" />{queue.queue_name.replace(/_/g, " ")}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" />{queue.queue_name.replace(/_/g, " ")}</CardTitle>
+                <CardDescription className="flex items-center gap-1 text-xs">
+                  <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)}
+                </CardDescription>
+              </CardHeader>
               <CardContent className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-muted-foreground">Queued</p><p className="text-2xl font-semibold">{queue.queued}</p></div>
                 <div><p className="text-muted-foreground">Ready</p><p className="text-2xl font-semibold">{queue.ready}</p></div>
@@ -163,11 +212,16 @@ export default function SystemHealthPage() {
           ))}
         </TabsContent>
 
-        <TabsContent value="delivery"><LogTable logs={data.recent_logs} /></TabsContent>
-        <TabsContent value="errors"><ErrorList errors={data.recent_errors} /></TabsContent>
+        <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
+        <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="settings">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Processing controls</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Processing controls</CardTitle>
+              <CardDescription className="flex items-center gap-1 text-xs">
+                <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(data.send_state?.updated_at ?? generatedAt)}
+              </CardDescription>
+            </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
               <div><p className="text-muted-foreground">Batch size</p><p className="text-xl font-semibold">{data.send_state?.batch_size ?? "—"}</p></div>
               <div><p className="text-muted-foreground">Delay between sends</p><p className="text-xl font-semibold">{data.send_state?.send_delay_ms ?? "—"}ms</p></div>
@@ -182,10 +236,15 @@ export default function SystemHealthPage() {
   );
 }
 
-function LogTable({ logs }: { logs: EmailPipelineLog[] }) {
+function LogTable({ logs, generatedAt }: { logs: EmailPipelineLog[]; generatedAt: string }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Recent email activity</CardTitle><CardDescription>One row per unique email, showing the latest status.</CardDescription></CardHeader>
+      <CardHeader>
+        <CardTitle>Recent email activity</CardTitle>
+        <CardDescription className="flex items-center gap-1 text-xs">
+          <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)} · One row per unique email, showing the latest status.
+        </CardDescription>
+      </CardHeader>
       <CardContent className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
           <thead><tr className="border-b text-left text-muted-foreground"><th className="px-3 py-2">Template</th><th className="px-3 py-2">Recipient</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Updated</th><th className="px-3 py-2">Error</th></tr></thead>
@@ -196,10 +255,15 @@ function LogTable({ logs }: { logs: EmailPipelineLog[] }) {
   );
 }
 
-function ErrorList({ errors }: { errors: Array<{ error_message: string; status: string; occurrences: number; last_seen: string }> }) {
+function ErrorList({ errors, generatedAt }: { errors: Array<{ error_message: string; status: string; occurrences: number; last_seen: string }>; generatedAt: string }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Recent errors</CardTitle><CardDescription>Grouped failures and dead-lettered email events.</CardDescription></CardHeader>
+      <CardHeader>
+        <CardTitle>Recent errors</CardTitle>
+        <CardDescription className="flex items-center gap-1 text-xs">
+          <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)} · Grouped failures and dead-lettered email events.
+        </CardDescription>
+      </CardHeader>
       <CardContent className="space-y-3">
         {errors.length ? errors.map((item) => (
           <div key={`${item.status}-${item.error_message}-${item.last_seen}`} className="rounded-lg border p-4">

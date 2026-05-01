@@ -283,7 +283,9 @@ export async function streamRecommendations({ query, onChunk, signal }: StreamOp
   return edgeFunctionBreaker.execute(async () => {
     // Use the authenticated user's session token (techfleet-chat requires a real user JWT).
     // Fall back to the anon key only when no session is present (public/landing usage).
-    const { data: { session } } = await supabase.auth.getSession();
+    // Cached accessor coalesces concurrent calls into a single /auth/v1/user round-trip.
+    const { getCachedSession } = await import("@/lib/cached-session");
+    const session = await getCachedSession();
     const bearer = session?.access_token || ANON_KEY;
 
     const resp = await fetch(CHAT_URL, {

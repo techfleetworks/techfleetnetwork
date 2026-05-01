@@ -25,10 +25,13 @@ export function useAdmin() {
       return (count ?? 0) > 0;
     },
     enabled: !!user,
-    staleTime: 0,
-    gcTime: 5 * 60 * 1000,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    // Admin role is durable: cache for 2 minutes to eliminate the
+    // per-page-change refetch that hit /user_roles every navigation.
+    // Role changes still propagate via auth state change → cache invalidation.
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 

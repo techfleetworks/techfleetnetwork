@@ -42,8 +42,11 @@ export function useDashboardOverview() {
   return useQuery({
     queryKey: ["dashboard-overview", userId],
     enabled: !!userId,
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    // Dashboard data is not real-time-critical; 5-minute polling cuts admin/user
+    // dashboard load by ~80% versus the previous 60s cadence.
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async (): Promise<DashboardOverview> => {
       const { data, error } = await supabase.rpc("get_dashboard_overview", { p_user_id: userId! });
       if (error) throw error;

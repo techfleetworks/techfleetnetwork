@@ -59,7 +59,8 @@ export const AnnouncementService = {
   },
 
   async sendNotifications(announcementId: string): Promise<void> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { getCachedSession } = await import("@/lib/cached-session");
+    const session = await getCachedSession();
     if (!session) throw new Error("Not authenticated");
     const { error } = await supabase.functions.invoke("send-announcement-email", {
       headers: { Authorization: `Bearer ${session.access_token}` },
