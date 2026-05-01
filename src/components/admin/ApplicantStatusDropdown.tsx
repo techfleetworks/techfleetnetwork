@@ -291,22 +291,26 @@ export function ApplicantStatusDropdown({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-xs text-muted-foreground">Change Status</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {SELECTABLE_STATUSES.map((status) => {
-          const Icon = STATUS_ICONS[status.value] ?? UserCheck;
-          const isActive = currentStatus === status.value;
-          return (
-            <DropdownMenuItem
-              key={status.value}
-              onClick={() => handleStatusChange(status.value)}
-              disabled={isActive}
-              className={isActive ? "opacity-50" : ""}
-            >
-              <Icon className="h-4 w-4 mr-2" />
-              {status.label}
-              {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
-            </DropdownMenuItem>
-          );
-        })}
+        {SELECTABLE_STATUSES
+          .filter((status) =>
+            requiresInterview || !INTERVIEW_ONLY_STATUSES.has(status.value),
+          )
+          .map((status) => {
+            const Icon = STATUS_ICONS[status.value] ?? UserCheck;
+            const isActive = currentStatus === status.value;
+            return (
+              <DropdownMenuItem
+                key={status.value}
+                onClick={() => handleStatusChange(status.value)}
+                disabled={isActive}
+                className={isActive ? "opacity-50" : ""}
+              >
+                <Icon className="h-4 w-4 mr-2" />
+                {status.label}
+                {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
+              </DropdownMenuItem>
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

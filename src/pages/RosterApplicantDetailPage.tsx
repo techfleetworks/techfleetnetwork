@@ -226,6 +226,7 @@ export default function RosterApplicantDetailPage() {
             applicantEmail={(profile?.email as string) ?? ""}
             projectId={projectId!}
             currentStatus={(projApp.applicant_status as string) ?? "pending_review"}
+            requiresInterview={(project as any)?.requires_interview !== false}
             triggerLabel="Change Status"
             invalidateKeys={[
               ["roster-app-detail", applicationId!],
