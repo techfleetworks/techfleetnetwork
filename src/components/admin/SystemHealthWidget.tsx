@@ -180,9 +180,16 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
-            Active remediations
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Active remediations
+            </h3>
+            {remediationsQuery.dataUpdatedAt > 0 && (
+              <span className="text-[10px] text-muted-foreground">
+                Updated {formatDistanceToNow(new Date(remediationsQuery.dataUpdatedAt), { addSuffix: true })}
+              </span>
+            )}
+          </div>
           {remediationsQuery.isLoading ? (
             <Skeleton className="h-24 w-full" />
           ) : remediations.length === 0 ? (
