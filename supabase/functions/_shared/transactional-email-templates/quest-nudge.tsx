@@ -82,7 +82,7 @@ export const template = {
     questTitle: 'Get Real Agile Team Experience',
     completedSteps: 3,
     totalSteps: 8,
-    questUrl: 'https://techfleetnetwork.lovable.app/my-journey',
+    questUrl: 'https://techfleet.network/my-journey',
   },
 } satisfies TemplateEntry
 

@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const NUDGE_INTERVAL_DAYS = 7  // Don't nudge more than once per week
 const INACTIVITY_THRESHOLD_DAYS = 7 // Nudge after 7 days of no progress
-const APP_URL = 'https://techfleetnetwork.lovable.app'
+const APP_URL = 'https://techfleet.network'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {

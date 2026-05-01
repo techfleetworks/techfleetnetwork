@@ -84,7 +84,7 @@ export const template = {
     statusMessage:
       'Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!',
     projectName: 'Acme — Discovery Sprint',
-    ctaUrl: 'https://techfleetnetwork.lovable.app/applications',
+    ctaUrl: 'https://techfleet.network/applications',
     ctaLabel: 'View Your Applications',
   },
 } satisfies TemplateEntry

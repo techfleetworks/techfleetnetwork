@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       const messageId = `announcement-${announcement_id}-${crypto.randomUUID()}`;
       const unsubscribeToken = crypto.randomUUID();
 
-      const announcementUrl = `https://techfleetnetwork.lovable.app/updates?highlight=${announcement_id}`;
+      const announcementUrl = `https://techfleet.network/updates?highlight=${announcement_id}`;
 
       const emailHtml = `
 <!DOCTYPE html>
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
     const platformWebhook = Deno.env.get("DISCORD_PLATFORM_UPDATES_WEBHOOK");
     if (platformWebhook) {
       try {
-        const announcementUrl = `https://techfleetnetwork.lovable.app/updates?highlight=${announcement_id}`;
+        const announcementUrl = `https://techfleet.network/updates?highlight=${announcement_id}`;
         // Strip HTML tags and decode entities for Discord plain-text
         const plainBody = announcement.body_html
           .replace(/<br\s*\/?>/gi, "\n")
