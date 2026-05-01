@@ -52,6 +52,11 @@ function shouldThrottle(url: URL): boolean {
   if (STATIC_ASSET_PATTERN.test(url.pathname)) return false;
   if (MFA_SECURITY_PATH_PATTERN.test(url.pathname)) return false;
   if (PUBLIC_AGGREGATE_READ_PATH_PATTERN.test(url.pathname)) return false;
+  if (ADMIN_OBSERVABILITY_PATH_PATTERN.test(url.pathname)) return false;
+  if (AUTH_SESSION_READ_PATH_PATTERN.test(url.pathname) && (url.searchParams.toString() === "" || true)) {
+    // Only exempt safe GET-style session reads, not POSTs to /auth/v1/token.
+    return false;
+  }
   return BACKEND_PATH_PATTERN.test(url.pathname);
 }
 
