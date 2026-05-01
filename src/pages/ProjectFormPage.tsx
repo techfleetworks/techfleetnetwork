@@ -29,8 +29,9 @@ import { z } from "zod";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { format } from "date-fns";
 import {
-  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon,
+  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon, AlertTriangle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +82,7 @@ const projectSchema = z.object({
   discord_role_id: z.string().min(1, "Discord role is required"),
   discord_role_name: z.string().min(1, "Discord role is required"),
   coordinator_id: z.string().nullable(),
+  requires_interview: z.boolean().default(true),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -102,6 +104,7 @@ const EMPTY_FORM: ProjectForm = {
   discord_role_id: "",
   discord_role_name: "",
   coordinator_id: null,
+  requires_interview: true,
 };
 
 export default function ProjectFormPage() {
@@ -145,6 +148,7 @@ export default function ProjectFormPage() {
             discord_role_id: (data as any).discord_role_id ?? "",
             discord_role_name: (data as any).discord_role_name ?? "",
             coordinator_id: (data as any).coordinator_id ?? null,
+            requires_interview: (data as any).requires_interview ?? true,
           });
           setInitialized(true);
         }
@@ -183,6 +187,7 @@ export default function ProjectFormPage() {
       discord_role_id: (existingProject as any).discord_role_id ?? "",
       discord_role_name: (existingProject as any).discord_role_name ?? "",
       coordinator_id: (existingProject as any).coordinator_id ?? null,
+      requires_interview: (existingProject as any).requires_interview ?? true,
     });
     setInitialized(true);
   }
