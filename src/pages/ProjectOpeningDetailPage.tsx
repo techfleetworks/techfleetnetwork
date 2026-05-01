@@ -264,6 +264,15 @@ export default function ProjectOpeningDetailPage() {
               </Badge>
               <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
               <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
+              {project.requires_interview === false ? (
+                <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                  Selection by application
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                  Interview required
+                </Badge>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               {client?.name ?? "Project Opening"}
