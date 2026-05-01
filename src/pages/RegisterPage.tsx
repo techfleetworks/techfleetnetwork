@@ -212,7 +212,7 @@ export default function RegisterPage() {
 
       await AuthService.resendSignupConfirmation(
         email,
-        window.location.origin + (redirectParam ? redirectParam : "/profile-setup"),
+        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
         resendCaptchaToken
       );
       setResendStatus("success");
