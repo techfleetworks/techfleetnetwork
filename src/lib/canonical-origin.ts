@@ -17,7 +17,7 @@
  * If we ever add new production hosts (custom domains), add them to
  * KNOWN_PRODUCTION_HOSTS so a user already on that host stays on it.
  */
-const PRIMARY_PRODUCTION_ORIGIN = "https://techfleetnetwork.lovable.app";
+const PRIMARY_PRODUCTION_ORIGIN = "https://techfleet.network";
 
 const KNOWN_PRODUCTION_HOSTS = new Set<string>([
   "techfleetnetwork.lovable.app",

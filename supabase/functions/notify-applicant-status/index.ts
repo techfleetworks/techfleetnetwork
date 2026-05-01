@@ -58,7 +58,7 @@ interface NotificationContent {
   linkUrl: string
 }
 
-const APP_BASE_URL = 'https://techfleetnetwork.lovable.app'
+const APP_BASE_URL = 'https://techfleet.network'
 
 const NOTIFICATION_MAP: Record<ApplicantStatus, NotificationContent> = {
   pending_review: {

@@ -68,7 +68,7 @@ export const template = {
   subject: `Reminder: confirm your ${SITE_NAME} account`,
   displayName: 'Signup confirmation reminder',
   previewData: {
-    confirmationUrl: 'https://techfleetnetwork.lovable.app/confirm?token=sample',
+    confirmationUrl: 'https://techfleet.network/confirm?token=sample',
     hoursAgo: 48,
   },
 } satisfies TemplateEntry
