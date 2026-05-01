@@ -32,21 +32,43 @@ declare global {
   }
 }
 
+type TurnstileErrorKind = "expired" | "network" | "challenge" | "unknown";
+
 type TurnstileChallengeProps = {
   action: "login" | "register" | "forgot_password" | "signup_confirmation_resend";
   onTokenChange: (token: string) => void;
   failureCount?: number;
 };
 
+// Cloudflare error code prefixes — see https://developers.cloudflare.com/turnstile/troubleshooting/client-side-errors/
+function classifyTurnstileError(code?: string): TurnstileErrorKind {
+  if (!code) return "unknown";
+  if (code.startsWith("11") || code === "300010" || code === "300020") return "expired";
+  if (code.startsWith("2") || code.startsWith("6")) return "network"; // network/timeout
+  if (code.startsWith("3") || code.startsWith("4") || code.startsWith("5")) return "challenge";
+  return "unknown";
+}
+
 export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: TurnstileChallengeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [scriptReady, setScriptReady] = useState(Boolean(window.turnstile));
   const [retrySeconds, setRetrySeconds] = useState(0);
+  const [transientError, setTransientError] = useState<TurnstileErrorKind | null>(null);
+  const consecutiveFailuresRef = useRef(0);
+  const lastFailureCountRef = useRef(failureCount);
+
+  const resetWidget = () => {
+    if (widgetIdRef.current && window.turnstile) {
+      try { window.turnstile.reset(widgetIdRef.current); } catch { /* ignore */ }
+    }
+  };
 
   const beginRetryCountdown = () => {
     onTokenChange("");
-    setRetrySeconds(30);
+    // Only lock out after 2+ consecutive failures. First failure → silent auto-reset.
+    if (consecutiveFailuresRef.current >= 2) setRetrySeconds(30);
+    else resetWidget();
   };
 
   useEffect(() => {
