@@ -2,6 +2,7 @@ import { memo } from "react";
 import { useQuery } from "@/lib/react-query";
 import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
+import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type SystemHealthState, type ErrorFingerprint, type RemediationRule } from "@/services/system-health.service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
