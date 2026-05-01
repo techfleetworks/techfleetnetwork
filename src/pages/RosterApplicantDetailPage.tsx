@@ -216,7 +216,9 @@ export default function RosterApplicantDetailPage() {
               {applicantStatusLabel((projApp.applicant_status as string) ?? "pending_review")}
             </Badge>
             <p className="text-xs text-muted-foreground mt-1">
-              Changing status to "Invite to Interview" will send an email and in-app notification to the applicant.
+              {(project as any)?.requires_interview === false
+                ? "This project does not include interviews. Applicants move directly from Pending Review to Active Participant."
+                : "Changing status to \"Invite to Interview\" will send an email and in-app notification to the applicant."}
             </p>
           </div>
           <ApplicantStatusDropdown
