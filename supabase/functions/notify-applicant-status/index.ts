@@ -325,6 +325,18 @@ Deno.serve(async (req) => {
     projectId,
   } = validation.data
 
+  /* ---- 0. Defense-in-depth: block interview statuses on no-interview projects ---- */
+  if (newStatus === 'invited_to_interview' || newStatus === 'interview_scheduled') {
+    const { data: projectFlag } = await supabase
+      .from('projects')
+      .select('requires_interview')
+      .eq('id', projectId)
+      .maybeSingle()
+    if (projectFlag && projectFlag.requires_interview === false) {
+      return errorResponse('Interview statuses are disabled for this project', 400)
+    }
+  }
+
   /* ---- 1. Update status (critical — fail-fast) ---- */
   const { error: updateError } = await supabase
     .from('project_applications')
