@@ -2530,11 +2530,20 @@ export type Database = {
           }
     }
     Enums: {
-      app_role: "admin" | "member"
+      app_role: "admin" | "member" | "teacher"
       banner_status: "draft" | "published" | "archived"
       bdd_status: "implemented" | "partial" | "not_built"
       bdd_test_type: "unit" | "e2e" | "both" | "none" | "manual"
+      class_status: "draft" | "pending_review" | "published" | "archived"
+      class_track: "basic_training" | "advanced_training"
       client_status: "active" | "inactive"
+      cohort_status:
+        | "draft"
+        | "pending_review"
+        | "open"
+        | "live"
+        | "completed"
+        | "cancelled"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -2691,11 +2700,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "member"],
+      app_role: ["admin", "member", "teacher"],
       banner_status: ["draft", "published", "archived"],
       bdd_status: ["implemented", "partial", "not_built"],
       bdd_test_type: ["unit", "e2e", "both", "none", "manual"],
+      class_status: ["draft", "pending_review", "published", "archived"],
+      class_track: ["basic_training", "advanced_training"],
       client_status: ["active", "inactive"],
+      cohort_status: [
+        "draft",
+        "pending_review",
+        "open",
+        "live",
+        "completed",
+        "cancelled",
+      ],
       journey_phase: [
         "first_steps",
         "second_steps",
