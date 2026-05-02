@@ -352,6 +352,56 @@ export type Database = {
           },
         ]
       }
+      class_audit: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          class_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          reason: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          class_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          class_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_audit_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_certifications: {
         Row: {
           airtable_record_id: string
@@ -385,6 +435,98 @@ export type Database = {
           synced_at?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      class_followers: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_followers_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          hero_image_url: string | null
+          id: string
+          outcomes: string[]
+          owner_user_id: string
+          prerequisites: string[]
+          published_at: string | null
+          skills: string[]
+          slug: string
+          status: Database["public"]["Enums"]["class_status"]
+          submitted_at: string | null
+          summary: string
+          title: string
+          track: Database["public"]["Enums"]["class_track"]
+          updated_at: string
+        }
+        Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          outcomes?: string[]
+          owner_user_id: string
+          prerequisites?: string[]
+          published_at?: string | null
+          skills?: string[]
+          slug: string
+          status?: Database["public"]["Enums"]["class_status"]
+          submitted_at?: string | null
+          summary: string
+          title: string
+          track: Database["public"]["Enums"]["class_track"]
+          updated_at?: string
+        }
+        Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          outcomes?: string[]
+          owner_user_id?: string
+          prerequisites?: string[]
+          published_at?: string | null
+          skills?: string[]
+          slug?: string
+          status?: Database["public"]["Enums"]["class_status"]
+          submitted_at?: string | null
+          summary?: string
+          title?: string
+          track?: Database["public"]["Enums"]["class_track"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -429,6 +571,103 @@ export type Database = {
           website?: string
         }
         Relationships: []
+      }
+      cohort_registrations: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          id: string
+          referrer: string | null
+          user_id: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_registrations_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cohorts: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          capacity: number | null
+          class_id: string
+          created_at: string
+          end_date: string
+          id: string
+          label: string
+          meeting_url: string | null
+          published_at: string | null
+          registration_url: string
+          start_date: string
+          status: Database["public"]["Enums"]["cohort_status"]
+          submitted_at: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          capacity?: number | null
+          class_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          label: string
+          meeting_url?: string | null
+          published_at?: string | null
+          registration_url: string
+          start_date: string
+          status?: Database["public"]["Enums"]["cohort_status"]
+          submitted_at?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          capacity?: number | null
+          class_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          label?: string
+          meeting_url?: string | null
+          published_at?: string | null
+          registration_url?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["cohort_status"]
+          submitted_at?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohorts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dashboard_preferences: {
         Row: {
@@ -2250,6 +2489,18 @@ export type Database = {
       _current_aal: { Args: never; Returns: string }
       admin_2fa_grace_active: { Args: { _user_id: string }; Returns: boolean }
       admin_2fa_grace_deadline: { Args: { _user_id: string }; Returns: string }
+      approve_and_publish_class: {
+        Args: { p_class_id: string }
+        Returns: undefined
+      }
+      archive_class: {
+        Args: { p_class_id: string; p_reason: string }
+        Returns: undefined
+      }
+      cancel_cohort: {
+        Args: { p_cohort_id: string; p_reason: string }
+        Returns: undefined
+      }
       check_chat_system_rate_limit: { Args: never; Returns: Json }
       check_rate_limit: {
         Args: {
@@ -2448,6 +2699,14 @@ export type Database = {
         Returns: Json
       }
       redact_sensitive_text: { Args: { input: string }; Returns: string }
+      register_for_cohort_click: {
+        Args: { p_cohort_id: string; p_referrer?: string }
+        Returns: string
+      }
+      request_class_changes: {
+        Args: { p_class_id: string; p_reason: string }
+        Returns: undefined
+      }
       reset_rate_limit: {
         Args: { p_action: string; p_identifier: string }
         Returns: undefined
@@ -2470,6 +2729,10 @@ export type Database = {
       set_email_visibility_timeout: {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
+      }
+      submit_class_for_review: {
+        Args: { p_class_id: string; p_cohort_ids?: string[] }
+        Returns: undefined
       }
       try_write_audit_log: {
         Args: {
@@ -2540,12 +2803,9 @@ export type Database = {
       cohort_status:
         | "draft"
         | "pending_review"
-        | "open"
-        | "live"
-        | "completed"
-        | "cancelled"
         | "published"
         | "archived"
+        | "cancelled"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -2712,12 +2972,9 @@ export const Constants = {
       cohort_status: [
         "draft",
         "pending_review",
-        "open",
-        "live",
-        "completed",
-        "cancelled",
         "published",
         "archived",
+        "cancelled",
       ],
       journey_phase: [
         "first_steps",
