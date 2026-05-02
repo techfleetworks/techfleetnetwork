@@ -3472,6 +3472,14 @@ export type Database = {
         }
         Relationships: []
       }
+      framework_overview_v: {
+        Row: {
+          entity_type: string | null
+          last_updated: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
       project_roster_member_view: {
         Row: {
           airtable_record_id: string | null
