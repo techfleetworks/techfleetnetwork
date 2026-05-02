@@ -14,7 +14,7 @@ import {
   MessageSquarePlus,
   Users,
   Map,
-  Compass,
+  
   Flag,
   HeartPulse,
   School,
@@ -48,7 +48,7 @@ const communityNav = [
 
 const trainingNav = [
   { label: "Applications", href: "/applications", icon: ClipboardList },
-  { label: "Career Plan", href: "/career-plan", icon: Compass },
+  
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "My Journey", href: "/my-journey", icon: Map },
   { label: "Project Openings", href: "/project-openings", icon: Handshake },
