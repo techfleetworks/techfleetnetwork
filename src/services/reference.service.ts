@@ -2,6 +2,7 @@
 // All callers go through React Query hooks (use-reference.ts) for caching.
 import { supabase } from "@/integrations/supabase/client";
 
+// Union of every reference_* table the app queries.
 export type ReferenceEntity =
   | "skills"
   | "practices"
@@ -16,7 +17,13 @@ export type ReferenceEntity =
   | "tech_job_categories"
   | "job_industries"
   | "job_specializations"
-  | "company_types";
+  | "company_types"
+  // Added with the Skills & Practices Framework feature.
+  | "projects"
+  | "stakeholders"
+  | "job_titles"
+  | "resources"
+  | "roles";
 
 export interface ReferenceItem {
   id: string;

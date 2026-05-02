@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BookOpen, Wrench, Loader2, Sparkles } from "lucide-react";
+import { BookOpen, Wrench, Loader2, Sparkles, Puzzle } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import ExploreTab from "@/components/resources/ExploreTab";
 import GuidanceEmbed from "@/components/resources/GuidanceEmbed";
 import ResourceCard from "@/components/resources/ResourceCard";
 import ResourceDetailPanel from "@/components/resources/ResourceDetailPanel";
+import SkillsPracticesTab from "@/components/resources/SkillsPracticesTab";
 import { fetchHandbooks, handbookCategoryColors, type Handbook } from "@/data/handbooks";
 import { fetchWorkshops, workshopCategoryColors, type Workshop } from "@/data/workshops";
 import { toast } from "@/hooks/use-toast";
@@ -68,6 +69,11 @@ export default function ResourcesPage() {
       label: "Explore",
     },
     {
+      value: "skills-practices",
+      icon: <Puzzle className="h-4 w-4" />,
+      label: "Skills & Practices",
+    },
+    {
       value: "handbooks",
       icon: <BookOpen className="h-4 w-4" />,
       label: <span className="flex items-center">Handbooks{countBadge(handbooks.length)}</span>,
@@ -99,6 +105,10 @@ export default function ResourcesPage() {
 
         <ResponsiveTabsContent value="explore">
           <ExploreTab />
+        </ResponsiveTabsContent>
+
+        <ResponsiveTabsContent value="skills-practices">
+          <SkillsPracticesTab />
         </ResponsiveTabsContent>
 
         <ResponsiveTabsContent value="handbooks">
