@@ -471,11 +471,12 @@ export type Database = {
         Row: {
           archive_reason: string | null
           archived_at: string | null
+          audiences: string
           created_at: string
           description: string | null
           hero_image_url: string | null
           id: string
-          outcomes: string[]
+          outcomes: string
           owner_user_id: string
           prerequisites: string[]
           published_at: string | null
@@ -487,15 +488,17 @@ export type Database = {
           title: string
           track: Database["public"]["Enums"]["class_track"]
           updated_at: string
+          why_take: string
         }
         Insert: {
           archive_reason?: string | null
           archived_at?: string | null
+          audiences?: string
           created_at?: string
           description?: string | null
           hero_image_url?: string | null
           id?: string
-          outcomes?: string[]
+          outcomes?: string
           owner_user_id: string
           prerequisites?: string[]
           published_at?: string | null
@@ -507,15 +510,17 @@ export type Database = {
           title: string
           track: Database["public"]["Enums"]["class_track"]
           updated_at?: string
+          why_take?: string
         }
         Update: {
           archive_reason?: string | null
           archived_at?: string | null
+          audiences?: string
           created_at?: string
           description?: string | null
           hero_image_url?: string | null
           id?: string
-          outcomes?: string[]
+          outcomes?: string
           owner_user_id?: string
           prerequisites?: string[]
           published_at?: string | null
@@ -527,6 +532,7 @@ export type Database = {
           title?: string
           track?: Database["public"]["Enums"]["class_track"]
           updated_at?: string
+          why_take?: string
         }
         Relationships: []
       }

@@ -15,11 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { ClassImageUpload } from "@/components/ClassImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClassById } from "@/hooks/use-classes";
 import { ClassService } from "@/services/class.service";
 import { classFormSchema, type ClassFormValues } from "@/lib/validators/class";
 import { useQueryClient } from "@/lib/react-query";
+import { SKILLS_OPTIONS } from "@/lib/skills-framework";
 
 function csvToList(s: string): string[] {
   return s.split(/[\n,]/).map((t) => t.trim()).filter(Boolean);
@@ -42,7 +46,9 @@ export default function ClassFormPage() {
       track: "basic_training",
       hero_image_url: "",
       skills: [],
-      outcomes: [],
+      outcomes: "",
+      why_take: "",
+      audiences: "",
       prerequisites: [],
     }),
     []
@@ -53,8 +59,6 @@ export default function ClassFormPage() {
     defaultValues: defaults,
   });
 
-  const [skillsText, setSkillsText] = useState("");
-  const [outcomesText, setOutcomesText] = useState("");
   const [prereqText, setPrereqText] = useState("");
 
   useEffect(() => {
@@ -66,11 +70,11 @@ export default function ClassFormPage() {
         track: existing.track,
         hero_image_url: existing.hero_image_url ?? "",
         skills: existing.skills ?? [],
-        outcomes: existing.outcomes ?? [],
+        outcomes: existing.outcomes ?? "",
+        why_take: existing.why_take ?? "",
+        audiences: existing.audiences ?? "",
         prerequisites: existing.prerequisites ?? [],
       });
-      setSkillsText((existing.skills ?? []).join(", "));
-      setOutcomesText((existing.outcomes ?? []).join("\n"));
       setPrereqText((existing.prerequisites ?? []).join("\n"));
     }
   }, [existing, form]);
@@ -79,8 +83,6 @@ export default function ClassFormPage() {
     if (!user) return;
     const payload: ClassFormValues = {
       ...values,
-      skills: csvToList(skillsText),
-      outcomes: csvToList(outcomesText),
       prerequisites: csvToList(prereqText),
     };
     setSubmitting(true);
@@ -113,6 +115,14 @@ export default function ClassFormPage() {
     );
   }
 
+  const skills = form.watch("skills");
+  const summary = form.watch("summary");
+  const description = form.watch("description");
+  const outcomes = form.watch("outcomes");
+  const whyTake = form.watch("why_take");
+  const audiences = form.watch("audiences");
+  const heroUrl = form.watch("hero_image_url");
+
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
       <Button asChild variant="ghost" size="sm" className="mb-3">
@@ -122,7 +132,7 @@ export default function ClassFormPage() {
         {isEdit ? "Edit Class" : "New Class"}
       </h1>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <Label htmlFor="title">Title</Label>
           <Input id="title" {...form.register("title")} />
@@ -146,31 +156,77 @@ export default function ClassFormPage() {
         </div>
 
         <div>
-          <Label htmlFor="summary">Summary</Label>
-          <Textarea id="summary" rows={2} {...form.register("summary")} />
+          <Label>Hero image</Label>
+          {user && (
+            <ClassImageUpload
+              userId={user.id}
+              classId={id}
+              value={heroUrl || null}
+              onChange={(url) => form.setValue("hero_image_url", url ?? "", { shouldValidate: true, shouldDirty: true })}
+            />
+          )}
+        </div>
+
+        <div>
+          <Label>Summary</Label>
+          <RichTextEditor
+            content={summary}
+            onChange={(html) => form.setValue("summary", html, { shouldValidate: true, shouldDirty: true })}
+            placeholder="A short overview of the class…"
+          />
           {form.formState.errors.summary && (
             <p className="text-xs text-destructive mt-1">{form.formState.errors.summary.message}</p>
           )}
         </div>
 
         <div>
-          <Label htmlFor="description">Description</Label>
-          <Textarea id="description" rows={6} {...form.register("description")} />
+          <Label>Description</Label>
+          <RichTextEditor
+            content={description}
+            onChange={(html) => form.setValue("description", html, { shouldDirty: true })}
+            placeholder="Full description of the class content…"
+          />
         </div>
 
         <div>
-          <Label htmlFor="hero">Hero image URL</Label>
-          <Input id="hero" placeholder="https://…" {...form.register("hero_image_url")} />
+          <Label>Why take this course?</Label>
+          <RichTextEditor
+            content={whyTake}
+            onChange={(html) => form.setValue("why_take", html, { shouldDirty: true })}
+            placeholder="What learners gain, the value of taking this course…"
+          />
         </div>
 
         <div>
-          <Label htmlFor="skills">Skills (comma separated)</Label>
-          <Input id="skills" value={skillsText} onChange={(e) => setSkillsText(e.target.value)} />
+          <Label>Outcomes</Label>
+          <RichTextEditor
+            content={outcomes}
+            onChange={(html) => form.setValue("outcomes", html, { shouldDirty: true })}
+            placeholder="What learners will be able to do after completing this class…"
+          />
         </div>
 
         <div>
-          <Label htmlFor="outcomes">Outcomes (one per line)</Label>
-          <Textarea id="outcomes" rows={3} value={outcomesText} onChange={(e) => setOutcomesText(e.target.value)} />
+          <Label>Audiences</Label>
+          <RichTextEditor
+            content={audiences}
+            onChange={(html) => form.setValue("audiences", html, { shouldDirty: true })}
+            placeholder="Who this class is for…"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="skills">Skills</Label>
+          <MultiSelect
+            options={SKILLS_OPTIONS}
+            selected={skills}
+            onChange={(v) => form.setValue("skills", v, { shouldValidate: true, shouldDirty: true })}
+            placeholder="Search the Tech Fleet skills framework…"
+            aria-label="Skills"
+          />
+          {form.formState.errors.skills && (
+            <p className="text-xs text-destructive mt-1">{form.formState.errors.skills.message}</p>
+          )}
         </div>
 
         <div>

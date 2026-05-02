@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAllClasses } from "@/hooks/use-classes";
+import { stripHtml } from "@/lib/strip-html";
 
 export default function AdminClassesPage() {
   const { data: classes = [], isLoading } = useAllClasses();
@@ -17,7 +18,7 @@ export default function AdminClassesPage() {
       if (status !== "all" && c.status !== status) return false;
       if (!q.trim()) return true;
       const t = q.toLowerCase();
-      return c.title.toLowerCase().includes(t) || c.summary.toLowerCase().includes(t);
+      return c.title.toLowerCase().includes(t) || stripHtml(c.summary).toLowerCase().includes(t);
     });
   }, [classes, q, status]);
 
@@ -71,7 +72,7 @@ export default function AdminClassesPage() {
               >
                 <div className="min-w-0">
                   <div className="font-medium text-foreground truncate">{c.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{c.summary}</div>
+                  <div className="text-xs text-muted-foreground truncate">{stripHtml(c.summary)}</div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs text-muted-foreground hidden sm:inline">
