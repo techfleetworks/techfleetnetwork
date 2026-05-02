@@ -168,6 +168,17 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
   );
 }
 
+const COURSE_COMPLETION_SPECS: CourseCompletionSpec[] = [
+  { key: "connect-discord", phase: "first_steps", task_ids: CONNECT_DISCORD_TASK_IDS },
+  { key: "onboarding", phase: "first_steps", task_ids: FIRST_STEPS_TASK_IDS },
+  { key: "agile-mindset", phase: "second_steps", task_ids: ALL_AGILE_LESSON_IDS },
+  { key: "project-training", phase: "project_training", task_ids: ALL_PROJECT_TRAINING_LESSON_IDS },
+  { key: "volunteer-teams", phase: "volunteer", task_ids: ALL_VOLUNTEER_LESSON_IDS },
+  { key: "discord-learning", phase: "discord_learning", task_ids: ALL_DISCORD_LESSON_IDS },
+  { key: "observer-course", phase: "observer", task_ids: ALL_OBSERVER_LESSON_IDS },
+  { key: "agile-teamwork", phase: "third_steps", task_ids: ALL_TEAMWORK_LESSON_IDS },
+];
+
 export default function TrainingPage() {
   const { user } = useAuth();
   const userId = user?.id;
