@@ -366,10 +366,10 @@ These are the questions that we ask you on the General Application.
 
 1. What best describes your current or previous education?
 2. List any Tech Fleet masterclasses you are currently taking or previously taken before
-3. What hard skills do you already feel confident in?
-4. What hard skills do you want to learn the most?
-5. What soft skills do you already feel confident in?
-6. What soft skills do you want to learn the most?
+3. What technical and interpersonal skills do you already feel confident in?
+4. What technical and interpersonal skills do you want to learn the most?
+5. What team practices do you already feel confident in?
+6. What team practices do you want to learn the most?
 
 **Servant Leadership Skills (AKA Service Leadership)**
 

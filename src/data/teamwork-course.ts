@@ -105,7 +105,7 @@ Project training and volunteering are free. Class training requires a registrati
           "https://guide.techfleet.org/team-portal/new-teammate-handbook/start-the-teammate-handbook-here/our-approach-to-learning",
         content: `**Leveling Up in Agile is Not About Your Skills or Experience**
 
-You may think expert Agile teams are very experienced in what they do. This is a false perception. Expert Agile teams are experts in navigating uncertainty, pivoting, and supporting growth of others. They are not necessarily experts in hard skills.
+You may think expert Agile teams are very experienced in what they do. This is a false perception. Expert Agile teams are experts in navigating uncertainty, pivoting, and supporting growth of others. They are not necessarily experts in technical and interpersonal skills.
 
 Agile teamwork is not really about producing work itself. Any one person with skills can perform work. Not all teams can perform work efficiently. To work as a unified Agile team, teams must look past skills and tight deadlines, providing environments for experimentation, risk taking, learning, and personal growth.
 
