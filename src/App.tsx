@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
+import { TeacherRoute } from "@/components/TeacherRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
@@ -70,6 +71,12 @@ const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const AccessDeniedPage = lazy(() => import("./pages/AccessDeniedPage"));
 const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
+const MyClassesPage = lazy(() => import("./pages/MyClassesPage"));
+const ClassFormPage = lazy(() => import("./pages/ClassFormPage"));
+const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
+const CohortFormPage = lazy(() => import("./pages/CohortFormPage"));
+const AdminClassesPage = lazy(() => import("./pages/AdminClassesPage"));
+const ConfirmTeacherPage = lazy(() => import("./pages/ConfirmTeacherPage"));
 
 function RouteFallback() {
   return (
@@ -184,6 +191,13 @@ const App = () => (
                     <Route path="/admin/roster/project/:projectId" element={<AdminRoute><RosterProjectDetailPage /></AdminRoute>} />
                     <Route path="/admin/roster/project/:projectId/applicant/:applicationId" element={<AdminRoute><RosterApplicantDetailPage /></AdminRoute>} />
                     <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
+                    <Route path="/confirm-teacher" element={<ConfirmTeacherPage />} />
+                    <Route path="/teach/classes" element={<TeacherRoute><MyClassesPage /></TeacherRoute>} />
+                    <Route path="/teach/classes/new" element={<TeacherRoute><ClassFormPage /></TeacherRoute>} />
+                    <Route path="/teach/classes/:id" element={<TeacherRoute><ClassDetailPage /></TeacherRoute>} />
+                    <Route path="/teach/classes/:id/edit" element={<TeacherRoute><ClassFormPage /></TeacherRoute>} />
+                    <Route path="/teach/classes/:id/cohorts/new" element={<TeacherRoute><CohortFormPage /></TeacherRoute>} />
+                    <Route path="/admin/classes" element={<AdminRoute><AdminClassesPage /></AdminRoute>} />
                     <Route path="/profile/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/access-denied" element={<ProtectedRoute><AccessDeniedPage /></ProtectedRoute>} />
