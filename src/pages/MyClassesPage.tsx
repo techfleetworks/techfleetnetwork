@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMyClasses } from "@/hooks/use-classes";
 import { format } from "date-fns";
+import { stripHtml } from "@/lib/strip-html";
 
 const STATUS_VARIANT: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -55,7 +56,7 @@ export default function MyClassesPage() {
                   {c.status.replace("_", " ")}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2">{c.summary}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2">{stripHtml(c.summary)}</p>
               <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
                 <span>{c.track === "basic_training" ? "Basic Training" : "Advanced Training"}</span>
                 <span>Updated {format(new Date(c.updated_at), "MMM d, yyyy")}</span>
