@@ -199,6 +199,8 @@ export default function UserAdminPage() {
       setConfirmUser(null);
     }
   };
+
+  const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
     const name = u.first_name || u.last_name
@@ -217,9 +219,15 @@ export default function UserAdminPage() {
   const RoleCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
-    if (u.isAdmin) return <span className="text-primary font-semibold">Admin</span>;
-    if (u.pendingPromotion) return <span className="text-accent-foreground font-medium">Pending</span>;
-    return <span className="text-muted-foreground">Member</span>;
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {u.isAdmin && <span className="text-primary font-semibold text-xs">Admin</span>}
+        {u.isTeacher && <span className="text-accent-foreground font-semibold text-xs">Teacher</span>}
+        {!u.isAdmin && !u.isTeacher && u.pendingPromotion && <span className="text-accent-foreground font-medium text-xs">Pending Admin</span>}
+        {!u.isAdmin && !u.isTeacher && !u.pendingPromotion && u.pendingTeacher && <span className="text-accent-foreground font-medium text-xs">Pending Teacher</span>}
+        {!u.isAdmin && !u.isTeacher && !u.pendingPromotion && !u.pendingTeacher && <span className="text-muted-foreground text-xs">Member</span>}
+      </div>
+    );
   }, []);
 
   const ActionsCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
@@ -234,6 +242,8 @@ export default function UserAdminPage() {
         onResendInvite={(usr) => { setConfirmAction("resend"); setConfirmUser(usr); }}
         onView={(usr) => setViewUser(usr)}
         onDelete={(usr) => { setConfirmAction("delete"); setConfirmUser(usr); }}
+        onPromoteTeacher={(usr) => { setConfirmAction("promote_teacher"); setConfirmUser(usr); }}
+        onRevokeTeacher={(usr) => { setConfirmAction("revoke_teacher"); setConfirmUser(usr); }}
       />
     );
   }, [user?.id]);
