@@ -68,6 +68,7 @@ interface ProjectRow {
   phase: string;
   project_status: string;
   client_id: string;
+  friendly_name?: string | null;
 }
 
 interface ClientRow {
