@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAllClasses } from "@/hooks/use-classes";
 
@@ -22,9 +23,17 @@ export default function AdminClassesPage() {
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Classes (Admin)</h1>
-        <p className="text-muted-foreground mt-1">Review submissions and manage published classes.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Classes (Admin)</h1>
+          <p className="text-muted-foreground mt-1">Create classes, review submissions, and manage published classes.</p>
+        </div>
+        <Button asChild className="self-start sm:self-auto">
+          <Link to="/teach/classes/new" aria-label="Create a new class">
+            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            New Class
+          </Link>
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
