@@ -30,7 +30,7 @@ export default function UserAdminPage() {
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete">("promote");
+  const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete" | "promote_teacher" | "revoke_teacher">("promote");
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
 
   const fetchData = async () => {
@@ -43,15 +43,21 @@ export default function UserAdminPage() {
 
       const { data: roles } = await supabase
         .from("user_roles")
-        .select("user_id, role")
-        .eq("role", "admin");
-      const adminIds = new Set((roles || []).map((r: { user_id: string }) => r.user_id));
+        .select("user_id, role");
+      const adminIds = new Set((roles || []).filter((r) => r.role === "admin").map((r) => r.user_id));
+      const teacherIds = new Set((roles || []).filter((r) => r.role === "teacher").map((r) => r.user_id));
 
       const { data: promos } = await supabase
         .from("admin_promotions")
         .select("user_id")
         .is("confirmed_at", null);
       const pendingIds = new Set((promos || []).map((p: { user_id: string }) => p.user_id));
+
+      const { data: teacherPromos } = await supabase
+        .from("teacher_promotions" as never)
+        .select("user_id")
+        .is("confirmed_at", null);
+      const pendingTeacherIds = new Set(((teacherPromos as { user_id: string }[] | null) || []).map((p) => p.user_id));
 
       const rows: UserRow[] = (profiles || []).map((p) => ({
         user_id: p.user_id,
@@ -61,7 +67,9 @@ export default function UserAdminPage() {
         display_name: p.display_name,
         created_at: p.created_at,
         isAdmin: adminIds.has(p.user_id),
+        isTeacher: teacherIds.has(p.user_id),
         pendingPromotion: pendingIds.has(p.user_id),
+        pendingTeacher: pendingTeacherIds.has(p.user_id),
       }));
       setUsers(rows);
     } catch (err) {
@@ -154,6 +162,44 @@ export default function UserAdminPage() {
     }
   };
 
+  const handlePromoteTeacher = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const res = await supabase.functions.invoke("promote-to-teacher", {
+        body: { user_id: targetUser.user_id },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to promote teacher");
+      const result = res.data as { error?: string; message?: string } | null;
+      if (result?.error) throw new Error(result.error);
+      toast.success(result?.message || "Teacher confirmation email sent");
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to promote teacher");
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
+  const handleRevokeTeacher = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const res = await supabase.functions.invoke("revoke-teacher-role", {
+        body: { user_id: targetUser.user_id },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to revoke teacher");
+      const result = res.data as { error?: string; message?: string } | null;
+      if (result?.error) throw new Error(result.error);
+      toast.success(result?.message || "Teacher role revoked");
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to revoke teacher");
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
   const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
@@ -173,9 +219,15 @@ export default function UserAdminPage() {
   const RoleCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
     const u = params.data;
     if (!u) return null;
-    if (u.isAdmin) return <span className="text-primary font-semibold">Admin</span>;
-    if (u.pendingPromotion) return <span className="text-accent-foreground font-medium">Pending</span>;
-    return <span className="text-muted-foreground">Member</span>;
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {u.isAdmin && <span className="text-primary font-semibold text-xs">Admin</span>}
+        {u.isTeacher && <span className="text-accent-foreground font-semibold text-xs">Teacher</span>}
+        {!u.isAdmin && !u.isTeacher && u.pendingPromotion && <span className="text-accent-foreground font-medium text-xs">Pending Admin</span>}
+        {!u.isAdmin && !u.isTeacher && !u.pendingPromotion && u.pendingTeacher && <span className="text-accent-foreground font-medium text-xs">Pending Teacher</span>}
+        {!u.isAdmin && !u.isTeacher && !u.pendingPromotion && !u.pendingTeacher && <span className="text-muted-foreground text-xs">Member</span>}
+      </div>
+    );
   }, []);
 
   const ActionsCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
@@ -190,6 +242,8 @@ export default function UserAdminPage() {
         onResendInvite={(usr) => { setConfirmAction("resend"); setConfirmUser(usr); }}
         onView={(usr) => setViewUser(usr)}
         onDelete={(usr) => { setConfirmAction("delete"); setConfirmUser(usr); }}
+        onPromoteTeacher={(usr) => { setConfirmAction("promote_teacher"); setConfirmUser(usr); }}
+        onRevokeTeacher={(usr) => { setConfirmAction("revoke_teacher"); setConfirmUser(usr); }}
       />
     );
   }, [user?.id]);
@@ -250,13 +304,28 @@ export default function UserAdminPage() {
 
   // Admin access is enforced by AdminRoute wrapper
 
-  const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : confirmAction === "resend" ? "Resend Admin Invite?" : "Delete User?";
-  const confirmDesc = confirmAction === "promote"
-    ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
+  const confirmTitle =
+    confirmAction === "promote" ? "Promote to Admin?"
+    : confirmAction === "resend" ? "Resend Admin Invite?"
+    : confirmAction === "promote_teacher" ? "Promote to Teacher?"
+    : confirmAction === "revoke_teacher" ? "Revoke Teacher Role?"
+    : "Delete User?";
+  const confirmDesc =
+    confirmAction === "promote"
+      ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
     : confirmAction === "resend"
       ? `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
-      : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
-  const confirmButton = confirmAction === "promote" ? "Send Confirmation" : confirmAction === "resend" ? "Resend Invite" : "Delete User";
+    : confirmAction === "promote_teacher"
+      ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their teacher role and gain access to "My Classes".`
+    : confirmAction === "revoke_teacher"
+      ? `This will remove the teacher role from ${confirmUser?.email}. Their existing classes are preserved but they will lose access to author new ones.`
+    : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
+  const confirmButton =
+    confirmAction === "promote" ? "Send Confirmation"
+    : confirmAction === "resend" ? "Resend Invite"
+    : confirmAction === "promote_teacher" ? "Send Teacher Invite"
+    : confirmAction === "revoke_teacher" ? "Revoke Teacher"
+    : "Delete User";
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">
@@ -315,6 +384,8 @@ export default function UserAdminPage() {
                 if (!confirmUser) return;
                 if (confirmAction === "promote") handlePromote(confirmUser);
                 else if (confirmAction === "resend") handleResendInvite(confirmUser);
+                else if (confirmAction === "promote_teacher") handlePromoteTeacher(confirmUser);
+                else if (confirmAction === "revoke_teacher") handleRevokeTeacher(confirmUser);
                 else handleDeleteUser(confirmUser);
               }}
               disabled={!!promoting}

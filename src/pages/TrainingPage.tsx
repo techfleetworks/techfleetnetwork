@@ -33,6 +33,7 @@ import { ALL_TEAMWORK_LESSON_IDS } from "@/data/teamwork-course";
 import { ALL_PROJECT_TRAINING_LESSON_IDS } from "@/data/project-training-course";
 import { ALL_VOLUNTEER_LESSON_IDS } from "@/data/volunteer-teams-course";
 import { ALL_OBSERVER_LESSON_IDS } from "@/data/observer-course";
+import { usePublishedClassesByTrack } from "@/hooks/use-classes";
 
 interface CourseCard {
   id: string;
@@ -298,8 +299,22 @@ export default function TrainingPage() {
     },
   ];
 
-  const beginnerCourses: CourseCard[] = [];
-  const advancedCourses: CourseCard[] = [];
+  const { data: basicClasses = [] } = usePublishedClassesByTrack("basic_training");
+  const { data: advancedClasses = [] } = usePublishedClassesByTrack("advanced_training");
+
+  const mapClassToCard = (c: typeof basicClasses[number]): CourseCard => ({
+    id: `class-${c.id}`,
+    title: c.title,
+    description: c.summary,
+    icon: GraduationCap,
+    href: `/classes/${c.slug}`,
+    totalTasks: 0,
+    completedTasks: 0,
+    locked: false,
+  });
+
+  const beginnerCourses: CourseCard[] = basicClasses.map(mapClassToCard);
+  const advancedCourses: CourseCard[] = advancedClasses.map(mapClassToCard);
 
   const isTabComplete = (courses: CourseCard[]) =>
     courses.length > 0 && courses.every((c) => c.totalTasks > 0 && c.completedTasks >= c.totalTasks);
@@ -386,12 +401,12 @@ function TrainingTabs({
     {
       value: "beginner",
       icon: <Lightbulb className="h-4 w-4" />,
-      label: <span className="flex items-center gap-1.5">Beginner Courses <TabBadge complete={beginnerComplete} count={beginnerCourses.length} /></span>,
+      label: <span className="flex items-center gap-1.5">Basic Training <TabBadge complete={beginnerComplete} count={beginnerCourses.length} /></span>,
     },
     {
       value: "advanced",
       icon: <Rocket className="h-4 w-4" />,
-      label: <span className="flex items-center gap-1.5">Advanced Courses <TabBadge complete={advancedComplete} count={advancedCourses.length} /></span>,
+      label: <span className="flex items-center gap-1.5">Advanced Training <TabBadge complete={advancedComplete} count={advancedCourses.length} /></span>,
     },
   ];
 

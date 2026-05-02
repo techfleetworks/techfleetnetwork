@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassCertificationsTab } from "@/components/ClassCertificationsTab";
 import { ProjectCertificationsTab } from "@/components/ProjectCertificationsTab";
 import { MyProjectsTab } from "@/components/MyProjectsTab";
+import { MyRegisteredClassesTab } from "@/components/MyRegisteredClassesTab";
 import { QuestOverview } from "@/components/quest/QuestOverview";
 
 export default function MyJourneyPage() {
@@ -18,6 +19,7 @@ export default function MyJourneyPage() {
         <TabsList>
           <TabsTrigger value="overview">Quests</TabsTrigger>
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>
+          <TabsTrigger value="my-classes">My Classes</TabsTrigger>
           <TabsTrigger value="certifications">Class Certifications</TabsTrigger>
           <TabsTrigger value="project-certifications">Project Certifications</TabsTrigger>
         </TabsList>
@@ -28,6 +30,10 @@ export default function MyJourneyPage() {
 
         <TabsContent value="my-projects">
           <MyProjectsTab />
+        </TabsContent>
+
+        <TabsContent value="my-classes">
+          <MyRegisteredClassesTab />
         </TabsContent>
 
         <TabsContent value="certifications">

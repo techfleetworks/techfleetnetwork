@@ -24,6 +24,7 @@ import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 type SearchGroup =
   | "Courses"
+  | "Classes"
   | "Applications"
   | "Project Training"
   | "Community Updates"
@@ -135,6 +136,7 @@ const SEARCH_ITEMS: SearchItem[] = [
 
 const GROUP_ICONS: Record<SearchGroup, React.ElementType> = {
   Courses: GraduationCap,
+  Classes: GraduationCap,
   Applications: ClipboardList,
   "Project Training": Handshake,
   "Community Updates": Megaphone,
@@ -228,6 +230,26 @@ export function UniversalSearch() {
               description: c.mission || `Client · ${c.status}`,
               href: isAdmin ? "/admin/clients" : "/project-openings",
               group: "Clients",
+            });
+          }
+        }
+
+        // Search published classes (RLS allows public)
+        const { data: classRows } = await supabase
+          .from("classes")
+          .select("id, slug, title, summary, track, status")
+          .eq("status", "published")
+          .or(`title.ilike.${searchPattern},summary.ilike.${searchPattern}`)
+          .limit(8);
+
+        if (!controller.signal.aborted && classRows) {
+          for (const c of classRows) {
+            items.push({
+              id: `class-${c.id}`,
+              label: c.title,
+              description: c.summary || (c.track === "advanced_training" ? "Advanced Training" : "Basic Training"),
+              href: `/classes/${c.slug}`,
+              group: "Classes",
             });
           }
         }
