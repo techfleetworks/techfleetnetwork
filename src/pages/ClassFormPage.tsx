@@ -218,12 +218,9 @@ export default function ClassFormPage() {
 
         <div>
           <Label htmlFor="skills">Skills</Label>
-          <MultiSelect
-            options={SKILLS_OPTIONS}
-            selected={skills}
+          <SkillsPicker
+            value={skills}
             onChange={(v) => form.setValue("skills", v, { shouldValidate: true, shouldDirty: true })}
-            placeholder="Search the Tech Fleet skills framework…"
-            aria-label="Skills"
           />
           {form.formState.errors.skills && (
             <p className="text-xs text-destructive mt-1">{form.formState.errors.skills.message}</p>
