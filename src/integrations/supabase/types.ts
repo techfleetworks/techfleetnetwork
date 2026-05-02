@@ -476,7 +476,7 @@ export type Database = {
           description: string | null
           hero_image_url: string | null
           id: string
-          outcomes: string[]
+          outcomes: string
           owner_user_id: string
           prerequisites: string[]
           published_at: string | null
@@ -498,7 +498,7 @@ export type Database = {
           description?: string | null
           hero_image_url?: string | null
           id?: string
-          outcomes?: string[]
+          outcomes?: string
           owner_user_id: string
           prerequisites?: string[]
           published_at?: string | null
@@ -520,7 +520,7 @@ export type Database = {
           description?: string | null
           hero_image_url?: string | null
           id?: string
-          outcomes?: string[]
+          outcomes?: string
           owner_user_id?: string
           prerequisites?: string[]
           published_at?: string | null
