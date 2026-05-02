@@ -16,6 +16,7 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 import { FolderKanban } from "lucide-react";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { SafeExternalLink, getSafeLinkHostname } from "@/components/security/SafeExternalLink";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 
 /* ── Label helpers ───────────────────────────────────────── */
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
@@ -116,13 +117,15 @@ function ProjectSummaryCard({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base font-semibold text-foreground truncate">
-              {client?.name ?? "Project"}
-              {project.friendly_name?.trim() && (
-                <span className="text-muted-foreground font-medium"> — {project.friendly_name}</span>
-              )}
-            </h3>
+          <div className="flex items-start gap-2 flex-wrap">
+            <ProjectOpeningHeading
+              clientName={client?.name}
+              friendlyName={project.friendly_name}
+              size="md"
+              as="h3"
+              truncate
+              className="flex-1"
+            />
             {isActive ? (
               <Badge className="bg-success/10 text-success border-success/30 gap-1 text-xs">
                 <Sparkles className="h-3 w-3" /> Active Teammate
@@ -195,14 +198,14 @@ function ActiveProjectDetail({
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Trophy className="h-6 w-6 text-primary" aria-hidden="true" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-foreground">
-                  {client?.name ?? "Project"}
-                  {project.friendly_name?.trim() && (
-                    <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
-                  )}
-                </h2>
+            <div className="flex-1">
+              <div className="flex items-start gap-2 flex-wrap">
+                <ProjectOpeningHeading
+                  clientName={client?.name}
+                  friendlyName={project.friendly_name}
+                  size="lg"
+                  as="h2"
+                />
                 {isActive ? (
                   <Badge className="bg-success/10 text-success border-success/30 gap-1">
                     <Sparkles className="h-3 w-3" /> Active Teammate
