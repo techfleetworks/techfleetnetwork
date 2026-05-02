@@ -2316,6 +2316,13 @@ export type Database = {
           unique_views: number
         }[]
       }
+      get_course_completion_counts: {
+        Args: { _course_specs: Json }
+        Returns: {
+          completers: number
+          course_key: string
+        }[]
+      }
       get_dashboard_overview: { Args: { p_user_id: string }; Returns: Json }
       get_email_pipeline_health: {
         Args: { p_hours?: number; p_limit?: number }

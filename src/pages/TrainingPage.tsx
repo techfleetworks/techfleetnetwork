@@ -24,8 +24,15 @@ import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { TOTAL_OBSERVER_LESSONS } from "@/data/observer-course";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { useCourseCompletionCounts, type CourseCompletionSpec } from "@/hooks/use-course-completion-counts";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
+import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
+import { ALL_DISCORD_LESSON_IDS } from "@/data/discord-course";
+import { ALL_TEAMWORK_LESSON_IDS } from "@/data/teamwork-course";
+import { ALL_PROJECT_TRAINING_LESSON_IDS } from "@/data/project-training-course";
+import { ALL_VOLUNTEER_LESSON_IDS } from "@/data/volunteer-teams-course";
+import { ALL_OBSERVER_LESSON_IDS } from "@/data/observer-course";
 
 interface CourseCard {
   id: string;
@@ -37,6 +44,14 @@ interface CourseCard {
   completedTasks: number;
   locked: boolean;
   prerequisiteLabel?: string;
+  /** Number of *other* members who have completed this course */
+  otherCompleters?: number;
+}
+
+function formatCompleters(n: number): string {
+  if (n <= 0) return "Be the first to complete this";
+  if (n === 1) return "Completed by 1 other member";
+  return `Completed by ${n.toLocaleString()} other members`;
 }
 
 function CourseGrid({ courses }: { courses: CourseCard[] }) {
@@ -133,6 +148,15 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
                 </div>
               </div>
             )}
+            {typeof course.otherCompleters === "number" && (
+              <p
+                className="flex items-center gap-1.5 text-xs text-muted-foreground mt-3"
+                aria-label={`${course.otherCompleters} other members have completed this course`}
+              >
+                <Users className="h-3 w-3" aria-hidden="true" />
+                <span>{formatCompleters(course.otherCompleters)}</span>
+              </p>
+            )}
             <div className="flex items-center gap-1 text-xs text-primary mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
               {isComplete ? "Review" : isStarted ? "Continue" : "Start"}
               <ChevronRight className="h-3 w-3" />
@@ -143,6 +167,17 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
     </div>
   );
 }
+
+const COURSE_COMPLETION_SPECS: CourseCompletionSpec[] = [
+  { key: "connect-discord", phase: "first_steps", task_ids: CONNECT_DISCORD_TASK_IDS },
+  { key: "onboarding", phase: "first_steps", task_ids: FIRST_STEPS_TASK_IDS },
+  { key: "agile-mindset", phase: "second_steps", task_ids: ALL_AGILE_LESSON_IDS },
+  { key: "project-training", phase: "project_training", task_ids: ALL_PROJECT_TRAINING_LESSON_IDS },
+  { key: "volunteer-teams", phase: "volunteer", task_ids: ALL_VOLUNTEER_LESSON_IDS },
+  { key: "discord-learning", phase: "discord_learning", task_ids: ALL_DISCORD_LESSON_IDS },
+  { key: "observer-course", phase: "observer", task_ids: ALL_OBSERVER_LESSON_IDS },
+  { key: "agile-teamwork", phase: "third_steps", task_ids: ALL_TEAMWORK_LESSON_IDS },
+];
 
 export default function TrainingPage() {
   const { user } = useAuth();
@@ -163,6 +198,8 @@ export default function TrainingPage() {
   const allFirstStepsDone = firstCompleted >= TOTAL_FIRST_STEPS;
   const allAgileDone = agileCompleted >= TOTAL_AGILE_LESSONS;
 
+  const { data: completers = {} } = useCourseCompletionCounts(COURSE_COMPLETION_SPECS);
+
   const gettingStartedCourses: CourseCard[] = [
     {
       id: "connect-discord",
@@ -173,6 +210,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_CONNECT_DISCORD,
       completedTasks: connectDiscordCompleted,
       locked: false,
+      otherCompleters: completers["connect-discord"] ?? 0,
     },
     {
       id: "onboarding",
@@ -184,6 +222,7 @@ export default function TrainingPage() {
       completedTasks: firstCompleted,
       locked: !allConnectDiscordDone,
       prerequisiteLabel: "Connect to Discord",
+      otherCompleters: completers["onboarding"] ?? 0,
     },
   ];
 
@@ -198,6 +237,7 @@ export default function TrainingPage() {
       completedTasks: agileCompleted,
       locked: !allFirstStepsDone,
       prerequisiteLabel: "Onboarding Steps",
+      otherCompleters: completers["agile-mindset"] ?? 0,
     },
     {
       id: "project-training",
@@ -209,6 +249,7 @@ export default function TrainingPage() {
       completedTasks: projectTrainingCompleted,
       locked: !allAgileDone,
       prerequisiteLabel: "Build an Agile Mindset",
+      otherCompleters: completers["project-training"] ?? 0,
     },
     {
       id: "volunteer-teams",
@@ -220,6 +261,7 @@ export default function TrainingPage() {
       completedTasks: volunteerCompleted,
       locked: !allAgileDone,
       prerequisiteLabel: "Build an Agile Mindset",
+      otherCompleters: completers["volunteer-teams"] ?? 0,
     },
     {
       id: "discord-learning",
@@ -230,6 +272,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_DISCORD_LESSONS,
       completedTasks: discordCompleted,
       locked: false,
+      otherCompleters: completers["discord-learning"] ?? 0,
     },
     {
       id: "observer-course",
@@ -240,6 +283,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_OBSERVER_LESSONS,
       completedTasks: observerCompleted,
       locked: false,
+      otherCompleters: completers["observer-course"] ?? 0,
     },
     {
       id: "agile-teamwork",
@@ -250,6 +294,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
       locked: false,
+      otherCompleters: completers["agile-teamwork"] ?? 0,
     },
   ];
 
