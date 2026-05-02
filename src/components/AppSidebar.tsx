@@ -16,6 +16,7 @@ import {
   Map,
   Flag,
   HeartPulse,
+  School,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { useTeacher } from "@/hooks/use-teacher";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 
 const homeNav = [
@@ -67,6 +69,7 @@ export const AppSidebar = memo(function AppSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
+  const { isTeacher } = useTeacher();
 
   const isActive = useCallback((href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/"), [location.pathname]);
