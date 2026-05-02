@@ -2544,6 +2544,8 @@ export type Database = {
         | "live"
         | "completed"
         | "cancelled"
+        | "published"
+        | "archived"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -2714,6 +2716,8 @@ export const Constants = {
         "live",
         "completed",
         "cancelled",
+        "published",
+        "archived",
       ],
       journey_phase: [
         "first_steps",
