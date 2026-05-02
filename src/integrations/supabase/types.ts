@@ -3450,6 +3450,28 @@ export type Database = {
         }
         Relationships: []
       }
+      framework_entity_v: {
+        Row: {
+          category: string | null
+          data: Json | null
+          description: string | null
+          entity_type: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          slug: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      framework_overview_mv: {
+        Row: {
+          entity_type: string | null
+          last_updated: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
       project_roster_member_view: {
         Row: {
           airtable_record_id: string | null
@@ -3749,6 +3771,7 @@ export type Database = {
         Returns: Json
       }
       redact_sensitive_text: { Args: { input: string }; Returns: string }
+      refresh_framework_overview: { Args: never; Returns: undefined }
       register_for_cohort_click: {
         Args: { p_cohort_id: string; p_referrer?: string }
         Returns: string
