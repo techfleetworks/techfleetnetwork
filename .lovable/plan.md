@@ -1,124 +1,173 @@
+# CSV → Database Migration: Tech Fleet Reference Data
 
-# Auto-Sync Classes to Framer (techfleet.org)
+## 1. What we have today
 
-## What you have today
-- Framer page at `/overview/current-classes` is a static-feeling page hand-styled in Framer, populated by Airtable through a manual sync.
-- Tech Fleet Network is about to become the source of truth for `classes` and `cohorts` (Phase 1 tables already approved in our prior plan, not yet built).
-- Goal: Framer reads classes **directly from our DB** with zero manual sync, and you keep full visual control inside Framer.
+`public/data/` contains 17 CSVs that ship with the app bundle:
 
-## The approach (recommended)
+| Domain | File | Approx. records |
+|---|---|---|
+| Skills (data-types index) | `skills-framework.csv` | 16 |
+| Skills (full catalog) | `skills.csv` | ~600 |
+| Practices | `practices.csv` | ~120 |
+| Activities | `activities.csv` | ~700 |
+| Duties (Roles) | `duties.csv` | 17 |
+| Deliverables | `deliverables.csv` (+ `-2.csv` dup) | ~400 |
+| Project Milestones | `milestones.csv` | 48 |
+| Workshops | `workshops-detailed.csv` | 67 |
+| Agile Methods | `agile-methods.csv` | ~60 |
+| Team Functions | `team-functions.csv` | 7 |
+| Tools | `tools.csv` | 46 |
+| Tech Job Categories | `tech-job-categories.csv` | 18 |
+| Job Industries | `job-industries.csv` | ~120 |
+| Job Specializations | `job-specializations.csv` | 67 |
+| Company Types | `company-types.csv` | 3 |
+| Handbooks (detailed) | `handbooks-detailed.csv` | 29 |
 
-Build a tiny **public, read-only JSON API** on Lovable Cloud (one edge function) that returns published classes + their published cohorts. Then drop a **Framer Code Component** on the Current Classes page that fetches that JSON on render and maps each record into Framer-styled cards you control.
+### How they're used right now
 
-Why this shape:
-- You keep design 100% in Framer (no iframes, no embeds).
-- Edits in Tech Fleet Network show up on techfleet.org within seconds (configurable cache).
-- No webhooks, no Airtable, no manual button.
-- Safe to expose: only `published` classes/cohorts are returned, no PII.
+- **Admin Ingest page** (`/admin/ingest`) reads each CSV, sends it to the `ingest-csv-knowledge` edge function which **flattens each row into a Markdown blob and upserts into `knowledge_base`** (one row per entity, content = giant markdown). This is the only canonical store today.
+- **Fleety chatbot** (`techfleet-chat` edge fn) and Discord `/ask` (`discord-interactions`) full-text scan `knowledge_base.content` to answer questions.
+- **Class form** uses `src/lib/skills-framework.ts` — a hardcoded TS array we generated from `skills-framework.csv` last turn (Hard + Soft Skills column). Nothing else in the UI uses the CSVs at runtime.
+- **Resources page**, **Curriculum**, **Workshops course**, etc. use TS files in `src/data/*` (separate authored content), not these CSVs.
+
+So today the CSVs are: (a) shipped to every visitor in the bundle, (b) ingested into one denormalized text table, (c) hardcoded into one skills picker.
+
+---
+
+## 2. Target database model
+
+Create a `reference` domain with **one normalized table per entity** plus join tables for the cross-references that already exist in the CSVs (skill ↔ activity, milestone ↔ deliverable, etc.). All tables share a common shape:
 
 ```text
-   ┌─────────────────────┐    publish/edit class
-   │ Tech Fleet Network  │──────────────────────┐
-   │ (admin UI + DB)     │                      ▼
-   └─────────────────────┘            ┌────────────────────┐
-                                      │  classes / cohorts │
-                                      │  (Postgres + RLS)  │
-                                      └────────┬───────────┘
-                                               │ SECURITY DEFINER read
-                                               ▼
-                              ┌──────────────────────────────────┐
-                              │  Edge Function: public-classes   │
-                              │  GET /functions/v1/public-classes│
-                              │  CORS: techfleet.org, framer.*   │
-                              │  Cache-Control: s-maxage=60      │
-                              └────────┬─────────────────────────┘
-                                       │ JSON
-                                       ▼
-                ┌──────────────────────────────────────────────┐
-                │  Framer Code Component <CurrentClasses />    │
-                │  fetch() on mount, render Framer-styled grid │
-                └──────────────────────────────────────────────┘
+reference.<entity>
+  id            uuid pk
+  slug          text unique     -- url-safe identifier from name
+  name          text not null
+  description   text
+  category      text
+  data          jsonb           -- everything else, schema-less, indexed via GIN
+  search_tsv    tsvector        -- generated; full-text search
+  is_active     boolean default true
+  source        text default 'csv'
+  source_row_id text             -- traceability back to CSV
+  created_at / updated_at timestamptz
 ```
 
-## What gets built
+Tables to create:
 
-### 1. Public read endpoint (edge function: `public-classes`)
-- Path: `https://<project>.functions.supabase.co/public-classes`
-- Method: `GET` only
-- Auth: **none** (this is the one explicitly-public endpoint; allowed by the "no unauthenticated endpoints unless explicitly public" rule)
-- Returns only: classes with `status = 'published'` and (optionally) `track in ('basic_training','advanced_training')`. Each class includes its **approved + published** cohorts (start_date, end_date, registration_link, seats_remaining if you want it).
-- Query params:
-  - `?track=basic_training|advanced_training` (filter)
-  - `?include=cohorts` (default true)
-  - `?limit=` / `?offset=` (pagination, default 50)
-- Response shape (stable contract for Framer):
-  ```json
-  {
-    "updated_at": "2026-05-02T12:00:00Z",
-    "classes": [
-      {
-        "id": "uuid",
-        "slug": "ux-foundations",
-        "title": "UX Foundations",
-        "track": "basic_training",
-        "summary_html": "...",
-        "outcomes": ["..."],
-        "audience": "...",
-        "skills": ["Figma","Research"],
-        "deliverables": ["..."],
-        "teacher": { "name": "Jane Doe", "avatar_url": "..." },
-        "cover_image_url": "...",
-        "next_cohort": { "starts_on":"2026-06-01","ends_on":"2026-07-15","registration_url":"https://..." },
-        "cohorts": [ /* same shape, all upcoming approved+published */ ]
-      }
-    ]
-  }
-  ```
-- CORS: `Access-Control-Allow-Origin` allow-list of `https://techfleet.org`, `https://www.techfleet.org`, `https://framer.com`, `https://*.framer.app` (preview), `https://*.framer.website`.
-- Caching: `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` so Framer's edge / browser keeps it snappy and the DB barely gets hit.
-- Resilience: wrapped in our standard CircuitBreaker with a 1.5 s DB timeout and a stale fallback (returns last-good payload from a `public_classes_cache` row if DB is briefly unavailable). Aligns with our Graceful Degradation rule.
+- `reference_skills` (from `skills.csv`, supersedes `skills-framework.csv`)
+- `reference_practices`
+- `reference_activities`
+- `reference_duties` (the "Roles" ask)
+- `reference_deliverables`
+- `reference_workshops`
+- `reference_agile_methods`
+- `reference_project_milestones`
+- `reference_team_functions`
+- `reference_tools`
+- `reference_tech_job_categories`
+- `reference_job_industries`
+- `reference_job_specializations`
+- `reference_company_types`
 
-### 2. DB read function (`SECURITY DEFINER`)
-- `public.get_public_classes(_track text default null, _limit int default 50, _offset int default 0)` returns the JSON above.
-- It is the **only** thing the edge function calls — keeps RLS strict on `classes`/`cohorts` and exposes a vetted projection.
-- Ignores anything not `published` and any cohort not `approved + published`.
+Join tables (only the relationships actually referenced by features today + the obvious ones for Fleety):
+- `reference_skill_activities`, `reference_activity_deliverables`, `reference_milestone_deliverables`, `reference_duty_skills`, `reference_workshop_deliverables`, `reference_function_duties`.
 
-### 3. Framer Code Component (`CurrentClasses.tsx`)
-- Lives in your Framer project under **Assets → Code → New Code File**.
-- Single component, copy-paste, no build step.
-- Props you can edit in the Framer right panel: `track` (Basic / Advanced / All), `endpoint` (defaulted), `limit`, `showPastCohorts` (bool), `accentColor`, `cardRadius`, `gap`.
-- Behavior:
-  - `useEffect` → `fetch(endpoint)` on mount, abortable.
-  - Renders skeletons while loading (Framer-styled), error state with retry, empty state.
-  - Maps each class to a card you style entirely with Framer's normal CSS/Style props — we ship sensible defaults that match the current page (dark card, blue accent, pyramid-style art slot, registration CTA, "Next cohort starts …" label).
-- You drop the component on the Current Classes page, swap out the manual Airtable-fed CMS collection, and you're done. New class published → appears within ~60 s.
+### RLS
 
-### 4. Optional: instant invalidation (nice-to-have, not required)
-- Add a `pg_notify` trigger on `classes`/`cohorts` UPDATE that calls a small `purge-public-classes-cache` edge function so the 60 s TTL becomes effectively "immediate" right after a publish action. Without it, max staleness is 60 s, which is already a huge upgrade over manual sync.
+- Every table: `ENABLE RLS`, `FORCE ROW LEVEL SECURITY`.
+- `SELECT` policy: `to authenticated using (is_active)` — anyone signed in can read. (Anon stays blocked because every consumer page is gated.)
+- `INSERT/UPDATE/DELETE` policy: admins only via `has_role(auth.uid(),'admin')`.
+- Grants: `REVOKE ALL FROM anon`.
 
-## Why not the obvious alternatives
-- **Airtable two-way sync** — adds a fragile middle layer; you've already been bitten by manual-sync friction.
-- **Framer CMS API push** — Framer's CMS API is push-only and rate-limited, and you'd be re-implementing what Postgres already does. You also lose live data; it'd still be a sync.
-- **Iframe of a Tech Fleet Network page** — kills your Framer styling control and SEO.
-- **Direct Supabase JS in Framer** — works but requires shipping the anon key and trusting RLS in the browser. A purpose-built read endpoint is smaller, faster, and easier to lock down.
+### Indexing & search
 
-## Security & compliance checklist
-- Endpoint is GET-only, returns only fields explicitly whitelisted in `get_public_classes`.
-- No auth user data, no emails, no draft/archived classes ever leak.
-- CORS allow-list (no `*`), `X-Content-Type-Options: nosniff`, rate-limited (per-IP token bucket, 60 req/min) to deter scraping.
-- BDD scenarios required (per project rule): publish flow → appears on techfleet.org within TTL; unpublish/archive → gone within TTL; draft never visible; CORS rejects non-allow-listed origin; cache fallback serves stale on DB outage. Each scenario asserts UI + DB + Code/API layers per our BDD Expected Results rule.
+- `idx_<entity>_slug` unique btree, `idx_<entity>_name_trgm` (pg_trgm) for typeahead, GIN on `search_tsv` and on `data` jsonb. Materialized `search_tsv` column populated by trigger over `name + description + data`.
 
-## Rollout plan
-1. Ship `public-classes` edge function + `get_public_classes` SQL function + `public_classes_cache` fallback table + RLS + BDD scenarios. *(One Lovable build pass.)*
-2. Hit the URL in your browser — confirm the JSON looks right.
-3. I hand you a ready-to-paste **Framer Code Component** file (with screenshots-matching defaults). You add it to Framer once, set `track`, publish the Framer page.
-4. Verify on `techfleet.org/overview/current-classes`. Delete the old Airtable-fed CMS collection.
-5. (Optional) Add the pg_notify cache-purge function for near-instant updates.
+### Loader
 
-## Open questions before I build
-1. Should the public endpoint include **Basic Training**, **Advanced Training**, or both on the Current Classes page? (default: both, filterable)
-2. Do you want **past cohorts hidden** from the public payload? (default: yes, only upcoming + in-progress)
-3. Cache TTL: **60 s** (default), 30 s, or do you want the optional instant-invalidation trigger from day one?
-4. Should the registration CTA link to the **external registration_url** on the cohort, or to a Tech Fleet Network page like `/classes/<slug>`? (default: external `registration_url`, fall back to slug page if missing)
+A new edge function `ingest-reference-csv` (admin-only, JWT + role check, mirrors existing `ingest-csv-knowledge`) parses each CSV, maps the canonical columns (Name, Description, Category, etc.) to the typed columns, dumps the rest into `data` jsonb, populates join tables when a CSV column lists related entities by name. Idempotent upsert on `(slug)`.
 
-Answer those four and I'll switch to build mode and ship Phase 1 of this alongside the Teacher/Classes work already in flight.
+A migration seeds the tables by calling the loader for each CSV at run-once via `supabase/seed.sql` invocation pattern; alternatively the existing `/admin/ingest` page gets a second button "Sync to Reference Tables" that calls the new function. Both paths kept so re-syncs are 1-click.
+
+`knowledge_base` is **not** removed — Fleety still uses it for the long-form markdown blobs and scraped web pages. Reference tables become the structured complement.
+
+---
+
+## 3. Where the system will use the database after migration
+
+| Surface | Today | After |
+|---|---|---|
+| Class form → Skills multi-select | Hardcoded `src/lib/skills-framework.ts` (121 strings) | `useReferenceSkills()` React Query hook → `reference_skills`, cached 24h, prefetched on `/teach/classes/new` route |
+| Profile / future skill pickers | n/a (none today) | Same hook reused |
+| Project openings & application form (skills, deliverables, milestones tags) | Free text | Switch to typeahead-backed selectors against reference tables |
+| Fleety chatbot context retrieval | One scan of `knowledge_base.content` | Hybrid: structured lookup (`reference_*` by tsvector + trigram) for known-entity questions ("what skills are in the Discovery milestone?") + existing markdown fallback. Fewer tokens to LLM, faster answers. |
+| Discord `/ask` slash command | Same as Fleety | Same hybrid |
+| Universal Search (⌘K) | Profiles, clients, projects | Add Skills, Activities, Workshops, Milestones results |
+| Resources Explore (AI recs) | Uses `knowledge_base` | Switches to structured queries for filtering by category/duty |
+| Admin Ingest page | Loads CSVs into `knowledge_base` | Adds "Sync Reference Tables" button; can deprecate raw CSVs from `/public/data` once verified |
+
+### React Query plan (client side)
+
+- New service `src/services/reference.service.ts` exposing `listSkills`, `listActivities`, `listMilestones`, `listDuties`, `listWorkshops`, `listDeliverables`, `listAgileMethods`, etc., each `select id, slug, name, category` only — small payloads.
+- Hooks in `src/hooks/use-reference.ts` with `staleTime: 24h`, `gcTime: 7d`, key `["reference", entity]`. One-shot prefetch on app boot for the small lists (`duties`, `team_functions`, `milestones`, `tech_job_categories`).
+- Strip `src/lib/skills-framework.ts`; class form switches to the new hook.
+
+### Files we'll touch
+
+- `supabase/migrations/<ts>_reference_tables.sql` — schema + RLS + indexes + triggers
+- `supabase/functions/ingest-reference-csv/index.ts` — admin-only loader
+- `src/services/reference.service.ts` (new)
+- `src/hooks/use-reference.ts` (new)
+- `src/pages/ClassFormPage.tsx` — swap import
+- `src/pages/AdminIngestPage.tsx` — add "Sync Reference Tables" button
+- `src/components/UniversalSearch.tsx` — add reference results
+- `supabase/functions/techfleet-chat/index.ts` — add structured retrieval path
+- `supabase/functions/discord-interactions/index.ts` — same
+- Delete `src/lib/skills-framework.ts` (kept as fallback during rollout, removed in cleanup commit)
+- BDD scenarios in `bdd_scenarios` covering: admin sync, picker loads from DB, RLS denies anon writes, Fleety uses structured path
+
+---
+
+## 4. Effects of the migration
+
+**Security**
+- Strong gain: structured tables get strict RLS (admin write, authenticated read of `is_active`). Today the CSVs are world-readable static assets bundled with the SPA — anyone, including unauthenticated visitors, can `GET /data/skills.csv` and download the entire framework. After migration, raw CSVs can be removed from `/public/data` and access is gated by RLS.
+- Admin-only loader uses JWT + role check (same pattern as `ingest-csv-knowledge`).
+- Risk: jsonb `data` column could leak sensitive fields if a future CSV adds them — mitigated by an explicit allow-list in the loader.
+
+**UX**
+- Skills/activity/milestone pickers become live, searchable typeaheads with descriptions on hover instead of a static dropdown — better recognition over recall (NN/g #6).
+- Admins can edit names, descriptions, categories without redeploying — content updates ship instantly.
+- One source of truth: every form across the app shows the same skills, so users see consistent terminology.
+- Fleety answers become more targeted ("the Discovery milestone has these 7 deliverables…") because it can join structured rows.
+
+**UI**
+- Negligible — same `<MultiSelect>` and command-palette components are reused; rendering count stays roughly the same. New "Sync Reference Tables" button on the admin Ingest page is the only net-new control.
+
+**Performance**
+- Initial bundle: removes ~14 MB of CSVs from `public/data` once the SPA stops shipping them (today they're not imported into JS, but they are downloaded by Admin Ingest and served to anyone who knows the path). Bundle stays the same; static asset footprint drops dramatically.
+- Class form load: no measurable change — DB query is `select id, name from reference_skills order by name` (~600 rows, <30 KB), cached for 24h via React Query and prefetched on route enter.
+- Fleety: meaningful gain for entity-style questions — structured lookup hits a 600-row indexed table instead of scanning 6,000+ markdown blobs in `knowledge_base`. Free-form questions still use the existing path. Net: latency down, LLM token cost down.
+- Universal Search: adds 1 extra SELECT per query (~5 ms with trigram indexes); cache for 60s.
+
+**Scalability**
+- Today the CSV ingest dumps everything into one wide `knowledge_base` table. Search is O(rows × content size). Reference tables put each domain in its own narrow table with proper indexes; query cost is sub-linear and stable as content grows.
+- Edits become row-level; no need to re-ingest a 9 MB CSV to fix one skill description. CDN cache invalidation on `/data/*.csv` is no longer needed.
+- Future features (per-skill assessments, per-activity walkthroughs, per-milestone progress) can FK to the reference tables instead of fuzzy string matching.
+- Database size impact: ~5–8 MB total for all reference tables — trivial relative to current Postgres footprint.
+
+---
+
+## 5. Migration order (single approval, multi-step build)
+
+1. Migration: create all `reference_*` tables, RLS, indexes, triggers.
+2. Edge function: `ingest-reference-csv` with parser + entity mappers + join writes.
+3. Admin UI: add "Sync Reference Tables" button and per-table status; click runs all 14 datasets.
+4. Client: `reference.service.ts` + `use-reference.ts` hooks; switch Class form to DB-backed picker; delete `skills-framework.ts`.
+5. Fleety + Discord: add structured retrieval branch; keep markdown fallback.
+6. Universal Search: add reference results.
+7. BDD scenarios saved to `bdd_scenarios` for each surface (UI + DB + API expectations).
+8. Cleanup: remove `/public/data/*.csv` once admin confirms the sync ran cleanly.
+
+Approve and I'll switch to build mode and implement steps 1-7 in one pass; step 8 waits for your go-ahead after you verify the data in the new tables.
