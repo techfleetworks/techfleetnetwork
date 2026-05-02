@@ -304,13 +304,28 @@ export default function UserAdminPage() {
 
   // Admin access is enforced by AdminRoute wrapper
 
-  const confirmTitle = confirmAction === "promote" ? "Promote to Admin?" : confirmAction === "resend" ? "Resend Admin Invite?" : "Delete User?";
-  const confirmDesc = confirmAction === "promote"
-    ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
+  const confirmTitle =
+    confirmAction === "promote" ? "Promote to Admin?"
+    : confirmAction === "resend" ? "Resend Admin Invite?"
+    : confirmAction === "promote_teacher" ? "Promote to Teacher?"
+    : confirmAction === "revoke_teacher" ? "Revoke Teacher Role?"
+    : "Delete User?";
+  const confirmDesc =
+    confirmAction === "promote"
+      ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
     : confirmAction === "resend"
       ? `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
-      : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
-  const confirmButton = confirmAction === "promote" ? "Send Confirmation" : confirmAction === "resend" ? "Resend Invite" : "Delete User";
+    : confirmAction === "promote_teacher"
+      ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their teacher role and gain access to "My Classes".`
+    : confirmAction === "revoke_teacher"
+      ? `This will remove the teacher role from ${confirmUser?.email}. Their existing classes are preserved but they will lose access to author new ones.`
+    : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
+  const confirmButton =
+    confirmAction === "promote" ? "Send Confirmation"
+    : confirmAction === "resend" ? "Resend Invite"
+    : confirmAction === "promote_teacher" ? "Send Teacher Invite"
+    : confirmAction === "revoke_teacher" ? "Revoke Teacher"
+    : "Delete User";
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">
@@ -369,6 +384,8 @@ export default function UserAdminPage() {
                 if (!confirmUser) return;
                 if (confirmAction === "promote") handlePromote(confirmUser);
                 else if (confirmAction === "resend") handleResendInvite(confirmUser);
+                else if (confirmAction === "promote_teacher") handlePromoteTeacher(confirmUser);
+                else if (confirmAction === "revoke_teacher") handleRevokeTeacher(confirmUser);
                 else handleDeleteUser(confirmUser);
               }}
               disabled={!!promoting}
