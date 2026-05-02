@@ -283,15 +283,13 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
                     </div>
                   )}
                   <div className="min-w-0">
-                    <CardTitle asChild className="leading-tight">
-                      <ProjectOpeningHeading
-                        clientName={p.clientName}
-                        friendlyName={p.friendly_name}
-                        size="lg"
-                        as="span"
-                        truncate
-                      />
-                    </CardTitle>
+                    <ProjectOpeningHeading
+                      clientName={p.clientName}
+                      friendlyName={p.friendly_name}
+                      size="lg"
+                      as="h3"
+                      truncate
+                    />
                     <p className="text-sm text-muted-foreground mt-1">{typeLabel(p.project_type)}</p>
                   </div>
                 </div>
