@@ -187,6 +187,7 @@ export const AppSidebar = memo(function AppSidebar() {
                       <span>Clients and Projects</span>
                     </Link>
                   </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
