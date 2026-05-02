@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NavLink } from "@/components/NavLink";
 import { ClientLogo } from "@/components/ClientLogo";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import { SafeExternalLink, getSafeLinkHostname } from "@/components/security/SafeExternalLink";
 import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
@@ -274,12 +275,12 @@ export default function ProjectOpeningDetailPage() {
                 </Badge>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              {client?.name ?? "Project Opening"}
-              {project.friendly_name?.trim() && (
-                <span className="text-muted-foreground font-semibold"> — {project.friendly_name}</span>
-              )}
-            </h1>
+            <ProjectOpeningHeading
+              clientName={client?.name}
+              friendlyName={project.friendly_name}
+              size="xl"
+              as="h1"
+            />
             {project.description?.trim() ? (
               <p className="text-foreground whitespace-pre-wrap leading-relaxed">{project.description}</p>
             ) : (
