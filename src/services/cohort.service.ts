@@ -1,0 +1,91 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { CohortFormValues } from "@/lib/validators/cohort";
+
+export type CohortRow = {
+  id: string;
+  class_id: string;
+  label: string;
+  start_date: string;
+  end_date: string;
+  timezone: string;
+  registration_url: string;
+  meeting_url: string | null;
+  capacity: number | null;
+  status: "draft" | "pending_review" | "published" | "archived" | "cancelled";
+  submitted_at: string | null;
+  published_at: string | null;
+  archived_at: string | null;
+  archive_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const CohortService = {
+  async listByClass(classId: string): Promise<CohortRow[]> {
+    const { data, error } = await supabase
+      .from("cohorts")
+      .select("*")
+      .eq("class_id", classId)
+      .order("start_date", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as CohortRow[];
+  },
+
+  async listPublishedByClass(classId: string): Promise<CohortRow[]> {
+    const { data, error } = await supabase
+      .from("cohorts")
+      .select("*")
+      .eq("class_id", classId)
+      .eq("status", "published")
+      .order("start_date", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as CohortRow[];
+  },
+
+  async create(classId: string, values: CohortFormValues): Promise<string> {
+    const { data, error } = await supabase
+      .from("cohorts")
+      .insert({
+        class_id: classId,
+        label: values.label,
+        start_date: values.start_date,
+        end_date: values.end_date,
+        registration_url: values.registration_url,
+        meeting_url: values.meeting_url || null,
+        timezone: values.timezone || "America/New_York",
+        capacity: values.capacity ?? null,
+      } as never)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return (data as { id: string }).id;
+  },
+
+  async update(id: string, values: Partial<CohortFormValues>): Promise<void> {
+    const payload: Record<string, unknown> = { ...values };
+    if (values.meeting_url === "") payload.meeting_url = null;
+    const { error } = await supabase.from("cohorts").update(payload).eq("id", id);
+    if (error) throw error;
+  },
+
+  async submitForReview(id: string): Promise<void> {
+    const { error } = await (supabase as any).rpc("submit_cohort_for_review", { _cohort_id: id });
+    if (error) throw error;
+  },
+
+  async cancel(id: string, reason?: string): Promise<void> {
+    const { error } = await (supabase as any).rpc("cancel_cohort", { _cohort_id: id, _reason: reason ?? null });
+    if (error) throw error;
+  },
+
+  async recordRegistrationClick(cohortId: string, referrer?: string): Promise<void> {
+    const { data: u } = await supabase.auth.getUser();
+    const userId = u?.user?.id;
+    if (!userId) return;
+    const { error } = await (supabase as any).rpc("register_for_cohort_click", {
+      _cohort_id: cohortId,
+      _referrer: referrer ?? null,
+    });
+    if (error) throw error;
+  },
+};
