@@ -125,6 +125,28 @@ export const AppSidebar = memo(function AppSidebar() {
           </SidebarGroup>
         ))}
 
+        {(isTeacher || isAdmin) && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Teaching</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/teach/classes")}
+                    tooltip="My Classes"
+                  >
+                    <Link to="/teach/classes">
+                      <School className="h-4 w-4" />
+                      <span>My Classes</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -163,6 +185,17 @@ export const AppSidebar = memo(function AppSidebar() {
                     <Link to="/admin/clients">
                       <Building2 className="h-4 w-4" />
                       <span>Clients and Projects</span>
+                    </Link>
+                  </SidebarMenuButton>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/classes")}
+                    tooltip="Classes"
+                  >
+                    <Link to="/admin/classes">
+                      <School className="h-4 w-4" />
+                      <span>Classes</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
