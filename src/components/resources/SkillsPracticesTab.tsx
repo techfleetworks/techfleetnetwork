@@ -147,8 +147,7 @@ function EntityList({ entity, search }: { entity: FrameworkEntity; search: strin
   if (items.length === 0) {
     return (
       <Card className="p-6 text-center text-sm text-muted-foreground">
-        No items yet. Admins can populate this table at{" "}
-        <a href="/admin/ingest" className="underline text-primary">/admin/ingest</a>.
+        No items to display yet. Please check back soon.
       </Card>
     );
   }

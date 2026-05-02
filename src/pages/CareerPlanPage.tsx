@@ -160,7 +160,7 @@ export default function CareerPlanPage() {
         </div>
         {(jobTitlesQ.data?.length === 0 && !jobTitlesQ.isLoading) && (
           <p className="text-xs text-muted-foreground">
-            No targets available yet. Admins can populate framework data at <a href="/admin/ingest" className="underline text-primary">/admin/ingest</a>.
+            No targets are available yet. Please check back soon.
           </p>
         )}
       </Card>
