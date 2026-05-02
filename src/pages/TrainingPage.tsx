@@ -210,6 +210,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_CONNECT_DISCORD,
       completedTasks: connectDiscordCompleted,
       locked: false,
+      otherCompleters: completers["connect-discord"] ?? 0,
     },
     {
       id: "onboarding",
@@ -221,6 +222,7 @@ export default function TrainingPage() {
       completedTasks: firstCompleted,
       locked: !allConnectDiscordDone,
       prerequisiteLabel: "Connect to Discord",
+      otherCompleters: completers["onboarding"] ?? 0,
     },
   ];
 
@@ -235,6 +237,7 @@ export default function TrainingPage() {
       completedTasks: agileCompleted,
       locked: !allFirstStepsDone,
       prerequisiteLabel: "Onboarding Steps",
+      otherCompleters: completers["agile-mindset"] ?? 0,
     },
     {
       id: "project-training",
@@ -246,6 +249,7 @@ export default function TrainingPage() {
       completedTasks: projectTrainingCompleted,
       locked: !allAgileDone,
       prerequisiteLabel: "Build an Agile Mindset",
+      otherCompleters: completers["project-training"] ?? 0,
     },
     {
       id: "volunteer-teams",
@@ -257,6 +261,7 @@ export default function TrainingPage() {
       completedTasks: volunteerCompleted,
       locked: !allAgileDone,
       prerequisiteLabel: "Build an Agile Mindset",
+      otherCompleters: completers["volunteer-teams"] ?? 0,
     },
     {
       id: "discord-learning",
@@ -267,6 +272,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_DISCORD_LESSONS,
       completedTasks: discordCompleted,
       locked: false,
+      otherCompleters: completers["discord-learning"] ?? 0,
     },
     {
       id: "observer-course",
@@ -277,6 +283,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_OBSERVER_LESSONS,
       completedTasks: observerCompleted,
       locked: false,
+      otherCompleters: completers["observer-course"] ?? 0,
     },
     {
       id: "agile-teamwork",
@@ -287,6 +294,7 @@ export default function TrainingPage() {
       totalTasks: TOTAL_TEAMWORK_LESSONS,
       completedTasks: teamworkCompleted,
       locked: false,
+      otherCompleters: completers["agile-teamwork"] ?? 0,
     },
   ];
 
