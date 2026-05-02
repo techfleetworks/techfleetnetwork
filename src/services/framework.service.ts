@@ -56,7 +56,7 @@ export const FRAMEWORK_LABELS: Record<FrameworkEntity, string> = {
 export const FRAMEWORK_DEFINITIONS: Record<FrameworkEntity, string> = {
   skills: "A measured ability in an area of expertise (technical) or a measured ability to interact with others (interpersonal).",
   practices: "A belief and behavior that affects successful teamwork on empowered teams.",
-  activities: "Something that teams do to complete work — also called tasks.",
+  activities: "Something that teams do to complete work.",
   duties: "An expected responsibility associated with a job title.",
   deliverables: "Something provided as a result of a process.",
   tools: "An object (physical or digital) that's used to complete work.",
