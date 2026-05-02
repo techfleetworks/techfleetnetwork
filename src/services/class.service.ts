@@ -12,7 +12,9 @@ export type ClassRow = {
   description: string | null;
   hero_image_url: string | null;
   skills: string[];
-  outcomes: string[];
+  outcomes: string;
+  why_take: string;
+  audiences: string;
   prerequisites: string[];
   submitted_at: string | null;
   published_at: string | null;
@@ -77,6 +79,8 @@ export const ClassService = {
         hero_image_url: values.hero_image_url || null,
         skills: values.skills,
         outcomes: values.outcomes,
+        why_take: values.why_take,
+        audiences: values.audiences,
         prerequisites: values.prerequisites,
         slug: "", // server trigger will populate
       } as never)
