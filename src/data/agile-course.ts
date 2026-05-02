@@ -461,7 +461,7 @@ This is a false perception.
 
 Expert Agile teams are experts in navigating uncertainty, experts in pivoting, and experts in supporting growth of others.
 
-They are not necessarily experts in hard skills. They progress through product development by being of service to each other as they manage risks and build a working process together.
+They are not necessarily experts in technical and interpersonal skills. They progress through product development by being of service to each other as they manage risks and build a working process together.
 
 Yes, we're all here to make a living. We're all here trying to deliver results. We want to ship products. We want to have job security. We've got to make management happy if we want to stay working at a company.
 

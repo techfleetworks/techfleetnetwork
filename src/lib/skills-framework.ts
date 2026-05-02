@@ -1,4 +1,4 @@
-// Auto-generated from public/data/skills-framework.csv (Hard Skills + Soft Skills columns)
+// Auto-generated from public/data/skills-framework.csv (Technical & Interpersonal Skills + Team Practices columns)
 // Used as the canonical skills list across the app.
 
 export const SKILLS_FRAMEWORK: readonly string[] = [
