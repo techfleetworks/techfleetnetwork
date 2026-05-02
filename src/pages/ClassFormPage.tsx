@@ -23,7 +23,8 @@ import { useClassById } from "@/hooks/use-classes";
 import { ClassService } from "@/services/class.service";
 import { classFormSchema, type ClassFormValues } from "@/lib/validators/class";
 import { useQueryClient } from "@/lib/react-query";
-import { SKILLS_OPTIONS } from "@/lib/skills-framework";
+import { SKILLS_OPTIONS as SKILLS_FALLBACK } from "@/lib/skills-framework";
+import { useReferenceList } from "@/hooks/use-reference";
 
 function csvToList(s: string): string[] {
   return s.split(/[\n,]/).map((t) => t.trim()).filter(Boolean);
@@ -217,12 +218,9 @@ export default function ClassFormPage() {
 
         <div>
           <Label htmlFor="skills">Skills</Label>
-          <MultiSelect
-            options={SKILLS_OPTIONS}
-            selected={skills}
+          <SkillsPicker
+            value={skills}
             onChange={(v) => form.setValue("skills", v, { shouldValidate: true, shouldDirty: true })}
-            placeholder="Search the Tech Fleet skills framework…"
-            aria-label="Skills"
           />
           {form.formState.errors.skills && (
             <p className="text-xs text-destructive mt-1">{form.formState.errors.skills.message}</p>
@@ -245,5 +243,34 @@ export default function ClassFormPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+/**
+ * SkillsPicker — DB-backed Tech Fleet skills selector.
+ * Pulls from `reference_skills` via React Query (24h cache). If the table is
+ * empty (admin hasn't synced yet) it falls back to the bundled framework list
+ * so the form never renders an empty dropdown — graceful degradation.
+ */
+function SkillsPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const { data, isLoading, isError } = useReferenceList("skills");
+  const options = useMemo(() => {
+    const fromDb = (data ?? []).map((r) => ({ value: r.name, label: r.name }));
+    if (fromDb.length > 0) return fromDb;
+    return SKILLS_FALLBACK;
+  }, [data]);
+  const placeholder = isLoading
+    ? "Loading skills…"
+    : isError
+      ? "Skills (fallback list — DB unavailable)"
+      : "Search the Tech Fleet skills framework…";
+  return (
+    <MultiSelect
+      options={options}
+      selected={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      aria-label="Skills"
+    />
   );
 }

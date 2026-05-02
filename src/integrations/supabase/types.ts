@@ -1979,6 +1979,636 @@ export type Database = {
         }
         Relationships: []
       }
+      reference_activities: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_agile_methods: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_company_types: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_deliverables: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_duties: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_job_industries: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_job_specializations: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_practices: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_project_milestones: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_skills: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_team_functions: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_tech_job_categories: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_tools: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_workshops: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       revoked_sessions: {
         Row: {
           created_at: string
@@ -2766,6 +3396,8 @@ export type Database = {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_class_for_review: {
         Args: { p_class_id: string; p_cohort_ids?: string[] }
         Returns: undefined
