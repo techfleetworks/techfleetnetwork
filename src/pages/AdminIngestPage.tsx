@@ -157,6 +157,53 @@ export default function AdminIngestPage() {
           })}
         </div>
       </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-bold">Reference Tables (Structured DB)</h2>
+          <p className="text-sm text-muted-foreground">
+            Load the same CSVs into normalized <code>reference_*</code> tables for fast in-app lookup
+            (skills picker, milestones, activities, etc.). Idempotent — safe to re-run.
+          </p>
+        </div>
+
+        <Button onClick={syncReferenceAll} disabled={refRunning}>
+          {refRunning ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+              Syncing...
+            </>
+          ) : (
+            "Sync All Reference Tables"
+          )}
+        </Button>
+
+        <div className="space-y-2">
+          {CSV_DATASETS.map((ds) => {
+            const st = refStatuses[ds.name];
+            return (
+              <div key={`ref-${ds.name}`} className="flex items-center gap-3 p-3 border rounded-lg">
+                {st.status === "idle" && <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" aria-hidden="true" />}
+                {st.status === "loading" && <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />}
+                {st.status === "done" && <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />}
+                {st.status === "error" && <AlertCircle className="h-5 w-5 text-destructive" aria-hidden="true" />}
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{ds.name}</p>
+                  {st.detail && <p className="text-xs text-muted-foreground">{st.detail}</p>}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => syncReferenceOne(ds.file, ds.name)}
+                  disabled={refRunning || st.status === "loading"}
+                >
+                  Sync
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
