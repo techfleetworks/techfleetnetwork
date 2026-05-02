@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ClientLogo } from "@/components/ClientLogo";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -209,7 +210,7 @@ function buildTimeline(applicantStatus: string, requiresInterview: boolean = tru
 
 /* ── Active Teammate Celebration ──────────────────────────── */
 
-function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
+function ActiveTeammateCelebration({ clientName, friendlyName }: { clientName: string; friendlyName?: string | null }) {
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
@@ -245,6 +246,9 @@ function ActiveTeammateCelebration({ clientName }: { clientName: string }) {
         <p className="text-lg font-medium text-foreground">
           You're an Active Teammate on <span className="text-primary font-semibold">{clientName}</span>!
         </p>
+        {friendlyName?.trim() && (
+          <p className="text-base text-muted-foreground">{friendlyName}</p>
+        )}
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           You've made it through the entire application process and are now contributing to your project team.
           Keep up the amazing work — your dedication makes a difference!
@@ -397,7 +401,7 @@ export default function ProjectApplicationStatusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id, requires_interview")
+        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id, requires_interview, friendly_name")
         .eq("id", app!.project_id as string)
         .single();
       if (error) throw error;
@@ -603,23 +607,30 @@ export default function ProjectApplicationStatusPage() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/applications/projects")} aria-label="Back to Project Applications">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3">
             <ClientLogo url={(client as any)?.logo_url} name={clientName} size="md" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
-              <Badge className={`gap-1 ${getStatusBadgeClasses(config.variant)}`}>
-                <StatusIcon className="h-3 w-3" />
-                {config.label}
-              </Badge>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-3 flex-wrap">
+                <ProjectOpeningHeading
+                  clientName={clientName}
+                  friendlyName={(project as any)?.friendly_name}
+                  size="xl"
+                  as="h1"
+                />
+                <Badge className={`gap-1 mt-1 ${getStatusBadgeClasses(config.variant)}`}>
+                  <StatusIcon className="h-3 w-3" />
+                  {config.label}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Application Status</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Application Status</p>
         </div>
       </div>
 
       {/* Active Teammate Celebration */}
-      {isActiveTeammate && <ActiveTeammateCelebration clientName={clientName} />}
+      {isActiveTeammate && <ActiveTeammateCelebration clientName={clientName} friendlyName={(project as any)?.friendly_name} />}
 
       {/* Timeline Card */}
       <Card>
