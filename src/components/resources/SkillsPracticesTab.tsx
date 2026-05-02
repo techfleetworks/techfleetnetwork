@@ -1,16 +1,14 @@
-// Skills & Practices Framework tab — Browse / Map / Relationships sub-views.
-// Backed by reference_relationships and the per-entity reference_* tables.
-import { lazy, Suspense, useMemo, useState } from "react";
-import { Loader2, Network, BookOpen, GitBranch, Compass } from "lucide-react";
+// Skills & Practices Framework tab — Overview / Browse sub-views.
+// Backed by the per-entity reference_* tables.
+import { useState } from "react";
+import { Loader2, BookOpen, Compass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FRAMEWORK_ENTITIES,
   FRAMEWORK_LABELS,
   FRAMEWORK_DEFINITIONS,
   FRAMEWORK_GROUPS,
@@ -18,13 +16,9 @@ import {
   type FrameworkEntity,
 } from "@/services/framework.service";
 import { listReference, type ReferenceItem } from "@/services/reference.service";
-import { useFrameworkRelationships } from "@/hooks/use-framework";
-
-const MapView = lazy(() => import("./skills-practices/MapView"));
 
 export default function SkillsPracticesTab() {
   const [sub, setSub] = useState("overview");
-  const rels = useFrameworkRelationships();
 
   return (
     <div className="space-y-6">
@@ -32,8 +26,6 @@ export default function SkillsPracticesTab() {
         <TabsList>
           <TabsTrigger value="overview"><Compass className="h-4 w-4 mr-1.5" />Overview</TabsTrigger>
           <TabsTrigger value="browse"><BookOpen className="h-4 w-4 mr-1.5" />Browse</TabsTrigger>
-          <TabsTrigger value="map"><Network className="h-4 w-4 mr-1.5" />Map</TabsTrigger>
-          <TabsTrigger value="relationships"><GitBranch className="h-4 w-4 mr-1.5" />Relationships</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -42,16 +34,6 @@ export default function SkillsPracticesTab() {
 
         <TabsContent value="browse">
           <BrowseView />
-        </TabsContent>
-
-        <TabsContent value="map">
-          <Suspense fallback={<Loader2 className="h-6 w-6 animate-spin mx-auto my-12 text-muted-foreground" />}>
-            <MapView relationships={rels.data ?? []} loading={rels.isLoading} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="relationships">
-          <RelationshipsView />
         </TabsContent>
       </Tabs>
     </div>
@@ -140,7 +122,6 @@ function OverviewView({ onNavigate }: { onNavigate: (sub: string) => void }) {
           <li><strong>Standardize training:</strong> onboarding, user guides, agile coaching, and templates all use the same vocabulary.</li>
           <li><strong>Measure readiness:</strong> assess and track skills, beliefs, and behaviors over time.</li>
           <li><strong>Match talent to projects:</strong> connect members to training and paid work that fits their growth path.</li>
-          <li><strong>Power Career Plans:</strong> generate personalized development plans by walking the relationship graph between job titles, duties, skills, and practices.</li>
           <li><strong>Power Fleety:</strong> Tech Fleet&apos;s assistant uses framework relationships to answer questions about what&apos;s needed for any role.</li>
         </ul>
       </Card>
@@ -159,26 +140,6 @@ function OverviewView({ onNavigate }: { onNavigate: (sub: string) => void }) {
               Browse
             </button>{" "}
             — explore every entity (skills, practices, activities, duties, deliverables, tools, projects, milestones, stakeholders, specializations, job titles, roles, and resources). Search and filter within each.
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => onNavigate("map")}
-              className="font-semibold text-primary hover:underline"
-            >
-              Map
-            </button>{" "}
-            — see a visual graph of how the 13 concepts connect to each other.
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => onNavigate("relationships")}
-              className="font-semibold text-primary hover:underline"
-            >
-              Relationships
-            </button>{" "}
-            — pick any two entities and read the canonical sentences describing how they relate in both directions.
           </li>
         </ul>
       </Card>
@@ -225,7 +186,6 @@ function BrowseView() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-      {/* Entity rail */}
       <ScrollArea className="lg:max-h-[60vh] lg:pr-2">
         <nav className="space-y-4" aria-label="Framework entities">
           {FRAMEWORK_GROUPS.map((g) => (
@@ -256,7 +216,6 @@ function BrowseView() {
         </nav>
       </ScrollArea>
 
-      {/* Entity contents */}
       <div className="space-y-4 min-w-0">
         <header>
           <h2 className="text-xl font-semibold text-foreground">{FRAMEWORK_LABELS[selected]}</h2>
@@ -319,114 +278,5 @@ function EntityList({ entity, search }: { entity: FrameworkEntity; search: strin
         ))}
       </ul>
     </>
-  );
-}
-
-// ---------- Relationships sub-view ----------
-function RelationshipsView() {
-  const [from, setFrom] = useState<FrameworkEntity>("skills");
-  const [to, setTo] = useState<FrameworkEntity>("activities");
-  const rels = useFrameworkRelationships();
-
-  const forward = useMemo(
-    () => rels.data?.find((r) => r.from_entity === from && r.to_entity === to),
-    [rels.data, from, to]
-  );
-  const reverse = useMemo(
-    () => rels.data?.find((r) => r.from_entity === to && r.to_entity === from),
-    [rels.data, from, to]
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <EntitySelect label="Entity A" value={from} onChange={setFrom} />
-        <EntitySelect label="Entity B" value={to} onChange={setTo} />
-      </div>
-
-      {from === to ? (
-        <Card className="p-6 text-center text-sm text-muted-foreground">
-          Pick two different entities to see how they relate.
-        </Card>
-      ) : rels.isLoading ? (
-        <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <RelationshipCard
-            from={from}
-            to={to}
-            description={forward?.description ?? null}
-            allDescriptions={forward?.all_descriptions ?? []}
-          />
-          <RelationshipCard
-            from={to}
-            to={from}
-            description={reverse?.description ?? forward?.inverse_description ?? null}
-            allDescriptions={reverse?.all_descriptions ?? []}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EntitySelect({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: FrameworkEntity;
-  onChange: (v: FrameworkEntity) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
-      <Select value={value} onValueChange={(v) => onChange(v as FrameworkEntity)}>
-        <SelectTrigger><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {FRAMEWORK_ENTITIES.map((e) => (
-            <SelectItem key={e} value={e}>{FRAMEWORK_LABELS[e]}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function RelationshipCard({
-  from,
-  to,
-  description,
-  allDescriptions,
-}: {
-  from: FrameworkEntity;
-  to: FrameworkEntity;
-  description: string | null;
-  allDescriptions: string[];
-}) {
-  return (
-    <Card className="p-4 space-y-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        <span className="text-foreground">{FRAMEWORK_LABELS[from]}</span>
-        <span aria-hidden="true">→</span>
-        <span className="text-foreground">{FRAMEWORK_LABELS[to]}</span>
-      </div>
-      {description ? (
-        <p className="text-sm text-foreground leading-relaxed">{description}</p>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">No relationship recorded in this direction.</p>
-      )}
-      {allDescriptions.length > 1 && (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer hover:text-foreground">
-            {allDescriptions.length - 1} alternate phrasing{allDescriptions.length === 2 ? "" : "s"}
-          </summary>
-          <ul className="mt-2 space-y-1 list-disc list-inside">
-            {allDescriptions.slice(1).map((d, i) => <li key={i}>{d}</li>)}
-          </ul>
-        </details>
-      )}
-    </Card>
   );
 }
