@@ -54,11 +54,25 @@ export default function ClassDetailPage() {
         <Link to="/teach/classes"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link>
       </Button>
 
+      {cls.hero_image_url && (
+        <img
+          src={cls.hero_image_url}
+          alt={`${cls.title} hero`}
+          className="w-full max-h-72 object-cover rounded-md border border-border"
+          loading="lazy"
+        />
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Badge variant="outline" className="mb-2">{cls.status.replace("_", " ")}</Badge>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{cls.title}</h1>
-          <p className="text-muted-foreground mt-1">{cls.summary}</p>
+          {cls.summary && (
+            <div
+              className="prose prose-invert max-w-none text-sm text-muted-foreground mt-1"
+              dangerouslySetInnerHTML={{ __html: cls.summary }}
+            />
+          )}
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
@@ -85,7 +99,31 @@ export default function ClassDetailPage() {
       </div>
 
       {cls.description && (
-        <div className="prose prose-invert max-w-none text-sm text-foreground" dangerouslySetInnerHTML={{ __html: cls.description }} />
+        <section>
+          <h2 className="font-semibold text-base mb-2">About this class</h2>
+          <div className="prose prose-invert max-w-none text-sm text-foreground" dangerouslySetInnerHTML={{ __html: cls.description }} />
+        </section>
+      )}
+
+      {cls.why_take && (
+        <section>
+          <h2 className="font-semibold text-base mb-2">Why take this course?</h2>
+          <div className="prose prose-invert max-w-none text-sm text-foreground" dangerouslySetInnerHTML={{ __html: cls.why_take }} />
+        </section>
+      )}
+
+      {cls.outcomes && (
+        <section>
+          <h2 className="font-semibold text-base mb-2">Outcomes</h2>
+          <div className="prose prose-invert max-w-none text-sm text-foreground" dangerouslySetInnerHTML={{ __html: cls.outcomes }} />
+        </section>
+      )}
+
+      {cls.audiences && (
+        <section>
+          <h2 className="font-semibold text-base mb-2">Audiences</h2>
+          <div className="prose prose-invert max-w-none text-sm text-foreground" dangerouslySetInnerHTML={{ __html: cls.audiences }} />
+        </section>
       )}
 
       {cls.skills.length > 0 && (
