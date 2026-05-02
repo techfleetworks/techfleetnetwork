@@ -2162,6 +2162,36 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_promotions: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          promoted_by: string
+          token: string
+          token_hash: string | null
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          promoted_by: string
+          token?: string
+          token_hash?: string | null
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          promoted_by?: string
+          token?: string
+          token_hash?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       trusted_devices: {
         Row: {
           bound_at: string
