@@ -1,7 +1,7 @@
 // Skills & Practices Framework tab — Browse / Map / Relationships sub-views.
 // Backed by reference_relationships and the per-entity reference_* tables.
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Loader2, Network, BookOpen, GitBranch } from "lucide-react";
+import { Loader2, Network, BookOpen, GitBranch, Compass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
