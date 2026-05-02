@@ -296,6 +296,114 @@ export type Database = {
         }
         Relationships: []
       }
+      career_plan_items: {
+        Row: {
+          auto_generated: boolean
+          created_at: string
+          id: string
+          item_type: string
+          plan_id: string
+          priority: number
+          rationale: string
+          reference_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auto_generated?: boolean
+          created_at?: string
+          id?: string
+          item_type: string
+          plan_id: string
+          priority?: number
+          rationale?: string
+          reference_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_generated?: boolean
+          created_at?: string
+          id?: string
+          item_type?: string
+          plan_id?: string
+          priority?: number
+          rationale?: string
+          reference_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "career_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_plans: {
+        Row: {
+          created_at: string
+          current_practices: Json
+          current_skills: Json
+          id: string
+          notes: string
+          target_job_title_id: string | null
+          target_role_id: string | null
+          target_specialization_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_practices?: Json
+          current_skills?: Json
+          id?: string
+          notes?: string
+          target_job_title_id?: string | null
+          target_role_id?: string | null
+          target_specialization_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_practices?: Json
+          current_skills?: Json
+          id?: string
+          notes?: string
+          target_job_title_id?: string | null
+          target_role_id?: string | null
+          target_specialization_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_plans_target_job_title_id_fkey"
+            columns: ["target_job_title_id"]
+            isOneToOne: false
+            referencedRelation: "reference_job_titles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plans_target_role_id_fkey"
+            columns: ["target_role_id"]
+            isOneToOne: false
+            referencedRelation: "reference_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plans_target_specialization_id_fkey"
+            columns: ["target_specialization_id"]
+            isOneToOne: false
+            referencedRelation: "reference_job_specializations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -3489,6 +3597,18 @@ export type Database = {
         }
       }
       export_my_data: { Args: never; Returns: Json }
+      fw_build_entity_content: {
+        Args: { p_description: string; p_entity: string; p_name: string }
+        Returns: string
+      }
+      fw_delete_kb: { Args: { p_url: string }; Returns: undefined }
+      fw_label: { Args: { entity: string }; Returns: string }
+      fw_slug: { Args: { input: string }; Returns: string }
+      fw_table: { Args: { entity: string }; Returns: string }
+      fw_upsert_kb: {
+        Args: { p_content: string; p_title: string; p_url: string }
+        Returns: undefined
+      }
       get_announcement_view_counts: {
         Args: never
         Returns: {
