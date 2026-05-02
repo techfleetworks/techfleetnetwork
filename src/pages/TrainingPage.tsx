@@ -24,8 +24,15 @@ import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
 import { TOTAL_OBSERVER_LESSONS } from "@/data/observer-course";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
+import { useCourseCompletionCounts, type CourseCompletionSpec } from "@/hooks/use-course-completion-counts";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
+import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
+import { ALL_DISCORD_LESSON_IDS } from "@/data/discord-course";
+import { ALL_TEAMWORK_LESSON_IDS } from "@/data/teamwork-course";
+import { ALL_PROJECT_TRAINING_LESSON_IDS } from "@/data/project-training-course";
+import { ALL_VOLUNTEER_LESSON_IDS } from "@/data/volunteer-teams-course";
+import { ALL_OBSERVER_LESSON_IDS } from "@/data/observer-course";
 
 interface CourseCard {
   id: string;
@@ -37,6 +44,14 @@ interface CourseCard {
   completedTasks: number;
   locked: boolean;
   prerequisiteLabel?: string;
+  /** Number of *other* members who have completed this course */
+  otherCompleters?: number;
+}
+
+function formatCompleters(n: number): string {
+  if (n <= 0) return "Be the first to complete this";
+  if (n === 1) return "Completed by 1 other member";
+  return `Completed by ${n.toLocaleString()} other members`;
 }
 
 function CourseGrid({ courses }: { courses: CourseCard[] }) {
