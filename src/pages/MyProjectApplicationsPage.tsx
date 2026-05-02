@@ -20,6 +20,7 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { ClientLogo } from "@/components/ClientLogo";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -57,7 +58,7 @@ const APPLICANT_STATUS_LABELS: Record<string, string> = {
 };
 
 interface EnrichedApp extends ProjectApp {
-  project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] };
+  project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[]; friendly_name?: string | null };
   client?: { id: string; name: string; logo_url?: string | null };
 }
 
@@ -113,7 +114,7 @@ export default function MyProjectApplicationsPage() {
       const { data, error } = await supabase
         .from("projects").select("*").in("id", projectIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[] }[];
+      return (data ?? []) as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[]; friendly_name?: string | null }[];
     },
     enabled: projectIds.length > 0,
   });
@@ -147,6 +148,13 @@ export default function MyProjectApplicationsPage() {
       headerName: "Client",
       field: "client",
       valueGetter: (p) => p.data?.client?.name ?? "Unknown",
+      flex: 1.5,
+      minWidth: 140,
+    },
+    {
+      headerName: "Project",
+      colId: "project_friendly",
+      valueGetter: (p) => p.data?.project?.friendly_name?.trim() || "—",
       flex: 1.5,
       minWidth: 140,
     },
@@ -339,11 +347,16 @@ export default function MyProjectApplicationsPage() {
                 <CardContent className="pt-5 space-y-3">
                   {/* Client & Status */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       <ClientLogo url={app.client?.logo_url} name={app.client?.name} size="md" />
-                      <p className="text-base font-semibold text-foreground truncate">
-                        {app.client?.name ?? "Unknown Client"}
-                      </p>
+                      <ProjectOpeningHeading
+                        clientName={app.client?.name ?? "Unknown Client"}
+                        friendlyName={app.project?.friendly_name}
+                        size="md"
+                        as="h3"
+                        truncate
+                        className="flex-1"
+                      />
                     </div>
                     {hasStatusUpdate ? (
                       <Badge className={`gap-1 shrink-0 ${

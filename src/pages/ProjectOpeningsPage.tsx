@@ -16,6 +16,7 @@ import {
   PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES, TEAM_HATS,
 } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import type { ColDef } from "ag-grid-community";
 
 interface OpenProject {
@@ -282,13 +283,14 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
                     </div>
                   )}
                   <div className="min-w-0">
-                    <CardTitle className="text-lg leading-tight truncate">
-                      {p.clientName}
-                      {p.friendly_name?.trim() && (
-                        <span className="text-muted-foreground font-medium"> — {p.friendly_name}</span>
-                      )}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-0.5">{typeLabel(p.project_type)}</p>
+                    <ProjectOpeningHeading
+                      clientName={p.clientName}
+                      friendlyName={p.friendly_name}
+                      size="lg"
+                      as="h3"
+                      truncate
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">{typeLabel(p.project_type)}</p>
                   </div>
                 </div>
                 <Badge className={`${statusClass(p.project_status)} shrink-0`}>{statusLabel(p.project_status)}</Badge>

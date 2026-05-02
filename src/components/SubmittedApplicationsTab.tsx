@@ -12,6 +12,7 @@ import { ThemedAgGrid } from "@/components/AgGrid";
 import { AllApplicationsColumnPicker, ALL_COLUMNS, DEFAULT_VISIBLE_KEYS } from "@/components/admin/AllApplicationsColumnPicker";
 import type { ColDef, GridReadyEvent, GridApi, ICellRendererParams } from "ag-grid-community";
 import { ClientLogo } from "@/components/ClientLogo";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 
 interface ProjectApp {
   id: string;
@@ -67,6 +68,7 @@ interface ProjectRow {
   phase: string;
   project_status: string;
   client_id: string;
+  friendly_name?: string | null;
 }
 
 interface ClientRow {
@@ -264,6 +266,7 @@ export default function SubmittedApplicationsTab() {
       { headerName: "Applicant", colId: "applicant", flex: 2, valueGetter: (p) => { const pr = p.data?.profile; if (!pr) return "Unknown"; return pr.display_name || `${pr.first_name ?? ""} ${pr.last_name ?? ""}`.trim() || "Unknown"; } },
       { headerName: "Email", colId: "email", flex: 2, valueGetter: (p) => p.data?.profile?.email ?? "—", hide: !visibleKeys.includes("email") },
       { headerName: "Client", colId: "client", flex: 1, valueGetter: (p) => p.data?.client?.name ?? "—" },
+      { headerName: "Project", colId: "project_friendly", flex: 1, valueGetter: (p) => p.data?.project?.friendly_name?.trim() || "—", hide: !visibleKeys.includes("project_friendly") },
       { headerName: "Project Type", colId: "project_type", flex: 1, valueGetter: (p) => typeLabel(p.data?.project?.project_type ?? "") },
       { headerName: "Phase", colId: "phase", flex: 1, valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? "") },
       { headerName: "Project Status", colId: "project_status", flex: 1, valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? "") },
@@ -416,9 +419,16 @@ export default function SubmittedApplicationsTab() {
                   <p className="text-xs text-muted-foreground">{app.profile?.email}</p>
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2">
                     <ClientLogo url={app.client?.logo_url} name={app.client?.name} size="sm" />
-                    <p className="text-sm text-foreground font-medium truncate">{app.client?.name ?? "Unknown Client"}</p>
+                    <ProjectOpeningHeading
+                      clientName={app.client?.name ?? "Unknown Client"}
+                      friendlyName={app.project?.friendly_name}
+                      size="sm"
+                      as="p"
+                      truncate
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="outline" className="text-xs">{typeLabel(app.project?.project_type ?? "")}</Badge>

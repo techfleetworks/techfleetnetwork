@@ -28,6 +28,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { key: "applicant", label: "Applicant", group: "core" },
   { key: "email", label: "Email", group: "core" },
   { key: "client", label: "Client", group: "core" },
+  { key: "project_friendly", label: "Project", group: "core" },
   { key: "project_type", label: "Project Type", group: "core" },
   { key: "phase", label: "Phase", group: "core" },
   { key: "project_status", label: "Project Status", group: "core" },
@@ -81,6 +82,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
 export const DEFAULT_VISIBLE_KEYS = [
   "applicant",
   "client",
+  "project_friendly",
   "project_type",
   "phase",
   "project_status",

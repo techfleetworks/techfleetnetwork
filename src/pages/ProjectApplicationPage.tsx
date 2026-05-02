@@ -25,6 +25,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import {
   PROJECT_TYPES, PROJECT_PHASES, TEAM_HATS,
 } from "@/data/project-constants";
@@ -548,12 +549,15 @@ export default function ProjectApplicationPage() {
           <Card>
             <CardContent className="pt-4 space-y-2">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-foreground">{client?.name}</p>
-                  <p className="text-sm text-muted-foreground">{typeLabel(project.project_type)} · {phaseLabel(project.phase)}</p>
-                </div>
+                <ProjectOpeningHeading
+                  clientName={client?.name}
+                  friendlyName={project?.friendly_name}
+                  size="md"
+                  as="p"
+                />
                 <Badge className="bg-warning/10 text-warning border-warning/20 shrink-0">Apply Now</Badge>
               </div>
+              <p className="text-sm text-muted-foreground">{typeLabel(project.project_type)} · {phaseLabel(project.phase)}</p>
               {client && (
                 <div className="space-y-2 text-sm pt-1">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -835,7 +839,7 @@ export default function ProjectApplicationPage() {
               Application Submitted!
             </DialogTitle>
             <DialogDescription>
-              Your application for {client?.name} has been submitted successfully. The team will review it and get back to you.
+              Your application for {client?.name}{project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} has been submitted successfully. The team will review it and get back to you.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center pt-2">
