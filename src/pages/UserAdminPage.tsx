@@ -162,7 +162,43 @@ export default function UserAdminPage() {
     }
   };
 
-  const NameCellRenderer = useCallback((params: ICellRendererParams<UserRow>) => {
+  const handlePromoteTeacher = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const res = await supabase.functions.invoke("promote-to-teacher", {
+        body: { user_id: targetUser.user_id },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to promote teacher");
+      const result = res.data as { error?: string; message?: string } | null;
+      if (result?.error) throw new Error(result.error);
+      toast.success(result?.message || "Teacher confirmation email sent");
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to promote teacher");
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
+  const handleRevokeTeacher = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      const res = await supabase.functions.invoke("revoke-teacher-role", {
+        body: { user_id: targetUser.user_id },
+      });
+      if (res.error) throw new Error(res.error.message || "Failed to revoke teacher");
+      const result = res.data as { error?: string; message?: string } | null;
+      if (result?.error) throw new Error(result.error);
+      toast.success(result?.message || "Teacher role revoked");
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to revoke teacher");
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
     const u = params.data;
     if (!u) return null;
     const name = u.first_name || u.last_name
