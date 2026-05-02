@@ -46,6 +46,30 @@ export async function listReference(entity: ReferenceEntity): Promise<ReferenceI
   return (data ?? []) as ReferenceItem[];
 }
 
+/**
+ * Batch-fetch many reference entity types in a single round-trip.
+ * Backed by the `framework_entity_v` view (UNION ALL across reference_* tables).
+ * Returns a map keyed by entity type for O(1) consumer access.
+ */
+export async function listReferenceBatch(
+  entities: ReferenceEntity[]
+): Promise<Record<string, ReferenceItem[]>> {
+  if (entities.length === 0) return {};
+  const { data, error } = await (supabase
+    .from("framework_entity_v" as any)
+    .select("entity_type, id, slug, name, description, category")
+    .in("entity_type", entities as string[])
+    .eq("is_active", true)
+    .order("name") as any);
+  if (error) throw error;
+  const out: Record<string, ReferenceItem[]> = Object.fromEntries(entities.map((e) => [e, []]));
+  for (const row of (data ?? []) as Array<ReferenceItem & { entity_type: string }>) {
+    const { entity_type, ...item } = row;
+    (out[entity_type] ||= []).push(item);
+  }
+  return out;
+}
+
 export async function searchReference(
   entity: ReferenceEntity,
   query: string,
