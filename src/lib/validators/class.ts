@@ -17,7 +17,9 @@ export const classFormSchema = z.object({
   title: safeRequiredTextSchema("Title", 120),
   summary: safeRequiredTextSchema("Summary", 500),
   description: safeHtmlSchema("Description", 50_000).default(""),
-  track: z.enum(CLASS_TRACKS, { required_error: "Track is required" }),
+  track: z.union([z.literal("basic_training"), z.literal("advanced_training")], {
+    message: "Track is required",
+  }),
   hero_image_url: safeUrlSchema("Hero image URL", 500).optional().default(""),
   skills: safeStringArraySchema("Skills", 30, 120).default([]),
   outcomes: safeStringArraySchema("Outcomes", 30, 200).default([]),
