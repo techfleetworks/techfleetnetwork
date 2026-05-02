@@ -155,7 +155,12 @@ export default function ApplicationSubmissionDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Application Submission Details</h1>
-            <p className="text-sm text-muted-foreground">{applicantName} — {(client?.name as string) ?? "Project"}</p>
+            <p className="text-sm text-muted-foreground">
+              {applicantName} — {(client?.name as string) ?? "Project"}
+              {(project as any)?.friendly_name?.trim() && (
+                <span className="block text-xs text-muted-foreground/80 mt-0.5">{(project as any).friendly_name}</span>
+              )}
+            </p>
           </div>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 self-start" onClick={handleShare}>
@@ -258,7 +263,7 @@ export default function ApplicationSubmissionDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <GraduationCap className="h-5 w-5 text-primary" />
-            Project Application — {(client?.name as string) ?? "Project"}
+            Project Application — {(client?.name as string) ?? "Project"}{(project as any)?.friendly_name?.trim() ? ` — ${(project as any).friendly_name}` : ""}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

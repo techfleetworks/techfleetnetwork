@@ -209,7 +209,7 @@ export default function DashboardPage() {
       if (projectApps.length === 0) return { projects: [], clients: [] };
       const projectIds = [...new Set(projectApps.map((a) => a.project_id))];
       const { data: projects } = await supabase
-        .from("projects").select("id, client_id, project_type, phase, project_status").in("id", projectIds);
+        .from("projects").select("id, client_id, project_type, phase, project_status, friendly_name").in("id", projectIds);
       const clientIds = [...new Set((projects ?? []).map((p) => p.client_id))];
       const { data: clients } = clientIds.length > 0
         ? await supabase.from("clients").select("id, name").in("id", clientIds)
@@ -515,6 +515,7 @@ export default function DashboardPage() {
                     {myProjectApps.map((app) => {
                       const proj = dashProjectMap.get(app.project_id);
                       const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
+                      const friendly = (proj as any)?.friendly_name?.trim();
                       const isCompleted = app.status === "completed";
                       const isDraft = app.status === "draft";
                       const applicantStatus = (app as any).applicant_status as string | undefined;
@@ -543,6 +544,9 @@ export default function DashboardPage() {
                                 </h3>
                                 <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
                               </div>
+                              {friendly && (
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>
+                              )}
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 {isCompleted && app.completed_at
                                   ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
