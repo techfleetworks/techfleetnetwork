@@ -313,8 +313,8 @@ export default function ProjectOpeningDetailPage() {
           {client.mission && (
             <DetailRow label="Mission" value={<p className="whitespace-pre-wrap leading-relaxed">{client.mission}</p>} />
           )}
-          {client.project_summary && (
-            <DetailRow label="Project Summary" value={<p className="whitespace-pre-wrap leading-relaxed">{client.project_summary}</p>} />
+          {project.description?.trim() && (
+            <DetailRow label="Project Summary" value={<p className="whitespace-pre-wrap leading-relaxed">{project.description}</p>} />
           )}
           {client.website && (
             <DetailRow
