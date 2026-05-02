@@ -65,6 +65,42 @@ export default function AdminIngestPage() {
     toast.success("All datasets processed!");
   };
 
+  // ---- Reference table sync (structured DB) ----
+  const [refStatuses, setRefStatuses] = useState<Record<string, { status: Status; detail?: string }>>(
+    Object.fromEntries(CSV_DATASETS.map((d) => [d.name, { status: "idle" as Status }]))
+  );
+  const [refRunning, setRefRunning] = useState(false);
+
+  const syncReferenceOne = async (file: string, name: string) => {
+    setRefStatuses((prev) => ({ ...prev, [name]: { status: "loading" } }));
+    try {
+      const res = await fetch(file);
+      const csvText = await res.text();
+      const { data, error } = await supabase.functions.invoke("ingest-reference-csv", {
+        body: { csv_text: csvText, dataset_name: name },
+      });
+      if (error) throw new Error(error.message);
+      setRefStatuses((prev) => ({
+        ...prev,
+        [name]: { status: "done", detail: `${data.upserted} rows → ${data.table}` },
+      }));
+    } catch (err: any) {
+      setRefStatuses((prev) => ({
+        ...prev,
+        [name]: { status: "error", detail: err.message },
+      }));
+    }
+  };
+
+  const syncReferenceAll = async () => {
+    setRefRunning(true);
+    for (const ds of CSV_DATASETS) {
+      await syncReferenceOne(ds.file, ds.name);
+    }
+    setRefRunning(false);
+    toast.success("Reference tables synced");
+  };
+
   return (
     <div className="container-app py-8 max-w-2xl space-y-10">
       <header>
