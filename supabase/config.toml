@@ -49,3 +49,7 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.techfleet-chat]
     verify_jwt = false
+  [functions.confirm-teacher-role]
+    verify_jwt = false
+  [functions.public-classes]
+    verify_jwt = false
