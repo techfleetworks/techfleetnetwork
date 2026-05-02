@@ -245,3 +245,32 @@ export default function ClassFormPage() {
     </div>
   );
 }
+
+/**
+ * SkillsPicker — DB-backed Tech Fleet skills selector.
+ * Pulls from `reference_skills` via React Query (24h cache). If the table is
+ * empty (admin hasn't synced yet) it falls back to the bundled framework list
+ * so the form never renders an empty dropdown — graceful degradation.
+ */
+function SkillsPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const { data, isLoading, isError } = useReferenceList("skills");
+  const options = useMemo(() => {
+    const fromDb = (data ?? []).map((r) => ({ value: r.name, label: r.name }));
+    if (fromDb.length > 0) return fromDb;
+    return SKILLS_FALLBACK;
+  }, [data]);
+  const placeholder = isLoading
+    ? "Loading skills…"
+    : isError
+      ? "Skills (fallback list — DB unavailable)"
+      : "Search the Tech Fleet skills framework…";
+  return (
+    <MultiSelect
+      options={options}
+      selected={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      aria-label="Skills"
+    />
+  );
+}
