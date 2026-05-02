@@ -30,7 +30,7 @@ export default function UserAdminPage() {
   const [search, setSearch] = useState("");
   const [promoting, setPromoting] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete">("promote");
+  const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete" | "promote_teacher" | "revoke_teacher">("promote");
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
 
   const fetchData = async () => {
@@ -43,15 +43,21 @@ export default function UserAdminPage() {
 
       const { data: roles } = await supabase
         .from("user_roles")
-        .select("user_id, role")
-        .eq("role", "admin");
-      const adminIds = new Set((roles || []).map((r: { user_id: string }) => r.user_id));
+        .select("user_id, role");
+      const adminIds = new Set((roles || []).filter((r) => r.role === "admin").map((r) => r.user_id));
+      const teacherIds = new Set((roles || []).filter((r) => r.role === "teacher").map((r) => r.user_id));
 
       const { data: promos } = await supabase
         .from("admin_promotions")
         .select("user_id")
         .is("confirmed_at", null);
       const pendingIds = new Set((promos || []).map((p: { user_id: string }) => p.user_id));
+
+      const { data: teacherPromos } = await supabase
+        .from("teacher_promotions" as never)
+        .select("user_id")
+        .is("confirmed_at", null);
+      const pendingTeacherIds = new Set(((teacherPromos as { user_id: string }[] | null) || []).map((p) => p.user_id));
 
       const rows: UserRow[] = (profiles || []).map((p) => ({
         user_id: p.user_id,
@@ -61,7 +67,9 @@ export default function UserAdminPage() {
         display_name: p.display_name,
         created_at: p.created_at,
         isAdmin: adminIds.has(p.user_id),
+        isTeacher: teacherIds.has(p.user_id),
         pendingPromotion: pendingIds.has(p.user_id),
+        pendingTeacher: pendingTeacherIds.has(p.user_id),
       }));
       setUsers(rows);
     } catch (err) {
