@@ -39,7 +39,7 @@ const VolunteerTeamsPage = lazy(() => import("./pages/VolunteerTeamsPage"));
 const DiscordCoursePage = lazy(() => import("./pages/DiscordCoursePage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
-const CareerPlanPage = lazy(() => import("./pages/CareerPlanPage"));
+
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AdminIngestPage = lazy(() => import("./pages/AdminIngestPage"));
@@ -155,7 +155,7 @@ const App = () => (
                     <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
                     <Route path="/my-journey" element={<ProtectedRoute><MyJourneyPage /></ProtectedRoute>} />
                     <Route path="/my-journey/quest/:pathId" element={<ProtectedRoute><QuestDetailPage /></ProtectedRoute>} />
-                    <Route path="/career-plan" element={<ProtectedRoute><CareerPlanPage /></ProtectedRoute>} />
+                    
                     <Route path="/courses" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
                     <Route path="/courses/connect-discord" element={<ProtectedRoute><ConnectDiscordPage /></ProtectedRoute>} />
                     <Route path="/courses/onboarding" element={<ProtectedRoute><FirstStepsPage /></ProtectedRoute>} />
