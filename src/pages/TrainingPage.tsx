@@ -187,6 +187,8 @@ export default function TrainingPage() {
   const allFirstStepsDone = firstCompleted >= TOTAL_FIRST_STEPS;
   const allAgileDone = agileCompleted >= TOTAL_AGILE_LESSONS;
 
+  const { data: completers = {} } = useCourseCompletionCounts(COURSE_COMPLETION_SPECS);
+
   const gettingStartedCourses: CourseCard[] = [
     {
       id: "connect-discord",
