@@ -23,7 +23,8 @@ import { useClassById } from "@/hooks/use-classes";
 import { ClassService } from "@/services/class.service";
 import { classFormSchema, type ClassFormValues } from "@/lib/validators/class";
 import { useQueryClient } from "@/lib/react-query";
-import { SKILLS_OPTIONS } from "@/lib/skills-framework";
+import { SKILLS_OPTIONS as SKILLS_FALLBACK } from "@/lib/skills-framework";
+import { useReferenceList } from "@/hooks/use-reference";
 
 function csvToList(s: string): string[] {
   return s.split(/[\n,]/).map((t) => t.trim()).filter(Boolean);
