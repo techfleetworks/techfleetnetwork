@@ -993,6 +993,13 @@ export type Database = {
             foreignKeyName: "fleety_action_events_turn_id_fkey"
             columns: ["turn_id"]
             isOneToOne: false
+            referencedRelation: "fleety_signals_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleety_action_events_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: false
             referencedRelation: "fleety_turn_signals"
             referencedColumns: ["id"]
           },
@@ -1033,6 +1040,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fleety_canned_answers_source_turn_id_fkey"
+            columns: ["source_turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_signals_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fleety_canned_answers_source_turn_id_fkey"
             columns: ["source_turn_id"]
@@ -1107,7 +1121,9 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
+          playbook_slug: string | null
           rating: number
+          reasons: string[]
           turn_id: string
           user_id: string
         }
@@ -1115,7 +1131,9 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          playbook_slug?: string | null
           rating: number
+          reasons?: string[]
           turn_id: string
           user_id: string
         }
@@ -1123,11 +1141,20 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          playbook_slug?: string | null
           rating?: number
+          reasons?: string[]
           turn_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fleety_message_feedback_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_signals_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fleety_message_feedback_turn_id_fkey"
             columns: ["turn_id"]
@@ -1215,6 +1242,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_prompt_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          label: string
+          notes: string | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          label: string
+          notes?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string
+          notes?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       fleety_proposed_relationships: {
         Row: {
           created_at: string
@@ -1253,6 +1313,13 @@ export type Database = {
           to_entity?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fleety_proposed_relationships_source_turn_id_fkey"
+            columns: ["source_turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_signals_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fleety_proposed_relationships_source_turn_id_fkey"
             columns: ["source_turn_id"]
@@ -1310,6 +1377,7 @@ export type Database = {
           kb_hit_count: number
           playbook_hits: number
           practical_score: number | null
+          prompt_version: string | null
           response_ms: number | null
           user_id: string
           user_query: string
@@ -1329,6 +1397,7 @@ export type Database = {
           kb_hit_count?: number
           playbook_hits?: number
           practical_score?: number | null
+          prompt_version?: string | null
           response_ms?: number | null
           user_id: string
           user_query: string
@@ -1348,6 +1417,7 @@ export type Database = {
           kb_hit_count?: number
           playbook_hits?: number
           practical_score?: number | null
+          prompt_version?: string | null
           response_ms?: number | null
           user_id?: string
           user_query?: string
@@ -3775,6 +3845,30 @@ export type Database = {
           id?: string | null
           ip_address?: never
           user_agent?: never
+        }
+        Relationships: []
+      }
+      fleety_signals_view: {
+        Row: {
+          action_count: number | null
+          audience: string | null
+          canned_answer_id: string | null
+          chips_clicked: number | null
+          created_at: string | null
+          example_hits: number | null
+          feedback_reasons: string[] | null
+          framework_hit_count: number | null
+          id: string | null
+          intent: string | null
+          kb_hit_count: number | null
+          playbook_hits: number | null
+          practical_score: number | null
+          prompt_version: string | null
+          rating: number | null
+          reason_count: number | null
+          user_id: string | null
+          user_query: string | null
+          web_hit_count: number | null
         }
         Relationships: []
       }
