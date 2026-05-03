@@ -260,6 +260,7 @@ export function FleetyChatWidget() {
       await streamChat({
         messages: [...messages, userMsg],
         conversationId: convoId,
+        clientPath: typeof window !== "undefined" ? window.location.pathname : null,
         onDelta: (chunk) => upsertAssistant(chunk),
         onTurnId: (id) => {
           assistantTurnId = id;
