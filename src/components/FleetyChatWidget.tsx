@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
 
-type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null };
+type ActionChip = { label: string; action_type: string; target_url?: string | null };
+type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null; chips?: ActionChip[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
