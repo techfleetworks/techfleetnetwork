@@ -12,6 +12,7 @@ import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
+import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -191,10 +192,12 @@ export default function SystemHealthPage() {
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
           <TabsTrigger value="fleety">Fleety</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
+
           {data.queue_stats.map((queue) => (
             <Card key={queue.queue_name}>
               <CardHeader>
@@ -217,6 +220,7 @@ export default function SystemHealthPage() {
         <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
+        <TabsContent value="content"><ContentGapsTab /></TabsContent>
         <TabsContent value="settings">
           <Card>
             <CardHeader>
