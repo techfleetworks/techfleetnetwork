@@ -416,7 +416,7 @@ export function FleetyChatWidget() {
                         <SafeMarkdown>{msg.content}</SafeMarkdown>
                       </div>
                       {!isLoading && msg.content.length > 0 && (
-                        <div className="mt-2 pt-1 border-t border-border/50">
+                        <div className="mt-2 pt-1 border-t border-border/50 flex items-center gap-1 flex-wrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -427,6 +427,28 @@ export function FleetyChatWidget() {
                             {speakingIdx === i ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                             {speakingIdx === i ? "Stop" : "Listen"}
                           </Button>
+                          {msg.turnId && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => submitFeedback(msg.turnId!, 1)}
+                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                aria-label="Mark answer as helpful"
+                              >
+                                <ThumbsUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => submitFeedback(msg.turnId!, -1)}
+                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                aria-label="Mark answer as not helpful"
+                              >
+                                <ThumbsDown className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
