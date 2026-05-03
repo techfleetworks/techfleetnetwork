@@ -11,6 +11,7 @@ import { useQuery } from "@/lib/react-query";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
+import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -189,6 +190,7 @@ export default function SystemHealthPage() {
           <TabsTrigger value="queues">Queues</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
+          <TabsTrigger value="fleety">Fleety</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -214,6 +216,7 @@ export default function SystemHealthPage() {
 
         <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
+        <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="settings">
           <Card>
             <CardHeader>
