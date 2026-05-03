@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SafeMarkdown } from "@/components/security/SafeMarkdown";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -20,21 +20,23 @@ const MAX_INPUT_LENGTH = 4000;
 
 async function streamChat({
   messages,
+  conversationId,
   onDelta,
+  onTurnId,
   onDone,
 }: {
   messages: Msg[];
+  conversationId: string | null;
   onDelta: (deltaText: string) => void;
+  onTurnId: (id: string | null) => void;
   onDone: () => void;
 }) {
-  // ASVS V13.2.1: Use session-bound JWT, not static publishable key
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) throw new Error("Authentication required. Please sign in again.");
 
-  // LLM10: Truncate overly long messages to prevent unbounded consumption
   const sanitizedMessages = messages.map((m) => ({
-    ...m,
+    role: m.role,
     content: m.content.slice(0, MAX_INPUT_LENGTH),
   }));
 
@@ -44,13 +46,15 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages: sanitizedMessages }),
+    body: JSON.stringify({ messages: sanitizedMessages, conversation_id: conversationId }),
   });
 
   if (!resp.ok) {
     const errData = await resp.json().catch(() => ({}));
     throw new Error(errData.error || `Request failed (${resp.status})`);
   }
+
+  onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
 
   if (!resp.body) throw new Error("No response stream");
 
@@ -223,21 +227,30 @@ export function FleetyChatWidget() {
     if (convoId) await saveMessage(convoId, "user", text);
 
     let assistantSoFar = "";
+    let assistantTurnId: string | null = null;
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar, turnId: assistantTurnId } : m));
         }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
+        return [...prev, { role: "assistant", content: assistantSoFar, turnId: assistantTurnId }];
       });
     };
 
     try {
       await streamChat({
         messages: [...messages, userMsg],
+        conversationId: convoId,
         onDelta: (chunk) => upsertAssistant(chunk),
+        onTurnId: (id) => {
+          assistantTurnId = id;
+          // Stamp turnId on the latest assistant message if it exists
+          setMessages((prev) => prev.map((m, i) =>
+            i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
+          ));
+        },
         onDone: async () => {
           setIsLoading(false);
           if (convoId && assistantSoFar) {
@@ -251,6 +264,16 @@ export function FleetyChatWidget() {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  // Submit thumbs feedback for an assistant message
+  const submitFeedback = async (turnId: string, rating: 1 | -1) => {
+    if (!user || !turnId) return;
+    const { error } = await supabase
+      .from("fleety_message_feedback")
+      .upsert({ turn_id: turnId, user_id: user.id, rating }, { onConflict: "turn_id,user_id" });
+    if (error) toast.error("Couldn't save your feedback.");
+    else toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
   };
 
   // Prefill from search query
@@ -393,7 +416,7 @@ export function FleetyChatWidget() {
                         <SafeMarkdown>{msg.content}</SafeMarkdown>
                       </div>
                       {!isLoading && msg.content.length > 0 && (
-                        <div className="mt-2 pt-1 border-t border-border/50">
+                        <div className="mt-2 pt-1 border-t border-border/50 flex items-center gap-1 flex-wrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -404,6 +427,28 @@ export function FleetyChatWidget() {
                             {speakingIdx === i ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                             {speakingIdx === i ? "Stop" : "Listen"}
                           </Button>
+                          {msg.turnId && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => submitFeedback(msg.turnId!, 1)}
+                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                aria-label="Mark answer as helpful"
+                              >
+                                <ThumbsUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => submitFeedback(msg.turnId!, -1)}
+                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                aria-label="Mark answer as not helpful"
+                              >
+                                <ThumbsDown className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
