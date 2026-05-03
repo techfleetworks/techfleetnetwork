@@ -710,7 +710,7 @@ serve(async (req) => {
     let knowledgeContext = "";
     if (kbHits.length > 0) {
       for (const entry of kbHits) {
-        const cap = entry.url.startsWith("workshop://") ? PER_WORKSHOP_CHARS : PER_KB_CHARS;
+        const cap = PER_KB_CHARS;
         const truncated = entry.content.length > cap
           ? entry.content.substring(0, cap) + "...[truncated]"
           : entry.content;
