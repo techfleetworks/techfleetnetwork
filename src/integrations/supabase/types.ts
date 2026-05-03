@@ -3553,7 +3553,14 @@ export type Database = {
         Returns: number
       }
       fw_label: { Args: { entity: string }; Returns: string }
-      fw_rebuild_all_edges: { Args: never; Returns: number }
+      fw_rebuild_all_edges: {
+        Args: never
+        Returns: {
+          edges_total: number
+          entity: string
+          rows_processed: number
+        }[]
+      }
       fw_refresh_neighbors_mv: { Args: never; Returns: undefined }
       fw_rename_jsonb_keys: {
         Args: { p_data: Json; p_pairs: string[] }
