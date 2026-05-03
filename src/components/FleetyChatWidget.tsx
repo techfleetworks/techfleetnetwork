@@ -527,6 +527,30 @@ export function FleetyChatWidget() {
                           )}
                         </div>
                       )}
+                      {msg.turnId && negFeedbackTurn === msg.turnId && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5"
+                          role="group"
+                          aria-label="Why wasn't this helpful?"
+                        >
+                          <span className="text-[11px] text-muted-foreground self-center mr-1">What was off?</span>
+                          {FEEDBACK_REASONS.map((reason) => {
+                            const active = (submittedReasons[msg.turnId!] ?? []).includes(reason);
+                            return (
+                              <Button
+                                key={reason}
+                                variant={active ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => toggleReason(msg.turnId!, reason)}
+                                className="h-6 px-2 text-[11px]"
+                                aria-pressed={active}
+                              >
+                                {reason}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
                       {msg.chips && msg.chips.length > 0 && (
                         <div
                           className="mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5"
