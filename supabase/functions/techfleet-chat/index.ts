@@ -971,7 +971,7 @@ serve(async (req) => {
     }
 
     // ── Intent classification + practical-mode retrieval ─────────────
-    const intent = classifyIntent(lastUserMessage);
+    const intent: Intent = routerDecision?.intent ?? classifyIntent(lastUserMessage);
     const practical = isOperationalIntent(intent);
     log.info("intent", `Detected intent=${intent} practical=${practical} [${requestId}]`, { requestId, intent });
 
