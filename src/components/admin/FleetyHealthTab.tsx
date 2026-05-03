@@ -188,6 +188,19 @@ export function FleetyHealthTab() {
     const { error } = await supabase.from("fleety_prompt_versions").update({ is_default: true }).eq("id", v.id);
     if (error) toast.error(error.message); else { toast.success(`"${v.label}" is now the default prompt.`); load(); }
   };
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const bulkDraft = async (entity: "deliverable" | "milestone" | "workshop") => {
+    setBulkLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fleety-bulk-draft-playbooks", { body: { entity, limit: 5 } });
+      if (error) toast.error(error.message);
+      else toast.success(`Drafted ${data?.drafted ?? 0} ${entity}(s). Review them in this tab.`);
+      load();
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const updateWeight = async (v: PromptVersion, weight: number) => {
     const { error } = await supabase.from("fleety_prompt_versions").update({ weight }).eq("id", v.id);
     if (error) toast.error(error.message); else load();
