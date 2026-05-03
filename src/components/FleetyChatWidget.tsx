@@ -136,6 +136,8 @@ export function FleetyChatWidget() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [negFeedbackTurn, setNegFeedbackTurn] = useState<string | null>(null);
+  const [submittedReasons, setSubmittedReasons] = useState<Record<string, string[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
