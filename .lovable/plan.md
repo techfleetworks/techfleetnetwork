@@ -1,66 +1,83 @@
-## Problem
+## Hardening Pass — Linter Cleanup
 
-A recent ingest added 13 workshops + 1 stakeholder with placeholder descriptions (e.g. "Placeholder.", "...placeholder description; to be filled in by content team"). If the content team writes real copy directly in the DB, the **next CSV re-import will silently overwrite those edits** with the placeholders again, because the ingest does an unconditional upsert on `slug`.
+Goal: clear all 53 outstanding Supabase linter warnings without changing user-visible behavior. These are pre-existing warnings, not regressions from the Content Gaps work.
 
-Also surfaced during inspection: 4 malformed rows from a bad CSV parse (slugs `roll`, `problem-statements-generation-workshoproll`, `work-prioritization-workshoproll`, `product-release-vision-scope-and-roadmap-workshop-roll`) — these need cleanup too.
+## What's flagged (53 warnings)
 
-## Goals
+| # | Lint code | Count | What it is |
+|---|---|---|---|
+| 1 | 0011 search_path mutable | 1 | One function missing `SET search_path` |
+| 2 | 0014 extension in public | 2 | `pg_trgm` and `vector` extensions live in `public` |
+| 3 | 0016 materialized view in API | 1 | A `framework_*` MV is reachable through PostgREST |
+| 4 | 0025 public bucket listing | 1 | `client-logos` + `class-hero-images` buckets allow `LIST` |
+| 5 | 0028 anon EXECUTE on SECURITY DEFINER | 11 | Functions callable without sign-in |
+| 6 | 0029 authenticated EXECUTE on SECURITY DEFINER | 33 | Helper/audit/admin functions callable by any signed-in user |
 
-1. Make placeholder content **safe to replace** — once real copy lands, no future ingest can clobber it.
-2. Give the content team a **single visible "Content Gaps" list** so they know exactly what to write.
-3. Clean up the 4 malformed CSV rows.
-4. Keep Fleety's `framework://` knowledge_base in sync so improved descriptions immediately power chatbot answers.
+The 0028+0029 items are the bulk. They include audit triggers, admin-only helpers (e.g. `archive_class`, `approve_and_publish_class`), framework helpers (`fw_lookup_relationships`, `fw_refresh_search_mv`), and stats RPCs (`get_network_stats`, `get_member_country_distribution`).
 
-## Plan
+## Categorization (decides remediation, not flag-by-flag)
 
-### 1. Add `is_placeholder` flag to all `reference_*` content tables
-Migration adds a generated column on `reference_workshops`, `reference_stakeholders` (and any sibling table that takes free-text descriptions):
-```
-is_placeholder bool GENERATED ALWAYS AS (
-  description IS NULL
-  OR btrim(description) = ''
-  OR description ILIKE '%placeholder%'
-) STORED
-```
-Plus a partial index for fast lookup.
+**A. Trigger-only DEFINERs (~12 fns: `audit_*`, `handle_*`)**
+Never called by clients — only fire from triggers. Action: `REVOKE EXECUTE FROM PUBLIC, anon, authenticated`. Linter clears, behavior unchanged.
 
-### 2. Make ingest **placeholder-aware** (the real fix)
-Update `/admin/ingest` upsert logic so that when a CSV row's incoming description is a placeholder AND the existing DB row's description is real (not placeholder), we **keep the DB value** for `description` (and any other long-form fields). Other columns still upsert normally. This is one `CASE WHEN` per protected column in the upsert SQL — cheap and bulletproof. Log a `kept_existing_description` count in the ingest summary so admins see it worked.
+**B. Admin-only RPCs (~10 fns: `archive_class`, `cancel_cohort`, `approve_and_publish_class`, `cleanup_*`, `_consume_device_nonce`, etc.)**
+Currently rely on inner `has_role('admin')` checks. Action: `REVOKE EXECUTE FROM anon, authenticated`; `GRANT EXECUTE TO service_role` only. UI paths that call these go through edge functions using service-role, so no UX change.
 
-### 3. "Content Gaps" admin panel
-New tab inside the existing **System Health → Content** area (no new route; matches the Fleety Coach pattern). Shows:
-- Card-view list (per project view-preferences rule) of every `reference_*` row where `is_placeholder = true`
-- Columns: Type · Name · Slug · Last updated · "Edit" button
-- Filter chips: Workshops, Stakeholders, All
-- Inline edit drawer with a textarea + Save (writes description, recomputes `is_placeholder`, triggers framework KB resync for that slug only)
-- Empty state: "All content has real descriptions. 🎯"
+**C. Public-data RPCs intentionally reachable (~6 fns: `get_network_stats`, `get_member_country_distribution`, `get_course_completion_counts`, `fw_lookup_relationships`, `get_nodes_neighbors_batch`, `fw_sync_relationships_to_kb`)**
+These power public widgets and Fleety. Action:
+- Keep `GRANT EXECUTE TO authenticated` (and `anon` only for the truly public ones — network stats, member country distribution).
+- Switch to `SECURITY INVOKER` where they only read public/RLS'd tables.
+- Where they must stay `SECURITY DEFINER` (e.g. cross-table aggregates), record the exception in security memory so the linter understands the intent.
 
-### 4. Clean up malformed rows
-One-shot migration deletes the 4 garbage slugs (`roll`, `*-workshoproll` variants). Confirms via `source_row_id IS NULL OR name !~ '[A-Za-z]'` before delete to avoid nuking anything real.
+**D. Helper utilities (`check_rate_limit`, `cleanup_rate_limits`, etc.)**
+Action: revoke from anon/authenticated, keep service_role.
 
-### 5. Framework KB resync hook
-After any description edit on a `reference_*` row, re-embed the matching `framework://<slug>` row in `knowledge_base` so Fleety picks up the new copy on the next turn (reuses existing `fleety-embed` function, single-row mode).
+**E. Functions missing `SET search_path` (1 fn + any DEFINER without it)**
+Action: `ALTER FUNCTION … SET search_path = public, pg_temp` for every remaining DEFINER. Standard hardening.
 
-### 6. BDD scenarios (mandatory per project rules)
-Add Gherkin to `bdd_scenarios` covering:
-- Ingest preserves real description when CSV row is placeholder ([UI] gap count drops, [DB] description unchanged, [Code] ingest summary reports `kept_existing_description >= 1`)
-- Editing a placeholder removes it from the gaps list and re-embeds the framework KB row
-- Malformed-row cleanup migration leaves all valid rows intact
+## Infra fixes
 
-## What stays out of scope
+**Extensions in public (`pg_trgm`, `vector`):** Move to a dedicated `extensions` schema. This is a 2-line migration but requires updating any function/view that references operator classes by unqualified name. Plan: create `extensions` schema, `ALTER EXTENSION … SET SCHEMA extensions`, then add `extensions` to the search_path of the few RPCs that use `<->` (vector) or `%` (trgm).
 
-- No email blast to the content team (you can hand them the gaps URL).
-- No bulk-edit UI; one-at-a-time editing is enough for ~14 rows.
-- No CSV write-back; content team edits in the app, CSV becomes the seed-only source.
+**Materialized view in API:** `REVOKE ALL ON public.<mv> FROM anon, authenticated;` and call it server-side only via the existing RPC wrappers. No client changes needed because nothing currently reads the MV directly through PostgREST.
 
-## Files / surfaces touched
+**Public buckets (`client-logos`, `class-hero-images`):**
+Both are intentionally world-readable for public marketing pages. The lint flags broad `LIST`, not `SELECT`.
+Action: add a storage policy that allows `SELECT` on individual objects but denies `LIST` on the bucket root — files are still hot-linkable by URL, but the bucket index is no longer enumerable.
 
-- New migration: add `is_placeholder` generated column + partial index + cleanup of 4 malformed slugs
-- `supabase/functions/admin-ingest-*/index.ts` — placeholder-aware upsert
-- `supabase/functions/fleety-embed/index.ts` — accept single-slug mode (already supports batch)
-- `src/pages/admin/SystemHealth.tsx` (or its Content tab) — new "Content Gaps" panel
-- `bdd_scenarios` table — 3 new scenarios
+## Execution plan
 
-## After approval
+1. **Single migration** with 4 sections, in order:
+   1. `ALTER FUNCTION` statements adding `SET search_path = public, pg_temp` to every DEFINER missing it.
+   2. `REVOKE EXECUTE` statements per category A/B/D from anon + authenticated.
+   3. Move `pg_trgm` and `vector` to `extensions` schema; update the small set of functions that need `extensions` in their search_path.
+   4. Tighten public-bucket policies and revoke MV API access.
 
-I'll implement in this order: migration → ingest guard → cleanup → admin UI → KB resync hook → BDD scenarios → verify with a dry-run re-ingest against the current CSV.
+2. **Smoke-test endpoints** that depend on the touched RPCs:
+   - Network stats widget on the Dashboard
+   - Member country distribution on the public landing
+   - Fleety chat (calls `fw_lookup_relationships`, `get_nodes_neighbors_batch`)
+   - Admin "Approve & Publish Class" / "Archive Class" flows
+   - Class hero image and client logo loading
+
+3. **Re-run `supabase--linter`** — expect 0 warnings. Anything that legitimately must remain (e.g. a truly public DEFINER) gets recorded in `security--update_memory` with rationale and marked via `manage_security_finding`.
+
+4. **BDD scenarios** added to `bdd_scenarios` (feature_area `security-hardening`):
+   - SH-001 Anon cannot execute formerly-anon-callable admin RPCs ([Code] 401/permission-denied; [DB] no audit row written; [UI] admin flow still works for admins)
+   - SH-002 Authenticated non-admin cannot execute admin RPCs ([Code] permission-denied; [UI] no regression on member dashboards)
+   - SH-003 Public buckets serve known files but reject LIST ([Code] LIST → 403; [UI] logos/hero images still render)
+   - SH-004 Linter run reports 0 SECURITY warnings post-migration ([Code] linter exit code clean)
+
+## Out of scope
+
+- Refactoring DEFINER functions into pure SQL/RLS equivalents (bigger lift; current patch is grants + search_path + schema moves only).
+- Auth changes (HIBP toggle, MFA scope) — covered by separate memories.
+- Touching `auth`, `storage`, `vault`, `realtime`, `supabase_functions` schemas — explicitly forbidden.
+
+## Risks & rollback
+
+- **Risk:** revoking EXECUTE on a function actually called by a logged-in user from the browser. Mitigation: smoke-test list above; rollback is `GRANT EXECUTE TO authenticated` per function.
+- **Risk:** moving `vector` schema breaks an unqualified `<->` operator usage. Mitigation: pre-flight `rg "<->" supabase/` and patch search_paths in the same migration.
+- **Risk:** bucket LIST policy too tight breaks an admin gallery. Mitigation: grant LIST to `service_role` and authenticated admins only.
+
+After your approval, I'll execute the migration, run the smoke tests, re-lint, and report 0 warnings (or document any intentional exceptions in security memory).

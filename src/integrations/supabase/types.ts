@@ -4502,8 +4502,6 @@ export type Database = {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_class_for_review: {
         Args: { p_class_id: string; p_cohort_ids?: string[] }
         Returns: undefined
