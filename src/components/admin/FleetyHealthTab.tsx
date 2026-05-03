@@ -305,6 +305,10 @@ export function FleetyHealthTab() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="practical" className="mt-3">
+          <FleetyPlaybooksManager />
+        </TabsContent>
       </Tabs>
     </div>
   );
