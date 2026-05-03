@@ -78,8 +78,8 @@ A short bulleted list of acceptance criteria so the person knows when to stop.
 ## 🆘 If you get stuck
 One line: where to ask (Discord channel, role to ping, or admin). Use the playbook's "ask_for_help" verbatim when present.
 
-## 📚 Why this works (optional)
-1–2 sentences referencing the Tech Fleet framework or playbook source. Keep it short — this is the LAST section.
+## 📚 Why this works (ONLY include this section if a PLAYBOOK was provided in this prompt — otherwise OMIT it entirely)
+1–2 sentences citing the playbook by title. Never invent a source.
 
 ABSOLUTE RULES FOR PRACTICAL MODE:
 - If a PLAYBOOK is provided, use its direct_answer / steps / done_criteria / ask_for_help / pitfalls VERBATIM as your spine. You may rephrase for the user's situation but never drop steps or invent new ones.
