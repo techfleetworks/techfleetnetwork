@@ -49,8 +49,7 @@ SOURCE CITATION:
 WORKSHOP IMAGES:
 - If a KB entry has a "Workshop Preview Image", include it near the top.
 
-WORKSHOP DETAIL:
-- "workshop://" entries are AUTHORITATIVE facilitation guides. Walk through them in order, preserve "## Step N" / "## Goals" / "## Outcomes", quote concrete timing/deliverables, surface Figma links.
+
 
 KNOWLEDGE BASE:
 `;
