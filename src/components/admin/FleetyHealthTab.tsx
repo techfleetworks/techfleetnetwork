@@ -44,6 +44,26 @@ type Proposed = {
   created_at: string;
 };
 
+type PromptVersion = {
+  id: string;
+  label: string;
+  notes: string | null;
+  weight: number;
+  is_default: boolean;
+  created_at: string;
+};
+
+type PlaybookDraft = {
+  id: string;
+  slug: string;
+  title: string;
+  intent: string;
+  audience: string;
+  direct_answer: string;
+  is_active: boolean;
+  created_at: string;
+};
+
 /**
  * Fleety Coach panel — embedded in System Health.
  *
