@@ -552,11 +552,15 @@ serve(async (req) => {
           "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):",
         ];
         let totalBytes = sections[0].length;
-        for (const hit of hits as Array<{ entity_type: string; id: string; name: string }>) {
-          const { data: neighbors, error: nErr } = await supabase.rpc("get_node_neighbors", {
-            p_type: hit.entity_type,
-            p_id:   hit.id,
-          });
+        // Parallelize neighbor lookups — preserves search-rank ordering via index map.
+        const typedHits = hits as Array<{ entity_type: string; id: string; name: string }>;
+        const neighborResults = await Promise.all(
+          typedHits.map((hit) =>
+            supabase.rpc("get_node_neighbors", { p_type: hit.entity_type, p_id: hit.id })
+              .then((r) => ({ hit, data: r.data, error: r.error }))
+          ),
+        );
+        for (const { hit, data: neighbors, error: nErr } of neighborResults) {
           if (nErr) {
             log.warn("framework", `get_node_neighbors failed for ${hit.entity_type}/${hit.id} [${requestId}]: ${nErr.message}`, { requestId });
             continue;
