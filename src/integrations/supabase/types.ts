@@ -3559,6 +3559,13 @@ export type Database = {
         Args: { p_data: Json; p_pairs: string[] }
         Returns: Json
       }
+      fw_replay_staging: {
+        Args: never
+        Returns: {
+          remaining: number
+          resolved: number
+        }[]
+      }
       fw_resolve_entity: {
         Args: {
           p_name: string
