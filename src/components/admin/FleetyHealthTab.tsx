@@ -171,6 +171,28 @@ export function FleetyHealthTab() {
     if (error) toast.error(error.message); else load();
   };
 
+  const approveDraft = async (d: PlaybookDraft) => {
+    const { error } = await supabase.from("fleety_playbooks").update({ is_active: true }).eq("id", d.id);
+    if (error) toast.error(error.message);
+    else { toast.success(`Draft "${d.title}" promoted to active.`); load(); }
+  };
+  const rejectDraft = async (d: PlaybookDraft) => {
+    const { error } = await supabase.from("fleety_playbooks").delete().eq("id", d.id);
+    if (error) toast.error(error.message); else { toast.success("Draft removed."); load(); }
+  };
+
+  const setDefaultVersion = async (v: PromptVersion) => {
+    // Clear other defaults then set this one. Weights remain manually managed.
+    const { error: clearErr } = await supabase.from("fleety_prompt_versions").update({ is_default: false }).neq("id", v.id);
+    if (clearErr) { toast.error(clearErr.message); return; }
+    const { error } = await supabase.from("fleety_prompt_versions").update({ is_default: true }).eq("id", v.id);
+    if (error) toast.error(error.message); else { toast.success(`"${v.label}" is now the default prompt.`); load(); }
+  };
+  const updateWeight = async (v: PromptVersion, weight: number) => {
+    const { error } = await supabase.from("fleety_prompt_versions").update({ weight }).eq("id", v.id);
+    if (error) toast.error(error.message); else load();
+  };
+
   const updatedRel = (() => {
     const ago = Math.round((Date.now() - new Date(generatedAt).getTime()) / 1000);
     if (ago < 60) return `${ago}s ago`;
