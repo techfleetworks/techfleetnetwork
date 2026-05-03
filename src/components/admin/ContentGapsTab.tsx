@@ -89,15 +89,13 @@ export function ContentGapsTab() {
     // Run all reads in parallel.
     const results = await Promise.all(
       TABLES.map(async (t) => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from(t)
-          // @ts-expect-error generated column is not in Database types yet
           .select("id, slug, name, description, updated_at")
-          // @ts-expect-error generated column is not in Database types yet
           .eq("is_placeholder", true)
           .order("name", { ascending: true });
         if (error) return [];
-        return ((data ?? []) as Array<Omit<Gap, "table">>).map((r) => ({ ...r, table: t }));
+        return ((data ?? []) as unknown as Array<Omit<Gap, "table">>).map((r) => ({ ...r, table: t }));
       })
     );
     for (const r of results) all.push(...r);
