@@ -921,57 +921,105 @@ serve(async (req) => {
     let topPlaybookSlug: string | null = null;
 
     if (practical) {
-      try {
-        const { data: pbs } = await supabase.rpc("fleety_match_playbooks", {
-          p_query: lastUserMessage.slice(0, 500),
-          p_audience: audience,
-          p_limit: 2,
-        });
-        const rows = (pbs ?? []) as Array<{
-          slug: string; title: string; intent: string; direct_answer: string;
-          steps: unknown; done_criteria: string[]; common_pitfalls: string[];
-          ask_for_help: string | null; example_artifact_url: string | null;
-          action_chips: unknown; similarity: number;
-        }>;
-        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.18);
-        playbookHits = usable.length;
-        if (usable.length > 0) {
-          topPlaybookSlug = usable[0].slug;
-          playbookContext = "\n\nPLAYBOOKS (admin-authored — use as the spine of your practical answer):\n" +
-            usable.map((p) => {
-              const steps = Array.isArray(p.steps) ? (p.steps as Array<{ title?: string; detail?: string; estimate?: string }>) : [];
-              const stepsText = steps.length
-                ? steps.map((s, i) => `    ${i + 1}. ${s.title ?? ""}${s.estimate ? ` (${s.estimate})` : ""}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
-                : "    (no steps provided)";
-              return `\n▸ ${p.title} [${p.slug}]\n  direct_answer: ${p.direct_answer}\n  steps:\n${stepsText}\n  done_criteria: ${(p.done_criteria ?? []).join(" | ") || "(none)"}\n  pitfalls: ${(p.common_pitfalls ?? []).join(" | ") || "(none)"}\n  ask_for_help: ${p.ask_for_help ?? "(none)"}`;
-            }).join("\n");
+      type PbRow = {
+        slug: string; title: string; intent: string; direct_answer: string;
+        steps: unknown; done_criteria: string[]; common_pitfalls: string[];
+        ask_for_help: string | null; example_artifact_url: string | null;
+        action_chips: unknown; similarity: number;
+      };
+      let pbRows: PbRow[] = [];
 
-          // Collect chips from the top playbook
-          const rawChips = Array.isArray(usable[0].action_chips) ? usable[0].action_chips as Array<{ label: string; action_type: string; target_url?: string | null }> : [];
-          actionChips = rawChips.slice(0, 4).filter((c) => c && c.label && c.action_type);
-          if (usable[0].example_artifact_url && actionChips.length < 4) {
-            actionChips.push({ label: "Open example artifact", action_type: "link_open", target_url: usable[0].example_artifact_url });
-          }
+      // Tier 1: semantic match (cosine ≥ 0.55 ≈ similarity ≥ 0.55 since 1 - dist)
+      if (haveEmbeddings) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_playbooks_semantic", {
+            p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+            p_audience: audience,
+            p_limit: 3,
+          });
+          pbRows = ((data ?? []) as PbRow[]).filter((r) => (r.similarity ?? 0) >= 0.55);
+        } catch (e) {
+          log.warn("playbooks", `semantic playbook failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
         }
-      } catch (e) {
-        log.warn("playbooks", `playbook lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
       }
 
-      try {
-        const { data: exs } = await supabase.rpc("fleety_match_examples", {
-          p_query: lastUserMessage.slice(0, 500),
-          p_playbook_slug: topPlaybookSlug,
-          p_limit: 2,
-        });
-        const rows = (exs ?? []) as Array<{ slug: string; title: string; deliverable_type: string; summary: string; excerpt: string; source_url: string | null; similarity: number }>;
-        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.15);
-        exampleHits = usable.length;
-        if (usable.length > 0) {
-          exampleContext = "\n\nWORKED EXAMPLES (anonymized excerpts from real Tech Fleet deliverables — quote one briefly so the user sees what 'good' looks like):\n" +
-            usable.map((e) => `\n• ${e.title} (${e.deliverable_type}) — ${e.summary}\n  excerpt: ${e.excerpt.slice(0, 800)}`).join("\n");
+      // Tier 2: legacy trigram
+      if (pbRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_playbooks", {
+            p_query: lastUserMessage.slice(0, 500),
+            p_audience: audience,
+            p_limit: 2,
+          });
+          pbRows = ((data ?? []) as PbRow[]).filter((r) => (r.similarity ?? 0) >= 0.18);
+        } catch (e) {
+          log.warn("playbooks", `trigram playbook failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
         }
-      } catch (e) {
-        log.warn("examples", `example lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+
+      // Tier 3: intent-based fallback so practical answers always have a spine
+      if (pbRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_playbooks_by_intent", {
+            p_intent: intent,
+            p_audience: audience,
+            p_limit: 2,
+          });
+          pbRows = (data ?? []) as PbRow[];
+        } catch (e) {
+          log.warn("playbooks", `intent fallback failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+
+      playbookHits = pbRows.length;
+      if (pbRows.length > 0) {
+        topPlaybookSlug = pbRows[0].slug;
+        playbookContext = "\n\nPLAYBOOKS (admin-authored — use as the spine of your practical answer):\n" +
+          pbRows.map((p) => {
+            const steps = Array.isArray(p.steps) ? (p.steps as Array<{ title?: string; detail?: string; estimate?: string }>) : [];
+            const stepsText = steps.length
+              ? steps.map((s, i) => `    ${i + 1}. ${s.title ?? ""}${s.estimate ? ` (${s.estimate})` : ""}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
+              : "    (no steps provided)";
+            return `\n▸ ${p.title} [${p.slug}]\n  direct_answer: ${p.direct_answer}\n  steps:\n${stepsText}\n  done_criteria: ${(p.done_criteria ?? []).join(" | ") || "(none)"}\n  pitfalls: ${(p.common_pitfalls ?? []).join(" | ") || "(none)"}\n  ask_for_help: ${p.ask_for_help ?? "(none)"}`;
+          }).join("\n");
+
+        const rawChips = Array.isArray(pbRows[0].action_chips) ? pbRows[0].action_chips as Array<{ label: string; action_type: string; target_url?: string | null }> : [];
+        actionChips = rawChips.slice(0, 4).filter((c) => c && c.label && c.action_type);
+        if (pbRows[0].example_artifact_url && actionChips.length < 4) {
+          actionChips.push({ label: "Open example artifact", action_type: "link_open", target_url: pbRows[0].example_artifact_url });
+        }
+      }
+
+      // Examples — semantic preferred, trigram fallback
+      type ExRow = { slug: string; title: string; deliverable_type: string; summary: string; excerpt: string; source_url: string | null; similarity: number };
+      let exRows: ExRow[] = [];
+      if (haveEmbeddings) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_examples_semantic", {
+            p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+            p_limit: 2,
+          });
+          exRows = ((data ?? []) as ExRow[]).filter((r) => (r.similarity ?? 0) >= 0.5);
+        } catch (e) {
+          log.warn("examples", `semantic examples failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+      if (exRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_examples", {
+            p_query: lastUserMessage.slice(0, 500),
+            p_playbook_slug: topPlaybookSlug,
+            p_limit: 2,
+          });
+          exRows = ((data ?? []) as ExRow[]).filter((r) => (r.similarity ?? 0) >= 0.15);
+        } catch (e) {
+          log.warn("examples", `trigram examples failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+      exampleHits = exRows.length;
+      if (exRows.length > 0) {
+        exampleContext = "\n\nWORKED EXAMPLES (anonymized excerpts from real Tech Fleet deliverables — quote one briefly so the user sees what 'good' looks like):\n" +
+          exRows.map((e) => `\n• ${e.title} (${e.deliverable_type}) — ${e.summary}\n  excerpt: ${e.excerpt.slice(0, 800)}`).join("\n");
       }
     }
 
