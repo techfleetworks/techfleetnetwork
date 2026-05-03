@@ -610,7 +610,6 @@ serve(async (req) => {
 
         // Single batched RPC replaces N parallel get_node_neighbors calls.
         // Cuts DB round-trips from ~8 → 1 per chat turn.
-        const typedHits = hits as Array<{ entity_type: string; id: string; name: string }>;
         const { data: batchData, error: batchErr } = await supabase.rpc(
           "get_nodes_neighbors_batch",
           { p_nodes: typedHits.map((h) => ({ type: h.entity_type, id: h.id })) },
