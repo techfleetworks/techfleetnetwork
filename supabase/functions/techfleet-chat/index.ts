@@ -547,12 +547,16 @@ serve(async (req) => {
       });
       if (Array.isArray(hits) && hits.length > 0) {
         frameworkContext = "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):\n";
-        for (const hit of hits) {
-          const { data: neighbors } = await supabase.rpc("get_node_neighbors", {
-            p_type: (hit as { type: string }).type,
-            p_id:   (hit as { id: string }).id,
+        for (const hit of hits as Array<{ entity_type: string; id: string; name: string }>) {
+          const { data: neighbors, error: nErr } = await supabase.rpc("get_node_neighbors", {
+            p_type: hit.entity_type,
+            p_id:   hit.id,
           });
-          frameworkContext += `\n--- ${(hit as { name: string }).name} (${(hit as { type: string }).type})\n${JSON.stringify(neighbors ?? {})}\n`;
+          if (nErr) {
+            log.warn("framework", `get_node_neighbors failed for ${hit.entity_type}/${hit.id} [${requestId}]: ${nErr.message}`, { requestId });
+            continue;
+          }
+          frameworkContext += `\n--- ${hit.name} (${hit.entity_type})\n${JSON.stringify(neighbors ?? {})}\n`;
         }
       }
     } catch (e) {
