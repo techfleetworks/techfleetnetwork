@@ -60,21 +60,31 @@ export function FleetyHealthTab() {
   const [stats, setStats] = useState({ total: 0, gaps: 0, thumbsUp: 0, thumbsDown: 0 });
   const [draft, setDraft] = useState({ pattern: "", answer: "", audience: "all", sourceTurnId: "" });
   const [generatedAt, setGeneratedAt] = useState<string>(new Date().toISOString());
+  const [practicalGaps, setPracticalGaps] = useState<Array<{ id: string; user_query: string; audience: string; created_at: string; practical_score: number | null; playbook_hits: number; chips_clicked: number }>>([]);
+  const [activeTab, setActiveTab] = useState<string>("gaps");
 
   const load = useCallback(async () => {
     setLoading(true);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [sigsRes, cansRes, propsRes, upRes, dnRes] = await Promise.all([
+    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes] = await Promise.all([
       supabase.from("fleety_turn_signals").select("*").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }).limit(200),
       supabase.from("fleety_canned_answers").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("fleety_proposed_relationships").select("*").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("fleety_message_feedback").select("*", { count: "exact", head: true }).eq("rating", 1).gte("created_at", sevenDaysAgo),
       supabase.from("fleety_message_feedback").select("*", { count: "exact", head: true }).eq("rating", -1).gte("created_at", sevenDaysAgo),
+      supabase.from("fleety_turn_signals")
+        .select("id, user_query, audience, created_at, practical_score, playbook_hits, chips_clicked")
+        .gte("created_at", sevenDaysAgo)
+        .or("intent.eq.how_to,intent.eq.troubleshoot,intent.eq.decision")
+        .lte("practical_score", 0.3)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     const all = (sigsRes.data ?? []) as Signal[];
     setSignals(all);
     setCanned((cansRes.data ?? []) as Canned[]);
     setProposed((propsRes.data ?? []) as Proposed[]);
+    setPracticalGaps((pgapsRes.data ?? []) as typeof practicalGaps);
     setStats({
       total: all.length,
       gaps: all.filter((s) => s.kb_hit_count === 0 && s.framework_hit_count === 0).length,
@@ -86,6 +96,14 @@ export function FleetyHealthTab() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const authorPlaybookFromGap = (q: string) => {
+    // Hand off to the Practical Content tab with the question pre-filled in clipboard
+    // and a toast hint — playbook authoring lives in FleetyPlaybooksManager which has its own dialog.
+    void navigator.clipboard?.writeText(q).catch(() => {});
+    toast.success("Question copied. Opening Practical Content — paste into 'When to use'.");
+    setActiveTab("practical");
+  };
 
   const promoteFromTurn = (s: Signal) =>
     setDraft({ pattern: s.user_query, answer: "", audience: s.audience, sourceTurnId: s.id });
