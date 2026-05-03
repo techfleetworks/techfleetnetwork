@@ -185,7 +185,7 @@ function capCell(val: string): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Auth: JWT + admin role
+  // Auth: JWT + admin role, OR service-role bearer (for trusted server-side ingest)
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -193,20 +193,24 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const token = authHeader.slice("Bearer ".length).trim();
+  const isServiceRole = token === SERVICE;
 
-  const anonClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
-  const { data: userData, error: userErr } = await anonClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!isServiceRole) {
+    const anonClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
+    const { data: userData, error: userErr } = await anonClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const adminCheck = createClient(SUPABASE_URL, SERVICE);
+    const { data: roleRow } = await adminCheck
+      .from("user_roles").select("role")
+      .eq("user_id", userData.user.id).eq("role", "admin").maybeSingle();
+    if (!roleRow) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
   }
-
   const admin = createClient(SUPABASE_URL, SERVICE);
-  const { data: roleRow } = await admin
-    .from("user_roles").select("role")
-    .eq("user_id", userData.user.id).eq("role", "admin").maybeSingle();
-  if (!roleRow) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
 
   try {
     const body = await req.json();
@@ -347,7 +351,7 @@ serve(async (req) => {
 
     // Refresh the neighbors materialized view so Fleety sees the new graph
     // immediately. This is debounced inside the function.
-    await admin.rpc("fw_refresh_neighbors_mv").catch(() => {});
+    try { await admin.rpc("fw_refresh_neighbors_mv"); } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({
       table: cfg.table,
