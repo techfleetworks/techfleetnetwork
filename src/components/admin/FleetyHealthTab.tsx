@@ -169,6 +169,7 @@ export function FleetyHealthTab() {
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
           <TabsTrigger value="compose">+ Canned Answer</TabsTrigger>
+          <TabsTrigger value="practical">Practical Content</TabsTrigger>
         </TabsList>
 
         <TabsContent value="gaps" className="space-y-2 mt-3">
