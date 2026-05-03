@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
 
-type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null };
+type ActionChip = { label: string; action_type: string; target_url?: string | null };
+type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null; chips?: ActionChip[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -23,12 +24,14 @@ async function streamChat({
   conversationId,
   onDelta,
   onTurnId,
+  onChips,
   onDone,
 }: {
   messages: Msg[];
   conversationId: string | null;
   onDelta: (deltaText: string) => void;
   onTurnId: (id: string | null) => void;
+  onChips: (chips: ActionChip[]) => void;
   onDone: () => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -55,6 +58,14 @@ async function streamChat({
   }
 
   onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
+  const chipsHeader = resp.headers.get("X-Fleety-Chips");
+  if (chipsHeader) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(chipsHeader)));
+      const parsed = JSON.parse(decoded) as ActionChip[];
+      if (Array.isArray(parsed)) onChips(parsed.slice(0, 4));
+    } catch { /* ignore malformed header */ }
+  }
 
   if (!resp.body) throw new Error("No response stream");
 
@@ -251,6 +262,16 @@ export function FleetyChatWidget() {
             i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
           ));
         },
+        onChips: (chips) => {
+          setMessages((prev) => {
+            // Attach chips to last assistant message; create stub if none yet.
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, chips } : m));
+            }
+            return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, chips }];
+          });
+        },
         onDone: async () => {
           setIsLoading(false);
           if (convoId && assistantSoFar) {
@@ -276,7 +297,29 @@ export function FleetyChatWidget() {
     else toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
   };
 
-  // Prefill from search query
+  // Action chip click — record event + open URL or post to Discord
+  const handleChip = async (turnId: string | null | undefined, chip: ActionChip) => {
+    try {
+      if (turnId) {
+        await supabase.rpc("fleety_record_action", {
+          p_turn_id: turnId,
+          p_action_type: chip.action_type,
+          p_action_label: chip.label,
+          p_target_url: chip.target_url ?? null,
+        });
+      }
+    } catch (e) {
+      // Non-blocking — never fail the user click on a tracking write
+      console.warn("fleety chip tracking failed", e);
+    }
+    if (chip.target_url) {
+      window.open(chip.target_url, "_blank", "noopener,noreferrer");
+    } else if (chip.action_type === "step_done") {
+      toast.success("Marked as done — nice work.");
+    } else if (chip.action_type === "discord_post") {
+      toast.info("Open Discord to post your question. We'll remember you tried this.");
+    }
+  };
   const openWithQuery = useCallback((query: string) => {
     setInput(query);
     setOpen(true);
@@ -449,6 +492,24 @@ export function FleetyChatWidget() {
                               </Button>
                             </>
                           )}
+                        </div>
+                      )}
+                      {msg.chips && msg.chips.length > 0 && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5"
+                          role="group"
+                          aria-label="Suggested next actions"
+                        >
+                          {msg.chips.map((chip, ci) => (
+                            <button
+                              key={`${i}-chip-${ci}`}
+                              type="button"
+                              onClick={() => handleChip(msg.turnId, chip)}
+                              className="text-xs px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/15 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>

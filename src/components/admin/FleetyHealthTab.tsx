@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   ThumbsUp, ThumbsDown, Sparkles, AlertTriangle, Check, X, Loader2, Clock,
 } from "lucide-react";
+import { FleetyPlaybooksManager } from "@/components/admin/FleetyPlaybooksManager";
 
 type Signal = {
   id: string;
@@ -168,6 +169,7 @@ export function FleetyHealthTab() {
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
           <TabsTrigger value="compose">+ Canned Answer</TabsTrigger>
+          <TabsTrigger value="practical">Practical Content</TabsTrigger>
         </TabsList>
 
         <TabsContent value="gaps" className="space-y-2 mt-3">
@@ -302,6 +304,10 @@ export function FleetyHealthTab() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="practical" className="mt-3">
+          <FleetyPlaybooksManager />
         </TabsContent>
       </Tabs>
     </div>

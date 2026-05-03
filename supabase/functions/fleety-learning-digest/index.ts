@@ -125,10 +125,21 @@ serve(async (req) => {
     proposedCount++;
   }
 
+  // Recompute practical_score for recent turns (uses fleety_action_events
+  // + thumbs feedback to flag whether users actually acted on the answer).
+  let practicalUpdated = 0;
+  try {
+    const { data: pscore } = await admin.rpc("fleety_recompute_practical_scores", { p_days: 14 });
+    practicalUpdated = typeof pscore === "number" ? pscore : 0;
+  } catch (e) {
+    console.warn("practical_score recompute failed", e);
+  }
+
   return new Response(JSON.stringify({
     ok: true,
     signals: (signals ?? []).length,
     clusters: rows.length,
     proposed_relationships: proposedCount,
+    practical_scores_updated: practicalUpdated,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
