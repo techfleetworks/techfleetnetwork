@@ -136,8 +136,7 @@ export function ContentGapsTab() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      // @ts-expect-error dynamic table name
+    const { error } = await (supabase as any)
       .from(editing.table)
       .update({ description: text })
       .eq("id", editing.id);
