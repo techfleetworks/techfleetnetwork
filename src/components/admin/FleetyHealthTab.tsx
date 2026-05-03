@@ -44,6 +44,26 @@ type Proposed = {
   created_at: string;
 };
 
+type PromptVersion = {
+  id: string;
+  label: string;
+  notes: string | null;
+  weight: number;
+  is_default: boolean;
+  created_at: string;
+};
+
+type PlaybookDraft = {
+  id: string;
+  slug: string;
+  title: string;
+  intent: string;
+  audience: string;
+  direct_answer: string;
+  is_active: boolean;
+  created_at: string;
+};
+
 /**
  * Fleety Coach panel — embedded in System Health.
  *
@@ -61,12 +81,14 @@ export function FleetyHealthTab() {
   const [draft, setDraft] = useState({ pattern: "", answer: "", audience: "all", sourceTurnId: "" });
   const [generatedAt, setGeneratedAt] = useState<string>(new Date().toISOString());
   const [practicalGaps, setPracticalGaps] = useState<Array<{ id: string; user_query: string; audience: string; created_at: string; practical_score: number | null; playbook_hits: number; chips_clicked: number }>>([]);
+  const [versions, setVersions] = useState<PromptVersion[]>([]);
+  const [drafts, setDrafts] = useState<PlaybookDraft[]>([]);
   const [activeTab, setActiveTab] = useState<string>("gaps");
 
   const load = useCallback(async () => {
     setLoading(true);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes] = await Promise.all([
+    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes, versionsRes, draftsRes] = await Promise.all([
       supabase.from("fleety_turn_signals").select("*").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }).limit(200),
       supabase.from("fleety_canned_answers").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("fleety_proposed_relationships").select("*").eq("status", "pending").order("created_at", { ascending: false }),
@@ -79,12 +101,16 @@ export function FleetyHealthTab() {
         .lte("practical_score", 0.3)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase.from("fleety_prompt_versions").select("*").order("is_default", { ascending: false }).order("weight", { ascending: false }),
+      supabase.from("fleety_playbooks").select("id, slug, title, intent, audience, direct_answer, is_active, created_at").eq("is_active", false).order("created_at", { ascending: false }).limit(50),
     ]);
     const all = (sigsRes.data ?? []) as Signal[];
     setSignals(all);
     setCanned((cansRes.data ?? []) as Canned[]);
     setProposed((propsRes.data ?? []) as Proposed[]);
     setPracticalGaps((pgapsRes.data ?? []) as typeof practicalGaps);
+    setVersions((versionsRes.data ?? []) as PromptVersion[]);
+    setDrafts((draftsRes.data ?? []) as PlaybookDraft[]);
     setStats({
       total: all.length,
       gaps: all.filter((s) => s.kb_hit_count === 0 && s.framework_hit_count === 0).length,
@@ -145,6 +171,28 @@ export function FleetyHealthTab() {
     if (error) toast.error(error.message); else load();
   };
 
+  const approveDraft = async (d: PlaybookDraft) => {
+    const { error } = await supabase.from("fleety_playbooks").update({ is_active: true }).eq("id", d.id);
+    if (error) toast.error(error.message);
+    else { toast.success(`Draft "${d.title}" promoted to active.`); load(); }
+  };
+  const rejectDraft = async (d: PlaybookDraft) => {
+    const { error } = await supabase.from("fleety_playbooks").delete().eq("id", d.id);
+    if (error) toast.error(error.message); else { toast.success("Draft removed."); load(); }
+  };
+
+  const setDefaultVersion = async (v: PromptVersion) => {
+    // Clear other defaults then set this one. Weights remain manually managed.
+    const { error: clearErr } = await supabase.from("fleety_prompt_versions").update({ is_default: false }).neq("id", v.id);
+    if (clearErr) { toast.error(clearErr.message); return; }
+    const { error } = await supabase.from("fleety_prompt_versions").update({ is_default: true }).eq("id", v.id);
+    if (error) toast.error(error.message); else { toast.success(`"${v.label}" is now the default prompt.`); load(); }
+  };
+  const updateWeight = async (v: PromptVersion, weight: number) => {
+    const { error } = await supabase.from("fleety_prompt_versions").update({ weight }).eq("id", v.id);
+    if (error) toast.error(error.message); else load();
+  };
+
   const updatedRel = (() => {
     const ago = Math.round((Date.now() - new Date(generatedAt).getTime()) / 1000);
     if (ago < 60) return `${ago}s ago`;
@@ -187,6 +235,8 @@ export function FleetyHealthTab() {
           <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
+          <TabsTrigger value="drafts">Drafts ({drafts.length})</TabsTrigger>
+          <TabsTrigger value="versions">Prompt Versions ({versions.length})</TabsTrigger>
           <TabsTrigger value="compose">+ Canned Answer</TabsTrigger>
           <TabsTrigger value="practical">Practical Content</TabsTrigger>
         </TabsList>
@@ -350,6 +400,78 @@ export function FleetyHealthTab() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="drafts" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Auto-drafted playbooks from the learning loop (low-action operational queries with no playbook hits).
+            Approve to make Fleety use them, or remove if off-base.
+          </p>
+          {drafts.map((d) => (
+            <Card key={d.id}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold break-words">{d.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">{d.direct_answer}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline">{d.intent}</Badge>
+                    <Badge variant="outline">{d.audience}</Badge>
+                    <Badge variant="secondary">draft</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" onClick={() => approveDraft(d)}>
+                    <Check className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => rejectDraft(d)}>
+                    <X className="h-3 w-3 mr-1" /> Discard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {drafts.length === 0 && <p className="text-sm text-muted-foreground">No playbook drafts pending.</p>}
+        </TabsContent>
+
+        <TabsContent value="versions" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Prompt versions are weighted-randomly assigned at request time. Default is the safe fallback when no
+            version is sampled. Each turn in <code>fleety_signals_view</code> is tagged with its version for A/B analysis.
+          </p>
+          {versions.map((v) => (
+            <Card key={v.id} className={v.is_default ? "border-primary/40" : ""}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold break-words">{v.label}</p>
+                  {v.notes && <p className="text-xs text-muted-foreground mt-1">{v.notes}</p>}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {v.is_default && <Badge>default</Badge>}
+                    <Badge variant="outline">weight: {v.weight}</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <Label htmlFor={`w-${v.id}`} className="text-xs">Weight</Label>
+                  <Input
+                    id={`w-${v.id}`}
+                    type="number"
+                    min={0}
+                    defaultValue={v.weight}
+                    className="h-8 w-20"
+                    onBlur={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n) && n !== v.weight) updateWeight(v, n);
+                    }}
+                  />
+                  {!v.is_default && (
+                    <Button size="sm" variant="outline" onClick={() => setDefaultVersion(v)}>
+                      Set default
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {versions.length === 0 && <p className="text-sm text-muted-foreground">No prompt versions configured.</p>}
         </TabsContent>
 
         <TabsContent value="practical" className="mt-3">
