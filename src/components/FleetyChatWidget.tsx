@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -20,21 +20,23 @@ const MAX_INPUT_LENGTH = 4000;
 
 async function streamChat({
   messages,
+  conversationId,
   onDelta,
+  onTurnId,
   onDone,
 }: {
   messages: Msg[];
+  conversationId: string | null;
   onDelta: (deltaText: string) => void;
+  onTurnId: (id: string | null) => void;
   onDone: () => void;
 }) {
-  // ASVS V13.2.1: Use session-bound JWT, not static publishable key
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) throw new Error("Authentication required. Please sign in again.");
 
-  // LLM10: Truncate overly long messages to prevent unbounded consumption
   const sanitizedMessages = messages.map((m) => ({
-    ...m,
+    role: m.role,
     content: m.content.slice(0, MAX_INPUT_LENGTH),
   }));
 
@@ -44,13 +46,15 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages: sanitizedMessages }),
+    body: JSON.stringify({ messages: sanitizedMessages, conversation_id: conversationId }),
   });
 
   if (!resp.ok) {
     const errData = await resp.json().catch(() => ({}));
     throw new Error(errData.error || `Request failed (${resp.status})`);
   }
+
+  onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
 
   if (!resp.body) throw new Error("No response stream");
 
