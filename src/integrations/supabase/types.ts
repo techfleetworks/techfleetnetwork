@@ -3564,6 +3564,19 @@ export type Database = {
         }
         Returns: number
       }
+      fw_entity_key_to_type: {
+        Args: { p_key: string }
+        Returns: Database["public"]["Enums"]["framework_entity_type"]
+      }
+      fw_lookup_relationships: {
+        Args: { p_pairs: Json }
+        Returns: {
+          a: string
+          b: string
+          forward: string
+          inverse: string
+        }[]
+      }
       fw_rebuild_all_edges: { Args: never; Returns: number }
       fw_refresh_neighbors_mv: { Args: never; Returns: undefined }
       fw_refresh_search_mv: { Args: never; Returns: undefined }
@@ -3587,6 +3600,7 @@ export type Database = {
       }
       fw_slug: { Args: { input: string }; Returns: string }
       fw_split_dedupe: { Args: { p_value: string }; Returns: string[] }
+      fw_sync_relationships_to_kb: { Args: never; Returns: number }
       fw_table_to_entity: {
         Args: { p_table: string }
         Returns: Database["public"]["Enums"]["framework_entity_type"]

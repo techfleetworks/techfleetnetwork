@@ -563,9 +563,53 @@ serve(async (req) => {
           "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):",
         ];
         let totalBytes = sections[0].length;
+
+        // ─── Verbatim PDF relationship sentences ───────────────
+        // Build distinct unordered entity-type pairs from the search hits;
+        // ask DB for the curator-authored sentences (description +
+        // inverse_description). Quote those verbatim so Fleety never has
+        // to invent phrasing for "skills ↔ deliverables" style questions.
+        const typedHits = hits as Array<{ entity_type: string; id: string; name: string }>;
+        const pairSet = new Set<string>();
+        const pairs: Array<{ a: string; b: string }> = [];
+        for (let i = 0; i < typedHits.length; i++) {
+          for (let j = i + 1; j < typedHits.length; j++) {
+            const a = typedHits[i].entity_type;
+            const b = typedHits[j].entity_type;
+            if (a === b) continue;
+            const k = a < b ? `${a}|${b}` : `${b}|${a}`;
+            if (pairSet.has(k)) continue;
+            pairSet.add(k);
+            pairs.push({ a, b });
+          }
+        }
+        if (pairs.length > 0) {
+          const { data: relRows, error: relErr } = await supabase.rpc(
+            "fw_lookup_relationships",
+            { p_pairs: pairs },
+          );
+          if (relErr) {
+            log.warn("framework", `fw_lookup_relationships failed [${requestId}]: ${relErr.message}`, { requestId });
+          }
+          const rows = (relRows ?? []) as Array<{ a: string; b: string; forward: string; inverse: string | null }>;
+          if (rows.length > 0) {
+            const verbatim: string[] = [
+              "\nVERBATIM RELATIONSHIP SENTENCES (quote these exactly when describing how two entity types relate):",
+            ];
+            for (const r of rows) {
+              verbatim.push(`  • ${r.a} → ${r.b}: "${r.forward}"`);
+              if (r.inverse && r.inverse.trim().length > 0) {
+                verbatim.push(`  • ${r.b} → ${r.a}: "${r.inverse}"`);
+              }
+            }
+            const block = verbatim.join("\n") + "\n";
+            sections.push(block);
+            totalBytes += block.length;
+          }
+        }
+
         // Single batched RPC replaces N parallel get_node_neighbors calls.
         // Cuts DB round-trips from ~8 → 1 per chat turn.
-        const typedHits = hits as Array<{ entity_type: string; id: string; name: string }>;
         const { data: batchData, error: batchErr } = await supabase.rpc(
           "get_nodes_neighbors_batch",
           { p_nodes: typedHits.map((h) => ({ type: h.entity_type, id: h.id })) },

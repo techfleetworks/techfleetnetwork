@@ -398,6 +398,9 @@ serve(async (req) => {
     // Refresh search index so Fleety's hybrid FTS+trigram search returns
     // the freshly ingested rows on the very next chat turn.
     try { await admin.rpc("fw_refresh_search_mv"); } catch { /* non-fatal */ }
+    // Sync curated PDF relationship sentences into knowledge_base so the
+    // KB cache carries verbatim wording on the next chat turn.
+    try { await admin.rpc("fw_sync_relationships_to_kb"); } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({
       table: cfg.table,
