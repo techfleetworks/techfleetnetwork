@@ -960,6 +960,218 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_canned_answers: {
+        Row: {
+          answer_md: string
+          audience: string
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          question_pattern: string
+          source_turn_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer_md: string
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          question_pattern: string
+          source_turn_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer_md?: string
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          question_pattern?: string
+          source_turn_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleety_canned_answers_source_turn_id_fkey"
+            columns: ["source_turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_turn_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleety_message_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          turn_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          turn_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          turn_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleety_message_feedback_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_turn_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleety_proposed_relationships: {
+        Row: {
+          created_at: string
+          description: string
+          from_entity: string
+          id: string
+          inverse_description: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_turn_id: string | null
+          status: string
+          to_entity: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          from_entity: string
+          id?: string
+          inverse_description?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_turn_id?: string | null
+          status?: string
+          to_entity: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          from_entity?: string
+          id?: string
+          inverse_description?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_turn_id?: string | null
+          status?: string
+          to_entity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleety_proposed_relationships_source_turn_id_fkey"
+            columns: ["source_turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_turn_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleety_topic_insights: {
+        Row: {
+          gap: boolean
+          generated_at: string
+          id: string
+          label: string
+          query_count: number
+          sample_query: string
+          thumbs_down: number
+          thumbs_up: number
+        }
+        Insert: {
+          gap?: boolean
+          generated_at?: string
+          id?: string
+          label: string
+          query_count?: number
+          sample_query: string
+          thumbs_down?: number
+          thumbs_up?: number
+        }
+        Update: {
+          gap?: boolean
+          generated_at?: string
+          id?: string
+          label?: string
+          query_count?: number
+          sample_query?: string
+          thumbs_down?: number
+          thumbs_up?: number
+        }
+        Relationships: []
+      }
+      fleety_turn_signals: {
+        Row: {
+          audience: string
+          canned_answer_id: string | null
+          conversation_id: string | null
+          created_at: string
+          follow_up_within_60s: boolean | null
+          framework_hit_count: number
+          id: string
+          kb_hit_count: number
+          response_ms: number | null
+          user_id: string
+          user_query: string
+          web_hit_count: number
+        }
+        Insert: {
+          audience?: string
+          canned_answer_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          follow_up_within_60s?: boolean | null
+          framework_hit_count?: number
+          id?: string
+          kb_hit_count?: number
+          response_ms?: number | null
+          user_id: string
+          user_query: string
+          web_hit_count?: number
+        }
+        Update: {
+          audience?: string
+          canned_answer_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          follow_up_within_60s?: boolean | null
+          framework_hit_count?: number
+          id?: string
+          kb_hit_count?: number
+          response_ms?: number | null
+          user_id?: string
+          user_query?: string
+          web_hit_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleety_turn_signals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       framework_edge_staging: {
         Row: {
           created_at: string
@@ -3550,6 +3762,29 @@ export type Database = {
         }
       }
       export_my_data: { Args: never; Returns: Json }
+      fleety_approve_relationship: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      fleety_few_shot_examples: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          assistant_response: string
+          similarity: number
+          thumbs_up: number
+          user_query: string
+        }[]
+      }
+      fleety_match_canned_answers: {
+        Args: { p_audience?: string; p_limit?: number; p_query: string }
+        Returns: {
+          answer_md: string
+          id: string
+          question_pattern: string
+          similarity: number
+          thumbs_up: number
+        }[]
+      }
       fw_build_entity_content: {
         Args: { p_description: string; p_entity: string; p_name: string }
         Returns: string
