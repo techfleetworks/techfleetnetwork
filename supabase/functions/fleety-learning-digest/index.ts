@@ -188,6 +188,110 @@ serve(async (req) => {
     console.warn("auto-promote failed", e);
   }
 
+  // ── Decay canned answers that earned thumbs-down within 7 days ────
+  // Auto-disable so an admin can review before they go live again.
+  let cannedDecayed = 0;
+  try {
+    const { data: badCanned } = await admin
+      .from("fleety_turn_signals")
+      .select("canned_answer_id, id")
+      .gte("created_at", since)
+      .not("canned_answer_id", "is", null);
+    const cannedIds = new Set<string>();
+    for (const row of badCanned ?? []) {
+      const fb = fbMap.get((row as { id: string }).id);
+      if (fb && fb.down > fb.up) cannedIds.add((row as { canned_answer_id: string }).canned_answer_id);
+    }
+    if (cannedIds.size > 0) {
+      const { count } = await admin
+        .from("fleety_canned_answers")
+        .update({ enabled: false })
+        .in("id", Array.from(cannedIds))
+        .eq("enabled", true)
+        .select("*", { count: "exact", head: true });
+      cannedDecayed = count ?? 0;
+    }
+  } catch (e) {
+    console.warn("canned-decay failed", e);
+  }
+
+  // ── Auto-author playbook DRAFTS for gap clusters ──────────────────
+  // Cluster requirements: ≥3 turns, all how_to-ish, 0 thumbs_down, no
+  // playbook hits, no existing draft for the same normalized label.
+  let playbookDrafts = 0;
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
+    if (LOVABLE_API_KEY) {
+      // Re-cluster using how_to-only signals with playbook_hits=0
+      const { data: gapSignals } = await admin
+        .from("fleety_turn_signals")
+        .select("id, user_query, intent, playbook_hits")
+        .gte("created_at", since)
+        .eq("playbook_hits", 0)
+        .in("intent", ["how_to", "troubleshoot", "decision"])
+        .limit(2000);
+      const gapClusters = new Map<string, { sample: string; count: number; down: number }>();
+      for (const s of gapSignals ?? []) {
+        const key = normalizeQuery(s.user_query as string);
+        if (!key) continue;
+        const c = gapClusters.get(key) ?? { sample: s.user_query as string, count: 0, down: 0 };
+        c.count++;
+        const fb = fbMap.get(s.id as string);
+        if (fb) c.down += fb.down;
+        gapClusters.set(key, c);
+      }
+      const drafts = [...gapClusters.entries()]
+        .filter(([, c]) => c.count >= 3 && c.down === 0)
+        .slice(0, 5);
+      for (const [label, c] of drafts) {
+        // Skip if a playbook draft (active OR inactive) already exists for this slug
+        const slugBase = label.replace(/\s+/g, "-").slice(0, 60) || `gap-${Date.now()}`;
+        const slug = `draft-${slugBase}`;
+        const { data: dup } = await admin
+          .from("fleety_playbooks")
+          .select("id").eq("slug", slug).limit(1);
+        if (dup && dup.length > 0) continue;
+
+        // Ask Gemini Flash to draft a structured playbook
+        const prompt = `You are drafting a Tech Fleet playbook based on a recurring user question.\n\nQuestion (sample): "${c.sample}"\nObserved variants: ${c.count}\n\nReturn STRICT JSON with keys:\n{\n  "title": string (max 60 chars, action-oriented),\n  "intent": "how_to" | "troubleshoot" | "decision",\n  "direct_answer": string (1-2 plain-English sentences),\n  "steps": [{"title": string, "estimate": "5-15 min", "detail": string}, ... 3 items],\n  "done_criteria": [string, string, string],\n  "common_pitfalls": [string, string],\n  "ask_for_help": string,\n  "trigger_phrases": [string, string, string],\n  "tags": [string, string]\n}\nNo prose outside JSON.`;
+        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!r.ok) { console.warn("playbook draft AI fail", r.status); continue; }
+        const j = await r.json();
+        const txt = j?.choices?.[0]?.message?.content ?? "";
+        let pb: Record<string, unknown>;
+        try { pb = JSON.parse(txt); } catch { continue; }
+        if (!pb.title || !pb.direct_answer || !Array.isArray(pb.steps)) continue;
+        const { error: insErr } = await admin.from("fleety_playbooks").insert({
+          slug,
+          title: String(pb.title).slice(0, 80),
+          intent: ["how_to","troubleshoot","decision"].includes(pb.intent as string) ? pb.intent : "how_to",
+          audience: "all",
+          direct_answer: String(pb.direct_answer).slice(0, 800),
+          steps: pb.steps,
+          done_criteria: Array.isArray(pb.done_criteria) ? pb.done_criteria : [],
+          common_pitfalls: Array.isArray(pb.common_pitfalls) ? pb.common_pitfalls : [],
+          ask_for_help: pb.ask_for_help ? String(pb.ask_for_help).slice(0, 300) : null,
+          trigger_phrases: Array.isArray(pb.trigger_phrases) ? pb.trigger_phrases : [c.sample.slice(0, 80)],
+          tags: Array.isArray(pb.tags) ? pb.tags : ["auto-draft"],
+          action_chips: [],
+          is_active: false, // admin must review and enable
+        });
+        if (insErr) { console.warn("playbook draft insert fail", insErr.message); continue; }
+        playbookDrafts++;
+      }
+    }
+  } catch (e) {
+    console.warn("playbook-draft failed", e);
+  }
+
   return new Response(JSON.stringify({
     ok: true,
     signals: (signals ?? []).length,
@@ -195,5 +299,7 @@ serve(async (req) => {
     proposed_relationships: proposedCount,
     practical_scores_updated: practicalUpdated,
     canned_drafts_promoted: promotedDrafts,
+    canned_drafts_decayed: cannedDecayed,
+    playbook_drafts_created: playbookDrafts,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

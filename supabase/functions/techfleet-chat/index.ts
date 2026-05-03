@@ -78,8 +78,8 @@ A short bulleted list of acceptance criteria so the person knows when to stop.
 ## 🆘 If you get stuck
 One line: where to ask (Discord channel, role to ping, or admin). Use the playbook's "ask_for_help" verbatim when present.
 
-## 📚 Why this works (optional)
-1–2 sentences referencing the Tech Fleet framework or playbook source. Keep it short — this is the LAST section.
+## 📚 Why this works (ONLY include this section if a PLAYBOOK was provided in this prompt — otherwise OMIT it entirely)
+1–2 sentences citing the playbook by title. Never invent a source.
 
 ABSOLUTE RULES FOR PRACTICAL MODE:
 - If a PLAYBOOK is provided, use its direct_answer / steps / done_criteria / ask_for_help / pitfalls VERBATIM as your spine. You may rephrase for the user's situation but never drop steps or invent new ones.
@@ -1113,6 +1113,26 @@ serve(async (req) => {
       exampleHits,
     });
 
+    // Pick a prompt version label (weighted random across active versions).
+    // Falls back to 'baseline-2026-05' if the table is empty/unreachable.
+    let promptVersion = "baseline-2026-05";
+    try {
+      const { data: versions } = await supabase
+        .from("fleety_prompt_versions")
+        .select("label, weight, is_default")
+        .or("weight.gt.0,is_default.eq.true");
+      const rows = (versions ?? []) as Array<{ label: string; weight: number; is_default: boolean }>;
+      const active = rows.filter((v) => v.weight > 0);
+      if (active.length > 0) {
+        const total = active.reduce((s, v) => s + v.weight, 0);
+        let r = Math.random() * total;
+        for (const v of active) { r -= v.weight; if (r <= 0) { promptVersion = v.label; break; } }
+      } else {
+        const def = rows.find((v) => v.is_default);
+        if (def) promptVersion = def.label;
+      }
+    } catch (_) { /* keep fallback */ }
+
     // Capture per-turn signals (best-effort, non-blocking)
     const turnStart = Date.now();
     let signalTurnId: string | null = null;
@@ -1131,6 +1151,7 @@ serve(async (req) => {
           intent,
           playbook_hits: playbookHits,
           example_hits: exampleHits,
+          prompt_version: promptVersion,
         })
         .select("id")
         .single();

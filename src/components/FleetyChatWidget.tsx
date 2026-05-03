@@ -136,6 +136,8 @@ export function FleetyChatWidget() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [negFeedbackTurn, setNegFeedbackTurn] = useState<string | null>(null);
+  const [submittedReasons, setSubmittedReasons] = useState<Record<string, string[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -301,7 +303,31 @@ export function FleetyChatWidget() {
       .from("fleety_message_feedback")
       .upsert({ turn_id: turnId, user_id: user.id, rating }, { onConflict: "turn_id,user_id" });
     if (error) toast.error("Couldn't save your feedback.");
-    else toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
+    else {
+      toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
+      if (rating === -1) setNegFeedbackTurn(turnId);
+    }
+  };
+
+  // Toggle a reason chip on negative feedback
+  const FEEDBACK_REASONS = [
+    "Too vague",
+    "Wrong project",
+    "Missing steps",
+    "Needed a template",
+    "Outdated info",
+  ];
+  const toggleReason = async (turnId: string, reason: string) => {
+    if (!user) return;
+    const current = submittedReasons[turnId] ?? [];
+    const next = current.includes(reason) ? current.filter((r) => r !== reason) : [...current, reason];
+    setSubmittedReasons((m) => ({ ...m, [turnId]: next }));
+    const { error } = await supabase
+      .from("fleety_message_feedback")
+      .update({ reasons: next })
+      .eq("turn_id", turnId)
+      .eq("user_id", user.id);
+    if (error) toast.error("Couldn't save the reason.");
   };
 
   // Action chip click — record event + open URL or post to Discord
@@ -499,6 +525,30 @@ export function FleetyChatWidget() {
                               </Button>
                             </>
                           )}
+                        </div>
+                      )}
+                      {msg.turnId && negFeedbackTurn === msg.turnId && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5"
+                          role="group"
+                          aria-label="Why wasn't this helpful?"
+                        >
+                          <span className="text-[11px] text-muted-foreground self-center mr-1">What was off?</span>
+                          {FEEDBACK_REASONS.map((reason) => {
+                            const active = (submittedReasons[msg.turnId!] ?? []).includes(reason);
+                            return (
+                              <Button
+                                key={reason}
+                                variant={active ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => toggleReason(msg.turnId!, reason)}
+                                className="h-6 px-2 text-[11px]"
+                                aria-pressed={active}
+                              >
+                                {reason}
+                              </Button>
+                            );
+                          })}
                         </div>
                       )}
                       {msg.chips && msg.chips.length > 0 && (
