@@ -1072,14 +1072,22 @@ serve(async (req) => {
 
     const sanitizedBody = response.body!.pipeThrough(sanitizeStream);
 
+    // Encode chips as base64 to keep header safe across HTTP intermediaries
+    const chipsB64 = actionChips.length > 0
+      ? btoa(unescape(encodeURIComponent(JSON.stringify(actionChips))))
+      : "";
+
     const exposeHeaders: Record<string, string> = {
       ...corsHeaders,
-      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id",
+      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical",
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
+      "X-Fleety-Intent": intent,
+      "X-Fleety-Practical": practical ? "1" : "0",
     };
     if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
+    if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
 
     return new Response(sanitizedBody, { headers: exposeHeaders });
   } catch (err) {
