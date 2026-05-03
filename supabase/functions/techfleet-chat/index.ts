@@ -540,13 +540,18 @@ serve(async (req) => {
     // Fleety answer relationship questions ("who do I work with as a UX
     // researcher in an agency?") in a single LLM round-trip.
     let frameworkContext = "";
+    const MAX_NEIGHBORS_PER_DIR = 20;
+    const MAX_FRAMEWORK_CONTEXT_BYTES = 24_000; // ~6k tokens hard cap
     try {
       const { data: hits } = await supabase.rpc("search_framework", {
         p_query: lastUserMessage.slice(0, 500),
         p_limit: 8,
       });
       if (Array.isArray(hits) && hits.length > 0) {
-        frameworkContext = "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):\n";
+        const sections: string[] = [
+          "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):",
+        ];
+        let totalBytes = sections[0].length;
         for (const hit of hits as Array<{ entity_type: string; id: string; name: string }>) {
           const { data: neighbors, error: nErr } = await supabase.rpc("get_node_neighbors", {
             p_type: hit.entity_type,
@@ -556,8 +561,42 @@ serve(async (req) => {
             log.warn("framework", `get_node_neighbors failed for ${hit.entity_type}/${hit.id} [${requestId}]: ${nErr.message}`, { requestId });
             continue;
           }
-          frameworkContext += `\n--- ${hit.name} (${hit.entity_type})\n${JSON.stringify(neighbors ?? {})}\n`;
+          const n = (neighbors ?? {}) as {
+            outgoing?: Array<{ rel: string; type: string; name: string }>;
+            incoming?: Array<{ rel: string; type: string; name: string }>;
+          };
+          // Group by relation, cap per direction, format as compact bullets.
+          const fmtGroup = (
+            edges: Array<{ rel: string; type: string; name: string }> | undefined,
+            arrow: string,
+          ): string => {
+            if (!Array.isArray(edges) || edges.length === 0) return "";
+            const byRel = new Map<string, string[]>();
+            for (const e of edges.slice(0, MAX_NEIGHBORS_PER_DIR)) {
+              const list = byRel.get(e.rel) ?? [];
+              if (list.length < MAX_NEIGHBORS_PER_DIR) list.push(e.name);
+              byRel.set(e.rel, list);
+            }
+            const lines: string[] = [];
+            for (const [rel, names] of byRel) {
+              const truncated = (edges.filter((x) => x.rel === rel).length > names.length)
+                ? ` (+${edges.filter((x) => x.rel === rel).length - names.length} more)` : "";
+              lines.push(`  ${arrow} ${rel}: ${names.join(", ")}${truncated}`);
+            }
+            return lines.join("\n");
+          };
+          const out = fmtGroup(n.outgoing, "→");
+          const inc = fmtGroup(n.incoming, "←");
+          if (!out && !inc) continue;
+          const block = `\n• ${hit.name} (${hit.entity_type})\n${[out, inc].filter(Boolean).join("\n")}\n`;
+          if (totalBytes + block.length > MAX_FRAMEWORK_CONTEXT_BYTES) {
+            sections.push("\n[…additional framework matches truncated to fit context budget]");
+            break;
+          }
+          sections.push(block);
+          totalBytes += block.length;
         }
+        if (sections.length > 1) frameworkContext = sections.join("");
       }
     } catch (e) {
       log.warn("framework", `framework graph injection failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
