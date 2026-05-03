@@ -402,11 +402,19 @@ serve(async (req) => {
       candidateGlobalNames,
       candidateNicks,
     });
-    await auditLog(
-      "discord_username_not_found",
-      `No match for "${cleanUsername}" — Discord returned ${members.length} candidates: usernames=[${candidateUsernames.join(",")}] display_names=[${candidateGlobalNames.join(",")}] nicknames=[${candidateNicks.join(",")}]`,
-      [`username:${cleanUsername}`, `result_count:${members.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
-    );
+    if (candidates.length === 0) {
+      await auditLog(
+        "discord_username_not_found",
+        `No match for "${cleanUsername}" — Discord returned 0 members`,
+        [`username:${cleanUsername}`, `result_count:0`]
+      );
+    } else {
+      await auditLog(
+        "discord_username_candidates_returned",
+        `Returned ${candidates.length} selectable candidate(s) for "${cleanUsername}" — usernames=[${candidateUsernames.join(",")}] display_names=[${candidateGlobalNames.join(",")}] nicknames=[${candidateNicks.join(",")}]`,
+        [`username:${cleanUsername}`, `result_count:${candidates.length}`, ...candidateUsernames.map((u: string) => `candidate:${u}`)]
+      );
+    }
     return new Response(
       JSON.stringify({
         discord_user_id: null,
