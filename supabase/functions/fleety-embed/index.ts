@@ -235,7 +235,52 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Provide { text } or { mode: 'backfill' }" }), {
+    // Mode C: single-slug resync — re-embed the matching framework://entity/<table>/<id>
+    // KB row(s) for one or more slugs. Used after admin edits a description.
+    if (Array.isArray(body.slugs) && body.slugs.length > 0 && typeof body.table === "string") {
+      if (!(isService || isCron || isAdmin)) {
+        return new Response(JSON.stringify({ error: "Admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const slugs = (body.slugs as string[]).slice(0, 50);
+      const tbl = body.table as string;
+      if (!/^reference_[a-z_]+$/.test(tbl)) {
+        return new Response(JSON.stringify({ error: "Invalid table" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: refRows } = await admin
+        .from(tbl)
+        .select("id, slug")
+        .in("slug", slugs);
+      let n = 0;
+      for (const r of (refRows ?? []) as Array<{ id: string; slug: string }>) {
+        const { data: kbRows } = await admin
+          .from("knowledge_base")
+          .select("id, title, content")
+          .like("url", `framework://entity/%/${r.id}`);
+        for (const kb of kbRows ?? []) {
+          try {
+            const v = await embedText(`${kb.title}\n\n${kb.content}`);
+            await admin
+              .from("knowledge_base")
+              .update({ embedding: vecLiteral(v) as unknown as number[], embedding_updated_at: new Date().toISOString() })
+              .eq("id", kb.id);
+            n++;
+          } catch (e) {
+            console.error("single-slug embed fail", kb.id, e);
+          }
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, resynced: n }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Provide { text }, { mode: 'backfill' }, or { slugs, table }" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
