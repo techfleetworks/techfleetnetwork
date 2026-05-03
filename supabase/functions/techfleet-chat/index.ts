@@ -702,7 +702,7 @@ serve(async (req) => {
 
     // Web search runs in parallel with everything else
     const webResult = await (doWebSearch
-      ? searchWebForTips(buildSearchQuery(lastUserMessage))
+      ? searchWebForTips(routerDecision?.webQuery ?? buildSearchQuery(lastUserMessage))
       : Promise.resolve({ context: "", sources: [] }));
 
     log.info("kb", `Using ${kbHits.length} KB entries [${requestId}] (semantic=${haveEmbeddings})`, { requestId });
