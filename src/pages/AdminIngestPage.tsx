@@ -80,9 +80,13 @@ export default function AdminIngestPage() {
         body: { csv_text: csvText, dataset_name: name },
       });
       if (error) throw new Error(error.message);
+      const parts = [`${data.upserted} rows → ${data.table}`];
+      if (typeof data.edges_inserted === "number") parts.push(`${data.edges_inserted} edges`);
+      if (typeof data.replay_resolved === "number" && data.replay_resolved > 0) parts.push(`+${data.replay_resolved} promoted`);
+      if (typeof data.staging_remaining === "number" && data.staging_remaining > 0) parts.push(`${data.staging_remaining} unresolved`);
       setRefStatuses((prev) => ({
         ...prev,
-        [name]: { status: "done", detail: `${data.upserted} rows → ${data.table}` },
+        [name]: { status: "done", detail: parts.join(" • ") },
       }));
     } catch (err: any) {
       setRefStatuses((prev) => ({
