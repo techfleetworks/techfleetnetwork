@@ -836,6 +836,113 @@ serve(async (req) => {
       log.warn("fewshot", `few-shot lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
     }
 
+    // ── Intent classification + practical-mode retrieval ─────────────
+    const intent = classifyIntent(lastUserMessage);
+    const practical = isOperationalIntent(intent);
+    log.info("intent", `Detected intent=${intent} practical=${practical} [${requestId}]`, { requestId, intent });
+
+    let playbookContext = "";
+    let exampleContext = "";
+    let actionChips: Array<{ label: string; action_type: string; target_url?: string | null }> = [];
+    let playbookHits = 0;
+    let exampleHits = 0;
+    let topPlaybookSlug: string | null = null;
+
+    if (practical) {
+      try {
+        const { data: pbs } = await supabase.rpc("fleety_match_playbooks", {
+          p_query: lastUserMessage.slice(0, 500),
+          p_audience: audience,
+          p_limit: 2,
+        });
+        const rows = (pbs ?? []) as Array<{
+          slug: string; title: string; intent: string; direct_answer: string;
+          steps: unknown; done_criteria: string[]; common_pitfalls: string[];
+          ask_for_help: string | null; example_artifact_url: string | null;
+          action_chips: unknown; similarity: number;
+        }>;
+        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.18);
+        playbookHits = usable.length;
+        if (usable.length > 0) {
+          topPlaybookSlug = usable[0].slug;
+          playbookContext = "\n\nPLAYBOOKS (admin-authored — use as the spine of your practical answer):\n" +
+            usable.map((p) => {
+              const steps = Array.isArray(p.steps) ? (p.steps as Array<{ title?: string; detail?: string; estimate?: string }>) : [];
+              const stepsText = steps.length
+                ? steps.map((s, i) => `    ${i + 1}. ${s.title ?? ""}${s.estimate ? ` (${s.estimate})` : ""}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
+                : "    (no steps provided)";
+              return `\n▸ ${p.title} [${p.slug}]\n  direct_answer: ${p.direct_answer}\n  steps:\n${stepsText}\n  done_criteria: ${(p.done_criteria ?? []).join(" | ") || "(none)"}\n  pitfalls: ${(p.common_pitfalls ?? []).join(" | ") || "(none)"}\n  ask_for_help: ${p.ask_for_help ?? "(none)"}`;
+            }).join("\n");
+
+          // Collect chips from the top playbook
+          const rawChips = Array.isArray(usable[0].action_chips) ? usable[0].action_chips as Array<{ label: string; action_type: string; target_url?: string | null }> : [];
+          actionChips = rawChips.slice(0, 4).filter((c) => c && c.label && c.action_type);
+          if (usable[0].example_artifact_url && actionChips.length < 4) {
+            actionChips.push({ label: "Open example artifact", action_type: "link_open", target_url: usable[0].example_artifact_url });
+          }
+        }
+      } catch (e) {
+        log.warn("playbooks", `playbook lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+
+      try {
+        const { data: exs } = await supabase.rpc("fleety_match_examples", {
+          p_query: lastUserMessage.slice(0, 500),
+          p_playbook_slug: topPlaybookSlug,
+          p_limit: 2,
+        });
+        const rows = (exs ?? []) as Array<{ slug: string; title: string; deliverable_type: string; summary: string; excerpt: string; source_url: string | null; similarity: number }>;
+        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.15);
+        exampleHits = usable.length;
+        if (usable.length > 0) {
+          exampleContext = "\n\nWORKED EXAMPLES (anonymized excerpts from real Tech Fleet deliverables — quote one briefly so the user sees what 'good' looks like):\n" +
+            usable.map((e) => `\n• ${e.title} (${e.deliverable_type}) — ${e.summary}\n  excerpt: ${e.excerpt.slice(0, 800)}`).join("\n");
+        }
+      } catch (e) {
+        log.warn("examples", `example lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+    }
+
+    // ── USER CONTEXT block (active project, current quest, profile) ──
+    let userContext = "";
+    try {
+      const [profileRes, rosterRes, questRes] = await Promise.all([
+        supabase.from("profiles").select("first_name, role, time_zone").eq("user_id", user.id).maybeSingle(),
+        supabase.from("project_roster")
+          .select("project_name, client_name, member_role, phase, status, end_date")
+          .eq("member_email", user.email ?? "__none__")
+          .in("status", ["Active", "Active Participant", "In Progress"])
+          .order("synced_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from("user_quest_selections")
+          .select("path_id, started_at, completed_at, quest_paths(title)")
+          .eq("user_id", user.id)
+          .is("completed_at", null)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      const lines: string[] = [];
+      const p = profileRes.data as { first_name?: string; role?: string; time_zone?: string } | null;
+      if (p?.first_name) lines.push(`First name: ${p.first_name}`);
+      if (p?.role) lines.push(`Self-described role: ${p.role}`);
+      const r = rosterRes.data as { project_name?: string; client_name?: string; member_role?: string; phase?: string; end_date?: string } | null;
+      if (r?.project_name) {
+        lines.push(`Active project: ${r.project_name}${r.client_name ? ` (client: ${r.client_name})` : ""}`);
+        if (r.member_role) lines.push(`Their role on the project: ${r.member_role}`);
+        if (r.phase) lines.push(`Current phase: ${r.phase}`);
+        if (r.end_date) lines.push(`Project end date: ${r.end_date}`);
+      }
+      const q = questRes.data as { quest_paths?: { title?: string } | null; started_at?: string } | null;
+      if (q?.quest_paths?.title) lines.push(`Active quest: ${q.quest_paths.title}`);
+      if (lines.length > 0) {
+        userContext = "\n\nUSER CONTEXT (tailor your steps to this person's actual situation when relevant — do not echo this block back):\n" + lines.map((l) => `  - ${l}`).join("\n") + "\n";
+      }
+    } catch (e) {
+      log.warn("user-ctx", `user-context lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    }
+
     // LLM07: Inject canary phrase into system prompt to detect leakage
     const fullSystemPrompt = SYSTEM_PROMPT_BASE
       + `\n[CANARY:${CANARY_PHRASE}]\n`
@@ -844,7 +951,11 @@ serve(async (req) => {
       + frameworkContext
       + ALIAS_MAP
       + TONE_PRESET
+      + userContext
+      + playbookContext
+      + exampleContext
       + fewShotContext
+      + (practical ? PRACTICAL_CONTRACT : "")
       + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
@@ -855,6 +966,10 @@ serve(async (req) => {
       audience,
       cannedHit: !!cannedAnswerId,
       fewShotChars: fewShotContext.length,
+      intent,
+      practical,
+      playbookHits,
+      exampleHits,
     });
 
     // Capture per-turn signals (best-effort, non-blocking)
