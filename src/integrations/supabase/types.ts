@@ -960,6 +960,44 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_action_events: {
+        Row: {
+          action_label: string | null
+          action_type: string
+          id: string
+          occurred_at: string
+          target_url: string | null
+          turn_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_type: string
+          id?: string
+          occurred_at?: string
+          target_url?: string | null
+          turn_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_type?: string
+          id?: string
+          occurred_at?: string
+          target_url?: string | null
+          turn_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleety_action_events_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: false
+            referencedRelation: "fleety_turn_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fleety_canned_answers: {
         Row: {
           answer_md: string
@@ -1004,6 +1042,60 @@ export type Database = {
           },
         ]
       }
+      fleety_examples: {
+        Row: {
+          anonymized: boolean
+          audience: string
+          created_at: string
+          created_by: string | null
+          deliverable_type: string
+          excerpt: string
+          id: string
+          is_active: boolean
+          related_playbook_slug: string | null
+          slug: string
+          source_url: string | null
+          summary: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          anonymized?: boolean
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          deliverable_type: string
+          excerpt: string
+          id?: string
+          is_active?: boolean
+          related_playbook_slug?: string | null
+          slug: string
+          source_url?: string | null
+          summary: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          anonymized?: boolean
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          deliverable_type?: string
+          excerpt?: string
+          id?: string
+          is_active?: boolean
+          related_playbook_slug?: string | null
+          slug?: string
+          source_url?: string | null
+          summary?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fleety_message_feedback: {
         Row: {
           comment: string | null
@@ -1038,6 +1130,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fleety_playbooks: {
+        Row: {
+          action_chips: Json
+          ask_for_help: string | null
+          audience: string
+          common_pitfalls: string[]
+          created_at: string
+          created_by: string | null
+          direct_answer: string
+          done_criteria: string[]
+          example_artifact_url: string | null
+          id: string
+          intent: string
+          is_active: boolean
+          related_entity_slugs: string[]
+          related_entity_types: string[]
+          slug: string
+          steps: Json
+          tags: string[]
+          title: string
+          trigger_phrases: string[]
+          updated_at: string
+          when_to_use: string
+        }
+        Insert: {
+          action_chips?: Json
+          ask_for_help?: string | null
+          audience?: string
+          common_pitfalls?: string[]
+          created_at?: string
+          created_by?: string | null
+          direct_answer: string
+          done_criteria?: string[]
+          example_artifact_url?: string | null
+          id?: string
+          intent?: string
+          is_active?: boolean
+          related_entity_slugs?: string[]
+          related_entity_types?: string[]
+          slug: string
+          steps?: Json
+          tags?: string[]
+          title: string
+          trigger_phrases?: string[]
+          updated_at?: string
+          when_to_use: string
+        }
+        Update: {
+          action_chips?: Json
+          ask_for_help?: string | null
+          audience?: string
+          common_pitfalls?: string[]
+          created_at?: string
+          created_by?: string | null
+          direct_answer?: string
+          done_criteria?: string[]
+          example_artifact_url?: string | null
+          id?: string
+          intent?: string
+          is_active?: boolean
+          related_entity_slugs?: string[]
+          related_entity_types?: string[]
+          slug?: string
+          steps?: Json
+          tags?: string[]
+          title?: string
+          trigger_phrases?: string[]
+          updated_at?: string
+          when_to_use?: string
+        }
+        Relationships: []
       }
       fleety_proposed_relationships: {
         Row: {
@@ -1123,12 +1287,17 @@ export type Database = {
         Row: {
           audience: string
           canned_answer_id: string | null
+          chips_clicked: number
           conversation_id: string | null
           created_at: string
+          example_hits: number
           follow_up_within_60s: boolean | null
           framework_hit_count: number
           id: string
+          intent: string | null
           kb_hit_count: number
+          playbook_hits: number
+          practical_score: number | null
           response_ms: number | null
           user_id: string
           user_query: string
@@ -1137,12 +1306,17 @@ export type Database = {
         Insert: {
           audience?: string
           canned_answer_id?: string | null
+          chips_clicked?: number
           conversation_id?: string | null
           created_at?: string
+          example_hits?: number
           follow_up_within_60s?: boolean | null
           framework_hit_count?: number
           id?: string
+          intent?: string | null
           kb_hit_count?: number
+          playbook_hits?: number
+          practical_score?: number | null
           response_ms?: number | null
           user_id: string
           user_query: string
@@ -1151,12 +1325,17 @@ export type Database = {
         Update: {
           audience?: string
           canned_answer_id?: string | null
+          chips_clicked?: number
           conversation_id?: string | null
           created_at?: string
+          example_hits?: number
           follow_up_within_60s?: boolean | null
           framework_hit_count?: number
           id?: string
+          intent?: string | null
           kb_hit_count?: number
+          playbook_hits?: number
+          practical_score?: number | null
           response_ms?: number | null
           user_id?: string
           user_query?: string
@@ -3784,6 +3963,49 @@ export type Database = {
           similarity: number
           thumbs_up: number
         }[]
+      }
+      fleety_match_examples: {
+        Args: { p_limit?: number; p_playbook_slug?: string; p_query: string }
+        Returns: {
+          deliverable_type: string
+          excerpt: string
+          id: string
+          similarity: number
+          slug: string
+          source_url: string
+          summary: string
+          title: string
+        }[]
+      }
+      fleety_match_playbooks: {
+        Args: { p_audience?: string; p_limit?: number; p_query: string }
+        Returns: {
+          action_chips: Json
+          ask_for_help: string
+          common_pitfalls: string[]
+          direct_answer: string
+          done_criteria: string[]
+          example_artifact_url: string
+          id: string
+          intent: string
+          similarity: number
+          slug: string
+          steps: Json
+          title: string
+        }[]
+      }
+      fleety_recompute_practical_scores: {
+        Args: { p_days?: number }
+        Returns: number
+      }
+      fleety_record_action: {
+        Args: {
+          p_action_label?: string
+          p_action_type: string
+          p_target_url?: string
+          p_turn_id: string
+        }
+        Returns: string
       }
       fw_build_entity_content: {
         Args: { p_description: string; p_entity: string; p_name: string }
