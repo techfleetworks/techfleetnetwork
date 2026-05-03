@@ -810,7 +810,7 @@ serve(async (req) => {
     }
 
     // LLM07: Inject canary phrase into system prompt to detect leakage
-    const fullSystemPrompt = SYSTEM_PROMPT
+    const fullSystemPrompt = SYSTEM_PROMPT_BASE
       + `\n[CANARY:${CANARY_PHRASE}]\n`
       + cannedContext
       + knowledgeContext
