@@ -197,7 +197,7 @@ export default function SystemHealthPage() {
         </TabsList>
 
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
-{`__KEEP_QUEUES__`}
+
           {data.queue_stats.map((queue) => (
             <Card key={queue.queue_name}>
               <CardHeader>
