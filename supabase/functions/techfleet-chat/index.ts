@@ -563,14 +563,25 @@ serve(async (req) => {
           "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):",
         ];
         let totalBytes = sections[0].length;
-        // Parallelize neighbor lookups — preserves search-rank ordering via index map.
+        // Single batched RPC replaces N parallel get_node_neighbors calls.
+        // Cuts DB round-trips from ~8 → 1 per chat turn.
         const typedHits = hits as Array<{ entity_type: string; id: string; name: string }>;
-        const neighborResults = await Promise.all(
-          typedHits.map((hit) =>
-            supabase.rpc("get_node_neighbors", { p_type: hit.entity_type, p_id: hit.id })
-              .then((r) => ({ hit, data: r.data, error: r.error }))
-          ),
+        const { data: batchData, error: batchErr } = await supabase.rpc(
+          "get_nodes_neighbors_batch",
+          { p_nodes: typedHits.map((h) => ({ type: h.entity_type, id: h.id })) },
         );
+        if (batchErr) {
+          log.warn("framework", `get_nodes_neighbors_batch failed [${requestId}]: ${batchErr.message}`, { requestId });
+        }
+        const batchMap = (batchData ?? {}) as Record<string, {
+          outgoing?: Array<{ rel: string; type: string; name: string }>;
+          incoming?: Array<{ rel: string; type: string; name: string }>;
+        }>;
+        const neighborResults = typedHits.map((hit) => ({
+          hit,
+          data: batchMap[`${hit.entity_type}:${hit.id}`] ?? { outgoing: [], incoming: [] },
+          error: null as null,
+        }));
         // ── Bidirectional natural-language label map ──────────────────
         // Each rel_type is stored once (directed) in framework_edges, but
         // Fleety must describe both directions in plain, human phrasing

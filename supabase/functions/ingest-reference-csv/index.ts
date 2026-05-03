@@ -395,6 +395,9 @@ serve(async (req) => {
     // Refresh the neighbors materialized view so Fleety sees the new graph
     // immediately. This is debounced inside the function.
     try { await admin.rpc("fw_refresh_neighbors_mv"); } catch { /* non-fatal */ }
+    // Refresh search index so Fleety's hybrid FTS+trigram search returns
+    // the freshly ingested rows on the very next chat turn.
+    try { await admin.rpc("fw_refresh_search_mv"); } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({
       table: cfg.table,
