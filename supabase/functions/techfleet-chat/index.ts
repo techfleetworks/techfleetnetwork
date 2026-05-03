@@ -285,6 +285,59 @@ function shouldSearchWeb(userMessage: string): boolean {
 }
 
 /**
+ * Generate a 768-dim embedding for the user's query.
+ * Tries direct Gemini API first (free, fast), falls back to gateway.
+ * Returns null on failure so callers can degrade to legacy trigram retrieval.
+ */
+const EMBED_DIM = 768;
+async function embedQuery(text: string, requestId: string): Promise<number[] | null> {
+  const trimmed = (text || "").slice(0, 4000);
+  if (!trimmed.trim()) return null;
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
+  try {
+    if (GEMINI_API_KEY) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "models/text-embedding-004",
+            content: { parts: [{ text: trimmed }] },
+          }),
+        },
+      );
+      if (r.ok) {
+        const j = await r.json();
+        const v = j?.embedding?.values;
+        if (Array.isArray(v) && v.length === EMBED_DIM) return v;
+      } else {
+        log.warn("embed", `Gemini embed HTTP ${r.status} [${requestId}]`, { requestId });
+      }
+    }
+    // Gateway fallback (best-effort)
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/text-embedding-004", input: trimmed }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const v = j?.data?.[0]?.embedding;
+    if (!Array.isArray(v)) return null;
+    return v.length === EMBED_DIM ? v : v.slice(0, EMBED_DIM);
+  } catch (e) {
+    log.warn("embed", `embedQuery failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    return null;
+  }
+}
+
+function vecLiteral(v: number[]): string {
+  return "[" + v.join(",") + "]";
+}
+
+/**
  * Cheap intent classifier — regex-first to keep latency / cost at zero
  * for the 95% of cases we recognize. Returns one of:
  *   definition | how_to | troubleshoot | decision | reference
@@ -546,46 +599,62 @@ serve(async (req) => {
       );
     }
 
-    // Load knowledge base (cached at module scope) and optionally search web in parallel
+    // Embed the user query ONCE; reused for KB / playbooks / examples.
+    const queryEmbedding = await embedQuery(lastUserMessage, requestId);
+    const haveEmbeddings = !!queryEmbedding;
+
+    // Load knowledge base via semantic top-K (with full-table cache fallback).
     const doWebSearch = shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch}`, { requestId, doWebSearch });
 
-    const [knowledge, webResult] = await Promise.all([
-      loadKnowledgeBaseCached(supabase, requestId).catch((e) => {
+    const KB_TOPK = 12;
+    const PER_KB_CHARS = 2_000;
+    const PER_WORKSHOP_CHARS = 12_000;
+    const MAX_KB_CONTEXT_CHARS = 60_000; // ~15k tokens — 6× smaller than before
+
+    type KbHit = { title: string; url: string; content: string };
+    let kbHits: KbHit[] = [];
+
+    if (haveEmbeddings) {
+      try {
+        const { data, error } = await supabase.rpc("fleety_kb_semantic_search", {
+          p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+          p_limit: KB_TOPK,
+        });
+        if (error) throw error;
+        kbHits = (data ?? []) as KbHit[];
+      } catch (e) {
+        log.warn("kb", `semantic KB failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+    }
+
+    // Fallback: cached full KB (legacy behavior, still capped)
+    if (kbHits.length === 0) {
+      const knowledge = await loadKnowledgeBaseCached(supabase, requestId).catch((e) => {
         log.error("kb", `Failed to load knowledge base [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId }, e);
         return [] as KbEntry[];
-      }),
-      doWebSearch ? searchWebForTips(buildSearchQuery(lastUserMessage)) : Promise.resolve({ context: "", sources: [] }),
-    ]);
+      });
+      // Take first 12 alphabetically as a degraded fallback
+      kbHits = knowledge.slice(0, KB_TOPK);
+    }
 
-    log.info("kb", `Loaded ${knowledge.length} KB entries [${requestId}]`, { requestId, entryCount: knowledge.length });
+    // Web search runs in parallel with everything else
+    const webResult = await (doWebSearch
+      ? searchWebForTips(buildSearchQuery(lastUserMessage))
+      : Promise.resolve({ context: "", sources: [] }));
+
+    log.info("kb", `Using ${kbHits.length} KB entries [${requestId}] (semantic=${haveEmbeddings})`, { requestId });
 
     let knowledgeContext = "";
-    // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
-    const MAX_KB_CONTEXT_CHARS = 400_000;
-    if (knowledge && knowledge.length > 0) {
-      // Sort so workshop:// entries come first — they're the richest, most useful
-      // context for facilitation questions and we want them to fit before the cap.
-      const sorted = [...knowledge].sort((a, b) => {
-        const aw = a.url.startsWith("workshop://") ? 0 : 1;
-        const bw = b.url.startsWith("workshop://") ? 0 : 1;
-        return aw - bw;
-      });
-      for (const entry of sorted) {
-        // Workshop docs are authoritative facilitation guides — let them through
-        // at up to 12k chars so step-by-step instructions survive intact.
-        // CSV-derived entries stay capped at 2k since they're one-line summaries.
-        const perEntryCap = entry.url.startsWith("workshop://") ? 12_000 : 2_000;
-        const truncatedContent =
-          entry.content.length > perEntryCap
-            ? entry.content.substring(0, perEntryCap) + "...[truncated]"
-            : entry.content;
-        const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
-        if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
-          log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
-          break;
-        }
-        knowledgeContext += entryText;
+    if (kbHits.length > 0) {
+      for (const entry of kbHits) {
+        const cap = entry.url.startsWith("workshop://") ? PER_WORKSHOP_CHARS : PER_KB_CHARS;
+        const truncated = entry.content.length > cap
+          ? entry.content.substring(0, cap) + "...[truncated]"
+          : entry.content;
+        const block = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncated}\n`;
+        if (knowledgeContext.length + block.length > MAX_KB_CONTEXT_CHARS) break;
+        knowledgeContext += block;
       }
     } else {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
@@ -852,57 +921,105 @@ serve(async (req) => {
     let topPlaybookSlug: string | null = null;
 
     if (practical) {
-      try {
-        const { data: pbs } = await supabase.rpc("fleety_match_playbooks", {
-          p_query: lastUserMessage.slice(0, 500),
-          p_audience: audience,
-          p_limit: 2,
-        });
-        const rows = (pbs ?? []) as Array<{
-          slug: string; title: string; intent: string; direct_answer: string;
-          steps: unknown; done_criteria: string[]; common_pitfalls: string[];
-          ask_for_help: string | null; example_artifact_url: string | null;
-          action_chips: unknown; similarity: number;
-        }>;
-        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.18);
-        playbookHits = usable.length;
-        if (usable.length > 0) {
-          topPlaybookSlug = usable[0].slug;
-          playbookContext = "\n\nPLAYBOOKS (admin-authored — use as the spine of your practical answer):\n" +
-            usable.map((p) => {
-              const steps = Array.isArray(p.steps) ? (p.steps as Array<{ title?: string; detail?: string; estimate?: string }>) : [];
-              const stepsText = steps.length
-                ? steps.map((s, i) => `    ${i + 1}. ${s.title ?? ""}${s.estimate ? ` (${s.estimate})` : ""}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
-                : "    (no steps provided)";
-              return `\n▸ ${p.title} [${p.slug}]\n  direct_answer: ${p.direct_answer}\n  steps:\n${stepsText}\n  done_criteria: ${(p.done_criteria ?? []).join(" | ") || "(none)"}\n  pitfalls: ${(p.common_pitfalls ?? []).join(" | ") || "(none)"}\n  ask_for_help: ${p.ask_for_help ?? "(none)"}`;
-            }).join("\n");
+      type PbRow = {
+        slug: string; title: string; intent: string; direct_answer: string;
+        steps: unknown; done_criteria: string[]; common_pitfalls: string[];
+        ask_for_help: string | null; example_artifact_url: string | null;
+        action_chips: unknown; similarity: number;
+      };
+      let pbRows: PbRow[] = [];
 
-          // Collect chips from the top playbook
-          const rawChips = Array.isArray(usable[0].action_chips) ? usable[0].action_chips as Array<{ label: string; action_type: string; target_url?: string | null }> : [];
-          actionChips = rawChips.slice(0, 4).filter((c) => c && c.label && c.action_type);
-          if (usable[0].example_artifact_url && actionChips.length < 4) {
-            actionChips.push({ label: "Open example artifact", action_type: "link_open", target_url: usable[0].example_artifact_url });
-          }
+      // Tier 1: semantic match (cosine ≥ 0.55 ≈ similarity ≥ 0.55 since 1 - dist)
+      if (haveEmbeddings) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_playbooks_semantic", {
+            p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+            p_audience: audience,
+            p_limit: 3,
+          });
+          pbRows = ((data ?? []) as PbRow[]).filter((r) => (r.similarity ?? 0) >= 0.55);
+        } catch (e) {
+          log.warn("playbooks", `semantic playbook failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
         }
-      } catch (e) {
-        log.warn("playbooks", `playbook lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
       }
 
-      try {
-        const { data: exs } = await supabase.rpc("fleety_match_examples", {
-          p_query: lastUserMessage.slice(0, 500),
-          p_playbook_slug: topPlaybookSlug,
-          p_limit: 2,
-        });
-        const rows = (exs ?? []) as Array<{ slug: string; title: string; deliverable_type: string; summary: string; excerpt: string; source_url: string | null; similarity: number }>;
-        const usable = rows.filter((r) => (r.similarity ?? 0) >= 0.15);
-        exampleHits = usable.length;
-        if (usable.length > 0) {
-          exampleContext = "\n\nWORKED EXAMPLES (anonymized excerpts from real Tech Fleet deliverables — quote one briefly so the user sees what 'good' looks like):\n" +
-            usable.map((e) => `\n• ${e.title} (${e.deliverable_type}) — ${e.summary}\n  excerpt: ${e.excerpt.slice(0, 800)}`).join("\n");
+      // Tier 2: legacy trigram
+      if (pbRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_playbooks", {
+            p_query: lastUserMessage.slice(0, 500),
+            p_audience: audience,
+            p_limit: 2,
+          });
+          pbRows = ((data ?? []) as PbRow[]).filter((r) => (r.similarity ?? 0) >= 0.18);
+        } catch (e) {
+          log.warn("playbooks", `trigram playbook failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
         }
-      } catch (e) {
-        log.warn("examples", `example lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+
+      // Tier 3: intent-based fallback so practical answers always have a spine
+      if (pbRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_playbooks_by_intent", {
+            p_intent: intent,
+            p_audience: audience,
+            p_limit: 2,
+          });
+          pbRows = (data ?? []) as PbRow[];
+        } catch (e) {
+          log.warn("playbooks", `intent fallback failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+
+      playbookHits = pbRows.length;
+      if (pbRows.length > 0) {
+        topPlaybookSlug = pbRows[0].slug;
+        playbookContext = "\n\nPLAYBOOKS (admin-authored — use as the spine of your practical answer):\n" +
+          pbRows.map((p) => {
+            const steps = Array.isArray(p.steps) ? (p.steps as Array<{ title?: string; detail?: string; estimate?: string }>) : [];
+            const stepsText = steps.length
+              ? steps.map((s, i) => `    ${i + 1}. ${s.title ?? ""}${s.estimate ? ` (${s.estimate})` : ""}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
+              : "    (no steps provided)";
+            return `\n▸ ${p.title} [${p.slug}]\n  direct_answer: ${p.direct_answer}\n  steps:\n${stepsText}\n  done_criteria: ${(p.done_criteria ?? []).join(" | ") || "(none)"}\n  pitfalls: ${(p.common_pitfalls ?? []).join(" | ") || "(none)"}\n  ask_for_help: ${p.ask_for_help ?? "(none)"}`;
+          }).join("\n");
+
+        const rawChips = Array.isArray(pbRows[0].action_chips) ? pbRows[0].action_chips as Array<{ label: string; action_type: string; target_url?: string | null }> : [];
+        actionChips = rawChips.slice(0, 4).filter((c) => c && c.label && c.action_type);
+        if (pbRows[0].example_artifact_url && actionChips.length < 4) {
+          actionChips.push({ label: "Open example artifact", action_type: "link_open", target_url: pbRows[0].example_artifact_url });
+        }
+      }
+
+      // Examples — semantic preferred, trigram fallback
+      type ExRow = { slug: string; title: string; deliverable_type: string; summary: string; excerpt: string; source_url: string | null; similarity: number };
+      let exRows: ExRow[] = [];
+      if (haveEmbeddings) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_examples_semantic", {
+            p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+            p_limit: 2,
+          });
+          exRows = ((data ?? []) as ExRow[]).filter((r) => (r.similarity ?? 0) >= 0.5);
+        } catch (e) {
+          log.warn("examples", `semantic examples failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+      if (exRows.length === 0) {
+        try {
+          const { data } = await supabase.rpc("fleety_match_examples", {
+            p_query: lastUserMessage.slice(0, 500),
+            p_playbook_slug: topPlaybookSlug,
+            p_limit: 2,
+          });
+          exRows = ((data ?? []) as ExRow[]).filter((r) => (r.similarity ?? 0) >= 0.15);
+        } catch (e) {
+          log.warn("examples", `trigram examples failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+        }
+      }
+      exampleHits = exRows.length;
+      if (exRows.length > 0) {
+        exampleContext = "\n\nWORKED EXAMPLES (anonymized excerpts from real Tech Fleet deliverables — quote one briefly so the user sees what 'good' looks like):\n" +
+          exRows.map((e) => `\n• ${e.title} (${e.deliverable_type}) — ${e.summary}\n  excerpt: ${e.excerpt.slice(0, 800)}`).join("\n");
       }
     }
 
@@ -964,19 +1081,22 @@ serve(async (req) => {
       log.warn("user-ctx", `user-context lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
     }
 
-    // LLM07: Inject canary phrase into system prompt to detect leakage
+    // LLM07: Inject canary phrase into system prompt to detect leakage.
+    // Order matters for "lost in the middle": put high-signal action context
+    // (canned, user, playbooks, contract) at the TOP and bottom; bury the
+    // big reference KB in the middle where models attend less.
     const fullSystemPrompt = SYSTEM_PROMPT_BASE
       + `\n[CANARY:${CANARY_PHRASE}]\n`
       + cannedContext
-      + knowledgeContext
-      + frameworkContext
-      + ALIAS_MAP
-      + TONE_PRESET
       + userContext
       + playbookContext
       + exampleContext
-      + fewShotContext
       + (practical ? PRACTICAL_CONTRACT : "")
+      + ALIAS_MAP
+      + TONE_PRESET
+      + knowledgeContext
+      + frameworkContext
+      + fewShotContext
       + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
@@ -1004,7 +1124,7 @@ serve(async (req) => {
           user_id: user.id,
           user_query: lastUserMessage.slice(0, 2000),
           audience,
-          kb_hit_count: knowledge.length,
+          kb_hit_count: kbHits.length,
           framework_hit_count: frameworkContext ? 1 : 0,
           web_hit_count: webResult.sources.length,
           canned_answer_id: cannedAnswerId,

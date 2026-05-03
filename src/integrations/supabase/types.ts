@@ -1049,6 +1049,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           deliverable_type: string
+          embedding: string | null
+          embedding_updated_at: string | null
           excerpt: string
           id: string
           is_active: boolean
@@ -1066,6 +1068,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deliverable_type: string
+          embedding?: string | null
+          embedding_updated_at?: string | null
           excerpt: string
           id?: string
           is_active?: boolean
@@ -1083,6 +1087,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deliverable_type?: string
+          embedding?: string | null
+          embedding_updated_at?: string | null
           excerpt?: string
           id?: string
           is_active?: boolean
@@ -1141,6 +1147,8 @@ export type Database = {
           created_by: string | null
           direct_answer: string
           done_criteria: string[]
+          embedding: string | null
+          embedding_updated_at: string | null
           example_artifact_url: string | null
           id: string
           intent: string
@@ -1164,6 +1172,8 @@ export type Database = {
           created_by?: string | null
           direct_answer: string
           done_criteria?: string[]
+          embedding?: string | null
+          embedding_updated_at?: string | null
           example_artifact_url?: string | null
           id?: string
           intent?: string
@@ -1187,6 +1197,8 @@ export type Database = {
           created_by?: string | null
           direct_answer?: string
           done_criteria?: string[]
+          embedding?: string | null
+          embedding_updated_at?: string | null
           example_artifact_url?: string | null
           id?: string
           intent?: string
@@ -1691,6 +1703,8 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          embedding: string | null
+          embedding_updated_at: string | null
           id: string
           scraped_at: string
           title: string
@@ -1699,6 +1713,8 @@ export type Database = {
         Insert: {
           content?: string
           created_at?: string
+          embedding?: string | null
+          embedding_updated_at?: string | null
           id?: string
           scraped_at?: string
           title?: string
@@ -1707,6 +1723,8 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          embedding?: string | null
+          embedding_updated_at?: string | null
           id?: string
           scraped_at?: string
           title?: string
@@ -3954,6 +3972,16 @@ export type Database = {
           user_query: string
         }[]
       }
+      fleety_kb_semantic_search: {
+        Args: { p_limit?: number; p_query_embedding: string }
+        Returns: {
+          content: string
+          id: string
+          similarity: number
+          title: string
+          url: string
+        }[]
+      }
       fleety_match_canned_answers: {
         Args: { p_audience?: string; p_limit?: number; p_query: string }
         Returns: {
@@ -3977,8 +4005,59 @@ export type Database = {
           title: string
         }[]
       }
+      fleety_match_examples_semantic: {
+        Args: { p_limit?: number; p_query_embedding: string }
+        Returns: {
+          deliverable_type: string
+          excerpt: string
+          id: string
+          similarity: number
+          slug: string
+          source_url: string
+          summary: string
+          title: string
+        }[]
+      }
       fleety_match_playbooks: {
         Args: { p_audience?: string; p_limit?: number; p_query: string }
+        Returns: {
+          action_chips: Json
+          ask_for_help: string
+          common_pitfalls: string[]
+          direct_answer: string
+          done_criteria: string[]
+          example_artifact_url: string
+          id: string
+          intent: string
+          similarity: number
+          slug: string
+          steps: Json
+          title: string
+        }[]
+      }
+      fleety_match_playbooks_semantic: {
+        Args: {
+          p_audience?: string
+          p_limit?: number
+          p_query_embedding: string
+        }
+        Returns: {
+          action_chips: Json
+          ask_for_help: string
+          common_pitfalls: string[]
+          direct_answer: string
+          done_criteria: string[]
+          example_artifact_url: string
+          id: string
+          intent: string
+          similarity: number
+          slug: string
+          steps: Json
+          title: string
+        }[]
+      }
+      fleety_playbooks_by_intent: {
+        Args: { p_audience?: string; p_intent: string; p_limit?: number }
         Returns: {
           action_chips: Json
           ask_for_help: string
