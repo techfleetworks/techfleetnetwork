@@ -81,25 +81,42 @@ serve(async (req) => {
 
   try {
     const auth = req.headers.get("Authorization") || "";
-    if (!auth.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: auth } },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const body = await req.json().catch(() => ({}));
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Cron / service-role path: bearer token == service role key OR
+    // x-cron-secret matches CRON_SECRET. No user check; backfill only.
+    const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
+    const isService = auth === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+    const isCron = CRON_SECRET && req.headers.get("x-cron-secret") === CRON_SECRET;
+    const isBackfill = body?.mode === "backfill";
+
+    let isAdmin = false;
+    let needsAuth = !(isService || isCron && isBackfill);
+
+    if (needsAuth) {
+      if (!auth.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: auth } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (!userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: roles } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id);
+      isAdmin = (roles ?? []).some((r: { role: string }) => r.role === "admin");
+    }
 
     // Mode A: single embedding for query-time use
     if (typeof body.text === "string") {
