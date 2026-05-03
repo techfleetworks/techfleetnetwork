@@ -208,6 +208,33 @@ export function FleetyHealthTab() {
           {stats.gaps === 0 && <p className="text-sm text-muted-foreground">No knowledge gaps in the last 7 days. 🎉</p>}
         </TabsContent>
 
+        <TabsContent value="playbook-gaps" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Operational questions where users didn't take an action within 10 minutes (low practical_score).
+            Author or refine a playbook so Fleety gives clearer next steps.
+          </p>
+          {practicalGaps.map((g) => (
+            <Card key={g.id}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium break-words">{g.user_query}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline">score: {g.practical_score?.toFixed(2) ?? "—"}</Badge>
+                    <Badge variant="outline">playbooks: {g.playbook_hits}</Badge>
+                    <Badge variant="outline">chips clicked: {g.chips_clicked}</Badge>
+                    <Badge variant="outline">{g.audience}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(g.created_at).toLocaleString()}</p>
+                </div>
+                <Button size="sm" onClick={() => authorPlaybookFromGap(g.user_query)}>Author playbook</Button>
+              </CardContent>
+            </Card>
+          ))}
+          {practicalGaps.length === 0 && (
+            <p className="text-sm text-muted-foreground">No low-action operational questions in the last 7 days. 🎉</p>
+          )}
+        </TabsContent>
+
         <TabsContent value="recent" className="space-y-2 mt-3">
           {signals.slice(0, 50).map((s) => (
             <Card key={s.id}>
