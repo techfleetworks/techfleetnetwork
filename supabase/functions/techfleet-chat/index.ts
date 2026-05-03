@@ -939,6 +939,24 @@ serve(async (req) => {
       }
       const q = questRes.data as { quest_paths?: { title?: string } | null; started_at?: string } | null;
       if (q?.quest_paths?.title) lines.push(`Active quest: ${q.quest_paths.title}`);
+      if (safeClientPath) {
+        const pageLabelMap: Array<[RegExp, string]> = [
+          [/^\/journey\/quests/, "Quests overview"],
+          [/^\/journey\/active/, "Active project"],
+          [/^\/journey/, "My Journey"],
+          [/^\/projects\/openings/, "Project openings"],
+          [/^\/projects\/[^/]+/, "Project detail"],
+          [/^\/learning\/lesson/, "Lesson player"],
+          [/^\/learning/, "Learning paths"],
+          [/^\/resources/, "Resources"],
+          [/^\/network/, "Network activity"],
+          [/^\/profile/, "Profile"],
+          [/^\/dashboard/, "Dashboard"],
+          [/^\/admin/, "Admin area"],
+        ];
+        const friendly = pageLabelMap.find(([re]) => re.test(safeClientPath))?.[1];
+        lines.push(`Currently viewing: ${friendly ?? safeClientPath} (${safeClientPath})`);
+      }
       if (lines.length > 0) {
         userContext = "\n\nUSER CONTEXT (tailor your steps to this person's actual situation when relevant — do not echo this block back):\n" + lines.map((l) => `  - ${l}`).join("\n") + "\n";
       }
