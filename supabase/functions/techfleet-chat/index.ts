@@ -1113,6 +1113,26 @@ serve(async (req) => {
       exampleHits,
     });
 
+    // Pick a prompt version label (weighted random across active versions).
+    // Falls back to 'baseline-2026-05' if the table is empty/unreachable.
+    let promptVersion = "baseline-2026-05";
+    try {
+      const { data: versions } = await supabase
+        .from("fleety_prompt_versions")
+        .select("label, weight, is_default")
+        .or("weight.gt.0,is_default.eq.true");
+      const rows = (versions ?? []) as Array<{ label: string; weight: number; is_default: boolean }>;
+      const active = rows.filter((v) => v.weight > 0);
+      if (active.length > 0) {
+        const total = active.reduce((s, v) => s + v.weight, 0);
+        let r = Math.random() * total;
+        for (const v of active) { r -= v.weight; if (r <= 0) { promptVersion = v.label; break; } }
+      } else {
+        const def = rows.find((v) => v.is_default);
+        if (def) promptVersion = def.label;
+      }
+    } catch (_) { /* keep fallback */ }
+
     // Capture per-turn signals (best-effort, non-blocking)
     const turnStart = Date.now();
     let signalTurnId: string | null = null;
@@ -1131,6 +1151,7 @@ serve(async (req) => {
           intent,
           playbook_hits: playbookHits,
           example_hits: exampleHits,
+          prompt_version: promptVersion,
         })
         .select("id")
         .single();
