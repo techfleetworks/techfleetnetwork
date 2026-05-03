@@ -494,6 +494,24 @@ export function FleetyChatWidget() {
                           )}
                         </div>
                       )}
+                      {msg.chips && msg.chips.length > 0 && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50 flex flex-wrap gap-1.5"
+                          role="group"
+                          aria-label="Suggested next actions"
+                        >
+                          {msg.chips.map((chip, ci) => (
+                            <button
+                              key={`${i}-chip-${ci}`}
+                              type="button"
+                              onClick={() => handleChip(msg.turnId, chip)}
+                              className="text-xs px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/15 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
