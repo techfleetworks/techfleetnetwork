@@ -733,8 +733,6 @@ serve(async (req) => {
     }
 
     // ── Terminology alias map ─────────────────────────────────────────
-    // Bridges old vocabulary ↔ new vocabulary so questions phrased with
-    // legacy terms still resolve against the renamed knowledge base.
     const ALIAS_MAP = "\n\nTERMINOLOGY ALIASES (treat each pair as the same concept):\n" +
       "- 'Roles' ↔ 'Duties'\n" +
       "- 'Hard Skills' ↔ 'Technical and Interpersonal Skills'\n" +
@@ -742,15 +740,100 @@ serve(async (req) => {
       "- 'Team Functions' ↔ 'Job Functions'\n" +
       "Always prefer the right-hand (current) term in your answer, but recognize the left-hand term in user questions.\n";
 
+    // ── Audience detection (member|teacher|admin) ─────────────────────
+    let audience: "member" | "teacher" | "admin" = "member";
+    try {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const set = new Set((roles ?? []).map((r: { role: string }) => r.role));
+      if (set.has("admin")) audience = "admin";
+      else if (set.has("teacher")) audience = "teacher";
+    } catch (_) { /* default member */ }
+
+    const TONE_PRESET = audience === "teacher"
+      ? "\n\nAUDIENCE: TEACHER. Slightly more technical phrasing is OK; reference how to coach trainees through the concept.\n"
+      : audience === "admin"
+        ? "\n\nAUDIENCE: ADMIN. Be precise and concise; surface operational/admin implications.\n"
+        : "\n\nAUDIENCE: TRAINEE/MEMBER. Friendly, encouraging, 6th-grade reading level. No jargon without a quick plain-English definition.\n";
+
+    // ── Canned answers (curator-approved) — highest priority ──────────
+    let cannedContext = "";
+    let cannedAnswerId: string | null = null;
+    try {
+      const { data: canned } = await supabase.rpc("fleety_match_canned_answers", {
+        p_query: lastUserMessage.slice(0, 500),
+        p_audience: audience,
+        p_limit: 1,
+      });
+      const top = (canned ?? [])[0] as { id: string; answer_md: string; similarity: number } | undefined;
+      if (top && top.similarity >= 0.45) {
+        cannedAnswerId = top.id;
+        cannedContext = `\n\nCURATED ANSWER (admin-approved — start from this exact content; you may lightly tailor wording but must preserve every fact and link):\n${top.answer_md}\n`;
+      }
+    } catch (e) {
+      log.warn("canned", `canned answer lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    }
+
+    // ── Few-shot examples from highly-rated past Q&A ──────────────────
+    let fewShotContext = "";
+    try {
+      const { data: shots } = await supabase.rpc("fleety_few_shot_examples", {
+        p_query: lastUserMessage.slice(0, 500),
+        p_limit: 3,
+      });
+      const rows = (shots ?? []) as Array<{ user_query: string; assistant_response: string }>;
+      const usable = rows.filter((r) => r.assistant_response && r.assistant_response.length > 40);
+      if (usable.length > 0) {
+        fewShotContext = "\n\nEXAMPLES OF GREAT ANSWERS (past responses that earned a thumbs-up — match this tone, depth, and structure):\n" +
+          usable.map((r, i) => `\n[Example ${i + 1}]\nUser: ${r.user_query}\nFleety: ${r.assistant_response.slice(0, 1500)}`).join("\n");
+      }
+    } catch (e) {
+      log.warn("fewshot", `few-shot lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    }
+
     // LLM07: Inject canary phrase into system prompt to detect leakage
-    const fullSystemPrompt = SYSTEM_PROMPT + `\n[CANARY:${CANARY_PHRASE}]\n` + knowledgeContext + frameworkContext + ALIAS_MAP + webResult.context;
+    const fullSystemPrompt = SYSTEM_PROMPT
+      + `\n[CANARY:${CANARY_PHRASE}]\n`
+      + cannedContext
+      + knowledgeContext
+      + frameworkContext
+      + ALIAS_MAP
+      + TONE_PRESET
+      + fewShotContext
+      + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
       model: "google/gemini-3-flash-preview",
       systemPromptLength: fullSystemPrompt.length,
       webSourceCount: webResult.sources.length,
       frameworkContextLength: frameworkContext.length,
+      audience,
+      cannedHit: !!cannedAnswerId,
+      fewShotChars: fewShotContext.length,
     });
+
+    // Capture per-turn signals (best-effort, non-blocking)
+    const turnStart = Date.now();
+    let signalTurnId: string | null = null;
+    try {
+      const { data: sig } = await supabase
+        .from("fleety_turn_signals")
+        .insert({
+          conversation_id: conversation_id ?? null,
+          user_id: user.id,
+          user_query: lastUserMessage.slice(0, 2000),
+          audience,
+          kb_hit_count: knowledge.length,
+          framework_hit_count: frameworkContext ? 1 : 0,
+          web_hit_count: webResult.sources.length,
+          canned_answer_id: cannedAnswerId,
+        })
+        .select("id")
+        .single();
+      signalTurnId = sig?.id ?? null;
+    } catch (_) { /* don't block chat on signal write */ }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
