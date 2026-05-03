@@ -447,7 +447,10 @@ serve(async (req) => {
       );
     }
 
-    const { messages, conversation_id } = await req.json();
+    const { messages, conversation_id, client_path } = await req.json();
+    const safeClientPath = typeof client_path === "string"
+      ? client_path.replace(/[^A-Za-z0-9/_\-?=&.]/g, "").slice(0, 200)
+      : "";
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
