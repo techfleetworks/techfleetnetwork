@@ -960,6 +960,78 @@ export type Database = {
         }
         Relationships: []
       }
+      framework_edge_staging: {
+        Row: {
+          created_at: string
+          dst_name: string
+          dst_type: Database["public"]["Enums"]["framework_entity_type"] | null
+          id: string
+          rel_type: Database["public"]["Enums"]["framework_rel_type"] | null
+          resolved_at: string | null
+          source: string
+          src_name: string | null
+          src_type: Database["public"]["Enums"]["framework_entity_type"] | null
+        }
+        Insert: {
+          created_at?: string
+          dst_name: string
+          dst_type?: Database["public"]["Enums"]["framework_entity_type"] | null
+          id?: string
+          rel_type?: Database["public"]["Enums"]["framework_rel_type"] | null
+          resolved_at?: string | null
+          source?: string
+          src_name?: string | null
+          src_type?: Database["public"]["Enums"]["framework_entity_type"] | null
+        }
+        Update: {
+          created_at?: string
+          dst_name?: string
+          dst_type?: Database["public"]["Enums"]["framework_entity_type"] | null
+          id?: string
+          rel_type?: Database["public"]["Enums"]["framework_rel_type"] | null
+          resolved_at?: string | null
+          source?: string
+          src_name?: string | null
+          src_type?: Database["public"]["Enums"]["framework_entity_type"] | null
+        }
+        Relationships: []
+      }
+      framework_edges: {
+        Row: {
+          created_at: string
+          dst_id: string
+          dst_type: Database["public"]["Enums"]["framework_entity_type"]
+          id: string
+          rel_type: Database["public"]["Enums"]["framework_rel_type"]
+          source: string
+          src_id: string
+          src_type: Database["public"]["Enums"]["framework_entity_type"]
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          dst_id: string
+          dst_type: Database["public"]["Enums"]["framework_entity_type"]
+          id?: string
+          rel_type: Database["public"]["Enums"]["framework_rel_type"]
+          source?: string
+          src_id: string
+          src_type: Database["public"]["Enums"]["framework_entity_type"]
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          dst_id?: string
+          dst_type?: Database["public"]["Enums"]["framework_entity_type"]
+          id?: string
+          rel_type?: Database["public"]["Enums"]["framework_rel_type"]
+          source?: string
+          src_id?: string
+          src_type?: Database["public"]["Enums"]["framework_entity_type"]
+          weight?: number
+        }
+        Relationships: []
+      }
       general_applications: {
         Row: {
           about_yourself: string
@@ -2204,6 +2276,51 @@ export type Database = {
         }
         Relationships: []
       }
+      reference_job_functions: {
+        Row: {
+          category: string
+          created_at: string
+          data: Json
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          search_tsv: unknown
+          slug: string
+          source: string
+          source_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          search_tsv?: unknown
+          slug: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data?: Json
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          search_tsv?: unknown
+          slug?: string
+          source?: string
+          source_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reference_job_industries: {
         Row: {
           category: string
@@ -2558,51 +2675,6 @@ export type Database = {
         }
         Relationships: []
       }
-      reference_roles: {
-        Row: {
-          category: string
-          created_at: string
-          data: Json
-          description: string
-          id: string
-          is_active: boolean
-          name: string
-          search_tsv: unknown
-          slug: string
-          source: string
-          source_row_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          category?: string
-          created_at?: string
-          data?: Json
-          description?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          search_tsv?: unknown
-          slug: string
-          source?: string
-          source_row_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          data?: Json
-          description?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          search_tsv?: unknown
-          slug?: string
-          source?: string
-          source_row_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       reference_skills: {
         Row: {
           category: string
@@ -2649,51 +2721,6 @@ export type Database = {
         Relationships: []
       }
       reference_stakeholders: {
-        Row: {
-          category: string
-          created_at: string
-          data: Json
-          description: string
-          id: string
-          is_active: boolean
-          name: string
-          search_tsv: unknown
-          slug: string
-          source: string
-          source_row_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          category?: string
-          created_at?: string
-          data?: Json
-          description?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          search_tsv?: unknown
-          slug: string
-          source?: string
-          source_row_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          data?: Json
-          description?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          search_tsv?: unknown
-          slug?: string
-          source?: string
-          source_row_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      reference_team_functions: {
         Row: {
           category: string
           created_at: string
@@ -3356,19 +3383,11 @@ export type Database = {
         }
         Relationships: []
       }
-      framework_overview_mv: {
+      framework_node_neighbors_mv: {
         Row: {
-          entity_type: string | null
-          last_updated: string | null
-          total: number | null
-        }
-        Relationships: []
-      }
-      framework_overview_v: {
-        Row: {
-          entity_type: string | null
-          last_updated: string | null
-          total: number | null
+          neighbors: Json | null
+          node_id: string | null
+          node_type: Database["public"]["Enums"]["framework_entity_type"] | null
         }
         Relationships: []
       }
@@ -3524,9 +3543,47 @@ export type Database = {
         Returns: string
       }
       fw_delete_kb: { Args: { p_url: string }; Returns: undefined }
+      fw_emit_edges_for_entity: {
+        Args: {
+          p_data: Json
+          p_source?: string
+          p_src_id: string
+          p_src_type: Database["public"]["Enums"]["framework_entity_type"]
+        }
+        Returns: number
+      }
       fw_label: { Args: { entity: string }; Returns: string }
+      fw_rebuild_all_edges: { Args: never; Returns: number }
+      fw_refresh_neighbors_mv: { Args: never; Returns: undefined }
+      fw_rename_jsonb_keys: {
+        Args: { p_data: Json; p_pairs: string[] }
+        Returns: Json
+      }
+      fw_resolve_entity: {
+        Args: {
+          p_name: string
+          p_type: Database["public"]["Enums"]["framework_entity_type"]
+        }
+        Returns: string
+      }
       fw_slug: { Args: { input: string }; Returns: string }
+      fw_split_dedupe: { Args: { p_value: string }; Returns: string[] }
       fw_table: { Args: { entity: string }; Returns: string }
+      fw_table_to_entity: {
+        Args: { p_table: string }
+        Returns: Database["public"]["Enums"]["framework_entity_type"]
+      }
+      fw_upsert_edge: {
+        Args: {
+          p_dst_name: string
+          p_dst_type: Database["public"]["Enums"]["framework_entity_type"]
+          p_rel: Database["public"]["Enums"]["framework_rel_type"]
+          p_source?: string
+          p_src_id: string
+          p_src_type: Database["public"]["Enums"]["framework_entity_type"]
+        }
+        Returns: undefined
+      }
       fw_upsert_kb: {
         Args: { p_content: string; p_title: string; p_url: string }
         Returns: undefined
@@ -3539,6 +3596,7 @@ export type Database = {
           unique_views: number
         }[]
       }
+      get_company_type_context: { Args: { p_id: string }; Returns: Json }
       get_course_completion_counts: {
         Args: { _course_specs: Json }
         Returns: {
@@ -3547,12 +3605,21 @@ export type Database = {
         }[]
       }
       get_dashboard_overview: { Args: { p_user_id: string }; Returns: Json }
+      get_deliverable_context: { Args: { p_id: string }; Returns: Json }
       get_email_pipeline_health: {
         Args: { p_hours?: number; p_limit?: number }
         Returns: Json
       }
       get_member_country_distribution: { Args: never; Returns: Json }
+      get_milestone_blueprint: { Args: { p_id: string }; Returns: Json }
       get_network_stats: { Args: never; Returns: Json }
+      get_node_neighbors: {
+        Args: {
+          p_id: string
+          p_type: Database["public"]["Enums"]["framework_entity_type"]
+        }
+        Returns: Json
+      }
       get_own_promotions: {
         Args: { p_user_id: string }
         Returns: {
@@ -3563,6 +3630,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_stakeholder_context: { Args: { p_id: string }; Returns: Json }
       get_top_error_fingerprints: {
         Args: { p_hours?: number; p_limit?: number }
         Returns: {
@@ -3699,6 +3767,16 @@ export type Database = {
         Returns: string
       }
       sanitize_user_html: { Args: { input: string }; Returns: string }
+      search_framework: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          entity_type: string
+          id: string
+          name: string
+          slug: string
+          snippet: string
+        }[]
+      }
       set_email_visibility_timeout: {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
@@ -3781,6 +3859,46 @@ export type Database = {
         | "published"
         | "archived"
         | "cancelled"
+      framework_entity_type:
+        | "activity"
+        | "agile_method"
+        | "company_type"
+        | "deliverable"
+        | "duty"
+        | "job_function"
+        | "job_industry"
+        | "job_specialization"
+        | "job_title"
+        | "practice"
+        | "project_milestone"
+        | "project"
+        | "resource"
+        | "skill"
+        | "stakeholder"
+        | "tech_job_category"
+        | "tool"
+        | "workshop"
+        | "handbook"
+      framework_rel_type:
+        | "produces"
+        | "requires_skill"
+        | "requires_activity"
+        | "requires_deliverable"
+        | "excludes_deliverable"
+        | "uses_tool"
+        | "uses_practice"
+        | "performed_by"
+        | "teaches_skill"
+        | "part_of"
+        | "applies_method"
+        | "targets_company_type"
+        | "engages_stakeholder"
+        | "collaborates_on"
+        | "owned_by"
+        | "related_to"
+        | "precedes"
+        | "references_resource"
+        | "works_with"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -3950,6 +4068,48 @@ export const Constants = {
         "published",
         "archived",
         "cancelled",
+      ],
+      framework_entity_type: [
+        "activity",
+        "agile_method",
+        "company_type",
+        "deliverable",
+        "duty",
+        "job_function",
+        "job_industry",
+        "job_specialization",
+        "job_title",
+        "practice",
+        "project_milestone",
+        "project",
+        "resource",
+        "skill",
+        "stakeholder",
+        "tech_job_category",
+        "tool",
+        "workshop",
+        "handbook",
+      ],
+      framework_rel_type: [
+        "produces",
+        "requires_skill",
+        "requires_activity",
+        "requires_deliverable",
+        "excludes_deliverable",
+        "uses_tool",
+        "uses_practice",
+        "performed_by",
+        "teaches_skill",
+        "part_of",
+        "applies_method",
+        "targets_company_type",
+        "engages_stakeholder",
+        "collaborates_on",
+        "owned_by",
+        "related_to",
+        "precedes",
+        "references_resource",
+        "works_with",
       ],
       journey_phase: [
         "first_steps",
