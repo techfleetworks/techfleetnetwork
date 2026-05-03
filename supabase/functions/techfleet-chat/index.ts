@@ -1124,7 +1124,7 @@ serve(async (req) => {
           user_id: user.id,
           user_query: lastUserMessage.slice(0, 2000),
           audience,
-          kb_hit_count: knowledge.length,
+          kb_hit_count: kbHits.length,
           framework_hit_count: frameworkContext ? 1 : 0,
           web_hit_count: webResult.sources.length,
           canned_answer_id: cannedAnswerId,
