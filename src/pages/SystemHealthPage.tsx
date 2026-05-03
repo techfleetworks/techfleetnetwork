@@ -192,10 +192,12 @@ export default function SystemHealthPage() {
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
           <TabsTrigger value="fleety">Fleety</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
+{`__KEEP_QUEUES__`}
           {data.queue_stats.map((queue) => (
             <Card key={queue.queue_name}>
               <CardHeader>
