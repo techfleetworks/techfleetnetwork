@@ -180,9 +180,10 @@ export function FleetyHealthTab() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="gaps" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList aria-label="Fleety learning sections">
           <TabsTrigger value="gaps">Gaps ({stats.gaps})</TabsTrigger>
+          <TabsTrigger value="playbook-gaps">Playbook Gaps ({practicalGaps.length})</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
