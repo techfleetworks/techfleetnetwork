@@ -285,6 +285,33 @@ function shouldSearchWeb(userMessage: string): boolean {
 }
 
 /**
+ * Cheap intent classifier — regex-first to keep latency / cost at zero
+ * for the 95% of cases we recognize. Returns one of:
+ *   definition | how_to | troubleshoot | decision | reference
+ * Theory contract is used only for `definition` and `reference`. All
+ * others trigger PRACTICAL_CONTRACT, playbook retrieval, and action chips.
+ */
+type Intent = "definition" | "how_to" | "troubleshoot" | "decision" | "reference";
+
+const INTENT_RULES: Array<{ intent: Intent; pattern: RegExp }> = [
+  { intent: "troubleshoot", pattern: /\b(stuck|blocked|broken|not working|fail(ed|ing)?|error|bug|help|can't|cannot|won't|doesn't|debug|fix)\b/i },
+  { intent: "decision", pattern: /\b(should i|which (one|should)|vs\.?\b|versus|better|recommend|choose|decide|trade.?off)\b/i },
+  { intent: "how_to", pattern: /\b(how (do|to|can|should|would)|steps?\s+to|guide (to|for)|walk me through|run a|conduct a|facilitate|prepare|write a|draft|create a|build a|set up|next step|what (do|should) i)\b/i },
+  { intent: "reference", pattern: /\b(list (of|all)|what are the|show me (all|the)|where (is|are)|find (me|the)|where can i)\b/i },
+  { intent: "definition", pattern: /\b(what is|what's|define|definition|meaning of|who is|explain (the|what))\b/i },
+];
+
+function classifyIntent(userMessage: string): Intent {
+  for (const r of INTENT_RULES) if (r.pattern.test(userMessage)) return r.intent;
+  // Default: treat as how_to so we lean practical, not theoretical.
+  return "how_to";
+}
+
+function isOperationalIntent(i: Intent): boolean {
+  return i === "how_to" || i === "troubleshoot" || i === "decision";
+}
+
+/**
  * Extract a concise search query from the user message for web search.
  * Strips filler words and keeps topic-relevant terms.
  */
