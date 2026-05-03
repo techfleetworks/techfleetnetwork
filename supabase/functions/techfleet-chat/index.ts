@@ -1081,19 +1081,22 @@ serve(async (req) => {
       log.warn("user-ctx", `user-context lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
     }
 
-    // LLM07: Inject canary phrase into system prompt to detect leakage
+    // LLM07: Inject canary phrase into system prompt to detect leakage.
+    // Order matters for "lost in the middle": put high-signal action context
+    // (canned, user, playbooks, contract) at the TOP and bottom; bury the
+    // big reference KB in the middle where models attend less.
     const fullSystemPrompt = SYSTEM_PROMPT_BASE
       + `\n[CANARY:${CANARY_PHRASE}]\n`
       + cannedContext
-      + knowledgeContext
-      + frameworkContext
-      + ALIAS_MAP
-      + TONE_PRESET
       + userContext
       + playbookContext
       + exampleContext
-      + fewShotContext
       + (practical ? PRACTICAL_CONTRACT : "")
+      + ALIAS_MAP
+      + TONE_PRESET
+      + knowledgeContext
+      + frameworkContext
+      + fewShotContext
       + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
