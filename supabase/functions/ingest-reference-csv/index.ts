@@ -349,6 +349,49 @@ serve(async (req) => {
       }
     }
 
+    // ── Post-ingest validate & promote step ─────────────────────────
+    // Many edges only resolve after sibling datasets land (e.g. an Activity
+    // referencing a Skill that arrives in a later CSV). Replay the staging
+    // table now so anything newly resolvable promotes into framework_edges
+    // immediately — Fleety's graph queries should never wait for the next
+    // ingest cycle to see them.
+    let replayResolved = 0;
+    let stagingRemaining = 0;
+    try {
+      const { data: replay, error: replayErr } = await admin.rpc("fw_replay_staging");
+      if (replayErr) {
+        console.warn(`[ingest] fw_replay_staging failed: ${replayErr.message}`);
+      } else if (Array.isArray(replay) && replay.length > 0) {
+        const row = replay[0] as { resolved?: number | string; remaining?: number | string };
+        replayResolved = Number(row.resolved ?? 0);
+        stagingRemaining = Number(row.remaining ?? 0);
+      }
+    } catch (e) {
+      console.warn(`[ingest] replay step exception: ${e instanceof Error ? e.message : "unknown"}`);
+    }
+
+    // Validate what (if anything) is still stuck in staging so the admin UI
+    // can surface a precise root cause instead of a silent number.
+    type StagingBreakdown = { rel_type: string; src_type: string | null; dst_type: string | null; count: number };
+    let stagingBreakdown: StagingBreakdown[] = [];
+    if (stagingRemaining > 0) {
+      const { data: stuck } = await admin
+        .from("framework_edge_staging")
+        .select("rel_type, src_type, dst_type")
+        .is("resolved_at", null)
+        .limit(2000);
+      if (Array.isArray(stuck)) {
+        const buckets = new Map<string, StagingBreakdown>();
+        for (const s of stuck as Array<{ rel_type: string; src_type: string | null; dst_type: string | null }>) {
+          const key = `${s.rel_type}|${s.src_type ?? "?"}|${s.dst_type ?? "?"}`;
+          const cur = buckets.get(key);
+          if (cur) cur.count++;
+          else buckets.set(key, { rel_type: s.rel_type, src_type: s.src_type, dst_type: s.dst_type, count: 1 });
+        }
+        stagingBreakdown = Array.from(buckets.values()).sort((a, b) => b.count - a.count).slice(0, 25);
+      }
+    }
+
     // Refresh the neighbors materialized view so Fleety sees the new graph
     // immediately. This is debounced inside the function.
     try { await admin.rpc("fw_refresh_neighbors_mv"); } catch { /* non-fatal */ }
@@ -362,6 +405,9 @@ serve(async (req) => {
       truncated_cells: truncatedCells,
       edges_inserted: edgesEmitted,
       edges_staged: edgesStaged,
+      replay_resolved: replayResolved,
+      staging_remaining: stagingRemaining,
+      staging_breakdown: stagingBreakdown,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
