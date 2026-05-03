@@ -227,21 +227,30 @@ export function FleetyChatWidget() {
     if (convoId) await saveMessage(convoId, "user", text);
 
     let assistantSoFar = "";
+    let assistantTurnId: string | null = null;
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar, turnId: assistantTurnId } : m));
         }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
+        return [...prev, { role: "assistant", content: assistantSoFar, turnId: assistantTurnId }];
       });
     };
 
     try {
       await streamChat({
         messages: [...messages, userMsg],
+        conversationId: convoId,
         onDelta: (chunk) => upsertAssistant(chunk),
+        onTurnId: (id) => {
+          assistantTurnId = id;
+          // Stamp turnId on the latest assistant message if it exists
+          setMessages((prev) => prev.map((m, i) =>
+            i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
+          ));
+        },
         onDone: async () => {
           setIsLoading(false);
           if (convoId && assistantSoFar) {
@@ -255,6 +264,16 @@ export function FleetyChatWidget() {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  // Submit thumbs feedback for an assistant message
+  const submitFeedback = async (turnId: string, rating: 1 | -1) => {
+    if (!user || !turnId) return;
+    const { error } = await supabase
+      .from("fleety_message_feedback")
+      .upsert({ turn_id: turnId, user_id: user.id, rating }, { onConflict: "turn_id,user_id" });
+    if (error) toast.error("Couldn't save your feedback.");
+    else toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
   };
 
   // Prefill from search query
