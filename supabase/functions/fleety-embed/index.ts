@@ -148,24 +148,35 @@ serve(async (req) => {
       const table = (body.table as string) || "all";
       const result: Record<string, number> = {};
 
-      // KB: title + content
+      // KB: title + content - paginate by id to dodge PostgREST vector-filter quirks
       if (table === "all" || table === "kb") {
-        const { data: rows } = await admin
-          .from("knowledge_base")
-          .select("id,title,content")
-          .is("embedding", null)
-          .limit(limit);
+        let lastId = "";
         let n = 0;
-        for (const r of rows ?? []) {
-          try {
-            const v = await embedText(`${r.title}\n\n${r.content}`);
-            await admin
-              .from("knowledge_base")
-              .update({ embedding: vecLiteral(v) as unknown as number[], embedding_updated_at: new Date().toISOString() })
-              .eq("id", r.id);
-            n++;
-          } catch (e) {
-            console.error("kb embed fail", r.id, e);
+        let processed = 0;
+        while (processed < limit) {
+          const q = admin
+            .from("knowledge_base")
+            .select("id,title,content,embedding")
+            .order("id", { ascending: true })
+            .limit(50);
+          if (lastId) q.gt("id", lastId);
+          const { data: rows } = await q;
+          if (!rows || rows.length === 0) break;
+          for (const r of rows) {
+            lastId = r.id;
+            if (r.embedding) continue;
+            try {
+              const v = await embedText(`${r.title}\n\n${r.content}`);
+              await admin
+                .from("knowledge_base")
+                .update({ embedding: vecLiteral(v) as unknown as number[], embedding_updated_at: new Date().toISOString() })
+                .eq("id", r.id);
+              n++;
+              processed++;
+              if (processed >= limit) break;
+            } catch (e) {
+              console.error("kb embed fail", r.id, e);
+            }
           }
         }
         result.kb = n;
@@ -174,11 +185,10 @@ serve(async (req) => {
       if (table === "all" || table === "playbooks") {
         const { data: rows } = await admin
           .from("fleety_playbooks")
-          .select("id,title,direct_answer,trigger_phrases,tags,intent")
-          .is("embedding", null)
-          .limit(limit);
+          .select("id,title,direct_answer,trigger_phrases,tags,intent,embedding")
+          .limit(200);
         let n = 0;
-        for (const r of rows ?? []) {
+        for (const r of (rows ?? []).filter((x: any) => !x.embedding).slice(0, limit)) {
           try {
             const blob = `${r.title}\nintent:${r.intent}\n${(r.trigger_phrases ?? []).join(", ")}\n${(r.tags ?? []).join(", ")}\n${r.direct_answer ?? ""}`;
             const v = await embedText(blob);
@@ -197,11 +207,10 @@ serve(async (req) => {
       if (table === "all" || table === "examples") {
         const { data: rows } = await admin
           .from("fleety_examples")
-          .select("id,title,deliverable_type,summary,excerpt,tags")
-          .is("embedding", null)
-          .limit(limit);
+          .select("id,title,deliverable_type,summary,excerpt,tags,embedding")
+          .limit(200);
         let n = 0;
-        for (const r of rows ?? []) {
+        for (const r of (rows ?? []).filter((x: any) => !x.embedding).slice(0, limit)) {
           try {
             const blob = `${r.title}\n${r.deliverable_type}\n${(r.tags ?? []).join(", ")}\n${r.summary ?? ""}\n${r.excerpt ?? ""}`;
             const v = await embedText(blob);
