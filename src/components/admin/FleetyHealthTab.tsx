@@ -403,10 +403,27 @@ export function FleetyHealthTab() {
         </TabsContent>
 
         <TabsContent value="drafts" className="space-y-2 mt-3">
-          <p className="text-xs text-muted-foreground">
-            Auto-drafted playbooks from the learning loop (low-action operational queries with no playbook hits).
-            Approve to make Fleety use them, or remove if off-base.
-          </p>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <p className="text-xs text-muted-foreground flex-1 min-w-[240px]">
+              Auto-drafted playbooks from the learning loop and the framework bulk drafter
+              (uncovered deliverables, milestones, workshops). Approve to make Fleety use them,
+              or remove if off-base.
+            </p>
+            <div className="flex gap-1 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => bulkDraft("deliverable")} disabled={bulkLoading}>
+                {bulkLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Draft 5 deliverables
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkDraft("milestone")} disabled={bulkLoading}>
+                {bulkLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Draft 5 milestones
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkDraft("workshop")} disabled={bulkLoading}>
+                {bulkLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Draft 5 workshops
+              </Button>
+            </div>
+          </div>
           {drafts.map((d) => (
             <Card key={d.id}>
               <CardContent className="pt-4 flex items-start justify-between gap-3">
