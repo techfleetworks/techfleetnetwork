@@ -658,13 +658,16 @@ serve(async (req) => {
       );
     }
 
-    // Embed the user query ONCE; reused for KB / playbooks / examples.
-    const queryEmbedding = await embedQuery(lastUserMessage, requestId);
+    // Stage-1 router runs in parallel with the query embedding (zero added serial latency).
+    const [queryEmbedding, routerDecision] = await Promise.all([
+      embedQuery(lastUserMessage, requestId),
+      routeWithModel(lastUserMessage, requestId),
+    ]);
     const haveEmbeddings = !!queryEmbedding;
 
     // Load knowledge base via semantic top-K (with full-table cache fallback).
-    const doWebSearch = shouldSearchWeb(lastUserMessage);
-    log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch}`, { requestId, doWebSearch });
+    const doWebSearch = routerDecision?.needsWeb ?? shouldSearchWeb(lastUserMessage);
+    log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch} (router=${!!routerDecision})`, { requestId, doWebSearch });
 
     const KB_TOPK = 12;
     const PER_KB_CHARS = 2_000;
