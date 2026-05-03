@@ -534,13 +534,49 @@ serve(async (req) => {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
     }
 
+    // ── Framework graph injection ─────────────────────────────────────
+    // Pull top-N framework nodes matching the user's query and append
+    // their full deduplicated neighborhood to the system context. Lets
+    // Fleety answer relationship questions ("who do I work with as a UX
+    // researcher in an agency?") in a single LLM round-trip.
+    let frameworkContext = "";
+    try {
+      const { data: hits } = await supabase.rpc("search_framework", {
+        p_query: lastUserMessage.slice(0, 500),
+        p_limit: 8,
+      });
+      if (Array.isArray(hits) && hits.length > 0) {
+        frameworkContext = "\n\nFRAMEWORK GRAPH (authoritative relationships from the Skills & Practices Framework):\n";
+        for (const hit of hits) {
+          const { data: neighbors } = await supabase.rpc("get_node_neighbors", {
+            p_type: (hit as { type: string }).type,
+            p_id:   (hit as { id: string }).id,
+          });
+          frameworkContext += `\n--- ${(hit as { name: string }).name} (${(hit as { type: string }).type})\n${JSON.stringify(neighbors ?? {})}\n`;
+        }
+      }
+    } catch (e) {
+      log.warn("framework", `framework graph injection failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    }
+
+    // ── Terminology alias map ─────────────────────────────────────────
+    // Bridges old vocabulary ↔ new vocabulary so questions phrased with
+    // legacy terms still resolve against the renamed knowledge base.
+    const ALIAS_MAP = "\n\nTERMINOLOGY ALIASES (treat each pair as the same concept):\n" +
+      "- 'Roles' ↔ 'Duties'\n" +
+      "- 'Hard Skills' ↔ 'Technical and Interpersonal Skills'\n" +
+      "- 'Soft Skills' ↔ 'Team Practices'\n" +
+      "- 'Team Functions' ↔ 'Job Functions'\n" +
+      "Always prefer the right-hand (current) term in your answer, but recognize the left-hand term in user questions.\n";
+
     // LLM07: Inject canary phrase into system prompt to detect leakage
-    const fullSystemPrompt = SYSTEM_PROMPT + `\n[CANARY:${CANARY_PHRASE}]\n` + knowledgeContext + webResult.context;
+    const fullSystemPrompt = SYSTEM_PROMPT + `\n[CANARY:${CANARY_PHRASE}]\n` + knowledgeContext + frameworkContext + ALIAS_MAP + webResult.context;
     log.info("ai", `Sending request to AI gateway [${requestId}]`, {
       requestId,
       model: "google/gemini-3-flash-preview",
       systemPromptLength: fullSystemPrompt.length,
       webSourceCount: webResult.sources.length,
+      frameworkContextLength: frameworkContext.length,
     });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

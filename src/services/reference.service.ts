@@ -12,7 +12,7 @@ export type ReferenceEntity =
   | "workshops"
   | "agile_methods"
   | "project_milestones"
-  | "team_functions"
+  | "job_functions"
   | "tools"
   | "tech_job_categories"
   | "job_industries"
@@ -22,8 +22,7 @@ export type ReferenceEntity =
   | "projects"
   | "stakeholders"
   | "job_titles"
-  | "resources"
-  | "roles";
+  | "resources";
 
 export interface ReferenceItem {
   id: string;
