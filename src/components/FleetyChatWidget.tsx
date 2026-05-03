@@ -22,6 +22,7 @@ const MAX_INPUT_LENGTH = 4000;
 async function streamChat({
   messages,
   conversationId,
+  clientPath,
   onDelta,
   onTurnId,
   onChips,
@@ -29,6 +30,7 @@ async function streamChat({
 }: {
   messages: Msg[];
   conversationId: string | null;
+  clientPath: string | null;
   onDelta: (deltaText: string) => void;
   onTurnId: (id: string | null) => void;
   onChips: (chips: ActionChip[]) => void;
@@ -49,7 +51,11 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages: sanitizedMessages, conversation_id: conversationId }),
+    body: JSON.stringify({
+      messages: sanitizedMessages,
+      conversation_id: conversationId,
+      client_path: clientPath ? clientPath.slice(0, 200) : null,
+    }),
   });
 
   if (!resp.ok) {
