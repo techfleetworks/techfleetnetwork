@@ -109,6 +109,23 @@ Deno.serve(async (req) => {
 
       const announcementUrl = `https://techfleet.network/updates?highlight=${announcement_id}`;
 
+      // Inline styles into common block tags so email clients render formatting.
+      // Many clients (Gmail, Outlook) strip <style> blocks or default browser
+      // styles for <p>, <ul>, <ol>, <h2>, <h3>, <blockquote>, etc.
+      const inlineFormattedBody = (announcement.body_html || "")
+        .replace(/<p(\s[^>]*)?>/gi, '<p style="margin:0 0 12px 0; font-size:15px; line-height:1.6; color:#3f3f46;">')
+        .replace(/<h2(\s[^>]*)?>/gi, '<h2 style="font-size:18px; font-weight:700; color:#18181b; margin:20px 0 10px 0; line-height:1.3;">')
+        .replace(/<h3(\s[^>]*)?>/gi, '<h3 style="font-size:16px; font-weight:600; color:#18181b; margin:18px 0 8px 0; line-height:1.3;">')
+        .replace(/<ul(\s[^>]*)?>/gi, '<ul style="margin:0 0 12px 0; padding-left:24px; font-size:15px; line-height:1.6; color:#3f3f46;">')
+        .replace(/<ol(\s[^>]*)?>/gi, '<ol style="margin:0 0 12px 0; padding-left:24px; font-size:15px; line-height:1.6; color:#3f3f46;">')
+        .replace(/<li(\s[^>]*)?>/gi, '<li style="margin:0 0 4px 0;">')
+        .replace(/<blockquote(\s[^>]*)?>/gi, '<blockquote style="margin:0 0 12px 0; padding:8px 16px; border-left:4px solid #e4e4e7; color:#52525b; font-style:italic;">')
+        .replace(/<a(\s[^>]*)?>/gi, (m: string) => m.replace(/<a/i, '<a style="color:#2563eb; text-decoration:underline;"'))
+        .replace(/<strong(\s[^>]*)?>/gi, '<strong style="font-weight:700; color:#18181b;">')
+        .replace(/<b(\s[^>]*)?>/gi, '<b style="font-weight:700; color:#18181b;">')
+        .replace(/<em(\s[^>]*)?>/gi, '<em style="font-style:italic;">')
+        .replace(/<u(\s[^>]*)?>/gi, '<u style="text-decoration:underline;">');
+
       const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -121,7 +138,7 @@ Deno.serve(async (req) => {
       </div>
       <h2 style="font-size: 22px; font-weight: 700; color: #18181b; margin: 0 0 16px 0;">${announcement.title}</h2>
       <div style="font-size: 15px; line-height: 1.6; color: #3f3f46;">
-        ${announcement.body_html}
+        ${inlineFormattedBody}
       </div>
       <div style="text-align: center; margin: 24px 0;">
         <a href="${announcementUrl}" style="display: inline-block; background-color: #18181b; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 6px; text-decoration: none;">View Announcement</a>
