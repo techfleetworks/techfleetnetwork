@@ -126,14 +126,9 @@ serve(async (req) => {
       });
     }
 
-    // Mode B: backfill — admin only
+    // Mode B: backfill — admin, service-role, or cron only
     if (body.mode === "backfill") {
-      const { data: roles } = await admin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userData.user.id);
-      const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === "admin");
-      if (!isAdmin) {
+      if (!(isService || isCron || isAdmin)) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
