@@ -351,7 +351,7 @@ serve(async (req) => {
 
     // Refresh the neighbors materialized view so Fleety sees the new graph
     // immediately. This is debounced inside the function.
-    await admin.rpc("fw_refresh_neighbors_mv").catch(() => {});
+    try { await admin.rpc("fw_refresh_neighbors_mv"); } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({
       table: cfg.table,
