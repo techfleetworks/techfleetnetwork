@@ -30,26 +30,35 @@ async function embedText(text: string): Promise<number[]> {
   const trimmed = (text || "").slice(0, 8000);
   if (!trimmed.trim()) return new Array(EMBED_DIM).fill(0);
 
-  // Path A: direct Gemini API
+  // Path A: direct Gemini API. Try modern name first, then legacy fallback.
   if (GEMINI_API_KEY) {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "models/text-embedding-004",
-          content: { parts: [{ text: trimmed }] },
-        }),
-      },
-    );
-    if (!r.ok) throw new Error(`Gemini embed failed: ${r.status} ${await r.text()}`);
-    const j = await r.json();
-    const v = j?.embedding?.values;
-    if (!Array.isArray(v) || v.length !== EMBED_DIM) {
-      throw new Error(`Unexpected Gemini embedding shape (len=${v?.length})`);
+    const candidates = [
+      "models/gemini-embedding-001",
+      "models/text-embedding-004",
+    ];
+    let lastErr = "";
+    for (const m of candidates) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/${m}:embedContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: m,
+            content: { parts: [{ text: trimmed }] },
+            outputDimensionality: EMBED_DIM,
+          }),
+        },
+      );
+      if (r.ok) {
+        const j = await r.json();
+        const v = j?.embedding?.values;
+        if (!Array.isArray(v)) throw new Error("Unexpected Gemini embedding shape");
+        return v.length === EMBED_DIM ? v : v.slice(0, EMBED_DIM);
+      }
+      lastErr = `${r.status} ${await r.text()}`;
     }
-    return v;
+    throw new Error(`Gemini embed failed: ${lastErr}`);
   }
 
   // Path B: gateway OpenAI-compatible (best-effort)
