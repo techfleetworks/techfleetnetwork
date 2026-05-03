@@ -24,12 +24,14 @@ async function streamChat({
   conversationId,
   onDelta,
   onTurnId,
+  onChips,
   onDone,
 }: {
   messages: Msg[];
   conversationId: string | null;
   onDelta: (deltaText: string) => void;
   onTurnId: (id: string | null) => void;
+  onChips: (chips: ActionChip[]) => void;
   onDone: () => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -56,6 +58,14 @@ async function streamChat({
   }
 
   onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
+  const chipsHeader = resp.headers.get("X-Fleety-Chips");
+  if (chipsHeader) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(chipsHeader)));
+      const parsed = JSON.parse(decoded) as ActionChip[];
+      if (Array.isArray(parsed)) onChips(parsed.slice(0, 4));
+    } catch { /* ignore malformed header */ }
+  }
 
   if (!resp.body) throw new Error("No response stream");
 
