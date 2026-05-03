@@ -365,6 +365,65 @@ function isOperationalIntent(i: Intent): boolean {
 }
 
 /**
+ * Stage-1 router: cheap Gemini Flash Lite call returning structured intent +
+ * web-search decision via tool calling. Runs in parallel with embedding so it
+ * adds zero serial latency. Silently falls back to regex on any failure.
+ */
+type RouterDecision = { intent: Intent; needsWeb: boolean; webQuery: string | null };
+async function routeWithModel(userMessage: string, requestId: string): Promise<RouterDecision | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: "You route user questions for a coaching assistant. Reply only via the route tool." },
+          { role: "user", content: userMessage.slice(0, 1000) },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "route",
+            description: "Classify intent and decide if web search is needed.",
+            parameters: {
+              type: "object",
+              properties: {
+                intent: { type: "string", enum: ["definition", "how_to", "troubleshoot", "decision", "reference"] },
+                needs_web: { type: "boolean", description: "True only if the answer requires fresh external info (current events, prices, news, library API specifics) AND can't be answered from internal training framework knowledge." },
+                web_query: { type: "string", description: "Concise search query (3-8 words). Empty if needs_web is false." },
+              },
+              required: ["intent", "needs_web", "web_query"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "route" } },
+      }),
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const args = data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    if (!args) return null;
+    const parsed = JSON.parse(args);
+    return {
+      intent: parsed.intent as Intent,
+      needsWeb: !!parsed.needs_web,
+      webQuery: parsed.web_query || null,
+    };
+  } catch (e) {
+    console.warn(`[${requestId}] router model failed:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/**
  * Extract a concise search query from the user message for web search.
  * Strips filler words and keeps topic-relevant terms.
  */
