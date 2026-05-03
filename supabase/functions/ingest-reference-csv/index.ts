@@ -306,6 +306,34 @@ serve(async (req) => {
       });
     }
 
+    // ── Placeholder-aware merge ────────────────────────────────────────
+    // If the incoming CSV row's description is a placeholder (empty or
+    // contains "placeholder") AND an existing DB row already has a real
+    // description, KEEP the DB value. This protects content-team edits
+    // from being clobbered by re-ingest of the same seed CSV.
+    const isPlaceholder = (s: string | null | undefined) =>
+      !s || !s.trim() || /placeholder/i.test(s);
+
+    const incomingSlugs = upserts.map(u => u.slug);
+    let keptExistingDescription = 0;
+    if (incomingSlugs.length > 0) {
+      const { data: existingRows } = await admin
+        .from(cfg.table)
+        .select("slug, description")
+        .in("slug", incomingSlugs);
+      const existingBySlug = new Map<string, string | null>(
+        (existingRows ?? []).map((r: { slug: string; description: string | null }) => [r.slug, r.description])
+      );
+      for (const u of upserts) {
+        const incoming = (u.description as string) ?? "";
+        const existing = existingBySlug.get(u.slug);
+        if (isPlaceholder(incoming) && existing && !isPlaceholder(existing)) {
+          u.description = existing;
+          keptExistingDescription++;
+        }
+      }
+    }
+
     // Batch upsert (chunks of 200)
     let upserted = 0;
     for (let i = 0; i < upserts.length; i += 200) {
