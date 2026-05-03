@@ -3552,7 +3552,6 @@ export type Database = {
         }
         Returns: number
       }
-      fw_label: { Args: { entity: string }; Returns: string }
       fw_rebuild_all_edges: {
         Args: never
         Returns: {
@@ -3582,7 +3581,6 @@ export type Database = {
       }
       fw_slug: { Args: { input: string }; Returns: string }
       fw_split_dedupe: { Args: { p_value: string }; Returns: string[] }
-      fw_table: { Args: { entity: string }; Returns: string }
       fw_table_to_entity: {
         Args: { p_table: string }
         Returns: Database["public"]["Enums"]["framework_entity_type"]
