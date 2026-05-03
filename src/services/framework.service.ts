@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ReferenceEntity } from "./reference.service";
 
 // The 13 framework entities. Each maps to a `reference_<entity>` table.
+// "Roles" merged into "duties"; "team_functions" → "job_functions" (terminology rename 2026-05-03).
 export type FrameworkEntity =
   | "skills"
   | "practices"
@@ -17,7 +18,7 @@ export type FrameworkEntity =
   | "specializations"
   | "job_titles"
   | "resources"
-  | "roles";
+  | "job_functions";
 
 export const FRAMEWORK_ENTITIES: FrameworkEntity[] = [
   "skills",
@@ -32,15 +33,14 @@ export const FRAMEWORK_ENTITIES: FrameworkEntity[] = [
   "specializations",
   "job_titles",
   "resources",
-  "roles",
+  "job_functions",
 ];
 
-// Display labels (singular noun the article reader expects in headings/cards).
 export const FRAMEWORK_LABELS: Record<FrameworkEntity, string> = {
-  skills: "Technical & Interpersonal Skills",
+  skills: "Technical and Interpersonal Skills",
   practices: "Team Practices",
   activities: "Activities",
-  duties: "Job Duties",
+  duties: "Duties",
   deliverables: "Deliverables",
   tools: "Tools",
   project_milestones: "Project Milestones",
@@ -49,10 +49,9 @@ export const FRAMEWORK_LABELS: Record<FrameworkEntity, string> = {
   specializations: "Specializations",
   job_titles: "Job Titles",
   resources: "Resources",
-  roles: "Roles",
+  job_functions: "Job Functions",
 };
 
-// One-sentence definition of each entity (per the framework PDF).
 export const FRAMEWORK_DEFINITIONS: Record<FrameworkEntity, string> = {
   skills: "A measured ability in an area of expertise (technical) or a measured ability to interact with others (interpersonal).",
   practices: "A belief and behavior that affects successful teamwork on empowered teams.",
@@ -66,10 +65,9 @@ export const FRAMEWORK_DEFINITIONS: Record<FrameworkEntity, string> = {
   specializations: "An area of competency and expertise.",
   job_titles: "The label used to describe responsibilities at a company.",
   resources: "A person who contributes to the success of the work.",
-  roles: "A set of expected duties.",
+  job_functions: "A grouping of related duties owned by a team or function.",
 };
 
-// Framework grouping per the article's information architecture.
 export const FRAMEWORK_GROUPS: Array<{ label: string; entities: FrameworkEntity[] }> = [
   {
     label: "Foundational",
@@ -81,11 +79,10 @@ export const FRAMEWORK_GROUPS: Array<{ label: string; entities: FrameworkEntity[
   },
   {
     label: "Career Context",
-    entities: ["specializations", "job_titles", "roles", "resources"],
+    entities: ["specializations", "job_titles", "job_functions", "resources"],
   },
 ];
 
-// Type-safe assertion: every FrameworkEntity is a valid ReferenceEntity.
 const _check: Record<FrameworkEntity, ReferenceEntity> = {
   skills: "skills",
   practices: "practices",
@@ -96,10 +93,10 @@ const _check: Record<FrameworkEntity, ReferenceEntity> = {
   project_milestones: "project_milestones",
   projects: "projects",
   stakeholders: "stakeholders",
-  specializations: "job_specializations" as ReferenceEntity, // Maps to existing table
+  specializations: "job_specializations" as ReferenceEntity,
   job_titles: "job_titles",
   resources: "resources",
-  roles: "roles",
+  job_functions: "job_functions",
 };
 // Map framework entity -> reference table name (handles specializations alias).
 export const FRAMEWORK_TO_REFERENCE: Record<FrameworkEntity, ReferenceEntity> = _check;
