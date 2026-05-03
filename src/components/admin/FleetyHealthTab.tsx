@@ -81,12 +81,14 @@ export function FleetyHealthTab() {
   const [draft, setDraft] = useState({ pattern: "", answer: "", audience: "all", sourceTurnId: "" });
   const [generatedAt, setGeneratedAt] = useState<string>(new Date().toISOString());
   const [practicalGaps, setPracticalGaps] = useState<Array<{ id: string; user_query: string; audience: string; created_at: string; practical_score: number | null; playbook_hits: number; chips_clicked: number }>>([]);
+  const [versions, setVersions] = useState<PromptVersion[]>([]);
+  const [drafts, setDrafts] = useState<PlaybookDraft[]>([]);
   const [activeTab, setActiveTab] = useState<string>("gaps");
 
   const load = useCallback(async () => {
     setLoading(true);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes] = await Promise.all([
+    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes, versionsRes, draftsRes] = await Promise.all([
       supabase.from("fleety_turn_signals").select("*").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }).limit(200),
       supabase.from("fleety_canned_answers").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("fleety_proposed_relationships").select("*").eq("status", "pending").order("created_at", { ascending: false }),
@@ -99,12 +101,16 @@ export function FleetyHealthTab() {
         .lte("practical_score", 0.3)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase.from("fleety_prompt_versions").select("*").order("is_default", { ascending: false }).order("weight", { ascending: false }),
+      supabase.from("fleety_playbooks").select("id, slug, title, intent, audience, direct_answer, is_active, created_at").eq("is_active", false).order("created_at", { ascending: false }).limit(50),
     ]);
     const all = (sigsRes.data ?? []) as Signal[];
     setSignals(all);
     setCanned((cansRes.data ?? []) as Canned[]);
     setProposed((propsRes.data ?? []) as Proposed[]);
     setPracticalGaps((pgapsRes.data ?? []) as typeof practicalGaps);
+    setVersions((versionsRes.data ?? []) as PromptVersion[]);
+    setDrafts((draftsRes.data ?? []) as PlaybookDraft[]);
     setStats({
       total: all.length,
       gaps: all.filter((s) => s.kb_hit_count === 0 && s.framework_hit_count === 0).length,
