@@ -987,6 +987,9 @@ serve(async (req) => {
           framework_hit_count: frameworkContext ? 1 : 0,
           web_hit_count: webResult.sources.length,
           canned_answer_id: cannedAnswerId,
+          intent,
+          playbook_hits: playbookHits,
+          example_hits: exampleHits,
         })
         .select("id")
         .single();
