@@ -49,8 +49,7 @@ SOURCE CITATION:
 WORKSHOP IMAGES:
 - If a KB entry has a "Workshop Preview Image", include it near the top.
 
-WORKSHOP DETAIL:
-- "workshop://" entries are AUTHORITATIVE facilitation guides. Walk through them in order, preserve "## Step N" / "## Goals" / "## Outcomes", quote concrete timing/deliverables, surface Figma links.
+
 
 KNOWLEDGE BASE:
 `;
@@ -671,7 +670,7 @@ serve(async (req) => {
 
     const KB_TOPK = 12;
     const PER_KB_CHARS = 2_000;
-    const PER_WORKSHOP_CHARS = 12_000;
+    
     const MAX_KB_CONTEXT_CHARS = 60_000; // ~15k tokens — 6× smaller than before
 
     type KbHit = { title: string; url: string; content: string };
@@ -710,7 +709,7 @@ serve(async (req) => {
     let knowledgeContext = "";
     if (kbHits.length > 0) {
       for (const entry of kbHits) {
-        const cap = entry.url.startsWith("workshop://") ? PER_WORKSHOP_CHARS : PER_KB_CHARS;
+        const cap = PER_KB_CHARS;
         const truncated = entry.content.length > cap
           ? entry.content.substring(0, cap) + "...[truncated]"
           : entry.content;

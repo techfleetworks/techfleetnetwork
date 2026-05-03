@@ -30,14 +30,11 @@ async function embedText(text: string): Promise<number[]> {
   const trimmed = (text || "").slice(0, 8000);
   if (!trimmed.trim()) return new Array(EMBED_DIM).fill(0);
 
-  // Path A: direct Gemini API. Try modern name first, then legacy fallback.
+  // Path A: direct Gemini API with retry on 429/5xx
   if (GEMINI_API_KEY) {
-    const candidates = [
-      "models/gemini-embedding-001",
-      "models/text-embedding-004",
-    ];
+    const m = "models/gemini-embedding-001";
     let lastErr = "";
-    for (const m of candidates) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       const r = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/${m}:embedContent?key=${GEMINI_API_KEY}`,
         {
@@ -56,7 +53,14 @@ async function embedText(text: string): Promise<number[]> {
         if (!Array.isArray(v)) throw new Error("Unexpected Gemini embedding shape");
         return v.length === EMBED_DIM ? v : v.slice(0, EMBED_DIM);
       }
-      lastErr = `${r.status} ${await r.text()}`;
+      const body = await r.text();
+      lastErr = `${r.status} ${body.slice(0, 200)}`;
+      // Retry on rate limit / transient
+      if (r.status === 429 || r.status >= 500) {
+        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+        continue;
+      }
+      break;
     }
     throw new Error(`Gemini embed failed: ${lastErr}`);
   }
