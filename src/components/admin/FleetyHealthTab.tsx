@@ -402,6 +402,78 @@ export function FleetyHealthTab() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="drafts" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Auto-drafted playbooks from the learning loop (low-action operational queries with no playbook hits).
+            Approve to make Fleety use them, or remove if off-base.
+          </p>
+          {drafts.map((d) => (
+            <Card key={d.id}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold break-words">{d.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">{d.direct_answer}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline">{d.intent}</Badge>
+                    <Badge variant="outline">{d.audience}</Badge>
+                    <Badge variant="secondary">draft</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" onClick={() => approveDraft(d)}>
+                    <Check className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => rejectDraft(d)}>
+                    <X className="h-3 w-3 mr-1" /> Discard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {drafts.length === 0 && <p className="text-sm text-muted-foreground">No playbook drafts pending.</p>}
+        </TabsContent>
+
+        <TabsContent value="versions" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Prompt versions are weighted-randomly assigned at request time. Default is the safe fallback when no
+            version is sampled. Each turn in <code>fleety_signals_view</code> is tagged with its version for A/B analysis.
+          </p>
+          {versions.map((v) => (
+            <Card key={v.id} className={v.is_default ? "border-primary/40" : ""}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold break-words">{v.label}</p>
+                  {v.notes && <p className="text-xs text-muted-foreground mt-1">{v.notes}</p>}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {v.is_default && <Badge>default</Badge>}
+                    <Badge variant="outline">weight: {v.weight}</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <Label htmlFor={`w-${v.id}`} className="text-xs">Weight</Label>
+                  <Input
+                    id={`w-${v.id}`}
+                    type="number"
+                    min={0}
+                    defaultValue={v.weight}
+                    className="h-8 w-20"
+                    onBlur={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n) && n !== v.weight) updateWeight(v, n);
+                    }}
+                  />
+                  {!v.is_default && (
+                    <Button size="sm" variant="outline" onClick={() => setDefaultVersion(v)}>
+                      Set default
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {versions.length === 0 && <p className="text-sm text-muted-foreground">No prompt versions configured.</p>}
+        </TabsContent>
+
         <TabsContent value="practical" className="mt-3">
           <FleetyPlaybooksManager />
         </TabsContent>
