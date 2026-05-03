@@ -560,6 +560,64 @@ serve(async (req) => {
               .then((r) => ({ hit, data: r.data, error: r.error }))
           ),
         );
+        // ── Bidirectional natural-language label map ──────────────────
+        // Each rel_type is stored once (directed) in framework_edges, but
+        // Fleety must describe both directions in plain, human phrasing
+        // (per the Skills & Practices Framework PDF). The forward label
+        // applies when the searched node is the SOURCE of the edge; the
+        // inverse label applies when it is the TARGET. Cardinality hints
+        // ("one-to-many", "many-to-many") match the PDF wording so the
+        // LLM can quote them verbatim instead of inventing phrasing.
+        type RelLabel = { forward: string; inverse: string };
+        const REL_LABELS: Record<string, RelLabel> = {
+          produces: {
+            forward: "produces (one-to-many) deliverables",
+            inverse: "is produced by — requires one-to-many Technical and Interpersonal Skills to complete",
+          },
+          requires_skill: {
+            forward: "requires (one-to-many) Technical and Interpersonal Skills",
+            inverse: "is required by (one-to-many) deliverables/activities — these skills enable completion",
+          },
+          requires_activity: {
+            forward: "requires (one-to-many) activities to complete",
+            inverse: "is required by (one-to-many) deliverables — this activity contributes to completing them",
+          },
+          uses_tool: {
+            forward: "uses (one-to-many) tools",
+            inverse: "is used by (one-to-many) activities/deliverables as a tool",
+          },
+          uses_practice: {
+            forward: "applies (one-to-many) Team Practices",
+            inverse: "is applied by (one-to-many) duties/activities as a Team Practice",
+          },
+          performed_by: {
+            forward: "is performed by (one-to-many) duties/job titles",
+            inverse: "performs (one-to-many) activities/deliverables",
+          },
+          teaches_skill: {
+            forward: "teaches (one-to-many) Technical and Interpersonal Skills",
+            inverse: "is taught by (one-to-many) workshops/learning experiences",
+          },
+          part_of: {
+            forward: "is part of",
+            inverse: "contains (one-to-many)",
+          },
+          targets_company_type: {
+            forward: "targets (one-to-many) company types",
+            inverse: "is targeted by (one-to-many) duties/activities",
+          },
+          engages_stakeholder: {
+            forward: "engages (one-to-many) stakeholders",
+            inverse: "is engaged by (one-to-many) duties/activities",
+          },
+          related_to: {
+            forward: "is related to",
+            inverse: "is related to",
+          },
+        };
+        const labelFor = (rel: string, dir: "forward" | "inverse"): string =>
+          REL_LABELS[rel]?.[dir] ?? (dir === "forward" ? rel : `is ${rel} by`);
+
         for (const { hit, data: neighbors, error: nErr } of neighborResults) {
           if (nErr) {
             log.warn("framework", `get_node_neighbors failed for ${hit.entity_type}/${hit.id} [${requestId}]: ${nErr.message}`, { requestId });
@@ -569,10 +627,11 @@ serve(async (req) => {
             outgoing?: Array<{ rel: string; type: string; name: string }>;
             incoming?: Array<{ rel: string; type: string; name: string }>;
           };
-          // Group by relation, cap per direction, format as compact bullets.
+          // Group by relation, cap per direction, format with bidirectional
+          // human-readable labels so the LLM never has to guess inverse phrasing.
           const fmtGroup = (
             edges: Array<{ rel: string; type: string; name: string }> | undefined,
-            arrow: string,
+            dir: "forward" | "inverse",
           ): string => {
             if (!Array.isArray(edges) || edges.length === 0) return "";
             const byRel = new Map<string, string[]>();
@@ -583,16 +642,17 @@ serve(async (req) => {
             }
             const lines: string[] = [];
             for (const [rel, names] of byRel) {
-              const truncated = (edges.filter((x) => x.rel === rel).length > names.length)
-                ? ` (+${edges.filter((x) => x.rel === rel).length - names.length} more)` : "";
-              lines.push(`  ${arrow} ${rel}: ${names.join(", ")}${truncated}`);
+              const totalForRel = edges.filter((x) => x.rel === rel).length;
+              const truncated = (totalForRel > names.length)
+                ? ` (+${totalForRel - names.length} more)` : "";
+              lines.push(`  • ${hit.name} ${labelFor(rel, dir)}: ${names.join(", ")}${truncated}`);
             }
             return lines.join("\n");
           };
-          const out = fmtGroup(n.outgoing, "→");
-          const inc = fmtGroup(n.incoming, "←");
+          const out = fmtGroup(n.outgoing, "forward");
+          const inc = fmtGroup(n.incoming, "inverse");
           if (!out && !inc) continue;
-          const block = `\n• ${hit.name} (${hit.entity_type})\n${[out, inc].filter(Boolean).join("\n")}\n`;
+          const block = `\n▸ ${hit.name} (${hit.entity_type}) — both directions:\n${[out, inc].filter(Boolean).join("\n")}\n`;
           if (totalBytes + block.length > MAX_FRAMEWORK_CONTEXT_BYTES) {
             sections.push("\n[…additional framework matches truncated to fit context budget]");
             break;
