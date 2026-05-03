@@ -285,6 +285,59 @@ function shouldSearchWeb(userMessage: string): boolean {
 }
 
 /**
+ * Generate a 768-dim embedding for the user's query.
+ * Tries direct Gemini API first (free, fast), falls back to gateway.
+ * Returns null on failure so callers can degrade to legacy trigram retrieval.
+ */
+const EMBED_DIM = 768;
+async function embedQuery(text: string, requestId: string): Promise<number[] | null> {
+  const trimmed = (text || "").slice(0, 4000);
+  if (!trimmed.trim()) return null;
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
+  try {
+    if (GEMINI_API_KEY) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "models/text-embedding-004",
+            content: { parts: [{ text: trimmed }] },
+          }),
+        },
+      );
+      if (r.ok) {
+        const j = await r.json();
+        const v = j?.embedding?.values;
+        if (Array.isArray(v) && v.length === EMBED_DIM) return v;
+      } else {
+        log.warn("embed", `Gemini embed HTTP ${r.status} [${requestId}]`, { requestId });
+      }
+    }
+    // Gateway fallback (best-effort)
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/text-embedding-004", input: trimmed }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const v = j?.data?.[0]?.embedding;
+    if (!Array.isArray(v)) return null;
+    return v.length === EMBED_DIM ? v : v.slice(0, EMBED_DIM);
+  } catch (e) {
+    log.warn("embed", `embedQuery failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    return null;
+  }
+}
+
+function vecLiteral(v: number[]): string {
+  return "[" + v.join(",") + "]";
+}
+
+/**
  * Cheap intent classifier — regex-first to keep latency / cost at zero
  * for the 95% of cases we recognize. Returns one of:
  *   definition | how_to | troubleshoot | decision | reference
