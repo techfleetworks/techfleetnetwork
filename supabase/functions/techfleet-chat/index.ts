@@ -404,7 +404,7 @@ serve(async (req) => {
       );
     }
 
-    const { messages } = await req.json();
+    const { messages, conversation_id } = await req.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
