@@ -262,6 +262,16 @@ export function FleetyChatWidget() {
             i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
           ));
         },
+        onChips: (chips) => {
+          setMessages((prev) => {
+            // Attach chips to last assistant message; create stub if none yet.
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, chips } : m));
+            }
+            return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, chips }];
+          });
+        },
         onDone: async () => {
           setIsLoading(false);
           if (convoId && assistantSoFar) {
