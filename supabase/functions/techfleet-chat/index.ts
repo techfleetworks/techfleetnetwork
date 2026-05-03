@@ -911,14 +911,16 @@ serve(async (req) => {
 
     const sanitizedBody = response.body!.pipeThrough(sanitizeStream);
 
-    return new Response(sanitizedBody, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
+    const exposeHeaders: Record<string, string> = {
+      ...corsHeaders,
+      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id",
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    };
+    if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
+
+    return new Response(sanitizedBody, { headers: exposeHeaders });
   } catch (err) {
     log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
     // OWASP A09: Generic error message, no internal details
