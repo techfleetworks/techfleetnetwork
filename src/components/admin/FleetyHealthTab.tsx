@@ -60,21 +60,31 @@ export function FleetyHealthTab() {
   const [stats, setStats] = useState({ total: 0, gaps: 0, thumbsUp: 0, thumbsDown: 0 });
   const [draft, setDraft] = useState({ pattern: "", answer: "", audience: "all", sourceTurnId: "" });
   const [generatedAt, setGeneratedAt] = useState<string>(new Date().toISOString());
+  const [practicalGaps, setPracticalGaps] = useState<Array<{ id: string; user_query: string; audience: string; created_at: string; practical_score: number | null; playbook_hits: number; chips_clicked: number }>>([]);
+  const [activeTab, setActiveTab] = useState<string>("gaps");
 
   const load = useCallback(async () => {
     setLoading(true);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const [sigsRes, cansRes, propsRes, upRes, dnRes] = await Promise.all([
+    const [sigsRes, cansRes, propsRes, upRes, dnRes, pgapsRes] = await Promise.all([
       supabase.from("fleety_turn_signals").select("*").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }).limit(200),
       supabase.from("fleety_canned_answers").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("fleety_proposed_relationships").select("*").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("fleety_message_feedback").select("*", { count: "exact", head: true }).eq("rating", 1).gte("created_at", sevenDaysAgo),
       supabase.from("fleety_message_feedback").select("*", { count: "exact", head: true }).eq("rating", -1).gte("created_at", sevenDaysAgo),
+      supabase.from("fleety_turn_signals")
+        .select("id, user_query, audience, created_at, practical_score, playbook_hits, chips_clicked")
+        .gte("created_at", sevenDaysAgo)
+        .or("intent.eq.how_to,intent.eq.troubleshoot,intent.eq.decision")
+        .lte("practical_score", 0.3)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     const all = (sigsRes.data ?? []) as Signal[];
     setSignals(all);
     setCanned((cansRes.data ?? []) as Canned[]);
     setProposed((propsRes.data ?? []) as Proposed[]);
+    setPracticalGaps((pgapsRes.data ?? []) as typeof practicalGaps);
     setStats({
       total: all.length,
       gaps: all.filter((s) => s.kb_hit_count === 0 && s.framework_hit_count === 0).length,
@@ -86,6 +96,14 @@ export function FleetyHealthTab() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const authorPlaybookFromGap = (q: string) => {
+    // Hand off to the Practical Content tab with the question pre-filled in clipboard
+    // and a toast hint — playbook authoring lives in FleetyPlaybooksManager which has its own dialog.
+    void navigator.clipboard?.writeText(q).catch(() => {});
+    toast.success("Question copied. Opening Practical Content — paste into 'When to use'.");
+    setActiveTab("practical");
+  };
 
   const promoteFromTurn = (s: Signal) =>
     setDraft({ pattern: s.user_query, answer: "", audience: s.audience, sourceTurnId: s.id });
@@ -162,9 +180,10 @@ export function FleetyHealthTab() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="gaps" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList aria-label="Fleety learning sections">
           <TabsTrigger value="gaps">Gaps ({stats.gaps})</TabsTrigger>
+          <TabsTrigger value="playbook-gaps">Playbook Gaps ({practicalGaps.length})</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
@@ -187,6 +206,33 @@ export function FleetyHealthTab() {
             </Card>
           ))}
           {stats.gaps === 0 && <p className="text-sm text-muted-foreground">No knowledge gaps in the last 7 days. 🎉</p>}
+        </TabsContent>
+
+        <TabsContent value="playbook-gaps" className="space-y-2 mt-3">
+          <p className="text-xs text-muted-foreground">
+            Operational questions where users didn't take an action within 10 minutes (low practical_score).
+            Author or refine a playbook so Fleety gives clearer next steps.
+          </p>
+          {practicalGaps.map((g) => (
+            <Card key={g.id}>
+              <CardContent className="pt-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium break-words">{g.user_query}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline">score: {g.practical_score?.toFixed(2) ?? "—"}</Badge>
+                    <Badge variant="outline">playbooks: {g.playbook_hits}</Badge>
+                    <Badge variant="outline">chips clicked: {g.chips_clicked}</Badge>
+                    <Badge variant="outline">{g.audience}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(g.created_at).toLocaleString()}</p>
+                </div>
+                <Button size="sm" onClick={() => authorPlaybookFromGap(g.user_query)}>Author playbook</Button>
+              </CardContent>
+            </Card>
+          ))}
+          {practicalGaps.length === 0 && (
+            <p className="text-sm text-muted-foreground">No low-action operational questions in the last 7 days. 🎉</p>
+          )}
         </TabsContent>
 
         <TabsContent value="recent" className="space-y-2 mt-3">
