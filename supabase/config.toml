@@ -53,3 +53,10 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.public-classes]
     verify_jwt = false
+  [functions.fleety-embed]
+    verify_jwt = false
+  [functions.fleety-learning-digest]
+    verify_jwt = false
+  [functions.fleety-weekly-digest]
+    verify_jwt = false
+
