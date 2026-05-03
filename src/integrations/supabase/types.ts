@@ -4198,6 +4198,7 @@ export type Database = {
         Args: { p_key: string }
         Returns: Database["public"]["Enums"]["framework_entity_type"]
       }
+      fw_label: { Args: { p_entity: string }; Returns: string }
       fw_lookup_relationships: {
         Args: { p_pairs: Json }
         Returns: {
