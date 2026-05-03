@@ -670,7 +670,7 @@ serve(async (req) => {
 
     const KB_TOPK = 12;
     const PER_KB_CHARS = 2_000;
-    const PER_WORKSHOP_CHARS = 12_000;
+    
     const MAX_KB_CONTEXT_CHARS = 60_000; // ~15k tokens — 6× smaller than before
 
     type KbHit = { title: string; url: string; content: string };
