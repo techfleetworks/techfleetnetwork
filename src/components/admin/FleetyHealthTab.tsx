@@ -235,6 +235,8 @@ export function FleetyHealthTab() {
           <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="canned">Canned ({canned.length})</TabsTrigger>
           <TabsTrigger value="proposed">Proposed ({proposed.length})</TabsTrigger>
+          <TabsTrigger value="drafts">Drafts ({drafts.length})</TabsTrigger>
+          <TabsTrigger value="versions">Prompt Versions ({versions.length})</TabsTrigger>
           <TabsTrigger value="compose">+ Canned Answer</TabsTrigger>
           <TabsTrigger value="practical">Practical Content</TabsTrigger>
         </TabsList>
