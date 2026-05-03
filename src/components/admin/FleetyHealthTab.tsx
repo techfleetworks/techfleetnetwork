@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   ThumbsUp, ThumbsDown, Sparkles, AlertTriangle, Check, X, Loader2, Clock,
 } from "lucide-react";
+import { FleetyPlaybooksManager } from "@/components/admin/FleetyPlaybooksManager";
 
 type Signal = {
   id: string;
