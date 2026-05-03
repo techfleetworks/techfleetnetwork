@@ -297,7 +297,29 @@ export function FleetyChatWidget() {
     else toast.success(rating === 1 ? "Thanks — glad it helped!" : "Thanks — we'll improve it.");
   };
 
-  // Prefill from search query
+  // Action chip click — record event + open URL or post to Discord
+  const handleChip = async (turnId: string | null | undefined, chip: ActionChip) => {
+    try {
+      if (turnId) {
+        await supabase.rpc("fleety_record_action", {
+          p_turn_id: turnId,
+          p_action_type: chip.action_type,
+          p_action_label: chip.label,
+          p_target_url: chip.target_url ?? null,
+        });
+      }
+    } catch (e) {
+      // Non-blocking — never fail the user click on a tracking write
+      console.warn("fleety chip tracking failed", e);
+    }
+    if (chip.target_url) {
+      window.open(chip.target_url, "_blank", "noopener,noreferrer");
+    } else if (chip.action_type === "step_done") {
+      toast.success("Marked as done — nice work.");
+    } else if (chip.action_type === "discord_post") {
+      toast.info("Open Discord to post your question. We'll remember you tried this.");
+    }
+  };
   const openWithQuery = useCallback((query: string) => {
     setInput(query);
     setOpen(true);
