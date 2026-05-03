@@ -442,6 +442,7 @@ serve(async (req) => {
       replay_resolved: replayResolved,
       staging_remaining: stagingRemaining,
       staging_breakdown: stagingBreakdown,
+      kept_existing_description: keptExistingDescription,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
