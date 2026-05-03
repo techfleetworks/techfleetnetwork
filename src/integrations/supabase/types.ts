@@ -2538,6 +2538,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2552,6 +2553,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2566,6 +2568,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2583,6 +2586,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2597,6 +2601,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2611,6 +2616,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2628,6 +2634,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2642,6 +2649,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2656,6 +2664,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2673,6 +2682,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2687,6 +2697,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2701,6 +2712,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2718,6 +2730,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2732,6 +2745,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2746,6 +2760,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2763,6 +2778,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2777,6 +2793,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2791,6 +2808,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2808,6 +2826,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2822,6 +2841,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2836,6 +2856,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2853,6 +2874,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2867,6 +2889,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2881,6 +2904,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2898,6 +2922,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2912,6 +2937,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2926,6 +2952,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2943,6 +2970,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -2957,6 +2985,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -2971,6 +3000,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -2988,6 +3018,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3002,6 +3033,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3016,6 +3048,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3033,6 +3066,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3047,6 +3081,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3061,6 +3096,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3079,6 +3115,7 @@ export type Database = {
           id: string
           inverse_description: string | null
           is_active: boolean
+          is_placeholder: boolean | null
           source: string
           to_entity: string
           updated_at: string
@@ -3091,6 +3128,7 @@ export type Database = {
           id?: string
           inverse_description?: string | null
           is_active?: boolean
+          is_placeholder?: boolean | null
           source?: string
           to_entity: string
           updated_at?: string
@@ -3103,6 +3141,7 @@ export type Database = {
           id?: string
           inverse_description?: string | null
           is_active?: boolean
+          is_placeholder?: boolean | null
           source?: string
           to_entity?: string
           updated_at?: string
@@ -3117,6 +3156,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3131,6 +3171,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3145,6 +3186,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3162,6 +3204,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3176,6 +3219,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3190,6 +3234,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3207,6 +3252,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3221,6 +3267,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3235,6 +3282,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3252,6 +3300,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3266,6 +3315,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3280,6 +3330,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3297,6 +3348,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3311,6 +3363,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3325,6 +3378,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
@@ -3342,6 +3396,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_placeholder: boolean | null
           name: string
           search_tsv: unknown
           slug: string
@@ -3356,6 +3411,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name: string
           search_tsv?: unknown
           slug: string
@@ -3370,6 +3426,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_placeholder?: boolean | null
           name?: string
           search_tsv?: unknown
           slug?: string
