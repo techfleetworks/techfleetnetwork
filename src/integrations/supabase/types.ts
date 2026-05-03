@@ -3391,6 +3391,18 @@ export type Database = {
         }
         Relationships: []
       }
+      framework_search_mv: {
+        Row: {
+          description: string | null
+          doc_tsv: unknown
+          entity_type: string | null
+          id: string | null
+          name: string | null
+          name_lc: string | null
+          slug: string | null
+        }
+        Relationships: []
+      }
       project_roster_member_view: {
         Row: {
           airtable_record_id: string | null
@@ -3554,6 +3566,7 @@ export type Database = {
       }
       fw_rebuild_all_edges: { Args: never; Returns: number }
       fw_refresh_neighbors_mv: { Args: never; Returns: undefined }
+      fw_refresh_search_mv: { Args: never; Returns: undefined }
       fw_rename_jsonb_keys: {
         Args: { p_data: Json; p_pairs: string[] }
         Returns: Json
@@ -3625,6 +3638,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_nodes_neighbors_batch: { Args: { p_nodes: Json }; Returns: Json }
       get_own_promotions: {
         Args: { p_user_id: string }
         Returns: {
