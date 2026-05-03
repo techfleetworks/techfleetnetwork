@@ -599,46 +599,62 @@ serve(async (req) => {
       );
     }
 
-    // Load knowledge base (cached at module scope) and optionally search web in parallel
+    // Embed the user query ONCE; reused for KB / playbooks / examples.
+    const queryEmbedding = await embedQuery(lastUserMessage, requestId);
+    const haveEmbeddings = !!queryEmbedding;
+
+    // Load knowledge base via semantic top-K (with full-table cache fallback).
     const doWebSearch = shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch}`, { requestId, doWebSearch });
 
-    const [knowledge, webResult] = await Promise.all([
-      loadKnowledgeBaseCached(supabase, requestId).catch((e) => {
+    const KB_TOPK = 12;
+    const PER_KB_CHARS = 2_000;
+    const PER_WORKSHOP_CHARS = 12_000;
+    const MAX_KB_CONTEXT_CHARS = 60_000; // ~15k tokens — 6× smaller than before
+
+    type KbHit = { title: string; url: string; content: string };
+    let kbHits: KbHit[] = [];
+
+    if (haveEmbeddings) {
+      try {
+        const { data, error } = await supabase.rpc("fleety_kb_semantic_search", {
+          p_query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+          p_limit: KB_TOPK,
+        });
+        if (error) throw error;
+        kbHits = (data ?? []) as KbHit[];
+      } catch (e) {
+        log.warn("kb", `semantic KB failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+    }
+
+    // Fallback: cached full KB (legacy behavior, still capped)
+    if (kbHits.length === 0) {
+      const knowledge = await loadKnowledgeBaseCached(supabase, requestId).catch((e) => {
         log.error("kb", `Failed to load knowledge base [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId }, e);
         return [] as KbEntry[];
-      }),
-      doWebSearch ? searchWebForTips(buildSearchQuery(lastUserMessage)) : Promise.resolve({ context: "", sources: [] }),
-    ]);
+      });
+      // Take first 12 alphabetically as a degraded fallback
+      kbHits = knowledge.slice(0, KB_TOPK);
+    }
 
-    log.info("kb", `Loaded ${knowledge.length} KB entries [${requestId}]`, { requestId, entryCount: knowledge.length });
+    // Web search runs in parallel with everything else
+    const webResult = await (doWebSearch
+      ? searchWebForTips(buildSearchQuery(lastUserMessage))
+      : Promise.resolve({ context: "", sources: [] }));
+
+    log.info("kb", `Using ${kbHits.length} KB entries [${requestId}] (semantic=${haveEmbeddings})`, { requestId });
 
     let knowledgeContext = "";
-    // Cap total KB context to ~400KB to prevent oversized prompts causing AI gateway timeouts
-    const MAX_KB_CONTEXT_CHARS = 400_000;
-    if (knowledge && knowledge.length > 0) {
-      // Sort so workshop:// entries come first — they're the richest, most useful
-      // context for facilitation questions and we want them to fit before the cap.
-      const sorted = [...knowledge].sort((a, b) => {
-        const aw = a.url.startsWith("workshop://") ? 0 : 1;
-        const bw = b.url.startsWith("workshop://") ? 0 : 1;
-        return aw - bw;
-      });
-      for (const entry of sorted) {
-        // Workshop docs are authoritative facilitation guides — let them through
-        // at up to 12k chars so step-by-step instructions survive intact.
-        // CSV-derived entries stay capped at 2k since they're one-line summaries.
-        const perEntryCap = entry.url.startsWith("workshop://") ? 12_000 : 2_000;
-        const truncatedContent =
-          entry.content.length > perEntryCap
-            ? entry.content.substring(0, perEntryCap) + "...[truncated]"
-            : entry.content;
-        const entryText = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncatedContent}\n`;
-        if (knowledgeContext.length + entryText.length > MAX_KB_CONTEXT_CHARS) {
-          log.warn("kb", `KB context capped at ${knowledgeContext.length} chars, skipping remaining entries [${requestId}]`, { requestId });
-          break;
-        }
-        knowledgeContext += entryText;
+    if (kbHits.length > 0) {
+      for (const entry of kbHits) {
+        const cap = entry.url.startsWith("workshop://") ? PER_WORKSHOP_CHARS : PER_KB_CHARS;
+        const truncated = entry.content.length > cap
+          ? entry.content.substring(0, cap) + "...[truncated]"
+          : entry.content;
+        const block = `\n---\nSOURCE: ${entry.title} (${entry.url})\n${truncated}\n`;
+        if (knowledgeContext.length + block.length > MAX_KB_CONTEXT_CHARS) break;
+        knowledgeContext += block;
       }
     } else {
       knowledgeContext = "\nNo knowledge base content available yet. Let the user know the knowledge base is being set up.\n";
