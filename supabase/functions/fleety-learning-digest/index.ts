@@ -135,11 +135,65 @@ serve(async (req) => {
     console.warn("practical_score recompute failed", e);
   }
 
+  // Auto-promote high-practical-score answers to disabled draft canned answers.
+  // Admin must enable in System Health → Fleety. Only promotes turns where:
+  //   • practical_score >= 0.70   (user clicked a chip / acted within 10 min)
+  //   • >=1 thumbs_up, 0 thumbs_down
+  //   • not already linked to a canned answer
+  //   • no existing canned answer with the same trimmed question pattern
+  let promotedDrafts = 0;
+  try {
+    const { data: candidates } = await admin
+      .from("fleety_turn_signals")
+      .select("id, user_query, audience, conversation_id, canned_answer_id, practical_score, created_at")
+      .gte("created_at", since)
+      .gte("practical_score", 0.7)
+      .is("canned_answer_id", null)
+      .limit(50);
+    for (const t of candidates ?? []) {
+      const fb = fbMap.get(t.id as string);
+      if (!fb || fb.up < 1 || fb.down > 0) continue;
+      const pattern = (t.user_query ?? "").trim().slice(0, 500);
+      if (pattern.length < 8) continue;
+      const { data: dup } = await admin
+        .from("fleety_canned_answers")
+        .select("id").ilike("question_pattern", pattern).limit(1);
+      if (dup && dup.length > 0) continue;
+      // Pull the assistant reply that immediately followed this turn.
+      const { data: reply } = await admin
+        .from("chat_messages")
+        .select("content, created_at")
+        .eq("conversation_id", t.conversation_id)
+        .eq("role", "assistant")
+        .gte("created_at", t.created_at as string)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const answer = (reply?.content ?? "").trim();
+      if (!answer || answer.length < 40) continue;
+      const { data: inserted, error: insErr } = await admin
+        .from("fleety_canned_answers")
+        .insert({
+          question_pattern: pattern,
+          answer_md: answer,
+          audience: t.audience ?? "all",
+          source_turn_id: t.id,
+          enabled: false, // admin reviews before going live
+        }).select("id").single();
+      if (insErr) { console.warn("auto-promote insert failed", insErr.message); continue; }
+      await admin.from("fleety_turn_signals").update({ canned_answer_id: inserted.id }).eq("id", t.id);
+      promotedDrafts++;
+    }
+  } catch (e) {
+    console.warn("auto-promote failed", e);
+  }
+
   return new Response(JSON.stringify({
     ok: true,
     signals: (signals ?? []).length,
     clusters: rows.length,
     proposed_relationships: proposedCount,
     practical_scores_updated: practicalUpdated,
+    canned_drafts_promoted: promotedDrafts,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
