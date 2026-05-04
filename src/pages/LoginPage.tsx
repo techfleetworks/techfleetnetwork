@@ -25,7 +25,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  // Split error channels (NN/g #9 — Help users recognize, diagnose, recover):
+  //  - authError: red banner, only for true server auth rejections
+  //  - captchaNotice: inline note next to the widget for missing/expired tokens
+  //  - oauthHint: friendly "this account uses Google" callout after a failed pw login
+  // Field-level Zod errors continue to render via ValidatedField (`errors` map).
+  const [authError, setAuthError] = useState("");
+  const [captchaNotice, setCaptchaNotice] = useState("");
+  const [oauthHint, setOauthHint] = useState<null | { has_google: boolean; has_password: boolean }>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
