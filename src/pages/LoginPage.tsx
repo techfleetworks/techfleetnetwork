@@ -114,12 +114,26 @@ export default function LoginPage() {
     return () => window.clearInterval(timer);
   }, [lockoutState.locked]);
 
+  const checkOauthIdentityForEmail = async (emailValue: string, token: string) => {
+    if (!token) return;
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("check-account-identity", {
+        body: { email: emailValue, captchaToken: token },
+      });
+      if (fnErr || !data) return;
+      const r = data as { has_password?: boolean; has_google?: boolean };
+      if (r.has_google === true && r.has_password === false) {
+        setOauthHint({ has_google: true, has_password: false });
+      }
+    } catch { /* non-blocking; the regular auth error still shows */ }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const currentLockout = getAuthLockoutState();
     setLockoutState(currentLockout);
     if (currentLockout.locked) {
-      setError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+      setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
       return;
     }
     setTouched({ email: true, password: true });
@@ -132,39 +146,41 @@ export default function LoginPage() {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       });
       setErrors(fieldErrors);
-      showFormErrors(fieldErrors, { email: "Email", password: "Password" });
+      // Validation errors render inline only — no red banner, no lockout increment.
+      setAuthError("");
+      setCaptchaNotice("");
       scrollToFirstError();
-      // Client-side validation errors do NOT count toward the progressive lockout —
-      // only true credential rejections (wrong password) from the server should.
       return;
     }
     if (!captchaToken.trim()) {
       logCaptchaTelemetry("auth_captcha_failed", { surface: "login", failedAttempts: captchaState.failedAttempts + 1 });
-      const nextCaptcha = refreshLoginCaptcha();
-      setCaptchaState(nextCaptcha);
-      setCaptchaToken("");
-      setCaptchaFailureCount((count) => count + 1);
-      // Missing CAPTCHA is also a pre-auth gate, not a credential failure.
-      setError("Complete the human verification before trying again.");
+      // Do NOT remount the widget here — that's what produced the false "captcha
+      // passed → too many attempts" flicker. Just nudge the user inline.
+      setCaptchaNotice("Complete the human verification below before signing in.");
+      setAuthError("");
       return;
     }
     setErrors({});
-    setError("");
+    setAuthError("");
+    setCaptchaNotice("");
+    setOauthHint(null);
     setLoading(true);
 
     try {
       const rateCheck = await RateLimitService.check(result.data.email, "login_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
-        setError(`Too many login attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        setAuthError(`Too many login attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
         setLoading(false);
         return;
       }
 
       queryClient.removeQueries({ queryKey: ["admin-role"] });
+      // Capture the token used for this attempt so we can also use it for the
+      // OAuth-identity hint check on failure (Turnstile tokens are single-use,
+      // so the hint check uses a fresh token via the next render — see below).
       try {
         await AuthService.signInWithPassword(result.data.email, result.data.password, captchaToken);
-        // Check if 2FA challenge is required (user has enrolled TOTP factors)
         const { needsChallenge } = await MfaService.getAssuranceLevel();
         if (needsChallenge) {
           setMfaOpen(true);
@@ -177,9 +193,9 @@ export default function LoginPage() {
       } catch (err: unknown) {
         const nextCaptcha = recordFailedLoginAttempt();
         setCaptchaState(nextCaptcha);
+        // Token is consumed by the failed attempt; widget will issue a new one.
         setCaptchaToken("");
         setCaptchaFailureCount((count) => count + 1);
-        // Record failed login for suspicious-activity detection (5+ in 15min auto-revokes sessions)
         try {
           await supabase.rpc("record_failed_login", {
             _email: result.data.email,
@@ -195,22 +211,61 @@ export default function LoginPage() {
         setCaptchaState(refreshLoginCaptcha());
         setCaptchaToken("");
         setCaptchaFailureCount((count) => count + 1);
-        setError(err.message);
+        setAuthError(err.message);
         setLoading(false);
         return;
       }
-      setError(err.message);
-      // Only count true credential rejections toward the progressive lockout, not
-      // transient network/server errors. Supabase returns "Invalid login credentials".
       const msg = String(err?.message ?? "").toLowerCase();
-      if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")) {
+      const isCredentialReject = msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password");
+      if (isCredentialReject) {
         const nextLockout = recordInvalidAuthAttempt();
         setLockoutState(nextLockout);
-        if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+        if (nextLockout.locked) {
+          setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+        } else {
+          setAuthError("That email and password didn't match. Double-check, or use one of the recovery options below.");
+        }
+        // Fire-and-forget OAuth-identity probe: lets us surface a "use Google"
+        // hint when the account exists but has no password identity. We need a
+        // fresh CAPTCHA token; defer until the widget produces one (next tick).
+        const probeEmail = result.data.email;
+        setTimeout(() => {
+          // Read the latest token via a state setter trick — captchaToken in
+          // closure is stale. We grab it from the DOM via the widget callback
+          // by waiting for its next onTokenChange fire (handled by useEffect below).
+          window.dispatchEvent(new CustomEvent("tfn:probe-oauth-identity", { detail: { email: probeEmail } }));
+        }, 0);
+      } else {
+        setAuthError(err.message ?? "Something went wrong. Please try again.");
       }
       setLoading(false);
     }
   };
+
+  // Listen for the deferred OAuth-identity probe and run it once a fresh
+  // CAPTCHA token is available. Avoids extra renders and stale closures.
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { email?: string } | undefined;
+      if (!detail?.email) return;
+      const fire = () => {
+        if (!captchaToken) return false;
+        void checkOauthIdentityForEmail(detail.email!, captchaToken);
+        return true;
+      };
+      if (!fire()) {
+        // Wait briefly for next token; bail after 8s.
+        let elapsed = 0;
+        const id = window.setInterval(() => {
+          elapsed += 250;
+          if (fire() || elapsed >= 8_000) window.clearInterval(id);
+        }, 250);
+      }
+    };
+    window.addEventListener("tfn:probe-oauth-identity", handler);
+    return () => window.removeEventListener("tfn:probe-oauth-identity", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captchaToken]);
 
   const bc = (field: string, value: string) =>
     validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
