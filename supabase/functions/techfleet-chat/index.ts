@@ -772,7 +772,7 @@ serve(async (req) => {
           const rows = (relRows ?? []) as Array<{ a: string; b: string; forward: string; inverse: string | null }>;
           if (rows.length > 0) {
             const verbatim: string[] = [
-              "\nVERBATIM RELATIONSHIP SENTENCES (quote these exactly when describing how two entity types relate):",
+              "\nREFERENCE RELATIONSHIP SENTENCES (these are the canonical meanings — preserve the entity names and the relationship verb exactly, but REPHRASE the sentence in your own conversational Fleety voice; do NOT paste them verbatim):",
             ];
             for (const r of rows) {
               verbatim.push(`  • ${r.a} → ${r.b}: "${r.forward}"`);
