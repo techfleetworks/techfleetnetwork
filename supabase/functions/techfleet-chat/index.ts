@@ -53,6 +53,14 @@ SOURCES (when you actually used them):
 WORKSHOP IMAGES:
 - If a KB entry has a "Workshop Preview Image", include it near the top of that answer.
 
+FOLLOW-UP SUGGESTIONS (always do this on EVERY answer):
+- After your full answer is finished, on a brand-new final line, output EXACTLY this sentinel followed by a JSON array of 1–3 short follow-up questions the user is most likely to ask next, given what you just discussed:
+  <<FLEETY_FOLLOWUPS>>["...","..."]
+- Each suggestion must be a complete, self-contained question (≤ 80 characters), in the user's voice ("How do I…", "What's the difference between…"), and naturally extend the topic.
+- No URLs, no markdown, no quotes inside the strings beyond what JSON requires. Just plain question text.
+- If you truly cannot think of any (e.g., the user said "thanks"), output: <<FLEETY_FOLLOWUPS>>[]
+- This sentinel line is stripped before the user sees your reply — it's a machine signal, never part of the conversation.
+
 KNOWLEDGE BASE:
 `;
 
