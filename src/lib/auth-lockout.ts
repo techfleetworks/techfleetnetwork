@@ -1,6 +1,6 @@
 const AUTH_LOCKOUT_KEY = "tfn:auth-progressive-lockout";
-const ATTEMPT_WINDOW_MS = 5 * 60_000;
-const LOCK_THRESHOLD = 3;
+const ATTEMPT_WINDOW_MS = 10 * 60_000;
+const LOCK_THRESHOLD = 5;
 const BASE_LOCK_MS = 30_000;
 const MAX_LOCK_MS = 5 * 60_000;
 

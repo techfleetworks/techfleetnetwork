@@ -59,4 +59,6 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.fleety-weekly-digest]
     verify_jwt = false
+  [functions.check-account-identity]
+    verify_jwt = false
 
