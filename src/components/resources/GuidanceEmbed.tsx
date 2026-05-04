@@ -143,14 +143,15 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
     synth.speak(utterance);
   }, [speakingIdx]);
 
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
+    text = text.trim();
     if (!text || isLoading) return;
 
     const userMsg: Msg = { role: "user", content: text };
-    setInput("");
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [
+      ...prev.map((m) => (m.role === "assistant" ? { ...m, followups: undefined } : m)),
+      userMsg,
+    ]);
     setIsLoading(true);
 
     let assistantSoFar = "";
@@ -169,6 +170,15 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
+        onFollowups: (followups) => {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, followups } : m));
+            }
+            return [...prev, { role: "assistant", content: "", followups }];
+          });
+        },
         onDone: () => setIsLoading(false),
       });
     } catch (e: any) {
@@ -176,6 +186,14 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput("");
+    await sendText(text);
   };
 
   return (
