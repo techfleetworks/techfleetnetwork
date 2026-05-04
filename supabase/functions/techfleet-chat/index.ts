@@ -338,6 +338,11 @@ function vecLiteral(v: number[]): string {
   return "[" + v.join(",") + "]";
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /**
  * Build an SSE ReadableStream that replays cached markdown to the client in
  * the same OpenAI-compatible delta format the AI gateway uses, so the
