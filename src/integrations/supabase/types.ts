@@ -4258,6 +4258,22 @@ export type Database = {
         Returns: Json
       }
       drain_notification_outbox: { Args: { p_limit?: number }; Returns: Json }
+      email_send_log_latest_failed: {
+        Args: { p_since: string; p_template_name: string }
+        Returns: {
+          created_at: string
+          error_message: string
+          message_id: string
+          status: string
+        }[]
+      }
+      email_send_log_latest_stuck: {
+        Args: { p_older_than: string; p_template_name: string }
+        Returns: {
+          created_at: string
+          message_id: string
+        }[]
+      }
       encrypt_pii: { Args: { plain: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
