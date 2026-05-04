@@ -12,6 +12,7 @@ import {
   ThumbsUp, ThumbsDown, Sparkles, AlertTriangle, Check, X, Loader2, Clock,
 } from "lucide-react";
 import { FleetyPlaybooksManager } from "@/components/admin/FleetyPlaybooksManager";
+import { FleetyCostPanel } from "@/components/admin/FleetyCostPanel";
 
 type Signal = {
   id: string;
@@ -243,6 +244,7 @@ export function FleetyHealthTab() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList aria-label="Fleety learning sections">
+          <TabsTrigger value="cost">Cost</TabsTrigger>
           <TabsTrigger value="gaps">Gaps ({stats.gaps})</TabsTrigger>
           <TabsTrigger value="playbook-gaps">Playbook Gaps ({practicalGaps.length})</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
@@ -253,6 +255,10 @@ export function FleetyHealthTab() {
           <TabsTrigger value="compose">+ Canned Answer</TabsTrigger>
           <TabsTrigger value="practical">Practical Content</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cost" className="mt-3">
+          <FleetyCostPanel />
+        </TabsContent>
 
         <TabsContent value="gaps" className="space-y-2 mt-3">
           {signals.filter((s) => s.kb_hit_count === 0 && s.framework_hit_count === 0).map((s) => (

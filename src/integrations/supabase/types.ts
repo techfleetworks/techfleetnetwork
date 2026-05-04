@@ -1092,6 +1092,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_cost_guard_state: {
+        Row: {
+          hard_threshold: number
+          id: number
+          medium_threshold: number
+          mode: string
+          notes: string | null
+          soft_threshold: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          hard_threshold?: number
+          id?: number
+          medium_threshold?: number
+          mode?: string
+          notes?: string | null
+          soft_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          hard_threshold?: number
+          id?: number
+          medium_threshold?: number
+          mode?: string
+          notes?: string | null
+          soft_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       fleety_examples: {
         Row: {
           anonymized: boolean
@@ -4004,6 +4037,18 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_cost_daily: {
+        Row: {
+          cache_hits: number | null
+          canned_hits: number | null
+          day: string | null
+          est_usd: number | null
+          tokens_in: number | null
+          tokens_out: number | null
+          turns: number | null
+        }
+        Relationships: []
+      }
       fleety_signals_view: {
         Row: {
           action_count: number | null
@@ -4291,6 +4336,22 @@ export type Database = {
             }
             Returns: undefined
           }
+      fleety_cost_guard_step: { Args: never; Returns: string }
+      fleety_cost_projection: {
+        Args: never
+        Returns: {
+          cache_hit_rate: number
+          canned_hit_rate: number
+          guard_mode: string
+          guard_step: string
+          last_30d_usd: number
+          last_7d_usd: number
+          projected_30d_usd: number
+          today_usd: number
+          turns_today: number
+          yesterday_usd: number
+        }[]
+      }
       fleety_few_shot_examples: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -4434,6 +4495,14 @@ export type Database = {
           _tokens_out: number
         }
         Returns: undefined
+      }
+      fleety_top_expensive_turns: {
+        Args: { _limit?: number }
+        Returns: {
+          est_usd: number
+          hits: number
+          user_query: string
+        }[]
       }
       fw_build_entity_content: {
         Args: { p_description: string; p_entity: string; p_name: string }

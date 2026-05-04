@@ -732,6 +732,16 @@ serve(async (req) => {
       );
     }
 
+    // ── Cost guard step (Cost Plan v2 §7) ─────────────────────────────
+    // Cheap RPC; never blocks. Returns 'none' | 'soft' | 'medium' | 'hard'.
+    let costGuardStep: "none" | "soft" | "medium" | "hard" = "none";
+    try {
+      const { data: gs } = await supabase.rpc("fleety_cost_guard_step");
+      if (typeof gs === "string" && ["none","soft","medium","hard"].includes(gs)) {
+        costGuardStep = gs as typeof costGuardStep;
+      }
+    } catch (_) { /* fail-open */ }
+
     // Stage-1 router runs in parallel with the query embedding (zero added serial latency).
     const [queryEmbedding, routerDecision] = await Promise.all([
       embedQuery(lastUserMessage, requestId),
@@ -760,7 +770,7 @@ serve(async (req) => {
         const { data: hit } = await supabase.rpc("fleety_cache_semantic_lookup", {
           _query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
           _audience: audience,
-          _max_distance: 0.05,
+          _max_distance: costGuardStep === "none" ? 0.05 : 0.08,
         });
         const cached = Array.isArray(hit) ? hit[0] : hit;
         if (cached && typeof cached.response_md === "string" && cached.response_md.length > 10) {
@@ -827,9 +837,10 @@ serve(async (req) => {
     // Lean RAG (Cost Plan v2 §5): tighter KB context. Was 12×2000/60000.
     // Quality preserved by semantic top-K + framework graph + few-shot still
     // injected below. Long/complex turns get extra room via Tier C in Phase 2.
-    const KB_TOPK = 6;
-    const PER_KB_CHARS = 1_200;
-    const MAX_KB_CONTEXT_CHARS = 18_000; // ~4.5k tokens — was 15k
+    // Cost guard tightens RAG budget: soft 6→5, medium 6→4, hard 6→3.
+    const KB_TOPK = costGuardStep === "hard" ? 3 : costGuardStep === "medium" ? 4 : costGuardStep === "soft" ? 5 : 6;
+    const PER_KB_CHARS = costGuardStep === "none" ? 1_200 : 900;
+    const MAX_KB_CONTEXT_CHARS = costGuardStep === "none" ? 18_000 : 12_000;
 
     type KbHit = { title: string; url: string; content: string };
     let kbHits: KbHit[] = [];
@@ -1386,6 +1397,21 @@ serve(async (req) => {
       _canned_hit: !!cannedAnswerId,
     }).then(() => {}, (e: unknown) => log.warn("cost", `record_cost failed [${requestId}]`, { requestId, err: e instanceof Error ? e.message : String(e) }));
 
+    // ── Cost guard HARD step: pause non-admin uncached turns ──────────
+    if (costGuardStep === "hard" && audience !== "admin") {
+      log.warn("cost-guard", `HARD step blocking non-admin uncached turn [${requestId}]`, { requestId });
+      return new Response(
+        JSON.stringify({
+          error: "Fleety is catching her breath. Try the search bar, the knowledge base, or office hours — she'll be back shortly.",
+          guard: "hard",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "1800", "X-Fleety-Guard": "hard" } },
+      );
+    }
+
+    // Cost guard caps output: medium 4096→2048, hard (admin only here) 4096→3072
+    const maxTokensCap = costGuardStep === "medium" ? 2048 : costGuardStep === "hard" ? 3072 : 4096;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -1396,7 +1422,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
         stream: true,
-        max_tokens: 4096, // LLM10: Cap output tokens to prevent unbounded consumption
+        max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
       }),
     });
 
@@ -1498,13 +1524,14 @@ serve(async (req) => {
 
     const exposeHeaders: Record<string, string> = {
       ...corsHeaders,
-      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Cache",
+      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Cache, X-Fleety-Guard",
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "X-Fleety-Intent": intent,
       "X-Fleety-Practical": practical ? "1" : "0",
       "X-Fleety-Cache": "miss",
+      "X-Fleety-Guard": costGuardStep,
     };
     if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
     if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
