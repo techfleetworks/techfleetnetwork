@@ -127,9 +127,8 @@ export default function LoginPage() {
       setErrors(fieldErrors);
       showFormErrors(fieldErrors, { email: "Email", password: "Password" });
       scrollToFirstError();
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      // Client-side validation errors do NOT count toward the progressive lockout —
+      // only true credential rejections (wrong password) from the server should.
       return;
     }
     if (!captchaToken.trim()) {
@@ -138,9 +137,8 @@ export default function LoginPage() {
       setCaptchaState(nextCaptcha);
       setCaptchaToken("");
       setCaptchaFailureCount((count) => count + 1);
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      setError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
+      // Missing CAPTCHA is also a pre-auth gate, not a credential failure.
+      setError("Complete the human verification before trying again.");
       return;
     }
     setErrors({});
@@ -195,9 +193,14 @@ export default function LoginPage() {
         return;
       }
       setError(err.message);
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      // Only count true credential rejections toward the progressive lockout, not
+      // transient network/server errors. Supabase returns "Invalid login credentials".
+      const msg = String(err?.message ?? "").toLowerCase();
+      if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")) {
+        const nextLockout = recordInvalidAuthAttempt();
+        setLockoutState(nextLockout);
+        if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      }
       setLoading(false);
     }
   };
