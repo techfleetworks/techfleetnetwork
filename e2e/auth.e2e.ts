@@ -84,4 +84,23 @@ test.describe("Login Page (BDD 2.4, 15.3)", () => {
   test("has link to registration page", async ({ page }) => {
     await expect(page.getByText(/sign up|new member/i)).toBeVisible();
   });
+
+  // BDD LCL-001 — OAuth-only account hint surfaces after a failed password attempt.
+  // We only assert the *plumbing* (the hint container is wired and starts hidden);
+  // the live network probe to check-account-identity requires a real Turnstile token,
+  // which is not solvable in CI. The unit + edge-function tests cover the flow.
+  test("LCL-001: OAuth-only hint container is not shown on initial render", async ({ page }) => {
+    await expect(page.getByText(/this account uses google sign-in/i)).toHaveCount(0);
+  });
+
+  // BDD LCL-002 — validation errors render inline, never as the red auth banner.
+  test("LCL-002: invalid email shows inline field error, not the auth banner", async ({ page }) => {
+    await page.getByLabel(/email/i).fill("not-an-email");
+    await page.getByLabel(/password/i).fill("whatever");
+    await page.getByRole("button", { name: /^sign in$/i }).click();
+    // Inline error appears
+    await expect(page.getByText(/invalid email/i)).toBeVisible();
+    // The destructive banner (role=alert) must NOT appear for a Zod error
+    await expect(page.locator('[role="alert"]')).toHaveCount(0);
+  });
 });

@@ -53,4 +53,20 @@ describe("LoginPage UI (BDD 17.1–17.3)", () => {
     const signUpLink = screen.getByRole("link", { name: /sign up/i });
     expect(signUpLink).toHaveAttribute("href", "/register");
   });
+
+  // LCL-002 — Zod validation errors must NOT render the destructive auth banner.
+  it("LCL-002: invalid email submit shows inline error, no auth banner", () => {
+    const email = screen.getByLabelText(/email address/i) as HTMLInputElement;
+    const password = document.getElementById("password") as HTMLInputElement;
+    fireEvent.change(email, { target: { value: "not-an-email" } });
+    fireEvent.change(password, { target: { value: "whatever" } });
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    // The destructive auth banner uses bg-destructive/10 — must not appear for Zod errors
+    expect(document.querySelector(".bg-destructive\\/10")).toBeNull();
+  });
+
+  // LCL-001 — OAuth-only hint is not shown on initial render
+  it("LCL-001: OAuth-only hint is not shown on initial render", () => {
+    expect(screen.queryByText(/this account uses google sign-in/i)).toBeNull();
+  });
 });
