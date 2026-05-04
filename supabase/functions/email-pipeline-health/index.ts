@@ -80,7 +80,12 @@ Deno.serve(async (req) => {
         }),
       ])
 
-      const stuck = Array.isArray(stuckRes.data) ? stuckRes.data.length : 0
+      const stuckRaw = Array.isArray(stuckRes.data) ? stuckRes.data : []
+      // Filter out ancient orphans (older than 7 days) — see stuckFloor comment above.
+      const stuck = stuckRaw.filter((r: { created_at?: string }) => {
+        if (!r?.created_at) return true
+        return r.created_at >= stuckFloor
+      }).length
       const failed = Array.isArray(failedRes.data) ? failedRes.data.length : 0
 
       const unhealthy = stuck > 0 || failed > 0
