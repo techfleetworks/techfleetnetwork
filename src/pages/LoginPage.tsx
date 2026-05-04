@@ -193,9 +193,14 @@ export default function LoginPage() {
         return;
       }
       setError(err.message);
-      const nextLockout = recordInvalidAuthAttempt();
-      setLockoutState(nextLockout);
-      if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      // Only count true credential rejections toward the progressive lockout, not
+      // transient network/server errors. Supabase returns "Invalid login credentials".
+      const msg = String(err?.message ?? "").toLowerCase();
+      if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid email or password")) {
+        const nextLockout = recordInvalidAuthAttempt();
+        setLockoutState(nextLockout);
+        if (nextLockout.locked) setError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      }
       setLoading(false);
     }
   };
