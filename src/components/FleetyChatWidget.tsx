@@ -622,6 +622,32 @@ export function FleetyChatWidget() {
                           ))}
                         </div>
                       )}
+                      {msg.followups && msg.followups.length > 0 && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50"
+                          role="group"
+                          aria-label="Suggested follow-ups"
+                        >
+                          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
+                            <MessageCircleQuestion className="h-3 w-3" aria-hidden="true" />
+                            Suggested follow-ups
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.followups.map((q, fi) => (
+                              <button
+                                key={`${i}-fu-${fi}`}
+                                type="button"
+                                onClick={() => handleFollowup(msg.turnId, q)}
+                                disabled={isLoading}
+                                aria-label={`Ask Fleety: ${q}`}
+                                className="text-xs px-2.5 py-1 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                              >
+                                {q}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
