@@ -1056,6 +1056,42 @@ export type Database = {
           },
         ]
       }
+      fleety_cost_counters: {
+        Row: {
+          cache_hits: number
+          canned_hits: number
+          est_usd: number
+          hour_bucket: string
+          model: string
+          tier: string
+          tokens_in: number
+          tokens_out: number
+          turns: number
+        }
+        Insert: {
+          cache_hits?: number
+          canned_hits?: number
+          est_usd?: number
+          hour_bucket: string
+          model: string
+          tier?: string
+          tokens_in?: number
+          tokens_out?: number
+          turns?: number
+        }
+        Update: {
+          cache_hits?: number
+          canned_hits?: number
+          est_usd?: number
+          hour_bucket?: string
+          model?: string
+          tier?: string
+          tokens_in?: number
+          tokens_out?: number
+          turns?: number
+        }
+        Relationships: []
+      }
       fleety_examples: {
         Row: {
           anonymized: boolean
@@ -1113,6 +1149,24 @@ export type Database = {
           tags?: string[]
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      fleety_kb_version: {
+        Row: {
+          id: boolean
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          id?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          id?: boolean
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -1328,6 +1382,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fleety_response_cache: {
+        Row: {
+          audience: string
+          created_at: string
+          hits: number
+          kb_version: number
+          last_used_at: string
+          query_embedding: string | null
+          query_hash: string
+          query_text: string
+          response_md: string
+          sources: Json
+          tier: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          hits?: number
+          kb_version: number
+          last_used_at?: string
+          query_embedding?: string | null
+          query_hash: string
+          query_text: string
+          response_md: string
+          sources?: Json
+          tier?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          hits?: number
+          kb_version?: number
+          last_used_at?: string
+          query_embedding?: string | null
+          query_hash?: string
+          query_text?: string
+          response_md?: string
+          sources?: Json
+          tier?: string
+        }
+        Relationships: []
       }
       fleety_topic_insights: {
         Row: {
@@ -3929,6 +4025,20 @@ export type Database = {
         }
         Relationships: []
       }
+      fleety_user_quota_daily: {
+        Row: {
+          turns_today: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      fleety_user_quota_monthly: {
+        Row: {
+          turns_this_month: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       framework_entity_v: {
         Row: {
           category: string | null
@@ -4048,11 +4158,23 @@ export type Database = {
         Args: { p_class_id: string; p_reason: string }
         Returns: undefined
       }
+      bump_kb_version: { Args: never; Returns: number }
       cancel_cohort: {
         Args: { p_cohort_id: string; p_reason: string }
         Returns: undefined
       }
       check_chat_system_rate_limit: { Args: never; Returns: Json }
+      check_fleety_user_quota: {
+        Args: { _user_id: string }
+        Returns: {
+          allowed: boolean
+          daily_limit: number
+          daily_used: number
+          monthly_limit: number
+          monthly_used: number
+          reason: string
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -4112,6 +4234,26 @@ export type Database = {
       export_my_data: { Args: never; Returns: Json }
       fleety_approve_relationship: {
         Args: { p_id: string }
+        Returns: undefined
+      }
+      fleety_cache_lookup: {
+        Args: { _audience: string; _query_hash: string }
+        Returns: {
+          kb_version: number
+          response_md: string
+          sources: Json
+          tier: string
+        }[]
+      }
+      fleety_cache_store: {
+        Args: {
+          _audience: string
+          _query_hash: string
+          _query_text: string
+          _response_md: string
+          _sources: Json
+          _tier: string
+        }
         Returns: undefined
       }
       fleety_few_shot_examples: {
@@ -4236,6 +4378,18 @@ export type Database = {
           p_turn_id: string
         }
         Returns: string
+      }
+      fleety_record_cost: {
+        Args: {
+          _cache_hit: boolean
+          _canned_hit: boolean
+          _est_usd: number
+          _model: string
+          _tier: string
+          _tokens_in: number
+          _tokens_out: number
+        }
+        Returns: undefined
       }
       fw_build_entity_content: {
         Args: { p_description: string; p_entity: string; p_name: string }
