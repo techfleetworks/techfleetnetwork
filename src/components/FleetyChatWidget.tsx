@@ -126,8 +126,17 @@ async function streamChat({
       if (jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed?.fleety?.followups && Array.isArray(parsed.fleety.followups)) {
+          const cleaned = parsed.fleety.followups
+            .filter((s: unknown) => typeof s === "string")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0 && s.length <= 120)
+            .slice(0, 3);
+          if (cleaned.length > 0) onFollowups(cleaned);
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        }
       } catch { /* ignore */ }
     }
   }
