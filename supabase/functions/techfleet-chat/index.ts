@@ -732,6 +732,16 @@ serve(async (req) => {
       );
     }
 
+    // ── Cost guard step (Cost Plan v2 §7) ─────────────────────────────
+    // Cheap RPC; never blocks. Returns 'none' | 'soft' | 'medium' | 'hard'.
+    let costGuardStep: "none" | "soft" | "medium" | "hard" = "none";
+    try {
+      const { data: gs } = await supabase.rpc("fleety_cost_guard_step");
+      if (typeof gs === "string" && ["none","soft","medium","hard"].includes(gs)) {
+        costGuardStep = gs as typeof costGuardStep;
+      }
+    } catch (_) { /* fail-open */ }
+
     // Stage-1 router runs in parallel with the query embedding (zero added serial latency).
     const [queryEmbedding, routerDecision] = await Promise.all([
       embedQuery(lastUserMessage, requestId),
