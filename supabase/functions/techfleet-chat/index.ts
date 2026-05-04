@@ -1257,6 +1257,25 @@ serve(async (req) => {
       signalTurnId = sig?.id ?? null;
     } catch (_) { /* don't block chat on signal write */ }
 
+    // ── Cost counter (Cost Plan v2 §7) ────────────────────────────────
+    // Estimate tokens using a 4-chars/token heuristic; record input now so
+    // we still capture cost even if the streaming response is aborted.
+    // Output tokens are accounted as max_tokens budget — refined in Phase 3.
+    const estTokensIn = Math.ceil(fullSystemPrompt.length / 4)
+      + Math.ceil(sanitizedMessages.reduce((n: number, m: { content: string }) => n + (m.content?.length || 0), 0) / 4);
+    const PRICE_FLASH_IN = 0.30 / 1_000_000;  // $/token, gemini-3-flash-preview
+    const PRICE_FLASH_OUT = 2.50 / 1_000_000;
+    const estUsd = estTokensIn * PRICE_FLASH_IN + 4096 * PRICE_FLASH_OUT * 0.4; // assume 40% of cap
+    supabase.rpc("fleety_record_cost", {
+      _model: "google/gemini-3-flash-preview",
+      _tier: "B",
+      _tokens_in: estTokensIn,
+      _tokens_out: Math.round(4096 * 0.4),
+      _est_usd: estUsd,
+      _cache_hit: false,
+      _canned_hit: !!cannedAnswerId,
+    }).then(() => {}, (e: unknown) => log.warn("cost", `record_cost failed [${requestId}]`, { requestId, err: e instanceof Error ? e.message : String(e) }));
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
