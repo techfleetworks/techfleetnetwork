@@ -700,6 +700,87 @@ serve(async (req) => {
     ]);
     const haveEmbeddings = !!queryEmbedding;
 
+    // ── Early audience detection (needed by L3 cache key) ─────────────
+    let audience: "member" | "teacher" | "admin" = "member";
+    try {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const set = new Set((roles ?? []).map((r: { role: string }) => r.role));
+      if (set.has("admin")) audience = "admin";
+      else if (set.has("teacher")) audience = "teacher";
+    } catch (_) { /* default member */ }
+
+    // ── L3: Semantic response cache (Cost Plan v2) ───────────────────
+    // If we have embeddings and a near-duplicate question was answered for
+    // this audience+kb_version within 7 days, replay the stored markdown as
+    // a synthetic SSE stream — zero AI gateway call, identical UX.
+    if (haveEmbeddings) {
+      try {
+        const { data: hit } = await supabase.rpc("fleety_cache_semantic_lookup", {
+          _query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+          _audience: audience,
+          _max_distance: 0.05,
+        });
+        const cached = Array.isArray(hit) ? hit[0] : hit;
+        if (cached && typeof cached.response_md === "string" && cached.response_md.length > 10) {
+          // Record a turn signal so admin dashboards still see the volume.
+          let cacheTurnId: string | null = null;
+          try {
+            const { data: sig } = await supabase
+              .from("fleety_turn_signals")
+              .insert({
+                conversation_id: conversation_id ?? null,
+                user_id: user.id,
+                user_query: lastUserMessage.slice(0, 2000),
+                audience,
+                kb_hit_count: 0,
+                framework_hit_count: 0,
+                web_hit_count: 0,
+                intent: routerDecision?.intent ?? "definition",
+                prompt_version: "cache-hit",
+              })
+              .select("id")
+              .single();
+            cacheTurnId = sig?.id ?? null;
+          } catch (_) { /* ok */ }
+
+          // Bump hit count + cost counter (near-zero $, but track it)
+          supabase.rpc("fleety_cache_record_hit", {
+            _query_hash: cached.query_hash,
+            _turn_id: cacheTurnId,
+          }).then(() => {}, () => {});
+          supabase.rpc("fleety_record_cost", {
+            _model: "cache",
+            _tier: cached.tier ?? "B",
+            _tokens_in: 0,
+            _tokens_out: 0,
+            _est_usd: 0.00005,
+            _cache_hit: true,
+            _canned_hit: false,
+          }).then(() => {}, () => {});
+
+          log.info("cache", `L3 cache HIT [${requestId}] hash=${String(cached.query_hash).slice(0, 8)} sim=${cached.similarity?.toFixed?.(3) ?? "?"}`, { requestId });
+
+          const headers: Record<string, string> = {
+            ...corsHeaders,
+            "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Cache, X-Fleety-Intent",
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-Fleety-Cache": "hit",
+            "X-Fleety-Intent": routerDecision?.intent ?? "definition",
+          };
+          if (cacheTurnId) headers["X-Fleety-Turn-Id"] = cacheTurnId;
+
+          return new Response(buildCacheSSEStream(cached.response_md), { headers });
+        }
+      } catch (e) {
+        log.warn("cache", `L3 cache lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+    }
+
     // Load knowledge base via semantic top-K (with full-table cache fallback).
     const doWebSearch = routerDecision?.needsWeb ?? shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch} (router=${!!routerDecision})`, { requestId, doWebSearch });
