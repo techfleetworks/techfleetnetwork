@@ -4700,6 +4700,14 @@ export type Database = {
         Args: { p_chunk_size?: number; p_job_id: string }
         Returns: Json
       }
+      prune_cron_job_run_details: {
+        Args: never
+        Returns: {
+          deleted_rows: number
+          freed_after_size: string
+        }[]
+      }
+      prune_email_send_log: { Args: never; Returns: number }
       purge_old_audit_logs: {
         Args: { retention_days?: number }
         Returns: number
