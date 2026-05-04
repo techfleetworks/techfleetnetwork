@@ -1397,6 +1397,21 @@ serve(async (req) => {
       _canned_hit: !!cannedAnswerId,
     }).then(() => {}, (e: unknown) => log.warn("cost", `record_cost failed [${requestId}]`, { requestId, err: e instanceof Error ? e.message : String(e) }));
 
+    // ── Cost guard HARD step: pause non-admin uncached turns ──────────
+    if (costGuardStep === "hard" && audience !== "admin") {
+      log.warn("cost-guard", `HARD step blocking non-admin uncached turn [${requestId}]`, { requestId });
+      return new Response(
+        JSON.stringify({
+          error: "Fleety is catching her breath. Try the search bar, the knowledge base, or office hours — she'll be back shortly.",
+          guard: "hard",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "1800", "X-Fleety-Guard": "hard" } },
+      );
+    }
+
+    // Cost guard caps output: medium 4096→2048, hard (admin only here) 4096→3072
+    const maxTokensCap = costGuardStep === "medium" ? 2048 : costGuardStep === "hard" ? 3072 : 4096;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -1407,7 +1422,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
         stream: true,
-        max_tokens: 4096, // LLM10: Cap output tokens to prevent unbounded consumption
+        max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
       }),
     });
 
