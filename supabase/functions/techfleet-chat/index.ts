@@ -1035,17 +1035,7 @@ serve(async (req) => {
       "- 'Team Functions' ↔ 'Job Functions'\n" +
       "Always prefer the right-hand (current) term in your answer, but recognize the left-hand term in user questions.\n";
 
-    // ── Audience detection (member|teacher|admin) ─────────────────────
-    let audience: "member" | "teacher" | "admin" = "member";
-    try {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const set = new Set((roles ?? []).map((r: { role: string }) => r.role));
-      if (set.has("admin")) audience = "admin";
-      else if (set.has("teacher")) audience = "teacher";
-    } catch (_) { /* default member */ }
+    // (Audience already detected above for L3 cache key.)
 
     const TONE_PRESET = audience === "teacher"
       ? "\n\nAUDIENCE: TEACHER. Slightly more technical phrasing is OK; reference how to coach trainees through the concept.\n"
