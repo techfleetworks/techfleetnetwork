@@ -60,7 +60,11 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
+  // Stuck-pending window: pending row older than 15 min is suspicious, but
+  // anything older than 7 days is an orphan (queue/log mismatch from a past
+  // bug, not a live failure) — exclude it so we don't trip on archeology.
   const stuckCutoff = new Date(Date.now() - STUCK_AFTER_MINUTES * 60 * 1000).toISOString()
+  const stuckFloor = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const failedCutoff = new Date(Date.now() - FAILED_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
 
   const results: Array<Record<string, unknown>> = []
