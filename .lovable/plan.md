@@ -1,58 +1,71 @@
-# Smoke Test Plan — Fleety Cost Pipeline + Email Pipeline Health
+# Fleety Follow-up Query Suggestions
 
-Scope: validate the recent hotfixes end-to-end without regressing UX. Read-only inspection first, then guided UI interactions, then DB verification.
+Add up to 3 suggested next questions at the end of each Fleety answer. Clicking one immediately runs it as the user's next query.
 
-## Pre-flight (no UI yet)
+## UX
 
-1. `cloud_status` — confirm backend is `ACTIVE_HEALTHY`.
-2. `analytics_query` on edge logs — confirm last deploys of `email-pipeline-health`, `resend-signup-confirmations`, and Fleety chat function returned 200s, no boot errors.
-3. `read_query` baselines (snapshot counts so we can diff after the test):
-   - `audit_log` rows where `event_type LIKE 'email_%_pipeline_unhealthy'` in last 24h
-   - `email_send_log` latest-status counts per template via the new RPCs (`email_send_log_latest_stuck`, `email_send_log_latest_failed`) for `signup`, `recovery`, `transactional_emails`, `announcement`
-   - `fleety_turn_signals` count, `fleety_response_cache` size, `fleety_cost_daily` today's row, `fleety_canned_answers` count
-4. `linter` — confirm we are still at 43 pre-existing 0028 WARNs (no new findings from the new edge function or migrations).
+- Render below the existing action chips on each assistant message, in a labeled group "Suggested follow-ups".
+- Pill style distinct from action chips (subtle, prefixed with a small chat icon) so users can tell "ask Fleety this" vs "open a link / mark step done".
+- Max 3 items, each ≤ 80 chars. Hidden when the answer was a quota/error response or when the model returns none.
+- Click behavior: chip text becomes the next user message and is sent immediately (no need to edit). Disabled while a request is in flight.
+- Keyboard: chips are real `<button>`s, focusable, Enter/Space activates, `aria-label="Ask: <query>"`.
 
-## Manual probe invocations (no UI yet)
+## How follow-ups are generated
 
-5. `curl_edge_functions` POST `/email-pipeline-health` with service-role auth — expect `{ok:true, probed:9, results:[...]}` and per-template `stuck`/`failed` counts. Confirm no template flips to `unhealthy:true` unexpectedly.
-6. `curl_edge_functions` POST `/resend-signup-confirmations` — confirm it still runs without writing a spurious `email_signup_confirmation_pipeline_unhealthy` row when stuck count is 0.
+- The system prompt in `supabase/functions/techfleet-chat/index.ts` is extended with a final-line contract: after the markdown answer, the model emits a single sentinel line  
+  `<<FLEETY_FOLLOWUPS>>["question 1","question 2","question 3"]`  
+  with 0–3 short, self-contained questions related to what was just discussed and the user's likely next step.
+- The existing `sanitizeStream` transform (~line 1430-1518) detects this sentinel in the buffered assistant output, **strips it from what the user sees**, parses the JSON array, validates (array of strings, ≤3, each ≤120 chars, no URLs, no HTML), and on `flush()` enqueues one extra SSE frame:  
+  `data: {"fleety":{"followups":["..."]}}`
+- L3 cache hits (`buildCacheSSEStream`) and canned answers will not have follow-ups in v1. (Acceptable: ~30% of turns; we can revisit by storing followups in `fleety_response_cache` later.)
+- Quota-blocked / cost-guard `hard` responses skip the contract entirely.
 
-## Browser smoke (logged-in admin)
+## Cost / safety
 
-7. `navigate_to_sandbox` `/` desktop (1440×900). Verify dashboard renders, no console errors.
-8. Open Fleety chat widget. Send 5 turns spanning the L1–L6 pipeline:
-   - T1: trivial greeting → expect L2 canned hit (no model call).
-   - T2: same greeting reworded → expect L3 semantic cache hit.
-   - T3: framework question (e.g. "What's a Product Strategist role?") → expect L5 RAG + L6 model.
-   - T4: repeat T3 verbatim → expect L3 cache hit, no new model spend.
-   - T5: ambiguous → expect router → model, then thumbs-down to verify cache purge path.
-   Verify streaming Markdown, history persistence on reload, and that the widget never blocks main UI.
-9. Navigate to **System Health → Fleety** tab. Confirm the panel renders:
-   - 30-day cost projection number
-   - L2/L3 hit-rates
-   - Top expensive turns list
-   - Canned answers + proposed relationships sections
-   No empty/blank states, no console errors, no "forbidden" toasts.
-10. Navigate to **System Health → Top Errors**. Confirm any pre-existing pipeline alerts are listed with non-null messages (the loosened fingerprint filter is working). No phantom signup-pipeline alert when stuck count = 0.
-11. Mobile pass: re-navigate at 390×844, repeat steps 8–10 abbreviated. Verify 100dvh layout, sticky widget behavior, no horizontal scroll.
+- No extra model call — follow-ups ride on the same completion (a few extra output tokens, well under the per-turn cap).
+- The sentinel is stripped server-side so prompt-leak risk to the user is zero, and follow-ups go through the same `sanitizeAIOutput` path before being JSON-encoded.
+- Client validates again: array, length ≤ 3, each item is a non-empty string ≤ 120 chars; otherwise discarded silently.
 
-## Post-test DB verification
+## Client changes (`src/components/FleetyChatWidget.tsx`)
 
-12. Re-run baseline `read_query`s and diff:
-    - `fleety_turn_signals` should have grown by ~5 rows (one per turn, including cache hits).
-    - `fleety_response_cache` should have ≥1 new entry from T3.
-    - `fleety_cost_daily` today should reflect only T3+T5 model spend (T1/T2/T4 free).
-    - No new `email_*_pipeline_unhealthy` audit rows unless a real stuck email exists.
-13. `analytics_query` edge logs for `email-pipeline-health`, Fleety chat — confirm 200s, latency sane (<2s p95), no 5xx.
-14. `linter` again — still 43 WARNs, no new ones.
+- Extend `Msg` with `followups?: string[]`.
+- In the SSE parser inside `streamChat`, when a parsed frame has `parsed.fleety.followups`, call a new `onFollowups` callback instead of treating it as content.
+- `send()` wires `onFollowups` to attach the array to the latest assistant message.
+- Render block under the chips (or replacing the empty space when no chips), with a small "Suggested follow-ups" label.
+- Add `runFollowup(text)` helper that pushes a user message and reuses the existing `send` pipeline (extracted into a `sendText(text)` so both the form submit and the chip click share one code path). Auto-clears follow-ups on the previous message after click to avoid double-sends.
 
-## Pass/fail criteria
+## Telemetry
 
-- PASS: all UI interactions render without error, Fleety pipeline tiers behave as expected, System Health → Fleety shows live data, no new linter findings, no spurious pipeline-unhealthy audit rows.
-- FAIL (and auto-fix): any 4xx/5xx on the probed edge functions, blank System Health panel, missing turn signals on cache hits, new `_pipeline_unhealthy` rows for healthy templates, or new linter WARNs tied to recent migrations.
+- Reuse `fleety_action_events` with `action_type = "followup_click"` and `action_label = <query>`. The existing `fleety_turn_signals.chips_clicked` counter already tracks engagement; we'll keep follow-up clicks separate by action_type so analytics can split them.
 
-## Deliverable
+## BDD scenarios (added to `bdd_scenarios`)
 
-A short report with: backend status, per-step pass/fail, before/after counts, screenshots of Fleety widget + System Health Fleety panel + Top Errors, and any auto-applied fixes.
+- `F-FOLLOWUP-001` — Assistant answer renders 1–3 follow-up chips under the message  
+  - [UI] chips visible with `role="group" aria-label="Suggested follow-ups"`  
+  - [Code] SSE frame `{fleety:{followups:[...]}}` parsed and array stored on message  
+  - [DB] no rows written until clicked
+- `F-FOLLOWUP-002` — Clicking a follow-up sends it as the next user message  
+  - [UI] new user bubble appears with the chip text, input stays empty  
+  - [Code] `sendText` invoked with chip label, prior message's `followups` cleared  
+  - [DB] `fleety_action_events` row inserted with `action_type='followup_click'` and matching `turn_id`
+- `F-FOLLOWUP-003` — Malformed sentinel is silently ignored  
+  - [UI] no follow-up section, answer text unaffected  
+  - [Code] JSON parse failure caught, no console error surfaced to user  
+  - [DB] turn row still recorded, `chips_clicked=0`
+- `F-FOLLOWUP-004` — Cache/canned-hit responses render no follow-ups (v1 limitation)  
+  - [UI] only the cached answer renders, no follow-up group  
+  - [Code] `buildCacheSSEStream` does not emit a `fleety` SSE frame  
+  - [DB] `fleety_response_cache` row served unchanged
 
-Approve and I'll switch to build mode and execute.
+## Files touched
+
+- `supabase/functions/techfleet-chat/index.ts` — extend system prompt, add sentinel stripper + extra SSE frame in `sanitizeStream`.
+- `src/components/FleetyChatWidget.tsx` — type, parser branch, `onFollowups`, `sendText` extraction, render block, click handler with telemetry.
+- `src/components/resources/GuidanceEmbed.tsx` — same parser branch + render (smaller, mirrors widget).
+- New migration: insert the four `F-FOLLOWUP-00x` rows into `bdd_scenarios`.
+
+## Out of scope (next iterations)
+
+- Persisting follow-ups in the L3 cache so cached replays also show them.
+- Personalizing follow-ups using `fleety_turn_signals` history (top intents per user).
+- A/B testing chip wording via `prompt_version`.
