@@ -26,6 +26,7 @@ async function streamChat({
   onDelta,
   onTurnId,
   onChips,
+  onFollowups,
   onDone,
 }: {
   messages: Msg[];
@@ -34,6 +35,7 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onTurnId: (id: string | null) => void;
   onChips: (chips: ActionChip[]) => void;
+  onFollowups: (followups: string[]) => void;
   onDone: () => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
