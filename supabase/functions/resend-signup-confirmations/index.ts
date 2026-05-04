@@ -187,21 +187,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { count: stuckPending } = await supabase
-      .from('email_send_log')
-      .select('id', { count: 'exact', head: true })
-      .eq('template_name', 'signup')
-      .eq('status', 'pending')
-      .lt('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+    // Count *truly* stuck pending signup emails. The queue pipeline writes a
+    // 'pending' row first and then a separate 'sent'/'failed'/'dlq' row keyed
+    // by the same message_id (rows are append-only, never updated). A naive
+    // COUNT(status='pending') therefore inflates forever as successful sends
+    // accumulate. Dedupe by message_id and inspect the LATEST status only.
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-    const { count: failedSignupEmails } = await supabase
-      .from('email_send_log')
-      .select('id', { count: 'exact', head: true })
-      .eq('template_name', 'signup')
-      .in('status', ['failed', 'dlq'])
-      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    const { data: stuckRows } = await supabase.rpc('email_send_log_latest_stuck', {
+      p_template_name: 'signup',
+      p_older_than: fifteenMinAgo,
+    })
+    const stuckPending: number = Array.isArray(stuckRows) ? stuckRows.length : (stuckRows ?? 0)
+
+    const { data: failedRows } = await supabase.rpc('email_send_log_latest_failed', {
+      p_template_name: 'signup',
+      p_since: oneDayAgo,
+    })
+    const failedSignupEmails: number = Array.isArray(failedRows) ? failedRows.length : (failedRows ?? 0)
 
     if ((stuckPending ?? 0) > 0 || (failedSignupEmails ?? 0) > 0 || errors.length > 0) {
+      // Always include a non-null error_message so this fingerprint surfaces
+      // in System Health → Top Errors (which filters error_message IS NOT NULL).
+      const summary = errors.length
+        ? errors.slice(0, 3).map((e) => e.error).join('; ')
+        : `Signup email pipeline degraded — stuck_pending:${stuckPending ?? 0} · failed_last_24h:${failedSignupEmails ?? 0} · fallback_errors:${errors.length}`
       await supabase.rpc('write_audit_log', {
         p_event_type: 'email_signup_confirmation_pipeline_unhealthy',
         p_table_name: 'email_send_log',
@@ -212,7 +223,7 @@ Deno.serve(async (req) => {
           `failed_last_24h:${failedSignupEmails ?? 0}`,
           `fallback_errors:${errors.length}`,
         ],
-        p_error_message: errors.length ? errors.slice(0, 3).map((e) => e.error).join('; ') : null,
+        p_error_message: summary,
       })
     }
 
