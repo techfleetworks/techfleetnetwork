@@ -15,10 +15,12 @@ const MAX_INPUT_LENGTH = 4000;
 async function streamChat({
   messages,
   onDelta,
+  onFollowups,
   onDone,
 }: {
   messages: Msg[];
   onDelta: (deltaText: string) => void;
+  onFollowups: (followups: string[]) => void;
   onDone: () => void;
 }) {
   // ASVS V13.2.1: Use session-bound JWT, not static publishable key
