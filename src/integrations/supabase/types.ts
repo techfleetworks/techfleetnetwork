@@ -4327,31 +4327,19 @@ export type Database = {
           tier: string
         }[]
       }
-      fleety_cache_store:
-        | {
-            Args: {
-              _audience: string
-              _query_hash: string
-              _query_text: string
-              _response_md: string
-              _sources: Json
-              _tier: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _audience: string
-              _query_embedding?: string
-              _query_hash: string
-              _query_text: string
-              _response_md: string
-              _sources: Json
-              _tier: string
-              _turn_id?: string
-            }
-            Returns: undefined
-          }
+      fleety_cache_store: {
+        Args: {
+          _audience: string
+          _query_embedding?: string
+          _query_hash: string
+          _query_text: string
+          _response_md: string
+          _sources: Json
+          _tier: string
+          _turn_id?: string
+        }
+        Returns: undefined
+      }
       fleety_cost_guard_step: { Args: never; Returns: string }
       fleety_cost_projection: {
         Args: never
