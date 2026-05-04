@@ -629,6 +629,40 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // ── L1: Per-user soft quota (Cost Plan v2) ────────────────────────
+    // Caps abusive/runaway usage at 30 turns/day and 150 turns/month so a
+    // viral spike from a tiny number of power users can't blow the AI
+    // budget. Friendly, helpful redirect — never a dead end.
+    try {
+      const { data: q, error: qErr } = await supabase.rpc("check_fleety_user_quota", { _user_id: user.id });
+      const row = Array.isArray(q) ? q[0] : q;
+      if (!qErr && row && row.allowed === false) {
+        log.info("quota", `User quota reached [${requestId}] reason=${row.reason}`, {
+          requestId, userId: user.id, reason: row.reason,
+          dailyUsed: row.daily_used, monthlyUsed: row.monthly_used,
+        });
+        const friendly = row.reason === "monthly_cap"
+          ? "You've reached your Fleety chat limit for this month. Try the search bar at the top, browse the Knowledge Base, or book office hours — and I'll be back next month."
+          : "You've hit today's Fleety chat limit. Try the search bar at the top, browse the Knowledge Base, or book office hours — I'll reset overnight.";
+        return new Response(
+          JSON.stringify({
+            error: friendly,
+            quota: { reason: row.reason, daily_used: row.daily_used, daily_limit: row.daily_limit, monthly_used: row.monthly_used, monthly_limit: row.monthly_limit },
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "Retry-After": row.reason === "daily_cap" ? "3600" : "86400",
+            },
+          },
+        );
+      }
+    } catch (e) {
+      log.warn("quota", `quota check failed open [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+    }
+
     // ── Server-side shared chatbot rate limiting (WSTG-BUSL-05) ────────
     const { data: rateLimitResult, error: rateLimitError } = await supabase.rpc("check_chat_system_rate_limit");
 
@@ -670,10 +704,12 @@ serve(async (req) => {
     const doWebSearch = routerDecision?.needsWeb ?? shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch} (router=${!!routerDecision})`, { requestId, doWebSearch });
 
-    const KB_TOPK = 12;
-    const PER_KB_CHARS = 2_000;
-    
-    const MAX_KB_CONTEXT_CHARS = 60_000; // ~15k tokens — 6× smaller than before
+    // Lean RAG (Cost Plan v2 §5): tighter KB context. Was 12×2000/60000.
+    // Quality preserved by semantic top-K + framework graph + few-shot still
+    // injected below. Long/complex turns get extra room via Tier C in Phase 2.
+    const KB_TOPK = 6;
+    const PER_KB_CHARS = 1_200;
+    const MAX_KB_CONTEXT_CHARS = 18_000; // ~4.5k tokens — was 15k
 
     type KbHit = { title: string; url: string; content: string };
     let kbHits: KbHit[] = [];
@@ -729,8 +765,8 @@ serve(async (req) => {
     // Fleety answer relationship questions ("who do I work with as a UX
     // researcher in an agency?") in a single LLM round-trip.
     let frameworkContext = "";
-    const MAX_NEIGHBORS_PER_DIR = 20;
-    const MAX_FRAMEWORK_CONTEXT_BYTES = 24_000; // ~6k tokens hard cap
+    const MAX_NEIGHBORS_PER_DIR = 12; // was 20
+    const MAX_FRAMEWORK_CONTEXT_BYTES = 8_000; // ~2k tokens hard cap (was 6k)
     try {
       const { data: hits } = await supabase.rpc("search_framework", {
         p_query: lastUserMessage.slice(0, 500),
@@ -1220,6 +1256,25 @@ serve(async (req) => {
         .single();
       signalTurnId = sig?.id ?? null;
     } catch (_) { /* don't block chat on signal write */ }
+
+    // ── Cost counter (Cost Plan v2 §7) ────────────────────────────────
+    // Estimate tokens using a 4-chars/token heuristic; record input now so
+    // we still capture cost even if the streaming response is aborted.
+    // Output tokens are accounted as max_tokens budget — refined in Phase 3.
+    const estTokensIn = Math.ceil(fullSystemPrompt.length / 4)
+      + Math.ceil(sanitizedMessages.reduce((n: number, m: { content: string }) => n + (m.content?.length || 0), 0) / 4);
+    const PRICE_FLASH_IN = 0.30 / 1_000_000;  // $/token, gemini-3-flash-preview
+    const PRICE_FLASH_OUT = 2.50 / 1_000_000;
+    const estUsd = estTokensIn * PRICE_FLASH_IN + 4096 * PRICE_FLASH_OUT * 0.4; // assume 40% of cap
+    supabase.rpc("fleety_record_cost", {
+      _model: "google/gemini-3-flash-preview",
+      _tier: "B",
+      _tokens_in: estTokensIn,
+      _tokens_out: Math.round(4096 * 0.4),
+      _est_usd: estUsd,
+      _cache_hit: false,
+      _canned_hit: !!cannedAnswerId,
+    }).then(() => {}, (e: unknown) => log.warn("cost", `record_cost failed [${requestId}]`, { requestId, err: e instanceof Error ? e.message : String(e) }));
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
