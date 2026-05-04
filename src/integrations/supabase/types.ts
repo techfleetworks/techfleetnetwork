@@ -1389,6 +1389,7 @@ export type Database = {
           created_at: string
           hits: number
           kb_version: number
+          last_turn_id: string | null
           last_used_at: string
           query_embedding: string | null
           query_hash: string
@@ -1402,6 +1403,7 @@ export type Database = {
           created_at?: string
           hits?: number
           kb_version: number
+          last_turn_id?: string | null
           last_used_at?: string
           query_embedding?: string | null
           query_hash: string
@@ -1415,6 +1417,7 @@ export type Database = {
           created_at?: string
           hits?: number
           kb_version?: number
+          last_turn_id?: string | null
           last_used_at?: string
           query_embedding?: string | null
           query_hash?: string
@@ -4245,17 +4248,49 @@ export type Database = {
           tier: string
         }[]
       }
-      fleety_cache_store: {
-        Args: {
-          _audience: string
-          _query_hash: string
-          _query_text: string
-          _response_md: string
-          _sources: Json
-          _tier: string
-        }
+      fleety_cache_record_hit: {
+        Args: { _query_hash: string; _turn_id?: string }
         Returns: undefined
       }
+      fleety_cache_semantic_lookup: {
+        Args: {
+          _audience: string
+          _max_distance?: number
+          _query_embedding: string
+        }
+        Returns: {
+          query_hash: string
+          response_md: string
+          similarity: number
+          sources: Json
+          tier: string
+        }[]
+      }
+      fleety_cache_store:
+        | {
+            Args: {
+              _audience: string
+              _query_hash: string
+              _query_text: string
+              _response_md: string
+              _sources: Json
+              _tier: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _audience: string
+              _query_embedding?: string
+              _query_hash: string
+              _query_text: string
+              _response_md: string
+              _sources: Json
+              _tier: string
+              _turn_id?: string
+            }
+            Returns: undefined
+          }
       fleety_few_shot_examples: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -4365,6 +4400,15 @@ export type Database = {
           steps: Json
           title: string
         }[]
+      }
+      fleety_promote_turn_to_canned: {
+        Args: {
+          _answer_md: string
+          _audience?: string
+          _question_pattern: string
+          _turn_id: string
+        }
+        Returns: string
       }
       fleety_recompute_practical_scores: {
         Args: { p_days?: number }
