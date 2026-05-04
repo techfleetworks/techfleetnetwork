@@ -61,7 +61,8 @@ describe("LoginPage UI (BDD 17.1–17.3)", () => {
     fireEvent.change(email, { target: { value: "not-an-email" } });
     fireEvent.change(password, { target: { value: "whatever" } });
     fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
-    expect(screen.queryByRole("alert")).toBeNull();
+    // The destructive auth banner uses bg-destructive/10 — must not appear for Zod errors
+    expect(document.querySelector(".bg-destructive\\/10")).toBeNull();
   });
 
   // LCL-001 — OAuth-only hint is not shown on initial render
