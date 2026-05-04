@@ -247,17 +247,18 @@ export function FleetyChatWidget() {
     synth.speak(utterance);
   }, [speakingIdx]);
 
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
+    text = text.trim();
     if (!text || isLoading) return;
 
     const userMsg: Msg = { role: "user", content: text };
-    setInput("");
-    setMessages((prev) => [...prev, userMsg]);
+    // Clear follow-ups on previous assistant message so they can't be re-clicked.
+    setMessages((prev) => [
+      ...prev.map((m) => (m.role === "assistant" ? { ...m, followups: undefined } : m)),
+      userMsg,
+    ]);
     setIsLoading(true);
 
-    // Create or reuse conversation
     let convoId = activeConvoId;
     if (!convoId && user) {
       convoId = await createConversation(text);
@@ -286,19 +287,26 @@ export function FleetyChatWidget() {
         onDelta: (chunk) => upsertAssistant(chunk),
         onTurnId: (id) => {
           assistantTurnId = id;
-          // Stamp turnId on the latest assistant message if it exists
           setMessages((prev) => prev.map((m, i) =>
             i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
           ));
         },
         onChips: (chips) => {
           setMessages((prev) => {
-            // Attach chips to last assistant message; create stub if none yet.
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
               return prev.map((m, i) => (i === prev.length - 1 ? { ...m, chips } : m));
             }
             return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, chips }];
+          });
+        },
+        onFollowups: (followups) => {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, followups } : m));
+            }
+            return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, followups }];
           });
         },
         onDone: async () => {
@@ -314,6 +322,31 @@ export function FleetyChatWidget() {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput("");
+    await sendText(text);
+  };
+
+  const handleFollowup = async (turnId: string | null | undefined, query: string) => {
+    if (isLoading) return;
+    if (turnId) {
+      try {
+        await supabase.rpc("fleety_record_action_event", {
+          p_turn_id: turnId,
+          p_action_type: "followup_click",
+          p_action_label: query.slice(0, 200),
+          p_target_url: null,
+        });
+      } catch (e) {
+        console.warn("fleety followup tracking failed", e);
+      }
+    }
+    await sendText(query);
   };
 
   // Submit thumbs feedback for an assistant message
