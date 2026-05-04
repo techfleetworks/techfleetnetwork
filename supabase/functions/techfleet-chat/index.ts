@@ -338,6 +338,45 @@ function vecLiteral(v: number[]): string {
   return "[" + v.join(",") + "]";
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Build an SSE ReadableStream that replays cached markdown to the client in
+ * the same OpenAI-compatible delta format the AI gateway uses, so the
+ * Fleety widget renders cache hits with its existing streaming animation.
+ * Cuts each response into ~24-char chunks with tiny inter-chunk delays so
+ * the user sees the typing cadence rather than a single instant flush.
+ */
+function buildCacheSSEStream(markdown: string): ReadableStream<Uint8Array> {
+  const enc = new TextEncoder();
+  const CHUNK = 24;
+  const chunks: string[] = [];
+  for (let i = 0; i < markdown.length; i += CHUNK) {
+    chunks.push(markdown.slice(i, i + CHUNK));
+  }
+  let idx = 0;
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (idx >= chunks.length) {
+        controller.enqueue(enc.encode("data: [DONE]\n\n"));
+        controller.close();
+        return;
+      }
+      const payload = {
+        choices: [{ delta: { content: chunks[idx] } }],
+      };
+      controller.enqueue(enc.encode("data: " + JSON.stringify(payload) + "\n\n"));
+      idx++;
+      // Tiny breath so the frontend animates rather than instant-renders.
+      await new Promise((r) => setTimeout(r, 8));
+    },
+  });
+}
+
+
 /**
  * Cheap intent classifier — regex-first to keep latency / cost at zero
  * for the 95% of cases we recognize. Returns one of:
@@ -700,6 +739,87 @@ serve(async (req) => {
     ]);
     const haveEmbeddings = !!queryEmbedding;
 
+    // ── Early audience detection (needed by L3 cache key) ─────────────
+    let audience: "member" | "teacher" | "admin" = "member";
+    try {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const set = new Set((roles ?? []).map((r: { role: string }) => r.role));
+      if (set.has("admin")) audience = "admin";
+      else if (set.has("teacher")) audience = "teacher";
+    } catch (_) { /* default member */ }
+
+    // ── L3: Semantic response cache (Cost Plan v2) ───────────────────
+    // If we have embeddings and a near-duplicate question was answered for
+    // this audience+kb_version within 7 days, replay the stored markdown as
+    // a synthetic SSE stream — zero AI gateway call, identical UX.
+    if (haveEmbeddings) {
+      try {
+        const { data: hit } = await supabase.rpc("fleety_cache_semantic_lookup", {
+          _query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
+          _audience: audience,
+          _max_distance: 0.05,
+        });
+        const cached = Array.isArray(hit) ? hit[0] : hit;
+        if (cached && typeof cached.response_md === "string" && cached.response_md.length > 10) {
+          // Record a turn signal so admin dashboards still see the volume.
+          let cacheTurnId: string | null = null;
+          try {
+            const { data: sig } = await supabase
+              .from("fleety_turn_signals")
+              .insert({
+                conversation_id: conversation_id ?? null,
+                user_id: user.id,
+                user_query: lastUserMessage.slice(0, 2000),
+                audience,
+                kb_hit_count: 0,
+                framework_hit_count: 0,
+                web_hit_count: 0,
+                intent: routerDecision?.intent ?? "definition",
+                prompt_version: "cache-hit",
+              })
+              .select("id")
+              .single();
+            cacheTurnId = sig?.id ?? null;
+          } catch (_) { /* ok */ }
+
+          // Bump hit count + cost counter (near-zero $, but track it)
+          supabase.rpc("fleety_cache_record_hit", {
+            _query_hash: cached.query_hash,
+            _turn_id: cacheTurnId,
+          }).then(() => {}, () => {});
+          supabase.rpc("fleety_record_cost", {
+            _model: "cache",
+            _tier: cached.tier ?? "B",
+            _tokens_in: 0,
+            _tokens_out: 0,
+            _est_usd: 0.00005,
+            _cache_hit: true,
+            _canned_hit: false,
+          }).then(() => {}, () => {});
+
+          log.info("cache", `L3 cache HIT [${requestId}] hash=${String(cached.query_hash).slice(0, 8)} sim=${cached.similarity?.toFixed?.(3) ?? "?"}`, { requestId });
+
+          const headers: Record<string, string> = {
+            ...corsHeaders,
+            "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Cache, X-Fleety-Intent",
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "X-Fleety-Cache": "hit",
+            "X-Fleety-Intent": routerDecision?.intent ?? "definition",
+          };
+          if (cacheTurnId) headers["X-Fleety-Turn-Id"] = cacheTurnId;
+
+          return new Response(buildCacheSSEStream(cached.response_md), { headers });
+        }
+      } catch (e) {
+        log.warn("cache", `L3 cache lookup failed [${requestId}]: ${e instanceof Error ? e.message : "unknown"}`, { requestId });
+      }
+    }
+
     // Load knowledge base via semantic top-K (with full-table cache fallback).
     const doWebSearch = routerDecision?.needsWeb ?? shouldSearchWeb(lastUserMessage);
     log.info("web-search", `Web search decision [${requestId}]: ${doWebSearch} (router=${!!routerDecision})`, { requestId, doWebSearch });
@@ -954,17 +1074,7 @@ serve(async (req) => {
       "- 'Team Functions' ↔ 'Job Functions'\n" +
       "Always prefer the right-hand (current) term in your answer, but recognize the left-hand term in user questions.\n";
 
-    // ── Audience detection (member|teacher|admin) ─────────────────────
-    let audience: "member" | "teacher" | "admin" = "member";
-    try {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const set = new Set((roles ?? []).map((r: { role: string }) => r.role));
-      if (set.has("admin")) audience = "admin";
-      else if (set.has("teacher")) audience = "teacher";
-    } catch (_) { /* default member */ }
+    // (Audience already detected above for L3 cache key.)
 
     const TONE_PRESET = audience === "teacher"
       ? "\n\nAUDIENCE: TEACHER. Slightly more technical phrasing is OK; reference how to coach trainees through the concept.\n"
@@ -1320,7 +1430,17 @@ serve(async (req) => {
     log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
 
     // OWASP AI: Create a transform stream to sanitize AI output content
-    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing
+    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing.
+    // Also: capture the full assistant response so we can write it to L3 cache on completion.
+    let assistantBuffer = "";
+    const isCacheable = haveEmbeddings
+      && !cannedAnswerId
+      && webResult.sources.length === 0
+      && lastUserMessage.length <= 800;
+    const queryHash = isCacheable
+      ? await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`)
+      : "";
+
     const sanitizeStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
@@ -1337,7 +1457,9 @@ serve(async (req) => {
             const parsed = JSON.parse(jsonStr);
             const content = parsed?.choices?.[0]?.delta?.content;
             if (typeof content === "string") {
-              parsed.choices[0].delta.content = sanitizeAIOutput(content);
+              const sanitized = sanitizeAIOutput(content);
+              parsed.choices[0].delta.content = sanitized;
+              if (isCacheable) assistantBuffer += sanitized;
             }
             sanitizedLines.push("data: " + JSON.stringify(parsed));
           } catch {
@@ -1347,6 +1469,23 @@ serve(async (req) => {
         }
 
         controller.enqueue(new TextEncoder().encode(sanitizedLines.join("\n")));
+      },
+      flush() {
+        // Write to L3 cache on stream completion (best-effort, non-blocking).
+        if (isCacheable && assistantBuffer.length >= 80 && assistantBuffer.length <= 16_000) {
+          supabase.rpc("fleety_cache_store", {
+            _query_hash: queryHash,
+            _query_text: lastUserMessage.slice(0, 1000),
+            _audience: audience,
+            _response_md: assistantBuffer,
+            _sources: [],
+            _tier: "B",
+            _query_embedding: queryEmbedding ? (vecLiteral(queryEmbedding) as unknown as number[]) : null,
+            _turn_id: signalTurnId,
+          }).then(() => {}, (e: unknown) =>
+            log.warn("cache", `cache_store failed [${requestId}]: ${e instanceof Error ? e.message : String(e)}`, { requestId }),
+          );
+        }
       },
     });
 
@@ -1359,12 +1498,13 @@ serve(async (req) => {
 
     const exposeHeaders: Record<string, string> = {
       ...corsHeaders,
-      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical",
+      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Cache",
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "X-Fleety-Intent": intent,
       "X-Fleety-Practical": practical ? "1" : "0",
+      "X-Fleety-Cache": "miss",
     };
     if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
     if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
