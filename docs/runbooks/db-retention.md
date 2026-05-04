@@ -8,7 +8,7 @@ Bounds DB growth to ~3 GB/yr (was ~12 GB/yr). Keeps Cloud spend inside the inclu
 |-----|-----------|-----------|---------|
 | `prune_cron_job_run_details()` | Daily | 7 days | Reclaims ~2.2 GB; capped at 50 MB rolling |
 | `prune_email_send_log()` | Daily | 90 days | Bounded delivery audit trail |
-| `audit_log` | **NEVER pruned** | ∞ | SOC 2 hash-chain integrity |
+| `audit_log` | **NEVER pruned in place** | ∞ | SOC 2 hash-chain integrity + DELETE-block trigger. Future "archive-then-prune" workflow (cold-storage export → verify chain → prune archived window) is the **only** acceptable path; do not bypass the trigger. |
 | `process-email-queue` cron | Every 60s | — | Safety net only — `notify_email_queue_worker` trigger handles real-time delivery via `pg_net` |
 
 ## What changed (Phase 4)
