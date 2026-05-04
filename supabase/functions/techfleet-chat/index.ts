@@ -339,6 +339,40 @@ function vecLiteral(v: number[]): string {
 }
 
 /**
+ * Build an SSE ReadableStream that replays cached markdown to the client in
+ * the same OpenAI-compatible delta format the AI gateway uses, so the
+ * Fleety widget renders cache hits with its existing streaming animation.
+ * Cuts each response into ~24-char chunks with tiny inter-chunk delays so
+ * the user sees the typing cadence rather than a single instant flush.
+ */
+function buildCacheSSEStream(markdown: string): ReadableStream<Uint8Array> {
+  const enc = new TextEncoder();
+  const CHUNK = 24;
+  const chunks: string[] = [];
+  for (let i = 0; i < markdown.length; i += CHUNK) {
+    chunks.push(markdown.slice(i, i + CHUNK));
+  }
+  let idx = 0;
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (idx >= chunks.length) {
+        controller.enqueue(enc.encode("data: [DONE]\n\n"));
+        controller.close();
+        return;
+      }
+      const payload = {
+        choices: [{ delta: { content: chunks[idx] } }],
+      };
+      controller.enqueue(enc.encode("data: " + JSON.stringify(payload) + "\n\n"));
+      idx++;
+      // Tiny breath so the frontend animates rather than instant-renders.
+      await new Promise((r) => setTimeout(r, 8));
+    },
+  });
+}
+
+
+/**
  * Cheap intent classifier — regex-first to keep latency / cost at zero
  * for the 95% of cases we recognize. Returns one of:
  *   definition | how_to | troubleshoot | decision | reference
