@@ -336,7 +336,7 @@ export function FleetyChatWidget() {
     if (isLoading) return;
     if (turnId) {
       try {
-        await supabase.rpc("fleety_record_action_event", {
+        await supabase.rpc("fleety_record_action", {
           p_turn_id: turnId,
           p_action_type: "followup_click",
           p_action_label: query.slice(0, 200),
