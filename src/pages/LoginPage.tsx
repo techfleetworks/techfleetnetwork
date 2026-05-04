@@ -280,16 +280,28 @@ export default function LoginPage() {
         </div>
 
         <div className="card-elevated p-6 sm:p-8">
-          {error && (
+          {authError && (
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
-              {error}
+              <p>{authError}</p>
+              <p className="mt-2 text-xs text-destructive/80">
+                <Link to="/forgot-password" className="underline hover:no-underline">Reset password</Link>
+                <span className="mx-2" aria-hidden="true">·</span>
+                <span>Signed up with Google? Use the button above.</span>
+              </p>
+            </div>
+          )}
+
+          {oauthHint?.has_google && !oauthHint.has_password && (
+            <div className="mb-4 p-3 rounded-md border border-primary/30 bg-primary/10 text-sm" role="status" aria-live="polite">
+              <p className="font-semibold text-foreground">This account uses Google sign-in</p>
+              <p className="mt-1 text-muted-foreground">Use <strong>Continue with Google</strong> above to sign in. Your password attempt won't be counted.</p>
             </div>
           )}
 
           {from !== "/dashboard" && (
             <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-foreground" role="status" aria-live="polite">
               <p className="font-semibold">Sign in to continue</p>
-              <p className="mt-1 text-muted-foreground">After sign-in, we’ll take you back to the page you were trying to open.</p>
+              <p className="mt-1 text-muted-foreground">After sign-in, we'll take you back to the page you were trying to open.</p>
             </div>
           )}
 
@@ -325,6 +337,9 @@ export default function LoginPage() {
             </ValidatedField>
 
             <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
+            {captchaNotice && !authError && (
+              <p className="-mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">{captchaNotice}</p>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "login-lockout-status" : undefined}>
               {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}
@@ -347,7 +362,7 @@ export default function LoginPage() {
       <MfaChallengeDialog
         open={mfaOpen}
         onSuccess={() => { setMfaOpen(false); navigate(from, { replace: true }); }}
-        onCancel={() => { setMfaOpen(false); setError("Sign-in cancelled. Please try again."); }}
+        onCancel={() => { setMfaOpen(false); setAuthError("Sign-in cancelled. Please try again."); }}
       />
     </div>
   );
