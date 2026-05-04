@@ -83,19 +83,45 @@ Deno.serve(async (req) => {
       results.push({ template, stuck, failed, unhealthy })
 
       if (unhealthy) {
-        const summary = `${template} email pipeline degraded — stuck_pending:${stuck} · failed_last_24h:${failed}`
-        await supabase.rpc('write_audit_log', {
-          p_event_type: `email_${slug}_pipeline_unhealthy`,
-          p_table_name: 'email_send_log',
-          p_record_id: null,
-          p_user_id: null,
-          p_changed_fields: [
-            `stuck_pending:${stuck}`,
-            `failed_last_24h:${failed}`,
-            `template:${slug}`,
-          ],
-          p_error_message: summary,
-        })
+        // De-noise: only emit one audit_log row per state-change. Look at the
+        // most recent prior alert for this slug; if the (stuck, failed) tuple
+        // is identical, skip — the operator already has the alert. This stops
+        // the cron from drip-inserting an identical row every 15 min while
+        // a stale orphan keeps tripping the probe.
+        const eventType = `email_${slug}_pipeline_unhealthy`
+        const expectedTag = `stuck_pending:${stuck}`
+        const expectedFailedTag = `failed_last_24h:${failed}`
+
+        const { data: prior } = await supabase
+          .from('audit_log')
+          .select('changed_fields, created_at')
+          .eq('event_type', eventType)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        const lastRow = Array.isArray(prior) && prior.length > 0 ? prior[0] : null
+        const lastFields: string[] = Array.isArray(lastRow?.changed_fields) ? lastRow!.changed_fields : []
+        const sameState = lastFields.includes(expectedTag) && lastFields.includes(expectedFailedTag)
+
+        // Always re-emit if last alert is older than 24h (heartbeat), even if state is identical.
+        const lastAt = lastRow?.created_at ? new Date(lastRow.created_at).getTime() : 0
+        const stale = Date.now() - lastAt > 24 * 60 * 60 * 1000
+
+        if (!sameState || stale) {
+          const summary = `${template} email pipeline degraded — stuck_pending:${stuck} · failed_last_24h:${failed}`
+          await supabase.rpc('write_audit_log', {
+            p_event_type: eventType,
+            p_table_name: 'email_send_log',
+            p_record_id: null,
+            p_user_id: null,
+            p_changed_fields: [
+              expectedTag,
+              expectedFailedTag,
+              `template:${slug}`,
+            ],
+            p_error_message: summary,
+          })
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
