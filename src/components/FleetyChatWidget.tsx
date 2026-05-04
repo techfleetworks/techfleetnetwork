@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
+import { X, Send, Bot, User, Loader2, Volume2, VolumeX, Plus, MessageSquare, Trash2, ThumbsUp, ThumbsDown, MessageCircleQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SafeMarkdown } from "@/components/security/SafeMarkdown";
@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import fleetyIcon from "@/assets/fleety-icon.png";
 
 type ActionChip = { label: string; action_type: string; target_url?: string | null };
-type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null; chips?: ActionChip[] };
+type Msg = { role: "user" | "assistant"; content: string; turnId?: string | null; chips?: ActionChip[]; followups?: string[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -26,6 +26,7 @@ async function streamChat({
   onDelta,
   onTurnId,
   onChips,
+  onFollowups,
   onDone,
 }: {
   messages: Msg[];
@@ -34,6 +35,7 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onTurnId: (id: string | null) => void;
   onChips: (chips: ActionChip[]) => void;
+  onFollowups: (followups: string[]) => void;
   onDone: () => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -96,8 +98,17 @@ async function streamChat({
       if (jsonStr === "[DONE]") { streamDone = true; break; }
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed?.fleety?.followups && Array.isArray(parsed.fleety.followups)) {
+          const cleaned = parsed.fleety.followups
+            .filter((s: unknown) => typeof s === "string")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0 && s.length <= 120)
+            .slice(0, 3);
+          if (cleaned.length > 0) onFollowups(cleaned);
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        }
       } catch {
         textBuffer = line + "\n" + textBuffer;
         break;
@@ -115,8 +126,17 @@ async function streamChat({
       if (jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed?.fleety?.followups && Array.isArray(parsed.fleety.followups)) {
+          const cleaned = parsed.fleety.followups
+            .filter((s: unknown) => typeof s === "string")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0 && s.length <= 120)
+            .slice(0, 3);
+          if (cleaned.length > 0) onFollowups(cleaned);
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        }
       } catch { /* ignore */ }
     }
   }
@@ -227,17 +247,18 @@ export function FleetyChatWidget() {
     synth.speak(utterance);
   }, [speakingIdx]);
 
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
+    text = text.trim();
     if (!text || isLoading) return;
 
     const userMsg: Msg = { role: "user", content: text };
-    setInput("");
-    setMessages((prev) => [...prev, userMsg]);
+    // Clear follow-ups on previous assistant message so they can't be re-clicked.
+    setMessages((prev) => [
+      ...prev.map((m) => (m.role === "assistant" ? { ...m, followups: undefined } : m)),
+      userMsg,
+    ]);
     setIsLoading(true);
 
-    // Create or reuse conversation
     let convoId = activeConvoId;
     if (!convoId && user) {
       convoId = await createConversation(text);
@@ -266,19 +287,26 @@ export function FleetyChatWidget() {
         onDelta: (chunk) => upsertAssistant(chunk),
         onTurnId: (id) => {
           assistantTurnId = id;
-          // Stamp turnId on the latest assistant message if it exists
           setMessages((prev) => prev.map((m, i) =>
             i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
           ));
         },
         onChips: (chips) => {
           setMessages((prev) => {
-            // Attach chips to last assistant message; create stub if none yet.
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
               return prev.map((m, i) => (i === prev.length - 1 ? { ...m, chips } : m));
             }
             return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, chips }];
+          });
+        },
+        onFollowups: (followups) => {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, followups } : m));
+            }
+            return [...prev, { role: "assistant", content: "", turnId: assistantTurnId, followups }];
           });
         },
         onDone: async () => {
@@ -294,6 +322,31 @@ export function FleetyChatWidget() {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput("");
+    await sendText(text);
+  };
+
+  const handleFollowup = async (turnId: string | null | undefined, query: string) => {
+    if (isLoading) return;
+    if (turnId) {
+      try {
+        await supabase.rpc("fleety_record_action", {
+          p_turn_id: turnId,
+          p_action_type: "followup_click",
+          p_action_label: query.slice(0, 200),
+          p_target_url: null,
+        });
+      } catch (e) {
+        console.warn("fleety followup tracking failed", e);
+      }
+    }
+    await sendText(query);
   };
 
   // Submit thumbs feedback for an assistant message
@@ -567,6 +620,32 @@ export function FleetyChatWidget() {
                               {chip.label}
                             </button>
                           ))}
+                        </div>
+                      )}
+                      {msg.followups && msg.followups.length > 0 && (
+                        <div
+                          className="mt-2 pt-2 border-t border-border/50"
+                          role="group"
+                          aria-label="Suggested follow-ups"
+                        >
+                          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
+                            <MessageCircleQuestion className="h-3 w-3" aria-hidden="true" />
+                            Suggested follow-ups
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.followups.map((q, fi) => (
+                              <button
+                                key={`${i}-fu-${fi}`}
+                                type="button"
+                                onClick={() => handleFollowup(msg.turnId, q)}
+                                disabled={isLoading}
+                                aria-label={`Ask Fleety: ${q}`}
+                                className="text-xs px-2.5 py-1 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                              >
+                                {q}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import fleetyIcon from "@/assets/fleety-icon.png";
 import { supabase } from "@/integrations/supabase/client";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; followups?: string[] };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
 
@@ -15,10 +15,12 @@ const MAX_INPUT_LENGTH = 4000;
 async function streamChat({
   messages,
   onDelta,
+  onFollowups,
   onDone,
 }: {
   messages: Msg[];
   onDelta: (deltaText: string) => void;
+  onFollowups: (followups: string[]) => void;
   onDone: () => void;
 }) {
   // ASVS V13.2.1: Use session-bound JWT, not static publishable key
@@ -66,8 +68,17 @@ async function streamChat({
       if (jsonStr === "[DONE]") { streamDone = true; break; }
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed?.fleety?.followups && Array.isArray(parsed.fleety.followups)) {
+          const cleaned = parsed.fleety.followups
+            .filter((s: unknown) => typeof s === "string")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0 && s.length <= 120)
+            .slice(0, 3);
+          if (cleaned.length > 0) onFollowups(cleaned);
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        }
       } catch {
         textBuffer = line + "\n" + textBuffer;
         break;
@@ -85,8 +96,17 @@ async function streamChat({
       if (jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) onDelta(content);
+        if (parsed?.fleety?.followups && Array.isArray(parsed.fleety.followups)) {
+          const cleaned = parsed.fleety.followups
+            .filter((s: unknown) => typeof s === "string")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0 && s.length <= 120)
+            .slice(0, 3);
+          if (cleaned.length > 0) onFollowups(cleaned);
+        } else {
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        }
       } catch { /* ignore */ }
     }
   }
@@ -123,14 +143,15 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
     synth.speak(utterance);
   }, [speakingIdx]);
 
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
+  const sendText = async (text: string) => {
+    text = text.trim();
     if (!text || isLoading) return;
 
     const userMsg: Msg = { role: "user", content: text };
-    setInput("");
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [
+      ...prev.map((m) => (m.role === "assistant" ? { ...m, followups: undefined } : m)),
+      userMsg,
+    ]);
     setIsLoading(true);
 
     let assistantSoFar = "";
@@ -149,6 +170,15 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
       await streamChat({
         messages: [...messages, userMsg],
         onDelta: (chunk) => upsertAssistant(chunk),
+        onFollowups: (followups) => {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, followups } : m));
+            }
+            return [...prev, { role: "assistant", content: "", followups }];
+          });
+        },
         onDone: () => setIsLoading(false),
       });
     } catch (e: any) {
@@ -156,6 +186,14 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
       setIsLoading(false);
       toast.error(e.message || "Failed to get a response.");
     }
+  };
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    setInput("");
+    await sendText(text);
   };
 
   return (
@@ -223,6 +261,29 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
                         {speakingIdx === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
                         {speakingIdx === i ? "Stop reading" : "Read aloud"}
                       </Button>
+                    </div>
+                  )}
+                  {msg.followups && msg.followups.length > 0 && (
+                    <div
+                      className="mt-3 pt-2 border-t border-border/50"
+                      role="group"
+                      aria-label="Suggested follow-ups"
+                    >
+                      <p className="text-xs text-muted-foreground mb-1.5">Suggested follow-ups</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {msg.followups.map((q, fi) => (
+                          <button
+                            key={`${i}-fu-${fi}`}
+                            type="button"
+                            onClick={() => sendText(q)}
+                            disabled={isLoading}
+                            aria-label={`Ask Fleety: ${q}`}
+                            className="text-xs px-2.5 py-1 rounded-full border border-border bg-background hover:bg-accent text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

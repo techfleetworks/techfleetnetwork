@@ -53,6 +53,14 @@ SOURCES (when you actually used them):
 WORKSHOP IMAGES:
 - If a KB entry has a "Workshop Preview Image", include it near the top of that answer.
 
+FOLLOW-UP SUGGESTIONS (always do this on EVERY answer):
+- After your full answer is finished, on a brand-new final line, output EXACTLY this sentinel followed by a JSON array of 1–3 short follow-up questions the user is most likely to ask next, given what you just discussed:
+  <<FLEETY_FOLLOWUPS>>["...","..."]
+- Each suggestion must be a complete, self-contained question (≤ 80 characters), in the user's voice ("How do I…", "What's the difference between…"), and naturally extend the topic.
+- No URLs, no markdown, no quotes inside the strings beyond what JSON requires. Just plain question text.
+- If you truly cannot think of any (e.g., the user said "thanks"), output: <<FLEETY_FOLLOWUPS>>[]
+- This sentinel line is stripped before the user sees your reply — it's a machine signal, never part of the conversation.
+
 KNOWLEDGE BASE:
 `;
 
@@ -1467,6 +1475,20 @@ serve(async (req) => {
       ? await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`)
       : "";
 
+    // Follow-up sentinel detection. Once we see "<<FLEETY_FOLLOWUPS>>"
+    // anywhere in streamed text, we stop forwarding content to the client
+    // and capture everything after it for JSON parsing on flush.
+    const FOLLOWUP_SENTINEL = "<<FLEETY_FOLLOWUPS>>";
+    let visibleStream = "";
+    let sentinelHit = false;
+    let postSentinelBuf = "";
+    let pendingTail = "";
+    const SAFE_TAIL = FOLLOWUP_SENTINEL.length - 1;
+    function splitSafe(s: string): [string, string] {
+      if (s.length <= SAFE_TAIL) return ["", s];
+      return [s.slice(0, s.length - SAFE_TAIL), s.slice(s.length - SAFE_TAIL)];
+    }
+
     const sanitizeStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
@@ -1484,26 +1506,81 @@ serve(async (req) => {
             const content = parsed?.choices?.[0]?.delta?.content;
             if (typeof content === "string") {
               const sanitized = sanitizeAIOutput(content);
-              parsed.choices[0].delta.content = sanitized;
               if (isCacheable) assistantBuffer += sanitized;
+
+              if (sentinelHit) {
+                postSentinelBuf += sanitized;
+                parsed.choices[0].delta.content = "";
+              } else {
+                const combined = pendingTail + sanitized;
+                const idx = combined.indexOf(FOLLOWUP_SENTINEL);
+                if (idx !== -1) {
+                  sentinelHit = true;
+                  const before = combined.slice(0, idx);
+                  postSentinelBuf += combined.slice(idx + FOLLOWUP_SENTINEL.length);
+                  pendingTail = "";
+                  const cleaned = before.replace(/\s*\n?\s*$/, "");
+                  parsed.choices[0].delta.content = cleaned;
+                  visibleStream += cleaned;
+                } else {
+                  const [emit, hold] = splitSafe(combined);
+                  pendingTail = hold;
+                  parsed.choices[0].delta.content = emit;
+                  visibleStream += emit;
+                }
+              }
             }
             sanitizedLines.push("data: " + JSON.stringify(parsed));
           } catch {
-            // Partial JSON or unparseable — pass through as-is
             sanitizedLines.push(line);
           }
         }
 
         controller.enqueue(new TextEncoder().encode(sanitizedLines.join("\n")));
       },
-      flush() {
-        // Write to L3 cache on stream completion (best-effort, non-blocking).
-        if (isCacheable && assistantBuffer.length >= 80 && assistantBuffer.length <= 16_000) {
+      flush(controller) {
+        // Flush any held tail that never formed a sentinel.
+        if (!sentinelHit && pendingTail.length > 0) {
+          const frame = { choices: [{ delta: { content: pendingTail }, index: 0 }] };
+          controller.enqueue(
+            new TextEncoder().encode("data: " + JSON.stringify(frame) + "\n\n"),
+          );
+          visibleStream += pendingTail;
+          pendingTail = "";
+        }
+
+        // Parse follow-ups and emit a custom SSE frame for the client.
+        if (sentinelHit) {
+          let followups: string[] = [];
+          try {
+            const trimmed = postSentinelBuf.trim();
+            const match = trimmed.match(/^\[[\s\S]*?\]/);
+            const arr = JSON.parse(match ? match[0] : trimmed);
+            if (Array.isArray(arr)) {
+              followups = arr
+                .filter((x): x is string => typeof x === "string")
+                .map((s) => sanitizeAIOutput(s).trim())
+                .filter((s) => s.length > 0 && s.length <= 120 && !/https?:\/\//i.test(s) && !/[<>]/.test(s))
+                .slice(0, 3);
+            }
+          } catch { /* malformed — drop silently */ }
+
+          if (followups.length > 0) {
+            const frame = { fleety: { followups } };
+            controller.enqueue(
+              new TextEncoder().encode("data: " + JSON.stringify(frame) + "\n\n"),
+            );
+          }
+        }
+
+        // Cache the visible (sentinel-stripped) text so replays match the UI.
+        const cacheText = visibleStream || assistantBuffer;
+        if (isCacheable && cacheText.length >= 80 && cacheText.length <= 16_000) {
           supabase.rpc("fleety_cache_store", {
             _query_hash: queryHash,
             _query_text: lastUserMessage.slice(0, 1000),
             _audience: audience,
-            _response_md: assistantBuffer,
+            _response_md: cacheText,
             _sources: [],
             _tier: "B",
             _query_embedding: queryEmbedding ? (vecLiteral(queryEmbedding) as unknown as number[]) : null,
