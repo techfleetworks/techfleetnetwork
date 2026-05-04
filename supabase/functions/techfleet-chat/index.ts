@@ -1524,13 +1524,14 @@ serve(async (req) => {
 
     const exposeHeaders: Record<string, string> = {
       ...corsHeaders,
-      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Cache",
+      "Access-Control-Expose-Headers": "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Cache, X-Fleety-Guard",
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "X-Fleety-Intent": intent,
       "X-Fleety-Practical": practical ? "1" : "0",
       "X-Fleety-Cache": "miss",
+      "X-Fleety-Guard": costGuardStep,
     };
     if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
     if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
