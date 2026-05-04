@@ -1425,7 +1425,17 @@ serve(async (req) => {
     log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
 
     // OWASP AI: Create a transform stream to sanitize AI output content
-    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing
+    // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing.
+    // Also: capture the full assistant response so we can write it to L3 cache on completion.
+    let assistantBuffer = "";
+    const isCacheable = haveEmbeddings
+      && !cannedAnswerId
+      && webResult.sources.length === 0
+      && lastUserMessage.length <= 800;
+    const queryHash = isCacheable
+      ? await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`)
+      : "";
+
     const sanitizeStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
@@ -1442,7 +1452,9 @@ serve(async (req) => {
             const parsed = JSON.parse(jsonStr);
             const content = parsed?.choices?.[0]?.delta?.content;
             if (typeof content === "string") {
-              parsed.choices[0].delta.content = sanitizeAIOutput(content);
+              const sanitized = sanitizeAIOutput(content);
+              parsed.choices[0].delta.content = sanitized;
+              if (isCacheable) assistantBuffer += sanitized;
             }
             sanitizedLines.push("data: " + JSON.stringify(parsed));
           } catch {
@@ -1452,6 +1464,23 @@ serve(async (req) => {
         }
 
         controller.enqueue(new TextEncoder().encode(sanitizedLines.join("\n")));
+      },
+      flush() {
+        // Write to L3 cache on stream completion (best-effort, non-blocking).
+        if (isCacheable && assistantBuffer.length >= 80 && assistantBuffer.length <= 16_000) {
+          supabase.rpc("fleety_cache_store", {
+            _query_hash: queryHash,
+            _query_text: lastUserMessage.slice(0, 1000),
+            _audience: audience,
+            _response_md: assistantBuffer,
+            _sources: [],
+            _tier: "B",
+            _query_embedding: queryEmbedding ? (vecLiteral(queryEmbedding) as unknown as number[]) : null,
+            _turn_id: signalTurnId,
+          }).then(() => {}, (e: unknown) =>
+            log.warn("cache", `cache_store failed [${requestId}]: ${e instanceof Error ? e.message : String(e)}`, { requestId }),
+          );
+        }
       },
     });
 
