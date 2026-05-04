@@ -837,9 +837,10 @@ serve(async (req) => {
     // Lean RAG (Cost Plan v2 §5): tighter KB context. Was 12×2000/60000.
     // Quality preserved by semantic top-K + framework graph + few-shot still
     // injected below. Long/complex turns get extra room via Tier C in Phase 2.
-    const KB_TOPK = 6;
-    const PER_KB_CHARS = 1_200;
-    const MAX_KB_CONTEXT_CHARS = 18_000; // ~4.5k tokens — was 15k
+    // Cost guard tightens RAG budget: soft 6→5, medium 6→4, hard 6→3.
+    const KB_TOPK = costGuardStep === "hard" ? 3 : costGuardStep === "medium" ? 4 : costGuardStep === "soft" ? 5 : 6;
+    const PER_KB_CHARS = costGuardStep === "none" ? 1_200 : 900;
+    const MAX_KB_CONTEXT_CHARS = costGuardStep === "none" ? 18_000 : 12_000;
 
     type KbHit = { title: string; url: string; content: string };
     let kbHits: KbHit[] = [];
