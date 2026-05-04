@@ -770,7 +770,7 @@ serve(async (req) => {
         const { data: hit } = await supabase.rpc("fleety_cache_semantic_lookup", {
           _query_embedding: vecLiteral(queryEmbedding!) as unknown as number[],
           _audience: audience,
-          _max_distance: 0.05,
+          _max_distance: costGuardStep === "none" ? 0.05 : 0.08,
         });
         const cached = Array.isArray(hit) ? hit[0] : hit;
         if (cached && typeof cached.response_md === "string" && cached.response_md.length > 10) {
