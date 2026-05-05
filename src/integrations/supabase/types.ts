@@ -5082,6 +5082,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reconcile_account_orphans: { Args: never; Returns: Json }
       record_failed_login: {
         Args: { _email: string; _ip?: string; _user_agent?: string }
         Returns: Json
