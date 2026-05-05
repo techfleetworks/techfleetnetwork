@@ -337,6 +337,8 @@ export default function ProjectApplicationPage() {
       queryClient.invalidateQueries({ queryKey: ["my-project-apps-count", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["my-project-applications", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["project-opening-app-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["public-project-openings"] });
+      queryClient.invalidateQueries({ queryKey: ["public-project-detail", projectId] });
       if (vars.submit) {
         setCelebrationOpen(true);
         // Fire-and-forget Discord notification for project application
