@@ -25,3 +25,6 @@ Double-confirmation flow on the user-facing "Delete my account" screen is unchan
 
 ## BDD
 ACC-DEL-020 (self-serve), ACC-DEL-021 (admin purge), ACC-DEL-022 (insert guard), ACC-DEL-023 (nightly reconciliation). All in `bdd_scenarios` table.
+
+## Anti-enumeration silent-duplicate handling
+Supabase Auth does NOT return an error when an email is already registered. It returns a "success" with `data.user.identities = []` and `data.session = null`, and sends NO email. `AuthService.signUp` MUST detect this shape and throw `Error("ACCOUNT_EXISTS")` with `err.code = "ACCOUNT_EXISTS"`. RegisterPage MUST branch on `err.code === "ACCOUNT_EXISTS"` and render the "You already have an account" info card (Sign-in / Reset-password / Use different email CTAs) — NOT the generic red error banner, NOT the "check your email" success screen. This branch must NOT consume rate-limit slots or bump the device-lockout counter (it is not a failed attempt).

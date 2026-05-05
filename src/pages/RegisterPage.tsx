@@ -46,6 +46,7 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [existingAccountEmail, setExistingAccountEmail] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<"idle" | "success" | "error">("idle");
   const [resendMessage, setResendMessage] = useState("");
@@ -198,6 +199,14 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+      // Account already exists — friendly UX, NOT an error. Don't consume
+      // a rate-limit slot or bump the device lockout counter.
+      if (err?.code === "ACCOUNT_EXISTS") {
+        setAuthError("");
+        setExistingAccountEmail(result.data.email);
+        setLoading(false);
+        return;
+      }
       // Confirmed signup failure — record once on the server bucket.
       void RateLimitService.recordFailure(result.data.email, "signup_attempt").catch(() => {});
       setAuthError(err.message);
@@ -291,7 +300,39 @@ export default function RegisterPage() {
         </div>
 
         <div className="card-elevated p-6 sm:p-8">
-          {authError && (
+          {existingAccountEmail && (
+            <div
+              className="mb-4 p-4 rounded-md border border-primary/30 bg-primary/5 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <h2 className="font-semibold text-foreground mb-1">You already have an account</h2>
+              <p className="text-muted-foreground mb-3">
+                An account already exists for <span className="font-medium text-foreground break-all">{existingAccountEmail}</span>. Sign in to continue, or reset your password if you've forgotten it.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to={`/login?email=${encodeURIComponent(existingAccountEmail)}${redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : ""}`}>
+                    Sign in instead
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link to={`/forgot-password?email=${encodeURIComponent(existingAccountEmail)}`}>
+                    Reset your password
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full sm:w-auto"
+                  onClick={() => { setExistingAccountEmail(null); setEmail(""); }}
+                >
+                  Use a different email
+                </Button>
+              </div>
+            </div>
+          )}
+          {authError && !existingAccountEmail && (
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 

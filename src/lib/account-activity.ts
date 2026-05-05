@@ -17,6 +17,7 @@ export type AccountActivity =
   | "signup_rate_limited"
   | "signup_supabase_error"
   | "signup_succeeded"
+  | "signup_blocked_existing_account"
   | "signup_network_error"
   | "signup_confirmation_resend_requested"
   | "signup_confirmation_resend_failed"
