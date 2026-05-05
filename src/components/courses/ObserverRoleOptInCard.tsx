@@ -124,6 +124,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   });
   const successHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const justSucceededRef = useRef(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
   const linked = !!(profile?.discord_user_id && profile.discord_user_id.trim().length > 0 && profile.has_discord_account);
 
@@ -181,6 +182,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         error: data?.error ?? null,
       }));
       if (ok) {
+        setSuccessDialogOpen(true);
         toast.success("Discord roles granted — you're ready to start observing.", {
           duration: 30000,
           position: "top-center",
