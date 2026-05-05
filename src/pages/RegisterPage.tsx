@@ -225,7 +225,8 @@ export default function RegisterPage() {
         return;
       }
 
-      const rateCheck = await RateLimitService.check(email, "signup_attempt");
+      // Resend uses its own bucket so it never consumes signup attempts.
+      const rateCheck = await RateLimitService.check(email, "signup_resend");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
         setResendStatus("error");
