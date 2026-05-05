@@ -128,6 +128,16 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
         </div>
         <div className="flex items-center gap-2">
           {health && <StatusPill status={health.status} />}
+          {(triageQuery.data?.total ?? 0) > 0 && (
+            <Button asChild size="sm" variant="outline" aria-label="Open Triage tab">
+              <Link to="/admin/system-health?tab=triage" className="gap-1.5">
+                <Wrench className="h-4 w-4" aria-hidden />
+                {triageQuery.data?.proposed
+                  ? `${triageQuery.data.proposed} fix${triageQuery.data.proposed === 1 ? "" : "es"} ready`
+                  : `${triageQuery.data?.total} to triage`}
+              </Link>
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
