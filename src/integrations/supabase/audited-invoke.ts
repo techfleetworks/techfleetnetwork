@@ -10,18 +10,16 @@ import { reportError } from "@/services/error-reporter.service";
 import { newTraceId, withTrace } from "@/lib/trace";
 import type { FunctionInvokeOptions, FunctionsResponse } from "@supabase/functions-js";
 
-type InvokeBody = unknown;
-
 export async function auditedInvoke<T = unknown>(
   fn: string,
-  options: FunctionInvokeOptions<InvokeBody> = {},
+  options: FunctionInvokeOptions = {},
 ): Promise<FunctionsResponse<T>> {
   const traceId = newTraceId();
   const headers = {
     ...(options.headers ?? {}),
     "x-trace-id": traceId,
   };
-  return withTrace(async () => {
+  return await withTrace(async (): Promise<FunctionsResponse<T>> => {
     try {
       const result = await supabase.functions.invoke<T>(fn, { ...options, headers });
       if (result.error) {
@@ -40,5 +38,5 @@ export async function auditedInvoke<T = unknown>(
       });
       throw err;
     }
-  })();
+  });
 }
