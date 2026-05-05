@@ -19,7 +19,7 @@ export function IdleTimeoutGuard() {
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [showWarning, setShowWarning] = useState(false);
-  const timeoutMinutes = isAdmin ? 15 : 20;
+  const timeoutMinutes = 60;
 
   const handleTimeout = useCallback(async () => {
     setShowWarning(false);
