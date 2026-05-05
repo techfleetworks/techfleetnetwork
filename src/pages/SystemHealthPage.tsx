@@ -248,7 +248,7 @@ export default function SystemHealthPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </SystemHealthTabs>
     </section>
   );
 }
