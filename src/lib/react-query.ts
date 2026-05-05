@@ -1,6 +1,8 @@
 export {
+  QueryCache,
   QueryClient,
   QueryClientProvider,
+  MutationCache,
   useMutation,
   useQuery,
   useQueryClient,

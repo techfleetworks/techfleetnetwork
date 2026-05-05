@@ -37,6 +37,18 @@ export function handleServiceError(error: ServiceErrorLike | null | undefined, o
     error,
   );
 
+  // Mirror to audit_log so admins see service-layer failures in /admin/activity-log.
+  // Lazy-import so this module stays usable in non-browser test contexts.
+  void (async () => {
+    try {
+      const { reportError } = await import("@/services/error-reporter.service");
+      const detail = error.code
+        ? `${error.message} (code:${error.code})`
+        : error.message;
+      reportError(detail, options.action, { severity: level });
+    } catch { /* never throw from telemetry */ }
+  })();
+
   if (options.throwMessage) throw new Error(options.throwMessage);
   return true;
 }

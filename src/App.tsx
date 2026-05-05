@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@/lib/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@/lib/react-query";
+import { reportError } from "@/services/error-reporter.service";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -88,6 +89,21 @@ function RouteFallback() {
 }
 
 const queryClient = new QueryClient({
+  // Global cache hooks audit silent React Query failures so they appear
+  // in /admin/activity-log instead of getting swallowed by component-level
+  // toasts. Mutations and queries both fan in here.
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      const key = Array.isArray(query.queryKey) ? query.queryKey.map(String).join(".") : "query";
+      reportError(error, `query.${key}`, { severity: "error" });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _vars, _ctx, mutation) => {
+      const key = mutation.options.mutationKey?.map(String).join(".") ?? "anonymous";
+      reportError(error, `mutation.${key}`, { severity: "error" });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,       // 5 min — avoid refetching on every mount

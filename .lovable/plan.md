@@ -1,71 +1,60 @@
-# Fleety Follow-up Query Suggestions
+# Audit Log Coverage — All 5 Layers
 
-Add up to 3 suggested next questions at the end of each Fleety answer. Clicking one immediately runs it as the user's next query.
+Approved scope. Implementation will land in this order, with one critical bug-fix added in Layer 1 discovered during exploration.
 
-## UX
+## Critical bug found during exploration
+`error-reporter.service.ts` calls `write_audit_log` with `p_user_id = "00000000-0000-0000-0000-000000000000"` when no user is known. The RPC rejects any non-null `p_user_id ≠ auth.uid()` with "Cannot write audit events for another user", so authenticated `client_error` writes have been silently failing — explaining the 6 events in 7 days. Fix: pass `null` (or the real `auth.uid()`) instead of a sentinel UUID.
 
-- Render below the existing action chips on each assistant message, in a labeled group "Suggested follow-ups".
-- Pill style distinct from action chips (subtle, prefixed with a small chat icon) so users can tell "ask Fleety this" vs "open a link / mark step done".
-- Max 3 items, each ≤ 80 chars. Hidden when the answer was a quota/error response or when the model returns none.
-- Click behavior: chip text becomes the next user message and is sent immediately (no need to edit). Disabled while a request is in flight.
-- Keyboard: chips are real `<button>`s, focusable, Enter/Space activates, `aria-label="Ask: <query>"`.
+## Layer 1 — Frontend instrumentation
+- New `src/lib/trace.ts`: `newTraceId`, `withTrace`, `getCurrentTraceId`.
+- Refactor `src/services/error-reporter.service.ts`:
+  - Fix nil-UUID bug → pass `null` when unknown.
+  - Add `severity` ("warn"/"error") and `traceId` fields, stored in `changed_fields` (`severity:error`, `trace:<id>`).
+  - On rate-limit drop, queue a single `client_error_overflow` with suppressed count per minute.
+- Extend `src/lib/service-result.ts` `handleServiceError` to also call `reportError(error, action, { severity: level })`.
+- New `src/integrations/supabase/audited-invoke.ts` thin wrapper around `supabase.functions.invoke` that adds `x-trace-id` header and audits non-2xx errors.
+- New `src/lib/audited-query.ts`: a global `QueryCache` / `MutationCache` with `onError` that calls `reportError(error, queryKey.join("."))`. Wire into `App.tsx` QueryClient.
+- `src/components/ErrorBoundary.tsx`: emit dedicated `ui_render_error` event (not generic client_error) with route + component-stack hash.
+- `src/lib/lazy-with-retry.ts`: emit `ui_chunk_load_failed` after final retry / before reload.
+- `src/components/IdleTimeoutGuard.tsx`: log `session_idle_timeout` via `logAccountActivity` before sign-out.
+- `src/hooks/use-push-notifications.ts`: log `push_subscribe_failed` / `push_permission_denied` / `push_unsubscribe_failed`.
+- `src/lib/service-worker.ts` + caller in main: emit `sw_recovered` / `sw_failed` events.
+- BDD scenarios row inserted to `bdd_scenarios` for "audit_log_coverage_layer1".
 
-## How follow-ups are generated
+## Layer 2 — Edge function audit middleware
+- New `supabase/functions/_shared/audit.ts`:
+  - `auditEdgeEvent(adminClient, { event, table, recordId?, userId?, traceId, fields?, errorMessage? })` wraps `write_audit_log` (service-role bypass) so any function can fire events without re-implementing.
+  - `wrapHandler(fn, handler)` middleware: extracts `x-trace-id` (or generates one), catches throws, emits `edge_function_error`, returns 500 JSON. Adds `x-trace-id` to response.
+- Update `supabase/functions/_shared/request-auth.ts`:
+  - On 401/403, call `auditEdgeEvent` with `authn_unauthorized` / `authz_admin_denied`.
+- Update `supabase/functions/_shared/discord-fetch.ts`: on final retry exhaustion, fire `external_api_failed` (provider=discord).
+- Update `supabase/functions/_shared/transactional-email.ts` (Resend wrapper) — same.
+- Update `supabase/functions/gumroad-webhook/index.ts`: signature failure → `malicious_webhook_signature_invalid`.
+- Apply `wrapHandler` to: `promote-to-admin`, `promote-to-teacher`, `admin-purge-auth-user`, `admin-sign-out-all-users`, `manage-discord-roles`, `confirm-admin-role`, `confirm-teacher-role`, `revoke-teacher-role`, `revoke-user-sessions`, `notify-applicant-status`, `mark-interview-scheduled`, `send-transactional-email`, `send-announcement-email`, `send-push-notification`, `process-email-queue`, `process-notification-fanout`, `gumroad-webhook`, `gumroad-reconcile`, `gumroad-backfill`, `quest-nudge`, `resend-signup-confirmations`, `email-pipeline-health`, `discord-interactions`, `discord-notify`, `discord-project-update`, `generate-discord-invite`, `resolve-discord-id`, `fetch-class-certifications`, `fetch-project-certifications`.
+- BDD scenarios for "audit_log_coverage_layer2".
 
-- The system prompt in `supabase/functions/techfleet-chat/index.ts` is extended with a final-line contract: after the markdown answer, the model emits a single sentinel line  
-  `<<FLEETY_FOLLOWUPS>>["question 1","question 2","question 3"]`  
-  with 0–3 short, self-contained questions related to what was just discussed and the user's likely next step.
-- The existing `sanitizeStream` transform (~line 1430-1518) detects this sentinel in the buffered assistant output, **strips it from what the user sees**, parses the JSON array, validates (array of strings, ≤3, each ≤120 chars, no URLs, no HTML), and on `flush()` enqueues one extra SSE frame:  
-  `data: {"fleety":{"followups":["..."]}}`
-- L3 cache hits (`buildCacheSSEStream`) and canned answers will not have follow-ups in v1. (Acceptable: ~30% of turns; we can revisit by storing followups in `fleety_response_cache` later.)
-- Quota-blocked / cost-guard `hard` responses skip the contract entirely.
+## Layer 3 — DB triggers
+- Migration: trigger on `email_send_log` AFTER UPDATE OF status / AFTER INSERT — when new status ∈ (`failed`,`dlq`,`bounced`,`complained`), insert audit_log row `email_send_failed` with template, message_id, error_message.
+- Verify `safe_create_notification` already emits `notification_dlq_moved`; if missing, add it.
+- Add `app.trace_id` GUC capture: `write_audit_log` reads `current_setting('app.trace_id', true)` and prepends to changed_fields when present.
 
-## Cost / safety
+## Layer 4 — Trace correlation
+- Frontend: every `auditedInvoke` call wraps in `withTrace`; mutation cache `onMutate` calls `withTrace`.
+- Headers: `x-trace-id` on every edge invoke; edge `wrapHandler` reads it and threads through `auditEdgeEvent`.
+- DB: edge functions, before mutating, set `app.trace_id` via `select set_config('app.trace_id', $1, true)` so triggers inherit. (Optional Phase-2 — only do if cheap.)
 
-- No extra model call — follow-ups ride on the same completion (a few extra output tokens, well under the per-turn cap).
-- The sentinel is stripped server-side so prompt-leak risk to the user is zero, and follow-ups go through the same `sanitizeAIOutput` path before being JSON-encoded.
-- Client validates again: array, length ≤ 3, each item is a non-empty string ≤ 120 chars; otherwise discarded silently.
+## Layer 5 — Surfacing
+- `src/pages/ActivityLogPage.tsx`:
+  - Add **Layer** filter (frontend / edge / db / auth) inferred from event_type prefix or table_name.
+  - Add **Severity** filter (info / warn / error) using `severity:` field or destructive variant.
+  - Add **Trace ID** search (matches `trace:<id>` in changed_fields).
+  - Render the trace id as a clickable chip that filters to the same trace.
+  - New `EVENT_TYPE_CONFIG` entries for the new event names.
+- `src/pages/SystemHealthPage.tsx`: new "Silent Failures" tab + RPC `get_top_silent_failures(hours)` that buckets `*_failed`, `client_error*`, `edge_function_error`, `ui_*` from last N hours.
 
-## Client changes (`src/components/FleetyChatWidget.tsx`)
+## Out of scope (next phase)
+- Server-side ingestion of Core Web Vitals.
+- Sampling when audit_log volume > 100k/day.
+- PII redaction review of the new event payloads.
 
-- Extend `Msg` with `followups?: string[]`.
-- In the SSE parser inside `streamChat`, when a parsed frame has `parsed.fleety.followups`, call a new `onFollowups` callback instead of treating it as content.
-- `send()` wires `onFollowups` to attach the array to the latest assistant message.
-- Render block under the chips (or replacing the empty space when no chips), with a small "Suggested follow-ups" label.
-- Add `runFollowup(text)` helper that pushes a user message and reuses the existing `send` pipeline (extracted into a `sendText(text)` so both the form submit and the chip click share one code path). Auto-clears follow-ups on the previous message after click to avoid double-sends.
-
-## Telemetry
-
-- Reuse `fleety_action_events` with `action_type = "followup_click"` and `action_label = <query>`. The existing `fleety_turn_signals.chips_clicked` counter already tracks engagement; we'll keep follow-up clicks separate by action_type so analytics can split them.
-
-## BDD scenarios (added to `bdd_scenarios`)
-
-- `F-FOLLOWUP-001` — Assistant answer renders 1–3 follow-up chips under the message  
-  - [UI] chips visible with `role="group" aria-label="Suggested follow-ups"`  
-  - [Code] SSE frame `{fleety:{followups:[...]}}` parsed and array stored on message  
-  - [DB] no rows written until clicked
-- `F-FOLLOWUP-002` — Clicking a follow-up sends it as the next user message  
-  - [UI] new user bubble appears with the chip text, input stays empty  
-  - [Code] `sendText` invoked with chip label, prior message's `followups` cleared  
-  - [DB] `fleety_action_events` row inserted with `action_type='followup_click'` and matching `turn_id`
-- `F-FOLLOWUP-003` — Malformed sentinel is silently ignored  
-  - [UI] no follow-up section, answer text unaffected  
-  - [Code] JSON parse failure caught, no console error surfaced to user  
-  - [DB] turn row still recorded, `chips_clicked=0`
-- `F-FOLLOWUP-004` — Cache/canned-hit responses render no follow-ups (v1 limitation)  
-  - [UI] only the cached answer renders, no follow-up group  
-  - [Code] `buildCacheSSEStream` does not emit a `fleety` SSE frame  
-  - [DB] `fleety_response_cache` row served unchanged
-
-## Files touched
-
-- `supabase/functions/techfleet-chat/index.ts` — extend system prompt, add sentinel stripper + extra SSE frame in `sanitizeStream`.
-- `src/components/FleetyChatWidget.tsx` — type, parser branch, `onFollowups`, `sendText` extraction, render block, click handler with telemetry.
-- `src/components/resources/GuidanceEmbed.tsx` — same parser branch + render (smaller, mirrors widget).
-- New migration: insert the four `F-FOLLOWUP-00x` rows into `bdd_scenarios`.
-
-## Out of scope (next iterations)
-
-- Persisting follow-ups in the L3 cache so cached replays also show them.
-- Personalizing follow-ups using `fleety_turn_signals` history (top intents per user).
-- A/B testing chip wording via `prompt_version`.
+Order: 1 → 2 → 4 → 3 → 5. Single PR per layer.
