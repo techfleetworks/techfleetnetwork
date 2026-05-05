@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.observer_role_optin_immutable_fields() FROM PUBLIC, anon, authenticated;
