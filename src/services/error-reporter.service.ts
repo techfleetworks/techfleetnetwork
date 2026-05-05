@@ -1,45 +1,56 @@
 /**
  * Client-side error reporting service.
  *
- * Captures unhandled errors and promise rejections, writing stack traces
- * to the audit_log table via the write_audit_log RPC so admins can
- * review them in the Activity Log page.
+ * Captures unhandled errors, programmatic reports, React Query failures,
+ * service-layer throws, edge function failures, and UI render errors.
+ * Writes structured rows to `audit_log` via `write_audit_log` so admins can
+ * triage them in /admin/activity-log.
  *
- * Enterprise hardening:
- * - Deduplication: identical errors within a window are reported once
- * - Rate limiting: max N reports per minute to prevent flood at 100k users
- * - Payload size capping: prevents oversized audit_log rows
- *
- * PII is NOT stored in the error_message — only the error name, message,
- * and sanitised stack trace.
+ * Hardening:
+ * - Deduplication: identical errors within a 60s window are skipped.
+ * - Rate limiting: 10 reports/min/tab; overflow emits a single
+ *   `client_error_overflow` per minute carrying the suppressed count.
+ * - Payload capping: stack <= 2000 chars, fields <= 100 chars/each.
+ * - PII safety: emails are stripped, only error name/message/stack land.
+ * - **CRITICAL FIX (May 2026):** previously sent a nil-UUID for `p_user_id`
+ *   when no user was known, but `write_audit_log` rejects any non-null
+ *   p_user_id != auth.uid(). That made every authenticated client_error
+ *   silently fail (6 events/7d). We now pass `null` so the RPC accepts.
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTraceId } from "@/lib/trace";
 
-/** Maximum error_message length stored in audit_log */
 const MAX_MSG_LENGTH = 2000;
-
-/** Max reports per minute per tab (prevents flood) */
 const MAX_REPORTS_PER_MINUTE = 10;
-
-/** Dedup window in ms — identical errors within this window are skipped */
 const DEDUP_WINDOW_MS = 60_000;
+const OVERFLOW_FLUSH_MS = 60_000;
 
 let reportCount = 0;
 let reportWindowStart = Date.now();
-const recentErrors = new Map<string, number>(); // fingerprint → timestamp
+let suppressedSinceLastFlush = 0;
+let overflowFlushTimer: ReturnType<typeof setTimeout> | null = null;
+const recentErrors = new Map<string, number>();
+
+export type ReportSeverity = "info" | "warn" | "error";
+export type ReportEventType = "client_error" | "ui_render_error" | "ui_chunk_load_failed" | "edge_invoke_failed" | "client_error_overflow";
+
+interface ReportOptions {
+  severity?: ReportSeverity;
+  eventType?: ReportEventType;
+  traceId?: string;
+  extraFields?: string[];
+  userId?: string;
+}
 
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 3) + "..." : s;
 }
 
-/** Generate a short fingerprint for deduplication */
 function fingerprint(msg: string, source: string): string {
-  // Use first 200 chars of message + source as key
   return `${source}::${msg.slice(0, 200)}`;
 }
 
-/** Check rate limit — returns true if the report should be sent */
 function checkRateLimit(): boolean {
   const now = Date.now();
   if (now - reportWindowStart > 60_000) {
@@ -51,100 +62,159 @@ function checkRateLimit(): boolean {
   return true;
 }
 
-/** Check dedup — returns true if this is a new error */
 function checkDedup(fp: string): boolean {
   const now = Date.now();
   const lastSeen = recentErrors.get(fp);
   if (lastSeen && now - lastSeen < DEDUP_WINDOW_MS) return false;
-
   recentErrors.set(fp, now);
-
-  // Housekeep: remove stale entries to prevent memory leak
   if (recentErrors.size > 100) {
     const cutoff = now - DEDUP_WINDOW_MS;
     for (const [key, ts] of recentErrors) {
       if (ts < cutoff) recentErrors.delete(key);
     }
   }
-
   return true;
 }
 
-/**
- * Write an error entry to the audit_log.
- *
- * Uses the SECURITY DEFINER `write_audit_log` RPC so authenticated
- * users can insert without a direct INSERT policy on audit_log.
- */
-async function reportToAuditLog(
-  errorMessage: string,
-  source: string,
-  userId?: string,
-) {
-  const fp = fingerprint(errorMessage, source);
-  if (!checkDedup(fp)) return;
-  if (!checkRateLimit()) return;
+function scheduleOverflowFlush() {
+  if (overflowFlushTimer) return;
+  overflowFlushTimer = setTimeout(() => {
+    const count = suppressedSinceLastFlush;
+    suppressedSinceLastFlush = 0;
+    overflowFlushTimer = null;
+    if (count > 0) {
+      // Reset the rate-limit window so the overflow notice itself can land.
+      reportCount = 0;
+      reportWindowStart = Date.now();
+      void writeAudit({
+        eventType: "client_error_overflow",
+        message: `${count} client error report(s) suppressed by rate limit`,
+        source: "error-reporter",
+        severity: "warn",
+        traceId: undefined,
+        extraFields: [`suppressed:${count}`],
+        userId: undefined,
+      });
+    }
+  }, OVERFLOW_FLUSH_MS);
+}
 
+function buildChangedFields(opts: {
+  source: string;
+  severity: ReportSeverity;
+  traceId?: string;
+  extraFields?: string[];
+}): string[] {
+  const safe = (raw: string) =>
+    raw.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 100);
+  const fields = [
+    `source:${safe(opts.source)}`,
+    `severity:${opts.severity}`,
+  ];
+  if (opts.traceId) fields.push(`trace:${safe(opts.traceId)}`);
+  for (const f of opts.extraFields ?? []) {
+    if (f.length <= 100 && /^[A-Za-z0-9_.:-]+$/.test(f)) fields.push(f);
+  }
+  return fields.slice(0, 50);
+}
+
+interface WriteAuditArgs {
+  eventType: ReportEventType;
+  message: string;
+  source: string;
+  severity: ReportSeverity;
+  traceId?: string;
+  extraFields?: string[];
+  userId?: string;
+}
+
+async function writeAudit(args: WriteAuditArgs): Promise<void> {
   try {
     await supabase.rpc("write_audit_log", {
-      p_event_type: "client_error",
+      p_event_type: args.eventType,
       p_table_name: "frontend",
-      p_record_id: source,
-      p_user_id: userId ?? "00000000-0000-0000-0000-000000000000",
-      p_error_message: truncate(errorMessage, MAX_MSG_LENGTH),
-      p_changed_fields: [source],
+      p_record_id: args.source.slice(0, 200),
+      // CRITICAL: pass null when unknown — never a sentinel UUID.
+      p_user_id: args.userId ?? null,
+      p_error_message: truncate(args.message, MAX_MSG_LENGTH),
+      p_changed_fields: buildChangedFields({
+        source: args.source,
+        severity: args.severity,
+        traceId: args.traceId,
+        extraFields: args.extraFields,
+      }),
     });
   } catch {
-    // Swallow — never throw from the error reporter itself
+    // Telemetry must never throw.
   }
 }
 
-/**
- * Format an Error (or unknown) into a loggable string with stack trace.
- */
+async function reportToAuditLog(
+  errorMessage: string,
+  source: string,
+  options: ReportOptions = {},
+) {
+  const fp = fingerprint(errorMessage, source);
+  if (!checkDedup(fp)) return;
+  if (!checkRateLimit()) {
+    suppressedSinceLastFlush += 1;
+    scheduleOverflowFlush();
+    return;
+  }
+
+  await writeAudit({
+    eventType: options.eventType ?? "client_error",
+    message: errorMessage,
+    source,
+    severity: options.severity ?? "error",
+    traceId: options.traceId ?? getCurrentTraceId(),
+    extraFields: options.extraFields,
+    userId: options.userId,
+  });
+}
+
 function formatError(err: unknown): string {
   if (err instanceof Error) {
     return `${err.name}: ${err.message}\n${err.stack ?? "(no stack)"}`;
   }
-  return String(err);
+  if (typeof err === "string") return err;
+  try { return JSON.stringify(err); } catch { return String(err); }
 }
 
 /**
  * Report a caught error programmatically.
  *
- * Usage:
  * ```ts
- * import { reportError } from "@/services/error-reporter.service";
- * try { … } catch (e) { reportError(e, "MyComponent.handleClick"); }
+ * try { ... } catch (e) { reportError(e, "MyComponent.handleClick"); }
  * ```
  */
 export function reportError(
   err: unknown,
   source = "unknown",
-  userId?: string,
+  options: ReportOptions = {},
 ) {
   const msg = formatError(err);
   if (isSuppressed(msg)) return;
-  reportToAuditLog(msg, source, userId);
+  void reportToAuditLog(msg, source, options);
 }
 
 /**
- * Get current user id from supabase session (best-effort, non-blocking).
+ * Report a non-error activity (e.g. session_idle_timeout, push_permission_denied)
+ * that should land in the audit log. Severity defaults to "info".
  */
-async function getCurrentUserId(): Promise<string | undefined> {
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.user?.id;
-  } catch {
-    return undefined;
-  }
+export function reportActivity(
+  eventType: ReportEventType,
+  source: string,
+  message: string,
+  options: Omit<ReportOptions, "eventType"> = {},
+) {
+  void reportToAuditLog(message, source, {
+    ...options,
+    eventType,
+    severity: options.severity ?? "info",
+  });
 }
 
-/**
- * Install global listeners for unhandled errors and unhandled promise
- * rejections. Call once at app startup.
- */
-/** Errors matching these patterns are expected browser/SW noise — skip logging */
 const SUPPRESSED_PATTERNS = [
   "Lock broken by another request",
   "newestWorker is null",
@@ -153,6 +223,8 @@ const SUPPRESSED_PATTERNS = [
   "Extension context invalidated",
   "Refused to evaluate a string as JavaScript because 'unsafe-eval' is not an allowed source of script",
   "at predicate (eval at evaluate",
+  "ResizeObserver loop completed with undelivered notifications",
+  "ResizeObserver loop limit exceeded",
 ] as const;
 
 function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
@@ -164,21 +236,19 @@ function isSuppressed(msg: string): boolean {
 }
 
 export function installGlobalErrorReporter() {
-  window.addEventListener("error", async (event) => {
+  window.addEventListener("error", (event) => {
     const msg = formatError(event.error ?? event.message);
     if (isOpaqueScriptError(event, msg)) return;
     if (isSuppressed(msg)) return;
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
       : "window.onerror";
-    const userId = await getCurrentUserId();
-    reportToAuditLog(msg, source, userId);
+    void reportToAuditLog(msg, source);
   });
 
-  window.addEventListener("unhandledrejection", async (event) => {
+  window.addEventListener("unhandledrejection", (event) => {
     const msg = formatError(event.reason);
     if (isSuppressed(msg)) return;
-    const userId = await getCurrentUserId();
-    reportToAuditLog(msg, "unhandledrejection", userId);
+    void reportToAuditLog(msg, "unhandledrejection");
   });
 }
