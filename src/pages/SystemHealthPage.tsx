@@ -14,6 +14,7 @@ import { SystemHealthService, type EmailPipelineLog } from "@/services/system-he
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
 import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
+import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
