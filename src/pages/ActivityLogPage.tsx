@@ -32,8 +32,11 @@ interface AuditLogEntry {
   actor_email: string | null;
   changed_fields: string[] | null;
   error_message: string | null;
+  error_fingerprint: string | null;
   created_at: string;
 }
+
+type TriageState = { triage_status: string | null; silence_state: string | null; fix_queue_id: string | null };
 
 const QUERY_TIMEOUT_MS = 10_000;
 
