@@ -248,7 +248,9 @@ export const AuthService = {
         const m = (lastErr.message || "").toLowerCase();
         // Map common Supabase auth errors to actionable user messaging.
         if (m.includes("already registered") || m.includes("already been registered") || m.includes("user already")) {
-          throw new Error("An account with this email already exists. Try signing in or resetting your password.");
+          const e: any = new Error("ACCOUNT_EXISTS");
+          e.code = "ACCOUNT_EXISTS";
+          throw e;
         }
         if (m.includes("pwned") || m.includes("compromised")) {
           throw new Error("This password has appeared in a known data breach. Please choose a different password.");
@@ -270,6 +272,24 @@ export const AuthService = {
         }
         // Last-resort: surface the actual server message so the user (and we) can act on it.
         throw new Error(lastErr.message || "Unable to create account. Please try again or use a different email.");
+      }
+
+      // Supabase anti-enumeration: when an email is already registered, the
+      // server returns a fake "success" with a user object whose identities
+      // array is empty and no session. Detect and surface as ACCOUNT_EXISTS so
+      // the UI can show a "sign in instead" CTA rather than a misleading
+      // "check your email" screen.
+      const looksLikeExistingUser =
+        data?.user &&
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0 &&
+        !data.session;
+      if (looksLikeExistingUser) {
+        log.info("signUp", `Signup blocked: account already exists for ${safeEmail}`, { email: safeEmail });
+        void logAccountActivity("signup_blocked_existing_account", { email: safeEmail });
+        const e: any = new Error("ACCOUNT_EXISTS");
+        e.code = "ACCOUNT_EXISTS";
+        throw e;
       }
 
       log.info("signUp", `User ${safeEmail} registered successfully, confirmation email sent`, {

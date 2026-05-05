@@ -1,75 +1,86 @@
-## Context
+## Why signups for existing emails look broken today
 
-Verified live in the database right now:
-- **Zero orphan auth.users** without a profile.
-- **Zero orphan profiles/user_roles** without an auth.users.
-- The bidirectional triggers added in the previous fix are active:
-  - `on_auth_user_deleted` (BEFORE DELETE on auth.users) → cleans every public child table.
-  - `trg_cascade_delete_auth_on_profile` (AFTER DELETE on profiles) → deletes the matching auth.users.
+Supabase Auth, for anti-enumeration reasons, does **not** return an error when someone signs up with an email that already exists. Instead it returns a fake "success" payload: `data.user` is populated but `data.user.identities` is an empty array and `data.session` is null. No confirmation email is sent.
 
-So the immediate user-facing bug is gone. What's still fragile is the **application code**, which manually deletes child rows and the profile *before* deleting the auth user. If any of those steps fail mid-flight (network, RLS, table rename), we get exactly the orphan you hit. The triggers save us today, but defense-in-depth says the app shouldn't even try to do work the database is now responsible for.
+Our `AuthService.signUp` treats that as success → user lands on the "Check your email" screen → never receives anything → assumes the site is broken. (This is also why "morgan@trycatalog.com" looked like nothing happened earlier — the auth row was an orphan ghost and Supabase silently no-op'd the signup.)
 
-## Refactor — make auth.users the single delete entrypoint
+The orphan side is now fixed by the previous migration. The remaining piece is to **detect the silent-duplicate response and tell the user clearly**.
 
-### 1. `supabase/functions/delete-account/index.ts` (self-serve "Delete my account")
+## Changes
 
-Replace the 6-step manual cascade with a single call:
+### 1. `src/services/auth.service.ts` — detect existing-account response
+
+After the retry loop, before logging success, add:
 
 ```ts
-// Verify caller (unchanged) ...
-const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-if (error) return 500;
-return { success: true };
+const looksLikeExistingUser =
+  data?.user &&
+  Array.isArray(data.user.identities) &&
+  data.user.identities.length === 0 &&
+  !data.session;
+if (looksLikeExistingUser) {
+  void logAccountActivity("signup_blocked_existing_account", { email: safeEmail });
+  const err: any = new Error("ACCOUNT_EXISTS");
+  err.code = "ACCOUNT_EXISTS";
+  throw err;
+}
 ```
 
-The `on_auth_user_deleted` trigger handles every child table atomically inside one DB transaction. No more partial-purge window.
+Also keep the existing string-match branch ("already registered" / "user already") for the rare case Supabase does return an explicit error — map it to the same `ACCOUNT_EXISTS` code instead of a string so the UI can switch on it.
 
-### 2. `supabase/functions/admin-purge-auth-user/index.ts` (admin "ghost account" tool)
+### 2. `src/pages/RegisterPage.tsx` — friendly UI when account exists
 
-- Keep the admin + 2FA gate, email lookup, last-admin guard, audit log, and the **email-keyed** cleanups (`suppressed_emails`, `failed_login_attempts`, `email_unsubscribe_tokens`, `rate_limits`) — those are not tied to a user_id and the trigger can't reach them.
-- **Delete** the `tablesByUserId` loop entirely (lines ~114-144). The trigger covers it.
-- Order becomes: email-keyed cleanup → `auth.admin.deleteUser(target.id)` → audit.
+In the `catch` block, branch before the generic error path:
 
-### 3. Add a guard so a profile can never be created without an auth user
-
-New `BEFORE INSERT` trigger on `public.profiles`:
-```sql
-IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = NEW.user_id) THEN
-  RAISE EXCEPTION 'profile.user_id % has no matching auth.users row', NEW.user_id;
-END IF;
+```ts
+if (err?.code === "ACCOUNT_EXISTS") {
+  setExistingAccountEmail(result.data.email);
+  setLoading(false);
+  return; // do NOT consume a rate-limit slot, do NOT show generic error
+}
 ```
-Closes the other direction of the orphan problem.
 
-### 4. Nightly orphan reconciliation (belt + suspenders)
+Render a dedicated card above the form (replaces the red error banner) when `existingAccountEmail` is set:
 
-Add `public.reconcile_account_orphans()` SECURITY DEFINER function and a `pg_cron` job (3 AM UTC) that:
-- Finds `auth.users` with no `profiles` row → deletes them via `auth.admin` equivalent (`DELETE FROM auth.users` works from a SECURITY DEFINER fn with `auth` in search_path, same pattern the cascade trigger already uses).
-- Finds `profiles` with no `auth.users` → deletes them.
-- Logs counts to `audit_log` with `event_type='orphan_reconciliation'`.
-- Surfaces non-zero counts as a System Health → Triage entry so we see drift the next morning instead of via a user complaint.
+> **You already have an account**
+> An account already exists for `morgan@trycatalog.com`.
+>
+> [Sign in instead] → `/login?email=...`
+> [Reset your password] → `/forgot-password?email=...`
+>
+> Wrong email? [Use a different one] (clears the state)
 
-### 5. Tests / BDD
+Styling: emerald/info card, not red — this is informational, not a failure. Inline `Link` buttons use existing primary + outline button variants. Pre-fill email on the destination pages via the existing `?email=` query param both pages already accept.
 
-Insert into `bdd_scenarios`:
-- `ACC-DEL-020` — User self-deletes account → `auth.users` row gone, all child tables empty for that user_id, re-signup with same email succeeds. [UI][DB][Code]
-- `ACC-DEL-021` — Admin purges email with orphan auth row → auth row gone, audit entry written. [UI][DB][Code]
-- `ACC-DEL-022` — Insert into `profiles` with non-existent `user_id` → trigger raises. [DB]
-- `ACC-DEL-023` — `reconcile_account_orphans()` after seeded orphan → orphan removed, audit entry written. [DB][Code]
+Accessibility: `role="status"`, `aria-live="polite"`, focus moved to the card heading so screen readers announce it. Keyboard: both CTAs are focusable buttons.
 
-### 6. Memory
+### 3. Don't punish the user
 
-Update `mem://features/account-deletion` to record: "auth.users is the single delete entrypoint; app code must never delete profile-then-auth manually; bidirectional triggers + nightly reconciliation enforce."
+When `ACCOUNT_EXISTS` is returned:
+- Skip `RateLimitService.recordFailure` (this isn't a failed attempt).
+- Skip `recordInvalidAuthAttempt()` (no device lockout bump).
+- Skip `lastFailedEmailRef` update.
+
+These currently fire in the generic catch and would cause a real user retrying the right flow to get rate-limited.
+
+### 4. BDD scenarios
+
+Insert into `bdd_scenarios` (feature_area `account-deletion-orphan-prevention` continuation, next IDs):
+- `REG-EXIST-010` — Signup with already-registered email shows "You already have an account" card with Sign-in / Reset CTAs. [UI][DB][Code]
+- `REG-EXIST-011` — Existing-account branch does NOT increment signup rate-limit bucket or device lockout counter. [DB][Code]
+- `REG-EXIST-012` — "Sign in instead" CTA navigates to `/login?email=...` with email pre-filled. [UI]
+
+### 5. Memory
+
+Update `mem://features/account-deletion` (or add a sibling note) recording: "Supabase anti-enumeration → identities=[] + no session = duplicate. Always intercept and present 'account exists' UX, never let it reach the success screen."
 
 ## Files touched
-
-- `supabase/functions/delete-account/index.ts` — collapse to single deleteUser call.
-- `supabase/functions/admin-purge-auth-user/index.ts` — remove tablesByUserId loop.
-- `supabase/migrations/<new>.sql` — profile insert-guard trigger, `reconcile_account_orphans()` function, pg_cron schedule.
-- `bdd_scenarios` table — 4 new scenarios (insert).
-- `.lovable/memory/features/account-deletion.md` — updated rule.
+- `src/services/auth.service.ts` — silent-duplicate detection.
+- `src/pages/RegisterPage.tsx` — `ACCOUNT_EXISTS` branch + new info card.
+- `bdd_scenarios` table — 3 inserts.
+- `.lovable/memory/features/account-deletion.md` — append note.
 
 ## What we are NOT doing
-
-- Not touching the existing `on_auth_user_deleted` or `trg_cascade_delete_auth_on_profile` triggers — they're correct.
-- Not running another bulk orphan purge — verified zero exist.
-- No UX changes; the "Delete my account" double-confirmation flow stays exactly as it is.
+- Not changing the LoginPage / ForgotPasswordPage — they already accept `?email=`.
+- Not touching captcha, rate-limit service, or the Turnstile component.
+- No backend/migration changes — purely a client-side UX fix on top of the existing auth response.
