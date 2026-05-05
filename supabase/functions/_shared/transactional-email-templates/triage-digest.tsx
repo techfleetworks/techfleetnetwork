@@ -18,6 +18,7 @@ interface Props {
   triageBudgetUsed?: number
   triageBudgetCap?: number
   adminUrl?: string
+  planMarkdown?: string
 }
 
 const TriageDigest = ({
@@ -32,6 +33,7 @@ const TriageDigest = ({
   triageBudgetUsed = 0,
   triageBudgetCap = 20,
   adminUrl = 'https://techfleet.network/admin/system-health?tab=triage',
+  planMarkdown = '',
 }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -74,6 +76,15 @@ const TriageDigest = ({
         <Section style={ctaSection}>
           <Button style={ctaButton} href={adminUrl}>Open Triage queue</Button>
         </Section>
+
+        {planMarkdown ? (
+          <>
+            <Hr style={hr} />
+            <Heading style={h2}>Full plan (markdown)</Heading>
+            <Text style={muted}>Copy/paste into Notion, Obsidian, or your tracker.</Text>
+            <pre style={planPre}>{planMarkdown}</pre>
+          </>
+        ) : null}
 
         <Hr style={hr} />
         <Text style={signature}>The Tech Fleet Team</Text>
@@ -131,3 +142,4 @@ const statValue: React.CSSProperties = { fontSize: 22, color: '#FFFFFF', margin:
 const ctaSection: React.CSSProperties = { textAlign: 'center' as const, margin: '24px 0' }
 const ctaButton: React.CSSProperties = { backgroundColor: '#3B82F6', color: '#FFFFFF', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }
 const signature: React.CSSProperties = { fontSize: 12, color: '#94A3B8', textAlign: 'center' as const }
+const planPre: React.CSSProperties = { fontFamily: 'JetBrains Mono, ui-monospace, Menlo, monospace', fontSize: 11, lineHeight: 1.5, color: '#CBD5E1', backgroundColor: '#0B1120', border: '1px solid #1E293B', borderRadius: 8, padding: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowX: 'auto', margin: '8px 0 0' }
