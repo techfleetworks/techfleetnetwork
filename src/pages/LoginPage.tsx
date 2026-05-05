@@ -293,6 +293,22 @@ export default function LoginPage() {
                 <Link to="/forgot-password" className="underline hover:no-underline">Reset password</Link>
                 <span className="mx-2" aria-hidden="true">·</span>
                 <span>Signed up with Google? Use the button above.</span>
+                {lockoutState.locked && (
+                  <>
+                    <span className="mx-2" aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      className="underline hover:no-underline"
+                      onClick={() => {
+                        clearAuthLockout();
+                        setLockoutState(getAuthLockoutState());
+                        setAuthError("");
+                      }}
+                    >
+                      Clear this device's lockout
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           )}
