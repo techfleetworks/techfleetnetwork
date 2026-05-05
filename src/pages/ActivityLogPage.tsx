@@ -148,6 +148,8 @@ export default function ActivityLogPage() {
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState<string>("all");
+  const [layerFilter, setLayerFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
