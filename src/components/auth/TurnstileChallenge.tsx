@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { markLoginCaptchaVerified } from "@/lib/auth-captcha";
 
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 const PRODUCTION_SITE_KEY = "0x4AAAAAADEF72dWIkFxiGOU";
@@ -99,6 +100,10 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
         consecutiveFailuresRef.current = 0;
         setTransientError(null);
         setRetrySeconds(0);
+        // Cloudflare returned a real token → unblock our local fetch interceptor.
+        // Supabase still verifies the token server-side via the captchaToken option,
+        // so this marker only governs the client-side defense-in-depth gate.
+        markLoginCaptchaVerified();
         onTokenChange(token);
       },
       "expired-callback": () => {
