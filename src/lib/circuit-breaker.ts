@@ -33,6 +33,7 @@ export class CircuitBreaker {
   private failureCount = 0;
   private lastFailureTime = 0;
   private openedAt = 0;
+  private recoveryAttempts = 0;
   private readonly name: string;
   private readonly failureThreshold: number;
   private readonly cooldownMs: number;
