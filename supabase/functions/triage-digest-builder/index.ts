@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
           triageBudgetUsed,
           triageBudgetCap: 20,
           adminUrl: `${SITE_URL}/admin/system-health?tab=triage`,
+          planMarkdown,
         },
       });
       if (res.ok) emailsSent += 1;
@@ -183,6 +184,7 @@ Deno.serve(async (req) => {
     audit24h: audit24h ?? 0,
     discordSent,
     emailsSent,
+    planBytes: planMarkdown.length,
   });
 });
 
