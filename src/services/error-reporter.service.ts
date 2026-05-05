@@ -191,10 +191,13 @@ function formatError(err: unknown): string {
 export function reportError(
   err: unknown,
   source = "unknown",
-  options: ReportOptions = {},
+  optionsOrUserId: ReportOptions | string = {},
 ) {
   const msg = formatError(err);
   if (isSuppressed(msg)) return;
+  const options: ReportOptions = typeof optionsOrUserId === "string"
+    ? { userId: optionsOrUserId }
+    : optionsOrUserId;
   void reportToAuditLog(msg, source, options);
 }
 
