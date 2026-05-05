@@ -221,16 +221,20 @@ async function reportToAuditLog(
   source: string,
   options: ReportOptions = {},
 ) {
-  const fp = fingerprint(errorMessage, source);
-  if (!checkDedup(fp)) return;
-  if (!checkRateLimit()) {
+  // Best-effort policy refresh; never blocks first call (uses stale snapshot).
+  void refreshPolicy();
+  const eventType = options.eventType ?? "client_error";
+  const policy = getPolicy(eventType);
+  const fp = `${eventType}::${fingerprint(errorMessage, source)}`;
+  if (!checkDedup(fp, policy.dedupWindowMs)) return;
+  if (!checkRateLimit(eventType, policy.capPerMinute)) {
     suppressedSinceLastFlush += 1;
     scheduleOverflowFlush();
     return;
   }
 
   await writeAudit({
-    eventType: options.eventType ?? "client_error",
+    eventType,
     message: errorMessage,
     source,
     severity: options.severity ?? "error",
