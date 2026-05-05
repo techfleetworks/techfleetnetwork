@@ -179,6 +179,9 @@ Deno.serve(async (req) => {
       hasConfigured: !!GUMROAD_PING_SECRET,
       hasProvided: !!providedSecret,
     });
+    void emitWebhookSignatureFailure({
+      reason: providedSecret ? "secret_mismatch" : "secret_missing",
+    });
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -219,6 +222,7 @@ Deno.serve(async (req) => {
     console.warn("gumroad-webhook: seller_id mismatch", {
       received: sale.seller_id,
     });
+    void emitWebhookSignatureFailure({ reason: "seller_id_mismatch" });
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
