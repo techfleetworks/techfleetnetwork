@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   try {
     const { identifier, action } = await req.json();
 
-    const VALID_ACTIONS = ["login_attempt", "signup_attempt", "password_reset"];
+    const VALID_ACTIONS = ["login_attempt", "signup_attempt", "signup_resend", "password_reset"];
     if (!identifier || typeof identifier !== "string" || identifier.length > 255) {
       log.warn("validate", `Invalid identifier [${requestId}]: type=${typeof identifier}, length=${identifier?.length}`, { requestId });
       return new Response(

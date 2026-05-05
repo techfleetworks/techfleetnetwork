@@ -1,38 +1,40 @@
 ---
 name: Login rate limit fairness
-description: Server-side peek/record split + silent device-lockout auto-heal so legitimate users never see "too many attempts" or technical recovery controls
+description: Server-side peek/record split for both login and signup, separate signup_resend bucket, silent device-lockout auto-heal on both auth pages
 type: feature
 ---
 
-# Login rate limit fairness (LCL-RL-001..006)
+# Auth rate limit fairness (LCL-RL-001..009)
 
-## Problem
-Users reported "too many attempts" after a single retry. Two compounding causes:
-1. The client called `check_rate_limit` (which increments) BEFORE authenticating, so successful logins consumed bucket slots.
-2. The device-side `sessionStorage` lockout (`tfn:auth-progressive-lockout`) persisted across page loads and could pre-block a returning user — and the only documented recovery was "open DevTools and delete the key", which is unacceptable UX.
+## Symptoms reported
+1. "Too many attempts" after a single login retry.
+2. Users could not create accounts — got blocked after a couple of submits.
+
+## Root causes
+- `check_rate_limit` was called BEFORE auth, incrementing on every call (success and failure alike).
+- Signup tier was tight (3 attempts / 60-min block) and the **resend confirmation** button reused the same `signup_attempt` bucket, so two resends burned the user's signup quota.
+- Device-side `sessionStorage` lockout (`tfn:auth-progressive-lockout`) persisted across loads with no auto-heal — only documented recovery was clearing DevTools.
 
 ## Fix
+### Server-side
+- New RPC `peek_rate_limit` (read-only) and `record_rate_limit_failure` (increments).
+- New action `signup_resend` (5/15min window, 60-min block) so the resend button has its own bucket.
+- One-time `DELETE` cleared all currently-active `login_attempt` / `signup_attempt` blocks so users impacted before the fix were unblocked immediately.
 
-### Server bucket — fair counting
-- New RPC `peek_rate_limit(...)` — read-only check, no increment.
-- New RPC `record_rate_limit_failure(...)` — increments via the existing `check_rate_limit` body.
-- `RateLimitService` exposes `peek()` and `recordFailure()`. Legacy `check()` remains for non-login flows.
-- `LoginPage` peeks pre-auth; only `recordFailure()` runs in the credential-reject branch.
+### Client
+- `RateLimitService.peek()` and `recordFailure()` exposed; legacy `check()` kept for non-auth flows.
+- `LoginPage` and `RegisterPage` both peek pre-auth and only `recordFailure()` on confirmed rejection.
+- `RegisterPage` resend button uses `signup_resend`.
+- Both pages call `maybeAutoHealAuthLockout()` on mount and `resetAuthLockoutForEmailChange()` when the email field is changed to a different account. The visible "Clear this device's lockout" link was removed — recovery is invisible.
 
-### Device lockout — silent self-healing (no user-visible recovery UI)
-- `maybeAutoHealAuthLockout()` runs on `LoginPage` mount. If the stored lockout has ≤60s remaining or is malformed, it's deleted silently.
-- `resetAuthLockoutForEmailChange()` clears the device counter when the user types a different email than the one tied to the prior failures.
-- The "Clear this device's lockout" link has been **removed** — users should never see internal recovery controls. The server-side bucket (cross-device, hashed-email keyed) remains the real brute-force defense.
-- A genuinely-earned recent lockout (>60s remaining) still serves out its countdown.
-
-## Buckets
-- Login server: 6 attempts / 15 min, 60 min block.
-- Login device: 5 / 10 min, escalating up to 5 min — but auto-healed on mount unless freshly earned.
+## Buckets (post-fix)
+- Login: 6 / 15 min, 60-min block — counted only on confirmed credential rejects.
+- Signup: 3 / 15 min, 60-min block — counted only on confirmed signup failures.
+- Signup resend: 5 / 15 min, 60-min block — independent.
+- Password reset: unchanged.
 
 ## BDD
-- LCL-RL-001 — Successful logins do not consume the failure bucket
-- LCL-RL-002 — Confirmed bad password increments the server bucket once
-- LCL-RL-003 — Locked-out user can clear device lockout (superseded by auto-heal; kept for history)
-- LCL-RL-004 — Stale device lockout auto-heals on page load
-- LCL-RL-005 — Switching email clears the prior device counter
-- LCL-RL-006 — Active lockout earned this session is preserved
+- LCL-RL-001..006 — login flow + device auto-heal
+- LCL-RL-007 — successful signup does not consume failure bucket
+- LCL-RL-008 — resend uses its own `signup_resend` bucket
+- LCL-RL-009 — register page also auto-heals device lockout

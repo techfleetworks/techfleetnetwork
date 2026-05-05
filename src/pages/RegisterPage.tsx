@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 import { logAccountActivity } from "@/lib/account-activity";
 import { getLoginCaptchaState, refreshLoginCaptcha } from "@/lib/auth-captcha";
 import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
-import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
@@ -79,6 +79,23 @@ export default function RegisterPage() {
       sessionStorage.setItem("auth_redirect", redirectParam);
     }
   }, [redirectParam]);
+
+  // Auto-heal stale device-side lockouts on mount (shared with LoginPage).
+  useEffect(() => {
+    maybeAutoHealAuthLockout();
+    setLockoutState(getAuthLockoutState());
+  }, []);
+
+  // Switching emails = different account context; clear stale device counter.
+  const lastFailedEmailRef = useRef<string>("");
+  useEffect(() => {
+    const trimmed = email.trim().toLowerCase();
+    if (lastFailedEmailRef.current && trimmed && trimmed !== lastFailedEmailRef.current) {
+      resetAuthLockoutForEmailChange();
+      lastFailedEmailRef.current = "";
+      setLockoutState(getAuthLockoutState());
+    }
+  }, [email]);
 
   useEffect(() => {
     if (!lockoutState.locked) return;
@@ -146,14 +163,17 @@ export default function RegisterPage() {
     setAuthError("");
 
     try {
-      const rateCheck = await RateLimitService.check(result.data.email, "signup_attempt");
+      // PEEK only — never increment on the way in. The bucket only counts
+      // confirmed signup failures (recordFailure below). Successful signups
+      // never consume slots, so a returning user retrying never hits the cap.
+      const rateCheck = await RateLimitService.peek(result.data.email, "signup_attempt");
       if (!rateCheck.allowed) {
-        const minutes = Math.ceil(rateCheck.retry_after / 60);
+        const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
         void logAccountActivity("signup_rate_limited", {
           email: result.data.email,
           details: { retryAfterSec: rateCheck.retry_after },
         });
-        setAuthError(`Too many signup attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        setAuthError(`Too many signup attempts for this email. Try again in ${minutes} minute${minutes > 1 ? "s" : ""}, or sign in if you already have an account.`);
         setLoading(false);
         return;
       }
@@ -178,9 +198,12 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+      // Confirmed signup failure — record once on the server bucket.
+      void RateLimitService.recordFailure(result.data.email, "signup_attempt").catch(() => {});
       setAuthError(err.message);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);
+      lastFailedEmailRef.current = result.data.email.trim().toLowerCase();
       if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
     } finally {
       setLoading(false);
@@ -202,7 +225,8 @@ export default function RegisterPage() {
         return;
       }
 
-      const rateCheck = await RateLimitService.check(email, "signup_attempt");
+      // Resend uses its own bucket so it never consumes signup attempts.
+      const rateCheck = await RateLimitService.check(email, "signup_resend");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
         setResendStatus("error");
