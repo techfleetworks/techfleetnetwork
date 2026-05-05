@@ -20,6 +20,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Sparkles, RefreshCw, ExternalLink, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { KnownIssuePanel } from "./KnownIssuePanel";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
