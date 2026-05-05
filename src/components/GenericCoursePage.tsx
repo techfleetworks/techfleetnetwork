@@ -203,7 +203,7 @@ interface GenericCoursePageProps {
     title: string;
     href: string;
   };
-  interactiveSlot?: (lessonId: string) => React.ReactNode;
+  interactiveSlot?: (ctx: { lessonId: string; isCompleted: boolean; markComplete: () => void }) => React.ReactNode;
 }
 
 export default function GenericCoursePage({
