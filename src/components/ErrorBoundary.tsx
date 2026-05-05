@@ -44,7 +44,8 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     const stack = `${error.name}: ${error.message}\n${error.stack ?? ""}\n\nComponent stack:${info.componentStack ?? ""}`;
-    reportError(stack, "ErrorBoundary");
+    const route = typeof window !== "undefined" ? window.location.pathname : "unknown";
+    reportError(stack, `ErrorBoundary:${route}`, { eventType: "ui_render_error", severity: "error" });
   }
 
   handleRetry = () => {
