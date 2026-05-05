@@ -1,4 +1,5 @@
 import GenericCoursePage from "@/components/GenericCoursePage";
+import { ObserverRoleOptInCard } from "@/components/courses/ObserverRoleOptInCard";
 import {
   OBSERVER_COURSE_SECTIONS,
   ALL_OBSERVER_LESSONS,
@@ -21,6 +22,9 @@ export default function ObserverCoursePage() {
       completionMessage="🎉 Observer Course Complete!"
       completionSubtext="You've completed all lessons. You're ready to start observing Tech Fleet project teams!"
       nextCourse={{ title: "Join Project Training Teams", href: "/courses/project-training" }}
+      interactiveSlot={({ lessonId, markComplete }) =>
+        lessonId === "obs-8" ? <ObserverRoleOptInCard onCompleted={markComplete} /> : null
+      }
     />
   );
 }
