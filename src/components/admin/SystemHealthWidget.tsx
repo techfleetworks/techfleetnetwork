@@ -61,6 +61,28 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
     refetchOnWindowFocus: false,
   });
 
+  // Triage queue summary — single cheap count query, 5-min stale
+  const triageQuery = useQuery({
+    queryKey: ["agent-fix-queue-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agent_fix_queue")
+        .select("status")
+        .in("status", ["pending", "triaged", "proposed"]);
+      if (error) throw error;
+      const rows = data ?? [];
+      return {
+        pending: rows.filter((r) => r.status === "pending").length,
+        proposed: rows.filter((r) => r.status === "proposed").length,
+        total: rows.length,
+      };
+    },
+    enabled: isAdmin,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
+  });
+
   // Subscribe to live changes — invalidates queries on the server-side push,
   // not on a client poll. Eliminates idle-tab traffic.
   useSystemHealthRealtime(isAdmin);
