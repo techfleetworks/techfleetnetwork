@@ -2342,6 +2342,39 @@ export type Database = {
         }
         Relationships: []
       }
+      observer_role_optins: {
+        Row: {
+          created_at: string
+          discord_user_id: string
+          last_error: string | null
+          observers_role_granted_at: string | null
+          opted_in_at: string
+          projects_role_granted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discord_user_id: string
+          last_error?: string | null
+          observers_role_granted_at?: string | null
+          opted_in_at?: string
+          projects_role_granted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discord_user_id?: string
+          last_error?: string | null
+          observers_role_granted_at?: string | null
+          opted_in_at?: string
+          projects_role_granted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

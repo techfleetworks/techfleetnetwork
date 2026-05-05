@@ -203,6 +203,7 @@ interface GenericCoursePageProps {
     title: string;
     href: string;
   };
+  interactiveSlot?: (ctx: { lessonId: string; isCompleted: boolean; markComplete: () => void }) => React.ReactNode;
 }
 
 export default function GenericCoursePage({
@@ -219,6 +220,7 @@ export default function GenericCoursePage({
   completionSubtext,
   prerequisite,
   nextCourse,
+  interactiveSlot,
 }: GenericCoursePageProps) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
@@ -821,6 +823,20 @@ export default function GenericCoursePage({
                     </Button>
                   </SafeExternalLink>
                 </div>
+
+                {selectedLesson && interactiveSlot ? (
+                  <div className="pt-4">
+                    {interactiveSlot({
+                      lessonId: selectedLesson.id,
+                      isCompleted: completedSet.has(selectedLesson.id),
+                      markComplete: () => {
+                        if (!completedSet.has(selectedLesson.id)) {
+                          void toggleLesson(selectedLesson.id);
+                        }
+                      },
+                    })}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
