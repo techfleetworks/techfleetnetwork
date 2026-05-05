@@ -207,9 +207,19 @@ export default function ActivityLogPage() {
   }, [page, eventFilter]);
 
   const filteredEntries = useMemo(() => {
-    if (!search.trim()) return entries;
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
+    const traceMatch = q.startsWith("trace:") ? q.slice("trace:".length) : null;
     return entries.filter((e) => {
+      if (layerFilter !== "all" && inferLayer(e) !== layerFilter) return false;
+      if (severityFilter !== "all" && inferSeverity(e) !== severityFilter) return false;
+
+      if (!q) return true;
+      if (traceMatch) {
+        return e.changed_fields?.some(
+          (f) => f.toLowerCase().includes(`trace:${traceMatch}`),
+        ) ?? false;
+      }
+
       const userInfo = e.user_id ? profiles.get(e.user_id) : null;
       const attemptedEmail = getFieldValue(e.changed_fields, "attempted_email");
       return (
@@ -223,7 +233,7 @@ export default function ActivityLogPage() {
         (e.changed_fields?.some((f) => f.toLowerCase().includes(q)))
       );
     });
-  }, [entries, search, profiles]);
+  }, [entries, search, profiles, layerFilter, severityFilter]);
 
   const uniqueEventTypes = useMemo(() => {
     const types = new Set(entries.map((e) => e.event_type));
