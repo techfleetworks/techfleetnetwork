@@ -215,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const p = await fetchProfile(session.user.id);
             if (_event === "SIGNED_IN") {
               await syncOAuthProfile(session.user, p);
+              maybeShowGoogleLinkToast(session.user);
             }
           }, 0);
         } else {
