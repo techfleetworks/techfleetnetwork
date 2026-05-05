@@ -118,24 +118,25 @@ function fingerprint(msg: string, source: string): string {
   return `${source}::${msg.slice(0, 200)}`;
 }
 
-function checkRateLimit(): boolean {
+function checkRateLimit(eventType: string, capPerMinute: number): boolean {
   const now = Date.now();
-  if (now - reportWindowStart > 60_000) {
-    reportCount = 0;
-    reportWindowStart = now;
+  let bucket = counters.get(eventType);
+  if (!bucket || now - bucket.windowStart > 60_000) {
+    bucket = { count: 0, windowStart: now };
+    counters.set(eventType, bucket);
   }
-  if (reportCount >= MAX_REPORTS_PER_MINUTE) return false;
-  reportCount++;
+  if (bucket.count >= capPerMinute) return false;
+  bucket.count++;
   return true;
 }
 
-function checkDedup(fp: string): boolean {
+function checkDedup(fp: string, dedupWindowMs: number): boolean {
   const now = Date.now();
   const lastSeen = recentErrors.get(fp);
-  if (lastSeen && now - lastSeen < DEDUP_WINDOW_MS) return false;
+  if (lastSeen && now - lastSeen < dedupWindowMs) return false;
   recentErrors.set(fp, now);
-  if (recentErrors.size > 100) {
-    const cutoff = now - DEDUP_WINDOW_MS;
+  if (recentErrors.size > 200) {
+    const cutoff = now - dedupWindowMs;
     for (const [key, ts] of recentErrors) {
       if (ts < cutoff) recentErrors.delete(key);
     }
@@ -150,16 +151,15 @@ function scheduleOverflowFlush() {
     suppressedSinceLastFlush = 0;
     overflowFlushTimer = null;
     if (count > 0) {
-      // Reset the rate-limit window so the overflow notice itself can land.
-      reportCount = 0;
-      reportWindowStart = Date.now();
+      // Reset the overflow bucket so the overflow notice itself can land.
+      counters.delete("client_error_overflow");
       void writeAudit({
         eventType: "client_error_overflow",
         message: `${count} client error report(s) suppressed by rate limit`,
         source: "error-reporter",
         severity: "warn",
         traceId: undefined,
-        extraFields: [`suppressed:${count}`],
+        extraFields: [`suppressed:${count}`, `pressure:${policySnapshot.pressure}`],
         userId: undefined,
       });
     }
