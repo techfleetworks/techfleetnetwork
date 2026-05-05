@@ -13,6 +13,7 @@ import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
+import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -191,6 +192,7 @@ export default function SystemHealthPage() {
           <TabsTrigger value="queues">Queues</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
+          <TabsTrigger value="silent">Silent failures</TabsTrigger>
           <TabsTrigger value="fleety">Fleety</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -219,6 +221,7 @@ export default function SystemHealthPage() {
 
         <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
+        <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
         <TabsContent value="settings">

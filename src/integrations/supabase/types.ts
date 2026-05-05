@@ -4636,6 +4636,16 @@ export type Database = {
           table_name: string
         }[]
       }
+      get_top_silent_failures: {
+        Args: { p_hours?: number; p_limit?: number }
+        Returns: {
+          event_type: string
+          last_seen: string
+          occurrences: number
+          sample_error: string
+          table_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

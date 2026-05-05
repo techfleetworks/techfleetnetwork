@@ -179,6 +179,9 @@ Deno.serve(async (req) => {
       hasConfigured: !!GUMROAD_PING_SECRET,
       hasProvided: !!providedSecret,
     });
+    void emitWebhookSignatureFailure({
+      reason: providedSecret ? "secret_mismatch" : "secret_missing",
+    });
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -219,6 +222,7 @@ Deno.serve(async (req) => {
     console.warn("gumroad-webhook: seller_id mismatch", {
       received: sale.seller_id,
     });
+    void emitWebhookSignatureFailure({ reason: "seller_id_mismatch" });
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -349,3 +353,25 @@ Deno.serve(async (req) => {
     },
   );
 });
+
+/**
+ * Emit a `malicious_webhook_signature_invalid` audit row whenever the
+ * shared-secret or seller-id check fails. Telemetry must never throw.
+ */
+async function emitWebhookSignatureFailure(args: { reason: string }): Promise<void> {
+  try {
+    const [{ auditEdgeEvent }, { getAdminClient }] = await Promise.all([
+      import("../_shared/audit.ts"),
+      import("../_shared/admin-client.ts"),
+    ]);
+    await auditEdgeEvent(getAdminClient(), {
+      fn: "gumroad-webhook",
+      event: "malicious_webhook_signature_invalid",
+      table: "edge_function",
+      severity: "warn",
+      fields: [`provider:gumroad`, `reason:${args.reason}`.slice(0, 100)],
+    });
+  } catch {
+    /* swallow */
+  }
+}

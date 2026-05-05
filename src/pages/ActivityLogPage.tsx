@@ -92,7 +92,46 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   // Discord integration events
   discord_invite_generated: { label: "Discord Invite Generated", variant: "default" },
   discord_bot_error: { label: "Discord Bot Error", variant: "destructive" },
+  // Layer 1 frontend / Layer 2 edge / Layer 4 trace events
+  client_error_overflow: { label: "Client Error Overflow", variant: "destructive" },
+  ui_render_error: { label: "UI Render Error", variant: "destructive" },
+  ui_chunk_load_failed: { label: "Chunk Load Failed", variant: "destructive" },
+  edge_function_error: { label: "Edge Function Error", variant: "destructive" },
+  edge_invoke_failed: { label: "Edge Invoke Failed", variant: "destructive" },
+  external_api_failed: { label: "External API Failed", variant: "destructive" },
+  authn_unauthorized: { label: "Auth Rejected", variant: "destructive" },
+  authz_admin_denied: { label: "Admin Access Denied", variant: "destructive" },
+  authz_check_failed: { label: "Authz Check Failed", variant: "destructive" },
+  malicious_webhook_signature_invalid: { label: "Webhook Signature Invalid", variant: "destructive" },
+  session_idle_timeout: { label: "Session Idle Timeout", variant: "secondary" },
+  service_error: { label: "Service Error", variant: "destructive" },
 };
+
+/**
+ * Infer the producing layer of an audit_log row from its event_type +
+ * table_name. Used purely for filtering — the source is also stored
+ * explicitly as `source:edge.<fn>` / `source:frontend.<feature>` in
+ * `changed_fields` for the rows that pass through Layer 1/2 helpers.
+ */
+function inferLayer(entry: { event_type: string; table_name: string | null; changed_fields: string[] | null }): "frontend" | "edge" | "db" | "auth" {
+  const explicit = entry.changed_fields?.find((f) => f.startsWith("source:"));
+  if (explicit?.startsWith("source:edge")) return "edge";
+  if (explicit?.startsWith("source:frontend")) return "frontend";
+  const ev = entry.event_type;
+  if (ev.startsWith("authn_") || ev.startsWith("authz_") || ev.startsWith("login_") || ev.startsWith("signup_") || ev.startsWith("password_reset")) return "auth";
+  if (ev === "edge_function_error" || ev === "external_api_failed" || ev === "malicious_webhook_signature_invalid") return "edge";
+  if (ev === "client_error" || ev.startsWith("client_error") || ev.startsWith("ui_") || ev === "session_idle_timeout" || ev === "edge_invoke_failed" || ev === "service_error") return "frontend";
+  return "db";
+}
+
+function inferSeverity(entry: { event_type: string; error_message: string | null; changed_fields: string[] | null }): "info" | "warn" | "error" {
+  const explicit = entry.changed_fields?.find((f) => f.startsWith("severity:"))?.slice("severity:".length);
+  if (explicit === "info" || explicit === "warn" || explicit === "error") return explicit;
+  if (entry.error_message) return "error";
+  if (/_failed$|_error$|_denied$|invalid|complained|bounced|dlq/i.test(entry.event_type)) return "error";
+  if (/timeout|rate_limited|suppressed|overflow/i.test(entry.event_type)) return "warn";
+  return "info";
+}
 
 const PAGE_SIZE = 50;
 
@@ -109,6 +148,8 @@ export default function ActivityLogPage() {
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [eventFilter, setEventFilter] = useState<string>("all");
+  const [layerFilter, setLayerFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -166,9 +207,19 @@ export default function ActivityLogPage() {
   }, [page, eventFilter]);
 
   const filteredEntries = useMemo(() => {
-    if (!search.trim()) return entries;
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
+    const traceMatch = q.startsWith("trace:") ? q.slice("trace:".length) : null;
     return entries.filter((e) => {
+      if (layerFilter !== "all" && inferLayer(e) !== layerFilter) return false;
+      if (severityFilter !== "all" && inferSeverity(e) !== severityFilter) return false;
+
+      if (!q) return true;
+      if (traceMatch) {
+        return e.changed_fields?.some(
+          (f) => f.toLowerCase().includes(`trace:${traceMatch}`),
+        ) ?? false;
+      }
+
       const userInfo = e.user_id ? profiles.get(e.user_id) : null;
       const attemptedEmail = getFieldValue(e.changed_fields, "attempted_email");
       return (
@@ -182,7 +233,7 @@ export default function ActivityLogPage() {
         (e.changed_fields?.some((f) => f.toLowerCase().includes(q)))
       );
     });
-  }, [entries, search, profiles]);
+  }, [entries, search, profiles, layerFilter, severityFilter]);
 
   const uniqueEventTypes = useMemo(() => {
     const types = new Set(entries.map((e) => e.event_type));
@@ -280,13 +331,36 @@ export default function ActivityLogPage() {
         <div className="relative w-full flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search events, users, errors…"
+            placeholder="Search events, users, errors… or trace:&lt;id&gt;"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
-            aria-label="Search activity log"
+            aria-label="Search activity log (supports trace:id)"
           />
         </div>
+        <Select value={layerFilter} onValueChange={(v) => { setLayerFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by layer">
+            <SelectValue placeholder="All layers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Layers</SelectItem>
+            <SelectItem value="frontend">Frontend</SelectItem>
+            <SelectItem value="edge">Edge Functions</SelectItem>
+            <SelectItem value="db">Database</SelectItem>
+            <SelectItem value="auth">Auth</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={severityFilter} onValueChange={(v) => { setSeverityFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full sm:w-[140px]" aria-label="Filter by severity">
+            <SelectValue placeholder="All severities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Severities</SelectItem>
+            <SelectItem value="info">Info</SelectItem>
+            <SelectItem value="warn">Warn</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={eventFilter} onValueChange={(v) => { setEventFilter(v); setPage(0); }}>
           <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filter by event type">
             <SelectValue placeholder="All events" />
