@@ -103,6 +103,7 @@ export type Database = {
           root_cause_hypothesis: string | null
           sample_trace_id: string | null
           severity: string
+          snoozed_until: string | null
           source: string
           status: string
           triage_cost_estimate_usd: number | null
@@ -131,6 +132,7 @@ export type Database = {
           root_cause_hypothesis?: string | null
           sample_trace_id?: string | null
           severity?: string
+          snoozed_until?: string | null
           source: string
           status?: string
           triage_cost_estimate_usd?: number | null
@@ -159,6 +161,7 @@ export type Database = {
           root_cause_hypothesis?: string | null
           sample_trace_id?: string | null
           severity?: string
+          snoozed_until?: string | null
           source?: string
           status?: string
           triage_cost_estimate_usd?: number | null
@@ -4432,6 +4435,7 @@ export type Database = {
         Args: { p_class_id: string; p_reason: string }
         Returns: undefined
       }
+      archive_old_fix_queue: { Args: never; Returns: number }
       bump_kb_version: { Args: never; Returns: number }
       cancel_cohort: {
         Args: { p_cohort_id: string; p_reason: string }
@@ -4958,6 +4962,10 @@ export type Database = {
         Args: { p_chunk_size?: number; p_job_id: string }
         Returns: Json
       }
+      promote_fingerprint_to_known: {
+        Args: { p_fix_queue_id: string; p_reason: string }
+        Returns: string
+      }
       prune_cron_job_run_details: {
         Args: never
         Returns: {
@@ -5037,6 +5045,10 @@ export type Database = {
       }
       set_fix_queue_status: {
         Args: { p_id: string; p_reason?: string; p_status: string }
+        Returns: undefined
+      }
+      snooze_fix_queue_entry: {
+        Args: { p_days?: number; p_id: string }
         Returns: undefined
       }
       submit_class_for_review: {

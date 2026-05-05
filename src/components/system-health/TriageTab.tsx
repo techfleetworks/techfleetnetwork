@@ -90,6 +90,7 @@ export function TriageTab() {
           .from("agent_fix_queue")
           .select("*")
           .in("status", ["pending", "triaged", "proposed"])
+          .or("snoozed_until.is.null,snoozed_until.lt." + new Date().toISOString())
           .order("last_seen_at", { ascending: false })
           .limit(50),
         supabase
@@ -149,6 +150,41 @@ export function TriageTab() {
       await fetchAll();
     } catch (e) {
       toast.error("Status update failed", { description: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const snooze = async (row: FixQueueRow, days = 7) => {
+    setBusyId(row.id);
+    try {
+      const { error } = await supabase.rpc("snooze_fix_queue_entry", { p_id: row.id, p_days: days });
+      if (error) throw error;
+      toast.success(`Snoozed ${days}d`);
+      setDetailRow(null);
+      await fetchAll();
+    } catch (e) {
+      toast.error("Snooze failed", { description: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const rejectAsKnown = async (row: FixQueueRow) => {
+    const reason = window.prompt("Why is this safe to silence permanently?", "Known noise");
+    if (!reason) return;
+    setBusyId(row.id);
+    try {
+      const { error } = await supabase.rpc("promote_fingerprint_to_known", {
+        p_fix_queue_id: row.id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      toast.success("Added to known-issue catalog");
+      setDetailRow(null);
+      await fetchAll();
+    } catch (e) {
+      toast.error("Reject failed", { description: (e as Error).message });
     } finally {
       setBusyId(null);
     }
@@ -316,6 +352,20 @@ export function TriageTab() {
                   disabled={busyId === detailRow.id}
                 >
                   <XCircle className="h-4 w-4 mr-1" /> Dismiss as noise
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => snooze(detailRow, 7)}
+                  disabled={busyId === detailRow.id}
+                >
+                  Snooze 7d
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => rejectAsKnown(detailRow)}
+                  disabled={busyId === detailRow.id}
+                >
+                  Reject + add to known
                 </Button>
                 <Button
                   variant="outline"
