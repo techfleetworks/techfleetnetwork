@@ -139,7 +139,58 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, probed: PROBES.length, results }), {
+  // ---- Audit-log volume pressure (no new cron) ----
+  // Cheap aggregate: count last 5 minutes, project to 24h, classify.
+  let auditPressure: 'none' | 'soft' | 'medium' | 'hard' = 'none'
+  let projected24h = 0
+  try {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { count } = await supabase
+      .from('audit_log')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', fiveMinAgo)
+    const writes5m = count ?? 0
+    projected24h = writes5m * 12 * 24
+    if (projected24h >= 50000) auditPressure = 'hard'
+    else if (projected24h >= 35000) auditPressure = 'medium'
+    else if (projected24h >= 20000) auditPressure = 'soft'
+
+    // Merge into system_health_state.metadata without clobbering other keys.
+    const { data: existing } = await supabase
+      .from('system_health_state')
+      .select('metadata')
+      .eq('id', 1)
+      .maybeSingle()
+    const meta = (existing?.metadata ?? {}) as Record<string, unknown>
+    const prev = meta.audit_pressure as typeof auditPressure | undefined
+    const nextMeta = {
+      ...meta,
+      audit_pressure: auditPressure,
+      audit_writes_5m: writes5m,
+      audit_projected_24h: projected24h,
+      audit_pressure_updated_at: new Date().toISOString(),
+    }
+    await supabase.from('system_health_state').update({ metadata: nextMeta }).eq('id', 1)
+
+    if (prev !== auditPressure && (auditPressure !== 'none' || prev)) {
+      await supabase.rpc('write_audit_log', {
+        p_event_type: 'audit_pressure_changed',
+        p_table_name: 'system_health_state',
+        p_record_id: '1',
+        p_user_id: null,
+        p_changed_fields: [
+          `from:${prev ?? 'none'}`,
+          `to:${auditPressure}`,
+          `projected_24h:${projected24h}`,
+        ],
+        p_error_message: `audit_log volume pressure transitioned ${prev ?? 'none'} → ${auditPressure}`,
+      })
+    }
+  } catch (err) {
+    console.error('[email-pipeline-health] audit pressure probe failed', err)
+  }
+
+  return new Response(JSON.stringify({ ok: true, probed: PROBES.length, results, audit_pressure: auditPressure, audit_projected_24h: projected24h }), {
     status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

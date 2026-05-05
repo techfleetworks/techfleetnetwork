@@ -22,15 +22,82 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTraceId } from "@/lib/trace";
 
 const MAX_MSG_LENGTH = 2000;
-const MAX_REPORTS_PER_MINUTE = 10;
-const DEDUP_WINDOW_MS = 60_000;
+const DEFAULT_CAP_PER_MINUTE = 10;
+const DEFAULT_DEDUP_WINDOW_MS = 60_000;
 const OVERFLOW_FLUSH_MS = 60_000;
+const POLICY_TTL_MS = 5 * 60_000;
 
-let reportCount = 0;
-let reportWindowStart = Date.now();
+interface PolicyEntry {
+  capPerMinute: number;
+  dedupWindowMs: number;
+}
+type PolicySnapshot = {
+  entries: Record<string, PolicyEntry>;
+  pressure: "none" | "soft" | "medium" | "hard";
+  fetchedAt: number;
+};
+let policySnapshot: PolicySnapshot = {
+  entries: {},
+  pressure: "none",
+  fetchedAt: 0,
+};
+let policyInflight: Promise<void> | null = null;
+
+// Per-event-type rate window + dedup
+const counters = new Map<string, { count: number; windowStart: number }>();
+const recentErrors = new Map<string, number>();
 let suppressedSinceLastFlush = 0;
 let overflowFlushTimer: ReturnType<typeof setTimeout> | null = null;
-const recentErrors = new Map<string, number>();
+
+function pressureMultiplier(): number {
+  switch (policySnapshot.pressure) {
+    case "hard": return 0.1;   // 10% of normal cap
+    case "medium": return 0.33;
+    case "soft": return 0.66;
+    default: return 1;
+  }
+}
+
+function getPolicy(eventType: string): PolicyEntry {
+  const e = policySnapshot.entries[eventType];
+  const cap = Math.max(1, Math.floor((e?.capPerMinute ?? DEFAULT_CAP_PER_MINUTE) * pressureMultiplier()));
+  const dedup = e?.dedupWindowMs ?? DEFAULT_DEDUP_WINDOW_MS;
+  return { capPerMinute: cap, dedupWindowMs: dedup };
+}
+
+async function refreshPolicy(): Promise<void> {
+  if (Date.now() - policySnapshot.fetchedAt < POLICY_TTL_MS) return;
+  if (policyInflight) return policyInflight;
+  policyInflight = (async () => {
+    try {
+      const [{ data: policyRows }, { data: healthRow }] = await Promise.all([
+        supabase.rpc("get_audit_policy"),
+        supabase.from("system_health_state").select("metadata").eq("id", 1).maybeSingle(),
+      ]);
+      const entries: Record<string, PolicyEntry> = {};
+      if (Array.isArray(policyRows)) {
+        for (const row of policyRows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number }>) {
+          entries[row.event_type_pattern] = {
+            capPerMinute: row.cap_per_minute,
+            dedupWindowMs: row.dedup_window_seconds * 1000,
+          };
+        }
+      }
+      const meta = (healthRow?.metadata ?? {}) as { audit_pressure?: PolicySnapshot["pressure"] };
+      policySnapshot = {
+        entries,
+        pressure: meta.audit_pressure ?? "none",
+        fetchedAt: Date.now(),
+      };
+    } catch {
+      // keep stale snapshot; never throw
+      policySnapshot = { ...policySnapshot, fetchedAt: Date.now() };
+    } finally {
+      policyInflight = null;
+    }
+  })();
+  return policyInflight;
+}
 
 export type ReportSeverity = "info" | "warn" | "error";
 export type ReportEventType = "client_error" | "ui_render_error" | "ui_chunk_load_failed" | "edge_invoke_failed" | "client_error_overflow";
@@ -51,24 +118,25 @@ function fingerprint(msg: string, source: string): string {
   return `${source}::${msg.slice(0, 200)}`;
 }
 
-function checkRateLimit(): boolean {
+function checkRateLimit(eventType: string, capPerMinute: number): boolean {
   const now = Date.now();
-  if (now - reportWindowStart > 60_000) {
-    reportCount = 0;
-    reportWindowStart = now;
+  let bucket = counters.get(eventType);
+  if (!bucket || now - bucket.windowStart > 60_000) {
+    bucket = { count: 0, windowStart: now };
+    counters.set(eventType, bucket);
   }
-  if (reportCount >= MAX_REPORTS_PER_MINUTE) return false;
-  reportCount++;
+  if (bucket.count >= capPerMinute) return false;
+  bucket.count++;
   return true;
 }
 
-function checkDedup(fp: string): boolean {
+function checkDedup(fp: string, dedupWindowMs: number): boolean {
   const now = Date.now();
   const lastSeen = recentErrors.get(fp);
-  if (lastSeen && now - lastSeen < DEDUP_WINDOW_MS) return false;
+  if (lastSeen && now - lastSeen < dedupWindowMs) return false;
   recentErrors.set(fp, now);
-  if (recentErrors.size > 100) {
-    const cutoff = now - DEDUP_WINDOW_MS;
+  if (recentErrors.size > 200) {
+    const cutoff = now - dedupWindowMs;
     for (const [key, ts] of recentErrors) {
       if (ts < cutoff) recentErrors.delete(key);
     }
@@ -83,16 +151,15 @@ function scheduleOverflowFlush() {
     suppressedSinceLastFlush = 0;
     overflowFlushTimer = null;
     if (count > 0) {
-      // Reset the rate-limit window so the overflow notice itself can land.
-      reportCount = 0;
-      reportWindowStart = Date.now();
+      // Reset the overflow bucket so the overflow notice itself can land.
+      counters.delete("client_error_overflow");
       void writeAudit({
         eventType: "client_error_overflow",
         message: `${count} client error report(s) suppressed by rate limit`,
         source: "error-reporter",
         severity: "warn",
         traceId: undefined,
-        extraFields: [`suppressed:${count}`],
+        extraFields: [`suppressed:${count}`, `pressure:${policySnapshot.pressure}`],
         userId: undefined,
       });
     }
@@ -154,16 +221,20 @@ async function reportToAuditLog(
   source: string,
   options: ReportOptions = {},
 ) {
-  const fp = fingerprint(errorMessage, source);
-  if (!checkDedup(fp)) return;
-  if (!checkRateLimit()) {
+  // Best-effort policy refresh; never blocks first call (uses stale snapshot).
+  void refreshPolicy();
+  const eventType = options.eventType ?? "client_error";
+  const policy = getPolicy(eventType);
+  const fp = `${eventType}::${fingerprint(errorMessage, source)}`;
+  if (!checkDedup(fp, policy.dedupWindowMs)) return;
+  if (!checkRateLimit(eventType, policy.capPerMinute)) {
     suppressedSinceLastFlush += 1;
     scheduleOverflowFlush();
     return;
   }
 
   await writeAudit({
-    eventType: options.eventType ?? "client_error",
+    eventType,
     message: errorMessage,
     source,
     severity: options.severity ?? "error",
