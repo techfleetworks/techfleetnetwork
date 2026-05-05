@@ -90,6 +90,7 @@ export function TriageTab() {
           .from("agent_fix_queue")
           .select("*")
           .in("status", ["pending", "triaged", "proposed"])
+          .or("snoozed_until.is.null,snoozed_until.lt." + new Date().toISOString())
           .order("last_seen_at", { ascending: false })
           .limit(50),
         supabase
