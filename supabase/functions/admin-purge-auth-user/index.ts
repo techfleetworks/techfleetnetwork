@@ -111,36 +111,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    const tablesByUserId = [
-      'profiles',
-      'user_roles',
-      'revoked_sessions',
-      'security_events',
-      'journey_progress',
-      'dashboard_preferences',
-      'general_applications',
-      'project_applications',
-      'announcement_reads',
-      'announcement_views',
-      'banner_dismissals',
-      'chat_conversations',
-      'class_certifications',
-      'project_certifications',
-      'exploration_queries',
-      'feedback',
-      'grid_view_states',
-      'notifications',
-      'two_factor_login_sessions',
-      'push_subscriptions',
-      'signup_confirmation_reminders',
-    ]
-    for (const t of tablesByUserId) {
-      const { error } = await admin.from(t).delete().eq('user_id', target.id)
-      cleanupResults[t] = error ? `error: ${error.message}` : 'ok'
-    }
-
-    const { error: promotedByError } = await admin.from('admin_promotions').delete().eq('promoted_by', target.id)
-    cleanupResults.admin_promotions_promoted_by = promotedByError ? `error: ${promotedByError.message}` : 'ok'
+    // NOTE: We deliberately no longer delete user_id-keyed rows here.
+    // The DB trigger `on_auth_user_deleted` (BEFORE DELETE on auth.users)
+    // cascades to every public.* table referencing this user inside one
+    // transaction. Doing it here too created a partial-purge window
+    // (profile gone, auth row left behind => "ghost account" blocking
+    // re-signup with the same email).
+    cleanupResults.user_id_cascade = 'handled-by-trigger'
   }
 
   // Always try to clear email-keyed records (covers cases where there is no
