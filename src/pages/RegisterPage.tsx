@@ -300,7 +300,39 @@ export default function RegisterPage() {
         </div>
 
         <div className="card-elevated p-6 sm:p-8">
-          {authError && (
+          {existingAccountEmail && (
+            <div
+              className="mb-4 p-4 rounded-md border border-primary/30 bg-primary/5 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <h2 className="font-semibold text-foreground mb-1">You already have an account</h2>
+              <p className="text-muted-foreground mb-3">
+                An account already exists for <span className="font-medium text-foreground break-all">{existingAccountEmail}</span>. Sign in to continue, or reset your password if you've forgotten it.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to={`/login?email=${encodeURIComponent(existingAccountEmail)}${redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : ""}`}>
+                    Sign in instead
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link to={`/forgot-password?email=${encodeURIComponent(existingAccountEmail)}`}>
+                    Reset your password
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full sm:w-auto"
+                  onClick={() => { setExistingAccountEmail(null); setEmail(""); }}
+                >
+                  Use a different email
+                </Button>
+              </div>
+            </div>
+          )}
+          {authError && !existingAccountEmail && (
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
