@@ -225,6 +225,7 @@ export default function SystemHealthPage() {
 
         <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
+        <TabsContent value="triage"><TriageTab /></TabsContent>
         <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
