@@ -18,6 +18,7 @@ interface Props {
   triageBudgetUsed?: number
   triageBudgetCap?: number
   adminUrl?: string
+  planMarkdown?: string
 }
 
 const TriageDigest = ({
