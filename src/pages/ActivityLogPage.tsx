@@ -331,13 +331,36 @@ export default function ActivityLogPage() {
         <div className="relative w-full flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search events, users, errors…"
+            placeholder="Search events, users, errors… or trace:&lt;id&gt;"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
-            aria-label="Search activity log"
+            aria-label="Search activity log (supports trace:id)"
           />
         </div>
+        <Select value={layerFilter} onValueChange={(v) => { setLayerFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by layer">
+            <SelectValue placeholder="All layers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Layers</SelectItem>
+            <SelectItem value="frontend">Frontend</SelectItem>
+            <SelectItem value="edge">Edge Functions</SelectItem>
+            <SelectItem value="db">Database</SelectItem>
+            <SelectItem value="auth">Auth</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={severityFilter} onValueChange={(v) => { setSeverityFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full sm:w-[140px]" aria-label="Filter by severity">
+            <SelectValue placeholder="All severities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Severities</SelectItem>
+            <SelectItem value="info">Info</SelectItem>
+            <SelectItem value="warn">Warn</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={eventFilter} onValueChange={(v) => { setEventFilter(v); setPage(0); }}>
           <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filter by event type">
             <SelectValue placeholder="All events" />
