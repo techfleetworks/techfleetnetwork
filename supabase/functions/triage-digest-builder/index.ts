@@ -79,6 +79,13 @@ Deno.serve(async (req) => {
     .select("*", { count: "exact", head: true })
     .gte("created_at", yesterdayIso);
 
+  // Lane 2 self-heal counter — how many transient failures auto-recovered
+  const { count: recovered24h } = await supabase
+    .from("audit_log")
+    .select("*", { count: "exact", head: true })
+    .eq("event_type", "external_api_recovered")
+    .gte("created_at", yesterdayIso);
+
   const { data: budget } = await supabase
     .from("agent_triage_budget")
     .select("triage_calls_used,day")
