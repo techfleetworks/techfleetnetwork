@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@/lib/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@/lib/react-query";
+import { reportError } from "@/services/error-reporter.service";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
