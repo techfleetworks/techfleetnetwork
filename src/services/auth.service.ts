@@ -8,8 +8,11 @@ import { createAuthThrottleCaptchaError, isAuthThrottleCaptchaError } from "@/li
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 
 const log = createLogger("AuthService");
-const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours absolute maximum
-const IDLE_SESSION_AGE_MS = 20 * 60 * 1000;
+// Per product policy: users should only be signed out after 1 hour of inactivity.
+// No absolute max-age cutoff — set to effectively unbounded so it never triggers
+// a mid-session logout on its own. Idle timeout is the only client-side enforced policy.
+const MAX_SESSION_AGE_MS = Number.POSITIVE_INFINITY;
+const IDLE_SESSION_AGE_MS = 60 * 60 * 1000; // 1 hour
 const SESSION_STARTED_AT_KEY = "session_started_at";
 const SESSION_MARKER_VERSION = 1;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
