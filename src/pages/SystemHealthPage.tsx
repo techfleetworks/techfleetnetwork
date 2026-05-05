@@ -295,3 +295,20 @@ function ErrorList({ errors, generatedAt }: { errors: Array<{ error_message: str
     </Card>
   );
 }
+
+const VALID_HEALTH_TABS = ["queues","delivery","errors","triage","silent","fleety","content","audit","settings"] as const;
+
+function SystemHealthTabs({ children }: { children: React.ReactNode }) {
+  const [params, setParams] = useSearchParams();
+  const initial = params.get("tab");
+  const value = (VALID_HEALTH_TABS as readonly string[]).includes(initial ?? "") ? (initial as string) : "queues";
+  return (
+    <Tabs
+      value={value}
+      onValueChange={(v) => { params.set("tab", v); setParams(params, { replace: true }); }}
+      className="space-y-4"
+    >
+      {children}
+    </Tabs>
+  );
+}
