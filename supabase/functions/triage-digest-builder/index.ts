@@ -49,15 +49,26 @@ Deno.serve(async (req) => {
   // ---- Queue stats --------------------------------------------------------
   const { data: openRows } = await supabase
     .from("agent_fix_queue")
-    .select("event_type,source,occurrence_count,status,last_seen_at")
+    .select("id,fingerprint,event_type,source,error_message,severity,occurrence_count,status,first_seen_at,last_seen_at,root_cause_hypothesis,proposed_fix_summary,proposed_fix_files")
     .in("status", ["pending", "triaged", "proposed"])
     .order("occurrence_count", { ascending: false })
-    .limit(50);
+    .limit(200);
 
-  const open = (openRows ?? []) as QueueRow[];
+  const open = (openRows ?? []) as any[];
   const pendingCount = open.filter((r) => r.status === "pending").length;
   const proposedCount = open.filter((r) => r.status === "proposed").length;
   const topItems = open.slice(0, 8);
+
+  // Fuller rows for the inline plan section (last 24h resolved + all open)
+  const { data: resolvedRows } = await supabase
+    .from("agent_fix_queue")
+    .select("id,fingerprint,event_type,source,error_message,severity,occurrence_count,status,resolved_at,root_cause_hypothesis,proposed_fix_summary,proposed_fix_files")
+    .in("status", ["resolved", "applied", "dismissed"])
+    .gte("updated_at", yesterdayIso)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  const planMarkdown = buildPlanMarkdown(todayStr, open, (resolvedRows ?? []) as any[]);
 
   const { count: resolvedYesterday } = await supabase
     .from("agent_fix_queue")
