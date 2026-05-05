@@ -193,7 +193,28 @@ export default function ActivityLogPage() {
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
       const { data, error } = await withTimeout<{ data: unknown[] | null; error: Error | null }>(query as unknown as PromiseLike<{ data: unknown[] | null; error: Error | null }>, "Activity log load");
       if (error) throw error;
-      setEntries((data || []) as unknown as AuditLogEntry[]);
+      const rows = (data || []) as unknown as AuditLogEntry[];
+      setEntries(rows);
+
+      // Hydrate triage state for visible fingerprints (admin-only by RLS)
+      const fps = Array.from(new Set(rows.map((r) => r.error_fingerprint).filter(Boolean) as string[]));
+      if (fps.length > 0) {
+        const { data: triageRows } = await supabase
+          .from("agent_fix_queue")
+          .select("fingerprint,status,id")
+          .in("fingerprint", fps);
+        const m = new Map<string, TriageState>();
+        triageRows?.forEach((t) => {
+          m.set(t.fingerprint as string, {
+            triage_status: t.status as string,
+            silence_state: null,
+            fix_queue_id: t.id as string,
+          });
+        });
+        setTriageMap(m);
+      } else {
+        setTriageMap(new Map());
+      }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
       setLoadError(err instanceof Error ? err.message : "Activity log could not load.");
