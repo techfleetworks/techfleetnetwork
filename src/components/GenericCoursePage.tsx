@@ -220,6 +220,7 @@ export default function GenericCoursePage({
   completionSubtext,
   prerequisite,
   nextCourse,
+  interactiveSlot,
 }: GenericCoursePageProps) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
