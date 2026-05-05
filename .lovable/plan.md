@@ -1,60 +1,96 @@
-# Audit Log Coverage — All 5 Layers
 
-Approved scope. Implementation will land in this order, with one critical bug-fix added in Layer 1 discovered during exploration.
+## Goal
 
-## Critical bug found during exploration
-`error-reporter.service.ts` calls `write_audit_log` with `p_user_id = "00000000-0000-0000-0000-000000000000"` when no user is known. The RPC rejects any non-null `p_user_id ≠ auth.uid()` with "Cannot write audit events for another user", so authenticated `client_error` writes have been silently failing — explaining the 6 events in 7 days. Fix: pass `null` (or the real `auth.uid()`) instead of a sentinel UUID.
+1. Extend the existing daily triage digest so each admin email includes a single combined `triage-plans-YYYY-MM-DD.md` attachment containing every triaged/proposed/resolved entry's hypothesis + plan + file list.
+2. Add an optional Notion connector so each triaged entry can be pushed to a Notion database as a backlog item.
 
-## Layer 1 — Frontend instrumentation
-- New `src/lib/trace.ts`: `newTraceId`, `withTrace`, `getCurrentTraceId`.
-- Refactor `src/services/error-reporter.service.ts`:
-  - Fix nil-UUID bug → pass `null` when unknown.
-  - Add `severity` ("warn"/"error") and `traceId` fields, stored in `changed_fields` (`severity:error`, `trace:<id>`).
-  - On rate-limit drop, queue a single `client_error_overflow` with suppressed count per minute.
-- Extend `src/lib/service-result.ts` `handleServiceError` to also call `reportError(error, action, { severity: level })`.
-- New `src/integrations/supabase/audited-invoke.ts` thin wrapper around `supabase.functions.invoke` that adds `x-trace-id` header and audits non-2xx errors.
-- New `src/lib/audited-query.ts`: a global `QueryCache` / `MutationCache` with `onError` that calls `reportError(error, queryKey.join("."))`. Wire into `App.tsx` QueryClient.
-- `src/components/ErrorBoundary.tsx`: emit dedicated `ui_render_error` event (not generic client_error) with route + component-stack hash.
-- `src/lib/lazy-with-retry.ts`: emit `ui_chunk_load_failed` after final retry / before reload.
-- `src/components/IdleTimeoutGuard.tsx`: log `session_idle_timeout` via `logAccountActivity` before sign-out.
-- `src/hooks/use-push-notifications.ts`: log `push_subscribe_failed` / `push_permission_denied` / `push_unsubscribe_failed`.
-- `src/lib/service-worker.ts` + caller in main: emit `sw_recovered` / `sw_failed` events.
-- BDD scenarios row inserted to `bdd_scenarios` for "audit_log_coverage_layer1".
+---
 
-## Layer 2 — Edge function audit middleware
-- New `supabase/functions/_shared/audit.ts`:
-  - `auditEdgeEvent(adminClient, { event, table, recordId?, userId?, traceId, fields?, errorMessage? })` wraps `write_audit_log` (service-role bypass) so any function can fire events without re-implementing.
-  - `wrapHandler(fn, handler)` middleware: extracts `x-trace-id` (or generates one), catches throws, emits `edge_function_error`, returns 500 JSON. Adds `x-trace-id` to response.
-- Update `supabase/functions/_shared/request-auth.ts`:
-  - On 401/403, call `auditEdgeEvent` with `authn_unauthorized` / `authz_admin_denied`.
-- Update `supabase/functions/_shared/discord-fetch.ts`: on final retry exhaustion, fire `external_api_failed` (provider=discord).
-- Update `supabase/functions/_shared/transactional-email.ts` (Resend wrapper) — same.
-- Update `supabase/functions/gumroad-webhook/index.ts`: signature failure → `malicious_webhook_signature_invalid`.
-- Apply `wrapHandler` to: `promote-to-admin`, `promote-to-teacher`, `admin-purge-auth-user`, `admin-sign-out-all-users`, `manage-discord-roles`, `confirm-admin-role`, `confirm-teacher-role`, `revoke-teacher-role`, `revoke-user-sessions`, `notify-applicant-status`, `mark-interview-scheduled`, `send-transactional-email`, `send-announcement-email`, `send-push-notification`, `process-email-queue`, `process-notification-fanout`, `gumroad-webhook`, `gumroad-reconcile`, `gumroad-backfill`, `quest-nudge`, `resend-signup-confirmations`, `email-pipeline-health`, `discord-interactions`, `discord-notify`, `discord-project-update`, `generate-discord-invite`, `resolve-discord-id`, `fetch-class-certifications`, `fetch-project-certifications`.
-- BDD scenarios for "audit_log_coverage_layer2".
+## Part 1 — Markdown attachment in the daily digest
 
-## Layer 3 — DB triggers
-- Migration: trigger on `email_send_log` AFTER UPDATE OF status / AFTER INSERT — when new status ∈ (`failed`,`dlq`,`bounced`,`complained`), insert audit_log row `email_send_failed` with template, message_id, error_message.
-- Verify `safe_create_notification` already emits `notification_dlq_moved`; if missing, add it.
-- Add `app.trace_id` GUC capture: `write_audit_log` reads `current_setting('app.trace_id', true)` and prepends to changed_fields when present.
+Today the digest runs at 15:00 UTC via `triage-digest-builder` and sends one Discord post + one transactional email per admin. No attachments anywhere in the pipeline.
 
-## Layer 4 — Trace correlation
-- Frontend: every `auditedInvoke` call wraps in `withTrace`; mutation cache `onMutate` calls `withTrace`.
-- Headers: `x-trace-id` on every edge invoke; edge `wrapHandler` reads it and threads through `auditEdgeEvent`.
-- DB: edge functions, before mutating, set `app.trace_id` via `select set_config('app.trace_id', $1, true)` so triggers inherit. (Optional Phase-2 — only do if cheap.)
+### Changes
 
-## Layer 5 — Surfacing
-- `src/pages/ActivityLogPage.tsx`:
-  - Add **Layer** filter (frontend / edge / db / auth) inferred from event_type prefix or table_name.
-  - Add **Severity** filter (info / warn / error) using `severity:` field or destructive variant.
-  - Add **Trace ID** search (matches `trace:<id>` in changed_fields).
-  - Render the trace id as a clickable chip that filters to the same trace.
-  - New `EVENT_TYPE_CONFIG` entries for the new event names.
-- `src/pages/SystemHealthPage.tsx`: new "Silent Failures" tab + RPC `get_top_silent_failures(hours)` that buckets `*_failed`, `client_error*`, `edge_function_error`, `ui_*` from last N hours.
+**A. Build the markdown in `triage-digest-builder`**
+- After the existing aggregation query, also fetch all `agent_fix_queue` rows whose `status` ∈ (`triaged`, `proposed`, `applied`, `resolved`) updated in the last 24h, plus all currently `pending`/`triaged`/`proposed` open items.
+- Render a single markdown doc:
+  ```
+  # Tech Fleet Triage Report — 2026-05-05
+  ## Open (pending/triaged/proposed)
+  ### {event_type} — {fingerprint}
+  - Status / Severity / Occurrences / First seen / Last seen
+  - Root cause hypothesis
+  - Proposed fix summary
+  - Proposed files (path — change_summary)
+  ## Resolved in last 24h
+  ...
+  ```
+- Cap at ~200 entries / 1 MB to stay safely under provider limits.
 
-## Out of scope (next phase)
-- Server-side ingestion of Core Web Vitals.
-- Sampling when audit_log volume > 100k/day.
-- PII redaction review of the new event payloads.
+**B. Add attachment support to the email pipeline**
+- Extend `enqueue_email` payload shape to accept `attachments: [{ filename, contentBase64, contentType }]`.
+- Update `process-email-queue` to forward `attachments` to the Lovable Email send call.
+- Update the `triage-digest` template enqueue call to pass the markdown as a single attachment (`triage-plans-2026-05-05.md`, base64-encoded, `text/markdown`).
+- Discord post stays unchanged (a one-line "Full plan doc attached to your email" footer added).
 
-Order: 1 → 2 → 4 → 3 → 5. Single PR per layer.
+**C. Quiet-day guard unchanged**
+- If quiet day, no email = no attachment (already handled).
+
+**D. BDD**
+- Add `DIGEST-005` "email contains markdown attachment" + `DIGEST-006` "attachment omitted on quiet days" in `bdd_scenarios`, with [UI]/[DB]/[Code] then-clauses.
+
+---
+
+## Part 2 — Notion backlog sync
+
+Yes, this is supported. Notion is available as a standard connector in this workspace and uses the connector gateway, which means I never see your Notion token — it's stored as `NOTION_API_KEY` and proxied through `https://connector-gateway.lovable.dev/notion/...`.
+
+### Setup steps you'll do once
+
+1. In Notion, create (or pick) a database with these properties:
+   - `Name` (title)
+   - `Status` (select: Pending, Triaged, Proposed, Resolved, Dismissed)
+   - `Severity` (select)
+   - `Fingerprint` (text)
+   - `Occurrences` (number)
+   - `Source` (text)
+   - `Last seen` (date)
+   - `Lovable URL` (url) — deep link back to System Health → Triage tab
+2. Share the database with the Notion connector's integration user.
+3. Copy the database ID (32-char hex from the URL).
+
+### Setup steps I'll do
+
+1. Trigger the Notion connect flow so the connection is linked to this project.
+2. Add a project setting row (`integration_settings` table, key=`notion_triage_db_id`) so admins can paste the database ID in the System Health → Triage tab without redeploying.
+3. New edge function `triage-notion-sync`:
+   - Admin-only JWT check.
+   - Two modes:
+     - `POST { fix_queue_id }` — push one row (called from the Triage tab "Send to Notion" button on a Details dialog).
+     - `POST { mode: "auto" }` — invoked at the end of `triage-digest-builder` to push every entry that became `proposed` or `triaged` in the last 24h and doesn't yet have a `notion_page_id`.
+   - Uses `https://connector-gateway.lovable.dev/notion/v1/pages` with `Authorization: Bearer LOVABLE_API_KEY` + `X-Connection-Api-Key: NOTION_API_KEY`.
+   - On success stores the returned Notion page ID in a new column `agent_fix_queue.notion_page_id` (nullable text) so we never duplicate.
+   - On status change to `resolved`/`dismissed`, PATCH the Notion page status to match.
+4. Add a "Send to Notion" button + small "Synced ✓" badge in the existing Triage Details dialog.
+5. BDD `NOTION-001..004` covering: manual push, auto push from digest, idempotency (no dupes), status update on resolve.
+
+### Cost / safety
+- Pure REST calls, no AI.
+- Idempotent via `notion_page_id`.
+- Service-role/admin gated.
+- Failures logged to `audit_log` and surfaced in System Health, never block digest email.
+
+---
+
+## Implementation order (once you approve)
+
+1. DB migration: add `notion_page_id` column + `integration_settings` row helper.
+2. Connect Notion connector (interactive prompt to you).
+3. Extend email pipeline to support attachments + redeploy `process-email-queue` and `send-transactional-email`.
+4. Update `triage-digest-builder` to build markdown + attach + (optionally) call `triage-notion-sync`.
+5. New `triage-notion-sync` edge function + Triage tab "Send to Notion" button + DB-ID settings field.
+6. Write BDD scenarios.
+7. Manually invoke the digest once end-to-end and confirm the email lands with the .md attached and Notion rows appear.
+
+Want me to proceed with both parts, or just Part 1 first and Part 2 after you've created the Notion database?
