@@ -339,7 +339,30 @@ export default function ActivityLogPage() {
       cellStyle: (params) => params.value ? { color: "hsl(var(--destructive))" } : undefined,
       valueFormatter: (params) => params.value || "—",
     },
-  ], [profiles]);
+    {
+      headerName: "Triage",
+      field: "error_fingerprint",
+      width: 130,
+      valueGetter: (params) => {
+        const fp = params.data?.error_fingerprint;
+        if (!fp) return "—";
+        const t = triageMap.get(fp);
+        if (!t) return params.data?.error_message ? "queued" : "—";
+        return t.triage_status ?? "—";
+      },
+      cellRenderer: (params: { value: string }) => {
+        const v = params.value;
+        if (!v || v === "—") return v;
+        const tone =
+          v === "pending" ? "bg-destructive/10 text-destructive" :
+          v === "proposed" ? "bg-primary/10 text-primary" :
+          v === "applied" || v === "resolved" ? "bg-emerald-500/10 text-emerald-600" :
+          v === "dismissed" ? "bg-muted text-muted-foreground" :
+          "bg-muted text-foreground";
+        return `<span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${tone}">${v}</span>`;
+      },
+    },
+  ], [profiles, triageMap]);
 
   // Admin access is enforced by AdminRoute wrapper
 
