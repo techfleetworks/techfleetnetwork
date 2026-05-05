@@ -826,7 +826,15 @@ export default function GenericCoursePage({
 
                 {selectedLesson && interactiveSlot ? (
                   <div className="pt-4">
-                    {interactiveSlot(selectedLesson.id)}
+                    {interactiveSlot({
+                      lessonId: selectedLesson.id,
+                      isCompleted: completedSet.has(selectedLesson.id),
+                      markComplete: () => {
+                        if (!completedSet.has(selectedLesson.id)) {
+                          void toggleLesson(selectedLesson.id);
+                        }
+                      },
+                    })}
                   </div>
                 ) : null}
               </div>
