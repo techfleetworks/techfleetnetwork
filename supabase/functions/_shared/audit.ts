@@ -31,6 +31,77 @@ export interface AuditEdgeEventArgs {
 
 const SAFE = (raw: string) => raw.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 100);
 
+// ---- Isolate-local policy snapshot + per-event dedup/cap ----
+interface PolicyEntry { capPerMinute: number; dedupWindowMs: number; }
+const POLICY_TTL_MS = 5 * 60_000;
+const DEFAULT_CAP = 30;
+const DEFAULT_DEDUP_MS = 30_000;
+const policy: { entries: Record<string, PolicyEntry>; pressure: "none"|"soft"|"medium"|"hard"; fetchedAt: number } = {
+  entries: {}, pressure: "none", fetchedAt: 0,
+};
+const counters = new Map<string, { count: number; windowStart: number }>();
+const recent = new Map<string, number>();
+let policyInflight: Promise<void> | null = null;
+
+function pressureMul(): number {
+  switch (policy.pressure) {
+    case "hard": return 0.1;
+    case "medium": return 0.33;
+    case "soft": return 0.66;
+    default: return 1;
+  }
+}
+
+async function refreshPolicy(client: SupabaseClient): Promise<void> {
+  if (Date.now() - policy.fetchedAt < POLICY_TTL_MS) return;
+  if (policyInflight) return policyInflight;
+  policyInflight = (async () => {
+    try {
+      const [{ data: rows }, { data: health }] = await Promise.all([
+        client.rpc("get_audit_policy"),
+        client.from("system_health_state").select("metadata").eq("id", 1).maybeSingle(),
+      ]);
+      const entries: Record<string, PolicyEntry> = {};
+      if (Array.isArray(rows)) {
+        for (const r of rows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number }>) {
+          entries[r.event_type_pattern] = { capPerMinute: r.cap_per_minute, dedupWindowMs: r.dedup_window_seconds * 1000 };
+        }
+      }
+      const meta = (health?.metadata ?? {}) as { audit_pressure?: typeof policy.pressure };
+      policy.entries = entries;
+      policy.pressure = meta.audit_pressure ?? "none";
+      policy.fetchedAt = Date.now();
+    } catch {
+      policy.fetchedAt = Date.now();
+    } finally {
+      policyInflight = null;
+    }
+  })();
+  return policyInflight;
+}
+
+function shouldEmit(eventType: string, fingerprint: string): boolean {
+  const e = policy.entries[eventType];
+  const cap = Math.max(1, Math.floor((e?.capPerMinute ?? DEFAULT_CAP) * pressureMul()));
+  const dedupMs = e?.dedupWindowMs ?? DEFAULT_DEDUP_MS;
+  const now = Date.now();
+  const last = recent.get(fingerprint);
+  if (last && now - last < dedupMs) return false;
+  recent.set(fingerprint, now);
+  if (recent.size > 500) {
+    const cutoff = now - dedupMs;
+    for (const [k, ts] of recent) if (ts < cutoff) recent.delete(k);
+  }
+  let bucket = counters.get(eventType);
+  if (!bucket || now - bucket.windowStart > 60_000) {
+    bucket = { count: 0, windowStart: now };
+    counters.set(eventType, bucket);
+  }
+  if (bucket.count >= cap) return false;
+  bucket.count++;
+  return true;
+}
+
 export async function auditEdgeEvent(
   client: SupabaseClient,
   args: AuditEdgeEventArgs,
