@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { markLoginCaptchaVerified } from "@/lib/auth-captcha";
 
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 const PRODUCTION_SITE_KEY = "0x4AAAAAADEF72dWIkFxiGOU";

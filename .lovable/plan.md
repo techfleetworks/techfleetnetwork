@@ -1,49 +1,44 @@
-## Goal
+# Fix: signups & logins blocked by our own captcha interceptor
 
-Users should never have to know what `sessionStorage` is, let alone clear a key inside it. Replace the visible "Clear this device's lockout" recovery link with silent auto-healing so the situation simply doesn't happen to legitimate users.
+## What's happening
 
-## Why this is safe
+Reproduced from the audit log — every recent failed signup over the last week returns `code: 403` with **"Complete the human verification before trying again."** That string does not come from Supabase. It comes from our own fetch interceptor in `src/lib/client-request-throttle.ts` (line 144, `captchaRequiredResponse`), which short-circuits any auth POST when:
 
-The device-side lockout (`tfn:auth-progressive-lockout`) only exists to slow a single attacker session that's hammering the form right now. The real brute-force defense is the **server-side bucket** (`peek_rate_limit` + `record_rate_limit_failure`, just shipped) which is keyed on the hashed email, applies across devices, and cannot be cleared by reloading. So we can be much more permissive about clearing the *device* counter without weakening security.
+- `isLoginCaptchaRequired()` is true (it always returns `true`), AND
+- `hasFreshLoginCaptchaVerification()` is false.
 
-## Changes
+The "fresh verification" marker is only set by `markLoginCaptchaVerified()`, which is only called by `verifyTurnstileToken()` in `src/lib/turnstile-verification.ts`. **Nothing in the live app calls `verifyTurnstileToken`** — Register/Login/Forgot-Password pass the Turnstile token directly into `supabase.auth.signUp/signInWithPassword/...` via the `captchaToken` option, and Supabase verifies it server-side.
 
-### 1. `src/lib/auth-lockout.ts` — add two helpers
-- `maybeAutoHealAuthLockout()` — called on LoginPage mount. If a stored lockout has 60s or less remaining (or the blob is malformed), delete it silently. A real attacker who just earned a 5-minute lockout still serves it; a returning user from yesterday gets a clean slate.
-- `resetAuthLockoutForEmailChange()` — clears the device counter when the user types a different email than the one tied to the prior failures. Different account = different rate-limit context.
+Net effect: a user can complete Turnstile perfectly, see "Looks good" on every field, agree to T&Cs, click Submit — and our own interceptor blocks the request with a 403 before it ever leaves the browser. The Supabase signup endpoint is never even called, which is why the user never gets a confirmation email and System Health shows nothing in `email_send_log`.
 
-### 2. `src/pages/LoginPage.tsx`
-- Call `maybeAutoHealAuthLockout()` once on mount, then refresh `lockoutState`.
-- Track the email associated with the last failed attempt; when the email field changes to a different value, call `resetAuthLockoutForEmailChange()` and refresh state.
-- **Remove** the visible "Clear this device's lockout" link from the auth-error banner. Users never see internal recovery controls.
-- If a user is genuinely locked out (just earned it), the existing countdown banner ("Try again in 0:30") still shows — that's the correct UX for someone who really did fail 5 times in a row.
+This explains every report: not a Cloudflare bug, not a Supabase bug, not a rate-limit bug — a stale verification gate.
 
-### 3. BDD scenarios (added to `bdd_scenarios`)
-- **LCL-RL-004** — Stale device lockout auto-heals on page load
-  - Given a stored lockout with ≤60s remaining
-  - When the user opens /login
-  - Then [UI] no lockout banner is shown and Sign In is enabled
-  - And [Code] `maybeAutoHealAuthLockout` deleted `tfn:auth-progressive-lockout`
-  - And [DB] no database changes occur
-- **LCL-RL-005** — Switching email clears the prior device counter
-  - Given a device counter exists for `a@x.com`
-  - When the user changes the email field to `b@x.com`
-  - Then [UI] no inherited lockout banner appears
-  - And [Code] `resetAuthLockoutForEmailChange` cleared sessionStorage
-  - And [DB] no database changes occur
-- **LCL-RL-006** — Active lockout earned this session is preserved
-  - Given the user just failed 5 times in a row and has 4 minutes remaining
-  - When the page is reloaded
-  - Then [UI] the countdown banner still shows the remaining time
-  - And [Code] `maybeAutoHealAuthLockout` is a no-op because remaining > 60s
+## Fix
 
-### 4. Memory update
-Update `mem://features/auth/login-rate-limit-fairness` to record the auto-heal behavior and the removal of the visible recovery link.
+Treat receipt of a non-empty Turnstile token in the widget as proof the user passed the challenge. The Turnstile token is still passed to Supabase auth, which performs the authoritative server-side verification — so the local "fresh marker" only governs whether we let our own interceptor pass the request through, not whether the user is actually a human.
 
-## Files touched
-- `src/lib/auth-lockout.ts` (add helpers)
-- `src/pages/LoginPage.tsx` (mount hook, email-change reset, remove link)
-- `bdd_scenarios` rows LCL-RL-004..006
-- `mem://features/auth/login-rate-limit-fairness`
+### Changes
 
-No new dependencies. No DB migration needed (the prior migration already shipped the server-side rate-limit RPCs).
+1. **`src/components/auth/TurnstileChallenge.tsx`** — in the Turnstile `callback` (line 98), call `markLoginCaptchaVerified()` alongside the existing `onTokenChange(token)`. This sets the fresh-verification marker the moment Cloudflare returns a token, so the fetch interceptor stops blocking the auth POST.
+
+2. **`src/components/auth/TurnstileChallenge.tsx`** — in `expired-callback` and `error-callback`, leave the verified marker alone (Supabase will reject a stale/missing token anyway, and clearing it would re-introduce the same blank-state lockout we just fixed).
+
+3. **`src/lib/auth-captcha.ts`** — keep `markLoginCaptchaVerified` as the single source of truth for the fresh marker; no API changes.
+
+4. **No change to the interceptor itself.** The defense-in-depth gate remains for any auth POST that does not flow through our forms (e.g., direct fetch from devtools).
+
+### Tests / BDD
+
+- Add BDD scenario `LCL-CAP-010` "Signup with valid Turnstile token completes": Given a user fills the register form and Turnstile returns a token, when they submit, then [UI] they see the "Check your email" confirmation, [DB] a row is inserted into `auth.users`, [Code] the fetch interceptor does NOT return 403 and the Supabase `/signup` endpoint is called with the captcha token.
+- Add BDD scenario `LCL-CAP-011` "Login with valid Turnstile token completes": same shape for the `/token` endpoint.
+- Add unit test in `src/test/components/TurnstileChallenge.test.tsx` (create if absent) verifying the callback path calls `markLoginCaptchaVerified`.
+
+### Operational cleanup
+
+- Run a one-time `UPDATE` to mark the existing `email_signup_confirmation_pipeline_unhealthy` audit_log entries as resolved-by-fix so the System Health alarm clears once the next probe runs.
+- Add note to `mem://features/auth-flow` documenting that TurnstileChallenge owns the fresh-verification marker.
+
+## Out of scope
+
+- No change to Cloudflare site keys, Supabase captcha config, or the interceptor's overall posture.
+- No UX change visible to users — they fill the same form, see no extra step, but submission now actually goes through.
