@@ -133,21 +133,14 @@ Deno.serve(async (req) => {
     } catch (_e) { /* swallow — telemetry must never throw */ }
   }
 
-  // ---- Email each admin (idempotent per day) -----------------------------
-  const { data: admins } = await supabase
-    .from("user_roles")
-    .select("user_id")
-    .eq("role", "admin");
+  // ---- Email digest recipients (idempotent per day) ----------------------
+  // Hard-pinned to mdenner@techfleet.org per owner request. To restore the
+  // broadcast-to-all-admins behaviour, swap this back to a user_roles query.
+  const recipients = [{ user_id: "owner", email: "mdenner@techfleet.org", first_name: "Marisa" }];
 
   let emailsSent = 0;
-  if (!isQuietDay && admins && admins.length > 0) {
-    const adminIds = admins.map((a: { user_id: string }) => a.user_id);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, email, first_name")
-      .in("user_id", adminIds);
-
-    for (const p of (profiles ?? [])) {
+  if (!isQuietDay && recipients.length > 0) {
+    for (const p of recipients) {
       if (!p.email) continue;
       const idemKey = `triage-digest:${p.user_id}:${todayStr}`;
       const res = await queueTransactionalEmail({
