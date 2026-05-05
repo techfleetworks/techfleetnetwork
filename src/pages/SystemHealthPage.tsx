@@ -13,6 +13,7 @@ import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
+import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
