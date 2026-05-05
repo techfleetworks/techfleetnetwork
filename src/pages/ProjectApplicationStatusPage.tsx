@@ -418,7 +418,7 @@ export default function ProjectApplicationStatusPage() {
         .from("profiles")
         .select("display_name, first_name, last_name")
         .eq("user_id", (project as any).coordinator_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
