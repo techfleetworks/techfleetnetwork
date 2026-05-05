@@ -155,6 +155,41 @@ export function TriageTab() {
     }
   };
 
+  const snooze = async (row: FixQueueRow, days = 7) => {
+    setBusyId(row.id);
+    try {
+      const { error } = await supabase.rpc("snooze_fix_queue_entry", { p_id: row.id, p_days: days });
+      if (error) throw error;
+      toast.success(`Snoozed ${days}d`);
+      setDetailRow(null);
+      await fetchAll();
+    } catch (e) {
+      toast.error("Snooze failed", { description: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const rejectAsKnown = async (row: FixQueueRow) => {
+    const reason = window.prompt("Why is this safe to silence permanently?", "Known noise");
+    if (!reason) return;
+    setBusyId(row.id);
+    try {
+      const { error } = await supabase.rpc("promote_fingerprint_to_known", {
+        p_fix_queue_id: row.id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      toast.success("Added to known-issue catalog");
+      setDetailRow(null);
+      await fetchAll();
+    } catch (e) {
+      toast.error("Reject failed", { description: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const openInLovable = (row: FixQueueRow) => {
     const prompt = buildLovablePrompt(row);
     void navigator.clipboard?.writeText(prompt).catch(() => undefined);
