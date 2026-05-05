@@ -353,3 +353,25 @@ Deno.serve(async (req) => {
     },
   );
 });
+
+/**
+ * Emit a `malicious_webhook_signature_invalid` audit row whenever the
+ * shared-secret or seller-id check fails. Telemetry must never throw.
+ */
+async function emitWebhookSignatureFailure(args: { reason: string }): Promise<void> {
+  try {
+    const [{ auditEdgeEvent }, { getAdminClient }] = await Promise.all([
+      import("../_shared/audit.ts"),
+      import("../_shared/admin-client.ts"),
+    ]);
+    await auditEdgeEvent(getAdminClient(), {
+      fn: "gumroad-webhook",
+      event: "malicious_webhook_signature_invalid",
+      table: "edge_function",
+      severity: "warn",
+      fields: [`provider:gumroad`, `reason:${args.reason}`.slice(0, 100)],
+    });
+  } catch {
+    /* swallow */
+  }
+}
