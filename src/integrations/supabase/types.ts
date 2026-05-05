@@ -4506,6 +4506,7 @@ export type Database = {
         Returns: Json
       }
       claim_triage_budget: { Args: { p_cap?: number }; Returns: boolean }
+      cleanup_chunk_load_noise: { Args: never; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
       cleanup_two_factor_login_artifacts: { Args: never; Returns: number }
