@@ -199,6 +199,14 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+      // Account already exists — friendly UX, NOT an error. Don't consume
+      // a rate-limit slot or bump the device lockout counter.
+      if (err?.code === "ACCOUNT_EXISTS") {
+        setAuthError("");
+        setExistingAccountEmail(result.data.email);
+        setLoading(false);
+        return;
+      }
       // Confirmed signup failure — record once on the server bucket.
       void RateLimitService.recordFailure(result.data.email, "signup_attempt").catch(() => {});
       setAuthError(err.message);
