@@ -33,6 +33,7 @@ const TriageDigest = ({
   triageBudgetUsed = 0,
   triageBudgetCap = 20,
   adminUrl = 'https://techfleet.network/admin/system-health?tab=triage',
+  planMarkdown = '',
 }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
