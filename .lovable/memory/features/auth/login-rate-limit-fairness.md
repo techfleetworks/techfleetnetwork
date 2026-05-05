@@ -38,3 +38,4 @@ type: feature
 - LCL-RL-007 — successful signup does not consume failure bucket
 - LCL-RL-008 — resend uses its own `signup_resend` bucket
 - LCL-RL-009 — register page also auto-heals device lockout
+- LCL-CAP-010/011 — TurnstileChallenge `callback` MUST call `markLoginCaptchaVerified()` so the client fetch interceptor (`captchaRequiredResponse`) lets the auth POST through. Supabase still verifies the token server-side via `captchaToken`. Without this call every signup/login is blocked client-side with a 403 "Complete the human verification before trying again." and the request never reaches Supabase (no email, no audit row beyond `signup_supabase_error`).
