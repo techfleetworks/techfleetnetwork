@@ -245,6 +245,44 @@ serve(async (req) => {
 
   if (results.projects_granted && results.observers_granted) {
     await audit(admin, user.id, "observer_role_granted");
+
+    // Best-effort: in-app notification + transactional email, both gated on user preferences.
+    try {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("first_name, email, notify_announcements")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const wantsEmail = prof?.notify_announcements !== false; // default true
+      const firstName = (prof?.first_name as string | undefined) || undefined;
+
+      if (wantsEmail) {
+        // In-app notification (notification_preferences toggle = notify_announcements)
+        await admin.from("notifications").insert({
+          user_id: user.id,
+          notification_type: "observer_role_granted",
+          title: "You're an Observer! 🎉",
+          body_html:
+            "Your <strong>Projects</strong> and <strong>Observers</strong> Discord roles are active. " +
+            "Pick a project meeting on the <a href=\"/events\">Events Calendar</a> and explore project channels in Discord.",
+          link_url: "/events",
+        });
+
+        // Transactional email
+        await admin.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "observer-role-granted",
+            recipientEmail: prof?.email ?? user.email,
+            idempotencyKey: `observer-role-granted-${user.id}`,
+            templateData: { firstName },
+          },
+        });
+      }
+    } catch (e) {
+      log.warn("postGrantNotify", `notify/email failed [${requestId}]`, {}, e as Error);
+    }
+
     return json({
       ok: true,
       projects_granted: true,

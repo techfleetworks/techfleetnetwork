@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,6 +124,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   });
   const successHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const justSucceededRef = useRef(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
   const linked = !!(profile?.discord_user_id && profile.discord_user_id.trim().length > 0 && profile.has_discord_account);
 
@@ -180,6 +182,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         error: data?.error ?? null,
       }));
       if (ok) {
+        setSuccessDialogOpen(true);
         toast.success("Discord roles granted — you're ready to start observing.", {
           duration: 30000,
           position: "top-center",
@@ -219,40 +222,62 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   // Success
   if (fullSuccess) {
     return (
-      <Card
-        role="status"
-        className="relative overflow-hidden p-6 border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-background"
-      >
-        <Confetti active={justSucceededRef.current} />
-        <div className="relative space-y-5">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-emerald-500/20 p-2.5">
-              <CheckCircle2 className="h-6 w-6 text-emerald-400" aria-hidden />
+      <>
+        <Card
+          role="status"
+          className="relative overflow-hidden p-6 border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-background"
+        >
+          <Confetti active={justSucceededRef.current} />
+          <div className="relative space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-emerald-500/20 p-2.5">
+                <CheckCircle2 className="h-6 w-6 text-emerald-400" aria-hidden />
+              </div>
+              <div>
+                <h3
+                  ref={successHeadingRef}
+                  tabIndex={-1}
+                  className="text-xl font-bold text-foreground outline-none"
+                >
+                  You're an Observer! 🎉
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Both Discord roles are now active on your Tech Fleet profile.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3
-                ref={successHeadingRef}
-                tabIndex={-1}
-                className="text-xl font-bold text-foreground outline-none"
-              >
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Projects role granted
+              </Badge>
+              <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Observers role granted
+              </Badge>
+            </div>
+            <NextSteps partial={false} />
+            <Button variant="outline" size="sm" onClick={() => setSuccessDialogOpen(true)}>
+              Show next steps again
+            </Button>
+          </div>
+        </Card>
+        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden />
                 You're an Observer! 🎉
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Both Discord roles are now active on your Tech Fleet profile.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
-              <CheckCircle2 className="h-3 w-3 mr-1" /> Projects role granted
-            </Badge>
-            <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
-              <CheckCircle2 className="h-3 w-3 mr-1" /> Observers role granted
-            </Badge>
-          </div>
-          <NextSteps partial={false} />
-        </div>
-      </Card>
+              </DialogTitle>
+              <DialogDescription>
+                Your Projects and Observers Discord roles are active. Here's what to do next.
+              </DialogDescription>
+            </DialogHeader>
+            <NextSteps partial={false} />
+            <DialogFooter>
+              <Button onClick={() => setSuccessDialogOpen(false)}>Got it</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
