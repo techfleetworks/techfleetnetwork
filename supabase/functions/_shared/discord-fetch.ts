@@ -95,11 +95,72 @@ export async function discordFetch(
     }
   }
 
-  // All retries exhausted
+  // All retries exhausted — emit a single audit row before returning/throwing.
+  void emitExternalApiFailure({
+    provider: "discord",
+    endpoint: safeEndpointFromUrl(url),
+    method: (fetchOptions.method ?? "GET").toUpperCase(),
+    status: lastResponse?.status,
+    retries: maxRetries,
+    errorMessage: lastError?.message,
+  });
+
   if (lastResponse) {
     return { response: lastResponse, retries: maxRetries };
   }
 
   // Only network errors occurred — throw the last one
   throw lastError ?? new Error("Discord API request failed after retries");
+}
+
+/**
+ * Strip query strings and IDs to a coarse path so audit logs don't leak
+ * tokens or guild/channel snowflakes. Keeps `/api/v10/guilds/:id/roles`
+ * style shape.
+ */
+function safeEndpointFromUrl(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    return u.pathname
+      .replace(/\/\d{15,25}/g, "/:id")
+      .slice(0, 120);
+  } catch {
+    return "unknown";
+  }
+}
+
+interface ExternalApiFailureArgs {
+  provider: string;
+  endpoint: string;
+  method: string;
+  status?: number;
+  retries: number;
+  errorMessage?: string;
+}
+
+async function emitExternalApiFailure(args: ExternalApiFailureArgs): Promise<void> {
+  try {
+    // Lazy import to avoid a circular boot dependency between audit.ts and
+    // discord-fetch.ts (audit.ts imports admin-client which is independent).
+    const [{ auditEdgeEvent }, { getAdminClient }] = await Promise.all([
+      import("./audit.ts"),
+      import("./admin-client.ts"),
+    ]);
+    await auditEdgeEvent(getAdminClient(), {
+      fn: `external.${args.provider}`,
+      event: "external_api_failed",
+      table: "external_api",
+      severity: "error",
+      fields: [
+        `provider:${args.provider}`,
+        `method:${args.method}`,
+        `endpoint:${args.endpoint.replace(/[^A-Za-z0-9_.:/-]/g, "_")}`,
+        `retries:${args.retries}`,
+        ...(args.status ? [`status:${args.status}`] : []),
+      ],
+      errorMessage: args.errorMessage?.slice(0, 500),
+    });
+  } catch {
+    /* telemetry must never break the caller */
+  }
 }
