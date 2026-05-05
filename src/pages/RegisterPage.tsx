@@ -16,7 +16,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 import { logAccountActivity } from "@/lib/account-activity";
 import { getLoginCaptchaState, refreshLoginCaptcha } from "@/lib/auth-captcha";
 import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
-import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
