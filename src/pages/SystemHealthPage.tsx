@@ -15,6 +15,7 @@ import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
 import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
+import { TriageTab } from "@/components/system-health/TriageTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
