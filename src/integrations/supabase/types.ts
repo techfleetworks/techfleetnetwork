@@ -4006,6 +4006,48 @@ export type Database = {
         }
         Relationships: []
       }
+      triage_critical_push_log: {
+        Row: {
+          fingerprint: string
+          fix_queue_id: string | null
+          id: string
+          pushed_at: string
+          reason: string
+          recipients_count: number
+        }
+        Insert: {
+          fingerprint: string
+          fix_queue_id?: string | null
+          id?: string
+          pushed_at?: string
+          reason: string
+          recipients_count?: number
+        }
+        Update: {
+          fingerprint?: string
+          fix_queue_id?: string | null
+          id?: string
+          pushed_at?: string
+          reason?: string
+          recipients_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "triage_critical_push_log_fix_queue_id_fkey"
+            columns: ["fix_queue_id"]
+            isOneToOne: false
+            referencedRelation: "agent_fix_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "triage_critical_push_log_fix_queue_id_fkey"
+            columns: ["fix_queue_id"]
+            isOneToOne: false
+            referencedRelation: "audit_triage_state"
+            referencedColumns: ["fix_queue_id"]
+          },
+        ]
+      }
       trusted_devices: {
         Row: {
           bound_at: string
