@@ -823,6 +823,12 @@ export default function GenericCoursePage({
                     </Button>
                   </SafeExternalLink>
                 </div>
+
+                {selectedLesson && interactiveSlot ? (
+                  <div className="pt-4">
+                    {interactiveSlot(selectedLesson.id)}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
