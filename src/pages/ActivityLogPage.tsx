@@ -323,7 +323,8 @@ export default function ActivityLogPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Activity Log</h1>
         <p className="text-muted-foreground mt-1">
-          View all events and actions across the platform.
+          Failures, security events, and privileged actions across the platform.
+          Routine activity (notifications, chat, journey progress, profile edits) lives on the source pages.
         </p>
       </div>
 
