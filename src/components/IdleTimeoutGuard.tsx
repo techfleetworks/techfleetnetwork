@@ -12,6 +12,7 @@ import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useNavigate } from "react-router-dom";
+import { logAccountActivity } from "@/lib/account-activity";
 
 export function IdleTimeoutGuard() {
   const { user, signOut } = useAuth();
@@ -22,9 +23,13 @@ export function IdleTimeoutGuard() {
 
   const handleTimeout = useCallback(async () => {
     setShowWarning(false);
+    void logAccountActivity("session_idle_timeout", {
+      userId: user?.id ?? null,
+      details: { timeoutMinutes: String(timeoutMinutes) },
+    });
     await signOut();
     navigate("/login", { replace: true });
-  }, [signOut, navigate]);
+  }, [signOut, navigate, user?.id, timeoutMinutes]);
 
   const handleWarning = useCallback(() => {
     setShowWarning(true);
