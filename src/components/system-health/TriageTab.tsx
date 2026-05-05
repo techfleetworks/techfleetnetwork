@@ -355,9 +355,18 @@ export function TriageTab() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setStatus(detailRow, "resolved")}
+                  onClick={() => snooze(detailRow, 7)}
                   disabled={busyId === detailRow.id}
                 >
+                  Snooze 7d
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => rejectAsKnown(detailRow)}
+                  disabled={busyId === detailRow.id}
+                >
+                  Reject + add to known
+                </Button>
                   <CheckCircle2 className="h-4 w-4 mr-1" /> Mark resolved
                 </Button>
                 {detailRow.status === "proposed" && (
