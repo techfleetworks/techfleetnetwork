@@ -92,7 +92,46 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   // Discord integration events
   discord_invite_generated: { label: "Discord Invite Generated", variant: "default" },
   discord_bot_error: { label: "Discord Bot Error", variant: "destructive" },
+  // Layer 1 frontend / Layer 2 edge / Layer 4 trace events
+  client_error_overflow: { label: "Client Error Overflow", variant: "destructive" },
+  ui_render_error: { label: "UI Render Error", variant: "destructive" },
+  ui_chunk_load_failed: { label: "Chunk Load Failed", variant: "destructive" },
+  edge_function_error: { label: "Edge Function Error", variant: "destructive" },
+  edge_invoke_failed: { label: "Edge Invoke Failed", variant: "destructive" },
+  external_api_failed: { label: "External API Failed", variant: "destructive" },
+  authn_unauthorized: { label: "Auth Rejected", variant: "destructive" },
+  authz_admin_denied: { label: "Admin Access Denied", variant: "destructive" },
+  authz_check_failed: { label: "Authz Check Failed", variant: "destructive" },
+  malicious_webhook_signature_invalid: { label: "Webhook Signature Invalid", variant: "destructive" },
+  session_idle_timeout: { label: "Session Idle Timeout", variant: "secondary" },
+  service_error: { label: "Service Error", variant: "destructive" },
 };
+
+/**
+ * Infer the producing layer of an audit_log row from its event_type +
+ * table_name. Used purely for filtering — the source is also stored
+ * explicitly as `source:edge.<fn>` / `source:frontend.<feature>` in
+ * `changed_fields` for the rows that pass through Layer 1/2 helpers.
+ */
+function inferLayer(entry: { event_type: string; table_name: string | null; changed_fields: string[] | null }): "frontend" | "edge" | "db" | "auth" {
+  const explicit = entry.changed_fields?.find((f) => f.startsWith("source:"));
+  if (explicit?.startsWith("source:edge")) return "edge";
+  if (explicit?.startsWith("source:frontend")) return "frontend";
+  const ev = entry.event_type;
+  if (ev.startsWith("authn_") || ev.startsWith("authz_") || ev.startsWith("login_") || ev.startsWith("signup_") || ev.startsWith("password_reset")) return "auth";
+  if (ev === "edge_function_error" || ev === "external_api_failed" || ev === "malicious_webhook_signature_invalid") return "edge";
+  if (ev === "client_error" || ev.startsWith("client_error") || ev.startsWith("ui_") || ev === "session_idle_timeout" || ev === "edge_invoke_failed" || ev === "service_error") return "frontend";
+  return "db";
+}
+
+function inferSeverity(entry: { event_type: string; error_message: string | null; changed_fields: string[] | null }): "info" | "warn" | "error" {
+  const explicit = entry.changed_fields?.find((f) => f.startsWith("severity:"))?.slice("severity:".length);
+  if (explicit === "info" || explicit === "warn" || explicit === "error") return explicit;
+  if (entry.error_message) return "error";
+  if (/_failed$|_error$|_denied$|invalid|complained|bounced|dlq/i.test(entry.event_type)) return "error";
+  if (/timeout|rate_limited|suppressed|overflow/i.test(entry.event_type)) return "warn";
+  return "info";
+}
 
 const PAGE_SIZE = 50;
 
