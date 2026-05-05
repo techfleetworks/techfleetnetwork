@@ -330,6 +330,7 @@ export function reportRecovery(
 
 const SUPPRESSED_PATTERNS = [
   "Lock broken by another request",
+  "Lock was stolen by another request",
   "newestWorker is null",
   "Failed to update a ServiceWorker",
   "An unknown error occurred when fetching the script",
@@ -338,7 +339,24 @@ const SUPPRESSED_PATTERNS = [
   "at predicate (eval at evaluate",
   "ResizeObserver loop completed with undelivered notifications",
   "ResizeObserver loop limit exceeded",
+  // --- Browser-extension noise (MetaMask, Firefox reader, Chrome WebView, TransOver, etc.) ---
+  "Failed to connect to MetaMask",
+  "window.ethereum",
+  "__firefox__",
+  "__gCrWeb",
+  "transover-popup",
+  "transover-type-and-translate-popup",
+  "chrome-extension://",
+  "moz-extension://",
+  "safari-web-extension://",
 ] as const;
+
+// Suppress empty unhandledrejection payloads ("{}") — almost always extension noise
+// or aborted fetches with no actionable content.
+function isEmptyRejection(msg: string): boolean {
+  const trimmed = msg.trim();
+  return trimmed === "{}" || trimmed === "" || trimmed === "null" || trimmed === "undefined";
+}
 
 function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
   return msg === "Script error." && !event.error && !event.filename && event.lineno === 0 && event.colno === 0;
