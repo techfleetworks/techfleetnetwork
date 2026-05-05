@@ -77,6 +77,15 @@ const TriageDigest = ({
           <Button style={ctaButton} href={adminUrl}>Open Triage queue</Button>
         </Section>
 
+        {planMarkdown ? (
+          <>
+            <Hr style={hr} />
+            <Heading style={h2}>Full plan (markdown)</Heading>
+            <Text style={muted}>Copy/paste into Notion, Obsidian, or your tracker.</Text>
+            <pre style={planPre}>{planMarkdown}</pre>
+          </>
+        ) : null}
+
         <Hr style={hr} />
         <Text style={signature}>The Tech Fleet Team</Text>
       </Container>
