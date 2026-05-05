@@ -87,15 +87,15 @@ export default function RegisterPage() {
   }, []);
 
   // Switching emails = different account context; clear stale device counter.
-  const lastFailedEmailRef = (useState({ value: "" })[0]) as { value: string };
+  const lastFailedEmailRef = useRef<string>("");
   useEffect(() => {
     const trimmed = email.trim().toLowerCase();
-    if (lastFailedEmailRef.value && trimmed && trimmed !== lastFailedEmailRef.value) {
+    if (lastFailedEmailRef.current && trimmed && trimmed !== lastFailedEmailRef.current) {
       resetAuthLockoutForEmailChange();
-      lastFailedEmailRef.value = "";
+      lastFailedEmailRef.current = "";
       setLockoutState(getAuthLockoutState());
     }
-  }, [email, lastFailedEmailRef]);
+  }, [email]);
 
   useEffect(() => {
     if (!lockoutState.locked) return;
