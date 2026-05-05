@@ -224,6 +224,8 @@ export default function LoginPage() {
       if (isCredentialReject) {
         const nextLockout = recordInvalidAuthAttempt();
         setLockoutState(nextLockout);
+        // Increment the SERVER-side bucket only on confirmed rejection.
+        void RateLimitService.recordFailure(result.data.email, "login_attempt").catch(() => {});
         if (nextLockout.locked) {
           setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
         } else {
