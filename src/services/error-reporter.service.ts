@@ -304,6 +304,30 @@ export function reportActivity(
   });
 }
 
+/**
+ * Lane 2 self-heal ledger event: emitted by retry wrappers / CircuitBreaker
+ * when a previously failing dependency starts succeeding again.
+ *
+ * Heavily rate-limited (the audit policy caps `external_api_recovered` to a
+ * few per minute per source) so a flapping dependency cannot spam the log.
+ *
+ * @example breaker recovery
+ *   reportRecovery("Discord", { attempts: 4 });
+ */
+export function reportRecovery(
+  source: string,
+  detail: { attempts?: number; durationMs?: number } = {},
+) {
+  const extras: string[] = [];
+  if (typeof detail.attempts === "number") extras.push(`attempts:${detail.attempts}`);
+  if (typeof detail.durationMs === "number") extras.push(`durationMs:${Math.min(detail.durationMs, 999_999)}`);
+  void reportToAuditLog(
+    `${source} recovered after transient failure`,
+    source,
+    { eventType: "external_api_recovered", severity: "info", extraFields: extras },
+  );
+}
+
 const SUPPRESSED_PATTERNS = [
   "Lock broken by another request",
   "newestWorker is null",
