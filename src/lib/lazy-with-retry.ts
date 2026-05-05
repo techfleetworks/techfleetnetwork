@@ -58,6 +58,10 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
     }
 
     // All retries exhausted — fall back to a one-time hard reload.
+    reportError(lastError ?? new Error("ChunkLoadError"), "lazy-with-retry", {
+      eventType: "ui_chunk_load_failed",
+      severity: "warn",
+    });
     if (typeof window !== "undefined") {
       const alreadyReloaded = window.sessionStorage.getItem(RELOAD_FLAG);
       if (!alreadyReloaded) {
