@@ -174,6 +174,33 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_event_policy: {
+        Row: {
+          cap_per_minute: number
+          dedup_window_seconds: number
+          event_type_pattern: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          cap_per_minute?: number
+          dedup_window_seconds?: number
+          event_type_pattern: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cap_per_minute?: number
+          dedup_window_seconds?: number
+          event_type_pattern?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           actor_email: string | null
@@ -3685,6 +3712,7 @@ export type Database = {
       system_health_state: {
         Row: {
           id: number
+          metadata: Json
           pause_non_critical: boolean
           reason: string
           status: string
@@ -3692,6 +3720,7 @@ export type Database = {
         }
         Insert: {
           id?: number
+          metadata?: Json
           pause_non_critical?: boolean
           reason?: string
           status?: string
@@ -3699,6 +3728,7 @@ export type Database = {
         }
         Update: {
           id?: number
+          metadata?: Json
           pause_non_critical?: boolean
           reason?: string
           status?: string
@@ -4283,6 +4313,7 @@ export type Database = {
         Args: never
         Returns: {
           id: number
+          metadata: Json
           pause_non_critical: boolean
           reason: string
           status: string
@@ -4585,6 +4616,14 @@ export type Database = {
           announcement_id: string
           total_views: number
           unique_views: number
+        }[]
+      }
+      get_audit_policy: {
+        Args: never
+        Returns: {
+          cap_per_minute: number
+          dedup_window_seconds: number
+          event_type_pattern: string
         }[]
       }
       get_company_type_context: { Args: { p_id: string }; Returns: Json }
