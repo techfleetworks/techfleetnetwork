@@ -107,11 +107,19 @@ export async function auditEdgeEvent(
   args: AuditEdgeEventArgs,
 ): Promise<void> {
   try {
+    // Best-effort policy refresh. Stale snapshot is fine; never blocks.
+    void refreshPolicy(client);
+
+    // Apply per-event cap + dedup (skip for known-low-volume security events).
+    const fp = `${args.event}::${SAFE(args.fn)}::${(args.errorMessage ?? args.recordId ?? "").slice(0, 200)}`;
+    if (!shouldEmit(args.event, fp)) return;
+
     const fields = [
       `source:edge.${SAFE(args.fn)}`,
       `severity:${args.severity ?? "error"}`,
     ];
     if (args.traceId) fields.push(`trace:${SAFE(args.traceId)}`);
+    if (policy.pressure !== "none") fields.push(`pressure:${policy.pressure}`);
     for (const f of args.fields ?? []) {
       if (f.length <= 100 && /^[A-Za-z0-9_.:-]+$/.test(f)) fields.push(f);
     }
