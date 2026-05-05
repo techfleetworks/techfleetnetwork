@@ -1,9 +1,11 @@
 import { memo } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
-import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, Wrench } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type SystemHealthState, type ErrorFingerprint, type RemediationRule } from "@/services/system-health.service";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,28 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
     refetchOnWindowFocus: false,
   });
 
+  // Triage queue summary — single cheap count query, 5-min stale
+  const triageQuery = useQuery({
+    queryKey: ["agent-fix-queue-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agent_fix_queue")
+        .select("status")
+        .in("status", ["pending", "triaged", "proposed"]);
+      if (error) throw error;
+      const rows = data ?? [];
+      return {
+        pending: rows.filter((r) => r.status === "pending").length,
+        proposed: rows.filter((r) => r.status === "proposed").length,
+        total: rows.length,
+      };
+    },
+    enabled: isAdmin,
+    refetchInterval: FIVE_MIN,
+    staleTime: FIVE_MIN,
+    refetchOnWindowFocus: false,
+  });
+
   // Subscribe to live changes — invalidates queries on the server-side push,
   // not on a client poll. Eliminates idle-tab traffic.
   useSystemHealthRealtime(isAdmin);
@@ -104,6 +128,16 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
         </div>
         <div className="flex items-center gap-2">
           {health && <StatusPill status={health.status} />}
+          {(triageQuery.data?.total ?? 0) > 0 && (
+            <Button asChild size="sm" variant="outline" aria-label="Open Triage tab">
+              <Link to="/admin/system-health?tab=triage" className="gap-1.5">
+                <Wrench className="h-4 w-4" aria-hidden />
+                {triageQuery.data?.proposed
+                  ? `${triageQuery.data.proposed} fix${triageQuery.data.proposed === 1 ? "" : "es"} ready`
+                  : `${triageQuery.data?.total} to triage`}
+              </Link>
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"

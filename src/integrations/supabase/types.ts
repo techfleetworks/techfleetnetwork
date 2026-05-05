@@ -996,6 +996,42 @@ export type Database = {
         }
         Relationships: []
       }
+      error_digest_log: {
+        Row: {
+          audit_pressure: string | null
+          channel: string
+          delivered_at: string
+          digest_key: string
+          id: string
+          payload: Json
+          pending_count: number
+          proposed_count: number
+          recipient: string
+        }
+        Insert: {
+          audit_pressure?: string | null
+          channel: string
+          delivered_at?: string
+          digest_key: string
+          id?: string
+          payload?: Json
+          pending_count?: number
+          proposed_count?: number
+          recipient: string
+        }
+        Update: {
+          audit_pressure?: string | null
+          channel?: string
+          delivered_at?: string
+          digest_key?: string
+          id?: string
+          payload?: Json
+          pending_count?: number
+          proposed_count?: number
+          recipient?: string
+        }
+        Relationships: []
+      }
       exploration_cache: {
         Row: {
           created_at: string
@@ -2066,6 +2102,48 @@ export type Database = {
           scraped_at?: string
           title?: string
           url?: string
+        }
+        Relationships: []
+      }
+      known_issue_catalog: {
+        Row: {
+          accepted_at: string
+          accepted_by: string | null
+          created_at: string
+          event_type_filter: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          match_kind: string
+          pattern: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_by?: string | null
+          created_at?: string
+          event_type_filter?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          match_kind?: string
+          pattern: string
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string
+          accepted_by?: string | null
+          created_at?: string
+          event_type_filter?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          match_kind?: string
+          pattern?: string
+          reason?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4151,6 +4229,16 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_triage_state: {
+        Row: {
+          audit_id: string | null
+          error_fingerprint: string | null
+          fix_queue_id: string | null
+          silence_state: string | null
+          triage_status: string | null
+        }
+        Relationships: []
+      }
       failed_login_attempts_decrypted: {
         Row: {
           attempted_at: string | null
@@ -4387,6 +4475,14 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      discover_audit_fingerprints: {
+        Args: { p_min_occurrences?: number }
+        Returns: {
+          processed: number
+          queued: number
+          silenced: number
+        }[]
       }
       drain_notification_fanout_jobs: {
         Args: {

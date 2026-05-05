@@ -32,8 +32,11 @@ interface AuditLogEntry {
   actor_email: string | null;
   changed_fields: string[] | null;
   error_message: string | null;
+  error_fingerprint: string | null;
   created_at: string;
 }
+
+type TriageState = { triage_status: string | null; silence_state: string | null; fix_queue_id: string | null };
 
 const QUERY_TIMEOUT_MS = 10_000;
 
@@ -152,6 +155,7 @@ export default function ActivityLogPage() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [triageMap, setTriageMap] = useState<Map<string, TriageState>>(new Map());
 
   const fetchProfiles = async () => {
       const { data } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>(
@@ -189,7 +193,28 @@ export default function ActivityLogPage() {
       if (eventFilter !== "all") query = query.eq("event_type", eventFilter);
       const { data, error } = await withTimeout<{ data: unknown[] | null; error: Error | null }>(query as unknown as PromiseLike<{ data: unknown[] | null; error: Error | null }>, "Activity log load");
       if (error) throw error;
-      setEntries((data || []) as unknown as AuditLogEntry[]);
+      const rows = (data || []) as unknown as AuditLogEntry[];
+      setEntries(rows);
+
+      // Hydrate triage state for visible fingerprints (admin-only by RLS)
+      const fps = Array.from(new Set(rows.map((r) => r.error_fingerprint).filter(Boolean) as string[]));
+      if (fps.length > 0) {
+        const { data: triageRows } = await supabase
+          .from("agent_fix_queue")
+          .select("fingerprint,status,id")
+          .in("fingerprint", fps);
+        const m = new Map<string, TriageState>();
+        triageRows?.forEach((t) => {
+          m.set(t.fingerprint as string, {
+            triage_status: t.status as string,
+            silence_state: null,
+            fix_queue_id: t.id as string,
+          });
+        });
+        setTriageMap(m);
+      } else {
+        setTriageMap(new Map());
+      }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
       setLoadError(err instanceof Error ? err.message : "Activity log could not load.");
@@ -314,7 +339,30 @@ export default function ActivityLogPage() {
       cellStyle: (params) => params.value ? { color: "hsl(var(--destructive))" } : undefined,
       valueFormatter: (params) => params.value || "—",
     },
-  ], [profiles]);
+    {
+      headerName: "Triage",
+      field: "error_fingerprint",
+      width: 130,
+      valueGetter: (params) => {
+        const fp = params.data?.error_fingerprint;
+        if (!fp) return "—";
+        const t = triageMap.get(fp);
+        if (!t) return params.data?.error_message ? "queued" : "—";
+        return t.triage_status ?? "—";
+      },
+      cellRenderer: (params: { value: string }) => {
+        const v = params.value;
+        if (!v || v === "—") return v;
+        const tone =
+          v === "pending" ? "bg-destructive/10 text-destructive" :
+          v === "proposed" ? "bg-primary/10 text-primary" :
+          v === "applied" || v === "resolved" ? "bg-emerald-500/10 text-emerald-600" :
+          v === "dismissed" ? "bg-muted text-muted-foreground" :
+          "bg-muted text-foreground";
+        return `<span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${tone}">${v}</span>`;
+      },
+    },
+  ], [profiles, triageMap]);
 
   // Admin access is enforced by AdminRoute wrapper
 

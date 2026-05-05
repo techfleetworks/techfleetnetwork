@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangle, CheckCircle2, Clock, Mail, RadioTower, RefreshCw, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -189,7 +190,7 @@ export default function SystemHealthPage() {
         <StatCard label="Failure Rate" value={`${failureRate}%`} detail={`${totals.failed} failed or dead-lettered`} generatedAt={generatedAt} tone={failureRate > 0 ? "danger" : "default"} />
       </div>
 
-      <Tabs defaultValue="queues" className="space-y-4">
+      <SystemHealthTabs>
         <TabsList aria-label="System health sections">
           <TabsTrigger value="queues">Queues</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
@@ -247,7 +248,7 @@ export default function SystemHealthPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </SystemHealthTabs>
     </section>
   );
 }
@@ -292,5 +293,22 @@ function ErrorList({ errors, generatedAt }: { errors: Array<{ error_message: str
         )) : <p className="text-sm text-muted-foreground">No recent email errors in this window.</p>}
       </CardContent>
     </Card>
+  );
+}
+
+const VALID_HEALTH_TABS = ["queues","delivery","errors","triage","silent","fleety","content","audit","settings"] as const;
+
+function SystemHealthTabs({ children }: { children: React.ReactNode }) {
+  const [params, setParams] = useSearchParams();
+  const initial = params.get("tab");
+  const value = (VALID_HEALTH_TABS as readonly string[]).includes(initial ?? "") ? (initial as string) : "queues";
+  return (
+    <Tabs
+      value={value}
+      onValueChange={(v) => { params.set("tab", v); setParams(params, { replace: true }); }}
+      className="space-y-4"
+    >
+      {children}
+    </Tabs>
   );
 }
