@@ -211,6 +211,21 @@ async function writeAudit(args: WriteAuditArgs): Promise<void> {
         extraFields: args.extraFields,
       }),
     });
+
+    // Also feed the error into the triage queue (admin-only triage UI reads this).
+    // Best-effort: failure here must never throw. Skip overflow/info events —
+    // they're not actionable bugs.
+    if (args.severity !== "info" && args.eventType !== "client_error_overflow") {
+      const fp = `${args.eventType}::${fingerprint(args.message, args.source)}`;
+      await supabase.rpc("upsert_fix_queue_entry", {
+        p_fingerprint: fp,
+        p_event_type: args.eventType,
+        p_source: args.source.slice(0, 200),
+        p_error_message: truncate(args.message, MAX_MSG_LENGTH),
+        p_severity: args.severity,
+        p_sample_trace_id: args.traceId ?? null,
+      });
+    }
   } catch {
     // Telemetry must never throw.
   }
