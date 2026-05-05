@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.upsert_fix_queue_entry(TEXT,TEXT,TEXT,TEXT,TEXT,TEXT) TO authenticated;
