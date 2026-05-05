@@ -83,6 +83,114 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_fix_queue: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          dismissed_reason: string | null
+          error_message: string
+          event_type: string
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          occurrence_count: number
+          proposed_fix_files: Json
+          proposed_fix_summary: string | null
+          resolved_at: string | null
+          root_cause_hypothesis: string | null
+          sample_trace_id: string | null
+          severity: string
+          source: string
+          status: string
+          triage_cost_estimate_usd: number | null
+          triage_model: string | null
+          triage_tokens_in: number | null
+          triage_tokens_out: number | null
+          triaged_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          dismissed_reason?: string | null
+          error_message: string
+          event_type: string
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          proposed_fix_files?: Json
+          proposed_fix_summary?: string | null
+          resolved_at?: string | null
+          root_cause_hypothesis?: string | null
+          sample_trace_id?: string | null
+          severity?: string
+          source: string
+          status?: string
+          triage_cost_estimate_usd?: number | null
+          triage_model?: string | null
+          triage_tokens_in?: number | null
+          triage_tokens_out?: number | null
+          triaged_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          dismissed_reason?: string | null
+          error_message?: string
+          event_type?: string
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          proposed_fix_files?: Json
+          proposed_fix_summary?: string | null
+          resolved_at?: string | null
+          root_cause_hypothesis?: string | null
+          sample_trace_id?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          triage_cost_estimate_usd?: number | null
+          triage_model?: string | null
+          triage_tokens_in?: number | null
+          triage_tokens_out?: number | null
+          triaged_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agent_triage_budget: {
+        Row: {
+          day: string
+          id: number
+          triage_calls_used: number
+          updated_at: string
+        }
+        Insert: {
+          day?: string
+          id?: number
+          triage_calls_used?: number
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          id?: number
+          triage_calls_used?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
@@ -4263,6 +4371,7 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_triage_budget: { Args: { p_cap?: number }; Returns: boolean }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
       cleanup_two_factor_login_artifacts: { Args: never; Returns: number }
@@ -4830,6 +4939,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string; vt: number }
         Returns: boolean
       }
+      set_fix_queue_status: {
+        Args: { p_id: string; p_reason?: string; p_status: string }
+        Returns: undefined
+      }
       submit_class_for_review: {
         Args: { p_class_id: string; p_cohort_ids?: string[] }
         Returns: undefined
@@ -4844,6 +4957,17 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      upsert_fix_queue_entry: {
+        Args: {
+          p_error_message: string
+          p_event_type: string
+          p_fingerprint: string
+          p_sample_trace_id?: string
+          p_severity?: string
+          p_source: string
+        }
+        Returns: string
       }
       use_invitation: { Args: { p_token: string }; Returns: boolean }
       validate_invitation: {
