@@ -299,6 +299,8 @@ export function TriageTab() {
         </CardContent>
       </Card>
 
+      <KnownIssuePanel />
+
       <Dialog open={!!detailRow} onOpenChange={(open) => !open && setDetailRow(null)}>
         <DialogContent className="max-w-2xl">
           {detailRow && (
