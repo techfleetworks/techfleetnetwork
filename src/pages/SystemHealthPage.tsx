@@ -190,19 +190,7 @@ export default function SystemHealthPage() {
         <StatCard label="Failure Rate" value={`${failureRate}%`} detail={`${totals.failed} failed or dead-lettered`} generatedAt={generatedAt} tone={failureRate > 0 ? "danger" : "default"} />
       </div>
 
-      <TriageTabsHost />
-    </main>
-  );
-}
-
-const VALID_TABS = ["queues","delivery","errors","triage","silent","fleety","content","audit","settings"] as const;
-
-function TriageTabsHost() {
-  const [params, setParams] = useSearchParams();
-  const initial = params.get("tab");
-  const value = (VALID_TABS as readonly string[]).includes(initial ?? "") ? (initial as string) : "queues";
-  return (
-    <Tabs value={value} onValueChange={(v) => { params.set("tab", v); setParams(params, { replace: true }); }} className="space-y-4">
+      <SystemHealthTabs>
         <TabsList aria-label="System health sections">
           <TabsTrigger value="queues">Queues</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
