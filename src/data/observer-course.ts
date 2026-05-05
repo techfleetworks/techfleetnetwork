@@ -217,6 +217,37 @@ Here's your checklist to get started:
 
 You made it to the end of the Observer Handbook! Hooray! You're now ready to start your observing journey. Good luck, and remember — every expert was once a beginner.`,
       },
+      {
+        id: "obs-8",
+        title: "Activate your Observer access in Discord",
+        youtubeId: null,
+        sourceUrl:
+          "https://guide.techfleet.org/observer-portal/observer-handbook/activate-discord-access",
+        content: `**One last step — unlock the Observer channels in Discord**
+
+In Tech Fleet Discord, "roles" are like hats you wear. They tell the server who you are and what you can see. To start observing, you need two roles:
+
+1. **Projects** — gives you access to all the project team channels.
+2. **Observers** — adds you to the per-project Observer channels and to **#calling-all-observers**, where new meetings are posted every day.
+
+**The easy way (recommended)**
+
+Use the panel below to grant both roles automatically. We'll add them to your linked Discord profile in one click.
+
+**Or do it manually in Discord**
+
+If you prefer, head to the **#project-role** channel and react to grab the Projects role, then go to **#observers-get-ready** and react there to grab the Observers role.
+
+**Once your roles are active, here's what to do:**
+
+- Pick a project meeting from the **Events Calendar** in this platform.
+- Hop into the project's Discord channels to see what they're working on.
+- Watch **#calling-all-observers** each day for fresh meeting alerts.
+- Don't forget to check the **Tech Fleet Web Calendar** outside of Discord for the full meeting list.
+- Post your reflections in **#observer-reflections** as you go!
+
+Pick a path below — either choice marks this lesson complete.`,
+      },
     ],
   },
 ];
