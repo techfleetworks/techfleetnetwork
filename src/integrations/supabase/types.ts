@@ -5034,6 +5034,16 @@ export type Database = {
         }
         Returns: number
       }
+      peek_rate_limit: {
+        Args: {
+          p_action: string
+          p_block_minutes?: number
+          p_identifier: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
       process_notification_fanout_chunk: {
         Args: { p_chunk_size?: number; p_job_id: string }
         Returns: Json
@@ -5074,6 +5084,16 @@ export type Database = {
       }
       record_failed_login: {
         Args: { _email: string; _ip?: string; _user_agent?: string }
+        Returns: Json
+      }
+      record_rate_limit_failure: {
+        Args: {
+          p_action: string
+          p_block_minutes?: number
+          p_identifier: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
         Returns: Json
       }
       redact_sensitive_text: { Args: { input: string }; Returns: string }

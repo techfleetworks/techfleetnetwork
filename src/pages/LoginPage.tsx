@@ -167,10 +167,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const rateCheck = await RateLimitService.check(result.data.email, "login_attempt");
+      // PEEK only — never increment on the way in. The bucket now counts only
+      // confirmed credential rejections (recordFailure below). This prevents
+      // successful logins earlier in the same 15-minute window from triggering
+      // a "too many attempts" error on a legitimate user's first retry.
+      const rateCheck = await RateLimitService.peek(result.data.email, "login_attempt");
       if (!rateCheck.allowed) {
-        const minutes = Math.ceil(rateCheck.retry_after / 60);
-        setAuthError(`Too many login attempts. Please try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
+        setAuthError(`This account is temporarily locked after multiple failed sign-ins. Try again in ${minutes} minute${minutes > 1 ? "s" : ""}, or reset your password.`);
         setLoading(false);
         return;
       }
@@ -220,6 +224,8 @@ export default function LoginPage() {
       if (isCredentialReject) {
         const nextLockout = recordInvalidAuthAttempt();
         setLockoutState(nextLockout);
+        // Increment the SERVER-side bucket only on confirmed rejection.
+        void RateLimitService.recordFailure(result.data.email, "login_attempt").catch(() => {});
         if (nextLockout.locked) {
           setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
         } else {
@@ -287,6 +293,22 @@ export default function LoginPage() {
                 <Link to="/forgot-password" className="underline hover:no-underline">Reset password</Link>
                 <span className="mx-2" aria-hidden="true">·</span>
                 <span>Signed up with Google? Use the button above.</span>
+                {lockoutState.locked && (
+                  <>
+                    <span className="mx-2" aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      className="underline hover:no-underline"
+                      onClick={() => {
+                        clearAuthLockout();
+                        setLockoutState(getAuthLockoutState());
+                        setAuthError("");
+                      }}
+                    >
+                      Clear this device's lockout
+                    </button>
+                  </>
+                )}
               </p>
             </div>
           )}

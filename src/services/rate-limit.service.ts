@@ -43,7 +43,51 @@ const VALID_ACTIONS = new Set(["login_attempt", "signup_attempt", "password_rese
  * Fails open on any unexpected error so a transient DB blip cannot lock
  * legitimate users out of authentication.
  */
+type RpcMode = "check" | "peek" | "record_failure";
+
+async function callRpc(identifier: string, action: string, mode: RpcMode): Promise<RateLimitResult> {
+  if (!identifier || typeof identifier !== "string" || identifier.length > 255) {
+    return { allowed: true, remaining: 5, retry_after: 0 };
+  }
+  if (!VALID_ACTIONS.has(action)) {
+    return { allowed: true, remaining: 5, retry_after: 0 };
+  }
+  try {
+    const hashed = await hashIdentifier(identifier);
+    const isLogin = action === "login_attempt";
+    const fn = mode === "peek" ? "peek_rate_limit" : mode === "record_failure" ? "record_rate_limit_failure" : "check_rate_limit";
+    const { data, error } = await supabase.rpc(fn, {
+      p_identifier: hashed,
+      p_action: action,
+      p_max_attempts: isLogin ? 6 : 3,
+      p_window_minutes: 15,
+      p_block_minutes: isLogin ? 60 : 60,
+    });
+    if (error) {
+      if (isAuthThrottleCaptchaError(error) || error.message?.toLowerCase().includes("too many rapid auth attempts")) {
+        throw createAuthThrottleCaptchaError();
+      }
+      log.warn(mode, `Rate limit RPC failed for "${action}" — failing open: ${error.message}`, { action, mode }, error);
+      return { allowed: true, remaining: 5, retry_after: 0 };
+    }
+    return (data ?? { allowed: true, remaining: 5, retry_after: 0 }) as unknown as RateLimitResult;
+  } catch (err) {
+    if (isAuthThrottleCaptchaError(err)) throw err;
+    log.error(mode, `Unexpected error during rate limit ${mode} for "${action}" — failing open`, { action, mode }, err);
+    return { allowed: true, remaining: 5, retry_after: 0 };
+  }
+}
+
 export const RateLimitService = {
+  /** Read-only check — does NOT increment the counter. Use before authenticating. */
+  async peek(identifier: string, action: string): Promise<RateLimitResult> {
+    return callRpc(identifier, action, "peek");
+  },
+  /** Record a confirmed failure — increments and may block. Use ONLY after a real auth rejection. */
+  async recordFailure(identifier: string, action: string): Promise<RateLimitResult> {
+    return callRpc(identifier, action, "record_failure");
+  },
+  /** Legacy check-and-increment. Prefer peek() + recordFailure() for login flows. */
   async check(identifier: string, action: string): Promise<RateLimitResult> {
     log.debug("check", `Checking rate limit for action "${action}"`, { action });
 
