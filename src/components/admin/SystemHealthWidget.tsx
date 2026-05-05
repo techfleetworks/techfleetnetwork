@@ -1,9 +1,11 @@
 import { memo } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
-import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert, Wrench } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type SystemHealthState, type ErrorFingerprint, type RemediationRule } from "@/services/system-health.service";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
