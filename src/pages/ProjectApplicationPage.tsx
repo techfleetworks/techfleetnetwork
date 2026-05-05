@@ -163,7 +163,7 @@ export default function ProjectApplicationPage() {
         .from("profiles")
         .select("display_name, first_name, last_name")
         .eq("user_id", project!.coordinator_id!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
