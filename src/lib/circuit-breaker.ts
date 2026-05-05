@@ -109,6 +109,7 @@ export class CircuitBreaker {
     }
 
     this.failureCount++;
+    this.recoveryAttempts++;
     this.lastFailureTime = now;
 
     if (this.failureCount >= this.failureThreshold) {
