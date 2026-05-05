@@ -100,6 +100,10 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
         consecutiveFailuresRef.current = 0;
         setTransientError(null);
         setRetrySeconds(0);
+        // Cloudflare returned a real token → unblock our local fetch interceptor.
+        // Supabase still verifies the token server-side via the captchaToken option,
+        // so this marker only governs the client-side defense-in-depth gate.
+        markLoginCaptchaVerified();
         onTokenChange(token);
       },
       "expired-callback": () => {
