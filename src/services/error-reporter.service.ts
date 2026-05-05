@@ -363,6 +363,7 @@ function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
 }
 
 function isSuppressed(msg: string): boolean {
+  if (isEmptyRejection(msg)) return true;
   return SUPPRESSED_PATTERNS.some((p) => msg.includes(p));
 }
 
@@ -371,6 +372,8 @@ export function installGlobalErrorReporter() {
     const msg = formatError(event.error ?? event.message);
     if (isOpaqueScriptError(event, msg)) return;
     if (isSuppressed(msg)) return;
+    // Suppress errors whose source is a browser extension URL.
+    if (event.filename && /^(chrome|moz|safari-web)-extension:\/\//.test(event.filename)) return;
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
       : "window.onerror";
