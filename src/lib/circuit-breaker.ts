@@ -86,9 +86,18 @@ export class CircuitBreaker {
   private onSuccess() {
     if (this.state === "HALF_OPEN") {
       log.info("execute", `Circuit "${this.name}" probe succeeded — closing circuit`);
+      // Lane 2 self-heal: emit external_api_recovered to audit_log so the
+      // triage digest can show "Discord flaked Nx, all auto-recovered".
+      // Lazy import to keep this module dependency-free at boot time.
+      void import("@/services/error-reporter.service")
+        .then(({ reportRecovery }) =>
+          reportRecovery(this.name, { attempts: this.recoveryAttempts || this.failureCount }),
+        )
+        .catch(() => undefined);
     }
     this.state = "CLOSED";
     this.failureCount = 0;
+    this.recoveryAttempts = 0;
   }
 
   private onFailure() {
