@@ -1,10 +1,41 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef, type ReactNode } from "react";
+import { toast } from "sonner";
 import { isSafeRedirectUrl } from "@/lib/security";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
 import type { User, Session } from "@supabase/supabase-js";
+
+/**
+ * One-time "linked Google to your existing account" toast.
+ * Triggered when an OAuth sign-in lands on a user that ALREADY has a password
+ * identity — meaning Supabase auto-linked Google to a pre-existing email/password
+ * account. Reassures the user that nothing was duplicated. Shown at most once
+ * per user_id, persisted in localStorage.
+ */
+const OAUTH_LINK_TOAST_KEY = "tfn_oauth_link_toast_shown_v1";
+function maybeShowGoogleLinkToast(currentUser: User) {
+  try {
+    const identities = (currentUser as unknown as { identities?: Array<{ provider?: string }> }).identities;
+    if (!Array.isArray(identities) || identities.length < 2) return;
+    const providers = new Set(identities.map((i) => (i.provider ?? "").toLowerCase()));
+    if (!providers.has("google") || !providers.has("email")) return;
+
+    const raw = localStorage.getItem(OAUTH_LINK_TOAST_KEY);
+    const shown: string[] = raw ? JSON.parse(raw) : [];
+    if (shown.includes(currentUser.id)) return;
+
+    toast.success(
+      "Linked Google to your existing account. You can now sign in with either your password or Google.",
+      { duration: 30000, position: "top-center" },
+    );
+    shown.push(currentUser.id);
+    localStorage.setItem(OAUTH_LINK_TOAST_KEY, JSON.stringify(shown.slice(-50)));
+  } catch {
+    /* non-critical */
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -184,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const p = await fetchProfile(session.user.id);
             if (_event === "SIGNED_IN") {
               await syncOAuthProfile(session.user, p);
+              maybeShowGoogleLinkToast(session.user);
             }
           }, 0);
         } else {
