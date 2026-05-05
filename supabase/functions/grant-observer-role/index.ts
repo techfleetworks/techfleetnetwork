@@ -76,18 +76,18 @@ serve(async (req) => {
     return json({ error: "Missing confirm:true" }, 400);
   }
 
-  // Rate limit per user (5/hr)
+  // Inline rate limit: max 5 grant attempts (any outcome) per user per hour.
   try {
-    const { data: rl } = await admin.rpc("check_rate_limit", {
-      p_identifier: `grant-observer-role:${user.id}`,
-      p_action: "grant_observer_role",
-      p_max_attempts: 5,
-      p_window_minutes: 60,
-      p_block_minutes: 60,
-    });
-    if (rl && typeof rl === "object" && (rl as Record<string, unknown>).allowed === false) {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("audit_log")
+      .select("id", { head: true, count: "exact" })
+      .eq("user_id", user.id)
+      .eq("table_name", "observer_role_optins")
+      .gte("created_at", oneHourAgo);
+    if ((count ?? 0) >= 5) {
       await audit(admin, user.id, "observer_role_grant_rate_limited");
-      return json({ error: "Rate limit exceeded. Try again later." }, 429);
+      return json({ error: "Too many attempts. Please try again later." }, 429);
     }
   } catch (e) {
     log.warn("ratelimit", `rate-limit check failed [${requestId}]`, {}, e as Error);
