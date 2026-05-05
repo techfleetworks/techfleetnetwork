@@ -226,6 +226,7 @@ export default function SystemHealthPage() {
         <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
+        <TabsContent value="audit"><AuditPressureTab /></TabsContent>
         <TabsContent value="settings">
           <Card>
             <CardHeader>
