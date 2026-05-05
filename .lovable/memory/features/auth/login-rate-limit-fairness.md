@@ -1,39 +1,38 @@
 ---
 name: Login rate limit fairness
-description: Login rate limiter peeks pre-auth and only increments on confirmed credential rejections; UI offers a device-lockout reset link
+description: Server-side peek/record split + silent device-lockout auto-heal so legitimate users never see "too many attempts" or technical recovery controls
 type: feature
 ---
 
-# Login rate limit fairness (LCL-RL-001..003)
+# Login rate limit fairness (LCL-RL-001..006)
 
 ## Problem
-Users reported "too many attempts" after a single retry. Root cause: the
-client called `check_rate_limit` (increments) before authenticating, so
-every attempt — successful OR failed — consumed a slot in the 6/15min
-bucket. Combined with the client-side `sessionStorage` progressive lockout
-(`tfn:auth-progressive-lockout`), prior successful logins or stale state
-could pre-block the very first visible retry.
+Users reported "too many attempts" after a single retry. Two compounding causes:
+1. The client called `check_rate_limit` (which increments) BEFORE authenticating, so successful logins consumed bucket slots.
+2. The device-side `sessionStorage` lockout (`tfn:auth-progressive-lockout`) persisted across page loads and could pre-block a returning user — and the only documented recovery was "open DevTools and delete the key", which is unacceptable UX.
 
 ## Fix
-1. **Two new RPCs** in public schema (security definer, search_path locked):
-   - `peek_rate_limit(identifier, action, ...)` — read-only check, no increment.
-   - `record_rate_limit_failure(identifier, action, ...)` — increments via
-     existing `check_rate_limit` body; semantics unchanged.
-2. **`RateLimitService`** exposes `peek()` and `recordFailure()`. Legacy
-   `check()` retained for non-login flows but should be replaced over time.
-3. **`LoginPage`** uses `peek()` pre-auth. Server-side `recordFailure()` is
-   only invoked inside the credential-reject branch (alongside the
-   client-side `recordInvalidAuthAttempt()` for the device lockout).
-4. **Recovery UI**: when locked, the auth banner shows a
-   "Clear this device's lockout" inline link that calls `clearAuthLockout()`
-   so users blocked by stale sessionStorage state can recover without
-   restarting the browser.
+
+### Server bucket — fair counting
+- New RPC `peek_rate_limit(...)` — read-only check, no increment.
+- New RPC `record_rate_limit_failure(...)` — increments via the existing `check_rate_limit` body.
+- `RateLimitService` exposes `peek()` and `recordFailure()`. Legacy `check()` remains for non-login flows.
+- `LoginPage` peeks pre-auth; only `recordFailure()` runs in the credential-reject branch.
+
+### Device lockout — silent self-healing (no user-visible recovery UI)
+- `maybeAutoHealAuthLockout()` runs on `LoginPage` mount. If the stored lockout has ≤60s remaining or is malformed, it's deleted silently.
+- `resetAuthLockoutForEmailChange()` clears the device counter when the user types a different email than the one tied to the prior failures.
+- The "Clear this device's lockout" link has been **removed** — users should never see internal recovery controls. The server-side bucket (cross-device, hashed-email keyed) remains the real brute-force defense.
+- A genuinely-earned recent lockout (>60s remaining) still serves out its countdown.
 
 ## Buckets
-- Login: 6 attempts / 15 min, 60 min block (server). Device: 5 / 10 min, escalating up to 5 min (client).
-- Successful logins also clear both via `clearAuthLockout()` + `clearLoginCaptcha()`.
+- Login server: 6 attempts / 15 min, 60 min block.
+- Login device: 5 / 10 min, escalating up to 5 min — but auto-healed on mount unless freshly earned.
 
 ## BDD
 - LCL-RL-001 — Successful logins do not consume the failure bucket
 - LCL-RL-002 — Confirmed bad password increments the server bucket once
-- LCL-RL-003 — Locked-out user can clear device lockout
+- LCL-RL-003 — Locked-out user can clear device lockout (superseded by auto-heal; kept for history)
+- LCL-RL-004 — Stale device lockout auto-heals on page load
+- LCL-RL-005 — Switching email clears the prior device counter
+- LCL-RL-006 — Active lockout earned this session is preserved

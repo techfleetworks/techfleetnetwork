@@ -17,7 +17,7 @@ import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha } from "@/lib/auth-captcha";
 import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
-import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, recordInvalidAuthAttempt } from "@/lib/auth-lockout";
+import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 
@@ -107,6 +107,26 @@ export default function LoginPage() {
       sessionStorage.setItem("auth_redirect", from);
     }
   }, [from]);
+
+  // Auto-heal stale device-side lockouts on mount. Users should never have
+  // to clear sessionStorage by hand — see auth-lockout.ts for the security
+  // rationale (server bucket is the real brute-force defense).
+  useEffect(() => {
+    maybeAutoHealAuthLockout();
+    setLockoutState(getAuthLockoutState());
+  }, []);
+
+  // Track which email the device counter is currently associated with.
+  // Switching accounts = different rate-limit context, so clear silently.
+  const lastFailedEmailRef = useRef<string>("");
+  useEffect(() => {
+    const trimmed = email.trim().toLowerCase();
+    if (lastFailedEmailRef.current && trimmed && trimmed !== lastFailedEmailRef.current) {
+      resetAuthLockoutForEmailChange();
+      lastFailedEmailRef.current = "";
+      setLockoutState(getAuthLockoutState());
+    }
+  }, [email]);
 
   useEffect(() => {
     if (!lockoutState.locked) return;
@@ -224,6 +244,7 @@ export default function LoginPage() {
       if (isCredentialReject) {
         const nextLockout = recordInvalidAuthAttempt();
         setLockoutState(nextLockout);
+        lastFailedEmailRef.current = result.data.email.trim().toLowerCase();
         // Increment the SERVER-side bucket only on confirmed rejection.
         void RateLimitService.recordFailure(result.data.email, "login_attempt").catch(() => {});
         if (nextLockout.locked) {
@@ -293,22 +314,6 @@ export default function LoginPage() {
                 <Link to="/forgot-password" className="underline hover:no-underline">Reset password</Link>
                 <span className="mx-2" aria-hidden="true">·</span>
                 <span>Signed up with Google? Use the button above.</span>
-                {lockoutState.locked && (
-                  <>
-                    <span className="mx-2" aria-hidden="true">·</span>
-                    <button
-                      type="button"
-                      className="underline hover:no-underline"
-                      onClick={() => {
-                        clearAuthLockout();
-                        setLockoutState(getAuthLockoutState());
-                        setAuthError("");
-                      }}
-                    >
-                      Clear this device's lockout
-                    </button>
-                  </>
-                )}
               </p>
             </div>
           )}

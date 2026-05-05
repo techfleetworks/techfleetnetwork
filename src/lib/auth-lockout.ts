@@ -82,6 +82,38 @@ export function clearAuthLockout() {
   }
 }
 
+/**
+ * Auto-heal on LoginPage mount. The device-side lockout exists only to
+ * slow a single attacker session that's hammering the form right now —
+ * the server-side bucket (peek_rate_limit / record_rate_limit_failure)
+ * is the real brute-force defense and is unaffected by this. So on a
+ * fresh page load we silently drop any lockout with ≤60s remaining (or a
+ * malformed blob). A user who genuinely just earned a 5-minute lockout
+ * still serves it; a returning user from yesterday gets a clean slate.
+ */
+export function maybeAutoHealAuthLockout(now = Date.now()): void {
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_LOCKOUT_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Partial<StoredAuthLockout>;
+    const lockedUntil = typeof parsed.lockedUntil === "number" ? parsed.lockedUntil : 0;
+    if (lockedUntil - now <= 60_000) {
+      window.sessionStorage.removeItem(AUTH_LOCKOUT_KEY);
+    }
+  } catch {
+    try { window.sessionStorage.removeItem(AUTH_LOCKOUT_KEY); } catch { /* noop */ }
+  }
+}
+
+/**
+ * Switching the email being attempted means the user is targeting a
+ * different account — the device counter for the previous account is no
+ * longer meaningful. Clear silently.
+ */
+export function resetAuthLockoutForEmailChange(): void {
+  clearAuthLockout();
+}
+
 export function formatAuthLockoutMessage(seconds: number): string {
   if (seconds <= 0) return "Please try again.";
   const minutes = Math.floor(seconds / 60);
