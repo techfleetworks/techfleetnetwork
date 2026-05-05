@@ -79,6 +79,13 @@ Deno.serve(async (req) => {
     .select("*", { count: "exact", head: true })
     .gte("created_at", yesterdayIso);
 
+  // Lane 2 self-heal counter — how many transient failures auto-recovered
+  const { count: recovered24h } = await supabase
+    .from("audit_log")
+    .select("*", { count: "exact", head: true })
+    .eq("event_type", "external_api_recovered")
+    .gte("created_at", yesterdayIso);
+
   const { data: budget } = await supabase
     .from("agent_triage_budget")
     .select("triage_calls_used,day")
@@ -95,7 +102,7 @@ Deno.serve(async (req) => {
   if (!isQuietDay && DISCORD_WEBHOOK) {
     const lines = [
       `**Daily Triage Digest — ${todayStr}**`,
-      `🔴 Pending: **${pendingCount}**  ·  💡 Proposed: **${proposedCount}**  ·  ✅ Resolved 24h: **${resolvedYesterday ?? 0}**`,
+      `🔴 Pending: **${pendingCount}**  ·  💡 Proposed: **${proposedCount}**  ·  ✅ Resolved 24h: **${resolvedYesterday ?? 0}**  ·  🔁 Self-recovered: **${recovered24h ?? 0}**`,
       `📊 Audit volume 24h: **${(audit24h ?? 0).toLocaleString()}**  ·  Pressure: **${auditPressure}**  ·  AI budget: ${triageBudgetUsed}/20`,
       ...(topItems.length
         ? ["", "**Top open errors:**", ...topItems.slice(0, 5).map((it) =>
