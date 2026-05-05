@@ -155,6 +155,7 @@ export default function ActivityLogPage() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [triageMap, setTriageMap] = useState<Map<string, TriageState>>(new Map());
 
   const fetchProfiles = async () => {
       const { data } = await withTimeout<{ data: Array<{ user_id: string; email: string; first_name: string; last_name: string; display_name: string }> | null }>(
