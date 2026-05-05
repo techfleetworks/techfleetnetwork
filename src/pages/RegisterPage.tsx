@@ -80,6 +80,23 @@ export default function RegisterPage() {
     }
   }, [redirectParam]);
 
+  // Auto-heal stale device-side lockouts on mount (shared with LoginPage).
+  useEffect(() => {
+    maybeAutoHealAuthLockout();
+    setLockoutState(getAuthLockoutState());
+  }, []);
+
+  // Switching emails = different account context; clear stale device counter.
+  const lastFailedEmailRef = (useState({ value: "" })[0]) as { value: string };
+  useEffect(() => {
+    const trimmed = email.trim().toLowerCase();
+    if (lastFailedEmailRef.value && trimmed && trimmed !== lastFailedEmailRef.value) {
+      resetAuthLockoutForEmailChange();
+      lastFailedEmailRef.value = "";
+      setLockoutState(getAuthLockoutState());
+    }
+  }, [email, lastFailedEmailRef]);
+
   useEffect(() => {
     if (!lockoutState.locked) return;
     const timer = window.setInterval(() => setLockoutState(getAuthLockoutState()), 1_000);
