@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from "react";
+import { reportError } from "@/services/error-reporter.service";
 
 /**
  * Wraps React.lazy with multi-stage recovery from stale-chunk errors that occur
