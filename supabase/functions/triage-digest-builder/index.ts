@@ -199,3 +199,55 @@ function json(body: unknown, status = 200) {
 type Props = {
   auditPressure?: 'none' | 'soft' | 'medium' | 'hard';
 };
+
+// ---- Plan markdown builder -------------------------------------------------
+// Embedded inline in the email body (Lovable Emails has no attachment support).
+// Hard-capped so payloads stay well under provider limits.
+const PLAN_MAX_BYTES = 120_000;
+
+function buildPlanMarkdown(date: string, open: any[], resolved: any[]): string {
+  const lines: string[] = [];
+  lines.push(`# Tech Fleet Triage Plan — ${date}`);
+  lines.push("");
+  lines.push(`_Open: ${open.length} · Resolved 24h: ${resolved.length}_`);
+  lines.push("");
+  lines.push(`## Open (pending / triaged / proposed)`);
+  if (open.length === 0) lines.push("_None — queue is clear._");
+  else for (const r of open) lines.push(...renderEntry(r));
+  lines.push("");
+  lines.push(`## Resolved / applied / dismissed in last 24h`);
+  if (resolved.length === 0) lines.push("_None._");
+  else for (const r of resolved) lines.push(...renderEntry(r));
+
+  let out = lines.join("\n");
+  if (out.length > PLAN_MAX_BYTES) {
+    out = out.slice(0, PLAN_MAX_BYTES) + "\n\n_… truncated — see /admin/system-health?tab=triage for full list._";
+  }
+  return out;
+}
+
+function renderEntry(r: any): string[] {
+  const out: string[] = [];
+  out.push("");
+  out.push(`### \`${r.event_type}\` — ${r.fingerprint}`);
+  out.push(`- **Status:** ${r.status} · **Severity:** ${r.severity} · **Occurrences:** ${r.occurrence_count}`);
+  out.push(`- **Source:** ${(r.source ?? "").slice(0, 200)}`);
+  if (r.first_seen_at) out.push(`- **First seen:** ${r.first_seen_at}`);
+  if (r.last_seen_at) out.push(`- **Last seen:** ${r.last_seen_at}`);
+  if (r.resolved_at) out.push(`- **Resolved at:** ${r.resolved_at}`);
+  if (r.error_message) {
+    out.push(`- **Error:** \`${String(r.error_message).slice(0, 400).replace(/`/g, "'")}\``);
+  }
+  if (r.root_cause_hypothesis) out.push(`- **Root cause hypothesis:** ${r.root_cause_hypothesis}`);
+  if (r.proposed_fix_summary) out.push(`- **Proposed fix:** ${r.proposed_fix_summary}`);
+  const files = Array.isArray(r.proposed_fix_files) ? r.proposed_fix_files : [];
+  if (files.length > 0) {
+    out.push(`- **Files:**`);
+    for (const f of files.slice(0, 20)) {
+      const path = f?.path ?? f?.file ?? "(unknown)";
+      const summary = f?.change_summary ?? f?.summary ?? "";
+      out.push(`  - \`${path}\`${summary ? ` — ${summary}` : ""}`);
+    }
+  }
+  return out;
+}
