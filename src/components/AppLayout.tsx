@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, Suspense, lazy } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
@@ -55,7 +55,11 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
-import { FleetyChatWidget } from "./FleetyChatWidget";
+// Heavy chat widget — lazy-loaded and skipped on save-data / 2g connections
+const FleetyChatWidget = lazy(() =>
+  import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
+);
+import { useNetworkQuality } from "@/hooks/use-network-quality";
 import { AdminTwoFactorSetupBanner } from "./AdminTwoFactorSetupBanner";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
