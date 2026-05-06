@@ -12,7 +12,6 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { TeacherRoute } from "@/components/TeacherRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { SelfHealingRunner } from "@/components/SelfHealingRunner";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
@@ -28,6 +27,10 @@ import NotFound from "./pages/NotFound";
 // Lazily loaded — Index/Register only needed on their own routes
 const Index = lazy(() => import("./pages/Index"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+
+// Heavy non-critical widgets — defer until after first paint to free up the
+// initial JS budget on slow networks.
+const PWAInstallPrompt = lazy(() => import("./components/PWAInstallPrompt").then(m => ({ default: m.PWAInstallPrompt })));
 
 // Lazily loaded routes (reduce initial JS bundle)
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -160,7 +163,7 @@ const App = () => (
               <AppLayout>
                 <IdleTimeoutGuard />
                 <SelfHealingRunner />
-                <PWAInstallPrompt />
+                <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
                 <OfflineBanner />
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
