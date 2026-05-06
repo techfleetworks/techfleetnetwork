@@ -26,12 +26,15 @@ const HOURLY_CAP = 3;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.includes(SERVICE_ROLE)) {
-    return json({ error: "unauthorized" }, 401);
-  }
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) return json({ error: "unauthorized" }, 401);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
+  if (claimsErr || claims?.claims?.role !== "service_role") {
+    return json({ error: "unauthorized" }, 401);
+  }
 
   // Hourly cap check
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
