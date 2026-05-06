@@ -35,13 +35,17 @@ interface QueueRow {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role gate: only the cron job (or admins via service-role key) may call.
+  // Service-role gate: validate via signing keys so any valid service_role JWT works
+  // (resilient to key rotation — cron's stored token may differ from current env value).
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.includes(SERVICE_ROLE)) {
-    return json({ error: "unauthorized" }, 401);
-  }
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) return json({ error: "unauthorized" }, 401);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
+  if (claimsErr || claims?.claims?.role !== "service_role") {
+    return json({ error: "unauthorized" }, 401);
+  }
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const yesterdayIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
