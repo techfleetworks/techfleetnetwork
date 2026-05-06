@@ -49,8 +49,12 @@ interface CourseCard {
   otherCompleters?: number;
 }
 
-function formatCompleters(n: number): string {
-  if (n <= 0) return "Be the first to complete this";
+function formatCompleters(n: number, viewerCompleted: boolean): string {
+  if (n <= 0) {
+    return viewerCompleted
+      ? "You're the first to complete this"
+      : "Be the first to complete this";
+  }
   if (n === 1) return "Completed by 1 other member";
   return `Completed by ${n.toLocaleString()} other members`;
 }
