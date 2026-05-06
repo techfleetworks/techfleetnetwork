@@ -25,8 +25,11 @@ export interface NetworkStats {
   projects_previously_completed: number;
 }
 
-const CACHE_KEY = "tfn:network-stats:last-known:v1";
-const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// v2 — cache key bumped 2026-05-06 to evict stale payloads that were sticking
+// around for up to 7 days and making the widget look frozen ("1 sign-up today").
+const CACHE_KEY = "tfn:network-stats:last-known:v2";
+const LEGACY_CACHE_KEYS = ["tfn:network-stats:last-known:v1"];
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day — fallback only, not a freshness window
 
 export interface CachedNetworkStats {
   stats: NetworkStats;
@@ -36,6 +39,9 @@ export interface CachedNetworkStats {
 function readCache(): CachedNetworkStats | null {
   if (typeof window === "undefined") return null;
   try {
+    // Best-effort eviction of any prior cache versions so users never see numbers
+    // older than the current schema/contract.
+    for (const legacy of LEGACY_CACHE_KEYS) window.localStorage.removeItem(legacy);
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedNetworkStats;
