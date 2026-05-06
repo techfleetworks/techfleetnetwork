@@ -39,6 +39,9 @@ export interface CachedNetworkStats {
 function readCache(): CachedNetworkStats | null {
   if (typeof window === "undefined") return null;
   try {
+    // Best-effort eviction of any prior cache versions so users never see numbers
+    // older than the current schema/contract.
+    for (const legacy of LEGACY_CACHE_KEYS) window.localStorage.removeItem(legacy);
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedNetworkStats;
