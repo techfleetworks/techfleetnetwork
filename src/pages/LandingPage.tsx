@@ -24,6 +24,17 @@ function NetworkActivityFallback() {
 }
 
 export default function LandingPage() {
+  // Inject LCP-image preload only on the landing route, not globally,
+  // so /login, /dashboard, etc. don't pay 125 KB they never render.
+  if (typeof document !== "undefined" && !document.getElementById("hero-space-preload")) {
+    const link = document.createElement("link");
+    link.id = "hero-space-preload";
+    link.rel = "preload";
+    link.as = "image";
+    link.href = heroImage;
+    (link as HTMLLinkElement & { fetchPriority?: string }).fetchPriority = "high";
+    document.head.appendChild(link);
+  }
   return (
     <div>
       {/* Hero Section */}
