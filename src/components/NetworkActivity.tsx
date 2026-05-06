@@ -89,11 +89,12 @@ interface NetworkActivityProps {
 
 export const NetworkActivity = memo(function NetworkActivity({ showMap = true, showActivity = true }: NetworkActivityProps) {
   const { data: stats, isError, isLoading: loading } = useQuery({
-    queryKey: ["network-stats"],
+    queryKey: ["network-stats", "v2"],
     queryFn: () => StatsService.getNetworkStats(),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000, // 1 min — keep numbers fresh on the landing page
+    refetchInterval: 2 * 60 * 1000, // refresh every 2 min while mounted
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Graceful degradation: if the live RPC failed and the service-layer cache
