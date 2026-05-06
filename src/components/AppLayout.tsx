@@ -236,6 +236,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const isMobile = useIsMobile();
+  const { isSlow } = useNetworkQuality();
+  const fleetyWidget = isSlow ? null : (
+    <Suspense fallback={null}><FleetyChatWidget /></Suspense>
+  );
   useAnnouncementRealtime();
   useNotificationRealtime();
 
