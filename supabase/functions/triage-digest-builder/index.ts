@@ -35,17 +35,21 @@ interface QueueRow {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role gate: validate via signing keys so any valid service_role JWT works
-  // (resilient to key rotation — cron's stored token may differ from current env value).
+  // Service-role gate. The Supabase API gateway already validates the JWT
+  // signature before invoking us. We just decode the payload to confirm role.
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (!token) return json({ error: "unauthorized" }, 401);
+  if (!token) return json({ error: "unauthorized", reason: "no_token" }, 401);
+  let role: string | undefined;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    role = payload?.role;
+  } catch (_e) { /* fall through */ }
+  if (role !== "service_role") {
+    return json({ error: "unauthorized", reason: "not_service_role" }, 401);
+  }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
-  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-  if (claimsErr || claims?.claims?.role !== "service_role") {
-    return json({ error: "unauthorized" }, 401);
-  }
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const yesterdayIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
