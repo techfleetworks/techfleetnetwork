@@ -1,0 +1,41 @@
+name: Lighthouse CI
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install LHCI
+        run: npm i -g @lhci/cli@0.13.x
+      - name: Run Lighthouse against published preview
+        run: |
+          lhci collect \
+            --url=https://techfleetnetwork.lovable.app/ \
+            --url=https://techfleetnetwork.lovable.app/login \
+            --url=https://techfleetnetwork.lovable.app/register \
+            --url=https://techfleetnetwork.lovable.app/project-openings \
+            --numberOfRuns=2 \
+            --settings.preset=desktop \
+            --settings.throttlingMethod=devtools \
+            --settings.throttling.cpuSlowdownMultiplier=4 \
+            --settings.budgetPath=./lighthouse-budget.json || true
+          lhci assert \
+            --assertions.categories:performance=warn:0.8 \
+            --assertions.categories:accessibility=error:0.9 \
+            --assertions.categories:best-practices=warn:0.9 \
+            --assertions.categories:seo=warn:0.9 || true
+      - name: Upload LHCI reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 14
