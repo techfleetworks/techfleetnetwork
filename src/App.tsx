@@ -21,11 +21,13 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
 
-// Eagerly loaded routes (critical path)
-import Index from "./pages/Index";
+// Eagerly loaded routes (critical path — keep small to minimize initial JS on slow networks)
 import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
 import NotFound from "./pages/NotFound";
+
+// Lazily loaded — Index/Register only needed on their own routes
+const Index = lazy(() => import("./pages/Index"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 
 // Lazily loaded routes (reduce initial JS bundle)
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));

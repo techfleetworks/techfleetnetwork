@@ -1,86 +1,92 @@
-## Why signups for existing emails look broken today
+## Why the login page (and the rest of the app) is slow
 
-Supabase Auth, for anti-enumeration reasons, does **not** return an error when someone signs up with an email that already exists. Instead it returns a fake "success" payload: `data.user` is populated but `data.user.identities` is an empty array and `data.session` is null. No confirmation email is sent.
+I profiled the live preview and inspected the build config, root HTML, route graph, and asset folders. The 4s+ Lighthouse score isn't one bug — it's a stack of overlapping costs that compound on 3G / high-latency networks.
 
-Our `AuthService.signUp` treats that as success → user lands on the "Check your email" screen → never receives anything → assumes the site is broken. (This is also why "morgan@trycatalog.com" looked like nothing happened earlier — the auth row was an orphan ghost and Supabase silently no-op'd the signup.)
+### What I measured on `/login`
 
-The orphan side is now fixed by the previous migration. The remaining piece is to **detect the silent-duplicate response and tell the user clearly**.
+- **122 resources** loaded just to render a login form (most are dev-mode Vite chunks; production is lighter, but still heavy).
+- **Largest shipped JS**: `lucide-react` (158 KB), a Vite vendor chunk (139 KB), `@supabase/supabase-js` (94 KB), `zod` (74 KB) — all pulled into the initial path.
+- **Hero image** `hero-space.png` is **125 KB PNG**, preloaded with `fetchpriority="high"` from `/login` even though it's only used on the landing page.
+- **`src/assets/` totals ~4.8 MB** of unoptimized PNGs (welcome slides 200–415 KB each, badges 160–270 KB each). `public/images/` has 196 KB and 265 KB SVGs.
+- **3 third-party scripts in `<head>`** before our app code: CookieYes (render-blocking), Google Tag Manager, Microsoft Clarity. CookieYes alone forces a synchronous fetch before parsing continues.
+- **Google Fonts** loaded from `fonts.googleapis.com` with 7 Inter weights + 4 JetBrains Mono weights = extra round trips.
+- **`src/index.css` is 478 lines** and ships as one stylesheet (no critical-CSS split).
+- **Eager-imported routes** in `App.tsx`: `Index`, `LoginPage`, `RegisterPage`, `NotFound` — `RegisterPage` (25 KB) is downloaded on `/login` even though the user hasn't clicked "Register" yet.
+- **AuthContext + AppLayout + IdleTimeoutGuard + SelfHealingRunner + AnalyticsTracker + RouteChangeReloader + PWAInstallPrompt + OfflineBanner** all mount on every route, including unauthenticated ones.
 
-## Changes
+### Why this hurts on 3G specifically
 
-### 1. `src/services/auth.service.ts` — detect existing-account response
+- 3G effective bandwidth ≈ 400 Kbps, RTT ≈ 400 ms. Every extra request adds ~400 ms of latency before the first byte.
+- 1.2 MB of initial JS (gzipped ~350 KB) ≈ **7+ seconds** to download on 3G before parse/execute.
+- Render-blocking third-party scripts in `<head>` block FCP for the entire round trip to those CDNs.
+- Large unoptimized PNGs dominate LCP on slow links (a 125 KB PNG is ~2.5 s on 3G).
 
-After the retry loop, before logging success, add:
+---
 
-```ts
-const looksLikeExistingUser =
-  data?.user &&
-  Array.isArray(data.user.identities) &&
-  data.user.identities.length === 0 &&
-  !data.session;
-if (looksLikeExistingUser) {
-  void logAccountActivity("signup_blocked_existing_account", { email: safeEmail });
-  const err: any = new Error("ACCOUNT_EXISTS");
-  err.code = "ACCOUNT_EXISTS";
-  throw err;
-}
-```
+## Plan of action
 
-Also keep the existing string-match branch ("already registered" / "user already") for the rare case Supabase does return an explicit error — map it to the same `ACCOUNT_EXISTS` code instead of a string so the UI can switch on it.
+Five phases, ordered by impact-per-effort. Each phase is shippable on its own and measurable with Lighthouse.
 
-### 2. `src/pages/RegisterPage.tsx` — friendly UI when account exists
+### Phase 1 — Critical path (biggest wins, ~1–2 hours)
 
-In the `catch` block, branch before the generic error path:
+1. **Defer all third-party scripts.** Move CookieYes, GTM, and Clarity to load after `window.load` (or on first user interaction). They contribute zero to LCP and currently block parsing.
+2. **Stop eagerly loading `RegisterPage` and `Index` on `/login`.** Convert them to `lazyWithRetry` like the rest. Keep only `LoginPage` + `NotFound` eager.
+3. **Remove the hero-image preload from global `index.html`.** Move that `<link rel="preload">` into the landing page only (via a `useEffect` or `react-helmet`-style head injection), so `/login`, `/dashboard`, etc. don't pay 125 KB they never use.
+4. **Tree-shake `lucide-react`.** Audit imports — many components destructure 5+ icons. Use the per-icon import path (`lucide-react/dist/esm/icons/eye`) or switch to `@iconify/react` for on-demand icons. Should drop ~120 KB initial JS.
+5. **Reduce font weights.** Drop from 7 Inter weights to 3 (400, 500, 700). JetBrains Mono → 2 weights (400, 600). Saves ~80 KB and 1 fewer connection if we self-host.
 
-```ts
-if (err?.code === "ACCOUNT_EXISTS") {
-  setExistingAccountEmail(result.data.email);
-  setLoading(false);
-  return; // do NOT consume a rate-limit slot, do NOT show generic error
-}
-```
+**Expected result**: Lighthouse Performance jumps from ~50 → ~80 on `/login`. LCP drops below 2.5 s on Fast 3G.
 
-Render a dedicated card above the form (replaces the red error banner) when `existingAccountEmail` is set:
+### Phase 2 — Asset optimization (~1 hour, mostly automated)
 
-> **You already have an account**
-> An account already exists for `morgan@trycatalog.com`.
->
-> [Sign in instead] → `/login?email=...`
-> [Reset your password] → `/forgot-password?email=...`
->
-> Wrong email? [Use a different one] (clears the state)
+1. **Convert all PNGs in `src/assets/` to AVIF + WebP** with PNG fallback via `<picture>`. Welcome slides at 415 KB → ~40 KB AVIF.
+2. **Compress the giant SVGs** (`landscape.svg` 196 KB, `quest-tv.svg` 265 KB, `control-center.svg` 84 KB) with SVGO. Typical 60–80% reduction.
+3. **Add `loading="lazy"` and explicit `width`/`height`** to every `<img>` outside the LCP element. Prevents layout shift and defers off-screen image fetches.
+4. **Generate responsive `srcset`** for hero/welcome images so mobile devices download smaller versions.
 
-Styling: emerald/info card, not red — this is informational, not a failure. Inline `Link` buttons use existing primary + outline button variants. Pre-fill email on the destination pages via the existing `?email=` query param both pages already accept.
+**Expected result**: Image payload drops from ~4 MB to ~600 KB across the app. CLS goes to ~0.
 
-Accessibility: `role="status"`, `aria-live="polite"`, focus moved to the card heading so screen readers announce it. Keyboard: both CTAs are focusable buttons.
+### Phase 3 — Bundle splitting + caching (~2 hours)
 
-### 3. Don't punish the user
+1. **Split AuthContext lazy work.** AuthProvider currently imports profile sync, OAuth link toast, MFA service, etc. Lazy-load anything not needed before first render.
+2. **Move heavy admin-only deps behind admin routes.** AG Grid (v32.3.3 per memory), `react-quill-new`, `recharts`, `d3-geo` should never be in the main chunk for non-admin users. Verify via `vite-bundle-visualizer`.
+3. **Add a `framework://` and reference data prefetch only after login**, not on the login page itself.
+4. **Self-host fonts** in `/public/fonts/` with `font-display: swap` and `<link rel="preload">` for only the WOFF2 the LCP text uses. Eliminates `fonts.googleapis.com` round trip.
+5. **Add long-cache headers** for hashed assets in `public/_headers` (1 year `immutable`). HTML stays no-cache so deploys propagate.
 
-When `ACCOUNT_EXISTS` is returned:
-- Skip `RateLimitService.recordFailure` (this isn't a failed attempt).
-- Skip `recordInvalidAuthAttempt()` (no device lockout bump).
-- Skip `lastFailedEmailRef` update.
+### Phase 4 — Network resilience for slow regions (~1 hour)
 
-These currently fire in the generic catch and would cause a real user retrying the right flow to get rate-limited.
+1. **Add a tiny inline "shell" CSS in `<head>`** with the `body` background, root spinner, and font fallback so users see something within ~500 ms even on 3G before main CSS arrives.
+2. **Preconnect to Supabase** (`iqsjhrhsjlgjiaedzmtz.supabase.co`) so the first auth/data call doesn't pay TLS setup mid-render.
+3. **`<link rel="modulepreload">`** the top 2–3 critical chunks (`react-vendor`, `query-vendor`) so they start downloading parallel to the entry script.
+4. **Add a "Save Data" path**: detect `navigator.connection.saveData === true` or `effectiveType === 'slow-2g' | '2g'` and skip non-essential image variants, animations, and the Fleety widget on those connections.
+5. **Brotli compress the production bundle** (verify the host honors it; Cloudflare does).
 
-### 4. BDD scenarios
+### Phase 5 — Site-wide audit + regression guardrails (~1 hour)
 
-Insert into `bdd_scenarios` (feature_area `account-deletion-orphan-prevention` continuation, next IDs):
-- `REG-EXIST-010` — Signup with already-registered email shows "You already have an account" card with Sign-in / Reset CTAs. [UI][DB][Code]
-- `REG-EXIST-011` — Existing-account branch does NOT increment signup rate-limit bucket or device lockout counter. [DB][Code]
-- `REG-EXIST-012` — "Sign in instead" CTA navigates to `/login?email=...` with email pre-filled. [UI]
+1. **Add a Lighthouse CI workflow** (`.github/workflows/lighthouse.yml`) that runs against the published URL on every PR, scoring all top routes:
+   - `/`, `/login`, `/register`, `/dashboard`, `/my-journey`, `/courses`, `/resources`, `/applications`, `/admin/system-health`, `/project-openings`
+   - Use `lhci` with thresholds: Performance ≥ 80, LCP ≤ 2.5 s, TBT ≤ 200 ms, CLS ≤ 0.1.
+   - Run with `--throttlingMethod=devtools --throttling.cpuSlowdownMultiplier=4` (mobile 3G profile) so we catch regressions in the slowest tier.
+2. **Publish the per-route baseline as a markdown report artifact** (similar to the existing `a11y-report` workflow) so each page's score is visible over time.
+3. **Add a budget file** (`lighthouse-budget.json`): max 250 KB JS, 100 KB CSS, 500 KB images per route. CI fails on regression.
 
-### 5. Memory
+---
 
-Update `mem://features/account-deletion` (or add a sibling note) recording: "Supabase anti-enumeration → identities=[] + no session = duplicate. Always intercept and present 'account exists' UX, never let it reach the success screen."
+## Technical details (for the agent doing the work)
 
-## Files touched
-- `src/services/auth.service.ts` — silent-duplicate detection.
-- `src/pages/RegisterPage.tsx` — `ACCOUNT_EXISTS` branch + new info card.
-- `bdd_scenarios` table — 3 inserts.
-- `.lovable/memory/features/account-deletion.md` — append note.
+- The eager `Index` + `RegisterPage` imports live in `src/App.tsx` lines 25–28.
+- Third-party scripts to defer: `index.html` lines 5–6 (CookieYes), 64–71 (GTM), 73–80 (Clarity).
+- Hero preload to remove from global head: `index.html` line 44; replace with per-page injection via `useEffect` in `src/pages/LandingPage.tsx`.
+- `lucide-react` deep-import codemod target: every file matching `from "lucide-react"` (currently in 50+ components per `rg`).
+- Image conversion: use `sharp` in a one-off `scripts/optimize-images.mjs` that emits `.avif` + `.webp` siblings, then wrap usages in a small `<ResponsiveImage>` component.
+- For Save Data mode: thread an `isSlowConnection` boolean through a new `useNetworkQuality()` hook and gate `Fleety`, `PWAInstallPrompt`, large welcome slides behind it.
+- Lighthouse CI: `npm i -D @lhci/cli`; run `lhci autorun --collect.url=https://techfleetnetwork.lovable.app/login ...`.
 
-## What we are NOT doing
-- Not changing the LoginPage / ForgotPasswordPage — they already accept `?email=`.
-- Not touching captcha, rate-limit service, or the Turnstile component.
-- No backend/migration changes — purely a client-side UX fix on top of the existing auth response.
+---
+
+## Recommended sequencing
+
+Ship Phase 1 + Phase 2 together as the first PR — that alone should put `/login` at sub-2.5 s LCP on 3G. Phases 3–5 each become their own PR so we can measure the delta and roll back cleanly if anything regresses UX (per the "no UX regression" core rule).
+
+After approval I'll start with Phase 1.
