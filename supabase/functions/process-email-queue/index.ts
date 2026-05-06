@@ -6,52 +6,6 @@ const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
-const BASE_RETRY_DELAY_SECONDS = 60
-const MAX_RETRY_DELAY_SECONDS = 15 * 60
-
-type QueuePayload = Record<string, unknown>
-type QueueMessage = { msg_id: number; read_ct: number; enqueued_at?: string; message: QueuePayload }
-type ServiceClient = ReturnType<typeof createClient<any>>
-
-function stringField(payload: QueuePayload, key: string, fallback = ''): string {
-  const value = payload[key]
-  return typeof value === 'string' ? value : fallback
-}
-
-function authRunId(payload: QueuePayload): string | undefined {
-  const explicitRunId = stringField(payload, 'run_id')
-  if (explicitRunId) return explicitRunId
-  if (stringField(payload, 'purpose') !== 'auth') return undefined
-  return stringField(payload, 'idempotency_key') || stringField(payload, 'message_id') || undefined
-}
-
-function emailApiPurpose(_queue: string, _payload: QueuePayload): 'transactional' {
-  // The email provider only accepts the app-email purpose. Auth emails still
-  // flow through the priority auth queue, but must be sent with this purpose.
-  return 'transactional'
-}
-
-function retryDelaySeconds(failedAttempts: number): number {
-  const exponent = Math.max(failedAttempts - 1, 0)
-  return Math.min(BASE_RETRY_DELAY_SECONDS * 2 ** exponent, MAX_RETRY_DELAY_SECONDS)
-}
-
-async function delayRetry(
-  supabase: ServiceClient,
-  queue: string,
-  msg: QueueMessage,
-  failedAttempts: number
-): Promise<void> {
-  const vt = retryDelaySeconds(failedAttempts)
-  const { error } = await supabase.rpc('set_email_visibility_timeout', {
-    queue_name: queue,
-    message_id: msg.msg_id,
-    vt,
-  })
-  if (error) {
-    console.error('Failed to schedule email retry backoff', { queue, msg_id: msg.msg_id, vt, error })
-  }
-}
 
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
@@ -63,8 +17,8 @@ function isRateLimited(error: unknown): boolean {
   return error instanceof Error && error.message.includes('429')
 }
 
-// Check if an error is a forbidden (403) response, which means emails are
-// disabled for this project. Retrying won't help — move straight to DLQ.
+// Check if an error is a forbidden (403) response. Retrying won't help.
+// Move straight to DLQ.
 function isForbidden(error: unknown): boolean {
   if (error && typeof error === 'object' && 'status' in error) {
     return (error as { status: number }).status === 403
@@ -98,54 +52,18 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
-function generateUnsubscribeToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-async function ensureUnsubscribeToken(supabase: ServiceClient, payload: QueuePayload): Promise<string | undefined> {
-  const existing = stringField(payload, 'unsubscribe_token')
-  if (existing) return existing
-
-  const email = stringField(payload, 'to').trim().toLowerCase()
-  if (!email) return undefined
-
-  const { data: rows } = await supabase
-    .from('email_unsubscribe_tokens')
-    .select('token')
-    .eq('email', email)
-    .order('created_at', { ascending: true })
-    .limit(1)
-
-  const storedToken = Array.isArray(rows) && rows[0]?.token
-  if (typeof storedToken === 'string' && storedToken) return storedToken
-
-  const token = generateUnsubscribeToken()
-  const { error } = await supabase
-    .from('email_unsubscribe_tokens')
-    .upsert({ email, token }, { onConflict: 'email', ignoreDuplicates: true })
-
-  if (error) {
-    console.error('Failed to self-heal missing unsubscribe token', { email, error })
-    return undefined
-  }
-
-  return token
-}
-
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ServiceClient,
+  supabase: ReturnType<typeof createClient>,
   queue: string,
-  msg: QueueMessage,
+  msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: stringField(payload, 'message_id', crypto.randomUUID()),
-    template_name: stringField(payload, 'label', queue),
-    recipient_email: stringField(payload, 'to'),
+    message_id: payload.message_id,
+    template_name: (payload.label || queue) as string,
+    recipient_email: payload.to,
     status: 'dlq',
     error_message: reason,
   })
@@ -193,7 +111,7 @@ Deno.serve(async (req) => {
     )
   }
 
-  const supabase = createClient<any>(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
@@ -230,22 +148,20 @@ Deno.serve(async (req) => {
       continue
     }
 
-    const queueMessages = (messages ?? []) as QueueMessage[]
-
-    if (!queueMessages.length) continue
+    if (!messages?.length) continue
 
     // Retry budget is based on real send failures, not pgmq read_ct.
     // read_ct increments for every message in a claimed batch, including
     // messages not attempted when a 429 stops processing early.
     const messageIds = Array.from(
       new Set(
-        queueMessages
-          .map((msg: QueueMessage) =>
+        messages
+          .map((msg) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id: string | null): id is string => Boolean(id))
+          .filter((id): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()
@@ -273,8 +189,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (let i = 0; i < queueMessages.length; i++) {
-      const msg = queueMessages[i]
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
       const payload = msg.message
       const failedAttempts =
         payload?.message_id && typeof payload.message_id === 'string'
@@ -284,7 +200,7 @@ Deno.serve(async (req) => {
       // Drop expired messages (TTL exceeded).
       // Prefer payload.queued_at when present; fall back to PGMQ's enqueued_at
       // which is always set by the queue.
-      const queuedAt = stringField(payload, 'queued_at', msg.enqueued_at ?? '')
+      const queuedAt = payload.queued_at ?? msg.enqueued_at
       if (queuedAt) {
         const ageMs = Date.now() - new Date(queuedAt).getTime()
         const maxAgeMs = ttlMinutes[queue] * 60 * 1000
@@ -307,12 +223,11 @@ Deno.serve(async (req) => {
       }
 
       // Guard: skip if another worker already sent this message (VT expired race)
-      const payloadMessageId = stringField(payload, 'message_id')
-      if (payloadMessageId) {
+      if (payload.message_id) {
         const { data: alreadySent } = await supabase
           .from('email_send_log')
           .select('id')
-          .eq('message_id', payloadMessageId)
+          .eq('message_id', payload.message_id)
           .eq('status', 'sent')
           .maybeSingle()
 
@@ -320,7 +235,7 @@ Deno.serve(async (req) => {
           console.warn('Skipping duplicate send (already sent)', {
             queue,
             msg_id: msg.msg_id,
-            message_id: payloadMessageId,
+            message_id: payload.message_id,
           })
           const { error: dupDelError } = await supabase.rpc('delete_email', {
             queue_name: queue,
@@ -334,21 +249,20 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const unsubscribeToken = await ensureUnsubscribeToken(supabase, payload)
         await sendLovableEmail(
           {
-            run_id: authRunId(payload),
-            to: stringField(payload, 'to'),
-            from: stringField(payload, 'from'),
-            sender_domain: stringField(payload, 'sender_domain') || undefined,
-            subject: stringField(payload, 'subject'),
-            html: stringField(payload, 'html'),
-            text: stringField(payload, 'text', stringField(payload, 'subject', 'Notification from Tech Fleet')),
-            purpose: emailApiPurpose(queue, payload),
-            label: stringField(payload, 'label') || undefined,
-            idempotency_key: stringField(payload, 'idempotency_key') || undefined,
-            unsubscribe_token: unsubscribeToken,
-            message_id: stringField(payload, 'message_id') || undefined,
+            run_id: payload.run_id,
+            to: payload.to,
+            from: payload.from,
+            sender_domain: payload.sender_domain,
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+            purpose: payload.purpose,
+            label: payload.label,
+            idempotency_key: payload.idempotency_key,
+            unsubscribe_token: payload.unsubscribe_token,
+            message_id: payload.message_id,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).
@@ -358,9 +272,9 @@ Deno.serve(async (req) => {
 
         // Log success
         await supabase.from('email_send_log').insert({
-          message_id: stringField(payload, 'message_id'),
-          template_name: stringField(payload, 'label', queue),
-          recipient_email: stringField(payload, 'to'),
+          message_id: payload.message_id,
+          template_name: payload.label || queue,
+          recipient_email: payload.to,
           status: 'sent',
         })
 
@@ -385,9 +299,9 @@ Deno.serve(async (req) => {
 
         if (isRateLimited(error)) {
           await supabase.from('email_send_log').insert({
-            message_id: stringField(payload, 'message_id'),
-            template_name: stringField(payload, 'label', queue),
-            recipient_email: stringField(payload, 'to'),
+            message_id: payload.message_id,
+            template_name: payload.label || queue,
+            recipient_email: payload.to,
             status: 'rate_limited',
             error_message: errorMsg.slice(0, 1000),
           })
@@ -410,43 +324,33 @@ Deno.serve(async (req) => {
           )
         }
 
-        // 403 means emails are disabled for this project — retrying won't help.
-        // Move straight to DLQ and stop processing the rest of the batch.
+        // 403s are permanent configuration or authorization failures for this
+        // message, so move straight to DLQ and stop processing the rest of the batch.
         if (isForbidden(error)) {
-          await moveToDlq(supabase, queue, msg, 'Emails disabled for this project')
+          await moveToDlq(supabase, queue, msg, errorMsg.slice(0, 1000))
           return new Response(
-            JSON.stringify({ processed: totalProcessed, stopped: 'emails_disabled' }),
+            JSON.stringify({ processed: totalProcessed, stopped: 'forbidden' }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
 
         // Log non-429 failures to track real retry attempts.
-        const nextFailedAttempts = failedAttempts + 1
         await supabase.from('email_send_log').insert({
-          message_id: stringField(payload, 'message_id'),
-          template_name: stringField(payload, 'label', queue),
-          recipient_email: stringField(payload, 'to'),
+          message_id: payload.message_id,
+          template_name: payload.label || queue,
+          recipient_email: payload.to,
           status: 'failed',
           error_message: errorMsg.slice(0, 1000),
         })
         if (payload?.message_id && typeof payload.message_id === 'string') {
-          failedAttemptsByMessageId.set(payload.message_id, nextFailedAttempts)
+          failedAttemptsByMessageId.set(payload.message_id, failedAttempts + 1)
         }
 
-        if (nextFailedAttempts >= MAX_RETRIES) {
-          await moveToDlq(supabase, queue, msg, `Max retries (${MAX_RETRIES}) exceeded (attempted ${nextFailedAttempts} times)`)
-          continue
-        }
-
-        if (queue === 'transactional_emails') {
-          await delayRetry(supabase, queue, msg, nextFailedAttempts)
-        }
-
-        // Auth email failures keep the default VT; transactional failures use exponential backoff.
+        // Non-429 errors: message stays invisible until VT expires, then retried
       }
 
       // Small delay between sends to smooth bursts
-      if (i < queueMessages.length - 1) {
+      if (i < messages.length - 1) {
         await new Promise((r) => setTimeout(r, sendDelayMs))
       }
     }

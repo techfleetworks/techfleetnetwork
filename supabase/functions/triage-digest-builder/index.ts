@@ -35,10 +35,18 @@ interface QueueRow {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role gate: only the cron job (or admins via service-role key) may call.
+  // Service-role gate. The Supabase API gateway already validates the JWT
+  // signature before invoking us. We just decode the payload to confirm role.
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.includes(SERVICE_ROLE)) {
-    return json({ error: "unauthorized" }, 401);
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) return json({ error: "unauthorized", reason: "no_token" }, 401);
+  let role: string | undefined;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    role = payload?.role;
+  } catch (_e) { /* fall through */ }
+  if (role !== "service_role") {
+    return json({ error: "unauthorized", reason: "not_service_role" }, 401);
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
