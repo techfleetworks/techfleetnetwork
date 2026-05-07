@@ -57,23 +57,12 @@ Deno.serve(async (req: Request) => {
   });
   if (rpcErr) return json({ error: rpcErr.message }, 500);
 
-  // Best-effort internal notification (non-fatal)
-  try {
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (serviceKey) {
-      const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-      await admin.from("transactional_email_queue").insert({
-        to_email: "info@techfleet.network",
-        template: "dsar_received_admin",
-        payload: {
-          dsar_id: rpcData,
-          user_id: userData.user.id,
-          type,
-          jurisdiction,
-        },
-      }).select().single().then(() => {}, () => {});
-    }
-  } catch { /* noop — main path already committed */ }
+  // Internal notification is handled by the admin Privacy Requests view +
+  // existing audit_log row written inside submit_dsar(). No separate email
+  // queue exists in this project.
 
-  return json({ ok: true, id: rpcData, sla_days: 30 });
+  return new Response(JSON.stringify({ ok: true, id: rpcData, sla_days: 30 }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
