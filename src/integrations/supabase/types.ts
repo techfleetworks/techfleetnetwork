@@ -837,6 +837,45 @@ export type Database = {
           },
         ]
       }
+      cookie_consents: {
+        Row: {
+          anon_id: string | null
+          categories: Json
+          created_at: string
+          gpc_signal: boolean
+          id: string
+          ip_country: string | null
+          policy_version: string
+          source: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anon_id?: string | null
+          categories: Json
+          created_at?: string
+          gpc_signal?: boolean
+          id?: string
+          ip_country?: string | null
+          policy_version: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anon_id?: string | null
+          categories?: Json
+          created_at?: string
+          gpc_signal?: boolean
+          id?: string
+          ip_country?: string | null
+          policy_version?: string
+          source?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dashboard_preferences: {
         Row: {
           created_at: string
@@ -861,6 +900,30 @@ export type Database = {
           user_id?: string
           visible_widgets?: Json
           widget_order?: Json
+        }
+        Relationships: []
+      }
+      deleted_users_ledger: {
+        Row: {
+          deleted_at: string
+          id: string
+          jurisdiction: string | null
+          purge_after: string
+          user_id_hash: string
+        }
+        Insert: {
+          deleted_at?: string
+          id?: string
+          jurisdiction?: string | null
+          purge_after?: string
+          user_id_hash: string
+        }
+        Update: {
+          deleted_at?: string
+          id?: string
+          jurisdiction?: string | null
+          purge_after?: string
+          user_id_hash?: string
         }
         Relationships: []
       }
@@ -935,6 +998,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      dsar_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          decision_notes: string | null
+          due_at: string
+          id: string
+          jurisdiction: string | null
+          parent_request_id: string | null
+          payload: Json
+          requester_email: string
+          status: Database["public"]["Enums"]["dsar_status"]
+          type: Database["public"]["Enums"]["dsar_type"]
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          decision_notes?: string | null
+          due_at?: string
+          id?: string
+          jurisdiction?: string | null
+          parent_request_id?: string | null
+          payload?: Json
+          requester_email: string
+          status?: Database["public"]["Enums"]["dsar_status"]
+          type: Database["public"]["Enums"]["dsar_type"]
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          decision_notes?: string | null
+          due_at?: string
+          id?: string
+          jurisdiction?: string | null
+          parent_request_id?: string | null
+          payload?: Json
+          requester_email?: string
+          status?: Database["public"]["Enums"]["dsar_status"]
+          type?: Database["public"]["Enums"]["dsar_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dsar_requests_parent_request_id_fkey"
+            columns: ["parent_request_id"]
+            isOneToOne: false
+            referencedRelation: "dsar_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_log: {
         Row: {
@@ -2069,6 +2185,57 @@ export type Database = {
           source_hash?: string
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      incident_response: {
+        Row: {
+          affected_user_count: number
+          created_at: string
+          description: string
+          draft_regulator_notice: string | null
+          draft_user_notice: string | null
+          id: string
+          jurisdictions: string[]
+          notification_due_at: string
+          notified_regulators_at: string | null
+          notified_users_at: string | null
+          opened_by: string
+          resolved_at: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          title: string
+        }
+        Insert: {
+          affected_user_count?: number
+          created_at?: string
+          description: string
+          draft_regulator_notice?: string | null
+          draft_user_notice?: string | null
+          id?: string
+          jurisdictions?: string[]
+          notification_due_at?: string
+          notified_regulators_at?: string | null
+          notified_users_at?: string | null
+          opened_by: string
+          resolved_at?: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          title: string
+        }
+        Update: {
+          affected_user_count?: number
+          created_at?: string
+          description?: string
+          draft_regulator_notice?: string | null
+          draft_user_notice?: string | null
+          id?: string
+          jurisdictions?: string[]
+          notification_due_at?: string
+          notified_regulators_at?: string | null
+          notified_users_at?: string | null
+          opened_by?: string
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          title?: string
         }
         Relationships: []
       }
@@ -5266,6 +5433,14 @@ export type Database = {
         Args: { p_class_id: string; p_cohort_ids?: string[] }
         Returns: undefined
       }
+      submit_dsar: {
+        Args: {
+          _jurisdiction: string
+          _payload: Json
+          _type: Database["public"]["Enums"]["dsar_type"]
+        }
+        Returns: string
+      }
       try_write_audit_log: {
         Args: {
           p_changed_fields?: string[]
@@ -5369,6 +5544,23 @@ export type Database = {
         | "published"
         | "archived"
         | "cancelled"
+      dsar_status:
+        | "received"
+        | "in_review"
+        | "need_more_info"
+        | "completed"
+        | "denied"
+        | "appealed"
+      dsar_type:
+        | "access"
+        | "portability"
+        | "correction"
+        | "erasure"
+        | "restrict"
+        | "object"
+        | "appeal"
+        | "human_review"
+        | "withdraw_consent"
       framework_entity_type:
         | "activity"
         | "agile_method"
@@ -5409,6 +5601,7 @@ export type Database = {
         | "precedes"
         | "references_resource"
         | "works_with"
+      incident_severity: "low" | "medium" | "high" | "critical"
       journey_phase:
         | "first_steps"
         | "second_steps"
@@ -5579,6 +5772,25 @@ export const Constants = {
         "archived",
         "cancelled",
       ],
+      dsar_status: [
+        "received",
+        "in_review",
+        "need_more_info",
+        "completed",
+        "denied",
+        "appealed",
+      ],
+      dsar_type: [
+        "access",
+        "portability",
+        "correction",
+        "erasure",
+        "restrict",
+        "object",
+        "appeal",
+        "human_review",
+        "withdraw_consent",
+      ],
       framework_entity_type: [
         "activity",
         "agile_method",
@@ -5621,6 +5833,7 @@ export const Constants = {
         "references_resource",
         "works_with",
       ],
+      incident_severity: ["low", "medium", "high", "critical"],
       journey_phase: [
         "first_steps",
         "second_steps",

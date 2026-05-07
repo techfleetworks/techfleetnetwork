@@ -57,6 +57,8 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
+import { CookieConsentBanner } from "./CookieConsentBanner";
+import { PrivacyFooterLinks } from "./PrivacyFooterLinks";
 // Heavy chat widget — lazy-loaded and skipped on save-data / 2g connections
 const FleetyChatWidget = lazy(() =>
   import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
@@ -310,6 +312,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
         <LiveAnnouncer />
+        <CookieConsentBanner />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -354,22 +357,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   Terms of Use
                 </a>
-                <a
-                  href="/policies/Privacy-Policy.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Privacy Policy
-                </a>
-                <a
-                  href="/policies/Cookie-Policy.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Cookie Policy
-                </a>
+                <PrivacyFooterLinks />
                 <Link
                   to="/accessibility"
                   className="hover:text-foreground transition-colors"
@@ -535,6 +523,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
         <LiveAnnouncer />
+        <CookieConsentBanner />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </div>
@@ -565,6 +554,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
         <LiveAnnouncer />
+        <CookieConsentBanner />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </SidebarProvider>

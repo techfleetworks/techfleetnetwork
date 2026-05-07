@@ -67,6 +67,9 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const AccessibilityPage = lazy(() => import("./pages/AccessibilityPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const CookiesPage = lazy(() => import("./pages/CookiesPage"));
+const DsarSubmitPage = lazy(() => import("./pages/DsarSubmitPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const BannerManagementPage = lazy(() => import("./pages/BannerManagementPage"));
 const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
@@ -209,6 +212,9 @@ const App = () => (
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/accessibility" element={<AccessibilityPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/cookies" element={<CookiesPage />} />
+                    <Route path="/privacy/dsar" element={<DsarSubmitPage />} />
                     <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
                     <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
                     <Route path="/admin/banners" element={<AdminRoute><BannerManagementPage /></AdminRoute>} />

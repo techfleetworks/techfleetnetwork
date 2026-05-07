@@ -62,28 +62,12 @@
     <meta property="og:description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
     <meta name="twitter:description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
 
-    <!-- Analytics (GTM + Clarity) deferred until after window load to protect LCP/TBT on slow networks -->
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-WYQKEKXSRR', { send_page_view: false });
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          // GTM
-          var g = document.createElement('script');
-          g.async = true;
-          g.src = 'https://www.googletagmanager.com/gtag/js?id=G-WYQKEKXSRR';
-          document.head.appendChild(g);
-          // Clarity
-          (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "we82xfqcup");
-        }, 1500);
-      });
-    </script>
+    <!--
+      Analytics bootstrap removed from index.html. GA4 + Microsoft Clarity are
+      loaded by src/lib/consent/loadAnalytics.ts ONLY when the user grants
+      analytics consent (and never when navigator.globalPrivacyControl === true).
+      This satisfies EU/UK ePrivacy, CCPA/CPRA, LGPD, PIPL, etc.
+    -->
   </head>
   <body>
     <div id="root"></div>
