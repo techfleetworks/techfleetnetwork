@@ -94,19 +94,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Network Activity Section — lazy loaded with reserved space */}
-      <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
-        <Suspense fallback={<NetworkActivityFallback />}>
-          <NetworkActivity />
-        </Suspense>
-      </section>
-
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
           <div className="mb-12">
             <h2 id="features-heading" className="text-3xl font-bold text-foreground">
-              Your professional development journey
+              Get ready for the future of work with Tech Fleet
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl">
               A structured, step-by-step path from onboarding to full community participation and professional growth.
