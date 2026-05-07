@@ -4206,6 +4206,57 @@ export type Database = {
         }
         Relationships: []
       }
+      web_vital_samples: {
+        Row: {
+          connection_type: string | null
+          created_at: string
+          device_memory: number | null
+          id: string
+          metric_name: string
+          navigation_type: string | null
+          rating: string
+          route: string
+          save_data: boolean | null
+          user_agent: string | null
+          user_id: string | null
+          value: number
+          viewport_h: number | null
+          viewport_w: number | null
+        }
+        Insert: {
+          connection_type?: string | null
+          created_at?: string
+          device_memory?: number | null
+          id?: string
+          metric_name: string
+          navigation_type?: string | null
+          rating: string
+          route: string
+          save_data?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+          value: number
+          viewport_h?: number | null
+          viewport_w?: number | null
+        }
+        Update: {
+          connection_type?: string | null
+          created_at?: string
+          device_memory?: number | null
+          id?: string
+          metric_name?: string
+          navigation_type?: string | null
+          rating?: string
+          route?: string
+          save_data?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+          value?: number
+          viewport_h?: number | null
+          viewport_w?: number | null
+        }
+        Relationships: []
+      }
       workshops: {
         Row: {
           accountable_function: string
@@ -5196,6 +5247,26 @@ export type Database = {
         Returns: {
           broken_at: string
           broken_id: string
+        }[]
+      }
+      web_vitals_p75: {
+        Args: { window_hours?: number }
+        Returns: {
+          good_pct: number
+          metric_name: string
+          p75: number
+          p95: number
+          route: string
+          sample_count: number
+        }[]
+      }
+      web_vitals_trend: {
+        Args: { window_hours?: number }
+        Returns: {
+          bucket: string
+          metric_name: string
+          p75: number
+          sample_count: number
         }[]
       }
       write_audit_log:
