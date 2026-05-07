@@ -1,140 +1,140 @@
+## Audit findings vs. Privacy + Cookie Policy commitments
 
-# Accessibility Policy → Code Enforcement Plan (with Full i18n)
+I read both policies in full and audited the code (`index.html`, `src/components/AnalyticsTracker.tsx`, `src/lib/policies.ts`, `supabase/functions/delete-account`, the DB, the routes, and the policy pages). The platform currently makes promises it does not keep. Highest-risk gaps, in order:
 
-Goal: Make every commitment in `public/policies/Accessibility-Policy.md` a mechanically enforced behavior, **and** add full any-language localization across the Platform — because WCAG 3.1.1 / 3.1.2, EN 301 549 §12, and the UN CRPD all require content to be available in the user's language.
+1. **GA4 + Microsoft Clarity load on every visit, with no consent.** `index.html` lines 66–86 inject `gtag('config', 'G-WYQKEKXSRR')` immediately and queue Clarity 1.5s after `load`, regardless of user/region. This violates EU/UK ePrivacy, Swiss FADP, LGPD, and PIPL — exactly what Cookie Policy §3.3, §6 promise we won't do.
+2. **No cookie banner, no Cookie Settings link in the footer.** Policy §5.1 promises both.
+3. **No Global Privacy Control handling.** Privacy §6.1, §15 and Cookie §5.3 promise we honor `navigator.globalPrivacyControl`.
+4. **No "Do Not Sell or Share My Personal Information" link.** Privacy §6.1 promises it.
+5. **No in-app `/privacy` or `/cookies` routes.** Only `.docx` downloads exist (`src/lib/policies.ts`). EU/UK/CA/BR all require easy-to-read in-product notice.
+6. **No DSAR intake for access / portability / correction / restriction / objection / appeal.** Only a partial `export_my_data()` RPC and `delete-account` edge fn exist, neither exposed in UI.
+7. **No consent storage.** No `user_consents` / `cookie_consents` tables; we cannot prove consent existed (GDPR Art. 7(1) burden of proof).
+8. **No retention automation.** Policy §8 commits to specific windows (24mo post-deletion, 25mo analytics anon, 7yr audit) — none enforced by cron.
+9. **No children's age gate** at registration; Privacy §3.5 promises 13+ (US) / 16+ (EU) gating.
+10. **No automated-decision human-review request UI.** Privacy §5 promises one for Fleety/recommendations.
+11. **No breach-notification runbook in code** (Privacy §14 — 72h GDPR clock).
+12. **CSP already whitelists CookieYes** but CookieYes is never actually loaded; the names in the policy (e.g. `cookieyes-consent`) are aspirational.
 
-## Audit findings (current state)
+---
 
-Already in place:
-- Skip link + single `<main>` landmark (`AppLayout.tsx`), focus ring (`index.css`).
-- Idle-timeout warning hook (media-aware).
-- TOTP MFA (no SMS-only) — satisfies WCAG 3.3.8.
-- WCAG 2.1/2.2 A+AA checklist (`e2e/a11y/wcag-checklist.ts`), axe + DOM + static probes, weekly CI workflow `a11y-audit.yml`, `lighthouse-budget.json`.
-- Web Vitals RUM beacon, `prefers-reduced-motion` honored in `App.css` (one animation only).
+## Plan: bring code in line with the policies
 
-Gaps the policy commits to but the code does NOT enforce:
-1. No dedicated **Accessibility** BDD `feature_area` (only 1 scenario today).
-2. `a11y-audit.yml` is weekly + manual, not PR-blocking.
-3. No `eslint-plugin-jsx-a11y`, no Pa11y runner, no explicit 24×24 target-size DOM probe.
-4. No in-app `/accessibility` route or "Report a barrier / Request accommodation" form.
-5. No procurement (VPAT) checklist; no training-completion record table.
-6. PDF certificates and DOCX policies aren't asserted PDF/UA-tagged.
-7. Reduced-motion not globally enforced across Tailwind `animate-*` and Framer Motion.
-8. Live-region announcer not global (toasts only).
-9. **No internationalization layer at all** — every string is hard-coded English; `<html lang>` is static; no language switcher; emails/Discord/PDF certs are English-only.
+### Workstream 1 — Consent system (blocks 1, 2, 3, 4, 7, 12)
 
-## Plan
+- **Build a first-party consent manager** (`src/lib/consent/*`). No CookieYes — keeps PII inside Lovable Cloud and lets us prove consent.
+  - Categories: `strictly_necessary` (always on), `functional`, `analytics`, `marketing` (off by default in EU/UK/CH/BR/CA/Quebec/ZA; opt-out elsewhere where allowed).
+  - Detect region via Cloudflare `CF-IPCountry` header surfaced by an edge function `geo-hint`; fall back to opt-in.
+  - Honor `navigator.globalPrivacyControl === true` → force `analytics=false, marketing=false, sale_share=false` and surface a banner confirming.
+- **`<CookieConsentBanner />`** — accessible (WCAG 2.2 AA), focus-trapped, three primary actions: Accept all / Reject non-essential / Customize. Persists choice to:
+  - `localStorage` key `tfn.consent.v1` (legal: device-level memory),
+  - DB table `cookie_consents` (id, user_id null-able, anon_id, ip_country, gpc_signal, categories jsonb, policy_version, ua, created_at) — written via `record-consent` edge fn so anon users can also be recorded.
+- **Footer link** "Cookie Settings" + "Do Not Sell or Share My Personal Information" added globally in `AppLayout`. Clicking re-opens the manager.
+- **Gate analytics**: move the GA4 + Clarity bootstrap out of `index.html` into `src/lib/consent/loadAnalytics.ts`. Only fires when `consent.analytics === true`. Wrap GA4 with `gtag('consent','default',{ ad_storage:'denied', analytics_storage:'denied' })` first, then `gtag('consent','update', …)` on accept (Google Consent Mode v2). Same gate for Clarity (`clarity('consent', false)` until accepted).
+- **Stop firing `page_view` from `AnalyticsTracker.tsx` until consent is granted.**
 
-### 1. CI gating (policy §7, §8)
-- Promote `a11y-audit.yml` to run on every PR (changed-route diff) and fail on new violations vs `a11y-report.json` baseline; keep weekly full sweep.
-- Add `eslint-plugin-jsx-a11y` (recommended) to `eslint.config.js`; fix surfaced issues.
-- Add Pa11y runner over `e2e/a11y/routes.ts`; merge into report.
-- New DOM probes: 24×24 target size, `<html lang>` matches active locale, `lang` attr on mid-content language switches, focus-visible on dynamically mounted dialogs, no positive `tabindex`.
+### Workstream 2 — Privacy rights center (blocks 5, 6, 10)
 
-### 2. In-app Accessibility Statement + accommodation form
-- New route `/accessibility` rendering the policy via `LegalPolicyPanel` + a "Report a barrier / Request accommodation" form (page URL auto-filled, assistive tech, contact). Submits through `feedback.service.ts` with category `accessibility` → emails `info@techfleet.network` + Discord + DB row (RLS: user reads own; admins read all).
-- Collapsible "Known limitations" section sourced from `docs/accessibility/known-limitations.md`.
-- Linked from footer, 404 page, and idle-timeout dialog.
+- New route **`/privacy`** rendering the markdown of `Privacy-Policy.md` (same pattern as `/accessibility`), plus a **Rights Center** card with one-click actions:
+  - Download my data (calls existing `export_my_data` RPC; bundle to JSON + CSV ZIP via new `export-my-data` edge fn).
+  - Correct my data (deep-link to `EditProfilePage`).
+  - Delete my account (existing `delete-account` fn; double-confirm modal already exists).
+  - Restrict / object to processing → opens DSAR form.
+  - Withdraw consent → opens Consent Manager.
+  - Request human review of an automated decision (Fleety/recommendations) → opens DSAR form pre-filled.
+  - Appeal a previous decision.
+- New route **`/cookies`** rendering `Cookie-Policy.md` plus a live "What's set on this device" inspector (reads `document.cookie` + localStorage keys we own) — fulfills Cookie §4.
+- **DSAR table** `dsar_requests` (id, user_id, type enum: access/portability/correction/erasure/restrict/object/appeal/human_review, payload jsonb, status enum: received/in_review/completed/denied/appealed, regulator_jurisdiction, due_at timestamp = now() + 30 days, created_at, completed_at, decision_notes). RLS: user reads own; admin reads all.
+- New edge fn **`dsar-submit`** writes the request, sends an internal email to `info@techfleet.network`, and emails the requester an acknowledgment with their case ID + 30-day SLA.
+- New admin tab **System Health → Privacy Requests** showing the queue with due dates, an Accept/Deny/Need-more-info workflow, and an Appeal button that resets the SLA.
 
-### 3. **Full localization (i18n) — new section**
+### Workstream 3 — Retention enforcement (block 8)
 
-**Library + structure**
-- Add `i18next` + `react-i18next` + `i18next-browser-languagedetector` + `i18next-http-backend`.
-- `src/i18n/index.ts` initializes with: detection order = `querystring` (`?lang=`) → `localStorage` (`tf_lang`) → `navigator` → `htmlTag` → fallback `en`.
-- Translation files under `public/locales/{lng}/{ns}.json`, namespaces: `common`, `auth`, `dashboard`, `journey`, `applications`, `admin`, `policies`, `emails`, `errors`.
-- Lazy-load locale bundles per route to keep main bundle small (Lighthouse budget compliant).
+- New cron (pg_cron, daily 03:00 UTC) `enforce_retention_policy()`:
+  - Hard-delete `profiles` + cascading user data **24 months** after a `delete-account` event (currently we delete immediately — we keep a `deleted_users` ledger row with hashed id for the 24mo dispute window per Policy §8).
+  - Anonymize analytics: rotate `web_vital_samples.user_id`, `network_activity.actor_id`, etc. older than **25 months** to `NULL` and add `anonymized_at`.
+  - Marketing suppression list: rows in `email_unsubscribes` retained 5 years then anonymized.
+  - **Audit log untouched** (existing carve-out memory).
+- Each run logs to `audit_log` with the row counts so SOC 2 / ISO 27001 evidence is intact.
 
-**Language coverage (any language on Earth)**
-- Ship with vetted human-reviewed translations for the top 12 languages by reach: `en, es, fr, de, pt-BR, it, nl, pl, ar, zh-Hans, zh-Hant, ja, ko, hi, ru, tr, vi, id`.
-- For every other language: enable an automated fallback via the existing Lovable AI gateway (`google/gemini-2.5-flash`) called from a new edge function `translate-bundle` that:
-  - Accepts a target BCP-47 tag, fetches the English bundle, returns translated JSON.
-  - Caches per `(lng, ns, kb_version)` in a new `i18n_translations` table (admin-only RLS, public read on translated rows). Invalidated when source English keys change.
-  - Marked in UI as "machine-translated — help us improve" with a one-click feedback link to the accommodation form.
-- All language tags follow BCP-47; right-to-left languages (`ar`, `he`, `fa`, `ur`) automatically set `dir="rtl"` on `<html>` and Tailwind RTL utilities (`rtl:` variants via `tailwindcss-rtl` plugin).
+### Workstream 4 — Children, automated decisions, breach (blocks 9, 10, 11)
 
-**Language switcher**
-- Globe icon in header + footer with searchable combobox of all BCP-47 entries from `Intl.DisplayNames`. Persists to `tf_lang` cookie (so SSR-friendly later) and to `profiles.preferred_language` for signed-in users (new column, default `en`, RLS = self).
-- `<html lang>` and `dir` updated reactively on switch; route changes re-announce via the live-region announcer (§5).
+- Registration form gains a **date-of-birth** field; submit blocked when computed age < 13 (US default). For users with `ip_country` in EEA/UK → block < 16; KR/CN → < 14. Stored as `profiles.birth_year` only (minimize). Parental-consent flow defers actual capture (out of scope for this pass; gate the path with a friendly "we don't yet support under-X registration" screen).
+- **Fleety + recommendation surfaces** get an "About this suggestion" link → opens a dialog explaining the inputs and a "Request human review" button (writes a `dsar_requests` row, type=`human_review`).
+- **Breach runbook**: new `incident_response` table + `report-incident` admin-only edge fn that:
+  - Tags severity, affected user count, regulator list.
+  - Starts the GDPR 72-hour clock visibly in System Health.
+  - Generates a draft regulator notification (markdown) and a draft user email.
+  - Notifies all admins via Discord + email immediately.
 
-**Server-side surfaces**
-- Edge functions read `accept-language` (or user profile) and render emails/Discord pings/PDF certificate text via the same `i18n_translations` cache.
-- Email templates (React Email) accept `locale` prop; subject lines + previews translated.
-- PDF certificates (`generate-certificate-pdf.ts`) embed the user's preferred language: `Lang` metadata, translated heading + body, RTL layout when needed.
+### Workstream 5 — International transfer + region notices
 
-**Date / number / currency**
-- Replace ad-hoc `toLocaleDateString()` calls with a `formatDate(date, { locale })` util that respects the active locale and the user's timezone.
-- Currency strings use `Intl.NumberFormat`.
+- Add `<RegionalPrivacyNotice />` to the consent banner's "Customize" panel showing the user's detected region and the lawful transfer mechanism (SCCs / UK IDTA / DPF) — fulfills Privacy §7.
+- Add `/privacy/transfers` static page summarizing safeguards with a "Request copy of safeguards" button (DSAR type=`access`, scope=`transfers`).
 
-**Source-of-truth discipline**
-- ESLint rule `i18next/no-literal-string` (with allowlist for tests, debug, BDD seeds) flags any new hard-coded user-facing string.
-- CI script `scripts/i18n-extract.ts` extracts keys from `t("…")` and fails the build if `en/*.json` is missing a key or has orphans.
+### Workstream 6 — Source-code & infra hardening
 
-**Policy docs**
-- `scripts/gen-policies.cjs` regenerates each policy DOCX/MD per supported language (English first; auto-generated fallbacks marked machine-translated). Policy viewer in-app picks the version that matches active locale.
+- **CSP**: keep CookieYes domains for now (we may reintroduce); add a comment noting analytics scripts are runtime-gated. Add `Permissions-Policy: interest-cohort=(), browsing-topics=()` header (already partially present) to disable Topics API.
+- **No third-party requests before consent** — verified by a Playwright spec `e2e/privacy/no-tracking-without-consent.e2e.ts` that loads every public route and asserts the network log contains no requests to `*.google-analytics.com`, `*.clarity.ms`, `*.googletagmanager.com`, `youtube.com`, `discord.com` until consent is granted.
+- **ESLint rule** banning `import` of `gtag`/`clarity` outside `src/lib/consent/`.
+- **Logger**: ensure `logger.service.ts` already-present PII redaction list adds `consent`, `dsar`, `dob`/`birth_year`. Verify in `security.test.ts`.
 
-**WCAG ties**
-- 3.1.1 Language of Page: enforced by `<html lang>` reactivity (DOM probe).
-- 3.1.2 Language of Parts: `<span lang="…">` wrappers around mid-content switches (e.g., quoting another language); ESLint rule warns on suspicious unicode-block runs without `lang`.
+### Workstream 7 — BDD scenarios (workspace rule)
 
-### 4. BDD coverage (workspace rule + policy §7)
-New `feature_area = "Accessibility"` with tri-layer ([UI]/[DB]/[Code]) Then-clauses, including:
-- A-01 Skip link present + focusable on every route.
-- A-02 Focus ring visible and not removable.
-- A-03 `prefers-reduced-motion` short-circuits Framer Motion + Tailwind animations.
-- A-04 Forms expose programmatic labels + inline error suggestions.
-- A-05 Idle warning fires before logout, extendable in 1 click.
-- A-06 TOTP MFA accepts standard authenticator codes.
-- A-07 All primary controls ≥24×24 CSS px.
-- A-08 Reflow at 320 CSS px without horizontal scroll.
-- A-09 Color contrast ≥4.5:1 / ≥3:1 verified per route.
-- A-10 Live region announces toasts + route transitions.
-- A-11 Keyboard shortcuts require modifier or are user-disablable.
-- A-12 `/accessibility` page reachable from every layout + 404.
-- A-13 Accommodation request lands in `info@techfleet.network` + Discord + DB.
-- A-14 PDF certificates are PDF/UA-tagged with `Lang`, alt text, reading order.
-- A-15 DOCX policies use real heading styles + `dc:language`.
-- **A-16 Switching language updates `<html lang>`, `dir`, persists to `profiles.preferred_language`, and re-renders all visible strings.**
-- **A-17 RTL locales mirror layout (sidebar, breadcrumbs, icons) without horizontal scroll.**
-- **A-18 Unsupported BCP-47 tag triggers `translate-bundle` fallback, caches in `i18n_translations`, and labels UI as machine-translated.**
-- **A-19 Email + Discord + PDF surfaces use the user's `preferred_language`.**
-- **A-20 Date/number/currency formatting respects active locale.**
+Add ≥15 scenarios under `feature_area = 'Privacy & Cookies'` (new `feature_area_number`), each with [UI]/[DB]/[Code] Then-clauses, e.g.:
 
-Insert via migration into `bdd_scenarios`; seed automated tests under `src/test/smoke/accessibility.smoke.test.ts` + `src/test/smoke/i18n.smoke.test.ts` + Playwright probes in `e2e/a11y/`.
+- `PRIV-CONSENT-DEFAULT-EU` — EU visitor sees banner; analytics not loaded; `cookie_consents` row written with denied categories.
+- `PRIV-GPC-HONORED` — Browser sends `Sec-GPC: 1`; analytics + sale/share forced off; `gpc_signal=true` recorded.
+- `PRIV-DSAR-ACCESS-30D` — User submits access request; due_at = now() + 30d; admin sees row; SLA badge visible.
+- `PRIV-RETENTION-24MO` — Account deleted 24+ months ago is hard-purged by cron; ledger keeps hashed id.
+- `PRIV-CHILD-EU-BLOCKED` — Under-16 EU registration is rejected before any DB write.
+- `PRIV-HUMAN-REVIEW` — User clicks "Request human review" on a Fleety reply; DSAR row type=`human_review` created.
+- `PRIV-BREACH-72H` — Admin opens an incident; countdown visible; draft regulator email generated.
+- `PRIV-COOKIE-INSPECTOR` — `/cookies` lists every cookie + localStorage key we set, with category and lifetime.
 
-### 5. Reduced motion + live announcer
-- Global CSS: `@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.001ms!important; transition-duration:.001ms!important; scroll-behavior:auto!important } }`.
-- `useReducedMotionSafe()` hook for Framer Motion.
-- `<LiveAnnouncer>` mounted in `AppLayout.tsx`; `useAnnounce()` for route changes + async loads (also used by §3 language switch).
+### Workstream 8 — Memory + docs
 
-### 6. Document & PDF accessibility
-- `gen-policies.cjs`: emit `dc:title`, `dc:language`, structured headings, alt text on any embedded image; CI validator step.
-- `generate-certificate-pdf.ts`: PDF/UA metadata (`Lang`, `Title`), tagged headings, alt text on logo, reading order, locale-aware text.
+- New memory file `mem://compliance/privacy-and-cookies` summarizing the consent-first pipeline, GPC handling, DSAR SLAs, and retention windows; add to Core a one-liner: "No third-party trackers may load before consent; GPC = automatic deny; DSAR SLA = 30 days; retention windows enforced by daily cron."
+- `docs/compliance/privacy-runbook.md` — admin playbook for DSARs and breach response.
 
-### 7. Procurement + training
-- `docs/accessibility/vendor-vpat-checklist.md` + PR-template question for any new dependency/embed.
-- New table `accessibility_training_completions(user_id, completed_at, version, locale)`; admin-only RLS; surfaces in `UserAdminPage` with completion %.
+---
 
-### 8. Database migrations
-- `profiles.preferred_language text not null default 'en'` (BCP-47 validated by trigger).
-- `i18n_translations(locale text, namespace text, key text, value text, source_hash text, machine_translated bool, kb_version int, primary key(locale,namespace,key))` — public read, admin write.
-- `accessibility_training_completions` (above).
-- `bdd_scenarios` rows for A-01…A-20.
+## File-level changes
 
-### 9. Memory updates
-- New `mem://features/accessibility/policy-enforcement.md` (PR-gated a11y suite, jsx-a11y, `/accessibility` route, accommodation form, BDD area, reduced-motion guard, certificate PDF tagging, vendor VPAT, training table).
-- New `mem://features/i18n/localization.md` (i18next stack, BCP-47, `Intl.DisplayNames` switcher, RTL via `tailwindcss-rtl`, `translate-bundle` fallback + cache, server-side locale propagation to email/Discord/PDF).
-- Update `mem://index.md` Core: add "Any language supported via i18next + Lovable AI fallback (`translate-bundle`); BCP-47, RTL-aware; `<html lang>`/`dir` reactive; `profiles.preferred_language` persists choice." and "`/accessibility` route renders the policy + accommodation form routed to info@techfleet.network."
+```text
+index.html                                    remove inline GA4/Clarity bootstrap (consent-gated load only)
+src/lib/consent/manager.ts                    NEW — consent state, GPC detection, region detection
+src/lib/consent/loadAnalytics.ts              NEW — gated GA4 + Clarity loaders w/ Consent Mode v2
+src/components/CookieConsentBanner.tsx        NEW — accessible 3-action banner + customize panel
+src/components/PrivacyFooterLinks.tsx         NEW — Cookie Settings + Do Not Sell/Share + Privacy + Cookies
+src/components/AppLayout.tsx                  mount banner + footer links
+src/components/AnalyticsTracker.tsx           gate page_view on consent.analytics
+src/pages/PrivacyPage.tsx                     NEW — markdown render + Rights Center
+src/pages/CookiesPage.tsx                     NEW — markdown render + live cookie inspector
+src/pages/DsarSubmitPage.tsx                  NEW — DSAR form (all 8 right types)
+src/pages/admin/PrivacyRequestsPage.tsx       NEW — admin queue
+src/pages/RegisterPage.tsx                    add DOB + region-aware age gate
+src/lib/policies.ts                           add /privacy + /cookies in-app routes
+supabase/migrations/<ts>_privacy_compliance.sql  NEW — cookie_consents, dsar_requests, deleted_users_ledger, incident_response, retention cron, RLS
+supabase/functions/record-consent/index.ts    NEW
+supabase/functions/dsar-submit/index.ts       NEW
+supabase/functions/export-my-data/index.ts    NEW (wraps export_my_data RPC + ZIP)
+supabase/functions/report-incident/index.ts   NEW
+supabase/functions/geo-hint/index.ts          NEW (returns CF-IPCountry only)
+e2e/privacy/no-tracking-without-consent.e2e.ts NEW
+docs/compliance/privacy-runbook.md            NEW
+mem://compliance/privacy-and-cookies          NEW
+```
 
-## Out of scope (called out, not silently skipped)
-- Manual screen-reader walkthroughs (NVDA/JAWS/VoiceOver/TalkBack) — process, scheduled in remediation plan.
-- Annual third-party audit procurement — operational.
-- Human translation review of every machine-translated language — ongoing community process; the UI explicitly labels machine-translated locales and invites corrections.
+## Acceptance criteria
 
-## Acceptance
-- `a11y-audit.yml` runs on every PR, blocks on new violations.
-- `bdd_scenarios` contains ≥20 rows under `feature_area = 'Accessibility'`, each with [UI]/[DB]/[Code] Thens.
-- `/accessibility` route ships with working accommodation form (A-12, A-13).
-- ESLint passes with `jsx-a11y/recommended` + `i18next/no-literal-string`.
-- Reduced-motion globally short-circuits animations.
-- Switching language: `<html lang>` + `dir` update, all UI re-renders, persists to profile, emails/PDFs follow (A-16…A-20 green).
-- Memory index reflects new rules.
+- Loading any public route from a fresh browser produces **zero** network requests to GA4, Clarity, GTM, or any third party until consent is given (Playwright proves it).
+- `Sec-GPC: 1` browsers see the banner pre-set to "Reject non-essential" and `cookie_consents.gpc_signal = true` on first visit.
+- Footer on every page shows working "Cookie Settings", "Do Not Sell or Share My Personal Information", "Privacy Policy", "Cookie Policy".
+- DSAR form submission creates a `dsar_requests` row, emails acknowledgement within 60s, and appears in the admin queue with a 30-day SLA badge.
+- `/privacy` and `/cookies` render the policy markdown and pass the existing `wcag-audit` suite.
+- `enforce_retention_policy` cron runs daily and writes its row counts to `audit_log`.
+- EU/UK registration with DOB making user < 16 is blocked before any DB write.
+- New BDD scenarios visible in `bdd_scenarios` under `feature_area = 'Privacy & Cookies'`.
+- Memory index updated; Core line added.
+
+I'd recommend shipping in three pushes: (1) Workstream 1 + 2 + 5 (the user-visible compliance bar), (2) Workstream 3 + 4 (retention + DSAR backend + breach), (3) Workstream 6 + 7 + 8 (hardening, BDD, docs). Approve and I'll start with push 1.
