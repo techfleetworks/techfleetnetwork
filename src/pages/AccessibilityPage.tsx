@@ -104,11 +104,9 @@ export default function AccessibilityPage() {
         </form>
       </section>
 
-      <section aria-labelledby="policy-text">
-        <h2 id="policy-text" className="sr-only">
-          {t("accessibility.policyTitle")}
-        </h2>
-        <LegalPolicyPanel slug="accessibility" />
+      <section aria-labelledby="policy-text" className="prose prose-sm dark:prose-invert max-w-none">
+        <h2 id="policy-text" className="sr-only">{t("accessibility.policyTitle")}</h2>
+        <ReactMarkdown>{policyMd}</ReactMarkdown>
       </section>
     </div>
   );
