@@ -165,8 +165,7 @@ export default function FirstStepsPage() {
   const [tasks, setTasks] = useState<Task[]>(taskDefs.map((t) => ({ ...t, completed: false })));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [agreementOpen, setAgreementOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
+  const [legalPanelId, setLegalPanelId] = useState<keyof typeof LEGAL_PANELS | null>(null);
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const completionShownRef = useRef(false);
 
@@ -282,8 +281,7 @@ export default function FirstStepsPage() {
     } finally {
       setLoadingId(null);
       setAgreementOpen(false);
-      setPrivacyOpen(false);
-      setTermsOpen(false);
+      setLegalPanelId(null);
     }
   };
 
@@ -335,8 +333,7 @@ export default function FirstStepsPage() {
                   type="button"
                   onClick={() => {
                     if (task.panelAction && !task.completed) {
-                      if (task.panelId === "privacy-policy") setPrivacyOpen(true);
-                      else if (task.panelId === "terms-conditions") setTermsOpen(true);
+                      if (task.panelId && task.panelId in LEGAL_PANELS) setLegalPanelId(task.panelId as keyof typeof LEGAL_PANELS);
                       else setAgreementOpen(true);
                     } else {
                       toggleTask(task.id);
@@ -372,8 +369,7 @@ export default function FirstStepsPage() {
                         size="sm"
                         disabled={task.completed}
                         onClick={() => {
-                          if (task.panelId === "privacy-policy") setPrivacyOpen(true);
-                          else if (task.panelId === "terms-conditions") setTermsOpen(true);
+                          if (task.panelId && task.panelId in LEGAL_PANELS) setLegalPanelId(task.panelId as keyof typeof LEGAL_PANELS);
                           else setAgreementOpen(true);
                         }}
                       >
