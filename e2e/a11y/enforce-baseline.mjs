@@ -8,7 +8,7 @@
  *   - the report file is missing,
  *   - axe violations exceed the baseline,
  *   - the report scanned ZERO routes (silent-empty guard),
- *   - the report scanned fewer routes than SCANNABLE_ROUTES.length minus
+ *   - the report scanned fewer routes than SCANNABLE_ROUTE_COUNT minus
  *     `allowedSkippedRoutes` (catches the case where build/SPA died and
  *     every route silently errored), or
  *   - the checklist roll-up has any kind=axe/dom/static items in `fail`
@@ -42,7 +42,7 @@ const report = JSON.parse(readFileSync(REPORT, "utf8"));
 const baseline = JSON.parse(readFileSync(BASELINE, "utf8"));
 const max = Number(baseline.maxTotalViolations ?? 0);
 const allowedSkipped = Number(baseline.allowedSkippedRoutes ?? 0);
-const minScanned = Math.max(0, SCANNABLE_ROUTES.length - allowedSkipped);
+const minScanned = Math.max(0, SCANNABLE_ROUTE_COUNT - allowedSkipped);
 
 // Empty-scan guard. The previous gate accepted "0 violations across 0
 // routes" as a green check — that masked an entire build outage.
@@ -56,7 +56,7 @@ if (scanned === 0) {
 }
 if (scanned < minScanned) {
   fail(
-    `Only ${scanned}/${SCANNABLE_ROUTES.length} scannable routes were scanned ` +
+    `Only ${scanned}/${SCANNABLE_ROUTE_COUNT} scannable routes were scanned ` +
       `(threshold: ${minScanned}). Audit coverage regressed.`,
   );
 }
@@ -71,7 +71,7 @@ if (typeof report.totalViolations === "number") {
   for (const r of report.routes) total += (r.violations?.length ?? 0);
 }
 
-console.log(`[a11y-gate] scanned=${scanned}/${SCANNABLE_ROUTES.length}  axe-violations=${total}  (baseline: ${max})`);
+console.log(`[a11y-gate] scanned=${scanned}/${SCANNABLE_ROUTE_COUNT}  axe-violations=${total}  (baseline: ${max})`);
 
 if (total > max) {
   fail(
