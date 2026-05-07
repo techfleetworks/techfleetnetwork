@@ -354,22 +354,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   Terms of Use
                 </a>
-                <a
-                  href="/policies/Privacy-Policy.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Privacy Policy
-                </a>
-                <a
-                  href="/policies/Cookie-Policy.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Cookie Policy
-                </a>
+                <PrivacyFooterLinks />
                 <Link
                   to="/accessibility"
                   className="hover:text-foreground transition-colors"
