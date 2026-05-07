@@ -44,8 +44,9 @@ describe("LandingPage UI (BDD 16.1–16.4)", () => {
     expect(screen.getByText("Community Support")).toBeInTheDocument();
   });
 
-  it("16.3: renders bottom CTA section", () => {
-    expect(screen.getByText("Ready to start your journey?")).toBeInTheDocument();
+  it("16.3: features heading is left-aligned (no bottom CTA duplicate)", () => {
+    expect(screen.getByText("Your professional development journey")).toBeInTheDocument();
+    expect(screen.queryByText("Ready to start your journey?")).not.toBeInTheDocument();
   });
 
   it("16.4: hero image has descriptive alt text", () => {
