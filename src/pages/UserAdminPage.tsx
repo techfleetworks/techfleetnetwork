@@ -303,6 +303,20 @@ export default function UserAdminPage() {
       },
     },
     {
+      headerName: "A11y Training",
+      field: "user_id",
+      flex: 1,
+      valueGetter: (params) => (params.data && a11yTrainedIds.has(params.data.user_id) ? "Completed" : "Not yet"),
+      cellRenderer: (params: ICellRendererParams<UserRow>) => {
+        const done = !!params.data && a11yTrainedIds.has(params.data.user_id);
+        return (
+          <span className={done ? "text-emerald-500 font-medium text-xs" : "text-muted-foreground text-xs"}>
+            {done ? "✓ Completed" : "Not yet"}
+          </span>
+        );
+      },
+    },
+    {
       headerName: "Actions",
       sortable: false,
       filter: false,
@@ -315,7 +329,7 @@ export default function UserAdminPage() {
       suppressSizeToFit: true,
       cellRenderer: ActionsCellRenderer,
     },
-  ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer]);
+  ], [user?.id, NameCellRenderer, RoleCellRenderer, ActionsCellRenderer, a11yTrainedIds]);
 
   // Admin access is enforced by AdminRoute wrapper
 
@@ -364,6 +378,9 @@ export default function UserAdminPage() {
         </div>
         <Badge variant="secondary" className="text-xs">
           {users.length} users
+        </Badge>
+        <Badge variant="outline" className="text-xs" aria-label="Accessibility training completion percentage">
+          A11y trained: {users.length ? Math.round((a11yTrainedIds.size / users.length) * 100) : 0}%
         </Badge>
       </div>
 
