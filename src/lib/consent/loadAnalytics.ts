@@ -67,7 +67,7 @@ function loadClarity() {
     t.src = "https://www.clarity.ms/tag/" + i;
     const y = l.getElementsByTagName(r)[0];
     y.parentNode!.insertBefore(t, y);
-  })(window, document, "clarity", "script", CLARITY_ID);
+  })(window as unknown as Record<string, unknown>, document, "clarity", "script", CLARITY_ID);
 }
 
 /**
