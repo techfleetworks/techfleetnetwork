@@ -39,6 +39,10 @@ export function useMembershipRealtime() {
   const lastTierRef = useRef<string | null>(null);
   const lastFoundingRef = useRef<boolean | null>(null);
   const lastBillingRef = useRef<string | null>(null);
+  // Defer the realtime WebSocket handshake until the browser is idle so it
+  // never delays first paint on slow networks. The reconcile/backfill effect
+  // below remains immediate — it's a one-shot HTTP call, not a channel.
+  const ready = useDeferredMount();
 
   // Track current state so the realtime callback can detect transitions.
   useEffect(() => {
