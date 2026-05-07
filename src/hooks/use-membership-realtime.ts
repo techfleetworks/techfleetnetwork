@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { createLogger } from "@/services/logger.service";
+import { useDeferredMount } from "@/lib/defer-until-idle";
 
 const log = createLogger("MembershipRealtime");
 
@@ -38,6 +39,10 @@ export function useMembershipRealtime() {
   const lastTierRef = useRef<string | null>(null);
   const lastFoundingRef = useRef<boolean | null>(null);
   const lastBillingRef = useRef<string | null>(null);
+  // Defer the realtime WebSocket handshake until the browser is idle so it
+  // never delays first paint on slow networks. The reconcile/backfill effect
+  // below remains immediate — it's a one-shot HTTP call, not a channel.
+  const ready = useDeferredMount();
 
   // Track current state so the realtime callback can detect transitions.
   useEffect(() => {
@@ -128,9 +133,9 @@ export function useMembershipRealtime() {
     })();
   }, [user, refreshProfile]);
 
-  // 2. Realtime subscription on profiles row.
+  // 2. Realtime subscription on profiles row (deferred until browser idle).
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ready) return;
 
     const channel = supabase
       .channel(`profile-membership-${user.id}`)
@@ -195,7 +200,7 @@ export function useMembershipRealtime() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user, refreshProfile]);
+  }, [user, ready, refreshProfile]);
 
   return { syncing: Boolean(user) && (!reconciledRef.current || syncing) };
 }
