@@ -16,10 +16,10 @@ import { useEffect, useState } from "react";
 
 type IdleHandle = number;
 type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
-interface IdleWindow extends Window {
+type IdleWindow = Window & {
   requestIdleCallback?: (cb: IdleCallback, opts?: { timeout?: number }) => IdleHandle;
   cancelIdleCallback?: (handle: IdleHandle) => void;
-}
+};
 
 export function useDeferredMount(): boolean {
   const [ready, setReady] = useState(false);
