@@ -416,19 +416,20 @@ export default function FirstStepsPage() {
         onAccepted={() => handlePanelAccepted("community-agreement")}
         loading={loadingId === "community-agreement"}
       />
-      <PrivacyPolicyPanel
-        open={privacyOpen}
-        onOpenChange={setPrivacyOpen}
-        onAccepted={() => handlePanelAccepted("privacy-policy")}
-        loading={loadingId === "privacy-policy"}
-      />
-      <TermsConditionsPanel
-        open={termsOpen}
-        onOpenChange={setTermsOpen}
-        onAccepted={() => handlePanelAccepted("terms-conditions")}
-        loading={loadingId === "terms-conditions"}
-      />
-
+      {legalPanelId && (
+        <LegalPolicyPanel
+          open={legalPanelId !== null}
+          onOpenChange={(o) => { if (!o) setLegalPanelId(null); }}
+          onAccepted={() => handlePanelAccepted(legalPanelId)}
+          loading={loadingId === legalPanelId}
+          panelKey={legalPanelId}
+          title={LEGAL_PANELS[legalPanelId].title}
+          description={LEGAL_PANELS[legalPanelId].description}
+          markdownUrl={LEGAL_PANELS[legalPanelId].markdownUrl}
+          downloadUrl={LEGAL_PANELS[legalPanelId].downloadUrl}
+          acceptLabel={LEGAL_PANELS[legalPanelId].acceptLabel}
+        />
+      )}
       {/* 🎉 Course completion popup */}
       <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
         <DialogContent className="sm:max-w-md text-center">
