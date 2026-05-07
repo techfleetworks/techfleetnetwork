@@ -87,6 +87,7 @@ export default function UserAdminPage() {
         // Soft-fail — surface a placeholder of 0% rather than crash.
         console.warn("[a11y-training] read failed:", e);
       }
+    } catch (err) {
       console.error("Failed to fetch users:", err);
       toast.error("Failed to load users");
     } finally {
