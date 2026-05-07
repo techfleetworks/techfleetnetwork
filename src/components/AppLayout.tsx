@@ -523,6 +523,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
         <LiveAnnouncer />
+        <CookieConsentBanner />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </div>
