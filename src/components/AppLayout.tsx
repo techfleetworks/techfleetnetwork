@@ -367,6 +367,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   Cookie Policy
                 </a>
+                <Link
+                  to="/accessibility"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Accessibility
+                </Link>
               </nav>
             </div>
           </div>
