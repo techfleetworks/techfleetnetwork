@@ -60,17 +60,33 @@ export default function RegisterPage() {
   const markTouched = (field: string) =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
+  // Parse DOB string for schema
+  const dobParts = (() => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+    if (!m) return null;
+    return { birthYear: Number(m[1]), birthMonth: Number(m[2]), birthDay: Number(m[3]) };
+  })();
+
   // Real-time validation on change
   useEffect(() => {
     if (Object.keys(touched).length === 0) return;
-    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
+    const payload = {
+      firstName, lastName, email, password, confirmPassword,
+      birthYear: dobParts?.birthYear ?? 1900,
+      birthMonth: dobParts?.birthMonth ?? 1,
+      birthDay: dobParts?.birthDay ?? 1,
+      countryCode,
+      agreedToTerms,
+    };
+    const result = registerSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+        // Surface birthYear/Month/Day errors under "dob"
+        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
+        if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
-      // Only show errors for touched fields
       const touchedErrors: Record<string, string> = {};
       for (const [k, v] of Object.entries(fieldErrors)) {
         if (touched[k]) touchedErrors[k] = v;
@@ -79,7 +95,7 @@ export default function RegisterPage() {
     } else {
       setErrors({});
     }
-  }, [firstName, lastName, email, password, confirmPassword, agreedToTerms, touched]);
+  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, touched, countryCode]);
 
   useEffect(() => {
     if (redirectParam) {
