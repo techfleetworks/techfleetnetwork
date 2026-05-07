@@ -67,4 +67,9 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     verify_jwt = false
   [functions.triage-error]
     verify_jwt = true
+  [functions.record-web-vital]
+    # Public RUM beacon — fires from sendBeacon on page hide where auth
+    # tokens aren't reliably available. Endpoint is hardened: strict
+    # allow-lists, body cap, no PII, swallows errors.
+    verify_jwt = false
 
