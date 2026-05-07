@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -16,9 +17,16 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
+      // Recommended set covers labels, alt text, ARIA roles/props, and
+      // keyboard interactivity. Surfaced violations downgraded to "warn"
+      // initially so the existing baseline doesn't break CI; tighten to
+      // "error" once the warning queue is at zero.
+      "jsx-a11y": jsxA11y,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple
