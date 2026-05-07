@@ -133,9 +133,9 @@ export function useMembershipRealtime() {
     })();
   }, [user, refreshProfile]);
 
-  // 2. Realtime subscription on profiles row.
+  // 2. Realtime subscription on profiles row (deferred until browser idle).
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ready) return;
 
     const channel = supabase
       .channel(`profile-membership-${user.id}`)
