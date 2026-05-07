@@ -1,13 +1,12 @@
-// @ts-nocheck
-/**
- * geo-hint — returns the visitor's country code from the Cloudflare CF-IPCountry
- * header (no PII stored). Used by the cookie banner to choose opt-in vs opt-out
- * defaults. Public endpoint by design.
- */
-import { corsHeaders } from "@supabase/supabase-js/cors";
+// geo-hint — public endpoint, returns visitor country code only.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
-Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+Deno.serve((req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const country =
     req.headers.get("cf-ipcountry") ||
     req.headers.get("x-vercel-ip-country") ||
