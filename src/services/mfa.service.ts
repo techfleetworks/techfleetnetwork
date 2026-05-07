@@ -74,6 +74,7 @@ export const MfaService = {
       log.error("enrollTotp", `Failed: ${error?.message}`, undefined, error);
       throw new Error(error?.message || "Failed to start MFA enrollment");
     }
+    invalidateFactorCache();
     return {
       factorId: data.id,
       qrCode: data.totp.qr_code,
@@ -100,6 +101,7 @@ export const MfaService = {
       log.warn("verifyEnrollment", `Invalid code: ${verifyErr.message}`);
       throw new Error("Invalid verification code. Please try again.");
     }
+    invalidateFactorCache();
     log.info("verifyEnrollment", "TOTP factor enrolled successfully");
   },
 
@@ -110,6 +112,7 @@ export const MfaService = {
       log.error("unenroll", `Failed: ${error.message}`, undefined, error);
       throw new Error("Could not remove MFA factor");
     }
+    invalidateFactorCache();
     log.info("unenroll", "MFA factor removed");
   },
 
