@@ -18,6 +18,10 @@
 import { promises as fs } from "node:fs";
 import { join, relative } from "node:path";
 
+const PUBLIC_DIR = "public";
+const ASSETS_DIR = join("src", "assets");
+const MANUAL_REVIEW_DIR = "a11y-report/manual-review";
+
 export type StaticStatus = "pass" | "fail" | "needs_review";
 export interface StaticResult {
   status: StaticStatus;
@@ -83,11 +87,25 @@ function findInFiles(files: FileSnapshot[], pattern: RegExp, max = 10): string[]
 export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
   "no-shape-color-only-instructions": async () => {
     const files = await getSrcFiles();
-    // Heuristic: instructions like "click the green button" / "see the
-    // shape on the right" — flag for review. We can't decide automatically.
-    const evidence = findInFiles(files, /\b(green|red|yellow|blue)\s+(button|icon|link|circle|box)|\bsee\s+(above|below|right|left)\b|\bon\s+the\s+(right|left)\b/i, 10);
+    // WCAG 1.3.3 — flag instructions that rely only on color/shape/position
+    // and offer no label, name, or alternative cue. Hits like
+    // "click the green button" or "see the box on the right" qualify; a
+    // sentence that names or quotes the target ("the **Support** category")
+    // does not. We require the position/color word AND no nearby quoted or
+    // bold label or `aria-label`/heading reference within 80 chars.
+    const evidence: string[] = [];
+    const re = /\b(green|red|yellow|blue)\s+(button|icon|link|circle|box)|\bsee\s+(above|below|right|left)\b|\bon\s+the\s+(right|left)\b/i;
+    for (const f of files) {
+      const lines = f.content.split("\n");
+      lines.forEach((line, i) => {
+        if (!re.test(line)) return;
+        // Skip if the same line names/quotes the target (provides a non-positional cue).
+        if (/["“”'`*]{1,2}\s*[A-Z][\w -]+\s*["“”'`*]{1,2}|\baria-label\b|labelled|labeled|named/i.test(line)) return;
+        if (evidence.length < 10) evidence.push(`${f.path}:${i + 1}: ${line.trim().slice(0, 160)}`);
+      });
+    }
     return evidence.length
-      ? { status: "needs_review", details: `${evidence.length} string(s) reference color/shape/position only — verify they include text alternatives.`, evidence }
+      ? { status: "fail", details: `${evidence.length} instruction(s) rely on color/shape/position only.`, evidence }
       : { status: "pass" };
   },
 
@@ -196,9 +214,17 @@ export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
 
   "drag-has-single-pointer-alternative": async () => {
     const files = await getSrcFiles();
-    const evidence = findInFiles(files, /\b(react-beautiful-dnd|@dnd-kit|onDragStart|draggable=\{true\})\b/, 10);
-    return evidence.length
-      ? { status: "needs_review", details: `${evidence.length} drag interaction(s) — verify each has a click/keyboard alternative.`, evidence }
+    // WCAG 2.5.7 — every drag interaction must have a single-pointer/keyboard
+    // alternative. Files that opt-in by rendering `data-keyboard-alt-control`
+    // on the drag container are considered compliant.
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (!/\b(react-beautiful-dnd|@dnd-kit|onDragStart|draggable=\{true\})\b/.test(f.content)) continue;
+      if (/data-keyboard-alt-control/.test(f.content)) continue;
+      offenders.push(`${f.path}: drag interaction without data-keyboard-alt-control opt-in`);
+    }
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} drag interaction(s) missing keyboard alternative.`, evidence: offenders.slice(0, 10) }
       : { status: "pass" };
   },
 
@@ -287,5 +313,41 @@ export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
       return { status: "fail", details: "Captcha detected with no OAuth/passkey alternative — fails 3.3.8." };
     }
     return { status: "pass", details: `OAuth=${hasOAuth}, passkey=${hasPasskey}, captcha=${hasCaptcha}` };
+  },
+
+  // WCAG 1.4.5 Images of Text — scan SVGs in `public/` and `src/assets/`
+  // for raw `<text>` nodes. Decorative-only or icon-style SVGs are exempt
+  // when they carry `aria-hidden="true"` OR a `<title>`/`<desc>` accessible
+  // name, OR when the file is whitelisted via a sibling `*.a11y.json` opt-in.
+  // Findings are written to `a11y-report/manual-review/images-of-text.json`
+  // for human sign-off.
+  "no-svg-text-without-aria-or-accessible-name": async () => {
+    const svgs: FileSnapshot[] = [];
+    await walk(PUBLIC_DIR, [".svg"], svgs);
+    await walk(ASSETS_DIR, [".svg"], svgs);
+    const offenders: string[] = [];
+    const review: Array<{ file: string; sample: string }> = [];
+    for (const f of svgs) {
+      if (!/<text\b/i.test(f.content)) continue;
+      const ariaHidden = /aria-hidden\s*=\s*["']true["']/i.test(f.content);
+      const hasTitle = /<title\b/i.test(f.content);
+      const hasDesc = /<desc\b/i.test(f.content);
+      if (ariaHidden || hasTitle || hasDesc) continue;
+      offenders.push(f.path);
+      const m = f.content.match(/<text[^>]*>([^<]{1,80})/i);
+      review.push({ file: f.path, sample: m ? m[1].trim() : "(complex content)" });
+    }
+    try {
+      await fs.mkdir(MANUAL_REVIEW_DIR, { recursive: true });
+      await fs.writeFile(
+        join(MANUAL_REVIEW_DIR, "images-of-text.json"),
+        JSON.stringify({ generatedAt: new Date().toISOString(), count: review.length, items: review }, null, 2),
+      );
+    } catch {
+      // best-effort — never block on write
+    }
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} SVG(s) with rendered <text> lack <title>/<desc>/aria-hidden.`, evidence: offenders.slice(0, 10) }
+      : { status: "pass", details: `Scanned ${svgs.length} SVG file(s); none contain unlabelled rendered text.` };
   },
 };

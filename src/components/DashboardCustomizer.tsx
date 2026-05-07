@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Settings2, GripVertical } from "lucide-react";
+import { Settings2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   ALL_WIDGETS,
   type DashboardWidgetId,
 } from "@/hooks/use-dashboard-preferences";
+import { useAnnounce } from "@/components/LiveAnnouncer";
 
 interface DashboardCustomizerProps {
   visibleWidgets: DashboardWidgetId[];
@@ -37,6 +38,31 @@ export function DashboardCustomizer({
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
+  const announce = useAnnounce();
+
+  // WCAG 2.5.7 Dragging Movements — keyboard alternative for the drag/drop
+  // reorder. Move-up / Move-down buttons reorder the widget list and
+  // announce the change in a polite live region for screen-reader users.
+  const moveByKeyboard = useCallback(
+    (idx: number, direction: -1 | 1) => {
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= displayedOrder.length) return;
+      const movedId = displayedOrder[idx];
+      const targetId = displayedOrder[targetIdx];
+      const fromFull = widgetOrder.indexOf(movedId);
+      const toFull = widgetOrder.indexOf(targetId);
+      if (fromFull === -1 || toFull === -1) return;
+      const updated = [...widgetOrder];
+      const [moved] = updated.splice(fromFull, 1);
+      updated.splice(toFull, 0, moved);
+      onReorder(updated);
+      announce(
+        `${widgetLabel(movedId)} moved ${direction === -1 ? "up" : "down"} to position ${targetIdx + 1} of ${displayedOrder.length}.`,
+        "polite",
+      );
+    },
+    [displayedOrder, widgetOrder, onReorder, announce],
+  );
 
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>, idx: number) => {
@@ -98,9 +124,14 @@ export function DashboardCustomizer({
           Dashboard Sections
         </h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Drag to reorder · Toggle to show or hide
+          Drag, or use the Move buttons, to reorder · Toggle to show or hide
         </p>
-        <div className="space-y-1" role="list" aria-label="Reorder dashboard sections">
+        <div
+          className="space-y-1"
+          role="list"
+          aria-label="Reorder dashboard sections"
+          data-keyboard-alt-control="dashboard-reorder"
+        >
           {displayedOrder.map((id, idx) => (
             <div
               key={id}
@@ -126,6 +157,28 @@ export function DashboardCustomizer({
               >
                 {widgetLabel(id)}
               </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label={`Move ${widgetLabel(id)} up`}
+                disabled={idx === 0}
+                onClick={() => moveByKeyboard(idx, -1)}
+              >
+                <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label={`Move ${widgetLabel(id)} down`}
+                disabled={idx === displayedOrder.length - 1}
+                onClick={() => moveByKeyboard(idx, 1)}
+              >
+                <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
               <Switch
                 id={`widget-${id}`}
                 checked={visibleWidgets.includes(id)}

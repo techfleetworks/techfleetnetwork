@@ -32,7 +32,7 @@ export interface ChecklistItem {
   /** WCAG SC number, e.g. "1.1.1" */
   sc: string;
   /** WCAG level: A or AA (we list A + AA per WebAIM checklist) */
-  level: "A" | "AA";
+  level: "A" | "AA" | "AAA";
   /** Short human title */
   title: string;
   /** What we actually check */
@@ -192,6 +192,20 @@ export const WCAG_CHECKLIST: ChecklistItem[] = [
     ] },
   { sc: "4.1.3", level: "AA", title: "Status Messages",
     kind: "dom", domProbe: "status-messages-use-live-region" },
+
+  // ─── AAA (machine-checkable subset axe-core covers) ─────────────
+  // The remaining AAA criteria are not machine-decidable and live in
+  // docs/accessibility/known-limitations.md as manual-review rows.
+  { sc: "1.4.5-img", level: "AA", title: "Images of Text (repo scan)",
+    kind: "static", staticCheck: "no-svg-text-without-aria-or-accessible-name" },
+  { sc: "1.4.6", level: "AAA", title: "Contrast (Enhanced)",
+    kind: "axe", axeRules: ["color-contrast-enhanced"] },
+  { sc: "1.4.8", level: "AAA", title: "Visual Presentation (link in text block)",
+    kind: "axe", axeRules: ["link-in-text-block-style"] },
+  { sc: "2.2.4", level: "AAA", title: "Interruptions (no meta refresh)",
+    kind: "axe", axeRules: ["meta-refresh-no-exceptions"] },
+  { sc: "2.4.9", level: "AAA", title: "Link Purpose (Link Only)",
+    kind: "axe", axeRules: ["identical-links-same-purpose"] },
 ];
 
 /** Convenience: criteria grouped by WCAG principle (1–4). */
