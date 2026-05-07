@@ -123,6 +123,13 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Network Activity Section — lazy loaded with reserved space */}
+      <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
+        <Suspense fallback={<NetworkActivityFallback />}>
+          <NetworkActivity />
+        </Suspense>
+      </section>
     </div>
   );
 }
