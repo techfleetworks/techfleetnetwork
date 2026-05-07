@@ -312,6 +312,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
         <LiveAnnouncer />
+        <CookieConsentBanner />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
