@@ -118,6 +118,10 @@ const TASK_LABELS: Record<string, string> = {
   
   "figma-account": "Register for Figma Educational Account",
   "community-agreement": "Agree to the Community Member Agreement",
+  "privacy-policy": "Agree to the Privacy Policy",
+  "terms-conditions": "Agree to the Terms & Conditions",
+  "terms-of-use": "Agree to the Terms of Use",
+  "cookie-policy": "Acknowledge the Cookie Policy",
 };
 
 const PHASE_LABELS: Record<string, string> = {

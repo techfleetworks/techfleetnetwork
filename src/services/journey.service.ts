@@ -29,6 +29,8 @@ const VALID_TASK_IDS = new Set([
   "community-agreement",
   "privacy-policy",
   "terms-conditions",
+  "terms-of-use",
+  "cookie-policy",
   ...ALL_AGILE_LESSON_IDS,
   ...ALL_TEAMWORK_LESSON_IDS,
   ...ALL_PROJECT_TRAINING_LESSON_IDS,
