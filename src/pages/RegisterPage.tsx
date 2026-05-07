@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
-import { registerSchema } from "@/lib/validators/auth";
+import { registerSchema, ageInYears, minAgeForCountry } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
@@ -23,6 +23,7 @@ import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 import { PolicyLinksInline } from "@/components/PolicyLinksInline";
 import { recordPolicyAcknowledgment } from "@/lib/policies";
+import { loadConsent } from "@/lib/consent/manager";
 
 export default function RegisterPage() {
   const location = useLocation();
