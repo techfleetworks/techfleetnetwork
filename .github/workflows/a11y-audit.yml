@@ -21,9 +21,21 @@ name: WCAG 2.2 Accessibility Audit
 
 on:
   workflow_dispatch:
+  pull_request:
+    # PR-blocking gate: every PR runs the a11y suite. The Playwright spec
+    # writes a11y-report/a11y-report.json; the "Enforce a11y baseline"
+    # step compares total violations against the committed baseline at
+    # `e2e/a11y/baseline.json` and fails the job on any new regression.
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "e2e/a11y/**"
+      - ".github/workflows/a11y-audit.yml"
+      - "package.json"
+      - "package-lock.json"
   schedule:
-    # Mondays at 06:00 UTC — weekly drift check. Cheap because it only
-    # runs once a week, not per PR.
+    # Mondays at 06:00 UTC — weekly drift check.
     - cron: "0 6 * * 1"
 
 permissions:
@@ -89,6 +101,13 @@ jobs:
         # escaped dots (and `--` to stop shell/CLI flag parsing) matches
         # the single spec reliably across local + CI.
         run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts" || true
+
+      - name: Enforce a11y baseline (PR gate)
+        if: github.event_name == 'pull_request'
+        # Fails the job when the new report introduces additional axe
+        # violations vs the committed baseline. Updating the baseline is a
+        # deliberate, reviewed change in `e2e/a11y/baseline.json`.
+        run: node e2e/a11y/enforce-baseline.mjs
 
       - name: Upload a11y report
         if: always()

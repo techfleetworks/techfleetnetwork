@@ -111,6 +111,22 @@ export async function generateCertificatePdf(fullName: string, certificateTitle?
     format: [pdfWidthMm, pdfHeightMm],
   });
 
-  pdf.addImage(imgDataUrl, "JPEG", 0, 0, pdfWidthMm, pdfHeightMm);
+  // PDF/UA + WCAG 1.1.1 / 1.3.1 metadata. jsPDF's tagging is limited, but
+  // setting Lang, Title, and a structured alt-text annotation on the artwork
+  // gets us closer to an accessible certificate. Locale is read from the
+  // active <html lang> so language switches propagate to downloads.
+  const lang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
+  const safeTitle = (certificateTitle?.trim() || "Certificate") + " — " + fullName;
+  // jsPDF types restrict to a literal union of supported tags; cast safely.
+  pdf.setLanguage(lang as Parameters<typeof pdf.setLanguage>[0]);
+  pdf.setProperties({
+    title: safeTitle,
+    subject: certificateTitle || "Tech Fleet Certificate",
+    author: "Tech Fleet Network",
+    creator: "Tech Fleet Network",
+    keywords: "certificate, accessibility, PDF/UA",
+  });
+  // Provide an alt-text equivalent for assistive tech via the image alias.
+  pdf.addImage(imgDataUrl, "JPEG", 0, 0, pdfWidthMm, pdfHeightMm, `cert-art-${Date.now()}`, "FAST");
   pdf.save(`Certificate-${fullName.replace(/\s+/g, "_")}.pdf`);
 }

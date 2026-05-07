@@ -1,0 +1,5 @@
+{
+  "_doc": "PR-gating baseline for the WCAG 2.2 a11y suite. The CI step `e2e/a11y/enforce-baseline.mjs` reads `a11y-report/a11y-report.json` produced by `wcag-audit.e2e.ts` and fails the build if `totalViolations` exceeds `maxTotalViolations`. To intentionally accept a regression, raise this number in the same PR with reviewer sign-off and a remediation note. Lowering it after fixes is encouraged.",
+  "maxTotalViolations": 0,
+  "lastReviewed": "2026-05-07"
+}
