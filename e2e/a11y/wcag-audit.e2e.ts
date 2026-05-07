@@ -376,6 +376,11 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
         }
         const fails = allOutputs.filter((o) => o.result.status === "fail");
         const reviews = allOutputs.filter((o) => o.result.status === "needs_review");
+        const passes = allOutputs.filter((o) => o.result.status === "pass");
+        // A probe is allowed to "pass on 0 routes" only when its target
+        // surface (e.g. <video>, role=tooltip) genuinely doesn't exist on any
+        // scanned route. We mark those as `needs_review` with a clear note so
+        // the report never claims passing coverage we don't have.
         if (fails.length) {
           status = "fail";
           summary = `Probe "${item.domProbe}" failed on ${fails.length} route(s).`;
@@ -384,9 +389,12 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
           status = "needs_review";
           summary = `Probe "${item.domProbe}" flagged ${reviews.length} route(s) for human review.`;
           evidence = reviews.slice(0, 10);
+        } else if (passes.length === 0) {
+          status = "needs_review";
+          summary = `Probe "${item.domProbe}" had no candidate elements on any scanned route — wire a fixture page or mark this surface n/a explicitly.`;
         } else {
           status = "pass";
-          summary = `Probe "${item.domProbe}" passed on ${allOutputs.length} route(s).`;
+          summary = `Probe "${item.domProbe}" passed on ${passes.length} route(s).`;
         }
       } else if (item.kind === "static" && item.staticCheck) {
         const r = staticResults[item.staticCheck];
