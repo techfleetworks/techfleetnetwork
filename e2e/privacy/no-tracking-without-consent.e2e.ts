@@ -31,6 +31,8 @@ test.describe("No third-party trackers before consent", () => {
       await context.addInitScript(() => {
         try {
           window.localStorage.removeItem("tfn.consent.v1");
+          // Clear CookieYes' own consent record so its banner re-prompts.
+          document.cookie = "cookieyes-consent=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
         } catch {
           // Storage unavailable — non-fatal.
         }
