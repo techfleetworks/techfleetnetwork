@@ -212,6 +212,9 @@ const App = () => (
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/accessibility" element={<AccessibilityPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/cookies" element={<CookiesPage />} />
+                    <Route path="/privacy/dsar" element={<DsarSubmitPage />} />
                     <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
                     <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
                     <Route path="/admin/banners" element={<AdminRoute><BannerManagementPage /></AdminRoute>} />
