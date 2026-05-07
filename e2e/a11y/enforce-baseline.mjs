@@ -18,7 +18,14 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { SCANNABLE_ROUTES } from "./routes.ts";
+
+// Count scannable routes by parsing routes.ts without invoking the TS
+// loader from a Node .mjs script. A "scannable" route is any entry that
+// does NOT carry a `skipReason` field.
+const ROUTES_SRC = readFileSync(resolve("e2e/a11y/routes.ts"), "utf8");
+const totalRouteEntries = (ROUTES_SRC.match(/\bpath:\s*["'`]/g) ?? []).length;
+const skipReasonEntries = (ROUTES_SRC.match(/\bskipReason\s*:/g) ?? []).length;
+const SCANNABLE_ROUTE_COUNT = Math.max(0, totalRouteEntries - skipReasonEntries);
 
 const REPORT = resolve("a11y-report/a11y-report.json");
 const BASELINE = resolve("e2e/a11y/baseline.json");
