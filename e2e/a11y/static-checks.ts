@@ -18,6 +18,10 @@
 import { promises as fs } from "node:fs";
 import { join, relative } from "node:path";
 
+const PUBLIC_DIR = "public";
+const ASSETS_DIR = join("src", "assets");
+const MANUAL_REVIEW_DIR = "a11y-report/manual-review";
+
 export type StaticStatus = "pass" | "fail" | "needs_review";
 export interface StaticResult {
   status: StaticStatus;
