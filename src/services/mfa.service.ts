@@ -93,51 +93,60 @@ export const MfaService = {
   },
 
   /**
-   * Check if the current session needs an MFA challenge.
+   * Authoritative MFA gate decision used by both LoginPage and MfaEnforcementGuard.
    *
-   * Defensive: Supabase's `getAuthenticatorAssuranceLevel` can briefly report
-   * `nextLevel: "aal2"` based on stale JWT/AMR claims even when the user has
-   * NO verified factors enrolled (e.g., right after a factor is removed, or
-   * during a freshly-issued session for a user who has never enrolled). If we
-   * trusted that flag alone we would prompt new users for a code they cannot
-   * produce. We therefore cross-check `listFactors()` and only return
-   * `needsChallenge: true` when at least one verified TOTP factor exists.
+   * Why this exists: `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` reads
+   * AAL/AMR claims from the JWT, which can be stale (especially after signing-key
+   * rotation) and report `currentLevel: aal1, nextLevel: aal1` even when the
+   * user has a verified TOTP factor. That stale state caused the dialog to
+   * silently skip enforcement. We now derive the decision from two sources we
+   * trust:
+   *   1. `listFactors()` — the source of truth for enrollment.
+   *   2. The `aal` claim decoded directly from `session.access_token`.
+   *
+   * Result: any user (admin or member) with a verified TOTP factor whose current
+   * session is below AAL2 will be challenged. Users without a verified factor
+   * are never prompted. No reliance on `nextLevel`.
+   */
+  async getMfaGateDecision(): Promise<{ hasVerifiedTotp: boolean; currentAal: string | null; needsChallenge: boolean }> {
+    let hasVerifiedTotp = false;
+    try {
+      const factors = await this.listFactors();
+      hasVerifiedTotp = factors.some((f) => f.factor_type === "totp" && f.status === "verified");
+    } catch (e) {
+      log.warn("getMfaGateDecision", `listFactors failed (failing closed): ${e instanceof Error ? e.message : String(e)}`);
+      return { hasVerifiedTotp: false, currentAal: null, needsChallenge: false };
+    }
+
+    let currentAal: string | null = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) {
+        const payload = token.split(".")[1];
+        if (payload) {
+          const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+          if (typeof decoded?.aal === "string") currentAal = decoded.aal;
+        }
+      }
+    } catch {
+      currentAal = null;
+    }
+
+    const needsChallenge = hasVerifiedTotp && currentAal !== "aal2";
+    return { hasVerifiedTotp, currentAal, needsChallenge };
+  },
+
+  /**
+   * Backward-compatible wrapper. Delegates to `getMfaGateDecision` so all
+   * callers benefit from the resilient logic.
    */
   async getAssuranceLevel(): Promise<{ currentLevel: string | null; nextLevel: string | null; needsChallenge: boolean }> {
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error) {
-      log.error("getAssuranceLevel", `Failed: ${error.message}`, undefined, error);
-      return { currentLevel: null, nextLevel: null, needsChallenge: false };
-    }
-    const aalSaysChallenge = data?.currentLevel === "aal1" && data?.nextLevel === "aal2";
-    let needsChallenge = false;
-    if (aalSaysChallenge) {
-      try {
-        const factors = await this.listFactors();
-        const hasVerifiedTotp = factors.some(
-          (f) => f.factor_type === "totp" && f.status === "verified",
-        );
-        needsChallenge = hasVerifiedTotp;
-        if (!hasVerifiedTotp) {
-          log.warn(
-            "getAssuranceLevel",
-            "AAL reported aal1→aal2 but no verified TOTP factor exists — suppressing spurious challenge",
-          );
-        }
-      } catch (e) {
-        // If we can't list factors, fail closed (don't prompt) rather than
-        // showing a dialog with no factor — that's the worse UX.
-        log.warn(
-          "getAssuranceLevel",
-          `listFactors check failed (suppressing challenge): ${e instanceof Error ? e.message : String(e)}`,
-        );
-        needsChallenge = false;
-      }
-    }
+    const decision = await this.getMfaGateDecision();
     return {
-      currentLevel: data?.currentLevel ?? null,
-      nextLevel: data?.nextLevel ?? null,
-      needsChallenge,
+      currentLevel: decision.currentAal,
+      nextLevel: decision.needsChallenge ? "aal2" : decision.currentAal,
+      needsChallenge: decision.needsChallenge,
     };
   },
 
