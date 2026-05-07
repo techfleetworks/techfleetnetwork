@@ -200,7 +200,7 @@ export function useMembershipRealtime() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user, refreshProfile]);
+  }, [user, ready, refreshProfile]);
 
   return { syncing: Boolean(user) && (!reconciledRef.current || syncing) };
 }
