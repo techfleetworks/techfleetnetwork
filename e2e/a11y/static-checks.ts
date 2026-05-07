@@ -196,9 +196,17 @@ export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
 
   "drag-has-single-pointer-alternative": async () => {
     const files = await getSrcFiles();
-    const evidence = findInFiles(files, /\b(react-beautiful-dnd|@dnd-kit|onDragStart|draggable=\{true\})\b/, 10);
-    return evidence.length
-      ? { status: "needs_review", details: `${evidence.length} drag interaction(s) — verify each has a click/keyboard alternative.`, evidence }
+    // WCAG 2.5.7 — every drag interaction must have a single-pointer/keyboard
+    // alternative. Files that opt-in by rendering `data-keyboard-alt-control`
+    // on the drag container are considered compliant.
+    const offenders: string[] = [];
+    for (const f of files) {
+      if (!/\b(react-beautiful-dnd|@dnd-kit|onDragStart|draggable=\{true\})\b/.test(f.content)) continue;
+      if (/data-keyboard-alt-control/.test(f.content)) continue;
+      offenders.push(`${f.path}: drag interaction without data-keyboard-alt-control opt-in`);
+    }
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} drag interaction(s) missing keyboard alternative.`, evidence: offenders.slice(0, 10) }
       : { status: "pass" };
   },
 
