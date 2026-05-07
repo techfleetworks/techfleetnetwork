@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { createLogger } from "@/services/logger.service";
+import { useDeferredMount } from "@/lib/defer-until-idle";
 
 const log = createLogger("MembershipRealtime");
 
