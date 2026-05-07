@@ -17,6 +17,7 @@ import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
 import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
+import { PerformanceTab } from "@/components/system-health/PerformanceTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -197,6 +198,7 @@ export default function SystemHealthPage() {
           <TabsTrigger value="errors">Errors</TabsTrigger>
           <TabsTrigger value="triage">Triage</TabsTrigger>
           <TabsTrigger value="silent">Silent failures</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="fleety">Fleety</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
@@ -228,6 +230,7 @@ export default function SystemHealthPage() {
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="triage"><TriageTab /></TabsContent>
         <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
+        <TabsContent value="performance"><PerformanceTab /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
