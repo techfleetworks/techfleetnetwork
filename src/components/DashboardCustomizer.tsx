@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Settings2, GripVertical } from "lucide-react";
+import { Settings2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   ALL_WIDGETS,
   type DashboardWidgetId,
 } from "@/hooks/use-dashboard-preferences";
+import { useAnnounce } from "@/components/LiveAnnouncer";
 
 interface DashboardCustomizerProps {
   visibleWidgets: DashboardWidgetId[];
