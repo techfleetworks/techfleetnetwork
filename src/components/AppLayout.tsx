@@ -32,6 +32,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { MfaEnforcementGuard } from "./MfaEnforcementGuard";
+import { LiveAnnouncer, useRouteAnnouncer } from "./LiveAnnouncer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
