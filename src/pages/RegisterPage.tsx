@@ -137,16 +137,25 @@ export default function RegisterPage() {
     // Mark all fields as touched
     const allTouched: Record<string, boolean> = {
       firstName: true, lastName: true, email: true,
-      password: true, confirmPassword: true, agreedToTerms: true,
+      password: true, confirmPassword: true, dob: true, agreedToTerms: true,
     };
     setTouched(allTouched);
 
-    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
+    const payload = {
+      firstName, lastName, email, password, confirmPassword,
+      birthYear: dobParts?.birthYear ?? 1900,
+      birthMonth: dobParts?.birthMonth ?? 1,
+      birthDay: dobParts?.birthDay ?? 1,
+      countryCode,
+      agreedToTerms,
+    };
+    const result = registerSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
+        if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
       setErrors(fieldErrors);
       void logAccountActivity("signup_validation_failed", {
@@ -155,7 +164,8 @@ export default function RegisterPage() {
       });
       showFormErrors(fieldErrors, {
         firstName: "First name", lastName: "Last name", email: "Email",
-        password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
+        password: "Password", confirmPassword: "Confirm password",
+        dob: "Date of birth", agreedToTerms: "Terms agreement",
       });
       scrollToFirstError();
       return;
@@ -186,9 +196,6 @@ export default function RegisterPage() {
     setAuthError("");
 
     try {
-      // PEEK only — never increment on the way in. The bucket only counts
-      // confirmed signup failures (recordFailure below). Successful signups
-      // never consume slots, so a returning user retrying never hits the cap.
       const rateCheck = await RateLimitService.peek(result.data.email, "signup_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
@@ -207,7 +214,8 @@ export default function RegisterPage() {
         result.data.firstName,
         result.data.lastName,
         getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
-        captchaToken
+        captchaToken,
+        result.data.birthYear
       );
       clearAuthLockout();
       setSubmitted(true);
