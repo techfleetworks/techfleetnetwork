@@ -1,0 +1,59 @@
+{
+  "app": {
+    "name": "Tech Fleet Network",
+    "tagline": "The professional training platform for Tech Fleet."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "journey": "My Journey",
+    "training": "Training",
+    "resources": "Resources",
+    "events": "Events",
+    "applications": "Applications",
+    "announcements": "Announcements",
+    "feedback": "Feedback",
+    "accessibility": "Accessibility",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "settings": "Settings"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…"
+  },
+  "language": {
+    "label": "Language",
+    "change": "Change language",
+    "search": "Search languages",
+    "machineTranslated": "Machine-translated — help us improve.",
+    "current": "Current language: {{name}}",
+    "preferenceSaved": "Language preference saved."
+  },
+  "accessibility": {
+    "skipLink": "Skip to main content",
+    "policyTitle": "Accessibility Policy",
+    "reportBarrierTitle": "Report a barrier or request an accommodation",
+    "reportBarrierIntro": "Tell us what you experienced. We treat accessibility issues as priority bugs and respond to every message.",
+    "fields": {
+      "page": "Page or feature (URL)",
+      "barrier": "What barrier did you experience?",
+      "assistiveTech": "Assistive technology (optional)",
+      "contactEmail": "Contact email (optional)"
+    },
+    "submitted": "Thanks — your message reached our accessibility team.",
+    "knownLimitations": "Known limitations",
+    "contact": "Contact: info@techfleet.network"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Check your connection and retry.",
+    "unauthorized": "You need to sign in to do that."
+  }
+}
