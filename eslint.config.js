@@ -74,6 +74,14 @@ export default tseslint.config(
               name: "@/contexts/PageHeaderContext.tsx",
               message: "Drop the .tsx extension — import as '@/contexts/PageHeaderContext'.",
             },
+            {
+              name: "gtag",
+              message: "Analytics may only be loaded via src/lib/consent/loadAnalytics.ts after consent.",
+            },
+            {
+              name: "clarity",
+              message: "Microsoft Clarity may only be loaded via src/lib/consent/loadAnalytics.ts after consent.",
+            },
           ],
         },
       ],

@@ -44,7 +44,7 @@ const MIN_LEVEL: LogLevel =
 const THROTTLE_WINDOW_MS = 10_000; // 10 seconds
 const THROTTLE_MAX_PER_KEY = 5;
 const throttleCounts = new Map<string, { count: number; windowStart: number }>();
-const SENSITIVE_KEY_PATTERN = /email|password|token|secret|key|authorization|cookie|discord|useragent|user_agent|ip/i;
+const SENSITIVE_KEY_PATTERN = /email|password|token|secret|key|authorization|cookie|discord|useragent|user_agent|ip|consent|dsar|dob|birth_year|birthyear|gpc|ssn|tax_id|phone/i;
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
 function isThrottled(key: string): boolean {
