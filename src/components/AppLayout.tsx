@@ -290,6 +290,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </a>
             <div className="flex items-center gap-2">
               <ThemeToggle />
+              <LanguageSwitcher />
               {!loading && !user && (
                 <Link to="/login">
                   <Button variant="outline" size="sm">
