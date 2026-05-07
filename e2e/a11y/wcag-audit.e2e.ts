@@ -186,7 +186,12 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       }
     } catch (err) {
       authBootstrapError = err instanceof Error ? err.message : String(err);
-      // Don't fail the suite — public-only scan is still valuable.
+      if (requireAuthedScan) {
+        // Hard-fail the suite in CI so the empty-scan gate never gets a
+        // chance to silently pass.
+        throw new Error(`[a11y-audit] Admin bootstrap failed under A11Y_REQUIRE_AUTHED_SCAN=1: ${authBootstrapError}`);
+      }
+      // Local dev: still produce a partial public-only scan.
       console.warn(`Admin bootstrap failed; continuing with public-only audit. ${authBootstrapError}`);
     } finally {
       await context?.close().catch(() => {});
