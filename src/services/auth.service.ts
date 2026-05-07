@@ -183,7 +183,7 @@ export const AuthService = {
     });
   },
 
-  async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string, captchaToken: string) {
+  async signUp(email: string, password: string, firstName: string, lastName: string, redirectTo: string, captchaToken: string, birthYear?: number) {
     const parsedEmail = emailInputSchema.safeParse(email);
     if (!parsedEmail.success || !passwordSchema.safeParse(password).success) {
       throw blockedAuthInputError;
@@ -204,6 +204,7 @@ export const AuthService = {
               full_name: `${firstName} ${lastName}`.trim(),
               first_name: firstName,
               last_name: lastName,
+              ...(birthYear ? { birth_year: birthYear } : {}),
             },
             emailRedirectTo: redirectTo,
             captchaToken: safeCaptchaToken,
