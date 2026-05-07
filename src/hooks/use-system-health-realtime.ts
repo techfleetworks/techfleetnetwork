@@ -41,5 +41,5 @@ export function useSystemHealthRealtime(enabled: boolean) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, qc]);
+  }, [enabled, ready, qc]);
 }
