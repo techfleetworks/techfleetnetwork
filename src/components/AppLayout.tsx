@@ -322,7 +322,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               <nav
                 aria-label="Footer navigation"
-                className="flex gap-4 text-sm text-muted-foreground"
+                className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground"
               >
                 <a
                   href="https://techfleet.org"
@@ -331,6 +331,38 @@ export function AppLayout({ children }: AppLayoutProps) {
                   className="hover:text-foreground transition-colors"
                 >
                   Website
+                </a>
+                <a
+                  href="/policies/Terms-and-Conditions.docx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Terms &amp; Conditions
+                </a>
+                <a
+                  href="/policies/Terms-of-Use.docx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Terms of Use
+                </a>
+                <a
+                  href="/policies/Privacy-Policy.docx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Privacy Policy
+                </a>
+                <a
+                  href="/policies/Cookie-Policy.docx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Cookie Policy
                 </a>
               </nav>
             </div>

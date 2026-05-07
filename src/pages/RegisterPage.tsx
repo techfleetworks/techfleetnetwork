@@ -393,7 +393,7 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2">
               <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
-                I agree to the <a href="#" className="text-primary-text hover:underline">Terms of Service</a> and <a href="#" className="text-primary-text hover:underline">Community Guidelines</a>
+                I have read and agree to the <PolicyLinksInline />.
               </Label>
             </div>
             {errors.agreedToTerms && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.agreedToTerms}</p>}
