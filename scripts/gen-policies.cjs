@@ -319,9 +319,9 @@ const cookies = buildDoc([
   P("If we embed content from Discord, YouTube, LinkedIn, or similar services, those services may set their own cookies. We load embeds in a privacy-friendly way where possible (for example, with consent and with \u201Cno-cookie\u201D modes)."),
 
   H1("4. Detailed List of Cookies"),
-  P("The list below shows the cookies that may be set when you use the Platform. Cookie names from third-party services may change without notice; we update this list at least once a year and after any major change."),
-  cookieTable,
-  P("Some browsers also store small pieces of data in local storage and IndexedDB \u2014 for example, your draft form input, your offline cache, or your authentication token. These are treated the same way as cookies under this policy and are listed in the table above when they affect privacy."),
+  P("The list below shows the cookies that may be set when you use the Platform, grouped by category. Each entry shows the cookie name (or pattern), what it does, and how long it stays on your device. Cookie names from third-party services may change without notice; we update this list at least once a year and after any major change."),
+  ...cookieListBlocks,
+  P("Some browsers also store small pieces of data in local storage and IndexedDB \u2014 for example, your draft form input, your offline cache, or your authentication token. These are treated the same way as cookies under this policy and are listed above when they affect privacy."),
 
   H1("5. Your Choices and How to Manage Cookies"),
   H2("5.1 Cookie banner"),
