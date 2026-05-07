@@ -2,7 +2,14 @@ import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "luci
 import { Link } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import heroImage from "@/assets/hero-space.png";
+import heroAvif480 from "@/assets/hero-space-480.avif?url";
+import heroAvif960 from "@/assets/hero-space-960.avif?url";
+import heroAvif1440 from "@/assets/hero-space-1440.avif?url";
+import heroWebp480 from "@/assets/hero-space-480.webp?url";
+import heroWebp960 from "@/assets/hero-space-960.webp?url";
+import heroWebp1440 from "@/assets/hero-space-1440.webp?url";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
@@ -24,14 +31,17 @@ function NetworkActivityFallback() {
 }
 
 export default function LandingPage() {
-  // Inject LCP-image preload only on the landing route, not globally,
-  // so /login, /dashboard, etc. don't pay 125 KB they never render.
+  // Inject LCP-image preload only on the landing route. Use AVIF srcset so modern
+  // browsers fetch the ~6 KB variant; older browsers will fall back to the PNG <img>.
   if (typeof document !== "undefined" && !document.getElementById("hero-space-preload")) {
     const link = document.createElement("link");
     link.id = "hero-space-preload";
     link.rel = "preload";
     link.as = "image";
-    link.href = heroImage;
+    link.type = "image/avif";
+    (link as HTMLLinkElement & { imageSrcset?: string; imageSizes?: string; fetchPriority?: string }).imageSrcset =
+      `${heroAvif480} 480w, ${heroAvif960} 960w, ${heroAvif1440} 1440w`;
+    (link as HTMLLinkElement & { imageSizes?: string }).imageSizes = "448px";
     (link as HTMLLinkElement & { fetchPriority?: string }).fetchPriority = "high";
     document.head.appendChild(link);
   }
@@ -66,8 +76,11 @@ export default function LandingPage() {
             </div>
             {/* Explicit aspect-ratio container prevents CLS when image loads */}
             <div className="hidden lg:flex justify-center" style={{ aspectRatio: "448 / 224", minHeight: 224 }}>
-              <img
-                src={heroImage}
+              <ResponsiveImage
+                png={heroImage}
+                avif={{ 480: heroAvif480, 960: heroAvif960, 1440: heroAvif1440 }}
+                webp={{ 480: heroWebp480, 960: heroWebp960, 1440: heroWebp1440 }}
+                sizes="448px"
                 alt="Illustration of an astronaut floating in space near planets, representing the journey of learning and growth"
                 className="w-full max-w-md object-contain"
                 width={448}
