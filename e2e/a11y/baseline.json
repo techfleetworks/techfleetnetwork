@@ -1,5 +1,6 @@
 {
-  "_doc": "PR-gating baseline for the WCAG 2.2 a11y suite. The CI step `e2e/a11y/enforce-baseline.mjs` reads `a11y-report/a11y-report.json` produced by `wcag-audit.e2e.ts` and fails the build if `totalViolations` exceeds `maxTotalViolations`. To intentionally accept a regression, raise this number in the same PR with reviewer sign-off and a remediation note. Lowering it after fixes is encouraged.",
+  "_doc": "PR-gating baseline for the WCAG 2.2 a11y suite. `e2e/a11y/enforce-baseline.mjs` reads `a11y-report/a11y-report.json` produced by `wcag-audit.e2e.ts` and fails CI if (a) total axe violations exceed `maxTotalViolations`, (b) `report.totals.scanned === 0` or fewer than SCANNABLE_ROUTES.length minus `allowedSkippedRoutes` were scanned, or (c) any checklist item with kind != 'manual' is `fail` or `needs_review`. To intentionally accept a regression, raise `maxTotalViolations` and/or `allowedSkippedRoutes` in the same PR with reviewer sign-off and a remediation note. Lowering them after fixes is encouraged.",
   "maxTotalViolations": 0,
+  "allowedSkippedRoutes": 0,
   "lastReviewed": "2026-05-07"
 }
