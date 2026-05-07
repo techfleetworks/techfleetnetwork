@@ -644,7 +644,7 @@ Now, members in Tech Fleet Discord can create a support ticket to speak directly
 
 **Here's how to Get Tech Support**
 
-1. Go to the "Support" menu category in Tech Fleet's Discord. You can find this on the left-hand side at the bottom of the channel list.
+1. Open the Discord channel list and find the channel category labelled **Support** (use Ctrl/Cmd+K to jump to it directly).
 2. Go to the "Create a Ticket" channel.
 3. To start a new ticket, click on the "Create Ticket" button within that channel.
 4. A new private channel will be created with you and the Tech Fleet Guilds. You can chat with a moderator from the Tech Fleet Guilds about anything!
