@@ -124,9 +124,14 @@ export function DashboardCustomizer({
           Dashboard Sections
         </h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Drag to reorder · Toggle to show or hide
+          Drag, or use the Move buttons, to reorder · Toggle to show or hide
         </p>
-        <div className="space-y-1" role="list" aria-label="Reorder dashboard sections">
+        <div
+          className="space-y-1"
+          role="list"
+          aria-label="Reorder dashboard sections"
+          data-keyboard-alt-control="dashboard-reorder"
+        >
           {displayedOrder.map((id, idx) => (
             <div
               key={id}
@@ -152,6 +157,28 @@ export function DashboardCustomizer({
               >
                 {widgetLabel(id)}
               </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label={`Move ${widgetLabel(id)} up`}
+                disabled={idx === 0}
+                onClick={() => moveByKeyboard(idx, -1)}
+              >
+                <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label={`Move ${widgetLabel(id)} down`}
+                disabled={idx === displayedOrder.length - 1}
+                onClick={() => moveByKeyboard(idx, 1)}
+              >
+                <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
               <Switch
                 id={`widget-${id}`}
                 checked={visibleWidgets.includes(id)}
