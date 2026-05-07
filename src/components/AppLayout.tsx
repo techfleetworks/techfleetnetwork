@@ -57,6 +57,8 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
+import { CookieConsentBanner } from "./CookieConsentBanner";
+import { PrivacyFooterLinks } from "./PrivacyFooterLinks";
 // Heavy chat widget — lazy-loaded and skipped on save-data / 2g connections
 const FleetyChatWidget = lazy(() =>
   import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
