@@ -26,9 +26,25 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // jsx-a11y recommended set: keep the broad coverage at "warn" so the
+      // historical baseline doesn't tip the build over, but promote the
+      // hardest, never-acceptable subset to "error" — these correspond to
+      // WCAG 2.1.1 / 2.4.3 / 2.4.7 / 4.1.2 violations that always block.
       ...Object.fromEntries(
         Object.keys(jsxA11y.configs.recommended.rules).map((k) => [k, "warn"])
       ),
+      "jsx-a11y/no-autofocus": "error",
+      "jsx-a11y/no-redundant-roles": "error",
+      "jsx-a11y/no-noninteractive-element-interactions": "error",
+      "jsx-a11y/no-static-element-interactions": "error",
+      "jsx-a11y/click-events-have-key-events": "error",
+      "jsx-a11y/tabindex-no-positive": "error",
+      "jsx-a11y/interactive-supports-focus": "error",
+      "jsx-a11y/media-has-caption": "error",
+      "jsx-a11y/anchor-is-valid": "error",
+      "jsx-a11y/aria-role": "error",
+      "jsx-a11y/role-has-required-aria-props": "error",
+      "jsx-a11y/role-supports-aria-props": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple
