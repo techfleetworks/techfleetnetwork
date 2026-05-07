@@ -114,18 +114,17 @@ jobs:
 
       - name: Run WCAG audit
         # Only the a11y spec — keeps this job focused; the broader e2e
-        # suite still runs in `regression.yml`. `|| true` so a failing
-        # route test never prevents the artifact upload below — Phase 0
-        # is a baseline, not a gate.
+        # suite still runs in `regression.yml`. We deliberately do NOT
+        # swallow the exit code: A11Y_REQUIRE_AUTHED_SCAN=1 makes the
+        # spec throw on bootstrap failure, and we want that to fail the
+        # job — otherwise the empty-scan gate could silently pass.
+        # The artifact upload still runs (it uses `if: always()`).
         #
         # NOTE: Playwright treats the positional arg as a *regex* against
-        # test file paths. Passing `e2e/a11y/wcag-audit.e2e.ts` raw made
-        # the runner emit "No tests found" because the unescaped `.` and
-        # `/` characters didn't line up with how `testMatch` resolves the
-        # file under `testDir: "."`. Anchoring on the filename stem with
-        # escaped dots (and `--` to stop shell/CLI flag parsing) matches
-        # the single spec reliably across local + CI.
-        run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts" || true
+        # test file paths. Anchoring on the filename stem with escaped
+        # dots (and `--` to stop shell/CLI flag parsing) matches the
+        # single spec reliably across local + CI.
+        run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts"
 
       - name: Enforce a11y baseline (PR gate)
         if: github.event_name == 'pull_request'
