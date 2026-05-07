@@ -35,6 +35,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dob, setDob] = useState(""); // ISO yyyy-mm-dd
+  const countryCode = loadConsent()?.countryCode ?? null;
+  const minAge = minAgeForCountry(countryCode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
