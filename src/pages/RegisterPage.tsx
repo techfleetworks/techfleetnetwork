@@ -430,6 +430,30 @@ export default function RegisterPage() {
               </div>
             </ValidatedField>
 
+            <ValidatedField id="reg-dob" label="Date of birth" required error={errors.dob} value={dob} touched={touched.dob}>
+              <div className="relative">
+                <Cake className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="reg-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  onBlur={() => markTouched("dob")}
+                  max={new Date().toISOString().slice(0, 10)}
+                  min="1900-01-01"
+                  className={`pl-10 ${bc("dob", dob)}`}
+                  autoComplete="bday"
+                  required
+                  aria-required="true"
+                  aria-invalid={!!errors.dob}
+                  aria-describedby="dob-help"
+                />
+              </div>
+              <p id="dob-help" className="text-xs text-muted-foreground mt-1">
+                We use this only to confirm you meet the minimum age for your region (currently {minAge}+). We store the year only.
+              </p>
+            </ValidatedField>
+
             <div className="flex items-start gap-2">
               <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
               <Label htmlFor="terms" className="text-sm leading-relaxed">
