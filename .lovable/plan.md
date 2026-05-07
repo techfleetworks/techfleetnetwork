@@ -1,92 +1,126 @@
-## Why the login page (and the rest of the app) is slow
+## Problem
 
-I profiled the live preview and inspected the build config, root HTML, route graph, and asset folders. The 4s+ Lighthouse score isn't one bug — it's a stack of overlapping costs that compound on 3G / high-latency networks.
+After today's signing-key rotation, `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` returns `currentLevel: aal1, nextLevel: aal1` even for users with a verified TOTP factor. Our gate only consults `listFactors()` when `nextLevel === "aal2"`, so the 2FA dialog never opens — admins (including the user) silently log in at AAL1. DB confirms zero `two_factor_login_sessions` rows since May 5 across 5 admins with verified TOTP.
 
-### What I measured on `/login`
+Three call sites are affected:
+- `src/services/mfa.service.ts::getAssuranceLevel` (the broken short-circuit)
+- `src/components/MfaEnforcementGuard.tsx` (post-mount global guard)
+- `src/pages/LoginPage.tsx` line 208 (inline post-login check)
 
-- **122 resources** loaded just to render a login form (most are dev-mode Vite chunks; production is lighter, but still heavy).
-- **Largest shipped JS**: `lucide-react` (158 KB), a Vite vendor chunk (139 KB), `@supabase/supabase-js` (94 KB), `zod` (74 KB) — all pulled into the initial path.
-- **Hero image** `hero-space.png` is **125 KB PNG**, preloaded with `fetchpriority="high"` from `/login` even though it's only used on the landing page.
-- **`src/assets/` totals ~4.8 MB** of unoptimized PNGs (welcome slides 200–415 KB each, badges 160–270 KB each). `public/images/` has 196 KB and 265 KB SVGs.
-- **3 third-party scripts in `<head>`** before our app code: CookieYes (render-blocking), Google Tag Manager, Microsoft Clarity. CookieYes alone forces a synchronous fetch before parsing continues.
-- **Google Fonts** loaded from `fonts.googleapis.com` with 7 Inter weights + 4 JetBrains Mono weights = extra round trips.
-- **`src/index.css` is 478 lines** and ships as one stylesheet (no critical-CSS split).
-- **Eager-imported routes** in `App.tsx`: `Index`, `LoginPage`, `RegisterPage`, `NotFound` — `RegisterPage` (25 KB) is downloaded on `/login` even though the user hasn't clicked "Register" yet.
-- **AuthContext + AppLayout + IdleTimeoutGuard + SelfHealingRunner + AnalyticsTracker + RouteChangeReloader + PWAInstallPrompt + OfflineBanner** all mount on every route, including unauthenticated ones.
+The grace-period nudge for newly promoted admins also needs to become **truly persistent and modal**, not the current passive top-of-page banner that's easy to scroll past.
 
-### Why this hurts on 3G specifically
+## Requirements (mapped to BDD scenarios)
 
-- 3G effective bandwidth ≈ 400 Kbps, RTT ≈ 400 ms. Every extra request adds ~400 ms of latency before the first byte.
-- 1.2 MB of initial JS (gzipped ~350 KB) ≈ **7+ seconds** to download on 3G before parse/execute.
-- Render-blocking third-party scripts in `<head>` block FCP for the entire round trip to those CDNs.
-- Large unoptimized PNGs dominate LCP on slow links (a 125 KB PNG is ~2.5 s on 3G).
+### R1 — Any user with a verified TOTP factor is challenged on every login
+Covers admin Scenarios 1 & 2 AND member Scenario 2 (non-admin with 2FA enabled).
+1. After successful password or OAuth login, the client MUST call `MfaService.listFactors()` directly (not via the AAL short-circuit).
+2. If any verified TOTP factor exists AND the current JWT's `aal` claim ≠ `aal2`, the `MfaChallengeDialog` MUST open immediately, blocking all routes.
+3. Cancel/close MUST sign the user out (already implemented).
+4. Successful verify MUST elevate session to AAL2 and write a fresh `two_factor_login_sessions` row (already implemented).
 
----
+### R2 — Members without 2FA log in normally
+Member Scenario 1. When `listFactors()` returns no verified TOTP factor:
+- No challenge dialog renders.
+- No grace popup renders (grace logic is admin-only).
+- User lands on `/dashboard` (or `from`) with zero added clicks. **No UX regression.**
 
-## Plan of action
+### R3 — Newly promoted admin who already has 2FA
+Admin Scenario 2. Same path as R1 — promotion does not change the factor inventory. The global guard handles this automatically; no special branch needed.
 
-Five phases, ordered by impact-per-effort. Each phase is shippable on its own and measurable with Lighthouse.
+### R4 — Newly promoted admin without 2FA, inside the 5-day grace window
+Admin Scenarios 3 + 4. On every authenticated page render, if `isAdmin && !hasVerifiedTotp && admin_2fa_grace_active === true`:
+1. A new `AdminTwoFactorGraceDialog` (modal, non-dismissible until set up OR user signs out) MUST open.
+2. Dialog MUST show remaining days and a primary CTA "Set up 2FA now" → `/profile/edit?tab=account`.
+3. Secondary action: "Sign out".
+4. Dialog stays mounted across navigations (rendered in `AppLayout`).
+5. Polls `MfaService.hasVerifiedTotp()` every 10s while open; auto-closes on success — no page reload required.
+6. The existing passive `AdminTwoFactorSetupBanner` is removed in favor of the modal to satisfy "I should SEE the popup".
 
-### Phase 1 — Critical path (biggest wins, ~1–2 hours)
+### R5 — Grace expired
+Existing `AdminRoute` block screen stays. Outside `/admin/*` the user keeps full access — already correct.
 
-1. **Defer all third-party scripts.** Move CookieYes, GTM, and Clarity to load after `window.load` (or on first user interaction). They contribute zero to LCP and currently block parsing.
-2. **Stop eagerly loading `RegisterPage` and `Index` on `/login`.** Convert them to `lazyWithRetry` like the rest. Keep only `LoginPage` + `NotFound` eager.
-3. **Remove the hero-image preload from global `index.html`.** Move that `<link rel="preload">` into the landing page only (via a `useEffect` or `react-helmet`-style head injection), so `/login`, `/dashboard`, etc. don't pay 125 KB they never use.
-4. **Tree-shake `lucide-react`.** Audit imports — many components destructure 5+ icons. Use the per-icon import path (`lucide-react/dist/esm/icons/eye`) or switch to `@iconify/react` for on-demand icons. Should drop ~120 KB initial JS.
-5. **Reduce font weights.** Drop from 7 Inter weights to 3 (400, 500, 700). JetBrains Mono → 2 weights (400, 600). Saves ~80 KB and 1 fewer connection if we self-host.
+### R6 — Resilience
+- Never trust `currentLevel`/`nextLevel` JWT claims as the sole signal. Always cross-check `listFactors()` (cached for 60s in module memory to avoid extra calls).
+- Read AAL by decoding `session.access_token` payload locally (works regardless of signing-key rotation state).
+- Guard MUST re-evaluate on `auth.onAuthStateChange` events `SIGNED_IN`, `TOKEN_REFRESHED`, `USER_UPDATED`. Event handler MUST NOT `await` Supabase calls — schedule via `queueMicrotask` (deadlock prevention).
+- All RPCs (`admin_2fa_grace_active`, `admin_2fa_grace_deadline`, `mark_two_factor_login_verified`) keep their existing JWT validation — no edge function or DB changes required.
 
-**Expected result**: Lighthouse Performance jumps from ~50 → ~80 on `/login`. LCP drops below 2.5 s on Fast 3G.
+## Implementation
 
-### Phase 2 — Asset optimization (~1 hour, mostly automated)
+### Code changes
 
-1. **Convert all PNGs in `src/assets/` to AVIF + WebP** with PNG fallback via `<picture>`. Welcome slides at 415 KB → ~40 KB AVIF.
-2. **Compress the giant SVGs** (`landscape.svg` 196 KB, `quest-tv.svg` 265 KB, `control-center.svg` 84 KB) with SVGO. Typical 60–80% reduction.
-3. **Add `loading="lazy"` and explicit `width`/`height`** to every `<img>` outside the LCP element. Prevents layout shift and defers off-screen image fetches.
-4. **Generate responsive `srcset`** for hero/welcome images so mobile devices download smaller versions.
+1. **`src/services/mfa.service.ts`**
+   - Add `getMfaGateDecision()` returning `{ hasVerifiedTotp, currentAal, needsChallenge }`.
+   - `needsChallenge = hasVerifiedTotp && currentAal !== "aal2"` — independent of `nextLevel`.
+   - Decode `currentAal` from the JWT payload locally.
+   - Keep `getAssuranceLevel` as a thin wrapper for backward compatibility, but rewrite its `needsChallenge` to use the same logic.
 
-**Expected result**: Image payload drops from ~4 MB to ~600 KB across the app. CLS goes to ~0.
+2. **`src/components/MfaEnforcementGuard.tsx`**
+   - Switch to `getMfaGateDecision()`.
+   - Subscribe to `supabase.auth.onAuthStateChange` for `SIGNED_IN`, `TOKEN_REFRESHED`, `USER_UPDATED`; re-run check via `queueMicrotask`.
+   - Add `window` focus listener for re-evaluation.
+   - Stays purely member-aware: no admin/grace branching here.
 
-### Phase 3 — Bundle splitting + caching (~2 hours)
+3. **`src/pages/LoginPage.tsx`**
+   - Replace the inline `getAssuranceLevel` call at line 208 with `getMfaGateDecision()`. Open the dialog when `needsChallenge` is true.
 
-1. **Split AuthContext lazy work.** AuthProvider currently imports profile sync, OAuth link toast, MFA service, etc. Lazy-load anything not needed before first render.
-2. **Move heavy admin-only deps behind admin routes.** AG Grid (v32.3.3 per memory), `react-quill-new`, `recharts`, `d3-geo` should never be in the main chunk for non-admin users. Verify via `vite-bundle-visualizer`.
-3. **Add a `framework://` and reference data prefetch only after login**, not on the login page itself.
-4. **Self-host fonts** in `/public/fonts/` with `font-display: swap` and `<link rel="preload">` for only the WOFF2 the LCP text uses. Eliminates `fonts.googleapis.com` round trip.
-5. **Add long-cache headers** for hashed assets in `public/_headers` (1 year `immutable`). HTML stays no-cache so deploys propagate.
+4. **New `src/components/AdminTwoFactorGraceDialog.tsx`**
+   - Non-dismissible `Dialog` (no `onInteractOutside`, no X button) for admins in grace with no TOTP.
+   - Shows deadline + days remaining (from `admin_2fa_grace_deadline` RPC).
+   - Primary action: `Link to="/profile/edit?tab=account"`.
+   - Secondary action: "Sign out" → `supabase.auth.signOut()`.
+   - Polls `MfaService.hasVerifiedTotp()` every 10s while open; auto-closes on success.
 
-### Phase 4 — Network resilience for slow regions (~1 hour)
+5. **`src/components/AppLayout.tsx`**
+   - Mount `AdminTwoFactorGraceDialog` once next to `MfaEnforcementGuard`.
+   - Remove the three duplicate `AdminTwoFactorSetupBanner` mount points and the import.
 
-1. **Add a tiny inline "shell" CSS in `<head>`** with the `body` background, root spinner, and font fallback so users see something within ~500 ms even on 3G before main CSS arrives.
-2. **Preconnect to Supabase** (`iqsjhrhsjlgjiaedzmtz.supabase.co`) so the first auth/data call doesn't pay TLS setup mid-render.
-3. **`<link rel="modulepreload">`** the top 2–3 critical chunks (`react-vendor`, `query-vendor`) so they start downloading parallel to the entry script.
-4. **Add a "Save Data" path**: detect `navigator.connection.saveData === true` or `effectiveType === 'slow-2g' | '2g'` and skip non-essential image variants, animations, and the Fleety widget on those connections.
-5. **Brotli compress the production bundle** (verify the host honors it; Cloudflare does).
+6. **`src/components/AdminTwoFactorSetupBanner.tsx`** — delete file. The modal supersedes it.
 
-### Phase 5 — Site-wide audit + regression guardrails (~1 hour)
+7. **`src/components/AdminRoute.tsx`** — keep the in-page grace strip and post-grace lockout screen. The new modal sits on top, dismissible only via successful enrollment, so admin route navigation still works after setup.
 
-1. **Add a Lighthouse CI workflow** (`.github/workflows/lighthouse.yml`) that runs against the published URL on every PR, scoring all top routes:
-   - `/`, `/login`, `/register`, `/dashboard`, `/my-journey`, `/courses`, `/resources`, `/applications`, `/admin/system-health`, `/project-openings`
-   - Use `lhci` with thresholds: Performance ≥ 80, LCP ≤ 2.5 s, TBT ≤ 200 ms, CLS ≤ 0.1.
-   - Run with `--throttlingMethod=devtools --throttling.cpuSlowdownMultiplier=4` (mobile 3G profile) so we catch regressions in the slowest tier.
-2. **Publish the per-route baseline as a markdown report artifact** (similar to the existing `a11y-report` workflow) so each page's score is visible over time.
-3. **Add a budget file** (`lighthouse-budget.json`): max 250 KB JS, 100 KB CSS, 500 KB images per route. CI fails on regression.
+### BDD scenarios (insert into `bdd_scenarios`, tri-layer `[UI]`/`[DB]`/`[Code]` Then-clauses)
 
----
+Admin scenarios:
+- `AUTH-2FA-LOGIN-GATE-003` — Existing admin with TOTP is always challenged at login (covers stale-claim case + happy path).
+- `AUTH-2FA-LOGIN-GATE-004` — Cancel on the challenge dialog signs out and returns to `/login`.
+- `AUTH-2FA-PROMOTION-001` — Newly promoted admin who already has TOTP gets the standard challenge after redirect from `/confirm-admin`.
+- `AUTH-2FA-PROMOTION-002` — Newly promoted admin without TOTP, inside grace, sees the persistent setup modal on every page; CTA goes to `/profile/edit?tab=account`.
+- `AUTH-2FA-PROMOTION-003` — Setup completion auto-closes the modal within one poll cycle and writes a verified factor to `auth.mfa_factors`.
+- `AUTH-2FA-PROMOTION-004` — When `admin_2fa_grace_active` returns false, modal does not render (AdminRoute lockout takes over).
 
-## Technical details (for the agent doing the work)
+Member scenarios (new):
+- `AUTH-2FA-MEMBER-001` — **Member without 2FA logs in normally.**
+  - GIVEN I am not an admin AND I have no verified TOTP factor
+  - WHEN I submit the correct email + password on `/login`
+  - THEN [UI] no `MfaChallengeDialog` opens and I land on the page in `from` (default `/dashboard`)
+  - AND [DB] `auth.sessions.aal = 'aal1'` for my new session and no row is written to `two_factor_login_sessions`
+  - AND [Code] `getMfaGateDecision()` returns `{ hasVerifiedTotp: false, needsChallenge: false }`.
+- `AUTH-2FA-MEMBER-002` — **Member with 2FA enrolled is challenged on login.**
+  - GIVEN I am not an admin AND I have a verified TOTP factor in `auth.mfa_factors`
+  - WHEN I submit the correct email + password on `/login`
+  - THEN [UI] the `MfaChallengeDialog` opens immediately and the rest of the app is inert behind it
+  - AND [DB] no `auth.sessions` row reaches `aal = 'aal2'` until I submit a valid code; on success a fresh row is written to `two_factor_login_sessions` with `verified_at = now()`
+  - AND [Code] `getMfaGateDecision()` returns `{ hasVerifiedTotp: true, currentAal: 'aal1', needsChallenge: true }` and `MfaService.verifyChallenge` resolves successfully before navigation.
 
-- The eager `Index` + `RegisterPage` imports live in `src/App.tsx` lines 25–28.
-- Third-party scripts to defer: `index.html` lines 5–6 (CookieYes), 64–71 (GTM), 73–80 (Clarity).
-- Hero preload to remove from global head: `index.html` line 44; replace with per-page injection via `useEffect` in `src/pages/LandingPage.tsx`.
-- `lucide-react` deep-import codemod target: every file matching `from "lucide-react"` (currently in 50+ components per `rg`).
-- Image conversion: use `sharp` in a one-off `scripts/optimize-images.mjs` that emits `.avif` + `.webp` siblings, then wrap usages in a small `<ResponsiveImage>` component.
-- For Save Data mode: thread an `isSlowConnection` boolean through a new `useNetworkQuality()` hook and gate `Fleety`, `PWAInstallPrompt`, large welcome slides behind it.
-- Lighthouse CI: `npm i -D @lhci/cli`; run `lhci autorun --collect.url=https://techfleetnetwork.lovable.app/login ...`.
+### Tests
 
----
+- Update `src/test/ui/MfaEnforcementGuard.test.tsx` to mock `getMfaGateDecision`.
+- New `src/test/ui/AdminTwoFactorGraceDialog.test.tsx` — visible-when-grace-active, hides-on-enrollment, sign-out path.
+- New `src/test/services/mfa.service.test.ts` — `getMfaGateDecision` returns `needsChallenge` correctly across all 4 combinations of `(hasVerifiedTotp, currentAal)`.
 
-## Recommended sequencing
+### Manual verification
 
-Ship Phase 1 + Phase 2 together as the first PR — that alone should put `/login` at sub-2.5 s LCP on 3G. Phases 3–5 each become their own PR so we can measure the delta and roll back cleanly if anything regresses UX (per the "no UX regression" core rule).
+1. Log in as admin with TOTP — challenge appears immediately, cannot click around it.
+2. Cancel — redirected to `/login`, session cleared.
+3. Verify with valid code — `two_factor_login_sessions` gets a new row, `auth.sessions.aal = aal2`.
+4. Log in as a member with no TOTP — no challenge, no popup, lands on `/dashboard`.
+5. Enroll TOTP as a member, log out, log back in — challenge appears.
+6. Promote a fresh user via `/confirm-admin`, log in without enrolling — modal appears on `/dashboard`, persists on `/courses`, disappears within ~10s after completing enrollment.
+7. Wind grace back to expired (DB) → modal hidden, AdminRoute lockout shown for `/admin/*`, normal pages still work.
 
-After approval I'll start with Phase 1.
+## Out of scope
+
+- No edge function or DB migration changes — all required RPCs already exist.
+- OAuth callback flow itself is unchanged; the global guard catches OAuth logins because it re-runs on `SIGNED_IN`.
+- Email template content unchanged.
