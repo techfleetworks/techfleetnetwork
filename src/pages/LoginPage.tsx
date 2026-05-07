@@ -7,6 +7,8 @@ import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
 import { loginSchema } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { PolicyLinksInline } from "@/components/PolicyLinksInline";
+import { recordPolicyAcknowledgment } from "@/lib/policies";
 import { toast } from "sonner";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { ValidatedField } from "@/components/ui/validated-field";
@@ -332,7 +334,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <GoogleSignInButton redirectTo={from} />
+          <GoogleSignInButton
+            redirectTo={from}
+            onBeforeSubmit={() => {
+              recordPolicyAcknowledgment("google-oauth");
+              return true;
+            }}
+          />
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            By continuing with Google, you confirm that you have read and agree to the <PolicyLinksInline />.
+          </p>
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
