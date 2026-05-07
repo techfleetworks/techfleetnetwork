@@ -104,11 +104,11 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
-          <div className="text-center mb-12">
+          <div className="mb-12">
             <h2 id="features-heading" className="text-3xl font-bold text-foreground">
               Your professional development journey
             </h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+            <p className="text-muted-foreground mt-3 max-w-2xl">
               A structured, step-by-step path from onboarding to full community participation and professional growth.
             </p>
           </div>
@@ -128,24 +128,6 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="border-t" aria-labelledby="cta-heading">
-        <div className="container-app py-16 sm:py-20 text-center">
-          <h2 id="cta-heading" className="text-3xl font-bold text-foreground mb-4">
-            Ready to start your journey?
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Join the Tech Fleet community and begin building your skills with real teams and real projects.
-          </p>
-          <Link to="/register">
-            <Button variant="hero" size="xl">
-              Get Started
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          </Link>
         </div>
       </section>
     </div>
