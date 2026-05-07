@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText, ChevronRight } from "lucide-react";
+import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText, Cookie, Gavel, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +23,7 @@ import { JourneyService } from "@/services/journey.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { toast } from "sonner";
 import { CommunityAgreementPanel } from "@/components/CommunityAgreementPanel";
-import { PrivacyPolicyPanel } from "@/components/PrivacyPolicyPanel";
-import { TermsConditionsPanel } from "@/components/TermsConditionsPanel";
+import { LegalPolicyPanel } from "@/components/LegalPolicyPanel";
 import { DiscordInviteBanner } from "@/components/DiscordInviteBanner";
 
 interface Task {
@@ -42,14 +41,16 @@ interface Task {
 /** Canonical list of first-steps task IDs — used by progress calculations. */
 export const FIRST_STEPS_TASK_IDS = [
   "community-agreement",
-  "privacy-policy",
   "terms-conditions",
+  "terms-of-use",
+  "privacy-policy",
+  "cookie-policy",
   "profile",
   "onboarding-class",
   "figma-account",
 ] as const;
 
-export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 6
+export const TOTAL_FIRST_STEPS = FIRST_STEPS_TASK_IDS.length; // 8
 
 const baseTasks: Omit<Task, "completed">[] = [
   {
@@ -62,22 +63,40 @@ const baseTasks: Omit<Task, "completed">[] = [
     panelId: "community-agreement",
   },
   {
+    id: "terms-conditions",
+    title: "Agree to the Tech Fleet Terms & Conditions",
+    description: "Master agreement that governs your Tech Fleet membership.",
+    icon: Gavel,
+    action: "#",
+    panelAction: true,
+    panelId: "terms-conditions",
+  },
+  {
+    id: "terms-of-use",
+    title: "Agree to the Tech Fleet Terms of Use",
+    description: "Acceptable-use rules for the Tech Fleet Network platform.",
+    icon: FileText,
+    action: "#",
+    panelAction: true,
+    panelId: "terms-of-use",
+  },
+  {
     id: "privacy-policy",
     title: "Agree to the Tech Fleet Privacy Policy",
-    description: "Read and accept the Tech Fleet Privacy Policy.",
+    description: "How Tech Fleet collects, uses, and protects your data.",
     icon: ShieldCheck,
     action: "#",
     panelAction: true,
     panelId: "privacy-policy",
   },
   {
-    id: "terms-conditions",
-    title: "Agree to the Tech Fleet Terms and Conditions",
-    description: "Read and accept the Tech Fleet Terms and Conditions.",
-    icon: FileText,
+    id: "cookie-policy",
+    title: "Acknowledge the Tech Fleet Cookie Policy",
+    description: "Categories of cookies we set and how to manage your choices.",
+    icon: Cookie,
     action: "#",
     panelAction: true,
-    panelId: "terms-conditions",
+    panelId: "cookie-policy",
   },
   {
     id: "profile",
@@ -103,6 +122,37 @@ const baseTasks: Omit<Task, "completed">[] = [
     external: true,
   },
 ];
+
+const LEGAL_PANELS: Record<string, { title: string; description: string; markdownUrl: string; downloadUrl: string; acceptLabel: string }> = {
+  "terms-conditions": {
+    title: "Tech Fleet Terms & Conditions",
+    description: "Master agreement governing your membership and use of Tech Fleet services.",
+    markdownUrl: "/policies/Terms-and-Conditions.md",
+    downloadUrl: "/policies/Terms-and-Conditions.docx",
+    acceptLabel: "Tech Fleet Terms & Conditions",
+  },
+  "terms-of-use": {
+    title: "Tech Fleet Terms of Use",
+    description: "Acceptable-use rules for the Tech Fleet Network platform.",
+    markdownUrl: "/policies/Terms-of-Use.md",
+    downloadUrl: "/policies/Terms-of-Use.docx",
+    acceptLabel: "Tech Fleet Terms of Use",
+  },
+  "privacy-policy": {
+    title: "Tech Fleet Privacy Policy",
+    description: "How we collect, use, share, and protect your personal information.",
+    markdownUrl: "/policies/Privacy-Policy.md",
+    downloadUrl: "/policies/Privacy-Policy.docx",
+    acceptLabel: "Tech Fleet Privacy Policy",
+  },
+  "cookie-policy": {
+    title: "Tech Fleet Cookie Policy",
+    description: "Cookies and similar technologies used on Tech Fleet sites.",
+    markdownUrl: "/policies/Cookie-Policy.md",
+    downloadUrl: "/policies/Cookie-Policy.docx",
+    acceptLabel: "Tech Fleet Cookie Policy",
+  },
+};
 
 export default function FirstStepsPage() {
   const { user, profile, profileLoaded } = useAuth();
