@@ -255,59 +255,39 @@ const privacy = buildDoc([
 // 2) COOKIE POLICY (extra-comprehensive)
 // ===========================================================================
 
-const cookieTableHeader = (cells) => new TableRow({
-  tableHeader: true,
-  children: cells.map((c) => new TableCell({
-    width: { size: 2340, type: WidthType.DXA },
-    shading: { fill: "D5E8F0", type: ShadingType.CLEAR },
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 4, color: "888888" },
-      bottom: { style: BorderStyle.SINGLE, size: 4, color: "888888" },
-      left: { style: BorderStyle.SINGLE, size: 4, color: "888888" },
-      right: { style: BorderStyle.SINGLE, size: 4, color: "888888" },
-    },
-    children: [new Paragraph({ children: [new TextRun({ text: c, bold: true })] })],
-  })),
-});
+// Cookie list rendered as grouped bullet entries (Framer-friendly: no tables).
+// Format per item: "Name — Purpose (Lifetime)"
+const cookieGroups = [
+  { heading: "4.1 Strictly Necessary", items: [
+    "sb-access-token, sb-refresh-token \u2014 Keep you signed in securely (Supabase auth). Lifetime: session / up to 30 days.",
+    "tf_session_id \u2014 Anonymous session identifier for security and abuse prevention. Lifetime: session.",
+    "tf_csrf \u2014 Cross-site request forgery (CSRF) protection token. Lifetime: session.",
+    "cookieyes-consent \u2014 Stores your cookie consent choices (CookieYes). Lifetime: 1 year.",
+    "__cf_bm, cf_clearance \u2014 Cloudflare bot management and security. Lifetime: 30 minutes to 1 year.",
+  ]},
+  { heading: "4.2 Functional", items: [
+    "tf_theme \u2014 Remembers your light/dark theme choice. Lifetime: 1 year.",
+    "tf_locale \u2014 Remembers your preferred language and time zone. Lifetime: 1 year.",
+    "tf_welcome_shown_* \u2014 Remembers that you have seen the welcome dialog. Lifetime: 1 year.",
+    "tf_dashboard_layout \u2014 Remembers dashboard widget choices. Lifetime: 1 year.",
+    "discord_* \u2014 Set by Discord widgets when you link your Discord account. Lifetime: up to 1 year.",
+    "NID, SIDCC, __Secure-*, AEC \u2014 Set by Google when you sign in with Google or load Google fonts/services. Lifetime: up to 24 months.",
+  ]},
+  { heading: "4.3 Analytics and Performance", items: [
+    "_ga, _ga_*, _gid \u2014 Google Analytics 4 measures visits and usage (only with consent in EEA/UK/CH). Lifetime: up to 24 months.",
+    "_clck, _clsk, CLID, ANONCHK, MR, MUID, SM \u2014 Microsoft Clarity anonymous heatmaps and session recordings (only with consent). Lifetime: 1 day to 1 year.",
+    "_gcl_au \u2014 Google Tag Manager attribution token (only with consent). Lifetime: 90 days.",
+    "web_vital_* \u2014 Anonymous Core Web Vitals performance beacon (no personal identifiers). Lifetime: session.",
+  ]},
+  { heading: "4.4 Marketing / Embedded Media", items: [
+    "YSC, VISITOR_INFO1_LIVE, PREF (youtube.com) \u2014 Set by embedded YouTube videos (only with consent). Lifetime: session to 8 months.",
+  ]},
+];
 
-const cookieRow = (cells) => new TableRow({
-  children: cells.map((c) => new TableCell({
-    width: { size: 2340, type: WidthType.DXA },
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 4, color: "BBBBBB" },
-      bottom: { style: BorderStyle.SINGLE, size: 4, color: "BBBBBB" },
-      left: { style: BorderStyle.SINGLE, size: 4, color: "BBBBBB" },
-      right: { style: BorderStyle.SINGLE, size: 4, color: "BBBBBB" },
-    },
-    children: [new Paragraph({ children: [new TextRun({ text: c, size: 20 })] })],
-  })),
-});
-
-const cookieTable = new Table({
-  width: { size: 9360, type: WidthType.DXA },
-  columnWidths: [2340, 2340, 2340, 2340],
-  rows: [
-    cookieTableHeader(["Cookie / Storage Key", "Category", "Purpose", "Lifetime"]),
-    cookieRow(["sb-access-token, sb-refresh-token", "Strictly Necessary", "Keep you signed in securely (Supabase auth)", "Session / up to 30 days"]),
-    cookieRow(["tf_session_id", "Strictly Necessary", "Anonymous session identifier for security and abuse prevention", "Session"]),
-    cookieRow(["tf_csrf", "Strictly Necessary", "Cross-site request forgery (CSRF) protection token", "Session"]),
-    cookieRow(["tf_theme", "Functional", "Remember your light/dark theme choice", "1 year"]),
-    cookieRow(["tf_locale", "Functional", "Remember your preferred language and time zone", "1 year"]),
-    cookieRow(["tf_welcome_shown_*", "Functional", "Remember that you have seen the welcome dialog", "1 year"]),
-    cookieRow(["tf_dashboard_layout", "Functional", "Remember dashboard widget choices", "1 year"]),
-    cookieRow(["cookieyes-consent", "Strictly Necessary", "Store your cookie consent choices (CookieYes)", "1 year"]),
-    cookieRow(["_ga, _ga_*, _gid", "Analytics", "Google Analytics 4 \u2014 measure visits and usage (only with consent in EEA/UK/CH)", "Up to 24 months"]),
-    cookieRow(["_clck, _clsk, CLID, ANONCHK, MR, MUID, SM", "Analytics", "Microsoft Clarity \u2014 anonymous heatmaps and session recordings (only with consent)", "1 day to 1 year"]),
-    cookieRow(["_gcl_au", "Analytics", "Google Tag Manager attribution token (only with consent)", "90 days"]),
-    cookieRow(["web_vital_*", "Analytics", "Anonymous Core Web Vitals performance beacon (no personal identifiers)", "Session"]),
-    cookieRow(["__cf_bm, cf_clearance", "Strictly Necessary", "Cloudflare bot management and security", "30 minutes to 1 year"]),
-    cookieRow(["NID, SIDCC, __Secure-*, AEC", "Functional / Security", "Set by Google when you sign in with Google or load Google fonts/services", "Up to 24 months"]),
-    cookieRow(["YSC, VISITOR_INFO1_LIVE, PREF (youtube.com)", "Marketing", "Set by embedded YouTube videos (only with consent)", "Session to 8 months"]),
-    cookieRow(["discord_*", "Functional", "Set by Discord widgets when you link your Discord account", "Up to 1 year"]),
-  ],
-});
+const cookieListBlocks = cookieGroups.flatMap((g) => [
+  H2(g.heading),
+  ...g.items.map((t) => B(t)),
+]);
 
 const cookies = buildDoc([
   ...titleBlock("Cookie Policy"),
@@ -339,9 +319,9 @@ const cookies = buildDoc([
   P("If we embed content from Discord, YouTube, LinkedIn, or similar services, those services may set their own cookies. We load embeds in a privacy-friendly way where possible (for example, with consent and with \u201Cno-cookie\u201D modes)."),
 
   H1("4. Detailed List of Cookies"),
-  P("The list below shows the cookies that may be set when you use the Platform. Cookie names from third-party services may change without notice; we update this list at least once a year and after any major change."),
-  cookieTable,
-  P("Some browsers also store small pieces of data in local storage and IndexedDB \u2014 for example, your draft form input, your offline cache, or your authentication token. These are treated the same way as cookies under this policy and are listed in the table above when they affect privacy."),
+  P("The list below shows the cookies that may be set when you use the Platform, grouped by category. Each entry shows the cookie name (or pattern), what it does, and how long it stays on your device. Cookie names from third-party services may change without notice; we update this list at least once a year and after any major change."),
+  ...cookieListBlocks,
+  P("Some browsers also store small pieces of data in local storage and IndexedDB \u2014 for example, your draft form input, your offline cache, or your authentication token. These are treated the same way as cookies under this policy and are listed above when they affect privacy."),
 
   H1("5. Your Choices and How to Manage Cookies"),
   H2("5.1 Cookie banner"),
