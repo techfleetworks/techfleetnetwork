@@ -28,9 +28,11 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { MfaEnforcementGuard } from "./MfaEnforcementGuard";
+import { LiveAnnouncer, useRouteAnnouncer } from "./LiveAnnouncer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
@@ -190,6 +192,7 @@ function DesktopHeader({
       <div className="flex items-center gap-3 shrink-0">
         <UniversalSearch />
         <ThemeToggle />
+        <LanguageSwitcher />
         <NotificationBell />
         <div className="ml-1">
           <ProfileDropdown
@@ -242,6 +245,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   );
   useAnnouncementRealtime();
   useNotificationRealtime();
+  useRouteAnnouncer();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
@@ -288,6 +292,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </a>
             <div className="flex items-center gap-2">
               <ThemeToggle />
+              <LanguageSwitcher />
               {!loading && !user && (
                 <Link to="/login">
                   <Button variant="outline" size="sm">
@@ -304,6 +309,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </main>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -364,6 +370,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   Cookie Policy
                 </a>
+                <Link
+                  to="/accessibility"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Accessibility
+                </Link>
               </nav>
             </div>
           </div>
@@ -403,6 +415,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex shrink-0 items-center gap-1">
               <UniversalSearch />
               <ThemeToggle />
+              <LanguageSwitcher />
               <NotificationBell />
               <Button
                 variant="ghost"
@@ -521,6 +534,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </main>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </div>
@@ -550,6 +564,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </SidebarProvider>

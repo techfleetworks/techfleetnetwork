@@ -16,6 +16,7 @@ export interface Feedback {
 }
 
 export const FEEDBACK_AREAS = [
+  "Accessibility",
   "Activity Log",
   "Alerts",
   "Applications",
