@@ -245,6 +245,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   );
   useAnnouncementRealtime();
   useNotificationRealtime();
+  useRouteAnnouncer();
 
   const isActive = (href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/");
