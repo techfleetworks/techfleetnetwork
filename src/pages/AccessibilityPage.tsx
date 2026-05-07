@@ -19,6 +19,14 @@ export default function AccessibilityPage() {
   const [tech, setTech] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [policyMd, setPolicyMd] = useState("");
+
+  useEffect(() => {
+    fetch("/policies/Accessibility-Policy.md")
+      .then((r) => (r.ok ? r.text() : ""))
+      .then(setPolicyMd)
+      .catch(() => setPolicyMd(""));
+  }, []);
 
   useEffect(() => {
     setPage(typeof window !== "undefined" ? window.location.href : pathname);
