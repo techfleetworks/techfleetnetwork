@@ -49,9 +49,14 @@ jobs:
     permissions:
       contents: read
     env:
-      # Surfaced to the spec at runtime. Falsy → public-only scan.
+      # Surfaced to the spec at runtime. In CI we REQUIRE both creds; if
+      # missing, the preflight step below fails the job loudly instead of
+      # producing a silent empty scan.
       TF_ADMIN_EMAIL: ${{ secrets.TF_ADMIN_EMAIL }}
       TF_ADMIN_PASSWORD: ${{ secrets.TF_ADMIN_PASSWORD }}
+      # Forces the spec to throw if admin bootstrap fails (vs degrading to
+      # a public-only scan that the gate would mistake for "all green").
+      A11Y_REQUIRE_AUTHED_SCAN: "1"
       # Supabase env vars required at Vite build time so the previewed
       # bundle can talk to Lovable Cloud. Without these the SPA loads
       # blank and every route reports the same "missing app" violations.
@@ -65,6 +70,26 @@ jobs:
       - name: Checkout
         # actions/checkout@v5.0.0 — pinned SHA, runs on Node.js 24
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Preflight — required secrets & vars
+        # Fails the job *before* install/build when any of the five inputs
+        # the audit depends on are unset. Turns "silent empty report" into
+        # "loud configuration error" with actionable guidance.
+        run: |
+          missing=()
+          [ -n "${TF_ADMIN_EMAIL}" ]                || missing+=("secrets.TF_ADMIN_EMAIL")
+          [ -n "${TF_ADMIN_PASSWORD}" ]             || missing+=("secrets.TF_ADMIN_PASSWORD")
+          [ -n "${VITE_SUPABASE_URL}" ]             || missing+=("vars.VITE_SUPABASE_URL")
+          [ -n "${VITE_SUPABASE_PUBLISHABLE_KEY}" ] || missing+=("vars.VITE_SUPABASE_PUBLISHABLE_KEY")
+          [ -n "${VITE_SUPABASE_PROJECT_ID}" ]      || missing+=("vars.VITE_SUPABASE_PROJECT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required GitHub Actions configuration: ${missing[*]}"
+            echo "Add repo Secrets at  Settings → Secrets and variables → Actions → Secrets   for TF_ADMIN_*."
+            echo "Add repo Variables at Settings → Secrets and variables → Actions → Variables for VITE_SUPABASE_*."
+            exit 1
+          fi
+          echo "Preflight OK: all 5 required inputs present."
+
 
       - name: Setup Node
         # actions/setup-node@v5.0.0 — pinned SHA, runs on Node.js 24
@@ -89,18 +114,17 @@ jobs:
 
       - name: Run WCAG audit
         # Only the a11y spec — keeps this job focused; the broader e2e
-        # suite still runs in `regression.yml`. `|| true` so a failing
-        # route test never prevents the artifact upload below — Phase 0
-        # is a baseline, not a gate.
+        # suite still runs in `regression.yml`. We deliberately do NOT
+        # swallow the exit code: A11Y_REQUIRE_AUTHED_SCAN=1 makes the
+        # spec throw on bootstrap failure, and we want that to fail the
+        # job — otherwise the empty-scan gate could silently pass.
+        # The artifact upload still runs (it uses `if: always()`).
         #
         # NOTE: Playwright treats the positional arg as a *regex* against
-        # test file paths. Passing `e2e/a11y/wcag-audit.e2e.ts` raw made
-        # the runner emit "No tests found" because the unescaped `.` and
-        # `/` characters didn't line up with how `testMatch` resolves the
-        # file under `testDir: "."`. Anchoring on the filename stem with
-        # escaped dots (and `--` to stop shell/CLI flag parsing) matches
-        # the single spec reliably across local + CI.
-        run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts" || true
+        # test file paths. Anchoring on the filename stem with escaped
+        # dots (and `--` to stop shell/CLI flag parsing) matches the
+        # single spec reliably across local + CI.
+        run: npx playwright test --reporter=list -- "wcag-audit\.e2e\.ts"
 
       - name: Enforce a11y baseline (PR gate)
         if: github.event_name == 'pull_request'

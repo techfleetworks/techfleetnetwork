@@ -82,6 +82,9 @@ interface RouteFinding {
 const adminEmail = process.env.TF_ADMIN_EMAIL ?? "";
 const adminPassword = process.env.TF_ADMIN_PASSWORD ?? "";
 const haveAdminCreds = !!adminEmail && !!adminPassword;
+// When set (CI), an empty/failed admin bootstrap MUST fail the suite instead
+// of silently degrading to a public-only scan that produces a green "0/0" gate.
+const requireAuthedScan = process.env.A11Y_REQUIRE_AUTHED_SCAN === "1";
 
 // Captured once in beforeAll, replayed in every per-route page. Shape:
 // the entire window.localStorage at end of login (Supabase session token,
@@ -94,6 +97,12 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
   test.beforeAll(async ({ browser }) => {
     if (!haveAdminCreds) {
       authBootstrapError = "TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD not provided.";
+      if (requireAuthedScan) {
+        throw new Error(
+          "[a11y-audit] A11Y_REQUIRE_AUTHED_SCAN=1 but TF_ADMIN_EMAIL / TF_ADMIN_PASSWORD " +
+            "are not set. Configure them as GitHub Actions repo secrets.",
+        );
+      }
       return;
     }
 
@@ -177,7 +186,12 @@ test.describe("WCAG 2.2 A/AA/AAA audit (axe-core)", () => {
       }
     } catch (err) {
       authBootstrapError = err instanceof Error ? err.message : String(err);
-      // Don't fail the suite — public-only scan is still valuable.
+      if (requireAuthedScan) {
+        // Hard-fail the suite in CI so the empty-scan gate never gets a
+        // chance to silently pass.
+        throw new Error(`[a11y-audit] Admin bootstrap failed under A11Y_REQUIRE_AUTHED_SCAN=1: ${authBootstrapError}`);
+      }
+      // Local dev: still produce a partial public-only scan.
       console.warn(`Admin bootstrap failed; continuing with public-only audit. ${authBootstrapError}`);
     } finally {
       await context?.close().catch(() => {});
