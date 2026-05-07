@@ -60,7 +60,7 @@ const FleetyChatWidget = lazy(() =>
   import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
 );
 import { useNetworkQuality } from "@/hooks/use-network-quality";
-import { AdminTwoFactorSetupBanner } from "./AdminTwoFactorSetupBanner";
+import { AdminTwoFactorGraceDialog } from "./AdminTwoFactorGraceDialog";
 import type { Profile } from "@/services/profile.service";
 import type { User } from "@supabase/supabase-js";
 
@@ -484,12 +484,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           )}
         </header>
         <AnnouncementBanner />
-        <AdminTwoFactorSetupBanner />
         <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
           {children}
         </main>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </div>
     ) : (
@@ -506,7 +506,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               onSignOut={handleSignOut}
             />
             <AnnouncementBanner />
-            <AdminTwoFactorSetupBanner />
             <main
               id="main-content"
               className="flex-1"
@@ -519,6 +518,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </SidebarProvider>
     );
