@@ -9,8 +9,7 @@
  * from `@/components/AgGrid`. The real implementation lives in
  * `./AgGridImpl.tsx` and is fetched on demand.
  */
-import { Suspense, lazy } from "react";
-import type { ComponentType } from "react";
+import { Suspense, type ComponentType } from "react";
 import type { AgGridReactProps } from "ag-grid-react";
 import type { GridApi } from "ag-grid-community";
 import { lazyWithRetry } from "@/lib/lazy-with-retry";
@@ -28,13 +27,11 @@ interface ThemedAgGridProps<T> extends AgGridReactProps<T> {
   disableCellCopy?: boolean;
 }
 
-// Use lazyWithRetry so a stale-deploy chunk fetch can recover gracefully.
-// Cast to a generic-aware component type so callers keep their <T> ergonomics.
-const LazyThemedAgGrid = (
-  typeof lazyWithRetry === "function"
-    ? lazyWithRetry(() => import("./AgGridImpl").then((m) => ({ default: m.ThemedAgGrid as ComponentType<ThemedAgGridProps<unknown>> })))
-    : lazy(() => import("./AgGridImpl").then((m) => ({ default: m.ThemedAgGrid as ComponentType<ThemedAgGridProps<unknown>> })))
-) as ComponentType<ThemedAgGridProps<unknown>>;
+const LazyThemedAgGrid = lazyWithRetry(() =>
+  import("./AgGridImpl").then((m) => ({
+    default: m.ThemedAgGrid as unknown as ComponentType<ThemedAgGridProps<unknown>>,
+  })),
+);
 
 function GridFallback({ height = "400px" }: { height?: string }) {
   return (
