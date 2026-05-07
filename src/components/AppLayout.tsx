@@ -309,6 +309,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </main>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <footer className="border-t bg-card" role="contentinfo">
           <div className="container-app py-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -533,6 +534,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </main>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </div>
@@ -562,6 +564,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <ProfileSetupDialog />
         <MfaEnforcementGuard />
+        <LiveAnnouncer />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
       </SidebarProvider>
