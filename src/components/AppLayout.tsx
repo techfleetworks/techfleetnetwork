@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 import { ProfileSetupDialog } from "./ProfileSetupDialog";
 import { MfaEnforcementGuard } from "./MfaEnforcementGuard";
