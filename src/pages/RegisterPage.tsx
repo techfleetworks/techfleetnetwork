@@ -21,6 +21,8 @@ import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
+import { PolicyLinksInline } from "@/components/PolicyLinksInline";
+import { recordPolicyAcknowledgment } from "@/lib/policies";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -336,7 +338,17 @@ export default function RegisterPage() {
             <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">{authError}</div>
           )}
 
-          <GoogleSignInButton label="Sign up with Google" redirectTo={redirectParam || "/dashboard"} />
+          <GoogleSignInButton
+            label="Sign up with Google"
+            redirectTo={redirectParam || "/dashboard"}
+            onBeforeSubmit={() => {
+              recordPolicyAcknowledgment("google-oauth");
+              return true;
+            }}
+          />
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            By continuing with Google, you confirm that you have read and agree to the <PolicyLinksInline />.
+          </p>
 
           <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
