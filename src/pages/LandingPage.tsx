@@ -2,7 +2,14 @@ import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "luci
 import { Link } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import heroImage from "@/assets/hero-space.png";
+import heroAvif480 from "@/assets/hero-space-480.avif?url";
+import heroAvif960 from "@/assets/hero-space-960.avif?url";
+import heroAvif1440 from "@/assets/hero-space-1440.avif?url";
+import heroWebp480 from "@/assets/hero-space-480.webp?url";
+import heroWebp960 from "@/assets/hero-space-960.webp?url";
+import heroWebp1440 from "@/assets/hero-space-1440.webp?url";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
