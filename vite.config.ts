@@ -109,6 +109,10 @@ export default defineConfig(({ mode }) => ({
           "supabase-vendor": ["@supabase/supabase-js"],
           "chart-vendor": ["recharts"],
           "editor-vendor": ["react-quill-new"],
+          // AG Grid is ~400KB gzipped and only used on admin/data table pages.
+          // Isolating it ensures it ships in its own chunk that's lazy-loaded
+          // by src/components/AgGrid.tsx on first table mount.
+          "aggrid-vendor": ["ag-grid-react", "ag-grid-community"],
         },
       },
     },
