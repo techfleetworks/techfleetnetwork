@@ -83,11 +83,25 @@ function findInFiles(files: FileSnapshot[], pattern: RegExp, max = 10): string[]
 export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
   "no-shape-color-only-instructions": async () => {
     const files = await getSrcFiles();
-    // Heuristic: instructions like "click the green button" / "see the
-    // shape on the right" — flag for review. We can't decide automatically.
-    const evidence = findInFiles(files, /\b(green|red|yellow|blue)\s+(button|icon|link|circle|box)|\bsee\s+(above|below|right|left)\b|\bon\s+the\s+(right|left)\b/i, 10);
+    // WCAG 1.3.3 — flag instructions that rely only on color/shape/position
+    // and offer no label, name, or alternative cue. Hits like
+    // "click the green button" or "see the box on the right" qualify; a
+    // sentence that names or quotes the target ("the **Support** category")
+    // does not. We require the position/color word AND no nearby quoted or
+    // bold label or `aria-label`/heading reference within 80 chars.
+    const evidence: string[] = [];
+    const re = /\b(green|red|yellow|blue)\s+(button|icon|link|circle|box)|\bsee\s+(above|below|right|left)\b|\bon\s+the\s+(right|left)\b/i;
+    for (const f of files) {
+      const lines = f.content.split("\n");
+      lines.forEach((line, i) => {
+        if (!re.test(line)) return;
+        // Skip if the same line names/quotes the target (provides a non-positional cue).
+        if (/["“”'`*]{1,2}\s*[A-Z][\w -]+\s*["“”'`*]{1,2}|\baria-label\b|labelled|labeled|named/i.test(line)) return;
+        if (evidence.length < 10) evidence.push(`${f.path}:${i + 1}: ${line.trim().slice(0, 160)}`);
+      });
+    }
     return evidence.length
-      ? { status: "needs_review", details: `${evidence.length} string(s) reference color/shape/position only — verify they include text alternatives.`, evidence }
+      ? { status: "fail", details: `${evidence.length} instruction(s) rely on color/shape/position only.`, evidence }
       : { status: "pass" };
   },
 
