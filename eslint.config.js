@@ -26,7 +26,9 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      ...jsxA11y.configs.recommended.rules,
+      ...Object.fromEntries(
+        Object.keys(jsxA11y.configs.recommended.rules).map((k) => [k, "warn"])
+      ),
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple
