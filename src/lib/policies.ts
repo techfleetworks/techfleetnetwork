@@ -3,7 +3,7 @@
 export const POLICY_LAST_UPDATED = "May 7, 2026";
 
 export interface PolicyLink {
-  key: "terms-and-conditions" | "terms-of-use" | "privacy" | "cookies";
+  key: "terms-and-conditions" | "terms-of-use" | "privacy" | "cookies" | "accessibility";
   label: string;
   href: string;
 }
@@ -13,6 +13,7 @@ export const POLICIES: PolicyLink[] = [
   { key: "terms-of-use", label: "Terms of Use", href: "/policies/Terms-of-Use.docx" },
   { key: "privacy", label: "Privacy Policy", href: "/policies/Privacy-Policy.docx" },
   { key: "cookies", label: "Cookie Policy", href: "/policies/Cookie-Policy.docx" },
+  { key: "accessibility", label: "Accessibility Policy", href: "/policies/Accessibility-Policy.docx" },
 ];
 
 /**
