@@ -57,9 +57,11 @@ function loadGa4() {
 function loadClarity() {
   if (clarityLoaded || typeof document === "undefined") return;
   clarityLoaded = true;
-  (function (c: Window, l: Document, a: string, r: string, i: string) {
-    // @ts-expect-error untyped clarity bootstrap
-    c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+  (function (c: Record<string, unknown>, l: Document, a: string, r: string, i: string) {
+    const fn: { (...args: unknown[]): void; q?: unknown[] } = function (...args: unknown[]) {
+      (fn.q = fn.q || []).push(args);
+    };
+    c[a] = c[a] || fn;
     const t = l.createElement(r) as HTMLScriptElement;
     t.async = true;
     t.src = "https://www.clarity.ms/tag/" + i;
