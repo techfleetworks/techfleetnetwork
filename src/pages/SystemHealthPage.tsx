@@ -18,6 +18,8 @@ import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
 import { PerformanceTab } from "@/components/system-health/PerformanceTab";
+import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
+import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
