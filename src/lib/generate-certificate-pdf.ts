@@ -117,7 +117,8 @@ export async function generateCertificatePdf(fullName: string, certificateTitle?
   // active <html lang> so language switches propagate to downloads.
   const lang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
   const safeTitle = (certificateTitle?.trim() || "Certificate") + " — " + fullName;
-  pdf.setLanguage(lang);
+  // jsPDF types restrict to a literal union of supported tags; cast safely.
+  pdf.setLanguage(lang as Parameters<typeof pdf.setLanguage>[0]);
   pdf.setProperties({
     title: safeTitle,
     subject: certificateTitle || "Tech Fleet Certificate",
