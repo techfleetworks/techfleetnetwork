@@ -66,6 +66,7 @@ const ProjectOpeningDetailPage = lazy(() => import("./pages/ProjectOpeningDetail
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ProjectAnalysisDetailPage = lazy(() => import("./pages/ProjectAnalysisDetailPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const AccessibilityPage = lazy(() => import("./pages/AccessibilityPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const BannerManagementPage = lazy(() => import("./pages/BannerManagementPage"));
 const RosterProjectDetailPage = lazy(() => import("./pages/RosterProjectDetailPage"));
