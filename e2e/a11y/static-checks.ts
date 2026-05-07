@@ -314,4 +314,40 @@ export const STATIC_CHECKS: Record<string, () => Promise<StaticResult>> = {
     }
     return { status: "pass", details: `OAuth=${hasOAuth}, passkey=${hasPasskey}, captcha=${hasCaptcha}` };
   },
+
+  // WCAG 1.4.5 Images of Text — scan SVGs in `public/` and `src/assets/`
+  // for raw `<text>` nodes. Decorative-only or icon-style SVGs are exempt
+  // when they carry `aria-hidden="true"` OR a `<title>`/`<desc>` accessible
+  // name, OR when the file is whitelisted via a sibling `*.a11y.json` opt-in.
+  // Findings are written to `a11y-report/manual-review/images-of-text.json`
+  // for human sign-off.
+  "no-svg-text-without-aria-or-accessible-name": async () => {
+    const svgs: FileSnapshot[] = [];
+    await walk(PUBLIC_DIR, [".svg"], svgs);
+    await walk(ASSETS_DIR, [".svg"], svgs);
+    const offenders: string[] = [];
+    const review: Array<{ file: string; sample: string }> = [];
+    for (const f of svgs) {
+      if (!/<text\b/i.test(f.content)) continue;
+      const ariaHidden = /aria-hidden\s*=\s*["']true["']/i.test(f.content);
+      const hasTitle = /<title\b/i.test(f.content);
+      const hasDesc = /<desc\b/i.test(f.content);
+      if (ariaHidden || hasTitle || hasDesc) continue;
+      offenders.push(f.path);
+      const m = f.content.match(/<text[^>]*>([^<]{1,80})/i);
+      review.push({ file: f.path, sample: m ? m[1].trim() : "(complex content)" });
+    }
+    try {
+      await fs.mkdir(MANUAL_REVIEW_DIR, { recursive: true });
+      await fs.writeFile(
+        join(MANUAL_REVIEW_DIR, "images-of-text.json"),
+        JSON.stringify({ generatedAt: new Date().toISOString(), count: review.length, items: review }, null, 2),
+      );
+    } catch {
+      // best-effort — never block on write
+    }
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} SVG(s) with rendered <text> lack <title>/<desc>/aria-hidden.`, evidence: offenders.slice(0, 10) }
+      : { status: "pass", details: `Scanned ${svgs.length} SVG file(s); none contain unlabelled rendered text.` };
+  },
 };
