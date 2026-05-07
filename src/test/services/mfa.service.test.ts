@@ -23,8 +23,10 @@ const verifiedTotp = { id: "f1", factor_type: "totp", status: "verified" };
 const unverifiedTotp = { id: "f2", factor_type: "totp", status: "unverified" };
 
 describe("MfaService.getMfaGateDecision (BDD AUTH-2FA-MEMBER-001/002, LOGIN-GATE-003)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const mod = await import("@/services/mfa.service");
+    mod.__resetMfaServiceCachesForTests();
   });
 
   it("verified TOTP + aal1 => needsChallenge true", async () => {

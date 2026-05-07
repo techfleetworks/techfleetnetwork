@@ -33,6 +33,8 @@ const FACTOR_CACHE_TTL_MS = 60_000;
 let factorCache: { at: number; value: TotpFactor[] } | null = null;
 let factorCacheInflight: Promise<TotpFactor[]> | null = null;
 function invalidateFactorCache() { factorCache = null; factorCacheInflight = null; }
+/** Test-only: reset module caches between cases. Not for production callers. */
+export function __resetMfaServiceCachesForTests() { invalidateFactorCache(); }
 
 export const MfaService = {
   /** List all enrolled MFA factors for the current user. Cached 60s per tab. */
