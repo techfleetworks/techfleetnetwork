@@ -38,6 +38,7 @@ describe("AdminTwoFactorGraceDialog (BDD AUTH-2FA-PROMOTION-002/003/004)", () =>
     Object.defineProperty(window, "location", {
       value: { replace: vi.fn() },
       writable: true,
+      configurable: true,
     });
     mockRpc.mockImplementation((fn: string) => {
       if (fn === "admin_2fa_grace_active") return Promise.resolve({ data: true, error: null });
@@ -80,16 +81,11 @@ describe("AdminTwoFactorGraceDialog (BDD AUTH-2FA-PROMOTION-002/003/004)", () =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("auto-closes when 2FA setup completes (next poll)", async () => {
-    vi.useFakeTimers();
-    mockHasVerifiedTotp.mockResolvedValueOnce(false).mockResolvedValue(true);
+  it("hides immediately once a verified TOTP factor exists", async () => {
+    mockHasVerifiedTotp.mockResolvedValue(true);
     renderWithRouter();
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeInTheDocument());
-    await act(async () => {
-      vi.advanceTimersByTime(10_000);
-    });
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    vi.useRealTimers();
+    await waitFor(() => expect(mockHasVerifiedTotp).toHaveBeenCalled());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("Sign out button calls supabase.auth.signOut and redirects to /login", async () => {
