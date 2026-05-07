@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      accessibility_training_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          locale: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          locale?: string
+          user_id: string
+          version?: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          locale?: string
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       admin_banners: {
         Row: {
           body_html: string
@@ -2012,6 +2036,42 @@ export type Database = {
         }
         Relationships: []
       }
+      i18n_translations: {
+        Row: {
+          created_at: string
+          kb_version: number
+          key: string
+          locale: string
+          machine_translated: boolean
+          namespace: string
+          source_hash: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          kb_version?: number
+          key: string
+          locale: string
+          machine_translated?: boolean
+          namespace: string
+          source_hash: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          kb_version?: number
+          key?: string
+          locale?: string
+          machine_translated?: boolean
+          namespace?: string
+          source_hash?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -2404,6 +2464,7 @@ export type Database = {
           notify_announcements: boolean
           notify_training_opportunities: boolean
           portfolio_url: string
+          preferred_language: string
           professional_background: string
           professional_goals: string
           profile_completed: boolean
@@ -2440,6 +2501,7 @@ export type Database = {
           notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
+          preferred_language?: string
           professional_background?: string
           professional_goals?: string
           profile_completed?: boolean
@@ -2476,6 +2538,7 @@ export type Database = {
           notify_announcements?: boolean
           notify_training_opportunities?: boolean
           portfolio_url?: string
+          preferred_language?: string
           professional_background?: string
           professional_goals?: string
           profile_completed?: boolean
