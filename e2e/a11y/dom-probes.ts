@@ -179,6 +179,56 @@ export const DOM_PROBES: Record<string, () => ProbeResult> = {
       : { status: "pass" };
   },
 
+  "target-size-minimum-24x24": () => {
+    // WCAG 2.5.8 Target Size (Minimum) — interactive controls must be ≥24×24
+    // CSS px unless they are inline within a sentence or sized by the user agent.
+    const SELECTOR = 'a[href], button, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"], [role="radio"], [role="switch"], input:not([type="hidden"]), select, textarea, summary';
+    const candidates = Array.from(document.querySelectorAll(SELECTOR)) as HTMLElement[];
+    const offenders: HTMLElement[] = [];
+    for (const el of candidates) {
+      // Skip hidden / disabled / inline-in-text controls
+      if ((el as HTMLInputElement).disabled) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.pointerEvents === "none") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      // Inline link inside a paragraph/sentence is exempt per spec note.
+      const parentTag = el.parentElement?.tagName.toLowerCase();
+      if (el.tagName.toLowerCase() === "a" && (parentTag === "p" || parentTag === "li" || parentTag === "span")) continue;
+      if (r.width < 24 || r.height < 24) offenders.push(el);
+    }
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} control(s) below 24×24 CSS px (WCAG 2.5.8).`, samples: offenders.slice(0, 5).map((o) => o.outerHTML.slice(0, 200)) }
+      : { status: "pass", details: `${candidates.length} interactive control(s) meet 24×24 minimum.` };
+  },
+
+  "html-lang-matches-locale": () => {
+    // WCAG 3.1.1 — <html lang> must be set and reflect a real BCP-47 tag.
+    const html = document.documentElement;
+    const lang = html.getAttribute("lang");
+    if (!lang) return { status: "fail", details: "<html> is missing the lang attribute." };
+    if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) return { status: "fail", details: `<html lang="${lang}"> is not a valid BCP-47 tag.` };
+    // dir must be set to ltr or rtl when lang is RTL
+    const RTL = ["ar", "he", "fa", "ur", "ps", "sd", "yi"];
+    const primary = lang.split("-")[0].toLowerCase();
+    const dir = html.getAttribute("dir");
+    if (RTL.includes(primary) && dir !== "rtl") {
+      return { status: "fail", details: `lang="${lang}" requires dir="rtl" on <html>.` };
+    }
+    return { status: "pass", details: `<html lang="${lang}" dir="${dir ?? "ltr"}"> is valid.` };
+  },
+
+  "no-positive-tabindex": () => {
+    // WCAG 2.4.3 Focus Order — positive tabindex breaks expected order.
+    const offenders = Array.from(document.querySelectorAll("[tabindex]")).filter((el) => {
+      const v = parseInt(el.getAttribute("tabindex") || "0", 10);
+      return v > 0;
+    });
+    return offenders.length
+      ? { status: "fail", details: `${offenders.length} element(s) use a positive tabindex (breaks focus order).`, samples: offenders.slice(0, 5).map((o) => (o as HTMLElement).outerHTML.slice(0, 200)) }
+      : { status: "pass" };
+  },
+
   "status-messages-use-live-region": () => {
     // Toasts and inline status nodes should declare a live region.
     const toastContainers = Array.from(document.querySelectorAll('[class*="toast" i], [data-sonner-toaster], [data-radix-toast-viewport]'));
