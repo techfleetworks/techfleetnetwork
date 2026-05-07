@@ -32,6 +32,9 @@ export default function UserAdminPage() {
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
   const [confirmAction, setConfirmAction] = useState<"promote" | "resend" | "delete" | "promote_teacher" | "revoke_teacher">("promote");
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
+  // Accessibility-policy §10 commits to onboarding + annual a11y refresher.
+  // We surface completion % so admins can see who still needs to take it.
+  const [a11yTrainedIds, setA11yTrainedIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
@@ -72,7 +75,18 @@ export default function UserAdminPage() {
         pendingTeacher: pendingTeacherIds.has(p.user_id),
       }));
       setUsers(rows);
-    } catch (err) {
+
+      // Pull a11y-training completions in a separate non-blocking call so a
+      // missing/locked-down table never blanks out the admin grid.
+      try {
+        const { data: trained } = await supabase
+          .from("accessibility_training_completions")
+          .select("user_id");
+        setA11yTrainedIds(new Set((trained || []).map((t: { user_id: string }) => t.user_id)));
+      } catch (e) {
+        // Soft-fail — surface a placeholder of 0% rather than crash.
+        console.warn("[a11y-training] read failed:", e);
+      }
       console.error("Failed to fetch users:", err);
       toast.error("Failed to load users");
     } finally {
