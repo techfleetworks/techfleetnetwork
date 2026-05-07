@@ -7,6 +7,7 @@ import { installClientRequestThrottle } from "@/lib/client-request-throttle";
 import { clearAppCachesForVersion } from "@/lib/app-cache-reset";
 import { installLoginCaptchaCrossTabSync } from "@/lib/auth-captcha";
 import { installWebVitalsBeacon } from "@/lib/web-vitals";
+import "@/i18n"; // initialize i18next + apply <html lang>/<html dir>
 
 // Unregister any existing service workers and clear caches so users always get fresh content
 if ("serviceWorker" in navigator) {
