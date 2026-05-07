@@ -24,16 +24,39 @@ export interface EnrollTotpResult {
  * Uses Supabase's built-in auth.mfa API (RFC 6238 compliant).
  * Compatible with Google Authenticator, Authy, 1Password, Microsoft Authenticator, etc.
  */
+// Module-level micro-cache for listFactors. The MFA gate runs on every auth
+// state change + window focus, so we deduplicate listFactors() calls within a
+// short window to avoid hammering the auth API. The cache is per-tab and
+// invalidated on enroll/unenroll/verifyEnrollment so a freshly verified factor
+// is observed by the next gate poll without waiting for TTL expiry.
+const FACTOR_CACHE_TTL_MS = 60_000;
+let factorCache: { at: number; value: TotpFactor[] } | null = null;
+let factorCacheInflight: Promise<TotpFactor[]> | null = null;
+function invalidateFactorCache() { factorCache = null; factorCacheInflight = null; }
+/** Test-only: reset module caches between cases. Not for production callers. */
+export function __resetMfaServiceCachesForTests() { invalidateFactorCache(); }
+
 export const MfaService = {
-  /** List all enrolled MFA factors for the current user. */
-  async listFactors(): Promise<TotpFactor[]> {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error) {
-      log.error("listFactors", `Failed: ${error.message}`, undefined, error);
-      throw new Error("Could not load MFA factors");
+  /** List all enrolled MFA factors for the current user. Cached 60s per tab. */
+  async listFactors(opts?: { force?: boolean }): Promise<TotpFactor[]> {
+    if (!opts?.force && factorCache && Date.now() - factorCache.at < FACTOR_CACHE_TTL_MS) {
+      return factorCache.value;
     }
-    return (data?.all ?? []) as TotpFactor[];
+    if (!opts?.force && factorCacheInflight) return factorCacheInflight;
+    const fetchOnce = (async () => {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) {
+        log.error("listFactors", `Failed: ${error.message}`, undefined, error);
+        throw new Error("Could not load MFA factors");
+      }
+      const value = (data?.all ?? []) as TotpFactor[];
+      factorCache = { at: Date.now(), value };
+      return value;
+    })();
+    factorCacheInflight = fetchOnce;
+    try { return await fetchOnce; } finally { factorCacheInflight = null; }
   },
+
 
   /** Begin TOTP enrollment. Returns QR code + secret to display to the user. */
   async enrollTotp(friendlyName: string): Promise<EnrollTotpResult> {
@@ -53,6 +76,7 @@ export const MfaService = {
       log.error("enrollTotp", `Failed: ${error?.message}`, undefined, error);
       throw new Error(error?.message || "Failed to start MFA enrollment");
     }
+    invalidateFactorCache();
     return {
       factorId: data.id,
       qrCode: data.totp.qr_code,
@@ -79,6 +103,7 @@ export const MfaService = {
       log.warn("verifyEnrollment", `Invalid code: ${verifyErr.message}`);
       throw new Error("Invalid verification code. Please try again.");
     }
+    invalidateFactorCache();
     log.info("verifyEnrollment", "TOTP factor enrolled successfully");
   },
 
@@ -89,6 +114,7 @@ export const MfaService = {
       log.error("unenroll", `Failed: ${error.message}`, undefined, error);
       throw new Error("Could not remove MFA factor");
     }
+    invalidateFactorCache();
     log.info("unenroll", "MFA factor removed");
   },
 
