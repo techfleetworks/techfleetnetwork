@@ -2606,6 +2606,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string
+          birth_year: number | null
           country: string
           created_at: string
           discord_invite_created_at: string | null
@@ -2643,6 +2644,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string
+          birth_year?: number | null
           country?: string
           created_at?: string
           discord_invite_created_at?: string | null
@@ -2680,6 +2682,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string
+          birth_year?: number | null
           country?: string
           created_at?: string
           discord_invite_created_at?: string | null
@@ -4871,6 +4874,7 @@ export type Database = {
         }[]
       }
       encrypt_pii: { Args: { plain: string }; Returns: string }
+      enforce_retention_policy: { Args: never; Returns: Json }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5315,6 +5319,16 @@ export type Database = {
         }
         Returns: number
       }
+      open_incident: {
+        Args: {
+          _affected_user_count?: number
+          _description: string
+          _jurisdictions?: string[]
+          _severity: Database["public"]["Enums"]["incident_severity"]
+          _title: string
+        }
+        Returns: string
+      }
       peek_rate_limit: {
         Args: {
           p_action: string
@@ -5387,6 +5401,10 @@ export type Database = {
       request_class_changes: {
         Args: { p_class_id: string; p_reason: string }
         Returns: undefined
+      }
+      request_human_review: {
+        Args: { _context?: Json; _surface: string }
+        Returns: string
       }
       reset_rate_limit: {
         Args: { p_action: string; p_identifier: string }

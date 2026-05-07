@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
-import { registerSchema } from "@/lib/validators/auth";
+import { registerSchema, ageInYears, minAgeForCountry } from "@/lib/validators/auth";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
@@ -23,6 +23,7 @@ import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 import { PolicyLinksInline } from "@/components/PolicyLinksInline";
 import { recordPolicyAcknowledgment } from "@/lib/policies";
+import { loadConsent } from "@/lib/consent/manager";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -34,6 +35,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dob, setDob] = useState(""); // ISO yyyy-mm-dd
+  const countryCode = loadConsent()?.countryCode ?? null;
+  const minAge = minAgeForCountry(countryCode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -56,17 +60,33 @@ export default function RegisterPage() {
   const markTouched = (field: string) =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
+  // Parse DOB string for schema
+  const dobParts = (() => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+    if (!m) return null;
+    return { birthYear: Number(m[1]), birthMonth: Number(m[2]), birthDay: Number(m[3]) };
+  })();
+
   // Real-time validation on change
   useEffect(() => {
     if (Object.keys(touched).length === 0) return;
-    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
+    const payload = {
+      firstName, lastName, email, password, confirmPassword,
+      birthYear: dobParts?.birthYear ?? 1900,
+      birthMonth: dobParts?.birthMonth ?? 1,
+      birthDay: dobParts?.birthDay ?? 1,
+      countryCode,
+      agreedToTerms,
+    };
+    const result = registerSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+        // Surface birthYear/Month/Day errors under "dob"
+        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
+        if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
-      // Only show errors for touched fields
       const touchedErrors: Record<string, string> = {};
       for (const [k, v] of Object.entries(fieldErrors)) {
         if (touched[k]) touchedErrors[k] = v;
@@ -75,7 +95,7 @@ export default function RegisterPage() {
     } else {
       setErrors({});
     }
-  }, [firstName, lastName, email, password, confirmPassword, agreedToTerms, touched]);
+  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, touched, countryCode]);
 
   useEffect(() => {
     if (redirectParam) {
@@ -117,16 +137,25 @@ export default function RegisterPage() {
     // Mark all fields as touched
     const allTouched: Record<string, boolean> = {
       firstName: true, lastName: true, email: true,
-      password: true, confirmPassword: true, agreedToTerms: true,
+      password: true, confirmPassword: true, dob: true, agreedToTerms: true,
     };
     setTouched(allTouched);
 
-    const result = registerSchema.safeParse({ firstName, lastName, email, password, confirmPassword, agreedToTerms });
+    const payload = {
+      firstName, lastName, email, password, confirmPassword,
+      birthYear: dobParts?.birthYear ?? 1900,
+      birthMonth: dobParts?.birthMonth ?? 1,
+      birthDay: dobParts?.birthDay ?? 1,
+      countryCode,
+      agreedToTerms,
+    };
+    const result = registerSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
+        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
+        if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
       setErrors(fieldErrors);
       void logAccountActivity("signup_validation_failed", {
@@ -135,7 +164,8 @@ export default function RegisterPage() {
       });
       showFormErrors(fieldErrors, {
         firstName: "First name", lastName: "Last name", email: "Email",
-        password: "Password", confirmPassword: "Confirm password", agreedToTerms: "Terms agreement",
+        password: "Password", confirmPassword: "Confirm password",
+        dob: "Date of birth", agreedToTerms: "Terms agreement",
       });
       scrollToFirstError();
       return;
@@ -166,9 +196,6 @@ export default function RegisterPage() {
     setAuthError("");
 
     try {
-      // PEEK only — never increment on the way in. The bucket only counts
-      // confirmed signup failures (recordFailure below). Successful signups
-      // never consume slots, so a returning user retrying never hits the cap.
       const rateCheck = await RateLimitService.peek(result.data.email, "signup_attempt");
       if (!rateCheck.allowed) {
         const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
@@ -187,7 +214,8 @@ export default function RegisterPage() {
         result.data.firstName,
         result.data.lastName,
         getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
-        captchaToken
+        captchaToken,
+        result.data.birthYear
       );
       clearAuthLockout();
       setSubmitted(true);
@@ -400,6 +428,30 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+            </ValidatedField>
+
+            <ValidatedField id="reg-dob" label="Date of birth" required error={errors.dob} value={dob} touched={touched.dob}>
+              <div className="relative">
+                <Cake className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="reg-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  onBlur={() => markTouched("dob")}
+                  max={new Date().toISOString().slice(0, 10)}
+                  min="1900-01-01"
+                  className={`pl-10 ${bc("dob", dob)}`}
+                  autoComplete="bday"
+                  required
+                  aria-required="true"
+                  aria-invalid={!!errors.dob}
+                  aria-describedby="dob-help"
+                />
+              </div>
+              <p id="dob-help" className="text-xs text-muted-foreground mt-1">
+                We use this only to confirm you meet the minimum age for your region (currently {minAge}+). We store the year only.
+              </p>
             </ValidatedField>
 
             <div className="flex items-start gap-2">

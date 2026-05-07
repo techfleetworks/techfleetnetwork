@@ -576,6 +576,28 @@ export function FleetyChatWidget() {
                               >
                                 <ThumbsDown className="h-3 w-3" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const { error } = await supabase.rpc("request_human_review", {
+                                      _surface: "fleety_chat",
+                                      _context: { turn_id: msg.turnId, snippet: msg.content.slice(0, 500) },
+                                    });
+                                    if (error) throw error;
+                                    toast.success("Human review requested. We'll reply within 30 days.");
+                                  } catch (e) {
+                                    toast.error("Could not file your request. Please try again.");
+                                  }
+                                }}
+                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                aria-label="Request human review of this answer"
+                                title="Request a human to review this automated answer"
+                              >
+                                <User className="h-3 w-3" />
+                                <span className="hidden sm:inline">Human review</span>
+                              </Button>
                             </>
                           )}
                         </div>

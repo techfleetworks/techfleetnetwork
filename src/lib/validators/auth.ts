@@ -76,18 +76,57 @@ export const loginSchema = z.object({
   password: passwordSchema,
 });
 
+/**
+ * Region-aware minimum age. Defaults to US baseline 13 (COPPA), bumps to 16 for
+ * EEA/UK/CH (GDPR Art. 8 + UK ICO Children's Code), and 14 for KR/CN.
+ * Region is the country code stored in the consent state, not a guess.
+ */
+export const HIGH_AGE_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH"]);
+export const MID_AGE_COUNTRIES = new Set(["KR","CN"]);
+
+export function minAgeForCountry(country: string | null | undefined): number {
+  if (!country) return 13;
+  const cc = country.toUpperCase();
+  if (HIGH_AGE_COUNTRIES.has(cc)) return 16;
+  if (MID_AGE_COUNTRIES.has(cc)) return 14;
+  return 13;
+}
+
+export function ageInYears(birthYear: number, birthMonth: number, birthDay: number, ref = new Date()): number {
+  let age = ref.getFullYear() - birthYear;
+  const m = ref.getMonth() + 1;
+  if (m < birthMonth || (m === birthMonth && ref.getDate() < birthDay)) age -= 1;
+  return age;
+}
+
+export const dateOfBirthSchema = z.object({
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()),
+  birthMonth: z.coerce.number().int().min(1).max(12),
+  birthDay: z.coerce.number().int().min(1).max(31),
+});
+
 export const registerSchema = z.object({
   firstName: safeText("First name", 100),
   lastName: safeText("Last name", 100),
   email: emailInputSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1, "Please confirm your password"),
+  birthYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()),
+  birthMonth: z.coerce.number().int().min(1).max(12),
+  birthDay: z.coerce.number().int().min(1).max(31),
+  countryCode: z.string().nullable().optional(),
   agreedToTerms: z.literal(true, {
     message: "You must agree to the terms and community guidelines.",
   }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
+}).refine((data) => {
+  const age = ageInYears(data.birthYear, data.birthMonth, data.birthDay);
+  return age >= minAgeForCountry(data.countryCode ?? null);
+}, {
+  message: "You must meet the minimum age for your region to create an account.",
+  path: ["birthYear"],
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

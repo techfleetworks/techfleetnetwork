@@ -18,6 +18,8 @@ import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
 import { PerformanceTab } from "@/components/system-health/PerformanceTab";
+import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
+import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -201,6 +203,8 @@ export default function SystemHealthPage() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="fleety">Fleety</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="incidents">Incidents</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -233,6 +237,8 @@ export default function SystemHealthPage() {
         <TabsContent value="performance"><PerformanceTab /></TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
+        <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>
+        <TabsContent value="incidents"><IncidentsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
         <TabsContent value="settings">
           <Card>
