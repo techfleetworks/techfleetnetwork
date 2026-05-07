@@ -71,11 +71,13 @@ function loadClarity() {
 }
 
 /**
- * Apply the current consent state to all loaded trackers.
- * Safe to call repeatedly; each loader is idempotent.
+ * Apply the current consent state to all loaded trackers. Safe to call
+ * repeatedly; each loader is idempotent. Driven by CookieYes events via
+ * src/components/CookieConsentBanner.tsx.
  */
 export function applyConsent(state: ConsentState) {
   ensureGtagStub();
+  // GPC always wins, regardless of what CookieYes reported.
   if (state.analytics && !state.gpc) {
     loadGa4();
     loadClarity();
@@ -83,6 +85,9 @@ export function applyConsent(state: ConsentState) {
       analytics_storage: "granted",
       functionality_storage: state.functional ? "granted" : "denied",
       personalization_storage: state.functional ? "granted" : "denied",
+      ad_storage: state.marketing ? "granted" : "denied",
+      ad_user_data: state.marketing ? "granted" : "denied",
+      ad_personalization: state.marketing ? "granted" : "denied",
     });
     window.clarity?.("consent", true);
   } else {

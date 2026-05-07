@@ -19,7 +19,7 @@
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: https://iqsjhrhsjlgjiaedzmtz.supabase.co; media-src 'self' blob: https://iqsjhrhsjlgjiaedzmtz.supabase.co; connect-src 'self' https://iqsjhrhsjlgjiaedzmtz.supabase.co wss://iqsjhrhsjlgjiaedzmtz.supabase.co https://accounts.google.com https://challenges.cloudflare.com https://ai.gateway.lovable.dev https://api.firecrawl.dev https://www.google-analytics.com https://*.google-analytics.com https://stats.g.doubleclick.net https://www.clarity.ms https://*.clarity.ms; frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://calendar.google.com https://lu.ma https://luma.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com; base-uri 'self'; form-action 'self'; manifest-src 'self'; object-src 'none'; worker-src 'self' blob:"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://cdn-cookieyes.com https://*.cookieyes.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://cdn-cookieyes.com https://*.cookieyes.com; style-src 'self' 'unsafe-inline' https://cdn-cookieyes.com; font-src 'self' data: https://cdn-cookieyes.com; img-src 'self' data: blob: https: https://iqsjhrhsjlgjiaedzmtz.supabase.co; media-src 'self' blob: https://iqsjhrhsjlgjiaedzmtz.supabase.co; connect-src 'self' https://iqsjhrhsjlgjiaedzmtz.supabase.co wss://iqsjhrhsjlgjiaedzmtz.supabase.co https://accounts.google.com https://challenges.cloudflare.com https://ai.gateway.lovable.dev https://api.firecrawl.dev https://www.google-analytics.com https://*.google-analytics.com https://stats.g.doubleclick.net https://www.clarity.ms https://*.clarity.ms https://cdn-cookieyes.com https://log.cookieyes.com https://*.cookieyes.com; frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://calendar.google.com https://lu.ma https://luma.com https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com; base-uri 'self'; form-action 'self'; manifest-src 'self'; object-src 'none'; worker-src 'self' blob:"
     />
     <title>Tech Fleet — Professional Training Platform</title>
     <meta name="description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
@@ -51,11 +51,14 @@
     <meta name="twitter:description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
 
     <!--
-      Analytics bootstrap removed from index.html. GA4 + Microsoft Clarity are
-      loaded by src/lib/consent/loadAnalytics.ts ONLY when the user grants
-      analytics consent (and never when navigator.globalPrivacyControl === true).
-      This satisfies EU/UK ePrivacy, CCPA/CPRA, LGPD, PIPL, etc.
+      CookieYes consent banner. Renders the visible cookie UI, persists the
+      user's category choices in `cookieyes-consent`, and emits
+      `cookieyes_consent_update` events. Our app listens for those events in
+      src/components/CookieConsentBanner.tsx and only then loads GA4 +
+      Microsoft Clarity (via src/lib/consent/loadAnalytics.ts). Global
+      Privacy Control still force-denies analytics regardless of CookieYes.
     -->
+    <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js"></script>
   </head>
   <body>
     <div id="root"></div>
