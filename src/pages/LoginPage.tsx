@@ -205,7 +205,7 @@ export default function LoginPage() {
       // so the hint check uses a fresh token via the next render — see below).
       try {
         await AuthService.signInWithPassword(result.data.email, result.data.password, captchaToken);
-        const { needsChallenge } = await MfaService.getAssuranceLevel();
+        const { needsChallenge } = await MfaService.getMfaGateDecision();
         if (needsChallenge) {
           setMfaOpen(true);
           setLoading(false);
