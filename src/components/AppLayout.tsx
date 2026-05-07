@@ -191,6 +191,7 @@ function DesktopHeader({
       <div className="flex items-center gap-3 shrink-0">
         <UniversalSearch />
         <ThemeToggle />
+        <LanguageSwitcher />
         <NotificationBell />
         <div className="ml-1">
           <ProfileDropdown
