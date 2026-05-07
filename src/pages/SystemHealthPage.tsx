@@ -210,7 +210,24 @@ export default function SystemHealthPage() {
         </TabsList>
 
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
-{/* ... keep existing code (queues StatCards) */}
+
+          {data.queue_stats.map((queue) => (
+            <Card key={queue.queue_name}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" />{queue.queue_name.replace(/_/g, " ")}</CardTitle>
+                <CardDescription className="flex items-center gap-1 text-xs">
+                  <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-muted-foreground">Queued</p><p className="text-2xl font-semibold">{queue.queued}</p></div>
+                <div><p className="text-muted-foreground">Ready</p><p className="text-2xl font-semibold">{queue.ready}</p></div>
+                <div><p className="text-muted-foreground">Retrying</p><p className="text-2xl font-semibold">{queue.delayed_or_inflight}</p></div>
+                <div><p className="text-muted-foreground">Max attempts</p><p className="text-2xl font-semibold">{queue.max_attempts}</p></div>
+                <div className="col-span-2 text-muted-foreground">Oldest queued: {relativeTime(queue.oldest_enqueued_at)}</div>
+              </CardContent>
+            </Card>
+          ))}
         </TabsContent>
 
         <TabsContent value="delivery"><LogTable logs={data.recent_logs} generatedAt={generatedAt} /></TabsContent>
@@ -224,8 +241,6 @@ export default function SystemHealthPage() {
         <TabsContent value="incidents"><IncidentsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
         <TabsContent value="settings">
-{/* ... keep existing code (settings content) */}
-        </TabsContent>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Processing controls</CardTitle>
