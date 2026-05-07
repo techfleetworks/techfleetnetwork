@@ -38,6 +38,31 @@ export function DashboardCustomizer({
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
+  const announce = useAnnounce();
+
+  // WCAG 2.5.7 Dragging Movements — keyboard alternative for the drag/drop
+  // reorder. Move-up / Move-down buttons reorder the widget list and
+  // announce the change in a polite live region for screen-reader users.
+  const moveByKeyboard = useCallback(
+    (idx: number, direction: -1 | 1) => {
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= displayedOrder.length) return;
+      const movedId = displayedOrder[idx];
+      const targetId = displayedOrder[targetIdx];
+      const fromFull = widgetOrder.indexOf(movedId);
+      const toFull = widgetOrder.indexOf(targetId);
+      if (fromFull === -1 || toFull === -1) return;
+      const updated = [...widgetOrder];
+      const [moved] = updated.splice(fromFull, 1);
+      updated.splice(toFull, 0, moved);
+      onReorder(updated);
+      announce(
+        `${widgetLabel(movedId)} moved ${direction === -1 ? "up" : "down"} to position ${targetIdx + 1} of ${displayedOrder.length}.`,
+        "polite",
+      );
+    },
+    [displayedOrder, widgetOrder, onReorder, announce],
+  );
 
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>, idx: number) => {
