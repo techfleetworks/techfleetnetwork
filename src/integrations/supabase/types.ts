@@ -4514,6 +4514,57 @@ export type Database = {
         }
         Relationships: []
       }
+      triage_audit_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          fingerprint: string
+          fix_queue_id: string
+          from_status: string | null
+          id: string
+          matching_signal: string | null
+          rule_name: string
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          fingerprint: string
+          fix_queue_id: string
+          from_status?: string | null
+          id?: string
+          matching_signal?: string | null
+          rule_name: string
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          fingerprint?: string
+          fix_queue_id?: string
+          from_status?: string | null
+          id?: string
+          matching_signal?: string | null
+          rule_name?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "triage_audit_log_fix_queue_id_fkey"
+            columns: ["fix_queue_id"]
+            isOneToOne: false
+            referencedRelation: "agent_fix_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "triage_audit_log_fix_queue_id_fkey"
+            columns: ["fix_queue_id"]
+            isOneToOne: false
+            referencedRelation: "audit_triage_state"
+            referencedColumns: ["fix_queue_id"]
+          },
+        ]
+      }
       triage_critical_push_log: {
         Row: {
           fingerprint: string
@@ -5065,6 +5116,10 @@ export type Database = {
         Returns: Json
       }
       claim_triage_budget: { Args: { p_cap?: number }; Returns: boolean }
+      classify_triage_rule: {
+        Args: { p_from_status: string; p_reason: string; p_to_status: string }
+        Returns: string
+      }
       cleanup_chunk_load_noise: { Args: never; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: number }
       cleanup_stuck_email_queue: { Args: never; Returns: number }
