@@ -15,6 +15,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { reportError } from "@/services/error-reporter.service";
 import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 import { sanitizeText, isSafeUrl } from "@/lib/security";

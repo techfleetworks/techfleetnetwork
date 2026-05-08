@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { reportError } from "@/services/error-reporter.service";
 import { airtableBreaker } from "@/lib/circuit-breaker";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 

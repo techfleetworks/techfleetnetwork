@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { AnnouncementService } from "@/services/announcement.service";
+import { reportError } from "@/services/error-reporter.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { queryKeys, CACHE_SEMI_STATIC } from "@/lib/query-config";

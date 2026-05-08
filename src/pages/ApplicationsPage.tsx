@@ -6,6 +6,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GeneralApplicationService } from "@/services/general-application.service";
+import { reportError } from "@/services/error-reporter.service";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 
