@@ -1,7 +1,15 @@
 import { useState, useMemo } from "react";
-import { Globe, Users } from "lucide-react";
+import { CalendarPlus, Copy, Globe, Link2, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+
+const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
+// Subscribe URLs for the public Tech Fleet community Google Calendar
+const ADD_TO_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
+const ICAL_SUBSCRIBE_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(TF_CALENDAR_EMAIL)}/public/basic.ics`;
+const OPEN_IN_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/embed?src=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
 
 const eventTabs: TabItem[] = [
   { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
