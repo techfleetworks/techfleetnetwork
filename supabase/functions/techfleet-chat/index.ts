@@ -549,7 +549,7 @@ async function searchWebForTips(query: string): Promise<{ context: string; sourc
   }
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("techfleet-chat", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
