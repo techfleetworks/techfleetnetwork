@@ -366,7 +366,7 @@ export const AuthService = {
     });
   },
 
-  async updatePassword(newPassword: string) {
+  async updatePassword(newPassword: string): Promise<{ otherDevicesRevoked: boolean }> {
     return log.track("updatePassword", "Updating user password", undefined, async () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
@@ -375,7 +375,25 @@ export const AuthService = {
       }
       log.info("updatePassword", "Password updated successfully");
       void logAccountActivity("password_updated", {});
-      await this.signOutAllDevices();
+      // Keep the current device signed in; revoke other devices via the
+      // server-side `revoked_sessions` gate. A revoke failure must NEVER
+      // mask a successful password change.
+      let otherDevicesRevoked = false;
+      try {
+        const result = await this.signOutAllDevices({
+          keepCurrent: true,
+          reason: "self_password_changed",
+        });
+        otherDevicesRevoked = result.revocationRecorded;
+      } catch (revokeErr) {
+        log.warn(
+          "updatePassword",
+          `Other-device revocation failed (non-fatal): ${(revokeErr as Error)?.message}`,
+          undefined,
+          revokeErr instanceof Error ? revokeErr : undefined,
+        );
+      }
+      return { otherDevicesRevoked };
     });
   },
 
@@ -404,17 +422,38 @@ export const AuthService = {
     clearLocalAuthArtifacts();
   },
 
-  async signOutAllDevices() {
-    return log.track("signOutAllDevices", "Revoking all user sessions", undefined, async () => {
-      const { error } = await supabase.functions.invoke("sign-out-all-devices");
-      if (error) {
-        log.error("signOutAllDevices", `Failed to revoke all sessions: ${error.message}`, undefined, error);
-        throw new Error("Failed to revoke all sessions. Please try again.");
+  async signOutAllDevices(opts?: { keepCurrent?: boolean; reason?: string }): Promise<{ revocationRecorded: boolean; gotrueSignedOut: boolean }> {
+    const keepCurrent = opts?.keepCurrent === true;
+    const reason = opts?.reason ?? "self_requested";
+    return log.track("signOutAllDevices", "Revoking all user sessions", { keepCurrent, reason }, async () => {
+      let revocationRecorded = false;
+      let gotrueSignedOut = false;
+      try {
+        const { data, error } = await supabase.functions.invoke("sign-out-all-devices", {
+          body: { keep_current: keepCurrent, reason },
+        });
+        if (error) {
+          // Non-fatal: surface as warning so password reset / settings flows
+          // never get blocked by transient GoTrue / network errors.
+          log.warn("signOutAllDevices", `Edge revoke returned error: ${error.message}`, undefined, error);
+          void logAccountActivity("signout_local", { errorMessage: error.message });
+        } else {
+          revocationRecorded = Boolean((data as any)?.revocation_recorded);
+          gotrueSignedOut = Boolean((data as any)?.gotrue_signed_out);
+          void logAccountActivity("signout_all_devices", { details: { reason, keepCurrent } });
+        }
+      } catch (err) {
+        log.warn("signOutAllDevices", `Edge revoke threw (non-fatal): ${(err as Error)?.message}`, undefined, err instanceof Error ? err : undefined);
       }
-      sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
-      await supabase.auth.signOut();
-      log.info("signOutAllDevices", "All sessions revoked and local session cleared");
-      void logAccountActivity("signout_all_devices", {});
+
+      if (!keepCurrent) {
+        sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+        await supabase.auth.signOut();
+        log.info("signOutAllDevices", "Local session cleared");
+      } else {
+        log.info("signOutAllDevices", "Current device session preserved");
+      }
+      return { revocationRecorded, gotrueSignedOut };
     });
   },
 

@@ -79,6 +79,15 @@ export default function ResetPasswordPage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const [otherDevicesRevoked, setOtherDevicesRevoked] = useState(true);
+  const [retryingRevoke, setRetryingRevoke] = useState(false);
+
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => navigate("/dashboard", { replace: true }), 4000);
+    return () => clearTimeout(t);
+  }, [success, navigate]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const result = passwordSchema.safeParse(password);
@@ -90,10 +99,9 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      await AuthService.updatePassword(result.data);
-      await supabase.auth.signOut({ scope: "local" });
+      const { otherDevicesRevoked: revoked } = await AuthService.updatePassword(result.data);
+      setOtherDevicesRevoked(revoked);
       setSuccess(true);
-      setTimeout(() => navigate("/login", { replace: true }), 3000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -101,13 +109,43 @@ export default function ResetPasswordPage() {
     }
   };
 
+  const handleRetryRevoke = async () => {
+    setRetryingRevoke(true);
+    try {
+      const { revocationRecorded } = await AuthService.signOutAllDevices({
+        keepCurrent: true,
+        reason: "self_password_changed",
+      });
+      setOtherDevicesRevoked(revocationRecorded);
+    } finally {
+      setRetryingRevoke(false);
+    }
+  };
+
   if (success) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
-          <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Password updated</h1>
-          <p className="text-muted-foreground">Redirecting you to sign in…</p>
+      <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8 space-y-4">
+          <CheckCircle2 className="h-16 w-16 text-success mx-auto" aria-hidden="true" />
+          <h1 className="text-2xl font-bold text-foreground">Password updated</h1>
+          <p className="text-muted-foreground">
+            You're signed in on this device. Other devices will be signed out within a minute.
+          </p>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => navigate("/dashboard", { replace: true })} className="w-full">
+              Go to dashboard
+            </Button>
+            {!otherDevicesRevoked && (
+              <button
+                type="button"
+                onClick={handleRetryRevoke}
+                disabled={retryingRevoke}
+                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                {retryingRevoke ? "Signing out other devices…" : "Sign out other devices manually"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
