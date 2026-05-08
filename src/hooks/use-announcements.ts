@@ -22,24 +22,29 @@ export function useAnnouncements(limit = 50) {
 }
 
 export function useLatestAnnouncements(limit = 5) {
-  const interval = useAdaptiveInterval(60_000); // 60s base (was 30s), 240s hidden
+  // Fixed 30s poll (no hidden-tab back-off) so any single user sees new
+  // announcements in the bell within ~30s without refreshing the page.
+  // Also refetches when the tab regains focus, which covers users coming
+  // back from another tab faster than the next poll tick.
   return useQuery({
     queryKey: queryKeys.announcementsLatest(limit),
     queryFn: () => AnnouncementService.latest(limit),
-    refetchInterval: interval,
-    staleTime: 45_000, // 45s — within a single poll cycle
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 20_000,
   });
 }
 
 export function useAnnouncementReadIds() {
   const { user } = useAuth();
-  const interval = useAdaptiveInterval(60_000); // 60s base (was 30s)
   return useQuery({
     queryKey: [...READ_IDS_KEY, user?.id],
     queryFn: () => AnnouncementService.getReadIds(user!.id),
     enabled: !!user,
-    refetchInterval: interval,
-    staleTime: 45_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 20_000,
   });
 }
 
