@@ -30,5 +30,8 @@ startDeployWatcher();
 // Real User Monitoring — Core Web Vitals beacon. Deferred internally; honours
 // Save-Data; library is dynamically imported so it's not in the main bundle.
 installWebVitalsBeacon();
+// Alt+Click on any link (or [data-href] element) opens it in a new tab,
+// even when React Router's <Link> would otherwise capture the click.
+installAltClickNewTab();
 
 createRoot(document.getElementById("root")!).render(<App />);
