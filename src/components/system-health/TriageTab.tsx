@@ -125,6 +125,27 @@ export function TriageTab() {
 
   useEffect(() => { void fetchAll(); }, [fetchAll]);
 
+  const openDetails = useCallback(async (row: FixQueueRow) => {
+    setDetailRow(row);
+    setAuditRows(null);
+    setAuditLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("triage_audit_log")
+        .select("id,from_status,to_status,rule_name,matching_signal,actor_id,created_at")
+        .eq("fix_queue_id", row.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      setAuditRows((data ?? []) as TriageAuditRow[]);
+    } catch (e) {
+      toast.error("Failed to load resolution history", { description: (e as Error).message });
+      setAuditRows([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
+
   const runTriage = async (row: FixQueueRow) => {
     setBusyId(row.id);
     try {
