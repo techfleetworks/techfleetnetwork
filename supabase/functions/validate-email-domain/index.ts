@@ -2,6 +2,7 @@ import { z } from "npm:zod@4.3.6";
 import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("validate-email-domain");
 const DOMAIN_RE =
   /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
@@ -36,7 +37,7 @@ export async function validateDomain(domain: string): Promise<boolean> {
     (await hasDnsRecord(domain, "A")) || (await hasDnsRecord(domain, "AAAA"));
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("validate-email-domain", async (req) => {
   // @public-route Pre-auth email signup helper. Input is domain-only and server-side validated.
   const cors = handleCors(req);
   if (cors) return cors;
@@ -68,4 +69,4 @@ Deno.serve(async (req) => {
     }, err);
     return jsonResponse({ valid: true, warning: "Domain check unavailable" });
   }
-});
+}));

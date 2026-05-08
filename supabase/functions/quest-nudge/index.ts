@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -9,7 +10,7 @@ const NUDGE_INTERVAL_DAYS = 7  // Don't nudge more than once per week
 const INACTIVITY_THRESHOLD_DAYS = 7 // Nudge after 7 days of no progress
 const APP_URL = 'https://techfleet.network'
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("quest-nudge", async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -179,4 +180,4 @@ Deno.serve(async (req) => {
       }
     )
   }
-})
+}))

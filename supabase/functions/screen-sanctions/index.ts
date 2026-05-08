@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * screen-sanctions — country-level export-control / sanctions screening
  * called from the registration flow (T&C §19 / ToU §17). Records every
@@ -11,7 +12,7 @@ import {
 
 interface Body { email?: string; country_code?: string }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("screen-sanctions", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -44,4 +45,4 @@ Deno.serve(async (req: Request) => {
   });
 
   return json({ decision, reason, list_version: SANCTIONS_LIST_VERSION });
-});
+}));

@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * notify-applicant-status — Enterprise-grade Edge Function
  *
@@ -259,7 +260,7 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
 /*  Main handler                                                       */
 /* ------------------------------------------------------------------ */
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("notify-applicant-status", async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS_HEADERS })
   }
@@ -606,4 +607,4 @@ Deno.serve(async (req) => {
     emailSent,
     discordRoleAssigned,
   })
-})
+}))

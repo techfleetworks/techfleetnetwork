@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * submit-dispute — T&C §20. Captures an informal-resolution request and
  * starts the 30-day clock. Public endpoint (a user may dispute without an
@@ -15,7 +16,7 @@ interface Body {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("submit-dispute", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -47,4 +48,4 @@ Deno.serve(async (req: Request) => {
   // and warn admins when any row stays unresolved past 30 days.
 
   return json({ ok: true, id });
-});
+}));

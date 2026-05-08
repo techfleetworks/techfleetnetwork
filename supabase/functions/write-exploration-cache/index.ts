@@ -2,7 +2,8 @@ import { getAdminClient } from "../_shared/admin-client.ts";
 import { errorResponse, handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 
-Deno.serve(async (req) => {
+import { withAuditWrapper } from "../_shared/audit.ts";
+Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -44,4 +45,4 @@ Deno.serve(async (req) => {
     console.error("write-exploration-cache error:", err);
     return errorResponse(err);
   }
-});
+}));

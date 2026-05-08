@@ -6,6 +6,7 @@
 // Lovable AI Gateway with structured tool-calling for schema safety.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,7 +23,7 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("fleety-bulk-draft-playbooks", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "POST required" }, 405);
 
@@ -171,7 +172,7 @@ Write a coaching answer in the structure of a Tech Fleet Fleety playbook. Be con
   }
 
   return json({ ok: true, entity: entityKey, drafted, drafts });
-});
+}));
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * record-policy-acknowledgment — server-side audit of policy acceptance.
  * T&C §23 / ToU §19. Stores method, IP, UA, electronic-comms consent.
@@ -27,7 +28,7 @@ const VALID_KEYS = new Set([
 ]);
 const VALID_METHODS = new Set(["checkbox", "google-oauth", "re-accept", "registration"]);
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("record-policy-acknowledgment", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -59,4 +60,4 @@ Deno.serve(async (req: Request) => {
   if (error) return json({ error: error.message }, 500);
 
   return json({ ok: true });
-});
+}));

@@ -4,12 +4,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("fleety-weekly-digest", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Service-role gate (cron uses anon key, but this fn needs elevated DB reads)
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true, sent, totalTurns, thumbsUp, thumbsDown, gaps: gaps.length, drafts: drafts.length });
-});
+}));
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

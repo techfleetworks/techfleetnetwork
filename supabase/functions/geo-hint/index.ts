@@ -1,11 +1,12 @@
 // geo-hint — public endpoint, returns visitor country code only.
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-Deno.serve((req: Request) => {
+Deno.serve(withAuditWrapper("geo-hint", (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const country =
     req.headers.get("cf-ipcountry") ||
@@ -19,4 +20,4 @@ Deno.serve((req: Request) => {
       "Cache-Control": "private, max-age=300",
     },
   });
-});
+}));

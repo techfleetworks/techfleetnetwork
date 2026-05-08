@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * dsar-submit — authenticated endpoint. The user submits a Data Subject Access
  * Request (access, portability, correction, erasure, restriction, objection,
@@ -24,7 +25,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("dsar-submit", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -65,4 +66,4 @@ Deno.serve(async (req: Request) => {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}));

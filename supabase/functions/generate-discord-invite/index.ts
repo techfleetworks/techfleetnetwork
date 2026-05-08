@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const logger = createEdgeLogger("generate-discord-invite");
 
 const corsHeaders = {
@@ -71,7 +72,7 @@ async function writeDiscordAuditLog({
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("generate-discord-invite", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -236,4 +237,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

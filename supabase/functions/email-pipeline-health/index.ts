@@ -11,6 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -34,7 +35,7 @@ const PROBES: Array<{ template: string; slug: string }> = [
 const STUCK_AFTER_MINUTES = 15
 const FAILED_WINDOW_HOURS = 24
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("email-pipeline-health", async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   // Service-role only.
@@ -193,4 +194,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ ok: true, probed: PROBES.length, results, audit_pressure: auditPressure, audit_projected_24h: projected24h }), {
     status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-})
+}))

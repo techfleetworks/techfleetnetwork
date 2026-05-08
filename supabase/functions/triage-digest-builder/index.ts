@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * triage-digest-builder
  *
@@ -32,7 +33,7 @@ interface QueueRow {
   last_seen_at: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("triage-digest-builder", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Service-role gate. The Supabase API gateway already validates the JWT
@@ -187,7 +188,7 @@ Deno.serve(async (req) => {
     emailsSent,
     planBytes: planMarkdown.length,
   });
-});
+}));
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

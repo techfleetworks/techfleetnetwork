@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * revoke-recording-consent — T&C §11. Authenticated user revokes their
  * consent for future use of a recording. Notifies info@techfleet.network.
@@ -7,7 +8,7 @@ import { corsHeaders, json } from "../_shared/compliance.ts";
 
 interface Body { session_ref?: string; reason?: string }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("revoke-recording-consent", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -60,4 +61,4 @@ Deno.serve(async (req: Request) => {
   // Compliance tab as well.
 
   return json({ ok: true });
-});
+}));

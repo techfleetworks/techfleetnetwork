@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extractProjectDisplayTitle } from "../_shared/cert-title-utils.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -53,7 +54,7 @@ async function fetchAllAirtableRecords(
   return records;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("fetch-project-certifications", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -313,4 +314,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

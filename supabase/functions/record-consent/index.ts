@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * record-consent — writes a row to public.cookie_consents whether or not the
  * caller is authenticated. Uses service role; the row is tied to either the
@@ -27,7 +28,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withAuditWrapper("record-consent", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -77,4 +78,4 @@ Deno.serve(async (req: Request) => {
   });
   if (error) return json({ error: error.message }, 500);
   return json({ ok: true });
-});
+}));

@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * triage-error
  *
@@ -61,7 +62,7 @@ Rules:
 - If the error is benign noise (e.g. ResizeObserver loop, ServiceWorker lock), say so and recommend dismissing.
 - Return ONLY the JSON object. No markdown fences, no commentary.`;
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("triage-error", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "method_not_allowed" }, 405);
 
@@ -197,4 +198,4 @@ Deno.serve(async (req) => {
     status: parsed.proposed_fix_files.length > 0 ? "proposed" : "triaged",
     cost_estimate_usd: costEstimate,
   });
-});
+}));

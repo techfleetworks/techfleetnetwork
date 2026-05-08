@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * Gumroad backfill — fetches the caller's historical sales from the
  * Gumroad API and upserts them into gumroad_sales, then applies the
@@ -124,7 +125,7 @@ async function logMembershipMetadataMismatch(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("gumroad-backfill", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -359,4 +360,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-});
+}));

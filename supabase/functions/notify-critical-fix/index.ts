@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * notify-critical-fix
  *
@@ -23,7 +24,7 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SITE_URL = "https://techfleet.network";
 const HOURLY_CAP = 3;
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("notify-critical-fix", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true, sent: totalSent });
-});
+}));
 
 function json(b: unknown, s = 200) {
   return new Response(JSON.stringify(b), {

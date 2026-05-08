@@ -2,6 +2,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2.99.1/cors";
 import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("login-with-captcha");
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const DOMAIN_RE = /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
@@ -46,7 +47,7 @@ async function validateDomain(domain: string): Promise<boolean> {
   return (await hasDnsRecord(domain, "MX")) || (await hasDnsRecord(domain, "A")) || (await hasDnsRecord(domain, "AAAA"));
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("login-with-captcha", async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -145,4 +146,4 @@ Deno.serve(async (req) => {
     log.error("handler", `Unhandled login CAPTCHA error [${requestId}]`, { requestId }, err);
     return jsonResponse({ error: "Verification failed. Please try again." }, 500);
   }
-});
+}));

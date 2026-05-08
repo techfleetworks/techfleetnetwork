@@ -7,6 +7,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -21,7 +22,7 @@ const SITE_NAME = 'Tech Fleet Network'
 const SENDER_DOMAIN = 'notify.techfleet.org'
 const FROM_DOMAIN = 'techfleet.org'
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("resend-signup-confirmations", async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -245,4 +246,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+}))

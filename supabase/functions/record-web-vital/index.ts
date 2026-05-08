@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * record-web-vital — RUM beacon ingestion endpoint.
  *
@@ -68,7 +69,7 @@ function normaliseRoute(raw: unknown): string | null {
   return path.length > 256 ? path.slice(0, 256) : path || "/";
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   if (req.method !== "POST") {
@@ -140,4 +141,4 @@ Deno.serve(async (req) => {
     console.error("[record-web-vital] error", (err as Error)?.message);
     return errorResponse(err, "RUM ingestion failed");
   }
-});
+}));
