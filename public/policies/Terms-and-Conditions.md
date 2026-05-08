@@ -116,6 +116,8 @@ We may update these T&Cs from time to time. When we make material changes, we wi
 
 24\. Contact
 
-Email: **info@techfleet.network**
+Email: **info@techfleet.org**
 
-Mailing address: Tech Fleet, Programs Office, Delaware, USA.
+Phone: **302-497-4065**
+
+Mailing address: Tech Fleet, 8 The Grn Suite 6269, Dover, DE 19901, USA.
