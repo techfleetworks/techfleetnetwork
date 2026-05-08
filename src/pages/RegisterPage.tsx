@@ -241,6 +241,10 @@ export default function RegisterPage() {
         captchaToken,
         result.data.birthYear
       );
+      // Server-side acknowledgment + electronic-comms consent (T&C §23, ToU §18, §19).
+      await recordPolicyAcknowledgment("registration", {
+        electronicCommsConsent: true,
+      });
       clearAuthLockout();
       setSubmitted(true);
     } catch (err: any) {
