@@ -77,20 +77,22 @@ export const loginSchema = z.object({
 });
 
 /**
- * Region-aware minimum age. Defaults to US baseline 13 (COPPA), bumps to 16 for
- * EEA/UK/CH (GDPR Art. 8 + UK ICO Children's Code), and 14 for KR/CN.
- * Region is the country code stored in the consent state, not a guess.
+ * T&C §2 / ToU §2 — adult age is 18 worldwide. Users 13–17 may join only with
+ * verifiable parent/guardian consent. EEA/UK/CH still treat <16 as needing
+ * guardian under GDPR Art. 8; we apply the stricter 18 baseline regardless.
+ *
+ * `minAgeForCountry` returns the age at which a user can self-register *without*
+ * guardian consent. `guardianMinAge` is the absolute floor (under which we
+ * refuse the account entirely).
  */
 export const HIGH_AGE_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH"]);
 export const MID_AGE_COUNTRIES = new Set(["KR","CN"]);
 
-export function minAgeForCountry(country: string | null | undefined): number {
-  if (!country) return 13;
-  const cc = country.toUpperCase();
-  if (HIGH_AGE_COUNTRIES.has(cc)) return 16;
-  if (MID_AGE_COUNTRIES.has(cc)) return 14;
-  return 13;
+export function minAgeForCountry(_country: string | null | undefined): number {
+  return 18;
 }
+
+export const GUARDIAN_MIN_AGE = 13;
 
 export function ageInYears(birthYear: number, birthMonth: number, birthDay: number, ref = new Date()): number {
   let age = ref.getFullYear() - birthYear;
@@ -115,6 +117,10 @@ export const registerSchema = z.object({
   birthMonth: z.coerce.number().int().min(1).max(12),
   birthDay: z.coerce.number().int().min(1).max(31),
   countryCode: z.string().nullable().optional(),
+  guardianEmail: z.string().email().max(255).optional().or(z.literal("")),
+  electronicCommsConsent: z.literal(true, {
+    message: "You must agree to receive electronic notices to use the service.",
+  }),
   agreedToTerms: z.literal(true, {
     message: "You must agree to the terms and community guidelines.",
   }),
@@ -123,10 +129,18 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 }).refine((data) => {
   const age = ageInYears(data.birthYear, data.birthMonth, data.birthDay);
-  return age >= minAgeForCountry(data.countryCode ?? null);
+  return age >= GUARDIAN_MIN_AGE;
 }, {
-  message: "You must meet the minimum age for your region to create an account.",
+  message: "You must be at least 13 years old to create an account.",
   path: ["birthYear"],
+}).refine((data) => {
+  const age = ageInYears(data.birthYear, data.birthMonth, data.birthDay);
+  if (age >= 18) return true;
+  // 13–17 → guardian email required
+  return !!data.guardianEmail && data.guardianEmail.length > 3;
+}, {
+  message: "Users under 18 must provide a parent or guardian's email for consent.",
+  path: ["guardianEmail"],
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
