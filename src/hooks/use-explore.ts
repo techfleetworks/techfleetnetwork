@@ -92,7 +92,7 @@ export function useExplore(): UseExploreReturn {
         setAllPopularQueries(data.all);
         setRecentQueries(data.recents);
       })
-      .catch(() => {});
+      .catch((e) => reportError(e, "use-explore.refreshPopular", { severity: "warn" }));
   }, []);
 
   const doExplore = useCallback(
