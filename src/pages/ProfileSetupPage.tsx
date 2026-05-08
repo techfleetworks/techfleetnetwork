@@ -197,7 +197,12 @@ export default function ProfileSetupPage() {
             .invoke("generate-discord-invite", {
               headers: { Authorization: `Bearer ${session.access_token}` },
             })
-            .catch(() => {});
+            .catch((e) =>
+              reportError(e, "ProfileSetupPage.generate-discord-invite", {
+                eventType: "edge_invoke_failed",
+                severity: "warn",
+              }),
+            );
         }
       }
 
