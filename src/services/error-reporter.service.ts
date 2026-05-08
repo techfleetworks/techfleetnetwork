@@ -100,7 +100,16 @@ async function refreshPolicy(): Promise<void> {
 }
 
 export type ReportSeverity = "info" | "warn" | "error";
-export type ReportEventType = "client_error" | "ui_render_error" | "ui_chunk_load_failed" | "edge_invoke_failed" | "client_error_overflow" | "external_api_recovered";
+export type ReportEventType =
+  | "client_error"
+  | "ui_render_error"
+  | "ui_chunk_load_failed"
+  | "edge_invoke_failed"
+  | "client_error_overflow"
+  | "client_error_suppressed"
+  | "client_error_deduped"
+  | "external_api_recovered"
+  | "validation_rejected";
 
 interface ReportOptions {
   severity?: ReportSeverity;
