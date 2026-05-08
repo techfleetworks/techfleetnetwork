@@ -78,6 +78,8 @@ export default function RegisterPage() {
       birthMonth: dobParts?.birthMonth ?? 1,
       birthDay: dobParts?.birthDay ?? 1,
       countryCode,
+      guardianEmail,
+      electronicCommsConsent,
       agreedToTerms,
     };
     const result = registerSchema.safeParse(payload);
@@ -85,7 +87,6 @@ export default function RegisterPage() {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        // Surface birthYear/Month/Day errors under "dob"
         const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
         if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
@@ -97,7 +98,7 @@ export default function RegisterPage() {
     } else {
       setErrors({});
     }
-  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, touched, countryCode]);
+  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, electronicCommsConsent, guardianEmail, touched, countryCode]);
 
   useEffect(() => {
     if (redirectParam) {
