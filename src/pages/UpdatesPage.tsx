@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { sanitizeHtml } from "@/lib/security";
+import { linkifyHtml } from "@/lib/linkify";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import {
