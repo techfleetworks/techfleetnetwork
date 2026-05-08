@@ -1,66 +1,110 @@
-## Root cause
+## Why "Professional goals contains unsafe content" never hit triage
 
-The user's feedback was rejected because of a real bug in our shared input validators, not anything malicious in his text.
+Two layers of silence, both fixable:
 
-`safeLongTextSchema` and `safeShortTextSchema` (in `src/lib/validators/shared-input.ts`) call `rejectUnsafe`, which calls `hasHeaderInjection` from `src/lib/security.ts`:
+1. **Form validation rejections are swallowed.** Every `safeParse` site in the app — `ProfileSetupPage`, `EditProfilePage`, `ProfileSetupDialog`, `ProfileEditPanel`, `RegisterPage`, `ProjectFormPage`, `clients/ClientsTab`, `LoginPage`, `ForgotPasswordPage`, `ResetPasswordPage` — shows the field error to the user and `return`s. Only `feedback.service.ts` calls `reportError` on validation failure, which is the *only* reason we ever saw the matching feedback row in triage at all.
+2. **Edge functions are mostly unwrapped.** `withAuditWrapper` (the thing that emits `edge_function_error` on uncaught throws) is used in **1 of ~75 edge functions**. The other 74 die silently with whatever `try/catch` they happen to have.
 
-```ts
-export function hasHeaderInjection(input: string): boolean {
-  return /[\r\n]/.test(input) || /%0[aAdD]/i.test(input);
-}
-```
+There are also smaller gaps that compound the problem (suppression list, dedup/rate-limit drops, fire-and-forget `.catch(() => {})` calls, no schema-rejection event type).
 
-Any line break (`\n` or `\r\n`) in a body field instantly fails the refine and surfaces "<Field> contains unsafe content". Header-injection checks belong on **header-bound, single-line** values (URLs, names, redirect targets) — not on multi-paragraph body text. That is exactly why:
+## Audit results — where we lose errors today
 
-- His long, multi-paragraph feedback was blocked, but the single word "test" went through.
-- He saw the same `"Professional goals contains unsafe content"` error during the application flow — `professional_goals` uses `safeShortTextSchema`, same root cause.
-- Removing colons / blank lines between paragraphs eventually let it through (fewer line breaks).
+### A. Frontend (client-side)
 
-This is a Heuristic #5 (error prevention) and #9 (recognize/diagnose/recover) failure, plus a real false-positive that's silently blocking legitimate user input across the platform.
+| Surface | Reaches `audit_log` / triage? | Notes |
+|---|---|---|
+| `window.error` | ✅ via `installGlobalErrorReporter` | Suppressed for extension URLs and patterns in `SUPPRESSED_PATTERNS` |
+| `window.unhandledrejection` | ✅ | Same suppression list |
+| Programmatic `reportError(...)` | ✅ | Only 9 files use it; mostly auth + feedback + push |
+| **Zod `safeParse` failures** | ❌ | Surfaced to user, never reported. Root cause of the user's missed bug |
+| React Query `onError` | ⚠️ partial | Some hooks call `reportError`, most rely on toast only |
+| `.catch(() => {})` fire-and-forget | ❌ | e.g. `generate-discord-invite` invoke in `ProfileSetupPage` line 198 |
+| Service-layer thrown errors | ⚠️ | Only services that explicitly call `reportError` get logged |
+| Suppression-pattern drops | ❌ | Silent — no counter, no sample, no escape hatch |
+| Dedup + rate-limit drops | ⚠️ | Rate-limit emits `client_error_overflow`; **dedup drops are invisible** |
 
-Earlier we dismissed a related ZodError in triage as "benign" — that was wrong. Re-opening it as part of this fix.
+### B. Backend (edge functions)
 
-## Plan
+| Surface | Reaches triage? | Notes |
+|---|---|---|
+| Functions wrapped with `withAuditWrapper` | ✅ | **1/75** today |
+| Functions with bare `Deno.serve(...)` and ad-hoc try/catch | ⚠️ | Catches that return 500 don't write to audit_log unless author remembered to |
+| Functions that swallow downstream errors (`catch { return ok }`) | ❌ | Common in fire-and-forget Discord/email paths |
+| External API timeouts inside CircuitBreaker | ⚠️ | Recovery is logged (`external_api_recovered`); failures are not always |
+| Cron / scheduled functions | ⚠️ | No standard wrapper; a thrown error often just dies in the scheduler log |
 
-### 1. Split header-injection check from XSS/SQL/path checks for body text
-File: `src/lib/validators/shared-input.ts`
-- Introduce `rejectUnsafeBody(value)` that runs `hasActiveXssPattern`, `hasPathTraversal`, `hasSqlInjectionPattern` but **not** `hasHeaderInjection` (newlines are legal in body text).
-- Keep existing `rejectUnsafe` for single-line fields (names, URLs, headers).
-- Add a new `safeMultilineTextSchema(label, max)` that uses `rejectUnsafeBody` and allows `\n`/`\r\n`.
-- Make `safeLongTextSchema` itself multiline-safe (it's documented as "long text" — paragraphs are expected). Keep `safeShortTextSchema` strict (still rejects newlines, since short = single-line).
-- For `professional_goals` (currently `safeShortTextSchema` with 2000 chars but clearly a paragraph field), switch to `safeMultilineTextSchema` in `src/lib/validators/profile.ts`.
+### C. Database / RPC
 
-### 2. More specific, recoverable error messages
-- When a refine fails, surface which class of pattern matched (e.g. "looks like a script tag", "looks like a SQL keyword sequence") instead of the generic "contains unsafe content". Implement via `superRefine` so we can attach a code + hint without leaking regex internals.
-- Cap the hint to plain English per Heuristic #9 ("Remove the `<script>` tag and try again").
+| Surface | Reaches triage? | Notes |
+|---|---|---|
+| RPC throws an exception → service caller catches | ⚠️ | Only logged if caller calls `reportError` |
+| Trigger raises EXCEPTION | ❌ | Lost unless the calling function is wrapped |
+| RLS deny on a user action | ❌ | Treated as "expected" today; we have no visibility |
 
-### 3. Audit other long-form fields
-Quick pass to confirm we don't have the same trap on:
-- announcement / banner bodies (already use `safeHtmlSchema`, which is fine — DOMPurify path).
-- application free-text fields beyond `professional_goals`.
-Switch any multi-paragraph field still on short/long-with-header-check to `safeMultilineTextSchema`.
+### D. Triage queue gating
 
-### 4. Triage queue follow-up
-- Reopen the ZodError fingerprint we dismissed earlier (root cause is this bug, not a benign RHF rejection). Mark it `manual_fix_deployed` once code ships, with `matching_signal` referencing this fix.
-- No suppression-list change needed; revert the `"ZodError"` entry added to `error-reporter.service.ts` so we don't hide future legitimate validator failures.
+`writeAudit` (line 218) only inserts into `agent_fix_queue` when `severity !== "info" && eventType !== "client_error_overflow"`. So:
+- `reportActivity(... severity:"info")` events never appear in triage even when they should (e.g. `session_idle_timeout` clusters indicating a real problem).
+- We have no `validation_rejected` event type at all — so even if we *did* call `reportError` from form sites, it would land as `client_error` and look like a JS bug rather than a UX/regex bug.
 
-### 5. BDD scenarios
-Insert into `public.bdd_scenarios`:
-- `BFB-010` — Feedback with multiple paragraphs submits successfully (UI: success toast, DB: row inserted, Code: schema accepts `\n`).
-- `BFB-011` — Feedback containing a literal `<script>` tag is rejected with a specific, actionable error (UI: error names the offending pattern, DB: no row, Code: refine returns specific issue code).
-- `BAP-022` — Profile / general-application `professional_goals` accepts paragraph breaks.
+## Plan — close every gap, no UX regression
 
-### 6. Verification
-- Unit tests in `src/test/validators/` covering newline acceptance for body fields and continued rejection of script/SQL/path patterns.
-- Manual: paste the user's original feedback text into the feedback dialog and submit; confirm success toast and row in `feedback`.
+### 1. New event type + helper for validator rejections
+- Add `validation_rejected` to `ReportEventType` in `error-reporter.service.ts`.
+- Add `reportValidationRejection(schemaName, issues, source, opts?)` helper that:
+  - Fingerprints by `schemaName + first issue path + first issue code` so a recurring false-positive aggregates to one queue row.
+  - Sends `severity: "warn"` (not "error" — these aren't crashes, but are high-signal UX bugs we always want to see).
+  - Always lands in triage (relax the gate so `warn` is included; see §6).
+- Wire it into a single shared utility: `withValidationReporting(schema, source)` that wraps `safeParse` and reports on failure. Drop-in replacement at every call site.
 
-## Files touched (preview)
+### 2. Wire validation reporting into every form
+Targeted edits at each `safeParse` site listed in the audit. The user-visible behavior is unchanged — we only add a fire-and-forget `reportValidationRejection` call before the existing `setErrors`/`scrollToFirstError` flow.
 
-- `src/lib/validators/shared-input.ts` — split refines, add `safeMultilineTextSchema`, better messages.
-- `src/lib/validators/profile.ts` — `professional_goals` → multiline.
-- `src/services/feedback.service.ts` — message field → multiline schema.
-- `src/services/error-reporter.service.ts` — remove the `ZodError` suppression added last turn.
-- `src/test/validators/shared-input.test.ts` (new or extended) — newline + still-rejects-XSS coverage.
-- Migration: BDD rows + reopen the dismissed ZodError row in `agent_fix_queue` with audit reason.
+### 3. Wrap every edge function with `withAuditWrapper`
+- Codemod / scripted pass over `supabase/functions/*/index.ts` to replace `Deno.serve(handler)` with `Deno.serve(withAuditWrapper("<fn-name>", handler))`.
+- Skip the public unauth ones already audited inside.
+- For functions that already have a custom try/catch, keep the inner one but still wrap so uncaught paths get logged.
+- Add an ESLint rule (or simple repo grep CI check) that fails if a new function under `supabase/functions/` is added without `withAuditWrapper`.
 
-No UI/UX regressions: paste/submit behaviour is identical for valid input; only the false-rejection path changes.
+### 4. Fire-and-forget `.catch(() => {})` audit
+- Grep for `.catch(() => {})` and `.catch(() => undefined)`. Replace with `.catch((e) => reportError(e, "<source>", { severity: "warn" }))`.
+- Keep the swallow for the user UX (no toast), just stop swallowing the *log*.
+
+### 5. Make suppression observable
+- Add a tiny per-pattern counter inside `isSuppressed`. Once a minute, if count > 0, emit a single `client_error_suppressed` audit row with `pattern:<name>` and `count:N` so admins can see what's being filtered and confirm the suppression list is still correct.
+- Same for dedup drops: emit `client_error_deduped` with `count:N` once a minute.
+- Both go to triage as `warn` so a sudden spike (like a new browser-extension breaking us) is visible without flooding.
+
+### 6. Triage gate: include `warn`
+- Update `writeAudit` so the `agent_fix_queue` insert runs for `severity !== "info"` **OR** `eventType IN ('validation_rejected', 'client_error_suppressed', 'client_error_deduped')`. Today only `error` reaches it; `warn` is invisible.
+- System Health "Triage" tab gets two new chips: "Validation rejections", "Suppressed/deduped" so an admin can spot regex false-positives like the one this week within minutes.
+
+### 7. Server-side coverage for swallowed RPC errors
+- New helper `safeRpc(rpcName, args)` in `src/lib/supabase/safe-rpc.ts` that wraps `supabase.rpc(...)` and calls `reportError` on the returned `{ error }`. Migrate the highest-traffic call sites (profile, application, feedback, journey, quest) — leave low-risk calls alone to keep noise down.
+
+### 8. BDD scenarios (per workspace rule)
+
+Insert into `bdd_scenarios` with tri-layer Then assertions:
+- `BTRG-020` Validator rejection of legit input lands in triage as `validation_rejected`.
+- `BTRG-021` Edge function uncaught throw lands as `edge_function_error` (covers the `withAuditWrapper` rollout).
+- `BTRG-022` Suppressed pattern emits `client_error_suppressed` aggregate once per minute.
+- `BTRG-023` Triage UI "Validation rejections" chip shows the new event type.
+- `BTRG-024` `.catch(() => {})` replacements in fire-and-forget calls produce a `warn` audit row on failure.
+
+### 9. Verification
+- Unit: `reportValidationRejection` fingerprinting + severity.
+- Manual: paste the user's original feedback text into the Profile `professional_goals` field with the *old* (newline-rejecting) regex temporarily re-enabled in a test build → confirm the queue row appears within 60s as `validation_rejected`.
+- Operational: 24h after rollout, check `agent_fix_queue` for new `validation_rejected` and `client_error_suppressed` rows; tune suppression list if anything noisy.
+
+## Files in scope (preview)
+
+- `src/services/error-reporter.service.ts` — new event types, helper, gate update, suppression/dedup counters.
+- `src/lib/forms/with-validation-reporting.ts` — new wrapper.
+- ~10 form components/pages — one-line wiring.
+- `supabase/functions/_shared/audit.ts` — no change (already correct).
+- ~74 edge functions — wrap with `withAuditWrapper`.
+- `src/components/system-health/TriageTab.tsx` — new chips/filters.
+- One DB migration: insert BDD scenarios.
+- No schema changes required — `audit_log` and `agent_fix_queue` already accept the new event_type strings.
+
+No UX regression: every change is additive (extra logging) or invisible (severity gate widened, triage chips added). The user sees the same field errors, toasts, and form behavior they see today.
