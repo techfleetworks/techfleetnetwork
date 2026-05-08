@@ -491,3 +491,11 @@ body {
   scrollbar-color: #01FF85 #001a00;
   scrollbar-width: thin;
 }
+
+/* Force-new-tab shortcut: ensure [data-href] buttons get the same visible
+   focus ring as anchors so keyboard users can tell what Alt+Enter targets. */
+[data-href]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
