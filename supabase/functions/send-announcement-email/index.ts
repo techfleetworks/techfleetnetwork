@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       // Inline styles into common block tags so email clients render formatting.
       // Many clients (Gmail, Outlook) strip <style> blocks or default browser
       // styles for <p>, <ul>, <ol>, <h2>, <h3>, <blockquote>, etc.
-      const inlineFormattedBody = (announcement.body_html || "")
+      const inlineFormattedBody = linkifyHtml(announcement.body_html || "")
         .replace(/<p(\s[^>]*)?>/gi, '<p style="margin:0 0 12px 0; font-size:15px; line-height:1.6; color:#3f3f46;">')
         .replace(/<h2(\s[^>]*)?>/gi, '<h2 style="font-size:18px; font-weight:700; color:#18181b; margin:20px 0 10px 0; line-height:1.3;">')
         .replace(/<h3(\s[^>]*)?>/gi, '<h3 style="font-size:16px; font-weight:600; color:#18181b; margin:18px 0 8px 0; line-height:1.3;">')
