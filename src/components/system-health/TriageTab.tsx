@@ -379,6 +379,35 @@ export function TriageTab() {
                     </ul>
                   </Section>
                 )}
+
+                <Section title="Resolution history">
+                  {auditLoading ? (
+                    <Skeleton className="h-12 w-full" />
+                  ) : !auditRows || auditRows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No status changes recorded yet.</p>
+                  ) : (
+                    <ol className="space-y-2">
+                      {auditRows.map((a) => (
+                        <li key={a.id} className="text-xs border-l-2 border-primary/40 pl-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="font-mono">{a.rule_name}</Badge>
+                            <span className="text-muted-foreground">
+                              {a.from_status ?? "—"} → <span className="text-foreground font-medium">{a.to_status}</span>
+                            </span>
+                            <span className="text-muted-foreground">
+                              {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          {a.matching_signal && (
+                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words">
+                              <span className="font-semibold">Signal:</span> {a.matching_signal}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </Section>
               </div>
 
               <DialogFooter className="flex-col sm:flex-row gap-2">
