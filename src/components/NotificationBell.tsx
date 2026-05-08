@@ -267,9 +267,14 @@ export function NotificationBell() {
                 <video
                   src={selectedAnnouncement.video_url}
                   controls
+                  controlsList="nodownload"
                   playsInline
+                  preload="metadata"
                   className="block w-full max-w-full rounded-lg aspect-video bg-black mb-4"
                   aria-label="Announcement video"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 />
               )}
               {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
@@ -278,8 +283,13 @@ export function NotificationBell() {
                   <audio
                     src={selectedAnnouncement.audio_url}
                     controls
+                    controlsList="nodownload"
+                    preload="metadata"
                     className="w-full h-10 min-w-0"
                     aria-label="Announcement audio"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               )}
