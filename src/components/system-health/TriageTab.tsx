@@ -52,6 +52,7 @@ interface TriageAuditRow {
   matching_signal: string | null;
   actor_id: string | null;
   created_at: string;
+}
 
 const statusVariant: Record<FixStatus, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "destructive",
