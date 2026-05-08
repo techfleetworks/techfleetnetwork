@@ -999,6 +999,92 @@ export type Database = {
         }
         Relationships: []
       }
+      dispute_intake: {
+        Row: {
+          category: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          ip: unknown
+          resolution_note: string | null
+          resolved_at: string | null
+          summary: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          ip?: unknown
+          resolution_note?: string | null
+          resolved_at?: string | null
+          summary: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          ip?: unknown
+          resolution_note?: string | null
+          resolved_at?: string | null
+          summary?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      dpa_executions: {
+        Row: {
+          client_id: string
+          created_by: string | null
+          id: string
+          ip: unknown
+          pdf_storage_path: string | null
+          signed_at: string
+          signed_by_email: string
+          signed_by_name: string
+          signed_by_title: string | null
+          version: string
+        }
+        Insert: {
+          client_id: string
+          created_by?: string | null
+          id?: string
+          ip?: unknown
+          pdf_storage_path?: string | null
+          signed_at?: string
+          signed_by_email: string
+          signed_by_name: string
+          signed_by_title?: string | null
+          version?: string
+        }
+        Update: {
+          client_id?: string
+          created_by?: string | null
+          id?: string
+          ip?: unknown
+          pdf_storage_path?: string | null
+          signed_at?: string
+          signed_by_email?: string
+          signed_by_name?: string
+          signed_by_title?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dpa_executions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dsar_requests: {
         Row: {
           completed_at: string | null
@@ -2602,12 +2688,81 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_acknowledgments: {
+        Row: {
+          accepted_at: string
+          anon_id: string | null
+          electronic_comms_consent: boolean
+          id: string
+          ip: unknown
+          method: string
+          policy_key: string
+          user_agent: string | null
+          user_id: string | null
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          anon_id?: string | null
+          electronic_comms_consent?: boolean
+          id?: string
+          ip?: unknown
+          method: string
+          policy_key: string
+          user_agent?: string | null
+          user_id?: string | null
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          anon_id?: string | null
+          electronic_comms_consent?: boolean
+          id?: string
+          ip?: unknown
+          method?: string
+          policy_key?: string
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
+      policy_versions: {
+        Row: {
+          checksum: string
+          created_at: string
+          effective_at: string
+          is_current: boolean
+          policy_key: string
+          version: string
+        }
+        Insert: {
+          checksum: string
+          created_at?: string
+          effective_at?: string
+          is_current?: boolean
+          policy_key: string
+          version: string
+        }
+        Update: {
+          checksum?: string
+          created_at?: string
+          effective_at?: string
+          is_current?: boolean
+          policy_key?: string
+          version?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string
+          birth_day: number | null
+          birth_month: number | null
           birth_year: number | null
           country: string
+          country_code_at_signup: string | null
           created_at: string
           discord_invite_created_at: string | null
           discord_invite_url: string
@@ -2615,9 +2770,13 @@ export type Database = {
           discord_username: string
           display_name: string
           education_background: string[]
+          electronic_comms_consent_at: string | null
           email: string
           experience_areas: string[]
           first_name: string
+          guardian_consent_at: string | null
+          guardian_consent_token: string | null
+          guardian_email: string | null
           has_discord_account: boolean
           id: string
           interests: string[]
@@ -2644,8 +2803,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string
+          birth_day?: number | null
+          birth_month?: number | null
           birth_year?: number | null
           country?: string
+          country_code_at_signup?: string | null
           created_at?: string
           discord_invite_created_at?: string | null
           discord_invite_url?: string
@@ -2653,9 +2815,13 @@ export type Database = {
           discord_username?: string
           display_name?: string
           education_background?: string[]
+          electronic_comms_consent_at?: string | null
           email?: string
           experience_areas?: string[]
           first_name?: string
+          guardian_consent_at?: string | null
+          guardian_consent_token?: string | null
+          guardian_email?: string | null
           has_discord_account?: boolean
           id?: string
           interests?: string[]
@@ -2682,8 +2848,11 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string
+          birth_day?: number | null
+          birth_month?: number | null
           birth_year?: number | null
           country?: string
+          country_code_at_signup?: string | null
           created_at?: string
           discord_invite_created_at?: string | null
           discord_invite_url?: string
@@ -2691,9 +2860,13 @@ export type Database = {
           discord_username?: string
           display_name?: string
           education_background?: string[]
+          electronic_comms_consent_at?: string | null
           email?: string
           experience_areas?: string[]
           first_name?: string
+          guardian_consent_at?: string | null
+          guardian_consent_token?: string | null
+          guardian_email?: string | null
           has_discord_account?: boolean
           id?: string
           interests?: string[]
@@ -3141,6 +3314,39 @@ export type Database = {
           id?: string
           identifier?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      recording_consents: {
+        Row: {
+          granted: boolean
+          granted_at: string
+          id: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          scope: string
+          session_ref: string
+          user_id: string
+        }
+        Insert: {
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          scope: string
+          session_ref: string
+          user_id: string
+        }
+        Update: {
+          granted?: boolean
+          granted_at?: string
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          scope?: string
+          session_ref?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4077,6 +4283,42 @@ export type Database = {
           revoked_at?: string
           revoked_by?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      sanctions_screenings: {
+        Row: {
+          country_code: string
+          decision: string
+          email: string | null
+          id: string
+          ip: unknown
+          list_version: string
+          reason: string | null
+          screened_at: string
+          user_id: string | null
+        }
+        Insert: {
+          country_code: string
+          decision: string
+          email?: string | null
+          id?: string
+          ip?: unknown
+          list_version: string
+          reason?: string | null
+          screened_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          country_code?: string
+          decision?: string
+          email?: string | null
+          id?: string
+          ip?: unknown
+          list_version?: string
+          reason?: string | null
+          screened_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -5382,6 +5624,18 @@ export type Database = {
         Args: { _email: string; _ip?: string; _user_agent?: string }
         Returns: Json
       }
+      record_policy_ack: {
+        Args: {
+          p_anon_id?: string
+          p_electronic_comms: boolean
+          p_ip: unknown
+          p_method: string
+          p_policy_keys: string[]
+          p_user_agent: string
+          p_version: string
+        }
+        Returns: undefined
+      }
       record_rate_limit_failure: {
         Args: {
           p_action: string
@@ -5391,6 +5645,17 @@ export type Database = {
           p_window_minutes?: number
         }
         Returns: Json
+      }
+      record_sanctions_screening: {
+        Args: {
+          p_country: string
+          p_decision: string
+          p_email: string
+          p_ip: unknown
+          p_list_version: string
+          p_reason: string
+        }
+        Returns: string
       }
       redact_sensitive_text: { Args: { input: string }; Returns: string }
       refresh_framework_overview: { Args: never; Returns: undefined }
@@ -5450,6 +5715,16 @@ export type Database = {
       submit_class_for_review: {
         Args: { p_class_id: string; p_cohort_ids?: string[] }
         Returns: undefined
+      }
+      submit_dispute: {
+        Args: {
+          p_category: string
+          p_email: string
+          p_full_name: string
+          p_ip: unknown
+          p_summary: string
+        }
+        Returns: string
       }
       submit_dsar: {
         Args: {
