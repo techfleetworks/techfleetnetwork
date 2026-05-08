@@ -47,7 +47,7 @@ export const safeMultilineTextSchema = safeLongTextSchema;
 
 export const safeHtmlSchema = (label: string, max = 100_000) => z.string().max(max, `${label} must be under ${max} characters`).transform((value) => sanitizeHtml(value));
 
-export const safeUrlSchema = (label: string, max = 500) => z.string().trim().max(max, `${label} must be under ${max} characters`).refine((value) => value === "" || /^https?:\/\/.+/i.test(value), `${label} must start with http:// or https://`).refine(rejectUnsafe, `${label} contains unsafe content`);
+export const safeUrlSchema = (label: string, max = 500) => z.string().trim().max(max, `${label} must be under ${max} characters`).refine((value) => value === "" || /^https?:\/\/.+/i.test(value), `${label} must start with http:// or https://`).superRefine(attachUnsafeIssue(label, false));
 
 export const safeStringArraySchema = (label: string, maxItems = 30, maxItemLength = 200) => z.array(safeShortTextSchema(label, maxItemLength)).max(maxItems, `Too many ${label.toLowerCase()} selected`);
 
