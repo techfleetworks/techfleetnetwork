@@ -1,25 +1,26 @@
-// Centralized policy document links. Files live in /public/policies/.
+// Centralized policy document links. Pages render markdown from /public/policies/.
 // Update lastUpdated when documents are republished.
 export const POLICY_LAST_UPDATED = "May 7, 2026";
 
 export interface PolicyLink {
   key: "terms-and-conditions" | "terms-of-use" | "privacy" | "cookies" | "accessibility";
   label: string;
+  /** In-app route (viewable without sign-in). */
   href: string;
 }
 
 export const POLICIES: PolicyLink[] = [
-  { key: "terms-and-conditions", label: "Terms & Conditions", href: "/policies/Terms-and-Conditions.docx" },
-  { key: "terms-of-use", label: "Terms of Use", href: "/policies/Terms-of-Use.docx" },
-  { key: "privacy", label: "Privacy Policy", href: "/policies/Privacy-Policy.docx" },
-  { key: "cookies", label: "Cookie Policy", href: "/policies/Cookie-Policy.docx" },
-  { key: "accessibility", label: "Accessibility Policy", href: "/policies/Accessibility-Policy.docx" },
+  { key: "terms-and-conditions", label: "Terms & Conditions", href: "/terms" },
+  { key: "terms-of-use", label: "Terms of Use", href: "/terms-of-use" },
+  { key: "privacy", label: "Privacy Policy", href: "/privacy" },
+  { key: "cookies", label: "Cookie Policy", href: "/cookies" },
+  { key: "accessibility", label: "Accessibility Policy", href: "/accessibility" },
 ];
 
 /**
  * Records that the current user (or anonymous visitor) acknowledged the
- * four platform policies. Stored locally for client-side audit; the
- * server-side audit hook should also be invoked at registration time.
+ * platform policies. Stored locally for client-side audit; the server-side
+ * audit hook should also be invoked at registration time.
  */
 export function recordPolicyAcknowledgment(method: "checkbox" | "google-oauth") {
   try {

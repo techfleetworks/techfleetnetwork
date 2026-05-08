@@ -18,7 +18,7 @@ interface LegalPolicyPanelProps {
   description: string;
   /** Public URL of the markdown source, e.g. "/policies/Privacy-Policy.md" */
   markdownUrl: string;
-  /** Public URL of the .docx for download/print, e.g. "/policies/Privacy-Policy.docx" */
+  /** In-app route for the full policy page, e.g. "/privacy" */
   downloadUrl: string;
   /** Used for resize key + checkbox id (e.g. "privacy-policy") */
   panelKey: string;
@@ -97,7 +97,7 @@ export function LegalPolicyPanel({
             rel="noopener noreferrer"
             className="text-xs text-primary-text underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm w-fit"
           >
-            Download a copy (.docx)
+            Open full policy page
           </a>
         </SheetHeader>
 
@@ -115,7 +115,7 @@ export function LegalPolicyPanel({
             <div className="text-sm text-destructive" role="alert">
               We couldn't load this policy right now.{" "}
               <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                Open the .docx version
+                Open the full policy page
               </a>{" "}
               or try again in a moment.
             </div>
