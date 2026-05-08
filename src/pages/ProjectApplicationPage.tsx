@@ -424,6 +424,14 @@ export default function ProjectApplicationPage() {
       return;
     }
     if (step === 3) {
+      const errs3 = validateStep3();
+      if (Object.keys(errs3).length > 0) { setErrors(errs3); showValidationErrorToast(errs3); return; }
+      setErrors({});
+      saveMutation.mutate({ fields: collectFields(), newStep: 4 });
+      setStep(4);
+      return;
+    }
+    if (step === 4) {
       const errs2 = validateStep2();
       const errs3 = validateStep3();
       const allErrs = { ...errs2, ...errs3 };
