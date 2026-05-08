@@ -82,6 +82,8 @@ export function TriageTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [budgetUsed, setBudgetUsed] = useState<number | null>(null);
   const [detailRow, setDetailRow] = useState<FixQueueRow | null>(null);
+  const [auditRows, setAuditRows] = useState<TriageAuditRow[] | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
