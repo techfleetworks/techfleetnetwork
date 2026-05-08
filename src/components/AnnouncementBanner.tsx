@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { sanitizeHtml } from "@/lib/security";
+import { linkifyHtml } from "@/lib/linkify";
 import {
   fetchPublishedBanners,
   fetchDismissedBannerIds,
