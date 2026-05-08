@@ -51,7 +51,20 @@ function SingleBanner({
           <p className="text-sm font-semibold leading-snug break-words">{banner.title}</p>
           <div
             className="text-xs leading-relaxed opacity-90 prose prose-xs prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:text-blue-300 [&_a]:underline [&_*]:max-w-full"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(banner.body_html)) }}
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(
+                linkifyHtml(
+                  // Some rich-text editors (and pasted Word/Google Docs content)
+                  // glue every word together with &nbsp;, which prevents normal
+                  // wrapping and looks "jumbled". Normalize to regular spaces
+                  // so the browser can break lines naturally.
+                  (banner.body_html || "")
+                    .replace(/&nbsp;/gi, " ")
+                    .replace(/\u00a0/g, " ")
+                    .replace(/[ \t]{2,}/g, " "),
+                ),
+              ),
+            }}
           />
         </div>
         <Button
