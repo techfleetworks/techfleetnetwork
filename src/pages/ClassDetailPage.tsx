@@ -1,17 +1,26 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Loader2, Plus, ArrowLeft, Send, ArchiveX, Pencil, ExternalLink } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, Pencil, ExternalLink, History, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useClassById } from "@/hooks/use-classes";
 import { useCohortsByClass } from "@/hooks/use-cohorts";
-import { ClassService } from "@/services/class.service";
 import { CohortService } from "@/services/cohort.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { useQueryClient } from "@/lib/react-query";
+import { useQueryClient, useQuery } from "@/lib/react-query";
+import { ApprovalActions } from "@/components/classes/ApprovalActions";
+import { ClassAuditHistory } from "@/components/classes/ClassAuditHistory";
+import { ClassService } from "@/services/class.service";
+
+const STATUS_CLASS: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground",
+  pending_review: "bg-warning/10 text-warning border-warning/20",
+  published: "bg-success/10 text-success border-success/20",
+  archived: "bg-muted text-muted-foreground",
+};
 
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +29,19 @@ export default function ClassDetailPage() {
   const queryClient = useQueryClient();
   const { data: cls, isLoading } = useClassById(id);
   const { data: cohorts = [] } = useCohortsByClass(id);
-  const [busy, setBusy] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Latest "request_changes" reason for owners.
+  const { data: history = [] } = useQuery({
+    queryKey: ["classes", "audit", id ?? "none"] as const,
+    queryFn: () => (id ? ClassService.listAuditHistory(id) : Promise.resolve([])),
+    enabled: !!id,
+  });
+  const latestChangesReason = (() => {
+    if (cls?.status !== "draft") return null;
+    const r = history.find((h) => h.action === "request_changes");
+    return r?.reason ?? null;
+  })();
 
   if (isLoading || !cls) {
     return (
@@ -32,26 +53,24 @@ export default function ClassDetailPage() {
 
   const isOwner = user?.id === cls.owner_user_id;
   const canEdit = isOwner || isAdmin;
-
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["classes"] });
 
-  const action = async (label: string, fn: () => Promise<unknown>) => {
-    setBusy(true);
+  const submitCohort = async (cohortId: string) => {
     try {
-      await fn();
-      toast.success(label);
+      await CohortService.submitForReview(cls.id, [cohortId]);
+      toast.success("Cohort submitted for review");
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Action failed");
-    } finally {
-      setBusy(false);
     }
   };
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6 max-w-4xl">
       <Button asChild variant="ghost" size="sm">
-        <Link to="/teach/classes"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link>
+        <Link to={isAdmin ? "/admin/classes" : "/teach/classes"}>
+          <ArrowLeft className="h-4 w-4 mr-1" aria-hidden="true" />Back
+        </Link>
       </Button>
 
       {cls.hero_image_url && (
@@ -63,9 +82,22 @@ export default function ClassDetailPage() {
         />
       )}
 
+      {isOwner && latestChangesReason && (
+        <div role="alert" className="rounded-md border border-warning/30 bg-warning/10 p-4 flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="space-y-1">
+            <div className="font-medium text-foreground">Changes were requested</div>
+            <div className="text-sm text-foreground whitespace-pre-wrap">{latestChangesReason}</div>
+            <div className="text-xs text-muted-foreground">Edit your class and resubmit when ready.</div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Badge variant="outline" className="mb-2">{cls.status.replace("_", " ")}</Badge>
+          <Badge variant="outline" className={`mb-2 ${STATUS_CLASS[cls.status] ?? ""}`}>
+            {cls.status.replace("_", " ")}
+          </Badge>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{cls.title}</h1>
           {cls.summary && (
             <div
@@ -77,23 +109,11 @@ export default function ClassDetailPage() {
         {canEdit && (
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link to={`/teach/classes/${cls.id}/edit`}><Pencil className="h-4 w-4 mr-1" />Edit</Link>
+              <Link to={`/teach/classes/${cls.id}/edit`}>
+                <Pencil className="h-4 w-4 mr-1" aria-hidden="true" />Edit
+              </Link>
             </Button>
-            {cls.status === "draft" && isOwner && (
-              <Button size="sm" disabled={busy} onClick={() => action("Submitted for review", () => ClassService.submitForReview(cls.id))}>
-                <Send className="h-4 w-4 mr-1" />Submit for review
-              </Button>
-            )}
-            {cls.status === "pending_review" && isAdmin && (
-              <Button size="sm" disabled={busy} onClick={() => action("Class published", () => ClassService.approveAndPublish(cls.id))}>
-                Approve & publish
-              </Button>
-            )}
-            {cls.status !== "archived" && (
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => action("Class archived", () => ClassService.archive(cls.id))}>
-                <ArchiveX className="h-4 w-4 mr-1" />Archive
-              </Button>
-            )}
+            <ApprovalActions cls={cls} isOwner={isOwner} isAdmin={isAdmin} />
           </div>
         )}
       </div>
@@ -140,7 +160,9 @@ export default function ClassDetailPage() {
           <h2 className="text-xl font-semibold">Cohorts</h2>
           {canEdit && (
             <Button asChild size="sm">
-              <Link to={`/teach/classes/${cls.id}/cohorts/new`}><Plus className="h-4 w-4 mr-1" />New cohort</Link>
+              <Link to={`/teach/classes/${cls.id}/cohorts/new`}>
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />New cohort
+              </Link>
             </Button>
           )}
         </div>
@@ -165,18 +187,35 @@ export default function ClassDetailPage() {
                       onClick={() => CohortService.recordRegistrationClick(c.id).catch(() => undefined)}
                     >
                       <a href={c.registration_url} target="_blank" rel="noopener noreferrer">
-                        Register <ExternalLink className="h-3 w-3 ml-1" />
+                        Register <ExternalLink className="h-3 w-3 ml-1" aria-hidden="true" />
                       </a>
                     </Button>
                   )}
                   {canEdit && c.status === "draft" && (
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => action("Cohort submitted", () => CohortService.submitForReview(c.id))}>
+                    <Button size="sm" variant="outline" onClick={() => submitCohort(c.id)}>
                       Submit
                     </Button>
                   )}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <button
+          type="button"
+          className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary"
+          onClick={() => setShowHistory((s) => !s)}
+          aria-expanded={showHistory}
+        >
+          <History className="h-4 w-4" aria-hidden="true" />
+          Approval history
+        </button>
+        {showHistory && (
+          <div className="mt-3">
+            <ClassAuditHistory classId={cls.id} />
           </div>
         )}
       </section>
