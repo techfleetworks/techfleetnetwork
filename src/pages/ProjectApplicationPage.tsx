@@ -9,7 +9,7 @@ import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   Loader2, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper, AlertTriangle,
+  PartyPopper, AlertTriangle, Pencil, AlertCircle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { FlowMobileNav } from "@/components/FlowMobileNav";
@@ -75,7 +75,7 @@ interface ClientInfo {
   primary_contact: string;
 }
 
-const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
+const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions", "Review & Submit"];
 
 /* ── read-only display helpers ───────────────────────────── */
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -424,6 +424,14 @@ export default function ProjectApplicationPage() {
       return;
     }
     if (step === 3) {
+      const errs3 = validateStep3();
+      if (Object.keys(errs3).length > 0) { setErrors(errs3); showValidationErrorToast(errs3); return; }
+      setErrors({});
+      saveMutation.mutate({ fields: collectFields(), newStep: 4 });
+      setStep(4);
+      return;
+    }
+    if (step === 4) {
       const errs2 = validateStep2();
       const errs3 = validateStep3();
       const allErrs = { ...errs2, ...errs3 };
@@ -776,6 +784,88 @@ export default function ProjectApplicationPage() {
               </div>
             </div>
           )}
+
+          {/* ── STEP 4: Review & Submit ───────────────────── */}
+          {step === 4 && (() => {
+            const s2Errs = validateStep2();
+            const s3Errs = validateStep3();
+            const s2HasErr = Object.keys(s2Errs).length > 0;
+            const s3HasErr = Object.keys(s3Errs).length > 0;
+            const totalIncomplete = (s2HasErr ? 1 : 0) + (s3HasErr ? 1 : 0);
+            return (
+              <div className="space-y-6">
+                <div className="rounded-lg border bg-card p-6 space-y-2">
+                  <h2 className="text-lg font-semibold text-foreground">Step 4: Review &amp; Submit</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Please review your answers below before submitting. Click <strong>Edit</strong> on any section to make changes.
+                  </p>
+                  {totalIncomplete > 0 && (
+                    <p className="text-sm text-destructive flex items-center gap-1.5 pt-1">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      {totalIncomplete} {totalIncomplete === 1 ? "section needs" : "sections need"} to be completed before you can submit.
+                    </p>
+                  )}
+                </div>
+
+                {/* Section: Project Questions */}
+                <div className="rounded-lg border bg-card p-6 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-foreground">Step 2: Project Questions</h3>
+                      {s2HasErr ? (
+                        <Badge variant="destructive" className="text-xs gap-1">
+                          <AlertCircle className="h-3 w-3" /> Incomplete
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs gap-1 bg-success/10 text-success border-success/30">
+                          <CheckCircle2 className="h-3 w-3" /> Complete
+                        </Badge>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => { setErrors({}); setStep(2); }} className="gap-1.5 text-xs">
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  </div>
+                  <ReadOnlyArrayField label="Team Hats of Interest" items={teamHatsInterest} />
+                  <ReadOnlyField label="Participated in a previous phase" value={participatedPrev ? "Yes" : "No"} />
+                  {participatedPrev ? (
+                    <>
+                      <ReadOnlyField label="Previous phase position" value={prevPosition} />
+                      <ReadOnlyField label="Previous phase learnings" value={prevLearnings} />
+                      <ReadOnlyField label="How you'll help teammates" value={prevHelpTeammates} />
+                    </>
+                  ) : (
+                    <ReadOnlyField label="Prior engagement preparation" value={priorPreparation} />
+                  )}
+                </div>
+
+                {/* Section: Client Questions */}
+                <div className="rounded-lg border bg-card p-6 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-foreground">Step 3: Client Questions</h3>
+                      {s3HasErr ? (
+                        <Badge variant="destructive" className="text-xs gap-1">
+                          <AlertCircle className="h-3 w-3" /> Incomplete
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs gap-1 bg-success/10 text-success border-success/30">
+                          <CheckCircle2 className="h-3 w-3" /> Complete
+                        </Badge>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => { setErrors({}); setStep(3); }} className="gap-1.5 text-xs">
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  </div>
+                  <ReadOnlyField label="Why are you passionate about this project?" value={passion} />
+                  <ReadOnlyField label="What do you know about the client and the project?" value={clientKnowledge} />
+                  <ReadOnlyField label="How will you contribute to cross-functional teamwork?" value={crossFunctional} />
+                  <ReadOnlyField label="How will you contribute to the project's success?" value={successContribution} />
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -822,16 +912,16 @@ export default function ProjectApplicationPage() {
               </Button>
             )}
 
-            {/* Step 2: Next */}
-            {step === 2 && !isCompleted && (
+            {/* Steps 2 & 3: Next */}
+            {(step === 2 || step === 3) && !isCompleted && (
               <Button onClick={handleNext} disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Next
               </Button>
             )}
 
-            {/* Step 3: Submit — blue only when all fields entered */}
-            {step === 3 && !isCompleted && (
+            {/* Step 4: Submit — blue only when all fields entered */}
+            {step === 4 && !isCompleted && (
               <Button
                 onClick={handleSubmit}
                 disabled={isSaving || !isSubmitReady}
