@@ -68,13 +68,20 @@ export const CohortService = {
     if (error) throw error;
   },
 
-  async submitForReview(id: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("submit_cohort_for_review", { _cohort_id: id });
+  async submitForReview(classId: string, cohortIds: string[] = []): Promise<void> {
+    // Cohorts are co-submitted alongside the class via submit_class_for_review.
+    const { error } = await (supabase as any).rpc("submit_class_for_review", {
+      p_class_id: classId,
+      p_cohort_ids: cohortIds,
+    });
     if (error) throw error;
   },
 
   async cancel(id: string, reason?: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("cancel_cohort", { _cohort_id: id, _reason: reason ?? null });
+    const { error } = await (supabase as any).rpc("cancel_cohort", {
+      p_cohort_id: id,
+      p_reason: reason ?? null,
+    });
     if (error) throw error;
   },
 

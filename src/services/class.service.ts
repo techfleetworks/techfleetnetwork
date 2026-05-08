@@ -97,24 +97,52 @@ export const ClassService = {
     if (error) throw error;
   },
 
-  async submitForReview(id: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("submit_class_for_review", { _class_id: id });
+  async submitForReview(id: string, cohortIds: string[] = []): Promise<void> {
+    const { error } = await (supabase as any).rpc("submit_class_for_review", {
+      p_class_id: id,
+      p_cohort_ids: cohortIds,
+    });
     if (error) throw error;
   },
 
   async approveAndPublish(id: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("approve_and_publish_class", { _class_id: id });
+    const { error } = await (supabase as any).rpc("approve_and_publish_class", { p_class_id: id });
     if (error) throw error;
   },
 
   async requestChanges(id: string, reason: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("request_class_changes", { _class_id: id, _reason: reason });
+    const { error } = await (supabase as any).rpc("request_class_changes", {
+      p_class_id: id,
+      p_reason: reason,
+    });
     if (error) throw error;
   },
 
   async archive(id: string, reason?: string): Promise<void> {
-    const { error } = await (supabase as any).rpc("archive_class", { _class_id: id, _reason: reason ?? null });
+    const { error } = await (supabase as any).rpc("archive_class", {
+      p_class_id: id,
+      p_reason: reason ?? null,
+    });
     if (error) throw error;
+  },
+
+  async listAuditHistory(classId: string): Promise<Array<{
+    id: string;
+    action: string;
+    from_status: string | null;
+    to_status: string | null;
+    reason: string | null;
+    actor_user_id: string | null;
+    created_at: string;
+  }>> {
+    const { data, error } = await supabase
+      .from("class_audit")
+      .select("id, action, from_status, to_status, reason, actor_user_id, created_at")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return (data ?? []) as never;
   },
 
   async follow(classId: string, userId: string): Promise<void> {
