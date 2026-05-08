@@ -1,72 +1,124 @@
-## Why this happens
+# Compliance Plan — Terms & Conditions + Terms of Use
 
-`AuthService.updatePassword` → `signOutAllDevices` → invokes `sign-out-all-devices` edge fn → calls `supabase.auth.admin.signOut(userId, "global")` and returns **HTTP 500** on any GoTrue error. It also never inserts into `public.revoked_sessions`, so the server-side `is_session_revoked` gate (the real cross-device defense) is never armed by this path.
+I read both policies end-to-end against the codebase, DB schema, auth flow, footer, registration, Fleety, recording flow, and the existing `recordPolicyAcknowledgment` helper. The documents make ~21 enforceable promises. The platform currently honors maybe a third of them. This plan closes every gap, in order of legal risk.
 
-For users recreated after the recent purge, GoTrue often has no other active sessions / a transient lookup error → 500 → client throws `"Failed to revoke all sessions. Please try again."` even though the password change succeeded. The user is also force-signed-out of the device they just used.
+## Audit findings (current vs required)
 
-## Fix — three layers, UX-first
+| # | Document promise | Current state | Gap |
+|---|---|---|---|
+| 1 | T&C §2 / ToU §2 — ≥18, or 13–17 with verifiable parent/guardian consent | `minAgeForCountry` defaults to **13**; no guardian flow; `profiles` stores only `birth_year` | Default age 18; add 13–17 guardian-consent path; store full DOB |
+| 2 | T&C §23 / ToU §19 — material-change re-acceptance | `recordPolicyAcknowledgment` writes to **localStorage only**; no version table; no re-prompt | DB-backed acknowledgments + version gate |
+| 3 | ToU §18 — electronic-communications consent | Implicit only | Explicit checkbox at signup, recorded |
+| 4 | T&C §19 / ToU §17 — sanctions & export controls | No screening | Block embargoed countries at signup; deny-list audit |
+| 5 | T&C §11 — recording consent + revocation by email | `VideoRecorder` exists, no consent record, no revocation endpoint | Per-session consent row + `/legal/revoke-recording` form → `info@techfleet.network` |
+| 6 | T&C §9 — EU 14-day right of withdrawal | No paid flow yet, no cancel route | `/legal/cancel-paid-service` form (gated, future-proof) |
+| 7 | ToU §11 — self-serve account deletion | Exists | Verify + link from footer |
+| 8 | T&C §21 — GDPR Art. 28 DPA when processor for client | No DPA template surfaced | Add DPA artifact + admin "Send DPA" action on Clients |
+| 9 | ToU §4 — acceptable use (no scraping/bots/abuse) | Partial (rate limits) | Add abuse-report route + WAF hint headers; document existing controls |
+| 10 | ToU §9 — Beta/AI disclaimer on AI outputs | Fleety lacks an in-line disclaimer | Add persistent "Beta · may be inaccurate · not professional advice" line in Fleety UI |
+| 11 | ToU §5/§47 — TM notice | Footer missing ™ + ownership line | Add `Tech Fleet™ © 2026` + DMCA link |
+| 12 | T&C §20 — informal 30-day dispute resolution | No intake | `/legal/dispute` form → audit row + email |
+| 13 | T&C §4 — Code of Conduct as binding doc | No CoC page | Add `/code-of-conduct` policy page + acceptance |
+| 14 | T&C §24 / ToU §21 — correct postal address | Says "Programs Office, Delaware, USA" | Replace with `8 The Grn Suite 6269, Dover, DE 19901` and `302-497-4065` |
+| 15 | T&C §23 — versioned effective dates per doc | Single `POLICY_LAST_UPDATED` constant | Per-policy version + checksum |
 
-### Layer 1 — Edge function (`supabase/functions/sign-out-all-devices/index.ts`, full rewrite)
+## Changes to ship
 
-- POST body (all optional): `{ reason?: "self_password_changed"|"self_requested"|"admin_revoked"|"security_concern", keep_current?: boolean }`.
-- Step A (SOURCE OF TRUTH): insert one row into `public.revoked_sessions` with `user_id`, `reason`, `revoked_by = user_id`. If this insert fails → return 500 (genuine failure).
-- Step B (BEST-EFFORT): if `keep_current !== true`, call `auth.admin.signOut(userId, "global")`. **Any GoTrue error is logged + warned but NEVER fails the request.** This is the bug fix.
-- Always return `200 { success: true, revocation_recorded: true, gotrue_signed_out: bool, keep_current: bool, reason }` (when authenticated).
-- Uses shared `requireAuthenticatedRequest`, `getAdminClient`, `createEdgeLogger` (matches `revoke-user-sessions` / `admin-sign-out-all-users` style; no manual JWT plumbing).
-- Idempotent — repeat calls just append revocation rows; trigger writes one audit row per call.
+### 1. Database (one migration)
 
-### Layer 2 — Client (`src/services/auth.service.ts`)
+```text
+policy_versions (
+  policy_key text,            -- 'terms','terms-of-use','privacy','cookies','accessibility','code-of-conduct'
+  version text,               -- 'YYYY-MM-DD'
+  effective_at timestamptz,
+  checksum text,              -- sha256 of markdown source
+  is_current boolean,
+  PRIMARY KEY (policy_key, version)
+)
 
-- `signOutAllDevices(opts?: { keepCurrent?: boolean; reason?: string })`:
-  - Invokes edge fn with `{ reason, keep_current }`.
-  - If edge call errors: log, fire `account_activity` warning, **do not throw**. Local sign-out still happens unless `keepCurrent`.
-  - If `keepCurrent !== true`: also `await supabase.auth.signOut()` and clear `SESSION_STARTED_AT_KEY`.
-  - If `keepCurrent === true`: leave the current session intact (no `signOut`, no key clear).
-- `updatePassword(newPassword)`:
-  - After `updateUser({ password })` succeeds, call `this.signOutAllDevices({ keepCurrent: true, reason: "self_password_changed" })`.
-  - Wrap in try/catch — a revoke failure can NEVER mask a successful password change.
-  - Returns `{ otherDevicesRevoked: bool }` so the UI can choose its toast.
+policy_acknowledgments (
+  id uuid pk, user_id uuid null, anon_id text null,
+  policy_key text, version text,
+  method text check (method in ('checkbox','google-oauth','re-accept','registration')),
+  ip inet, user_agent text, accepted_at timestamptz default now(),
+  electronic_comms_consent boolean default false
+)
 
-### Layer 3 — Reset-password page (`src/pages/ResetPasswordPage.tsx`)
+recording_consents (
+  id uuid pk, user_id uuid, session_ref text, granted boolean,
+  granted_at timestamptz, revoked_at timestamptz null,
+  scope text check (scope in ('this-session','future-uses'))
+)
 
-- Remove `await supabase.auth.signOut({ scope: "local" })` after `updatePassword` (the user stays signed in on this device).
-- Remove the 3-second redirect-to-login.
-- New success card: green check + "Password updated. You're signed in on this device. Other devices will be signed out within a minute." + primary button "Go to dashboard" → `navigate("/dashboard", { replace: true })`. Secondary subtle link "Sign out other devices manually" only shown when `otherDevicesRevoked === false` — clicking it retries the revoke in the background and shows a quiet blue info toast.
-- Auto-redirect to `/dashboard` after 2 s if user doesn't click (matches the 100dvh layout rules; no flash of login screen).
-- Microcopy + button respect WCAG 2.0/3.0 AA contrast and existing `card-elevated` styles.
+sanctions_screenings (
+  id uuid pk, user_id uuid, country_code text, decision text,
+  list_version text, screened_at timestamptz default now()
+)
 
-### Audit + observability
+dispute_intake (
+  id uuid pk, user_id uuid null, email citext, summary text,
+  created_at timestamptz, resolved_at timestamptz null
+)
 
-- Existing `audit_session_revocation` trigger already writes `event_type = 'session_revoked'` per inserted row — no new trigger needed.
-- Edge fn logs structured JSON: `revoke` action with `requestId`, `userId`, `reason`, `keepCurrent`, `gotruSignedOut` for the Triage tab.
-- No new fingerprints; existing error-triage queue picks up any 500s.
+dpa_executions (
+  id uuid pk, client_id uuid, signed_by text, signed_at timestamptz,
+  pdf_storage_path text, version text
+)
+```
 
-### BDD scenarios (insert via insert tool into `bdd_scenarios`)
+`profiles`: add `birth_month`, `birth_day`, `guardian_email`, `guardian_consent_token`, `guardian_consent_at`, `electronic_comms_consent_at`. RLS: user reads own; admins read all; inserts via SECURITY DEFINER RPCs. Strict triggers (no PII in audit columns; hash-chain audit_log entry on every acknowledgment).
 
-- **AUTH-REVOKE-010** Self password reset succeeds + revocation row written even when GoTrue has no other active sessions. [UI] success card "You're signed in on this device", no red toast. [DB] one new `revoked_sessions` row with `reason='self_password_changed'`, `revoked_by = user_id`. [Code] edge fn returns 200 with `gotrue_signed_out:false`, `revocation_recorded:true`, `keep_current:true`.
-- **AUTH-REVOKE-011** Stale tokens on other devices are evicted on next `getSession()` because `is_session_revoked` returns true. [UI] other device shows login screen on next nav. [DB] `is_session_revoked(user_id, old_issued_at)` = true. [Code] `AuthService.getSession` returns null and calls `supabase.auth.signOut()`.
-- **AUTH-REVOKE-012** Idempotent: two consecutive calls produce two rows, never an error. [UI] no error toast. [DB] +2 rows in `revoked_sessions`. [Code] both responses 200 success.
-- **AUTH-REVOKE-013** Recreated-after-purge user completes password reset → lands on dashboard, no `"Failed to revoke all sessions"` error. [UI] success card → dashboard. [DB] revocation row inserted, audit_log gets `session_revoked` and `password_updated`. [Code] no client-side throw, `updatePassword` resolves with `otherDevicesRevoked:true`.
+### 2. Edge functions
 
-### Memory
+- `record-policy-acknowledgment` — server-side insert with IP+UA, validates current `policy_versions`.
+- `screen-sanctions` — checks country against U.S. OFAC/EU/UK embargoed list (Cuba, Iran, North Korea, Syria, Crimea, Donetsk, Luhansk, Russia per export-control flag); returns deny + reason; logs to `sanctions_screenings`.
+- `revoke-recording-consent` — flips row, queues email to `info@techfleet.network`, notifies user.
+- `submit-dispute` — writes `dispute_intake`, emails legal alias, starts 30-day SLA timer (digest reminder).
+- `request-guardian-consent` — emails guardian a signed token link; on click → signs and updates `profiles`.
 
-- New: `mem://features/auth/session-revocation` — "Revocation row in `public.revoked_sessions` is the source of truth; GoTrue `admin.signOut` is best-effort and must never block the user. Password reset uses `keep_current:true` so the user stays signed in on the device they just used."
-- Update `mem://features/auth-flow/password-reset` — note the new keep-current-device behavior.
+All functions: JWT or service-role validation per Core rule.
 
-## Files
+### 3. Frontend
 
-| Action | Path |
-|---|---|
-| Rewrite | `supabase/functions/sign-out-all-devices/index.ts` |
-| Edit | `src/services/auth.service.ts` (`signOutAllDevices`, `updatePassword`) |
-| Edit | `src/pages/ResetPasswordPage.tsx` (success state + no local signOut) |
-| Insert (data) | 4 rows in `bdd_scenarios` via insert tool |
-| New | `.lovable/memory/features/auth/session-revocation.md` |
-| Edit | `.lovable/memory/features/auth-flow/password-reset.md` |
-| Edit | `.lovable/memory/index.md` (add memory reference) |
+- **RegisterPage**: full DOB picker; default `minAgeForCountry` → **18**; if 13–17 → guardian-consent sub-flow (must complete before sign-in unlocks); explicit "I agree to receive electronic communications" checkbox; sanctions screen call before account creation.
+- **LegalPolicyPanel**: on accept, call `record-policy-acknowledgment` (not just localStorage); fall back to localStorage only if offline + retry on next sign-in.
+- **Re-acceptance gate**: `usePolicyVersionGate` hook in `AppLayout` blocks app shell with a non-dismissible re-accept sheet when any `is_current` version > user's last ack.
+- **Footer (`AppFooter`)**: add `Tech Fleet™ · © 2026 · 8 The Grn Suite 6269, Dover, DE 19901 · 302-497-4065 · info@techfleet.network`; add Code of Conduct, Dispute Resolution, DMCA, Cancel Paid Service links.
+- **Fleety**: persistent caption "Beta — Fleety can be inaccurate. Do not rely on it for legal, financial, medical, or other professional advice."
+- **VideoRecorder**: pre-recording consent modal with scope choice (this session / future use); writes `recording_consents`; "Revoke future use" link in user settings → calls revoke fn.
+- **New routes (all public, no login):** `/code-of-conduct`, `/legal/dispute`, `/legal/revoke-recording`, `/legal/cancel-paid-service`, `/legal/dmca`.
 
-## Out of scope
+### 4. Admin
 
-- No changes to `revoke-user-sessions` or `admin-sign-out-all-users` (already correct).
-- No changes to audit hash chain, retention, or RLS.
-- No DB migration — schema unchanged.
+- Clients admin: "Send DPA" button → `dpa_executions`; download generated PDF that incorporates GDPR Art. 28 controller-processor terms.
+- System Health → new **Compliance** tab: counts of unaccepted-current-version users, pending guardian consents, open disputes (>30d highlighted red), sanctions denials, recording revocations.
+
+### 5. Content fixes (markdown)
+
+Update `public/policies/Terms-and-Conditions.md` §24 and `Terms-of-Use.md` §21 mailing address to:
+`Tech Fleet, 8 The Grn Suite 6269, Dover, DE 19901, USA · 302-497-4065`.
+Bump `POLICY_LAST_UPDATED` and seed `policy_versions` with checksums of all five markdown files + new Code of Conduct.
+
+### 6. BDD scenarios (inserted into `bdd_scenarios`)
+
+`COMPLY-AGE-001..004` (≥18, 13–17 guardian path, <13 deny, DOB tampering).
+`COMPLY-ACK-001..003` (server insert, version gate re-accept, offline retry).
+`COMPLY-SANC-001..002` (embargoed country deny, list version recorded).
+`COMPLY-REC-001..002` (consent capture + revocation email).
+`COMPLY-DISPUTE-001` (30-day SLA digest).
+`COMPLY-DPA-001` (admin sends DPA, audit hash chained).
+`COMPLY-COMMS-001` (electronic-comms consent stored).
+Each with tri-layer Then-clauses [UI]/[DB]/[Code] and `feature_area_number`.
+
+### 7. Memory
+
+New: `mem://compliance/terms-enforcement` summarizing the version-gate rule, age policy, sanctions list source, and dispute SLA. Add Core line: "Acknowledgments are server-side rows in `policy_acknowledgments`; localStorage is fallback only."
+
+## Out of scope (deferred, called out so we don't pretend)
+
+- Building an actual paid-billing/Stripe flow — only the cancellation intake is created now, gated until billing exists.
+- Live OFAC SDN per-name screening — country-level only this pass; per-name list ingestion is a follow-up.
+- Translating policy markdown into all i18n locales — we route to existing translation cache; English is canonical for now.
+- Court-grade e-signature for DPA — generated PDF with typed name + IP/UA is acceptable for B2B per current ESIGN/eIDAS guidance; Adobe Sign integration is future work.
+
+Approve and I'll implement in this order: migration → edge functions → server-side ack wiring → registration overhaul → version gate → footer/disclaimers → admin compliance tab → BDD + memory.

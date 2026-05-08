@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake, ShieldAlert } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
-import { registerSchema, ageInYears, minAgeForCountry } from "@/lib/validators/auth";
+import { registerSchema, ageInYears, GUARDIAN_MIN_AGE } from "@/lib/validators/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
@@ -37,10 +38,11 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [dob, setDob] = useState(""); // ISO yyyy-mm-dd
   const countryCode = loadConsent()?.countryCode ?? null;
-  const minAge = minAgeForCountry(countryCode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [electronicCommsConsent, setElectronicCommsConsent] = useState(false);
+  const [guardianEmail, setGuardianEmail] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
@@ -76,6 +78,8 @@ export default function RegisterPage() {
       birthMonth: dobParts?.birthMonth ?? 1,
       birthDay: dobParts?.birthDay ?? 1,
       countryCode,
+      guardianEmail,
+      electronicCommsConsent,
       agreedToTerms,
     };
     const result = registerSchema.safeParse(payload);
@@ -83,7 +87,6 @@ export default function RegisterPage() {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        // Surface birthYear/Month/Day errors under "dob"
         const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
         if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
@@ -95,7 +98,7 @@ export default function RegisterPage() {
     } else {
       setErrors({});
     }
-  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, touched, countryCode]);
+  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, electronicCommsConsent, guardianEmail, touched, countryCode]);
 
   useEffect(() => {
     if (redirectParam) {
@@ -134,10 +137,10 @@ export default function RegisterPage() {
       setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
       return;
     }
-    // Mark all fields as touched
     const allTouched: Record<string, boolean> = {
       firstName: true, lastName: true, email: true,
-      password: true, confirmPassword: true, dob: true, agreedToTerms: true,
+      password: true, confirmPassword: true, dob: true,
+      agreedToTerms: true, electronicCommsConsent: true, guardianEmail: true,
     };
     setTouched(allTouched);
 
@@ -147,6 +150,8 @@ export default function RegisterPage() {
       birthMonth: dobParts?.birthMonth ?? 1,
       birthDay: dobParts?.birthDay ?? 1,
       countryCode,
+      guardianEmail,
+      electronicCommsConsent,
       agreedToTerms,
     };
     const result = registerSchema.safeParse(payload);
@@ -166,9 +171,28 @@ export default function RegisterPage() {
         firstName: "First name", lastName: "Last name", email: "Email",
         password: "Password", confirmPassword: "Confirm password",
         dob: "Date of birth", agreedToTerms: "Terms agreement",
+        electronicCommsConsent: "Electronic communications consent",
+        guardianEmail: "Parent or guardian email",
       });
       scrollToFirstError();
       return;
+    }
+
+    // Sanctions / export-control screening (T&C §19, ToU §17). Anonymous endpoint.
+    if (countryCode) {
+      try {
+        const { data: sanctionsResult } = await supabase.functions.invoke("screen-sanctions", {
+          body: { email: result.data.email, country_code: countryCode },
+        });
+        if (sanctionsResult?.decision === "deny") {
+          setAuthError(
+            "We're sorry — Tech Fleet cannot create accounts for users in this country due to U.S. export-control and sanctions laws.",
+          );
+          return;
+        }
+      } catch {
+        // Fail-open on network errors (the screening row is still attempted server-side).
+      }
     }
 
     const domainCheck = await validateEmailDomainExists(result.data.email);
@@ -217,6 +241,10 @@ export default function RegisterPage() {
         captchaToken,
         result.data.birthYear
       );
+      // Server-side acknowledgment + electronic-comms consent (T&C §23, ToU §18, §19).
+      await recordPolicyAcknowledgment("registration", {
+        electronicCommsConsent: true,
+      });
       clearAuthLockout();
       setSubmitted(true);
     } catch (err: any) {
@@ -450,9 +478,34 @@ export default function RegisterPage() {
                 />
               </div>
               <p id="dob-help" className="text-xs text-muted-foreground mt-1">
-                We use this only to confirm you meet the minimum age for your region (currently {minAge}+). We store the year only.
+                Tech Fleet is for ages 18+. Users 13–17 may join with a parent or guardian's consent (T&amp;C §2). We store the year only.
               </p>
             </ValidatedField>
+
+            {(() => {
+              const age = dobParts ? ageInYears(dobParts.birthYear, dobParts.birthMonth, dobParts.birthDay) : null;
+              const needsGuardian = age !== null && age >= GUARDIAN_MIN_AGE && age < 18;
+              if (!needsGuardian) return null;
+              return (
+                <ValidatedField id="reg-guardian" label="Parent or guardian email" required error={errors.guardianEmail} value={guardianEmail} touched={touched.guardianEmail}>
+                  <div className="relative">
+                    <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input id="reg-guardian" type="email" placeholder="parent@example.com" value={guardianEmail} onChange={(e) => setGuardianEmail(e.target.value)} onBlur={() => markTouched("guardianEmail")} className={`pl-10 ${bc("guardianEmail", guardianEmail)}`} autoComplete="email" required aria-required="true" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We will email your parent or guardian to confirm consent before your account is fully activated.
+                  </p>
+                </ValidatedField>
+              );
+            })()}
+
+            <div className="flex items-start gap-2">
+              <Checkbox id="comms" checked={electronicCommsConsent} onCheckedChange={(checked) => { setElectronicCommsConsent(checked === true); markTouched("electronicCommsConsent"); }} aria-required="true" aria-invalid={!!errors.electronicCommsConsent} />
+              <Label htmlFor="comms" className="text-sm leading-relaxed">
+                I agree to receive notices, account alerts, and other electronic communications by email (ToU §18).
+              </Label>
+            </div>
+            {errors.electronicCommsConsent && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.electronicCommsConsent}</p>}
 
             <div className="flex items-start gap-2">
               <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />

@@ -110,6 +110,8 @@ These Terms, together with the Privacy Policy and Cookie Policy, are the entire 
 
 21\. Contact
 
-Email: **info@techfleet.network**
+Email: **info@techfleet.org**
 
-Mailing address: Tech Fleet, Legal Department, Delaware, USA.
+Phone: **302-497-4065**
+
+Mailing address: Tech Fleet, 8 The Grn Suite 6269, Dover, DE 19901, USA.

@@ -10,7 +10,7 @@ import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 export function AppFooter() {
   return (
     <footer className="border-t bg-card mt-auto" role="contentinfo">
-      <div className="container-app py-6">
+      <div className="container-app py-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img
@@ -22,7 +22,7 @@ export function AppFooter() {
               aria-hidden="true"
             />
             <span className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Tech Fleet
+              Tech Fleet&trade; · © {new Date().getFullYear()} Tech Fleet, a Delaware nonprofit corporation.
             </span>
           </div>
           <nav
@@ -35,12 +35,24 @@ export function AppFooter() {
             <Link to="/terms-of-use" className="hover:text-foreground transition-colors">
               Terms of Use
             </Link>
+            <Link to="/code-of-conduct" className="hover:text-foreground transition-colors">
+              Code of Conduct
+            </Link>
             <PrivacyFooterLinks />
             <Link to="/accessibility" className="hover:text-foreground transition-colors">
               Accessibility
             </Link>
+            <Link to="/legal/dispute" className="hover:text-foreground transition-colors">
+              Dispute Resolution
+            </Link>
           </nav>
         </div>
+        <p className="text-center text-[11px] text-muted-foreground leading-relaxed">
+          8 The Grn Suite 6269, Dover, DE 19901, USA · 302-497-4065 ·{" "}
+          <a href="mailto:info@techfleet.org" className="hover:text-foreground underline">
+            info@techfleet.org
+          </a>
+        </p>
       </div>
     </footer>
   );
