@@ -361,6 +361,7 @@ export default function ProjectFormPage() {
   const handleSubmit = useCallback(() => {
     const result = projectSchema.safeParse(form);
     if (!result.success) {
+      reportValidationRejection("projectSchema", result.error.issues, "ProjectFormPage.handleSubmit");
       const fieldErrors: Partial<Record<keyof ProjectForm, string>> = {};
       result.error.issues.forEach((i) => {
         const k = i.path[0] as keyof ProjectForm;

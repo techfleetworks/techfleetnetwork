@@ -234,6 +234,7 @@ export function ClientsTab() {
   const handleSubmit = useCallback(() => {
     const result = clientSchema.safeParse(form);
     if (!result.success) {
+      reportValidationRejection("clientSchema", result.error.issues, "ClientsTab.handleSubmit");
       const fieldErrors: Partial<Record<keyof ClientForm, string>> = {};
       result.error.issues.forEach((i) => { const k = i.path[0] as keyof ClientForm; if (!fieldErrors[k]) fieldErrors[k] = i.message; });
       setErrors(fieldErrors);

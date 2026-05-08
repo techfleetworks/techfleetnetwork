@@ -166,6 +166,7 @@ export default function EditProfilePage() {
     });
 
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "EditProfilePage.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

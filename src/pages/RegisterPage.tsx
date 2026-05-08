@@ -156,6 +156,7 @@ export default function RegisterPage() {
     };
     const result = registerSchema.safeParse(payload);
     if (!result.success) {
+      reportValidationRejection("registerSchema", result.error.issues, "RegisterPage.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

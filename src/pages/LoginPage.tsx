@@ -162,6 +162,7 @@ export default function LoginPage() {
 
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
+      reportValidationRejection("loginSchema", result.error.issues, "LoginPage.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

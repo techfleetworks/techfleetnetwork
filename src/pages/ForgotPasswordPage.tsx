@@ -42,6 +42,7 @@ export default function ForgotPasswordPage() {
     }
     const result = emailInputSchema.safeParse(email);
     if (!result.success) {
+      reportValidationRejection("emailInputSchema", result.error.issues, "ForgotPasswordPage.handleSubmit");
       setError(result.error.issues[0].message);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);

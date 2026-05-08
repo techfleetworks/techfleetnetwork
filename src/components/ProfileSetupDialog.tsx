@@ -246,6 +246,7 @@ export function ProfileSetupDialog() {
     });
 
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "ProfileSetupDialog.handleSubmit");
       const errs: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

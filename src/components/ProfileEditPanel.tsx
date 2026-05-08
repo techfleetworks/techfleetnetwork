@@ -110,6 +110,7 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       education_background: form.education_background,
     });
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "ProfileEditPanel.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

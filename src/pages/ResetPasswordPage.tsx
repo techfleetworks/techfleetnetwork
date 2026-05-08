@@ -92,6 +92,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     const result = passwordSchema.safeParse(password);
     if (!result.success) {
+      reportValidationRejection("passwordSchema", result.error.issues, "ResetPasswordPage.handleSubmit");
       setError(result.error.issues[0].message);
       return;
     }
