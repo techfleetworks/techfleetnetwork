@@ -866,6 +866,7 @@ export default function ProjectApplicationPage() {
               </div>
             );
           })()}
+        </div>
       </div>
 
       {/* ── Sticky Footer Actions ─────────────────────────── */}
