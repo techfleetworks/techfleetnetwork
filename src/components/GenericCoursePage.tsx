@@ -535,7 +535,26 @@ export default function GenericCoursePage({
         <StepProgressBar
           steps={stepProgressData}
           currentStep={currentSectionStep}
-          onStepClick={(step) => toggleSection(step - 1)}
+          getStepHref={(s) => `#course-section-${s}`}
+          onStepClick={(s) => {
+            const idx = s - 1;
+            // Ensure section is OPEN (don't collapse on click).
+            setExpandedSections((prev) => {
+              if (prev.has(idx)) return prev;
+              const next = new Set(prev);
+              next.add(idx);
+              return next;
+            });
+            // Scroll to the section, honoring prefers-reduced-motion.
+            requestAnimationFrame(() => {
+              const el = document.getElementById(`course-section-${s}`);
+              if (!el) return;
+              const reduce =
+                typeof window !== "undefined" &&
+                window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+              el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+            });
+          }}
         />
       </div>
 
@@ -547,7 +566,7 @@ export default function GenericCoursePage({
           const sectionDone = done === total;
 
           return (
-            <div key={sIdx} className="card-elevated overflow-hidden border border-white/50">
+            <div key={sIdx} id={`course-section-${sIdx + 1}`} className="card-elevated overflow-hidden border border-white/50 scroll-mt-24">
               <button
                 onClick={() => toggleSection(sIdx)}
                 className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent/50 transition-colors"

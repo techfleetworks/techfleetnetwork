@@ -538,7 +538,20 @@ export default function ProjectApplicationPage() {
           })}
           currentStep={step}
           onStepClick={(s) => {
-            if (isCompleted || s <= step) setStep(s);
+            if (s === step) return;
+            // Soft-warn when jumping forward past an unvalidated step.
+            if (!isCompleted && s > step) {
+              const errs2 = s >= 2 ? validateStep2() : {};
+              const errs3 = s >= 3 ? validateStep3() : {};
+              const missing = Object.keys(errs2).length + Object.keys(errs3).length;
+              if (missing > 0) {
+                toast.info(`You can fill this out, but earlier steps still have ${missing} field${missing === 1 ? "" : "s"} to complete.`);
+              }
+            }
+            setErrors({});
+            setStep(s);
+            // Persist progress so refresh lands here.
+            saveMutation.mutate({ fields: collectFields(), newStep: s });
           }}
         />
         </div>
