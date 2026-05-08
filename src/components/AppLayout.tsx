@@ -59,6 +59,7 @@ import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { CookieConsentBanner } from "./CookieConsentBanner";
 import { PrivacyFooterLinks } from "./PrivacyFooterLinks";
+import { AppFooter } from "./AppFooter";
 // Heavy chat widget — lazy-loaded and skipped on save-data / 2g connections
 const FleetyChatWidget = lazy(() =>
   import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
@@ -313,61 +314,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <MfaEnforcementGuard />
         <LiveAnnouncer />
         <CookieConsentBanner />
-        <footer className="border-t bg-card" role="contentinfo">
-          <div className="container-app py-8">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <img
-                  src={techFleetLogo}
-                  alt=""
-                  className="h-6 w-6 dark:invert"
-                  width={24}
-                  height={24}
-                  aria-hidden="true"
-                />
-                <span className="text-sm text-muted-foreground">
-                  © {new Date().getFullYear()} Tech Fleet. All rights reserved.
-                </span>
-              </div>
-              <nav
-                aria-label="Footer navigation"
-                className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground"
-              >
-                <a
-                  href="https://techfleet.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Website
-                </a>
-                <a
-                  href="/policies/Terms-and-Conditions.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Terms &amp; Conditions
-                </a>
-                <a
-                  href="/policies/Terms-of-Use.docx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Terms of Use
-                </a>
-                <PrivacyFooterLinks />
-                <Link
-                  to="/accessibility"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Accessibility
-                </Link>
-              </nav>
-            </div>
-          </div>
-        </footer>
+        <AppFooter />
       </div>
     );
   }
