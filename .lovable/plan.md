@@ -1,124 +1,75 @@
-# Compliance Plan — Terms & Conditions + Terms of Use
+## Goal
 
-I read both policies end-to-end against the codebase, DB schema, auth flow, footer, registration, Fleety, recording flow, and the existing `recordPolicyAcknowledgment` helper. The documents make ~21 enforceable promises. The platform currently honors maybe a third of them. This plan closes every gap, in order of legal risk.
+Today users can Alt+Click anything navigational to force-open it in a new tab. That covers mouse users but not keyboard-only users. This plan adds a true **keyboard shortcut** that opens whatever link is currently focused (or, for mouse users, currently hovered) in a new tab — works on every link in the platform without per-page wiring.
 
-## Audit findings (current vs required)
+## Shortcut
 
-| # | Document promise | Current state | Gap |
-|---|---|---|---|
-| 1 | T&C §2 / ToU §2 — ≥18, or 13–17 with verifiable parent/guardian consent | `minAgeForCountry` defaults to **13**; no guardian flow; `profiles` stores only `birth_year` | Default age 18; add 13–17 guardian-consent path; store full DOB |
-| 2 | T&C §23 / ToU §19 — material-change re-acceptance | `recordPolicyAcknowledgment` writes to **localStorage only**; no version table; no re-prompt | DB-backed acknowledgments + version gate |
-| 3 | ToU §18 — electronic-communications consent | Implicit only | Explicit checkbox at signup, recorded |
-| 4 | T&C §19 / ToU §17 — sanctions & export controls | No screening | Block embargoed countries at signup; deny-list audit |
-| 5 | T&C §11 — recording consent + revocation by email | `VideoRecorder` exists, no consent record, no revocation endpoint | Per-session consent row + `/legal/revoke-recording` form → `info@techfleet.network` |
-| 6 | T&C §9 — EU 14-day right of withdrawal | No paid flow yet, no cancel route | `/legal/cancel-paid-service` form (gated, future-proof) |
-| 7 | ToU §11 — self-serve account deletion | Exists | Verify + link from footer |
-| 8 | T&C §21 — GDPR Art. 28 DPA when processor for client | No DPA template surfaced | Add DPA artifact + admin "Send DPA" action on Clients |
-| 9 | ToU §4 — acceptable use (no scraping/bots/abuse) | Partial (rate limits) | Add abuse-report route + WAF hint headers; document existing controls |
-| 10 | ToU §9 — Beta/AI disclaimer on AI outputs | Fleety lacks an in-line disclaimer | Add persistent "Beta · may be inaccurate · not professional advice" line in Fleety UI |
-| 11 | ToU §5/§47 — TM notice | Footer missing ™ + ownership line | Add `Tech Fleet™ © 2026` + DMCA link |
-| 12 | T&C §20 — informal 30-day dispute resolution | No intake | `/legal/dispute` form → audit row + email |
-| 13 | T&C §4 — Code of Conduct as binding doc | No CoC page | Add `/code-of-conduct` policy page + acceptance |
-| 14 | T&C §24 / ToU §21 — correct postal address | Says "Programs Office, Delaware, USA" | Replace with `8 The Grn Suite 6269, Dover, DE 19901` and `302-497-4065` |
-| 15 | T&C §23 — versioned effective dates per doc | Single `POLICY_LAST_UPDATED` constant | Per-policy version + checksum |
+- **Primary:** `Alt+Enter` (Option+Return on macOS)
+  - Native `Cmd/Ctrl+Enter` on a focused `<a href>` already opens a background tab — we keep that working untouched.
+  - `Alt+Enter` extends the same behavior to **buttons-as-links** (sidebar items, cards, step-progress nodes, anything with `data-href`) where the browser does nothing today.
+- **Mouse-friendly twin:** `Alt+Shift+O` opens the link currently under the cursor (last hovered `<a>` / `[data-href]`). Useful when the user isn't tabbing.
+- Discoverability: press **`?`** (Shift+/) anywhere outside an input to open a shortcut cheatsheet dialog.
 
-## Changes to ship
+## Scope of "link"
 
-### 1. Database (one migration)
+Same resolver as the existing Alt+Click handler (`src/lib/alt-click-new-tab.ts`):
+1. `<a href>` (covers all React Router `<Link>`s).
+2. Any element with `data-href` (opt-in for navigational `<button>`s).
+3. `role="link"` elements with `href` or `data-href`.
 
-```text
-policy_versions (
-  policy_key text,            -- 'terms','terms-of-use','privacy','cookies','accessibility','code-of-conduct'
-  version text,               -- 'YYYY-MM-DD'
-  effective_at timestamptz,
-  checksum text,              -- sha256 of markdown source
-  is_current boolean,
-  PRIMARY KEY (policy_key, version)
-)
+Skips: `mailto:`, `tel:`, `sms:`, `javascript:`, downloads, and anything already `target="_blank"`.
 
-policy_acknowledgments (
-  id uuid pk, user_id uuid null, anon_id text null,
-  policy_key text, version text,
-  method text check (method in ('checkbox','google-oauth','re-accept','registration')),
-  ip inet, user_agent text, accepted_at timestamptz default now(),
-  electronic_comms_consent boolean default false
-)
+## Changes
 
-recording_consents (
-  id uuid pk, user_id uuid, session_ref text, granted boolean,
-  granted_at timestamptz, revoked_at timestamptz null,
-  scope text check (scope in ('this-session','future-uses'))
-)
+### 1. `src/lib/alt-click-new-tab.ts` → rename to `src/lib/force-new-tab.ts`
 
-sanctions_screenings (
-  id uuid pk, user_id uuid, country_code text, decision text,
-  list_version text, screened_at timestamptz default now()
-)
+- Extract `resolveHref` and `findNavTarget` into reusable exports.
+- Keep the existing capture-phase click listener (no behavior change).
+- Add a `keydown` listener:
+  - On `Alt+Enter`: find the nearest nav target by walking up from `document.activeElement`. If found, `window.open(href, "_blank", "noopener,noreferrer")` and `preventDefault`.
+  - Ignore the shortcut while focus is in an `<input>`, `<textarea>`, `[contenteditable]`, or any element with `role="textbox"` (so it doesn't hijack form typing).
+- Add a `mousemove` listener (passive, throttled via `requestAnimationFrame`) that records the last hovered nav target in a module-level ref. `Alt+Shift+O` reads from it.
+- Rename the installer to `installForceNewTab()` and update the import in `src/main.tsx`.
 
-dispute_intake (
-  id uuid pk, user_id uuid null, email citext, summary text,
-  created_at timestamptz, resolved_at timestamptz null
-)
+### 2. New `src/components/ShortcutCheatsheet.tsx`
 
-dpa_executions (
-  id uuid pk, client_id uuid, signed_by text, signed_at timestamptz,
-  pdf_storage_path text, version text
-)
-```
+- Mounted once in `AppLayout` (all three branches).
+- Global `keydown` listener for `?` (Shift+/) — gated by the same input-focus check.
+- Renders a shadcn `<Dialog>` listing every shortcut:
+  - `Alt+Enter` — open focused link in new tab
+  - `Alt+Shift+O` — open hovered link in new tab
+  - `Alt+Click` — open clicked link in new tab
+  - `Cmd/Ctrl+K` — universal search
+  - `Esc` — close dialogs
+  - `?` — toggle this cheatsheet
+- Themed with existing semantic tokens, JetBrains Mono for the key chips, 100dvh-safe scroll on mobile, full keyboard trap + `aria-modal`.
+- Footer link "More accessibility info →" routes to `/accessibility`.
 
-`profiles`: add `birth_month`, `birth_day`, `guardian_email`, `guardian_consent_token`, `guardian_consent_at`, `electronic_comms_consent_at`. RLS: user reads own; admins read all; inserts via SECURITY DEFINER RPCs. Strict triggers (no PII in audit columns; hash-chain audit_log entry on every acknowledgment).
+### 3. Visible focus ring on nav targets
 
-### 2. Edge functions
+- No new component CSS needed — current `focus-visible` styles already pass WCAG 2.4.7. We will add one utility line in `index.css` to ensure `[data-href]` buttons get the same focus ring as anchors, so the shortcut's "what's focused" answer is unambiguous.
 
-- `record-policy-acknowledgment` — server-side insert with IP+UA, validates current `policy_versions`.
-- `screen-sanctions` — checks country against U.S. OFAC/EU/UK embargoed list (Cuba, Iran, North Korea, Syria, Crimea, Donetsk, Luhansk, Russia per export-control flag); returns deny + reason; logs to `sanctions_screenings`.
-- `revoke-recording-consent` — flips row, queues email to `info@techfleet.network`, notifies user.
-- `submit-dispute` — writes `dispute_intake`, emails legal alias, starts 30-day SLA timer (digest reminder).
-- `request-guardian-consent` — emails guardian a signed token link; on click → signs and updates `profiles`.
+### 4. BDD scenarios (`bdd_scenarios`, area: Navigation)
 
-All functions: JWT or service-role validation per Core rule.
+Tri-layer Then-clauses per project rule:
 
-### 3. Frontend
+- `KBD-NEWTAB-001` — Tab to a sidebar link, press Alt+Enter → [UI] new browser tab opens at that route, current tab unchanged; [DB] no writes; [Code] `window.open` called once with `_blank,noopener,noreferrer`.
+- `KBD-NEWTAB-002` — Focus a `data-href` button (e.g. a project card), press Alt+Enter → same as 001.
+- `KBD-NEWTAB-003` — Focus inside a `<textarea>`, press Alt+Enter → newline inserted, no tab opens (handler bails on editable focus).
+- `KBD-NEWTAB-004` — Hover a link, move focus elsewhere, press Alt+Shift+O → hovered link opens in new tab.
+- `KBD-NEWTAB-005` — Press `?` outside any input → cheatsheet dialog appears, focus trapped, Esc closes it.
+- `KBD-NEWTAB-006` — Press `?` while typing in the search box → character typed normally, dialog does not open.
+- `KBD-NEWTAB-007` — `mailto:` / `tel:` / download link focused, press Alt+Enter → handler no-ops, native behavior preserved.
 
-- **RegisterPage**: full DOB picker; default `minAgeForCountry` → **18**; if 13–17 → guardian-consent sub-flow (must complete before sign-in unlocks); explicit "I agree to receive electronic communications" checkbox; sanctions screen call before account creation.
-- **LegalPolicyPanel**: on accept, call `record-policy-acknowledgment` (not just localStorage); fall back to localStorage only if offline + retry on next sign-in.
-- **Re-acceptance gate**: `usePolicyVersionGate` hook in `AppLayout` blocks app shell with a non-dismissible re-accept sheet when any `is_current` version > user's last ack.
-- **Footer (`AppFooter`)**: add `Tech Fleet™ · © 2026 · 8 The Grn Suite 6269, Dover, DE 19901 · 302-497-4065 · info@techfleet.network`; add Code of Conduct, Dispute Resolution, DMCA, Cancel Paid Service links.
-- **Fleety**: persistent caption "Beta — Fleety can be inaccurate. Do not rely on it for legal, financial, medical, or other professional advice."
-- **VideoRecorder**: pre-recording consent modal with scope choice (this session / future use); writes `recording_consents`; "Revoke future use" link in user settings → calls revoke fn.
-- **New routes (all public, no login):** `/code-of-conduct`, `/legal/dispute`, `/legal/revoke-recording`, `/legal/cancel-paid-service`, `/legal/dmca`.
+## Out of scope
 
-### 4. Admin
+- No remapping UI (shortcuts are fixed; cheatsheet is read-only).
+- No change to existing Alt+Click behavior — only additions.
+- No change to Cmd/Ctrl+K universal search (already shipped).
 
-- Clients admin: "Send DPA" button → `dpa_executions`; download generated PDF that incorporates GDPR Art. 28 controller-processor terms.
-- System Health → new **Compliance** tab: counts of unaccepted-current-version users, pending guardian consents, open disputes (>30d highlighted red), sanctions denials, recording revocations.
+## Technical notes
 
-### 5. Content fixes (markdown)
-
-Update `public/policies/Terms-and-Conditions.md` §24 and `Terms-of-Use.md` §21 mailing address to:
-`Tech Fleet, 8 The Grn Suite 6269, Dover, DE 19901, USA · 302-497-4065`.
-Bump `POLICY_LAST_UPDATED` and seed `policy_versions` with checksums of all five markdown files + new Code of Conduct.
-
-### 6. BDD scenarios (inserted into `bdd_scenarios`)
-
-`COMPLY-AGE-001..004` (≥18, 13–17 guardian path, <13 deny, DOB tampering).
-`COMPLY-ACK-001..003` (server insert, version gate re-accept, offline retry).
-`COMPLY-SANC-001..002` (embargoed country deny, list version recorded).
-`COMPLY-REC-001..002` (consent capture + revocation email).
-`COMPLY-DISPUTE-001` (30-day SLA digest).
-`COMPLY-DPA-001` (admin sends DPA, audit hash chained).
-`COMPLY-COMMS-001` (electronic-comms consent stored).
-Each with tri-layer Then-clauses [UI]/[DB]/[Code] and `feature_area_number`.
-
-### 7. Memory
-
-New: `mem://compliance/terms-enforcement` summarizing the version-gate rule, age policy, sanctions list source, and dispute SLA. Add Core line: "Acknowledgments are server-side rows in `policy_acknowledgments`; localStorage is fallback only."
-
-## Out of scope (deferred, called out so we don't pretend)
-
-- Building an actual paid-billing/Stripe flow — only the cancellation intake is created now, gated until billing exists.
-- Live OFAC SDN per-name screening — country-level only this pass; per-name list ingestion is a follow-up.
-- Translating policy markdown into all i18n locales — we route to existing translation cache; English is canonical for now.
-- Court-grade e-signature for DPA — generated PDF with typed name + IP/UA is acceptable for B2B per current ESIGN/eIDAS guidance; Adobe Sign integration is future work.
-
-Approve and I'll implement in this order: migration → edge functions → server-side ack wiring → registration overhaul → version gate → footer/disclaimers → admin compliance tab → BDD + memory.
+- One file (`force-new-tab.ts`) owns all "force new tab" logic — click + keyboard + hover share the same resolver, so coverage stays consistent.
+- The hover ref is cleared on `mouseleave` of the document and on route change, so stale targets don't leak across pages.
+- All listeners are installed once from `main.tsx`; no per-page wiring; zero bundle cost on routes that don't use it.
+- Cheatsheet uses existing shadcn `Dialog` — no new deps.
