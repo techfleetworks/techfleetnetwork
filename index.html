@@ -90,6 +90,43 @@
         window.addEventListener('load', function () {
           try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
         });
+
+        // Mount watchdog — catches every other blank-screen cause that doesn't
+        // surface as an asset error event (CSP refusals, module-eval throws,
+        // hung top-level awaits, stale CDN HTML referencing chunks that 200
+        // but fail to evaluate). If #root is still empty 8s after DOM parse,
+        // hard-reload ONCE per tab with a fresh cache-bust query param.
+        var WATCHDOG_KEY = '__tfn_blank_watchdog_reload__';
+        function rootHasContent() {
+          var root = document.getElementById('root');
+          return !!(root && root.firstElementChild);
+        }
+        function hardReloadWithBust() {
+          try {
+            if (sessionStorage.getItem(WATCHDOG_KEY)) return;
+            sessionStorage.setItem(WATCHDOG_KEY, '1');
+          } catch (e) { /* ignore */ }
+          var u = new URL(window.location.href);
+          u.searchParams.set('_w', String(Date.now()));
+          window.location.replace(u.toString());
+        }
+        // Run watchdog 8s after the document finishes parsing.
+        document.addEventListener('DOMContentLoaded', function () {
+          setTimeout(function () {
+            if (!rootHasContent() && document.visibilityState !== 'hidden') {
+              hardReloadWithBust();
+            }
+          }, 8000);
+          // Once React mounts, drop the flag so future blank states can recover.
+          var clearObserver = new MutationObserver(function () {
+            if (rootHasContent()) {
+              try { sessionStorage.removeItem(WATCHDOG_KEY); } catch (e) {}
+              clearObserver.disconnect();
+            }
+          });
+          var rootEl = document.getElementById('root');
+          if (rootEl) clearObserver.observe(rootEl, { childList: true });
+        });
       })();
     </script>
 
