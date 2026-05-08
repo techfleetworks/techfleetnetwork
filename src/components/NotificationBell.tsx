@@ -318,7 +318,7 @@ export function NotificationBell() {
             {selectedNotification && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedNotification.body_html) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(selectedNotification.body_html)) }}
               />
             )}
             {selectedNotification?.link_url && (
