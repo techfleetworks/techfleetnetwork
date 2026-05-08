@@ -308,7 +308,7 @@ export function TriageTab() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setDetailRow(row)}
+                        onClick={() => openDetails(row)}
                       >
                         Details
                       </Button>
