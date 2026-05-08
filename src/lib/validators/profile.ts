@@ -40,7 +40,7 @@ export const profileSchema = z.object({
   linkedin_url: safeUrl("LinkedIn URL", 500),
   scheduling_url: safeUrl("Scheduling link", 500),
   experience_areas: safeStringArraySchema("Experience areas", 30, 200).optional().default([]),
-  professional_goals: safeShortTextSchema("Professional goals", 2000).optional().default(""),
+  professional_goals: safeMultilineTextSchema("Professional goals", 2000).optional().default(""),
   notify_training_opportunities: z.boolean().optional().default(false),
   notify_announcements: z.boolean().optional().default(false),
   education_background: safeStringArraySchema("Education background", 20, 200).optional().default([]),
