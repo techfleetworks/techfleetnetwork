@@ -9,7 +9,7 @@ import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   Loader2, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper, AlertTriangle,
+  PartyPopper, AlertTriangle, Pencil, AlertCircle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { FlowMobileNav } from "@/components/FlowMobileNav";
