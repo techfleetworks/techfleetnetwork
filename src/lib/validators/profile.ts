@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { safeRequiredTextSchema, safeShortTextSchema, safeStringArraySchema, safeUrlSchema } from "@/lib/validators/shared-input";
+import { safeMultilineTextSchema, safeRequiredTextSchema, safeShortTextSchema, safeStringArraySchema, safeUrlSchema } from "@/lib/validators/shared-input";
 
 // A03: Input validation with strict sanitization
 const safeText = (label: string, max: number) =>
