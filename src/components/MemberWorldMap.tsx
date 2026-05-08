@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Globe } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { safeRpc } from "@/lib/supabase/safe-rpc";
 import { geoEqualEarth, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
