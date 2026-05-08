@@ -447,7 +447,7 @@ export function FleetyChatWidget() {
                 <img src={fleetyIcon} alt="" className="h-6 w-6 rounded-full" width={24} height={24} aria-hidden="true" />
                 Fleety
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 mr-8">
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowHistory(!showHistory)} aria-label="Toggle history">
                   <MessageSquare className="h-4 w-4" />
                 </Button>
