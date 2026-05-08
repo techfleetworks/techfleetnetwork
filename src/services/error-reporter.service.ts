@@ -142,7 +142,10 @@ function checkRateLimit(eventType: string, capPerMinute: number): boolean {
 function checkDedup(fp: string, dedupWindowMs: number): boolean {
   const now = Date.now();
   const lastSeen = recentErrors.get(fp);
-  if (lastSeen && now - lastSeen < dedupWindowMs) return false;
+  if (lastSeen && now - lastSeen < dedupWindowMs) {
+    recordDedup(fp);
+    return false;
+  }
   recentErrors.set(fp, now);
   if (recentErrors.size > 200) {
     const cutoff = now - dedupWindowMs;
