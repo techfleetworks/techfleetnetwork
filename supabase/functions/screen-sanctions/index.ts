@@ -1,0 +1,47 @@
+/**
+ * screen-sanctions — country-level export-control / sanctions screening
+ * called from the registration flow (T&C §19 / ToU §17). Records every
+ * decision in `sanctions_screenings` for audit. Does not require auth — the
+ * user does not yet have an account when they are screened.
+ */
+import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  corsHeaders, json, clientIp, isEmbargoed, SANCTIONS_LIST_VERSION,
+} from "../_shared/compliance.ts";
+
+interface Body { email?: string; country_code?: string }
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  let body: Body = {};
+  try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
+
+  const country = (body.country_code || "").trim().toUpperCase();
+  if (!/^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(country)) return json({ error: "invalid_country" }, 400);
+  const email = (body.email || "").trim().toLowerCase().slice(0, 255);
+
+  const denied = isEmbargoed(country);
+  const decision = denied ? "deny" : "allow";
+  const reason = denied
+    ? `Country ${country} is on the U.S./EU/UK export-control or sanctions list as of ${SANCTIONS_LIST_VERSION}.`
+    : null;
+
+  const client = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { auth: { persistSession: false } },
+  );
+
+  await client.rpc("record_sanctions_screening", {
+    p_email: email || null,
+    p_country: country,
+    p_decision: decision,
+    p_list_version: SANCTIONS_LIST_VERSION,
+    p_reason: reason,
+    p_ip: clientIp(req),
+  });
+
+  return json({ decision, reason, list_version: SANCTIONS_LIST_VERSION });
+});
