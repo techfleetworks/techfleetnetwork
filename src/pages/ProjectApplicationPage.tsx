@@ -912,16 +912,16 @@ export default function ProjectApplicationPage() {
               </Button>
             )}
 
-            {/* Step 2: Next */}
-            {step === 2 && !isCompleted && (
+            {/* Steps 2 & 3: Next */}
+            {(step === 2 || step === 3) && !isCompleted && (
               <Button onClick={handleNext} disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Next
               </Button>
             )}
 
-            {/* Step 3: Submit — blue only when all fields entered */}
-            {step === 3 && !isCompleted && (
+            {/* Step 4: Submit — blue only when all fields entered */}
+            {step === 4 && !isCompleted && (
               <Button
                 onClick={handleSubmit}
                 disabled={isSaving || !isSubmitReady}
