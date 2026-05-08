@@ -436,11 +436,11 @@ export const AuthService = {
           // Non-fatal: surface as warning so password reset / settings flows
           // never get blocked by transient GoTrue / network errors.
           log.warn("signOutAllDevices", `Edge revoke returned error: ${error.message}`, undefined, error);
-          void logAccountActivity("signout_all_devices_failed", { errorMessage: error.message });
+          void logAccountActivity("signout_local", { errorMessage: error.message });
         } else {
           revocationRecorded = Boolean((data as any)?.revocation_recorded);
           gotrueSignedOut = Boolean((data as any)?.gotrue_signed_out);
-          void logAccountActivity("signout_all_devices", { reason, keepCurrent });
+          void logAccountActivity("signout_all_devices", { details: { reason, keepCurrent } });
         }
       } catch (err) {
         log.warn("signOutAllDevices", `Edge revoke threw (non-fatal): ${(err as Error)?.message}`, undefined, err instanceof Error ? err : undefined);
