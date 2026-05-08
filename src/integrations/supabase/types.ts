@@ -5077,6 +5077,7 @@ export type Database = {
         Args: { p_event: string; p_msg: string; p_table: string }
         Returns: string
       }
+      count_classes_pending_review: { Args: never; Returns: number }
       decrypt_pii: { Args: { cipher: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }

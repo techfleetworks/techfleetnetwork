@@ -34,7 +34,23 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useTeacher } from "@/hooks/use-teacher";
+import { useQuery } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+
+function usePendingClassesCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["classes", "pending-count"] as const,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("count_classes_pending_review");
+      if (error) return 0;
+      return (data as number) ?? 0;
+    },
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
 
 const homeNav = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
@@ -72,6 +88,7 @@ export const AppSidebar = memo(function AppSidebar() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
   const { isTeacher } = useTeacher();
+  const { data: pendingCount = 0 } = usePendingClassesCount(isAdmin);
 
   const isActive = useCallback((href: string) =>
     location.pathname === href || location.pathname.startsWith(href + "/"), [location.pathname]);
@@ -196,9 +213,17 @@ export const AppSidebar = memo(function AppSidebar() {
                     isActive={isActive("/admin/classes")}
                     tooltip="Classes"
                   >
-                    <Link to="/admin/classes">
+                    <Link to="/admin/classes" className="flex items-center gap-2 w-full">
                       <School className="h-4 w-4" />
-                      <span>Classes</span>
+                      <span className="flex-1">Classes</span>
+                      {pendingCount > 0 && (
+                        <span
+                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-warning text-warning-foreground"
+                          aria-label={`${pendingCount} classes pending review`}
+                        >
+                          {pendingCount > 99 ? "99+" : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
