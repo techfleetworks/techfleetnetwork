@@ -296,11 +296,14 @@ export async function streamRecommendations({ query, onChunk, signal }: StreamOp
         apikey: ANON_KEY,
       },
       body: JSON.stringify({
+        // NOTE: techfleet-chat strips client-side system messages, so the
+        // Explore-specific formatting contract MUST live inside the user
+        // message or the AI will reply in chat prose and parseRecommendations
+        // will produce zero cards.
         messages: [
-          { role: "system", content: EXPLORE_SYSTEM_PROMPT },
           {
             role: "user",
-            content: `I want to: ${query}\n\nPlease recommend the most relevant Tech Fleet resources, handbooks, workshops, and courses that will help me accomplish this.`,
+            content: `${EXPLORE_SYSTEM_PROMPT}\n\n---\n\nI want to: ${query}\n\nPlease recommend the most relevant Tech Fleet resources, handbooks, workshops, and courses that will help me accomplish this. Reply using the exact "### Name / **Type:** / **Description:** / **🌟 Why We Recommend:** / **Link:**" structure described above — no preamble, no closing remarks.`,
           },
         ],
       }),
