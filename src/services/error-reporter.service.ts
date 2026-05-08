@@ -109,7 +109,8 @@ export type ReportEventType =
   | "client_error_suppressed"
   | "client_error_deduped"
   | "external_api_recovered"
-  | "validation_rejected";
+  | "validation_rejected"
+  | "rpc_failed";
 
 interface ReportOptions {
   severity?: ReportSeverity;
