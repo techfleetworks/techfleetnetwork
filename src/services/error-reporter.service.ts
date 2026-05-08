@@ -349,6 +349,12 @@ const SUPPRESSED_PATTERNS = [
   "chrome-extension://",
   "moz-extension://",
   "safari-web-extension://",
+  // --- React Hook Form + Zod resolver noise ---
+  // The zodResolver internally rejects with the ZodError before RHF catches it
+  // and converts it into form.formState.errors. The form UI shows the error
+  // correctly to the user; the global unhandledrejection handler picks up the
+  // intermediate rejection. This is benign — suppress it.
+  "ZodError",
 ] as const;
 
 // Suppress empty unhandledrejection payloads ("{}") — almost always extension noise
