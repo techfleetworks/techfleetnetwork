@@ -255,9 +255,14 @@ export default function UpdatesPage() {
                 <video
                   src={selectedAnnouncement.video_url}
                   controls
+                  controlsList="nodownload"
                   playsInline
+                  preload="metadata"
                   className="w-full rounded-lg aspect-video bg-black"
                   aria-label="Announcement video"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerUp={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 />
               )}
               {!selectedAnnouncement?.video_url && selectedAnnouncement?.audio_url && (
@@ -266,8 +271,13 @@ export default function UpdatesPage() {
                   <audio
                     src={selectedAnnouncement.audio_url}
                     controls
+                    controlsList="nodownload"
+                    preload="metadata"
                     className="w-full h-10"
                     aria-label="Announcement audio"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               )}
