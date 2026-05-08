@@ -1622,4 +1622,4 @@ serve(withAuditWrapper("techfleet-chat", async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));
