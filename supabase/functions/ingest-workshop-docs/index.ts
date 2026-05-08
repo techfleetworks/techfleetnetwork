@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("ingest-workshop-docs");
 
 const corsHeaders = {
@@ -90,7 +91,7 @@ function buildEntry(doc: WorkshopDoc): { url: string; title: string; content: st
   };
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("ingest-workshop-docs", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   if (req.method !== "POST") {
@@ -222,4 +223,4 @@ serve(async (req) => {
     JSON.stringify({ success: true, inserted, errors, results }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
-});
+}));

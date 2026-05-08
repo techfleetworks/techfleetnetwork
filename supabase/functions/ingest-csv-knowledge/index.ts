@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("ingest-csv-knowledge");
 
 const corsHeaders = {
@@ -80,7 +81,7 @@ function parseCsvToMarkdown(csvText: string, datasetName: string): { url: string
   return entries;
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("ingest-csv-knowledge", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -202,4 +203,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("resolve-discord-id");
 
 const corsHeaders = {
@@ -71,7 +72,7 @@ function isAllowedUiOrigin(req: Request) {
   return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("resolve-discord-id", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -449,4 +450,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

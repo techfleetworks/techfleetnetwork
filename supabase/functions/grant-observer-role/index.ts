@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("grant-observer-role");
 
 const corsHeaders = {
@@ -42,7 +43,7 @@ async function audit(
   } catch { /* swallow */ }
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("grant-observer-role", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -298,4 +299,4 @@ serve(async (req) => {
     observers_granted: results.observers_granted,
     error: results.error ?? "Failed to grant one or more roles",
   }, 502);
-});
+}));

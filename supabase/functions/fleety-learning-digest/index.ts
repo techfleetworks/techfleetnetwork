@@ -13,6 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
@@ -40,7 +41,7 @@ function detectRelationshipQuestion(q: string): { from: string; to: string } | n
   return null;
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("fleety-learning-digest", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth: service-role only
@@ -302,4 +303,4 @@ serve(async (req) => {
     canned_drafts_decayed: cannedDecayed,
     playbook_drafts_created: playbookDrafts,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-});
+}));

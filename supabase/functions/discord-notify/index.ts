@@ -5,6 +5,7 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 import { buildMessage, validateNotifyPayload, type NotifyPayload } from "./notify-utils.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("discord-notify");
 
 /**
@@ -49,7 +50,7 @@ async function requestFingerprint(userId: string, payload: NotifyPayload) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("discord-notify", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -155,4 +156,4 @@ serve(async (req) => {
     // OWASP A09: Generic error message
     return jsonResponse({ error: "An unexpected error occurred" }, 500);
   }
-});
+}));
