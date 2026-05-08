@@ -377,9 +377,115 @@ function isOpaqueScriptError(event: ErrorEvent, msg: string): boolean {
   return msg === "Script error." && !event.error && !event.filename && event.lineno === 0 && event.colno === 0;
 }
 
+// --- Aggregate observability for silent drops ------------------------
+// We never want suppression / dedup to be a black hole. Once a minute we
+// emit a single audit row summarizing what got dropped, so admins can spot
+// regressions (e.g. a new browser extension flooding noise) in System Health.
+const suppressedCounts = new Map<string, number>();
+const dedupCounts = new Map<string, number>();
+let suppressionFlushTimer: ReturnType<typeof setTimeout> | null = null;
+const SUPPRESSION_FLUSH_MS = 60_000;
+
+function scheduleSuppressionFlush() {
+  if (suppressionFlushTimer) return;
+  suppressionFlushTimer = setTimeout(() => {
+    suppressionFlushTimer = null;
+    const supEntries = [...suppressedCounts.entries()];
+    const dedupEntries = [...dedupCounts.entries()];
+    suppressedCounts.clear();
+    dedupCounts.clear();
+    for (const [pattern, count] of supEntries) {
+      if (count <= 0) continue;
+      void writeAudit({
+        eventType: "client_error_suppressed",
+        message: `${count} client error(s) suppressed by pattern "${pattern}"`,
+        source: "error-reporter.suppression",
+        severity: "warn",
+        traceId: undefined,
+        extraFields: [`pattern:${pattern.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`, `count:${count}`],
+        userId: undefined,
+      });
+    }
+    for (const [fp, count] of dedupEntries) {
+      if (count <= 1) continue; // first hit wasn't a drop
+      void writeAudit({
+        eventType: "client_error_deduped",
+        message: `${count - 1} duplicate client error(s) deduped`,
+        source: fp.split("::")[1] ?? "unknown",
+        severity: "warn",
+        traceId: undefined,
+        extraFields: [`fingerprint:${fp.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 80)}`, `count:${count}`],
+        userId: undefined,
+      });
+    }
+  }, SUPPRESSION_FLUSH_MS);
+}
+
+function recordSuppression(pattern: string) {
+  suppressedCounts.set(pattern, (suppressedCounts.get(pattern) ?? 0) + 1);
+  scheduleSuppressionFlush();
+}
+
+function recordDedup(fp: string) {
+  dedupCounts.set(fp, (dedupCounts.get(fp) ?? 0) + 1);
+  scheduleSuppressionFlush();
+}
+
 function isSuppressed(msg: string): boolean {
-  if (isEmptyRejection(msg)) return true;
-  return SUPPRESSED_PATTERNS.some((p) => msg.includes(p));
+  if (isEmptyRejection(msg)) {
+    recordSuppression("__empty_rejection__");
+    return true;
+  }
+  for (const p of SUPPRESSED_PATTERNS) {
+    if (msg.includes(p)) {
+      recordSuppression(p.slice(0, 60));
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Report a Zod (or any) validation rejection so admins can spot false-positive
+ * regex patterns that are silently blocking legitimate user input.
+ *
+ * Severity is `warn` (not `error`) — these aren't crashes, but they ARE
+ * high-signal UX bugs we always want to see in triage.
+ *
+ * @example
+ *   const result = profileSchema.safeParse(input);
+ *   if (!result.success) {
+ *     reportValidationRejection("profileSchema", result.error.issues, "ProfileSetupPage.handleSubmit");
+ *   }
+ */
+export function reportValidationRejection(
+  schemaName: string,
+  issues: ReadonlyArray<{ path: PropertyKey[]; message: string; code?: string }>,
+  source: string,
+  options: Omit<ReportOptions, "eventType" | "severity"> = {},
+) {
+  if (!issues || issues.length === 0) return;
+  const first = issues[0];
+  const fieldPath = first.path.map(String).join(".") || "(root)";
+  const code = first.code ?? "validation";
+  // Compact message lists every offending field so admins can see scope.
+  const fields = issues.slice(0, 8).map((i) => {
+    const f = i.path.map(String).join(".") || "(root)";
+    return `${f}: ${i.message}`;
+  }).join(" | ");
+  const message = `[${schemaName}] ${fields}`;
+  void reportToAuditLog(message, source, {
+    ...options,
+    eventType: "validation_rejected",
+    severity: "warn",
+    extraFields: [
+      `schema:${schemaName.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`,
+      `field:${fieldPath.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`,
+      `code:${String(code).replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 40)}`,
+      `count:${issues.length}`,
+      ...(options.extraFields ?? []),
+    ],
+  });
 }
 
 export function installGlobalErrorReporter() {
