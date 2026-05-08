@@ -56,8 +56,6 @@ function findNavTarget(start: EventTarget | null): { el: Element; href: string }
 
 function isEditableTarget(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
-  if (el.isContentEditable) return false === false && true; // satisfy TS narrow
-  // The line above just ensures contenteditable counts. Full check:
   if (el.isContentEditable) return true;
   const tag = el.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
