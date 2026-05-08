@@ -478,9 +478,34 @@ export default function RegisterPage() {
                 />
               </div>
               <p id="dob-help" className="text-xs text-muted-foreground mt-1">
-                We use this only to confirm you meet the minimum age for your region (currently {minAge}+). We store the year only.
+                Tech Fleet is for ages 18+. Users 13–17 may join with a parent or guardian's consent (T&amp;C §2). We store the year only.
               </p>
             </ValidatedField>
+
+            {(() => {
+              const age = dobParts ? ageInYears(dobParts.birthYear, dobParts.birthMonth, dobParts.birthDay) : null;
+              const needsGuardian = age !== null && age >= GUARDIAN_MIN_AGE && age < 18;
+              if (!needsGuardian) return null;
+              return (
+                <ValidatedField id="reg-guardian" label="Parent or guardian email" required error={errors.guardianEmail} value={guardianEmail} touched={touched.guardianEmail}>
+                  <div className="relative">
+                    <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <Input id="reg-guardian" type="email" placeholder="parent@example.com" value={guardianEmail} onChange={(e) => setGuardianEmail(e.target.value)} onBlur={() => markTouched("guardianEmail")} className={`pl-10 ${bc("guardianEmail", guardianEmail)}`} autoComplete="email" required aria-required="true" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We will email your parent or guardian to confirm consent before your account is fully activated.
+                  </p>
+                </ValidatedField>
+              );
+            })()}
+
+            <div className="flex items-start gap-2">
+              <Checkbox id="comms" checked={electronicCommsConsent} onCheckedChange={(checked) => { setElectronicCommsConsent(checked === true); markTouched("electronicCommsConsent"); }} aria-required="true" aria-invalid={!!errors.electronicCommsConsent} />
+              <Label htmlFor="comms" className="text-sm leading-relaxed">
+                I agree to receive notices, account alerts, and other electronic communications by email (ToU §18).
+              </Label>
+            </div>
+            {errors.electronicCommsConsent && <p className="text-sm text-destructive flex items-center gap-1" role="alert"><span className="h-3 w-3 shrink-0">⚠</span> {errors.electronicCommsConsent}</p>}
 
             <div className="flex items-start gap-2">
               <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => { setAgreedToTerms(checked === true); markTouched("agreedToTerms"); }} aria-required="true" aria-invalid={!!errors.agreedToTerms} />
