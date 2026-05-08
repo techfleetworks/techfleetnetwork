@@ -34,7 +34,23 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useTeacher } from "@/hooks/use-teacher";
+import { useQuery } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+
+function usePendingClassesCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["classes", "pending-count"] as const,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("count_classes_pending_review");
+      if (error) return 0;
+      return (data as number) ?? 0;
+    },
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
 
 const homeNav = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
