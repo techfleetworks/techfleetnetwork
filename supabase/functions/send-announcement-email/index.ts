@@ -1,5 +1,49 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// --- linkify helpers (kept in-sync with src/lib/linkify.ts) ---
+const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"'()]+[^\s<>"'(),.;:!?])/gi;
+const EMAIL_RE = /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
+const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const escAttr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+
+function linkifyTextNode(text: string): string {
+  type M = { start: number; end: number; html: string };
+  const ms: M[] = [];
+  const collect = (re: RegExp, build: (m: string) => string) => {
+    re.lastIndex = 0; let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) ms.push({ start: m.index, end: m.index + m[0].length, html: build(m[0]) });
+  };
+  collect(URL_RE, (raw) => {
+    const href = raw.startsWith("www.") ? `https://${raw}` : raw;
+    return `<a href="${escAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">${escHtml(raw)}</a>`;
+  });
+  collect(EMAIL_RE, (raw) => `<a href="mailto:${escAttr(raw)}">${escHtml(raw)}</a>`);
+  if (ms.length === 0) return escHtml(text);
+  ms.sort((a, b) => a.start - b.start || a.end - b.end);
+  const filtered: M[] = []; let lastEnd = -1;
+  for (const m of ms) { if (m.start >= lastEnd) { filtered.push(m); lastEnd = m.end; } }
+  let out = ""; let cursor = 0;
+  for (const m of filtered) { out += escHtml(text.slice(cursor, m.start)); out += m.html; cursor = m.end; }
+  return out + escHtml(text.slice(cursor));
+}
+
+function linkifyHtml(html: string): string {
+  if (typeof html !== "string" || !html) return "";
+  let i = 0, out = "", inAnchor = 0; const len = html.length;
+  while (i < len) {
+    const lt = html.indexOf("<", i);
+    if (lt === -1) { const rest = html.slice(i); out += inAnchor > 0 ? rest : linkifyTextNode(rest); break; }
+    if (lt > i) { const t = html.slice(i, lt); out += inAnchor > 0 ? t : linkifyTextNode(t); }
+    const gt = html.indexOf(">", lt + 1);
+    if (gt === -1) { out += html.slice(lt); break; }
+    const tag = html.slice(lt, gt + 1); out += tag;
+    if (/^<a\b/i.test(tag)) inAnchor++;
+    else if (/^<\/a\s*>/i.test(tag) && inAnchor > 0) inAnchor--;
+    i = gt + 1;
+  }
+  return out;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
