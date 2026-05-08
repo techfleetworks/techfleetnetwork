@@ -44,6 +44,16 @@ interface FixQueueRow {
   triaged_at: string | null;
 }
 
+interface TriageAuditRow {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  rule_name: string;
+  matching_signal: string | null;
+  actor_id: string | null;
+  created_at: string;
+}
+
 const statusVariant: Record<FixStatus, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "destructive",
   triaged: "secondary",
@@ -82,6 +92,8 @@ export function TriageTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [budgetUsed, setBudgetUsed] = useState<number | null>(null);
   const [detailRow, setDetailRow] = useState<FixQueueRow | null>(null);
+  const [auditRows, setAuditRows] = useState<TriageAuditRow[] | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -112,6 +124,27 @@ export function TriageTab() {
   }, []);
 
   useEffect(() => { void fetchAll(); }, [fetchAll]);
+
+  const openDetails = useCallback(async (row: FixQueueRow) => {
+    setDetailRow(row);
+    setAuditRows(null);
+    setAuditLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("triage_audit_log")
+        .select("id,from_status,to_status,rule_name,matching_signal,actor_id,created_at")
+        .eq("fix_queue_id", row.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      setAuditRows((data ?? []) as TriageAuditRow[]);
+    } catch (e) {
+      toast.error("Failed to load resolution history", { description: (e as Error).message });
+      setAuditRows([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
 
   const runTriage = async (row: FixQueueRow) => {
     setBusyId(row.id);
@@ -275,7 +308,7 @@ export function TriageTab() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setDetailRow(row)}
+                        onClick={() => openDetails(row)}
                       >
                         Details
                       </Button>
@@ -346,6 +379,35 @@ export function TriageTab() {
                     </ul>
                   </Section>
                 )}
+
+                <Section title="Resolution history">
+                  {auditLoading ? (
+                    <Skeleton className="h-12 w-full" />
+                  ) : !auditRows || auditRows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No status changes recorded yet.</p>
+                  ) : (
+                    <ol className="space-y-2">
+                      {auditRows.map((a) => (
+                        <li key={a.id} className="text-xs border-l-2 border-primary/40 pl-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="font-mono">{a.rule_name}</Badge>
+                            <span className="text-muted-foreground">
+                              {a.from_status ?? "—"} → <span className="text-foreground font-medium">{a.to_status}</span>
+                            </span>
+                            <span className="text-muted-foreground">
+                              {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          {a.matching_signal && (
+                            <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words">
+                              <span className="font-semibold">Signal:</span> {a.matching_signal}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </Section>
               </div>
 
               <DialogFooter className="flex-col sm:flex-row gap-2">
