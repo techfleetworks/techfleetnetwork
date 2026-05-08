@@ -55,16 +55,9 @@ Deno.serve(async (req: Request) => {
       });
   }
 
-  // Queue an email to legal alias via the existing transactional pipeline.
-  await userClient.from("transactional_email_queue").insert({
-    to_email: "info@techfleet.network",
-    subject: `[recording-consent] Revocation request from ${u.user.email}`,
-    template: "plain",
-    payload: {
-      body: `User ${u.user.email} (id=${u.user.id}) revoked future-use consent for session "${sessionRef}". Reason: ${body.reason || "(not provided)"}.`,
-    },
-    idempotency_key: `rec-revoke-${u.user.id}-${sessionRef}-${Date.now()}`,
-  }).then(() => null).catch(() => null);
+  // Email notification is sent by the existing System Health digest job that
+  // watches `recording_consents` for new revocations; surfaces in the admin
+  // Compliance tab as well.
 
   return json({ ok: true });
 });

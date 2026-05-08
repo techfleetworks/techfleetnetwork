@@ -43,16 +43,8 @@ Deno.serve(async (req: Request) => {
   });
   if (error) return json({ error: error.message }, 500);
 
-  // Best-effort notification to legal alias.
-  client.from("transactional_email_queue").insert({
-    to_email: "info@techfleet.network",
-    subject: `[dispute-intake] New informal dispute from ${email}`,
-    template: "plain",
-    payload: {
-      body: `Category: ${body.category || "(unspecified)"}\nFrom: ${body.full_name || "(no name)"} <${email}>\n\n${summary}\n\nDispute id: ${id}\n30-day clock starts now.`,
-    },
-    idempotency_key: `dispute-${id}`,
-  }).then(() => null).catch(() => null);
+  // The admin Compliance tab and the daily digest cron surface new disputes
+  // and warn admins when any row stays unresolved past 30 days.
 
   return json({ ok: true, id });
 });
