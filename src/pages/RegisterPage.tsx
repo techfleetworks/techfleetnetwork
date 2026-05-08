@@ -25,6 +25,7 @@ import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 import { PolicyLinksInline } from "@/components/PolicyLinksInline";
 import { recordPolicyAcknowledgment } from "@/lib/policies";
 import { loadConsent } from "@/lib/consent/manager";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function RegisterPage() {
   const location = useLocation();

@@ -8,6 +8,7 @@ import { AuthService } from "@/services/auth.service";
 import { passwordSchema } from "@/lib/validators/auth";
 import { supabase } from "@/integrations/supabase/client";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 const passwordRequirements = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },

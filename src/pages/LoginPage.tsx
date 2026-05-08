@@ -22,6 +22,7 @@ import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

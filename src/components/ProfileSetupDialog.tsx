@@ -21,6 +21,7 @@ import { TIMEZONES } from "@/lib/timezones";
 import { cn } from "@/lib/utils";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 
 export function ProfileSetupDialog() {

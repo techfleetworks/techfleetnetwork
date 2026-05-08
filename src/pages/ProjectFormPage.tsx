@@ -57,6 +57,7 @@ import {
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
 import type { Client } from "@/components/clients/ClientsTab";
 import { cn } from "@/lib/utils";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 // ---------- Helpers ----------
 const optionalUrl = z.string().refine(

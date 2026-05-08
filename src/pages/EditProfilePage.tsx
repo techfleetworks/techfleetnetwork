@@ -38,6 +38,7 @@ import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
