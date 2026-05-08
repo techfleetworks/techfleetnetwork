@@ -58,6 +58,7 @@ import { UniversalSearch } from "./UniversalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { CookieConsentBanner } from "./CookieConsentBanner";
+import { ShortcutCheatsheet } from "./ShortcutCheatsheet";
 import { PrivacyFooterLinks } from "./PrivacyFooterLinks";
 import { AppFooter } from "./AppFooter";
 // Heavy chat widget — lazy-loaded and skipped on save-data / 2g connections
@@ -314,6 +315,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <MfaEnforcementGuard />
         <LiveAnnouncer />
         <CookieConsentBanner />
+        <ShortcutCheatsheet />
         <AppFooter />
       </div>
     );
@@ -473,6 +475,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <LiveAnnouncer />
         <CookieConsentBanner />
         <AdminTwoFactorGraceDialog />
+        <ShortcutCheatsheet />
         <FleetyChatWidget />
       </div>
     ) : (
@@ -506,6 +509,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <CookieConsentBanner />
         <AdminTwoFactorGraceDialog />
         <FleetyChatWidget />
+        <ShortcutCheatsheet />
       </SidebarProvider>
     );
 
