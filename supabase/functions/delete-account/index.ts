@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("delete-account");
 
 const corsHeaders = {
@@ -22,7 +23,7 @@ const corsHeaders = {
  *
  * Single source of truth: deleting auth.users is the ONLY entrypoint.
  */
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("delete-account", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -91,4 +92,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

@@ -1,12 +1,13 @@
 import { queueTransactionalEmail } from '../_shared/transactional-email.ts'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("send-transactional-email", async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -90,4 +91,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   )
-})
+}))

@@ -17,6 +17,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -182,7 +183,7 @@ function capCell(val: string): string {
   return val.slice(0, CELL_CAP) + ` …[truncated ${removed} chars]`;
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("ingest-reference-csv", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth: JWT + admin role, OR service-role bearer (for trusted server-side ingest)
@@ -449,4 +450,4 @@ serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}));

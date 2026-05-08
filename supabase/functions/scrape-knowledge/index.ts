@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("scrape-knowledge");
 
 const corsHeaders = {
@@ -20,7 +21,7 @@ const ALLOWED_SCRAPE_DOMAINS = new Set([
 /** Max body size (8 KB) */
 const MAX_BODY_BYTES = 8 * 1024;
 
-serve(async (req) => {
+serve(withAuditWrapper("scrape-knowledge", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -301,4 +302,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}));

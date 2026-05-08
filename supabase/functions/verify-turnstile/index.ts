@@ -1,5 +1,6 @@
 import { z } from "npm:zod@4.3.6";
 import {
+import { withAuditWrapper } from "../_shared/audit.ts";
   errorResponse,
   handleCors,
   jsonResponse,
@@ -20,7 +21,7 @@ const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 // @public-route Browser pre-auth verification endpoint. Authorization is the Cloudflare Turnstile token.
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("verify-turnstile", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   if (req.method !== "POST") {
@@ -106,4 +107,4 @@ Deno.serve(async (req) => {
     if (error instanceof Response) return error;
     return errorResponse(error, "Verification failed. Please try again.");
   }
-});
+}));

@@ -1,5 +1,6 @@
 import { getAdminClient } from "../_shared/admin-client.ts";
 import {
+import { withAuditWrapper } from "../_shared/audit.ts";
   errorResponse,
   handleCors,
   jsonResponse,
@@ -8,7 +9,7 @@ import {
 
 // @public-route Token-bound RFC 8058 unsubscribe endpoint. Authorization is the single-use unsubscribe token.
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("handle-email-unsubscribe", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -121,4 +122,4 @@ Deno.serve(async (req) => {
     console.error("Email unsubscribe failed", error);
     return errorResponse(error, "Failed to process unsubscribe");
   }
-});
+}));

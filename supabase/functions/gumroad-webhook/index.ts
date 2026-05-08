@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * Gumroad Ping webhook receiver.
  *
@@ -155,7 +156,7 @@ async function logMembershipMetadataMismatch(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("gumroad-webhook", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -352,7 +353,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-});
+}));
 
 /**
  * Emit a `malicious_webhook_signature_invalid` audit row whenever the

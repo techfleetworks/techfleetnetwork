@@ -7,6 +7,7 @@
 // or invoke it manually from an admin tool.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -16,7 +17,7 @@ const corsHeaders = {
 const MAX_CHUNKS_PER_INVOCATION = 20; // 20 * 500 = up to 10k recipients per run
 const CHUNK_SIZE = 500;
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("process-notification-fanout", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth: require either the service role key or an admin JWT.
@@ -97,4 +98,4 @@ Deno.serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-});
+}));

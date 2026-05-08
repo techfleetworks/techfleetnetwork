@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * sign-out-all-devices
  *
@@ -37,7 +38,7 @@ interface RequestBody {
   keep_current?: boolean;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("sign-out-all-devices", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   if (req.method !== "POST") {
@@ -130,4 +131,4 @@ Deno.serve(async (req) => {
     );
     return errorResponse(err, "Internal error");
   }
-});
+}));

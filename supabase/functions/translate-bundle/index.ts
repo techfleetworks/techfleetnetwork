@@ -2,6 +2,7 @@
 // Reads English source bundle, asks Lovable AI Gateway to translate, caches in i18n_translations.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,7 +10,7 @@ const corsHeaders = {
 
 const SUPPORTED = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("translate-bundle", async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));
 
 function json(body: unknown) {
   return new Response(JSON.stringify(body), {

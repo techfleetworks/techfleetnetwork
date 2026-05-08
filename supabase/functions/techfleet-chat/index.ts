@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
+import { withAuditWrapper } from "../_shared/audit.ts";
 
 const log = createEdgeLogger("techfleet-chat");
 
@@ -549,7 +550,7 @@ async function searchWebForTips(query: string): Promise<{ context: string; sourc
   }
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("techfleet-chat", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -1622,4 +1623,4 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

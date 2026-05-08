@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("discord-interactions");
 
 /* ── Discord constants ─────────────────────────────────────────────── */
@@ -239,7 +240,7 @@ async function postFollowup(
 
 /* ── Main handler ─────────────────────────────────────────────────── */
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("discord-interactions", async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -336,4 +337,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ type: RESPONSE_PONG }), {
     headers: { "Content-Type": "application/json" },
   });
-});
+}));

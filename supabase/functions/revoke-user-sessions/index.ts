@@ -1,12 +1,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireFreshAdmin2fa } from "../_shared/admin-step-up.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("revoke-user-sessions", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -55,4 +56,4 @@ Deno.serve(async (req) => {
     console.error("revoke-user-sessions error", err);
     return new Response(JSON.stringify({ error: "Internal error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-});
+}));

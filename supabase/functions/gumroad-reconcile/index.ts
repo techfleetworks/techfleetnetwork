@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * Gumroad reconciliation — applies any unapplied sales matching the
  * caller's email to their profile. Safe to call on every login.
@@ -84,7 +85,7 @@ async function logMembershipMetadataMismatch(
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("gumroad-reconcile", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -228,4 +229,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
-});
+}));

@@ -10,6 +10,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { requireFreshAdmin2fa } from '../_shared/admin-step-up.ts'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
+
 const RATE_LIMIT_PEPPER = '::tfn-rate-limit-v1'
 const textEncoder = new TextEncoder()
 
@@ -31,7 +33,7 @@ async function hashRateLimitIdentifier(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("admin-purge-auth-user", async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405)
 
@@ -59,7 +61,7 @@ Deno.serve(async (req) => {
   const stepUp = await requireFreshAdmin2fa(admin, authHeader, userData.user.id, 10)
   if (!stepUp.ok) return jsonResponse({ error: stepUp.error }, stepUp.status)
 
-  // 2) Parse + validate input.
+  // 2)) Parse + validate input.
   let email: string
   try {
     const body = await req.json()

@@ -13,6 +13,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.99.1";
 import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("check-account-identity");
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -49,7 +50,7 @@ async function hashIdentifier(value: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("check-account-identity", async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -159,4 +160,4 @@ Deno.serve(async (req) => {
     log.error("handler", `Unhandled [${requestId}]`, { requestId }, err);
     return jsonResponse({ has_password: false, has_google: false }, 200);
   }
-});
+}));

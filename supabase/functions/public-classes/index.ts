@@ -4,6 +4,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const ALLOWED_ORIGINS = new Set([
   'https://www.techfleet.network',
   'https://techfleet.network',
@@ -24,7 +25,7 @@ function corsFor(origin: string | null): Record<string, string> {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("public-classes", async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsFor(origin)
 
@@ -95,4 +96,4 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
-})
+}))

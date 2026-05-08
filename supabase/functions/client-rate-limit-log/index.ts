@@ -1,5 +1,6 @@
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("client-rate-limit-log");
 
 const corsHeaders = {
@@ -35,7 +36,7 @@ function clientIpFamily(req: Request): string {
   return "unknown";
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("client-rate-limit-log", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -86,4 +87,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

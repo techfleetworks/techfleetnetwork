@@ -2,6 +2,7 @@ import { applyWaf } from "../_shared/waf.ts";
 import { scrubJson } from "../_shared/dlp.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -10,7 +11,7 @@ const corsHeaders = {
 
 const visibleStatuses = ["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress"];
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("public-project-openings", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "GET") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -77,4 +78,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}));

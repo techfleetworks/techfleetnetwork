@@ -1,3 +1,4 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * mark-interview-scheduled — Edge Function
  *
@@ -21,7 +22,7 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("mark-interview-scheduled", async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS_HEADERS })
   }
@@ -228,4 +229,4 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({ success: true }), { status: 200, headers: JSON_HEADERS })
-})
+}))

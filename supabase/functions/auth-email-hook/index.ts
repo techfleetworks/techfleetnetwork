@@ -10,6 +10,7 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -290,7 +291,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   )
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("auth-email-hook", async (req) => {
   const url = new URL(req.url)
 
   // Handle CORS preflight for main endpoint
@@ -314,4 +315,4 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+}))

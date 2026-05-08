@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("discord-project-update");
 
 const corsHeaders = {
@@ -62,7 +63,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-serve(async (req) => {
+serve(withAuditWrapper("discord-project-update", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -213,4 +214,4 @@ serve(async (req) => {
     const message = err instanceof Error ? err.message : "Unknown error";
     return jsonResponse({ error: message }, 500);
   }
-});
+}));

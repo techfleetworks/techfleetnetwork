@@ -1,9 +1,10 @@
+import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("push-config", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,4 +22,4 @@ Deno.serve(async (req) => {
     JSON.stringify({ publicKey: vapidPublic }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
-});
+}));

@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { withAuditWrapper } from "../_shared/audit.ts";
 /**
  * SECURITY: This endpoint exposes Airtable schema and field names. It must
  * NEVER be reachable without admin auth. Originally deployed without auth —
@@ -10,7 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withAuditWrapper("airtable-diag", async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // ── JWT + admin check ──────────────────────────────────────────────
@@ -101,4 +102,4 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify(results, null, 2), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}));
