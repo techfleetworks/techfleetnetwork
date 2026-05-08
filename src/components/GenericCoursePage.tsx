@@ -566,7 +566,7 @@ export default function GenericCoursePage({
           const sectionDone = done === total;
 
           return (
-            <div key={sIdx} className="card-elevated overflow-hidden border border-white/50">
+            <div key={sIdx} id={`course-section-${sIdx + 1}`} className="card-elevated overflow-hidden border border-white/50 scroll-mt-24">
               <button
                 onClick={() => toggleSection(sIdx)}
                 className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent/50 transition-colors"
