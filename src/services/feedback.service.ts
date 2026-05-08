@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { reportError, reportClientError } from "@/services/error-reporter.service";
 import { emailInputSchema } from "@/lib/validators/auth";
 import { safeLongTextSchema } from "@/lib/validators/shared-input";
 import { z } from "zod";
@@ -46,18 +47,61 @@ export const FeedbackService = {
   async submit(userId: string, email: string, systemArea: string, message: string): Promise<boolean> {
     try {
       const parsed = feedbackSchema.safeParse({ email, systemArea, message });
-      if (!parsed.success) return false;
+      if (!parsed.success) {
+        const fieldErrors = parsed.error.flatten().fieldErrors;
+        const summary = `Feedback validation failed: ${JSON.stringify(fieldErrors)}`;
+        log.warn("submit.validation", summary, { userId, systemArea });
+        // Surface validation rejections to triage so we can see why submissions
+        // fail for specific users (e.g. URL/HTML stripped from message).
+        reportClientError(summary, "feedback.submit.validation", {
+          userId,
+          severity: "warn",
+          extraFields: { system_area: systemArea, field_errors: fieldErrors },
+        });
+        return false;
+      }
       const { error } = await supabase
         .from("feedback")
-        .insert({ user_id: userId, user_email: parsed.data.email, system_area: parsed.data.systemArea, message: parsed.data.message });
+        .insert({
+          user_id: userId,
+          user_email: parsed.data.email,
+          system_area: parsed.data.systemArea,
+          message: parsed.data.message,
+        });
 
       if (error) {
-        log.warn("submit", `Failed to submit feedback: ${error.message} (code: ${error.code}, details: ${error.details}, hint: ${error.hint})`, { userId }, error);
+        log.error(
+          "submit",
+          `Failed to submit feedback: ${error.message} (code: ${error.code})`,
+          { userId, systemArea },
+          error,
+        );
+        // Forward to triage queue — RLS denials, network failures, etc.
+        reportError(error, "feedback.submit.insert", {
+          userId,
+          severity: "error",
+          extraFields: {
+            system_area: systemArea,
+            pg_code: error.code,
+            pg_details: error.details,
+            pg_hint: error.hint,
+          },
+        });
         return false;
       }
       return true;
     } catch (err) {
-      log.warn("submit", `Unexpected error submitting feedback: ${err instanceof Error ? err.message : String(err)}`, { userId });
+      log.error(
+        "submit",
+        `Unexpected error submitting feedback: ${err instanceof Error ? err.message : String(err)}`,
+        { userId, systemArea },
+        err,
+      );
+      reportError(err, "feedback.submit", {
+        userId,
+        severity: "error",
+        extraFields: { system_area: systemArea },
+      });
       return false;
     }
   },
@@ -69,7 +113,8 @@ export const FeedbackService = {
       .order("created_at", { ascending: false });
 
     if (error) {
-      log.warn("listAll", `Failed to list feedback: ${error.message}`, {}, error);
+      log.error("listAll", `Failed to list feedback: ${error.message}`, {}, error);
+      reportError(error, "feedback.listAll", { severity: "error" });
       return [];
     }
     return (data as unknown as Feedback[]) || [];
