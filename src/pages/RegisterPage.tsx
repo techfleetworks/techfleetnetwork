@@ -137,10 +137,10 @@ export default function RegisterPage() {
       setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
       return;
     }
-    // Mark all fields as touched
     const allTouched: Record<string, boolean> = {
       firstName: true, lastName: true, email: true,
-      password: true, confirmPassword: true, dob: true, agreedToTerms: true,
+      password: true, confirmPassword: true, dob: true,
+      agreedToTerms: true, electronicCommsConsent: true, guardianEmail: true,
     };
     setTouched(allTouched);
 
@@ -150,6 +150,8 @@ export default function RegisterPage() {
       birthMonth: dobParts?.birthMonth ?? 1,
       birthDay: dobParts?.birthDay ?? 1,
       countryCode,
+      guardianEmail,
+      electronicCommsConsent,
       agreedToTerms,
     };
     const result = registerSchema.safeParse(payload);
@@ -169,9 +171,28 @@ export default function RegisterPage() {
         firstName: "First name", lastName: "Last name", email: "Email",
         password: "Password", confirmPassword: "Confirm password",
         dob: "Date of birth", agreedToTerms: "Terms agreement",
+        electronicCommsConsent: "Electronic communications consent",
+        guardianEmail: "Parent or guardian email",
       });
       scrollToFirstError();
       return;
+    }
+
+    // Sanctions / export-control screening (T&C §19, ToU §17). Anonymous endpoint.
+    if (countryCode) {
+      try {
+        const { data: sanctionsResult } = await supabase.functions.invoke("screen-sanctions", {
+          body: { email: result.data.email, country_code: countryCode },
+        });
+        if (sanctionsResult?.decision === "deny") {
+          setAuthError(
+            "We're sorry — Tech Fleet cannot create accounts for users in this country due to U.S. export-control and sanctions laws.",
+          );
+          return;
+        }
+      } catch {
+        // Fail-open on network errors (the screening row is still attempted server-side).
+      }
     }
 
     const domainCheck = await validateEmailDomainExists(result.data.email);
