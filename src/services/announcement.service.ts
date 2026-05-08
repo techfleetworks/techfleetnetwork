@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { safeHtmlSchema, safeRequiredTextSchema, safeUrlSchema } from "@/lib/validators/shared-input";
 import { handleServiceError } from "@/lib/service-result";
+import { linkifyHtml } from "@/lib/linkify";
 
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
