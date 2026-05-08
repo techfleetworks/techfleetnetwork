@@ -45,6 +45,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { format } from "date-fns";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, "Client name is required").max(200),
@@ -234,6 +235,7 @@ export function ClientsTab() {
   const handleSubmit = useCallback(() => {
     const result = clientSchema.safeParse(form);
     if (!result.success) {
+      reportValidationRejection("clientSchema", result.error.issues, "ClientsTab.handleSubmit");
       const fieldErrors: Partial<Record<keyof ClientForm, string>> = {};
       result.error.issues.forEach((i) => { const k = i.path[0] as keyof ClientForm; if (!fieldErrors[k]) fieldErrors[k] = i.message; });
       setErrors(fieldErrors);

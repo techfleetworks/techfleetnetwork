@@ -57,6 +57,7 @@ import {
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
 import type { Client } from "@/components/clients/ClientsTab";
 import { cn } from "@/lib/utils";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 // ---------- Helpers ----------
 const optionalUrl = z.string().refine(
@@ -361,6 +362,7 @@ export default function ProjectFormPage() {
   const handleSubmit = useCallback(() => {
     const result = projectSchema.safeParse(form);
     if (!result.success) {
+      reportValidationRejection("projectSchema", result.error.issues, "ProjectFormPage.handleSubmit");
       const fieldErrors: Partial<Record<keyof ProjectForm, string>> = {};
       result.error.issues.forEach((i) => {
         const k = i.path[0] as keyof ProjectForm;

@@ -24,6 +24,7 @@ import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConn
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { toast } from "sonner";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function ProfileSetupPage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -156,6 +157,7 @@ export default function ProfileSetupPage() {
     });
 
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "ProfileSetupPage.handleSubmit");
       const errs: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

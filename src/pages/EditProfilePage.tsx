@@ -38,6 +38,7 @@ import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -166,6 +167,7 @@ export default function EditProfilePage() {
     });
 
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "EditProfilePage.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

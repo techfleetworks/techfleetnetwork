@@ -15,6 +15,7 @@ import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -42,6 +43,7 @@ export default function ForgotPasswordPage() {
     }
     const result = emailInputSchema.safeParse(email);
     if (!result.success) {
+      reportValidationRejection("emailInputSchema", result.error.issues, "ForgotPasswordPage.handleSubmit");
       setError(result.error.issues[0].message);
       const nextLockout = recordInvalidAuthAttempt();
       setLockoutState(nextLockout);

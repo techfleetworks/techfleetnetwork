@@ -25,6 +25,7 @@ import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
 import { PolicyLinksInline } from "@/components/PolicyLinksInline";
 import { recordPolicyAcknowledgment } from "@/lib/policies";
 import { loadConsent } from "@/lib/consent/manager";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function RegisterPage() {
   const location = useLocation();
@@ -156,6 +157,7 @@ export default function RegisterPage() {
     };
     const result = registerSchema.safeParse(payload);
     if (!result.success) {
+      reportValidationRejection("registerSchema", result.error.issues, "RegisterPage.handleSubmit");
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;

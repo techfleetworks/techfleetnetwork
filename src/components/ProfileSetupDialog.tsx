@@ -21,6 +21,7 @@ import { TIMEZONES } from "@/lib/timezones";
 import { cn } from "@/lib/utils";
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
+import { reportValidationRejection } from "@/services/error-reporter.service";
 
 
 export function ProfileSetupDialog() {
@@ -246,6 +247,7 @@ export function ProfileSetupDialog() {
     });
 
     if (!result.success) {
+      reportValidationRejection("profileSchema", result.error.issues, "ProfileSetupDialog.handleSubmit");
       const errs: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
