@@ -1,7 +1,15 @@
 import { useState, useMemo } from "react";
-import { Globe, Users } from "lucide-react";
+import { CalendarPlus, Copy, Globe, Link2, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+
+const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
+// Subscribe URLs for the public Tech Fleet community Google Calendar
+const ADD_TO_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
+const ICAL_SUBSCRIBE_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(TF_CALENDAR_EMAIL)}/public/basic.ics`;
+const OPEN_IN_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/embed?src=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
 
 const eventTabs: TabItem[] = [
   { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
@@ -68,6 +76,46 @@ export default function EventsPage() {
         </ResponsiveTabsContent>
 
         <ResponsiveTabsContent value="community">
+          <div className="mb-4 rounded-lg border bg-card p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Add Tech Fleet events to your calendar</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Subscribe once and new events appear automatically in Google, Apple, or Outlook Calendar.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="default">
+                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Add to your Google Calendar">
+                    <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                    Add to Google Calendar
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(ICAL_SUBSCRIBE_URL);
+                      toast({ title: "iCal link copied", description: "Paste it into Apple Calendar or Outlook to subscribe." });
+                    } catch {
+                      toast({ title: "Copy failed", description: ICAL_SUBSCRIBE_URL, variant: "destructive" });
+                    }
+                  }}
+                  aria-label="Copy iCal subscription link for Apple Calendar or Outlook"
+                >
+                  <Copy className="h-4 w-4" aria-hidden="true" />
+                  Copy iCal link (Apple / Outlook)
+                </Button>
+                <Button asChild size="sm" variant="ghost">
+                  <a href={OPEN_IN_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Open the calendar on Google Calendar">
+                    <Link2 className="h-4 w-4" aria-hidden="true" />
+                    Open in Google
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </div>
           <div className="rounded-lg border bg-card overflow-hidden">
             <iframe
               src={calendarSrc}
@@ -75,8 +123,15 @@ export default function EventsPage() {
               className="w-full border-0"
               style={{ minHeight: "680px" }}
               loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-popups"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
             />
+            <div className="border-t p-3 text-center text-xs text-muted-foreground">
+              Click an event for a quick preview. For the full description, meeting link, and start time in your timezone,
+              choose <span className="font-medium">"More details"</span> in the popup or{" "}
+              <a href={OPEN_IN_GOOGLE_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                open the full calendar on Google →
+              </a>
+            </div>
           </div>
         </ResponsiveTabsContent>
       </ResponsiveTabs>
