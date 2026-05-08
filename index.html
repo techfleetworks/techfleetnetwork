@@ -110,7 +110,18 @@
           u.searchParams.set('_w', String(Date.now()));
           window.location.replace(u.toString());
         }
-        // Run watchdog 8s after the document finishes parsing.
+        // Also start a pre-DOM watchdog immediately. This catches parser-blocking
+        // third-party scripts that can stall before <body>/<div id="root"> exist,
+        // which otherwise produces a blank page with no React, console, or network
+        // signal from inside the app.
+        setTimeout(function () {
+          if (!rootHasContent() && document.visibilityState !== 'hidden') {
+            hardReloadWithBust();
+          }
+        }, 8000);
+
+        // Run watchdog 8s after the document finishes parsing too, for slower
+        // devices where parsing completes but React still fails to mount.
         document.addEventListener('DOMContentLoaded', function () {
           setTimeout(function () {
             if (!rootHasContent() && document.visibilityState !== 'hidden') {
@@ -148,7 +159,7 @@
       Microsoft Clarity (via src/lib/consent/loadAnalytics.ts). Global
       Privacy Control still force-denies analytics regardless of CookieYes.
     -->
-    <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js"></script>
+    <script id="cookieyes" type="text/javascript" async src="https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js"></script>
   </head>
   <body>
     <div id="root"></div>
