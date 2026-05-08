@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, Cake, ShieldAlert } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { RateLimitService } from "@/services/rate-limit.service";
-import { registerSchema, ageInYears, minAgeForCountry } from "@/lib/validators/auth";
+import { registerSchema, ageInYears, GUARDIAN_MIN_AGE } from "@/lib/validators/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { PasswordRequirementsList } from "@/components/registration/PasswordRequirementsList";
@@ -37,10 +38,11 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [dob, setDob] = useState(""); // ISO yyyy-mm-dd
   const countryCode = loadConsent()?.countryCode ?? null;
-  const minAge = minAgeForCountry(countryCode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [electronicCommsConsent, setElectronicCommsConsent] = useState(false);
+  const [guardianEmail, setGuardianEmail] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [captchaState, setCaptchaState] = useState(() => getLoginCaptchaState());
