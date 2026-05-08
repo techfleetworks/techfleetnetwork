@@ -44,6 +44,15 @@ interface FixQueueRow {
   triaged_at: string | null;
 }
 
+interface TriageAuditRow {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  rule_name: string;
+  matching_signal: string | null;
+  actor_id: string | null;
+  created_at: string;
+
 const statusVariant: Record<FixStatus, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "destructive",
   triaged: "secondary",
