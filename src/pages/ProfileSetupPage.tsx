@@ -24,7 +24,7 @@ import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConn
 import { ValidatedField } from "@/components/ui/validated-field";
 import { validationBorderClass, getFieldValidationState, showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { toast } from "sonner";
-import { reportValidationRejection } from "@/services/error-reporter.service";
+import { reportError, reportValidationRejection } from "@/services/error-reporter.service";
 
 export default function ProfileSetupPage() {
   const { user, profile, refreshProfile } = useAuth();
