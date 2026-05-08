@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
-import { reportError, reportClientError } from "@/services/error-reporter.service";
+import { reportError } from "@/services/error-reporter.service";
 import { emailInputSchema } from "@/lib/validators/auth";
 import { safeLongTextSchema } from "@/lib/validators/shared-input";
 import { z } from "zod";
@@ -53,10 +53,13 @@ export const FeedbackService = {
         log.warn("submit.validation", summary, { userId, systemArea });
         // Surface validation rejections to triage so we can see why submissions
         // fail for specific users (e.g. URL/HTML stripped from message).
-        reportClientError(summary, "feedback.submit.validation", {
+        reportError(summary, "feedback.submit.validation", {
           userId,
           severity: "warn",
-          extraFields: { system_area: systemArea, field_errors: fieldErrors },
+          extraFields: [
+            `system_area:${systemArea}`,
+            `fields:${Object.keys(fieldErrors).join(",") || "unknown"}`,
+          ],
         });
         return false;
       }
@@ -80,12 +83,11 @@ export const FeedbackService = {
         reportError(error, "feedback.submit.insert", {
           userId,
           severity: "error",
-          extraFields: {
-            system_area: systemArea,
-            pg_code: error.code,
-            pg_details: error.details,
-            pg_hint: error.hint,
-          },
+          extraFields: [
+            `system_area:${systemArea}`,
+            `pg_code:${error.code ?? "none"}`,
+            error.hint ? `pg_hint:${error.hint}` : "pg_hint:none",
+          ],
         });
         return false;
       }
@@ -100,7 +102,7 @@ export const FeedbackService = {
       reportError(err, "feedback.submit", {
         userId,
         severity: "error",
-        extraFields: { system_area: systemArea },
+        extraFields: [`system_area:${systemArea}`],
       });
       return false;
     }
