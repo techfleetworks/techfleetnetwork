@@ -75,7 +75,7 @@ interface ClientInfo {
   primary_contact: string;
 }
 
-const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions"];
+const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions", "Review & Submit"];
 
 /* ── read-only display helpers ───────────────────────────── */
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
