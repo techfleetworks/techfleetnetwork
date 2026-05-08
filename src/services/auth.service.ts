@@ -366,7 +366,7 @@ export const AuthService = {
     });
   },
 
-  async updatePassword(newPassword: string) {
+  async updatePassword(newPassword: string): Promise<{ otherDevicesRevoked: boolean }> {
     return log.track("updatePassword", "Updating user password", undefined, async () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
@@ -375,7 +375,25 @@ export const AuthService = {
       }
       log.info("updatePassword", "Password updated successfully");
       void logAccountActivity("password_updated", {});
-      await this.signOutAllDevices();
+      // Keep the current device signed in; revoke other devices via the
+      // server-side `revoked_sessions` gate. A revoke failure must NEVER
+      // mask a successful password change.
+      let otherDevicesRevoked = false;
+      try {
+        const result = await this.signOutAllDevices({
+          keepCurrent: true,
+          reason: "self_password_changed",
+        });
+        otherDevicesRevoked = result.revocationRecorded;
+      } catch (revokeErr) {
+        log.warn(
+          "updatePassword",
+          `Other-device revocation failed (non-fatal): ${(revokeErr as Error)?.message}`,
+          undefined,
+          revokeErr instanceof Error ? revokeErr : undefined,
+        );
+      }
+      return { otherDevicesRevoked };
     });
   },
 
