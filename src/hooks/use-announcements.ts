@@ -78,7 +78,7 @@ export function useCreateAnnouncement() {
     mutationFn: async ({ title, bodyHtml, userId, videoUrl, audioUrl }: { title: string; bodyHtml: string; userId: string; videoUrl?: string | null; audioUrl?: string | null }) => {
       const announcement = await AnnouncementService.create(title, bodyHtml, userId, videoUrl, audioUrl);
       // Fire-and-forget email notifications
-      AnnouncementService.sendNotifications(announcement.id).catch(() => {});
+      AnnouncementService.sendNotifications(announcement.id).catch((e) => reportError(e, "useCreateAnnouncement.sendNotifications", { severity: "warn" }));
       return announcement;
     },
     onSuccess: () => {

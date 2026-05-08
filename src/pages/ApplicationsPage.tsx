@@ -32,7 +32,7 @@ export default function ApplicationsPage() {
       if (apps.length > 0 && apps[0].status === "completed") {
         setAppStatus({ completed: true, completedAt: ((apps[0] as unknown as Record<string, unknown>).completed_at as string | null) ?? apps[0].updated_at });
       }
-    }).catch(() => {});
+    }).catch((e) => reportError(e, "ApplicationsPage.loadGeneralApp", { severity: "warn" }));
   }, [user]);
 
   /* Count user's own project applications for the card badge */

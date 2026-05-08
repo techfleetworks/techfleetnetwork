@@ -186,10 +186,10 @@ export const GeneralApplicationService = {
       if (updated) {
         // Sync about_yourself → profile.professional_background (non-blocking)
         if ((fields as Record<string, unknown>).about_yourself !== undefined) {
-          syncToProfileBackground(updated.user_id, updated.about_yourself).catch(() => {});
+          syncToProfileBackground(updated.user_id, updated.about_yourself).catch((e) => reportError(e, "general-application.syncToProfileBackground", { severity: "warn" }));
         }
         // Sync to Airtable (non-blocking, circuit-breaker protected)
-        syncToAirtable(updated).catch(() => {});
+        syncToAirtable(updated).catch((e) => reportError(e, "general-application.syncToAirtable", { severity: "warn" }));
       }
     });
   },

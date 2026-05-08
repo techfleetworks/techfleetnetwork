@@ -45,12 +45,12 @@ export function MemberWorldMap() {
   // Load member distribution (includes empty-country count)
   useEffect(() => {
     const load = async () => {
-      try {
-        const { data: result } = await supabase.rpc("get_member_country_distribution");
-        if (result) setData(result as unknown as CountryCount[]);
-      } catch {
-        // ignore
-      }
+      const { data: result, error } = await safeRpc<CountryCount[]>(
+        "get_member_country_distribution",
+        undefined,
+        { source: "MemberWorldMap.load", severity: "warn" },
+      );
+      if (!error && result) setData(result);
       setLoading(false);
     };
     load();
