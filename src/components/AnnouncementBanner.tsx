@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { sanitizeHtml } from "@/lib/security";
+import { linkifyHtml } from "@/lib/linkify";
 import {
   fetchPublishedBanners,
   fetchDismissedBannerIds,
@@ -50,7 +51,7 @@ function SingleBanner({
           <p className="text-sm font-semibold leading-snug break-words">{banner.title}</p>
           <div
             className="text-xs leading-relaxed opacity-90 prose prose-xs prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:text-blue-300 [&_a]:underline [&_*]:max-w-full"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(banner.body_html) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(banner.body_html)) }}
           />
         </div>
         <Button

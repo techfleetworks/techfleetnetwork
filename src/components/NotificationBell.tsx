@@ -32,6 +32,7 @@ import {
 } from "@/hooks/use-notifications";
 import { stripHtml } from "@/lib/html";
 import { sanitizeHtml } from "@/lib/security";
+import { linkifyHtml } from "@/lib/linkify";
 import type { Announcement } from "@/services/announcement.service";
 import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
 
@@ -296,7 +297,7 @@ export function NotificationBell() {
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedAnnouncement.body_html) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(selectedAnnouncement.body_html)) }}
                 />
               )}
             </div>
@@ -317,7 +318,7 @@ export function NotificationBell() {
             {selectedNotification && (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedNotification.body_html) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(selectedNotification.body_html)) }}
               />
             )}
             {selectedNotification?.link_url && (

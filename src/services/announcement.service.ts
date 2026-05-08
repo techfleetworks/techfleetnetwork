@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { safeHtmlSchema, safeRequiredTextSchema, safeUrlSchema } from "@/lib/validators/shared-input";
 import { handleServiceError } from "@/lib/service-result";
+import { linkifyHtml } from "@/lib/linkify";
 
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
@@ -36,7 +37,8 @@ export const AnnouncementService = {
   },
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
-    const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(bodyHtml), created_by: userId };
+    const linkified = linkifyHtml(bodyHtml);
+    const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(linkified), created_by: userId };
     const safeVideoUrl = mediaUrlSchema.parse(videoUrl);
     const safeAudioUrl = mediaUrlSchema.parse(audioUrl);
     if (safeVideoUrl) row.video_url = safeVideoUrl;
