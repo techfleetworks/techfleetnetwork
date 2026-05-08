@@ -40,6 +40,59 @@
     <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/fonts/fonts.css" />
 
+    <!--
+      Blank-screen recovery (runs BEFORE any module script).
+      Some returning users still have a legacy PWA / Workbox service worker
+      installed from earlier deploys that intercepts /assets/* with stale
+      cached responses pointing to chunk filenames that no longer exist on
+      the CDN — producing a fully blank page because the entry script 404s
+      before React can mount. This inline script:
+        1. Synchronously unregisters every service worker on this origin.
+        2. Clears every CacheStorage bucket.
+        3. Listens for the entry <script type="module"> to fail and, if it
+           does, performs ONE hard reload (tracked in sessionStorage) so the
+           browser bypasses HTTP cache and fetches the live asset manifest.
+      This is intentionally dependency-free and deferred-import-free so it
+      cannot itself be broken by a stale chunk.
+    -->
+    <script>
+      (function () {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              regs.forEach(function (r) { try { r.unregister(); } catch (e) {} });
+            }).catch(function () {});
+          }
+          if (typeof caches !== 'undefined' && caches.keys) {
+            caches.keys().then(function (names) {
+              names.forEach(function (n) { try { caches.delete(n); } catch (e) {} });
+            }).catch(function () {});
+          }
+        } catch (e) { /* non-fatal */ }
+
+        var RELOAD_KEY = '__tfn_blank_recovery_reload__';
+        function isChunk404(target) {
+          if (!target) return false;
+          var src = target.src || target.href || '';
+          return /\/assets\/.+\.(js|css)(\?|$)/.test(src);
+        }
+        window.addEventListener('error', function (ev) {
+          if (!isChunk404(ev.target)) return;
+          try {
+            if (sessionStorage.getItem(RELOAD_KEY)) return;
+            sessionStorage.setItem(RELOAD_KEY, '1');
+          } catch (e) { /* fall through */ }
+          var url = new URL(window.location.href);
+          url.searchParams.set('_r', String(Date.now()));
+          window.location.replace(url.toString());
+        }, true);
+        // Clear the recovery flag once the app successfully boots.
+        window.addEventListener('load', function () {
+          try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
+        });
+      })();
+    </script>
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/13f00959-b4ed-4273-a8cc-36ace4857944/id-preview-80a694a4--3ae718a9-cd87-4a00-991b-209d8baa78ad.lovable.app-1773601036370.png">
     <meta name="twitter:card" content="summary_large_image" />
