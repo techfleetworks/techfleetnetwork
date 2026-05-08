@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { AnnouncementService } from "@/services/announcement.service";
+import { reportError } from "@/services/error-reporter.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { queryKeys, CACHE_SEMI_STATIC } from "@/lib/query-config";
@@ -78,7 +79,7 @@ export function useCreateAnnouncement() {
     mutationFn: async ({ title, bodyHtml, userId, videoUrl, audioUrl }: { title: string; bodyHtml: string; userId: string; videoUrl?: string | null; audioUrl?: string | null }) => {
       const announcement = await AnnouncementService.create(title, bodyHtml, userId, videoUrl, audioUrl);
       // Fire-and-forget email notifications
-      AnnouncementService.sendNotifications(announcement.id).catch(() => {});
+      AnnouncementService.sendNotifications(announcement.id).catch((e) => reportError(e, "useCreateAnnouncement.sendNotifications", { severity: "warn" }));
       return announcement;
     },
     onSuccess: () => {

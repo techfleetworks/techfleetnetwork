@@ -1,3 +1,7 @@
+## Status
+
+Phase 3 complete: silent fire-and-forget `.catch(() => {})` sweep wired `reportError(..., severity:"warn")` into 7 business-logic sites (use-explore, use-announcements, general-application syncs, explore.service persist/web/cache, ApplicationsPage loadGeneralApp). MemberWorldMap migrated to `safeRpc` so silent country-distribution RPC failures now reach triage. Intentional UI-only catches (clipboard, audio, video play, web-vitals beacon, circuit-breaker probe, local signOut) intentionally untouched — they are not signal.
+
 ## Why "Professional goals contains unsafe content" never hit triage
 
 Two layers of silence, both fixable:

@@ -15,6 +15,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
+import { reportError } from "@/services/error-reporter.service";
 import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 import { sanitizeText, isSafeUrl } from "@/lib/security";
@@ -407,7 +408,7 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
 
   // 2. Persist query (fire-and-forget)
   if (userId) {
-    persistQuery(userId, sanitizedQuery).catch(() => {});
+    persistQuery(userId, sanitizedQuery).catch((e) => reportError(e, "explore.persistQuery", { severity: "warn" }));
   }
 
   // 3. Check cache
@@ -415,12 +416,12 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
   if (cached) {
     onChunk(cached);
     // Still fire web search for supplemental results
-    fetchWebResults(sanitizedQuery).then(onWebResults).catch(() => {});
+    fetchWebResults(sanitizedQuery).then(onWebResults).catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
     return { markdown: cached, fromCache: true };
   }
 
   // 4. Fire web search in parallel
-  fetchWebResults(sanitizedQuery).then(onWebResults).catch(() => {});
+  fetchWebResults(sanitizedQuery).then(onWebResults).catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
 
   // 5. Stream AI response
   const markdown = await streamRecommendations({
@@ -431,7 +432,7 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
 
   // 6. Cache result (fire-and-forget)
   if (markdown.trim()) {
-    writeCache(normalizedKey, markdown).catch(() => {});
+    writeCache(normalizedKey, markdown).catch((e) => reportError(e, "explore.writeCache", { severity: "warn" }));
   }
 
   return { markdown, fromCache: false };
