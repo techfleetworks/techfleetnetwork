@@ -25,8 +25,13 @@ import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConn
 
 export function ProfileSetupDialog() {
   const { user, profile, profileLoaded, refreshProfile } = useAuth();
+  const location = useLocation();
   const isOAuth = user?.app_metadata?.provider === "google" || user?.app_metadata?.providers?.includes("google");
-  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed;
+  // Suppress the dialog on dedicated profile-setup/edit routes — the page already
+  // renders the same form, and mounting both causes every field (e.g. timezone)
+  // to appear twice on screen.
+  const onProfileSetupRoute = /^\/(profile-setup|profile\/edit|edit-profile)/i.test(location.pathname);
+  const shouldShow = !!user && profileLoaded && profile !== null && !profile.profile_completed && !onProfileSetupRoute;
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
