@@ -84,6 +84,8 @@ const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const AccessDeniedPage = lazy(() => import("./pages/AccessDeniedPage"));
 const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
+const SupportPage = lazy(() => import("./pages/SupportPage"));
+const AdminTicketsPage = lazy(() => import("./pages/AdminTicketsPage"));
 const MyClassesPage = lazy(() => import("./pages/MyClassesPage"));
 const ClassFormPage = lazy(() => import("./pages/ClassFormPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
@@ -211,6 +213,8 @@ const App = () => (
                     <Route path="/admin/clients/projects/new" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
                     <Route path="/admin/clients/projects/:id/edit" element={<AdminRoute><ProjectFormPage /></AdminRoute>} />
                     <Route path="/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
+                    <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+                    <Route path="/admin/tickets" element={<AdminRoute><AdminTicketsPage /></AdminRoute>} />
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
                     <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
                     <Route path="/accessibility" element={<AccessibilityPage />} />

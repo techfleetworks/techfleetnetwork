@@ -14,7 +14,7 @@ import {
   MessageSquarePlus,
   Users,
   Map,
-  
+  LifeBuoy,
   Flag,
   HeartPulse,
   School,
@@ -71,6 +71,7 @@ const trainingNav = [
 ];
 
 const supportNav = [
+  { label: "Support", href: "/support", icon: LifeBuoy },
   { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
 ];
 

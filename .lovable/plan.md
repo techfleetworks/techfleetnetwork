@@ -1,114 +1,141 @@
-## Status
 
-Phase 3 complete: silent fire-and-forget `.catch(() => {})` sweep wired `reportError(..., severity:"warn")` into 7 business-logic sites (use-explore, use-announcements, general-application syncs, explore.service persist/web/cache, ApplicationsPage loadGeneralApp). MemberWorldMap migrated to `safeRpc` so silent country-distribution RPC failures now reach triage. Intentional UI-only catches (clipboard, audio, video play, web-vitals beacon, circuit-breaker probe, local signOut) intentionally untouched — they are not signal.
+# Open-Source Ticketing Tool — Evaluation & Integration Plan
 
-## Why "Professional goals contains unsafe content" never hit triage
+## Goal
 
-Two layers of silence, both fixable:
+Pick one self-hostable, open-source ticketing system that can serve **all three** Tech Fleet use cases in one place:
+1. Trainee support help desk (questions, account issues, accommodations)
+2. Bug & feedback tracking (replaces/augments current Feedback feature)
+3. Internal admin task board (Tech Fleet staff work)
 
-1. **Form validation rejections are swallowed.** Every `safeParse` site in the app — `ProfileSetupPage`, `EditProfilePage`, `ProfileSetupDialog`, `ProfileEditPanel`, `RegisterPage`, `ProjectFormPage`, `clients/ClientsTab`, `LoginPage`, `ForgotPasswordPage`, `ResetPasswordPage` — shows the field error to the user and `return`s. Only `feedback.service.ts` calls `reportError` on validation failure, which is the *only* reason we ever saw the matching feedback row in triage at all.
-2. **Edge functions are mostly unwrapped.** `withAuditWrapper` (the thing that emits `edge_function_error` on uncaught throws) is used in **1 of ~75 edge functions**. The other 74 die silently with whatever `try/catch` they happen to have.
+The tool must integrate as an **embedded experience**: trainees and admins stay inside Tech Fleet Network, sign in with the same account (SSO), and see ticket status in the existing dashboard.
 
-There are also smaller gaps that compound the problem (suppression list, dedup/rate-limit drops, fire-and-forget `.catch(() => {})` calls, no schema-rejection event type).
+---
 
-## Audit results — where we lose errors today
+## Candidates Considered
 
-### A. Frontend (client-side)
+I shortlisted the most actively maintained OSS options that can do help-desk + issue tracking + internal tasks, are self-hostable, and have a real REST/GraphQL API for embedding.
 
-| Surface | Reaches `audit_log` / triage? | Notes |
-|---|---|---|
-| `window.error` | ✅ via `installGlobalErrorReporter` | Suppressed for extension URLs and patterns in `SUPPRESSED_PATTERNS` |
-| `window.unhandledrejection` | ✅ | Same suppression list |
-| Programmatic `reportError(...)` | ✅ | Only 9 files use it; mostly auth + feedback + push |
-| **Zod `safeParse` failures** | ❌ | Surfaced to user, never reported. Root cause of the user's missed bug |
-| React Query `onError` | ⚠️ partial | Some hooks call `reportError`, most rely on toast only |
-| `.catch(() => {})` fire-and-forget | ❌ | e.g. `generate-discord-invite` invoke in `ProfileSetupPage` line 198 |
-| Service-layer thrown errors | ⚠️ | Only services that explicitly call `reportError` get logged |
-| Suppression-pattern drops | ❌ | Silent — no counter, no sample, no escape hatch |
-| Dedup + rate-limit drops | ⚠️ | Rate-limit emits `client_error_overflow`; **dedup drops are invisible** |
+| Tool | License | Stack | Best at | Weak at |
+|---|---|---|---|---|
+| **Zammad** | AGPLv3 | Ruby on Rails + PostgreSQL | Multi-channel help desk (email, chat, web form), strong SLAs, audit trail, role-based permissions | Heavier ops; not a true Kanban/issue tracker |
+| **FreeScout** | AGPLv3 | PHP/Laravel + MySQL | Lightweight email-style help desk, very low resource footprint | Weak for internal task boards / dev bug tracking |
+| **Chatwoot** | MIT (Community) | Ruby on Rails + PostgreSQL + Redis | Live chat + omnichannel inbox, modern UI, great embeddable widget | Ticket workflow is conversation-first, less structured statuses |
+| **Plane** | AGPLv3 | Next.js + Django + Postgres | Modern Jira-like project/issue tracker, Kanban, cycles, modules | Not a help-desk; no email-to-ticket out of the box |
+| **OpenProject** | GPLv3 | Ruby on Rails + Postgres | Project + work-package tracking, gantt, time tracking | Heavy; help-desk side is minimal |
+| **Trudesk** | MIT | Node.js + MongoDB | Simple tickets + Kanban + chat in one | Smaller community, slower releases |
 
-### B. Backend (edge functions)
+### Why most single-purpose tools fall short for "all three"
+- Pure help-desks (FreeScout, Zammad) handle trainee tickets well but admins won't enjoy them as a task board.
+- Pure issue trackers (Plane, OpenProject) are great for bugs/tasks but trainees would find them intimidating and there's no clean "contact support" surface.
+- Chatwoot is closest to "one tool, many uses" because every conversation IS a ticket, statuses (open/pending/resolved/snoozed), labels, teams, custom attributes, and an SDK widget designed to embed in apps with **identity hand-off (SSO via HMAC)**.
 
-| Surface | Reaches triage? | Notes |
-|---|---|---|
-| Functions wrapped with `withAuditWrapper` | ✅ | **1/75** today |
-| Functions with bare `Deno.serve(...)` and ad-hoc try/catch | ⚠️ | Catches that return 500 don't write to audit_log unless author remembered to |
-| Functions that swallow downstream errors (`catch { return ok }`) | ❌ | Common in fire-and-forget Discord/email paths |
-| External API timeouts inside CircuitBreaker | ⚠️ | Recovery is logged (`external_api_recovered`); failures are not always |
-| Cron / scheduled functions | ⚠️ | No standard wrapper; a thrown error often just dies in the scheduler log |
+---
 
-### C. Database / RPC
+## Recommendation: **Chatwoot (Community Edition, self-hosted)**
 
-| Surface | Reaches triage? | Notes |
-|---|---|---|
-| RPC throws an exception → service caller catches | ⚠️ | Only logged if caller calls `reportError` |
-| Trigger raises EXCEPTION | ❌ | Lost unless the calling function is wrapped |
-| RLS deny on a user action | ❌ | Treated as "expected" today; we have no visibility |
+**Why it wins for Tech Fleet:**
 
-### D. Triage queue gating
+1. **Truly embeddable** — Official JS SDK with `setUser()` + HMAC identity verification. Trainees never see a separate login. Matches the "Embedded (SSO + in-app widget)" choice.
+2. **One tool, three modes** — Use **Inboxes** to separate concerns:
+   - `Trainee Support` (web widget + email)
+   - `Bug Reports` (web form from a "Report a bug" button)
+   - `Internal Tasks` (admin-only inbox, used like a Kanban via labels + statuses)
+3. **MIT license** for Community Edition — safest license for a nonprofit; no AGPL copy-left risk if we ever fork or extend.
+4. **Modern UI** — matches our dark/blue aesthetic better than Zammad/FreeScout out of the box, and theming is supported.
+5. **Webhooks + REST API** — clean two-way sync into our existing `agent_fix_queue`, `feedback`, and notification systems.
+6. **Active community** — frequent releases, large GitHub footprint, Docker-first deploy.
 
-`writeAudit` (line 218) only inserts into `agent_fix_queue` when `severity !== "info" && eventType !== "client_error_overflow"`. So:
-- `reportActivity(... severity:"info")` events never appear in triage even when they should (e.g. `session_idle_timeout` clusters indicating a real problem).
-- We have no `validation_rejected` event type at all — so even if we *did* call `reportError` from form sites, it would land as `client_error` and look like a JS bug rather than a UX/regex bug.
+**Honorable mention:** If we decide later that admins need a real Jira-style board for engineering work, **Plane** can run alongside Chatwoot just for internal eng tasks and we'd webhook-bridge the two.
 
-## Plan — close every gap, no UX regression
+---
 
-### 1. New event type + helper for validator rejections
-- Add `validation_rejected` to `ReportEventType` in `error-reporter.service.ts`.
-- Add `reportValidationRejection(schemaName, issues, source, opts?)` helper that:
-  - Fingerprints by `schemaName + first issue path + first issue code` so a recurring false-positive aggregates to one queue row.
-  - Sends `severity: "warn"` (not "error" — these aren't crashes, but are high-signal UX bugs we always want to see).
-  - Always lands in triage (relax the gate so `warn` is included; see §6).
-- Wire it into a single shared utility: `withValidationReporting(schema, source)` that wraps `safeParse` and reports on failure. Drop-in replacement at every call site.
+## Proposed Architecture
 
-### 2. Wire validation reporting into every form
-Targeted edits at each `safeParse` site listed in the audit. The user-visible behavior is unchanged — we only add a fire-and-forget `reportValidationRejection` call before the existing `setErrors`/`scrollToFirstError` flow.
+```text
+Tech Fleet Network (this app)
+   │
+   │  1. User signs in (Supabase auth)
+   │
+   │  2. App loads Chatwoot widget with:
+   │       - identifier = profile.id
+   │       - identifier_hash = HMAC(profile.id, CHATWOOT_HMAC_KEY)
+   │       - name, email, avatar, custom_attributes (role, cohort)
+   │
+   ▼
+Chatwoot (self-hosted, Docker)
+   │
+   │  3. Trainee opens widget → conversation in "Trainee Support" inbox
+   │  3b. "Report a bug" button → pre-fills subject, lands in "Bug Reports" inbox
+   │  3c. Admins use Chatwoot UI directly for "Internal Tasks" inbox
+   │
+   │  4. Webhook on conversation_created / status_changed / message_created
+   ▼
+Edge function `chatwoot-webhook` (verifies HMAC signature)
+   │
+   ├─► public.tickets               (mirror: id, chatwoot_id, status, inbox, owner_id)
+   ├─► public.notifications         (in-app bell update)
+   ├─► public.agent_fix_queue       (if inbox = Bug Reports → triage)
+   └─► Discord #support channel     (optional broadcast)
+```
 
-### 3. Wrap every edge function with `withAuditWrapper`
-- Codemod / scripted pass over `supabase/functions/*/index.ts` to replace `Deno.serve(handler)` with `Deno.serve(withAuditWrapper("<fn-name>", handler))`.
-- Skip the public unauth ones already audited inside.
-- For functions that already have a custom try/catch, keep the inner one but still wrap so uncaught paths get logged.
-- Add an ESLint rule (or simple repo grep CI check) that fails if a new function under `supabase/functions/` is added without `withAuditWrapper`.
+---
 
-### 4. Fire-and-forget `.catch(() => {})` audit
-- Grep for `.catch(() => {})` and `.catch(() => undefined)`. Replace with `.catch((e) => reportError(e, "<source>", { severity: "warn" }))`.
-- Keep the swallow for the user UX (no toast), just stop swallowing the *log*.
+## Hosting Plan
 
-### 5. Make suppression observable
-- Add a tiny per-pattern counter inside `isSuppressed`. Once a minute, if count > 0, emit a single `client_error_suppressed` audit row with `pattern:<name>` and `count:N` so admins can see what's being filtered and confirm the suppression list is still correct.
-- Same for dedup drops: emit `client_error_deduped` with `count:N` once a minute.
-- Both go to triage as `warn` so a sudden spike (like a new browser-extension breaking us) is visible without flooding.
+- **Where:** Lovable Cloud cannot host a Rails + Redis + Postgres app, so Chatwoot itself runs on a **small VPS** (Hetzner / DigitalOcean / Fly.io — ~$10–20/mo) using the official `docker-compose.production.yaml`.
+- **Domain:** `support.techfleet.network` (subdomain, TLS via Caddy/Nginx).
+- **Database:** Chatwoot's own Postgres (separate from Lovable Cloud) — keeps schemas isolated.
+- **Backups:** Nightly pg_dump → S3-compatible bucket.
+- **SMTP:** Reuse existing Resend transactional setup.
 
-### 6. Triage gate: include `warn`
-- Update `writeAudit` so the `agent_fix_queue` insert runs for `severity !== "info"` **OR** `eventType IN ('validation_rejected', 'client_error_suppressed', 'client_error_deduped')`. Today only `error` reaches it; `warn` is invisible.
-- System Health "Triage" tab gets two new chips: "Validation rejections", "Suppressed/deduped" so an admin can spot regex false-positives like the one this week within minutes.
+---
 
-### 7. Server-side coverage for swallowed RPC errors
-- New helper `safeRpc(rpcName, args)` in `src/lib/supabase/safe-rpc.ts` that wraps `supabase.rpc(...)` and calls `reportError` on the returned `{ error }`. Migrate the highest-traffic call sites (profile, application, feedback, journey, quest) — leave low-risk calls alone to keep noise down.
+## What Gets Built in Tech Fleet Network
 
-### 8. BDD scenarios (per workspace rule)
+### 1. Database (Lovable Cloud)
+- `public.tickets` — local mirror of Chatwoot conversations for fast in-app reads (id, chatwoot_conversation_id, owner_user_id, inbox_type ENUM `support|bug|internal`, status, subject, last_message_at).
+- `public.ticket_events` — append-only event log from webhook (for audit + debugging).
+- RLS: trainees see only `owner_user_id = auth.uid()`; admins see all.
+- BDD scenarios (`bdd_scenarios` table) covering create / status-change / admin-reply / bug-route flows with tri-layer Then-clauses.
 
-Insert into `bdd_scenarios` with tri-layer Then assertions:
-- `BTRG-020` Validator rejection of legit input lands in triage as `validation_rejected`.
-- `BTRG-021` Edge function uncaught throw lands as `edge_function_error` (covers the `withAuditWrapper` rollout).
-- `BTRG-022` Suppressed pattern emits `client_error_suppressed` aggregate once per minute.
-- `BTRG-023` Triage UI "Validation rejections" chip shows the new event type.
-- `BTRG-024` `.catch(() => {})` replacements in fire-and-forget calls produce a `warn` audit row on failure.
+### 2. Edge functions
+- `chatwoot-widget-token` — returns `{ identifier_hash, attributes }` for the signed-in user (HMAC-signed server-side using `CHATWOOT_HMAC_KEY`).
+- `chatwoot-webhook` — verifies signature, upserts mirror rows, fans out notifications, routes Bug Reports into `agent_fix_queue`.
+- `chatwoot-create-ticket` — server-side ticket creation for the existing "Submit Feedback" and "Report a bug" UI paths (so the unsafe-content / regex errors we just hardened still flow through one pipeline).
 
-### 9. Verification
-- Unit: `reportValidationRejection` fingerprinting + severity.
-- Manual: paste the user's original feedback text into the Profile `professional_goals` field with the *old* (newline-rejecting) regex temporarily re-enabled in a test build → confirm the queue row appears within 60s as `validation_rejected`.
-- Operational: 24h after rollout, check `agent_fix_queue` for new `validation_rejected` and `client_error_suppressed` rows; tune suppression list if anything noisy.
+### 3. Frontend
+- New `<SupportWidget />` mounted in `AppLayout` (loads Chatwoot SDK with identifier + hash; respects reduced-motion and theming).
+- `/support` route: list of my tickets (Card view, AG Grid fallback for admins) backed by `public.tickets`.
+- `/admin/tickets` for admins: cross-inbox triage with status chips matching our existing toast color system.
+- "Report a bug" button repurposed to open the widget pre-filled for the Bug Reports inbox.
 
-## Files in scope (preview)
+### 4. Secrets to add
+- `CHATWOOT_BASE_URL`
+- `CHATWOOT_API_ACCESS_TOKEN` (admin token)
+- `CHATWOOT_HMAC_KEY` (per-inbox identity validation key)
+- `CHATWOOT_WEBHOOK_SECRET`
 
-- `src/services/error-reporter.service.ts` — new event types, helper, gate update, suppression/dedup counters.
-- `src/lib/forms/with-validation-reporting.ts` — new wrapper.
-- ~10 form components/pages — one-line wiring.
-- `supabase/functions/_shared/audit.ts` — no change (already correct).
-- ~74 edge functions — wrap with `withAuditWrapper`.
-- `src/components/system-health/TriageTab.tsx` — new chips/filters.
-- One DB migration: insert BDD scenarios.
-- No schema changes required — `audit_log` and `agent_fix_queue` already accept the new event_type strings.
+### 5. Observability
+- All edge functions wrapped in `withAuditWrapper` (consistent with the recent error-logging audit).
+- Webhook failures land in `agent_fix_queue` so System Health → Triage surfaces broken syncs.
 
-No UX regression: every change is additive (extra logging) or invisible (severity gate widened, triage chips added). The user sees the same field errors, toasts, and form behavior they see today.
+---
+
+## Rollout Phases
+
+1. **Stand up Chatwoot** on VPS at `support.techfleet.network` + create three inboxes.
+2. **DB migration** for `tickets` + `ticket_events` + RLS + BDD rows.
+3. **Edge functions** + secrets.
+4. **Embed widget** in AppLayout for signed-in users only; feature-flag it for admins first.
+5. **Migrate Feedback + Report-a-bug** entry points to create Chatwoot conversations.
+6. **Admin triage page** + notification fan-out + Discord bridge.
+7. **Decommission** the old standalone Feedback table once parity is confirmed (kept read-only for 30 days).
+
+---
+
+## Open questions for you
+
+- VPS provider preference, or want me to recommend one and document the deploy?
+- OK to keep `public.feedback` read-only for 30 days then archive, or do you want a hard cutover?
+- Should "Internal Tasks" inbox be visible only to admin role, or also to a future "staff" role?
