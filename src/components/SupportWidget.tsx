@@ -52,7 +52,7 @@ export function SupportWidget() {
         if (error || !data?.baseUrl || !data?.websiteToken) {
           // Not configured yet — silent. reportError as info so System Health sees it once.
           if (error && error.message && !/chatwoot_not_configured|503/.test(error.message)) {
-            reportError(error, { source: "SupportWidget.token", severity: "warn" });
+            reportError(error, "SupportWidget.token", { severity: "warn" });
           }
           return;
         }
@@ -97,7 +97,7 @@ export function SupportWidget() {
         };
         tryAttachIdentity();
       } catch (err) {
-        reportError(err, { source: "SupportWidget.init", severity: "warn" });
+        reportError(err, "SupportWidget.init", { severity: "warn" });
       }
     })();
 

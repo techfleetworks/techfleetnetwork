@@ -48,7 +48,7 @@ export default function SupportPage() {
         .limit(100);
       if (cancelled) return;
       if (error) {
-        reportError(error, { source: "SupportPage.load", severity: "warn" });
+        reportError(error, "SupportPage.load", { severity: "warn" });
         setTickets([]);
       } else {
         setTickets((data ?? []) as TicketRow[]);

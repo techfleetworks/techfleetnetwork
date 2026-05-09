@@ -37,7 +37,7 @@ export default function AdminTicketsPage() {
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(500);
       if (cancelled) return;
-      if (error) reportError(error, { source: "AdminTicketsPage.load", severity: "warn" });
+      if (error) reportError(error, "AdminTicketsPage.load", { severity: "warn" });
       else setTickets((data ?? []) as AdminTicketRow[]);
       setLoading(false);
     })();
