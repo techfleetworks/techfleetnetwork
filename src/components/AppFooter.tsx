@@ -22,7 +22,7 @@ export function AppFooter() {
               aria-hidden="true"
             />
             <span className="text-xs text-muted-foreground">
-              Tech Fleet&trade; · © {new Date().getFullYear()} Tech Fleet, a Delaware nonprofit corporation.
+              Tech Fleet&trade; · © {new Date().getFullYear()} Tech Fleet.
             </span>
           </div>
           <nav
