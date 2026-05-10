@@ -5131,6 +5131,12 @@ export type Database = {
         Returns: boolean
       }
       _current_aal: { Args: never; Returns: string }
+      _diag_list_vault_names: {
+        Args: never
+        Returns: {
+          name: string
+        }[]
+      }
       admin_2fa_grace_active: { Args: { _user_id: string }; Returns: boolean }
       admin_2fa_grace_deadline: { Args: { _user_id: string }; Returns: string }
       approve_and_publish_class: {
