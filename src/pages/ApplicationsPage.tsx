@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 
 import { format } from "date-fns";
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 
 const SubmittedApplicationsTab = lazy(() =>
   import("@/components/SubmittedApplicationsTab").then((m) => ({

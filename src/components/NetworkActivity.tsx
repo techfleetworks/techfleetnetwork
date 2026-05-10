@@ -1,4 +1,5 @@
-import { memo, lazy, Suspense } from "react";
+import { memo, Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@/lib/react-query";
 import { StatsService, type NetworkStats } from "@/services/stats.service";

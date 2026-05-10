@@ -1,4 +1,5 @@
-import { memo, useMemo, useRef, useEffect, lazy, Suspense } from "react";
+import { memo, useMemo, useRef, useEffect, Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
