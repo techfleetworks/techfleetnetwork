@@ -101,7 +101,22 @@ serve(withAuditWrapper("fleety-embed", async (req) => {
     // Cron / service-role path: bearer token == service role key OR
     // x-cron-secret matches CRON_SECRET. No user check; backfill only.
     const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
-    const isService = auth === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+    // Service-role match: either current SUPABASE_SERVICE_ROLE_KEY (sb_secret_… or JWT)
+    // OR a legacy JWT whose decoded `role` claim is "service_role" (covers rotation
+    // periods where cron jobs still hold the previous JWT).
+    let isService = !!auth && auth === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+    if (!isService && auth.startsWith("Bearer ")) {
+      const token = auth.slice(7);
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        try {
+          const payload = JSON.parse(
+            atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+          );
+          if (payload?.role === "service_role") isService = true;
+        } catch (_e) { /* not a JWT — ignore */ }
+      }
+    }
     const isCron = CRON_SECRET && req.headers.get("x-cron-secret") === CRON_SECRET;
     const isBackfill = body?.mode === "backfill";
 
