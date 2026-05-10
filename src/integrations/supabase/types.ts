@@ -939,6 +939,24 @@ export type Database = {
         }
         Relationships: []
       }
+      dead_client_sources: {
+        Row: {
+          added_at: string
+          reason: string
+          source: string
+        }
+        Insert: {
+          added_at?: string
+          reason: string
+          source: string
+        }
+        Update: {
+          added_at?: string
+          reason?: string
+          source?: string
+        }
+        Relationships: []
+      }
       deleted_users_ledger: {
         Row: {
           deleted_at: string
