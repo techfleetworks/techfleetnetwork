@@ -26,8 +26,24 @@ export function serviceErrorMetadata(error: ServiceErrorLike): Record<string, un
   };
 }
 
+function isAbortError(error: ServiceErrorLike): boolean {
+  // React Query / fetch cancellation when component unmounts or query key
+  // changes mid-flight. Expected behavior — not a bug, never report.
+  const name = (error as { name?: string }).name;
+  if (name === "AbortError") return true;
+  const msg = error.message ?? "";
+  return /\bAbortError\b|\boperation was aborted\b|\bsignal is aborted\b/i.test(msg);
+}
+
 export function handleServiceError(error: ServiceErrorLike | null | undefined, options: HandleServiceErrorOptions): boolean {
   if (!error) return false;
+
+  // Silently swallow request cancellations. They are not actionable failures
+  // and they were flooding the triage queue (133 occurrences in 19min).
+  if (isAbortError(error)) {
+    if (options.throwMessage) throw new Error(options.throwMessage);
+    return true;
+  }
 
   const level = options.level ?? "error";
   options.logger[level](
