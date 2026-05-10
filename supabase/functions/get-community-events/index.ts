@@ -18,9 +18,32 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const QuerySchema = z.object({
-  windowDays: z.coerce.number().int().min(1).max(60).default(60),
-});
+const QuerySchema = z
+  .object({
+    windowDays: z.coerce.number().int().min(1).max(60).optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+  })
+  .refine(
+    (v) => (v.from && v.to) || (!v.from && !v.to),
+    { message: "from and to must be provided together" },
+  )
+  .refine(
+    (v) => {
+      if (!v.from || !v.to) return true;
+      const ms = Date.parse(v.to) - Date.parse(v.from);
+      return ms > 0 && ms <= 14 * 24 * 60 * 60 * 1000;
+    },
+    { message: "from/to span must be 1-14 days" },
+  );
+
+const MEET_BOILERPLATE_RE =
+  /\n*\s*Learn more about Meet at:?\s*https?:\/\/support\.google\.com\/a\/users\/answer\/9282720\s*\n*/gi;
+
+function cleanDescription(desc: string): string {
+  if (!desc) return "";
+  return desc.replace(MEET_BOILERPLATE_RE, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 
 interface CachedEvent {
   uid: string;
