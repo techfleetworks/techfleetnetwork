@@ -20,6 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTraceId } from "@/lib/trace";
+import { checkNow as checkDeployNow } from "@/lib/deploy-watcher";
 
 const MAX_MSG_LENGTH = 2000;
 const DEFAULT_CAP_PER_MINUTE = 10;
