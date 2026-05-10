@@ -1,79 +1,76 @@
-# Refresh Fleety's Knowledge Base — Tech Fleet Org Identity
+## Root cause
 
-## Goal
+The `/events` page calls `get-community-events`, which reads the row in `public.community_events_cache`. That row is currently:
 
-Make Fleety answer about Tech Fleet's mission, vision, values, strategy, offerings, and partnership model using the **new** narrative you provided — and stop pulling from the outdated `guide.techfleet.org` pages.
+```
+event_count = 0, last_refresh_status = NULL, fetched_at = NULL
+```
 
-## Context (what's there today)
+The cache has **never been populated**. Confirmed:
 
-`knowledge_base` table holds Fleety's RAG corpus (1,153 rows, used by the L5 RAG step). Today's org-identity rows are scraped from the old GitBook:
+- `refresh-community-events` edge function has **zero** invocation logs.
+- `pg_net` queue has no entries pointing at `/functions/v1/refresh-community-events`.
+- The Google ICS feed itself is healthy (8.4 MB, 6,599 VEVENTs returned in <1 s from the sandbox).
 
-- `https://guide.techfleet.org/about-us/about-our-org` — outdated
-- `.../mission-and-values` — outdated
-- `.../hello-world` — outdated
-- `.../tech-fleets-roadmap` — outdated
-- `.../we-live-by-the-collective-agreement` — keep (still accurate)
+Why the cron never fires: the migration `20260510160618_*.sql` registered `cron.schedule('refresh-community-events', '*/10 * * * *', …)` calling `public.kick_community_events_refresh()`. That function does:
 
-The Notion URLs you shared are private/gated — Fleety can't re-scrape them on its own, so the canonical text needs to be the narrative you pasted (plus the Notion URLs as references).
+```sql
+SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url';
+SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_service_role_key';
+EXCEPTION WHEN OTHERS THEN RETURN;
+IF v_url IS NULL OR v_key IS NULL THEN RETURN;
+```
 
-## Plan
+Other working crons in this project use **different** vault names — for example `email-queue-drain` uses `project_url` and `email_queue_service_role_key`. When the events kicker doesn't find `supabase_url` / `supabase_service_role_key`, it returns silently with no logs, no row update, no queue entry. Result: the cache stays empty forever and the UI correctly renders the "No upcoming events" empty state.
 
-### 1. Add 8 new canonical `org://` rows to `knowledge_base`
+## Fix (permanent, three layers)
 
-One row per topic, each with: full prose body, source Notion URL in the content footer, fresh embedding (768-dim, generated via existing Lovable AI embedding flow used elsewhere in the project), `scraped_at = now()`.
+### 1. Make the kicker resilient and self-reporting (DB migration)
 
-| `url` | `title` |
-|---|---|
-| `org://mission-vision-values` | Tech Fleet — Mission, Vision, Values, Offerings |
-| `org://narrative` | Tech Fleet — Organizational Narrative (Why We Exist) |
-| `org://team-practices` | Tech Fleet — The 7 Team Practices |
-| `org://programs` | Tech Fleet — Programs (Project Training, Learning Labs, Community Collaboration) |
-| `org://product-service-offering` | Tech Fleet — Product & Service Offering |
-| `org://three-year-strategy` | Tech Fleet — Three-Year Strategy & Theory of Change |
-| `org://ten-year-commitment` | Tech Fleet — 10-Year Commitment to the Mission (10,000 service leaders by 2035) |
-| `org://business-plan` | Tech Fleet — Business Plan (Summary) |
-| `org://ways-to-partner` | Tech Fleet — Ways to Partner |
+Rewrite `public.kick_community_events_refresh()` to mirror the pattern that already works for the email and push crons:
 
-Each row's content will be authored from the narrative + section headings you provided, with the matching Notion link appended as `Source: <notion-url>` so Fleety can cite it.
+- Try multiple known secret names in order: `supabase_url`, `project_url`, then `current_setting('app.settings.supabase_url', true)`.
+- Same for the service-role key: `supabase_service_role_key`, `email_queue_service_role_key`, then `current_setting('app.settings.service_role_key', true)`.
+- If still missing, **write the failure into `community_events_cache`** (`last_refresh_status='config_error'`, `last_refresh_error='vault secrets missing'`) instead of silently returning. This guarantees visibility in the existing System Health surface.
+- Keep `EXCEPTION WHEN OTHERS` but capture `SQLERRM` into `last_refresh_error` before returning, so any future regression shows up in the same place.
+- After redefining, immediately `PERFORM public.kick_community_events_refresh();` so the first refresh runs as soon as the migration applies.
+- Re-confirm the cron line `*/10 * * * *` is scheduled (idempotent).
 
-### 2. Retire the 4 outdated GitBook rows
+### 2. Harden `refresh-community-events` (edge function)
 
-Soft-deprecate by **overwriting their `content`** with a one-line redirect note:
+Small reliability tweaks while we're here — none change the public output:
 
-> "This page is outdated. See canonical entries `org://mission-vision-values`, `org://narrative`, `org://team-practices`, `org://programs` for current Tech Fleet org identity."
+- On `last_refresh_status` writes, also stamp `event_count` to `0` when status flips to `error`/`config_error`, so admins can see staleness clearly.
+- Add a JSON-line `console.info` at the start of the run (`{ stage: 'start', cacheAge_ms }`) — helps confirm cron actually fires next time.
 
-Re-embed so semantic search no longer surfaces the stale prose. (Hard delete is risky — other code/links may reference these URLs; redirect-style overwrite is safer.)
+### 3. Admin visibility on `/events` (frontend, admin-only)
 
-Rows touched:
-- `https://guide.techfleet.org/about-us/about-our-org`
-- `.../about-our-org/mission-and-values`
-- `.../about-our-org/hello-world`
-- `.../about-our-org/tech-fleets-roadmap`
+The empty-state copy is correct for end-users — keep it. For admins, render a small in-page banner above the events list when `community_events_cache.last_refresh_status` is `error` or `config_error`, or when `fetched_at` is older than 30 min:
 
-### 3. Bump KB version
+```
+Calendar sync is failing — last attempt: <relative time>. Reason: <last_refresh_error>.
+```
 
-The `trg_kb_bump_version` trigger fires automatically on every INSERT/UPDATE — this invalidates Fleety's L3 semantic cache (cache key includes `kb_version`), so users see fresh answers immediately. No manual cache purge needed.
+This way, the next time the cron breaks, an admin sees it immediately on the same page they're reading.
 
-### 4. Memory + BDD
+## Why this fixes it permanently
 
-- Add `mem://content/org-identity-canonical` — lists the 9 canonical `org://*` URLs as the single source of truth for org-identity Q&A; instructs future agents to update these rows (not the GitBook URLs) when the org narrative changes.
-- Append BDD scenario `KB-ORG-REFRESH-001` to `bdd_scenarios`: Given Fleety is asked "what is Tech Fleet's mission?" When the L5 RAG step retrieves context, Then the top-1 chunk URL is `org://mission-vision-values` [DB] and the rendered answer references "build empowered team spaces" [UI] and the response includes the Notion source link [Code].
+- The kicker no longer depends on a single secret name; it works in every vault layout this project has used.
+- Failures stop being silent — they land in the same row the read path already inspects, and surface as an admin banner on `/events`.
+- The migration triggers an immediate refresh, so admins (and users) see the 38 events this week within seconds of the migration applying, not on the next 10-min tick.
 
-### 5. Verification
+## BDD scenarios (added to `bdd_scenarios`)
 
-- `psql` row count: 9 new `org://*` rows present, all with `embedding IS NOT NULL`.
-- Spot-check Fleety in preview: ask "What is Tech Fleet's mission?", "What are the team practices?", "How can my company partner with Tech Fleet?" — confirm answers cite the new content (mission = "build empowered team spaces", 7 named practices, 10K service leaders by 2035).
-- Query `kb_versions` — version incremented; next Fleety turn forces L3 cache miss → fresh retrieval.
+- `EVENTS-SYNC-001` — When the kicker runs and vault secrets are present, the cache is populated within 30 s and the API returns ≥1 event.  
+  Then [DB] `community_events_cache.event_count > 0` and `last_refresh_status='ok'`. [Code] `get-community-events` returns 200 with non-empty `events`. [UI] `/events` renders cards instead of the empty state.
+- `EVENTS-SYNC-002` — When vault secrets are missing, the cache row records `config_error` and admins see the failure banner.  
+  Then [DB] `last_refresh_status='config_error'`. [Code] `get-community-events` still returns 200 (graceful). [UI] admin sees the red banner; non-admin still sees the friendly empty state.
 
-## Technical details
+## Files touched
 
-- **Migration**: one SQL migration that (a) UPSERTs the 9 `org://*` rows with NULL embedding, (b) UPDATEs the 4 outdated GitBook rows' content + sets embedding=NULL. Trigger handles version bump.
-- **Embeddings**: backfilled by the existing `embed-knowledge-base` edge function (already runs on rows where `embedding IS NULL` or `embedding_updated_at < scraped_at`). If it's not on a cron, invoke it once post-migration.
-- **RLS**: Service-role policy already covers writes; no policy changes needed.
-- **No frontend changes** — Fleety pipeline (L1–L6) consumes KB transparently.
+- New migration: redefine `kick_community_events_refresh`, re-schedule cron, run once.
+- `supabase/functions/refresh-community-events/index.ts` — minor logging + status hardening.
+- `src/components/events/CommunityEventList.tsx` (or new sibling) — admin-only stale/error banner; reads cache metadata via a tiny new RPC `public.get_community_events_health()` that returns `{ last_refresh_status, last_refresh_error, fetched_at }`.
+- `bdd_scenarios` insert for `EVENTS-SYNC-001` and `EVENTS-SYNC-002`.
 
-## Out of scope
-
-- Scraping the Notion pages live (they're gated; manual narrative is the source).
-- Building an admin UI to edit org content (can be a follow-up if you want one).
-- Touching the framework://* rows (skills/roles/deliverables) — those are unrelated to org identity.
+No user-visible regressions. The end-user empty-state stays untouched; the admin banner only appears when there's something to fix.
