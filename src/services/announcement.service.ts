@@ -4,6 +4,7 @@ import { safeHtmlSchema, safeRequiredTextSchema, safeUrlSchema } from "@/lib/val
 import { handleServiceError } from "@/lib/service-result";
 import { linkifyHtml } from "@/lib/linkify";
 import { normalizeRichTextHtml } from "@/lib/html";
+import { isTransientError } from "@/lib/transient-error";
 
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
