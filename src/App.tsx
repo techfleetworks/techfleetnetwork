@@ -71,6 +71,7 @@ const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const TermsOfUsePage = lazy(() => import("./pages/TermsOfUsePage"));
+const CodeOfConductPage = lazy(() => import("./pages/CodeOfConductPage"));
 const DsarSubmitPage = lazy(() => import("./pages/DsarSubmitPage"));
 const AdminRosterPage = lazy(() => import("./pages/AdminRosterPage"));
 const BannerManagementPage = lazy(() => import("./pages/BannerManagementPage"));
@@ -218,6 +219,7 @@ const App = () => (
                     <Route path="/cookies" element={<CookiesPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/terms-of-use" element={<TermsOfUsePage />} />
+                    <Route path="/code-of-conduct" element={<CodeOfConductPage />} />
                     <Route path="/privacy/dsar" element={<DsarSubmitPage />} />
                     <Route path="/admin/feedback" element={<AdminRoute><FeedbackPage /></AdminRoute>} />
                     <Route path="/admin/roster" element={<AdminRoute><AdminRosterPage /></AdminRoute>} />
