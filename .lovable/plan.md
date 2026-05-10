@@ -1,76 +1,91 @@
-## Root cause
+## Why these 5 errors happen
 
-The `/events` page calls `get-community-events`, which reads the row in `public.community_events_cache`. That row is currently:
+The triage entry `client_error::query.announcements.latest.20::Error: Failed to load announcements.` is fired from `AnnouncementService.list()` (src/services/announcement.service.ts:32) every time the **`useLatestAnnouncements`** hook polls and the supabase-js call returns an error.
 
-```
-event_count = 0, last_refresh_status = NULL, fetched_at = NULL
-```
+That hook polls **every 30s**, on every authenticated tab, with `refetchOnWindowFocus: true`. Realistically, ~5 transient PostgREST/network failures per day across the entire user base is the floor: brief 502/503 from PostgREST, DNS hiccups, mobile radios switching, VPN reconnects. The earlier fix only suppressed `AbortError`; everything else still:
 
-The cache has **never been populated**. Confirmed:
+1. Throws `"Failed to load announcements."` from the service layer
+2. Gets reported to `audit_log` + `agent_fix_queue` as `client_error` severity=`error`
+3. Cannot be auto-fixed by triage because there is no code bug — it is a transient infra event
 
-- `refresh-community-events` edge function has **zero** invocation logs.
-- `pg_net` queue has no entries pointing at `/functions/v1/refresh-community-events`.
-- The Google ICS feed itself is healthy (8.4 MB, 6,599 VEVENTs returned in <1 s from the sandbox).
+Result: the queue accumulates an unactionable "5 occurrences" entry that drowns out real signal, and there is no graceful degradation in the UI either.
 
-Why the cron never fires: the migration `20260510160618_*.sql` registered `cron.schedule('refresh-community-events', '*/10 * * * *', …)` calling `public.kick_community_events_refresh()`. That function does:
+## Goal
+
+Treat transient fetch failures on the announcement poll the same way we treat AbortError: **silently keep last-known-good data**, only escalate to triage when the failure is sustained or structural (auth/RLS/schema). No user-facing toast, no UI flicker, no triage spam.
+
+## Plan
+
+### 1. Service layer — classify and degrade (`src/services/announcement.service.ts`)
+
+Replace the unconditional throw in `list()` with an error classifier:
+
+- **Transient** (network/timeout/5xx/PostgREST 503 / `Failed to fetch` / connection-reset): do **not** throw. Log at `warn`. Return last-known-good announcements from a module-level LRU keyed by `limit` (the existing graceful-degradation pattern in `mem://tech/graceful-degradation`). If no cache, return `[]`.
+- **Structural** (RLS denial 401/403, schema 42P01/42703, auth missing): throw the existing `"Failed to load announcements."` so it lands in triage where it belongs.
+
+A tiny `transient-classifier.ts` helper (already partially encoded in `error-reporter.service.ts` SUPPRESSED_PATTERNS) is hoisted into `src/lib/transient-error.ts` so other polling services (notifications, network activity) can reuse it later. **No call sites change.**
+
+### 2. Hook layer — keep last data + back off (`src/hooks/use-announcements.ts`)
+
+`useLatestAnnouncements` and `useAnnouncementReadIds`:
+
+- Add `placeholderData: (prev) => prev` (keepPreviousData) so transient empties never blank the bell.
+- Add `retry: (failureCount, err) => failureCount < 2 && isTransient(err)` with exponential backoff (1s, 4s).
+- Lift `refetchInterval` to 60s (was 30s) — the bell already revalidates on focus and on `INSERT` realtime; 30s polling is excess load that doubled the transient failure rate.
+
+### 3. Reporter layer — sustained-failure debounce (`src/services/error-reporter.service.ts`)
+
+Add a per-fingerprint **"escalate-after-N"** rule for the announcements polling fingerprint:
+
+- First `N-1` (default 3) failures inside a 5-minute window → counted in `client_error_suppressed` aggregate only.
+- Nth failure inside the window → escalates as a normal `client_error` so admins still see structural outages.
+
+This is generic — keyed by event_type+source pattern from a new column on `audit_event_policy` (`min_occurrences_before_escalate INT DEFAULT 1`). We seed `query.announcements.latest.*` to `3`.
+
+### 4. DB migration
 
 ```sql
-SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url';
-SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_service_role_key';
-EXCEPTION WHEN OTHERS THEN RETURN;
-IF v_url IS NULL OR v_key IS NULL THEN RETURN;
+ALTER TABLE public.audit_event_policy
+  ADD COLUMN IF NOT EXISTS min_occurrences_before_escalate INT NOT NULL DEFAULT 1;
+
+INSERT INTO public.audit_event_policy
+  (event_type_pattern, cap_per_minute, dedup_window_seconds, min_occurrences_before_escalate)
+VALUES
+  ('client_error::query.announcements.%', 5, 300, 3)
+ON CONFLICT (event_type_pattern) DO UPDATE
+  SET min_occurrences_before_escalate = EXCLUDED.min_occurrences_before_escalate;
 ```
 
-Other working crons in this project use **different** vault names — for example `email-queue-drain` uses `project_url` and `email_queue_service_role_key`. When the events kicker doesn't find `supabase_url` / `supabase_service_role_key`, it returns silently with no logs, no row update, no queue entry. Result: the cache stays empty forever and the UI correctly renders the "No upcoming events" empty state.
+`get_audit_policy` RPC already returns the row — extend the SELECT list with the new column. Frontend `PolicyEntry` gains `minOccurrencesBeforeEscalate`.
 
-## Fix (permanent, three layers)
+### 5. One-time cleanup
 
-### 1. Make the kicker resilient and self-reporting (DB migration)
+Resolve the 3 stale `agent_fix_queue` rows for this fingerprint (mark `status='dismissed'`, `dismissed_reason='replaced by graceful degradation in use-announcements + service classifier'`) so the queue is honest about open work.
 
-Rewrite `public.kick_community_events_refresh()` to mirror the pattern that already works for the email and push crons:
+### 6. BDD scenarios (required by workspace policy)
 
-- Try multiple known secret names in order: `supabase_url`, `project_url`, then `current_setting('app.settings.supabase_url', true)`.
-- Same for the service-role key: `supabase_service_role_key`, `email_queue_service_role_key`, then `current_setting('app.settings.service_role_key', true)`.
-- If still missing, **write the failure into `community_events_cache`** (`last_refresh_status='config_error'`, `last_refresh_error='vault secrets missing'`) instead of silently returning. This guarantees visibility in the existing System Health surface.
-- Keep `EXCEPTION WHEN OTHERS` but capture `SQLERRM` into `last_refresh_error` before returning, so any future regression shows up in the same place.
-- After redefining, immediately `PERFORM public.kick_community_events_refresh();` so the first refresh runs as soon as the migration applies.
-- Re-confirm the cron line `*/10 * * * *` is scheduled (idempotent).
+Insert into `bdd_scenarios`:
 
-### 2. Harden `refresh-community-events` (edge function)
-
-Small reliability tweaks while we're here — none change the public output:
-
-- On `last_refresh_status` writes, also stamp `event_count` to `0` when status flips to `error`/`config_error`, so admins can see staleness clearly.
-- Add a JSON-line `console.info` at the start of the run (`{ stage: 'start', cacheAge_ms }`) — helps confirm cron actually fires next time.
-
-### 3. Admin visibility on `/events` (frontend, admin-only)
-
-The empty-state copy is correct for end-users — keep it. For admins, render a small in-page banner above the events list when `community_events_cache.last_refresh_status` is `error` or `config_error`, or when `fetched_at` is older than 30 min:
-
-```
-Calendar sync is failing — last attempt: <relative time>. Reason: <last_refresh_error>.
-```
-
-This way, the next time the cron breaks, an admin sees it immediately on the same page they're reading.
-
-## Why this fixes it permanently
-
-- The kicker no longer depends on a single secret name; it works in every vault layout this project has used.
-- Failures stop being silent — they land in the same row the read path already inspects, and surface as an admin banner on `/events`.
-- The migration triggers an immediate refresh, so admins (and users) see the 38 events this week within seconds of the migration applying, not on the next 10-min tick.
-
-## BDD scenarios (added to `bdd_scenarios`)
-
-- `EVENTS-SYNC-001` — When the kicker runs and vault secrets are present, the cache is populated within 30 s and the API returns ≥1 event.  
-  Then [DB] `community_events_cache.event_count > 0` and `last_refresh_status='ok'`. [Code] `get-community-events` returns 200 with non-empty `events`. [UI] `/events` renders cards instead of the empty state.
-- `EVENTS-SYNC-002` — When vault secrets are missing, the cache row records `config_error` and admins see the failure banner.  
-  Then [DB] `last_refresh_status='config_error'`. [Code] `get-community-events` still returns 200 (graceful). [UI] admin sees the red banner; non-admin still sees the friendly empty state.
+- **ANN-RESILIENCE-001** — Given the announcement bell is mounted, When PostgREST returns 503 once, Then [UI] the bell still shows the previously cached items, [DB] no row is written to `agent_fix_queue` for `query.announcements.latest`, [Code] `AnnouncementService.list` returns the cached array and logs at warn.
+- **ANN-RESILIENCE-002** — Given the bell is mounted, When PostgREST returns 503 four times in five minutes, Then [UI] cached items still render, [DB] one `agent_fix_queue` row exists with severity=error, [Code] `reportError` is called exactly once on the 4th failure.
+- **ANN-RESILIENCE-003** — Given the bell is mounted, When PostgREST returns 401 (RLS), Then [UI] empty state, [DB] `agent_fix_queue` row exists immediately with severity=error, [Code] `AnnouncementService.list` throws on the first failure.
 
 ## Files touched
 
-- New migration: redefine `kick_community_events_refresh`, re-schedule cron, run once.
-- `supabase/functions/refresh-community-events/index.ts` — minor logging + status hardening.
-- `src/components/events/CommunityEventList.tsx` (or new sibling) — admin-only stale/error banner; reads cache metadata via a tiny new RPC `public.get_community_events_health()` that returns `{ last_refresh_status, last_refresh_error, fetched_at }`.
-- `bdd_scenarios` insert for `EVENTS-SYNC-001` and `EVENTS-SYNC-002`.
+- `src/services/announcement.service.ts` — classifier + LRU cache + conditional throw
+- `src/lib/transient-error.ts` — **new** shared classifier
+- `src/hooks/use-announcements.ts` — keepPreviousData, retry, 60s poll
+- `src/services/error-reporter.service.ts` — escalate-after-N
+- `supabase/migrations/<ts>_announcements_resilience.sql` — policy column + seed
+- `supabase/migrations/<ts>_dismiss_announcements_triage_rows.sql` — cleanup
+- `bdd_scenarios` table — 3 inserts
 
-No user-visible regressions. The end-user empty-state stays untouched; the admin banner only appears when there's something to fix.
+## Not in scope
+
+- No change to the announcements table, RLS, or write paths.
+- No change to `AnnouncementBanner` or `UpdatesPage` rendering — they read the same hook output.
+- No change to email send pipeline (separate concern).
+
+## Risk / rollback
+
+Pure additive change. If the classifier mis-categorizes a real outage as transient, the worst case is a 60s delay before the 4th failure escalates — still better than today's noise. Rollback = revert the two migrations + three TS files.
