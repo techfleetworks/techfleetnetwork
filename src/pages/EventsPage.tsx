@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { CommunityEventList } from "@/components/events/CommunityEventList";
 import { WeekCalendar } from "@/components/events/WeekCalendar";
 import { TimezoneSelector } from "@/components/events/TimezoneSelector";
+import { EventsSyncHealthBanner } from "@/components/events/EventsSyncHealthBanner";
 
 const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
 const ADD_TO_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
