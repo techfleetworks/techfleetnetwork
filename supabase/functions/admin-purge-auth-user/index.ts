@@ -171,4 +171,4 @@ Deno.serve(withAuditWrapper("admin-purge-auth-user", async (req) => {
       ? 'Auth account and related app data removed.'
       : 'No auth account existed for this email; only email-keyed records were checked.',
   })
-})
+}))
