@@ -366,6 +366,18 @@ const SUPPRESSED_PATTERNS = [
   "chrome-extension://",
   "moz-extension://",
   "safari-web-extension://",
+  // --- Optional / transient edge-function transport failures ---
+  // Thrown by supabase-js when the network call itself fails (offline, DNS,
+  // CORS preflight aborted, optional service not configured -> 503). These
+  // are not actionable as code fixes — they're either user-network issues or
+  // intentionally unconfigured optional services (e.g. Chatwoot support
+  // widget). Surfacing them in triage drowns out real bugs.
+  "FunctionsFetchError",
+  "Failed to send a request to the Edge Function",
+  // Bare network failure from fetch() — same story.
+  "TypeError: Failed to fetch",
+  "TypeError: NetworkError when attempting to fetch resource",
+  "TypeError: Load failed",
   // (Removed earlier blanket "ZodError" suppression — it was masking real
   // false-positive validator rejections. Surface them so triage can see them.)
 ] as const;
