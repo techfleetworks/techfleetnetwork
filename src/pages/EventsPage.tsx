@@ -178,6 +178,8 @@ export default function EventsPage() {
             <TimezoneSelector value={timeZone} onChange={handleTzChange} />
           </div>
 
+          <EventsSyncHealthBanner />
+
           {view === "week" ? (
             <WeekCalendar timeZone={timeZone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
           ) : (
