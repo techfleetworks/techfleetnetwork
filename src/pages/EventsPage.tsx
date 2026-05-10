@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarPlus, Copy, Globe, Link2, List as ListIcon, CalendarDays, Users } from "lucide-react";
+import { Copy, Globe, Link2, List as ListIcon, CalendarDays, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -11,7 +11,7 @@ import { TimezoneSelector } from "@/components/events/TimezoneSelector";
 import { EventsSyncHealthBanner } from "@/components/events/EventsSyncHealthBanner";
 
 const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
-const ADD_TO_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
+
 const ICAL_SUBSCRIBE_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(TF_CALENDAR_EMAIL)}/public/basic.ics`;
 const OPEN_IN_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/embed?src=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
 
@@ -126,12 +126,6 @@ export default function EventsPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="default">
-                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer">
-                    <CalendarPlus className="h-4 w-4" aria-hidden="true" />
-                    Subscribe in Google
-                  </a>
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"
