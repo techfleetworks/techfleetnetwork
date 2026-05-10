@@ -466,6 +466,13 @@ function isSuppressed(msg: string): boolean {
   for (const p of SUPPRESSED_PATTERNS) {
     if (msg.includes(p)) {
       recordSuppression(p.slice(0, 60));
+      // Stale-bundle nudge: a FunctionsFetchError from a removed component is
+      // a high-confidence stale-tab signal. Trigger an out-of-band version
+      // check so a stuck tab reloads on the next idle window instead of
+      // firing dozens of retries. Throttled inside checkDeployNow.
+      if (p === "FunctionsFetchError" || p.startsWith("SupportWidget")) {
+        try { checkDeployNow(); } catch { /* never throw from telemetry */ }
+      }
       return true;
     }
   }
