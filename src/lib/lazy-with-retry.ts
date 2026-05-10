@@ -46,7 +46,16 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
 
     for (let attempt = 0; attempt <= MAX_TRANSIENT_RETRIES; attempt += 1) {
       try {
-        return await factory();
+        const mod = await factory();
+        // Successful load — clear the one-shot reload flag so a future
+        // stale-chunk on the same tab can recover via reload again.
+        // Without this, a single recovery reload "uses up" the budget for
+        // the entire tab lifetime, and the next failed chunk bubbles to
+        // ErrorBoundary even though a reload would fix it.
+        if (typeof window !== "undefined") {
+          try { window.sessionStorage.removeItem(RELOAD_FLAG); } catch { /* ignore */ }
+        }
+        return mod;
       } catch (error) {
         lastError = error;
         if (!isChunkLoadError(error)) throw error;
