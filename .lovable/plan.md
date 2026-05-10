@@ -1,89 +1,79 @@
-## Root Cause (verified)
+# Refresh Fleety's Knowledge Base — Tech Fleet Org Identity
 
-The 55 `SupportWidget.token` warns are **stale-browser-bundle noise from a deleted feature**:
+## Goal
 
-1. `SupportWidget` was a Chatwoot prototype that was deleted — zero references remain in `src/` today.
-2. **5 distinct users** still have old `index.html` cached, which loads old chunks containing the SupportWidget code. One user alone fired **48 of the 55 warns in a 40-minute window** (a chronic stuck tab retrying the dead token call).
-3. The old SupportWidget catch handler logs via `reportToAuditLog` / `writeAudit` directly — **bypassing the existing `isSuppressed` filter** (which is only called from `reportError` and the global handlers, not from internal `reportToAuditLog`).
-4. Each warn lands in `audit_log` as `client_error` with `changed_fields={source:SupportWidget.token, severity:warn}` and message `FunctionsFetchError: Failed to send a request to the Edge Function`.
-5. Prior migrations (May 10) dismissed the `agent_fix_queue` rows but new fingerprint variants keep re-opening tickets, so the noise loops back into Triage.
+Make Fleety answer about Tech Fleet's mission, vision, values, strategy, offerings, and partnership model using the **new** narrative you provided — and stop pulling from the outdated `guide.techfleet.org` pages.
 
-A new client deploy alone won't fix it — those tabs are running code that pre-dates the suppression list. We need a **server-side bullet** plus client-side defense in depth.
+## Context (what's there today)
 
-## Permanent Fix — Defense in Depth
+`knowledge_base` table holds Fleety's RAG corpus (1,153 rows, used by the L5 RAG step). Today's org-identity rows are scraped from the old GitBook:
 
-### Layer A (server bullet) — Drop dead-source rows at `audit_log` insert time
+- `https://guide.techfleet.org/about-us/about-our-org` — outdated
+- `.../mission-and-values` — outdated
+- `.../hello-world` — outdated
+- `.../tech-fleets-roadmap` — outdated
+- `.../we-live-by-the-collective-agreement` — keep (still accurate)
 
-New `dead_client_sources` lookup table (seedable) + `BEFORE INSERT` trigger on `audit_log` that returns `NULL` for matches. This silently drops the row before it touches the hash chain (no chain breakage — the row was never inserted, no rotation rule violated).
+The Notion URLs you shared are private/gated — Fleety can't re-scrape them on its own, so the canonical text needs to be the narrative you pasted (plus the Notion URLs as references).
 
-```sql
-create table public.dead_client_sources (
-  source text primary key,
-  reason text not null,
-  added_at timestamptz not null default now()
-);
-insert into public.dead_client_sources values
-  ('SupportWidget.token', 'Chatwoot prototype removed; residual stale-bundle noise.');
+## Plan
 
-create or replace function public.audit_log_drop_dead_sources()
-returns trigger language plpgsql security definer set search_path=public as $$
-begin
-  if new.event_type = 'client_error'
-     and exists (
-       select 1 from public.dead_client_sources d
-       where ('source:'||d.source) = any(new.changed_fields)
-     ) then
-    return null;  -- silently drop
-  end if;
-  return new;
-end $$;
+### 1. Add 8 new canonical `org://` rows to `knowledge_base`
 
-create trigger audit_log_drop_dead_sources_t
-before insert on public.audit_log
-for each row execute function public.audit_log_drop_dead_sources();
-```
+One row per topic, each with: full prose body, source Notion URL in the content footer, fresh embedding (768-dim, generated via existing Lovable AI embedding flow used elsewhere in the project), `scraped_at = now()`.
 
-This kills the noise from **every version of every client, today**. Adding a future dead source = single `INSERT` into the lookup, no app deploy.
-
-### Layer B — Block `agent_fix_queue` reopens for dead sources
-
-Update `upsert_fix_queue_entry` to early-return `NULL` when `p_source` is in `dead_client_sources`. Belt-and-suspenders so even if a server-side caller bypasses the audit trigger, Triage stays clean.
-
-### Layer C — Tighten the client suppression list (live bundles only)
-
-In `src/services/error-reporter.service.ts`:
-
-1. Move `isSuppressed(msg)` from `reportError` into the shared `reportToAuditLog` so **every reporter path** is guarded (not just `reportError` + global handlers). This closes the bypass that originally let SupportWidget through.
-2. Add `"SupportWidget.token"` and a generic `"source:SupportWidget"` to `SUPPRESSED_PATTERNS` for symmetry.
-
-### Layer D — Nudge stuck stale tabs to reload faster
-
-In the error reporter, when a `FunctionsFetchError` arrives whose source is in a known-dead-source set, call `deployWatcher.checkNow()` synchronously. The deploy-watcher already reloads on version mismatch — this turns "48 retries before someone refreshes" into "1 retry → version check → reload to fresh build".
-
-### Layer E — Observability (drops are not a black hole)
-
-The trigger increments a `pg_stat_statements`-friendly counter via the existing `client_error_suppressed` audit event (one row per minute, not per drop). The daily Triage digest already surfaces these counts, so we'll know if the dead-source list ever needs pruning.
-
-## Files / Migrations
-
-| Layer | File |
+| `url` | `title` |
 |---|---|
-| A + B | New migration: `dead_client_sources` table, `audit_log_drop_dead_sources` trigger, `upsert_fix_queue_entry` guard, seed row for `SupportWidget.token` |
-| C | `src/services/error-reporter.service.ts` — move `isSuppressed` into `reportToAuditLog`; add patterns |
-| D | `src/services/error-reporter.service.ts` — call `deployWatcher.checkNow()` on dead-source FunctionsFetchError; export `checkNow` from `src/lib/deploy-watcher.ts` if not already |
-| Tests | `src/test/services/error-reporter.test.ts` (new): suppression bypass regression test for `reportToAuditLog`; `supabase/tests/dead_sources.sql`: trigger drops the row |
-| BDD | Update `bdd_scenarios.HEALTH-TRIAGE-FIX-001` with a tri-layer scenario for dead-source suppression: UI unchanged, DB rows dropped, code path guarded |
-| Memory | Append rule to `mem://features/error-triage-queue` covering `dead_client_sources` lookup |
+| `org://mission-vision-values` | Tech Fleet — Mission, Vision, Values, Offerings |
+| `org://narrative` | Tech Fleet — Organizational Narrative (Why We Exist) |
+| `org://team-practices` | Tech Fleet — The 7 Team Practices |
+| `org://programs` | Tech Fleet — Programs (Project Training, Learning Labs, Community Collaboration) |
+| `org://product-service-offering` | Tech Fleet — Product & Service Offering |
+| `org://three-year-strategy` | Tech Fleet — Three-Year Strategy & Theory of Change |
+| `org://ten-year-commitment` | Tech Fleet — 10-Year Commitment to the Mission (10,000 service leaders by 2035) |
+| `org://business-plan` | Tech Fleet — Business Plan (Summary) |
+| `org://ways-to-partner` | Tech Fleet — Ways to Partner |
 
-## Verification
+Each row's content will be authored from the narrative + section headings you provided, with the matching Notion link appended as `Source: <notion-url>` so Fleety can cite it.
 
-1. After migration: `INSERT INTO audit_log` with `event_type='client_error'`, `changed_fields={'source:SupportWidget.token'}` — verify row count unchanged.
-2. Audit poll 24h post-deploy: `client_error` rows with source `SupportWidget.token` = 0; daily digest shows N drops via `client_error_suppressed`.
-3. `agent_fix_queue` no `SupportWidget.token` rows in `pending` state.
-4. Deploy-watcher reload behavior: the user with the stuck tab reloads on next route change instead of firing 48 retries.
+### 2. Retire the 4 outdated GitBook rows
 
-## Audit notes (other warns to triage in same loop)
+Soft-deprecate by **overwriting their `content`** with a one-line redirect note:
 
-- The "5 Failed to load announcements" errors are transient `useAnnouncements` query failures during the same May-10 deploy windows — not actionable code-side; they're already covered by the `network_failure` rate-limit class. No fix needed unless they recur.
-- Edge function `record-web-vital` shows healthy boot/shutdown patterns; no failures.
-- `public-project-openings` warns about `SUPABASE_SERVICE_ROLE_ROTATED_AT not set` — separate runbook (`docs/runbooks/jwt-rotation.md`); out of scope here.
+> "This page is outdated. See canonical entries `org://mission-vision-values`, `org://narrative`, `org://team-practices`, `org://programs` for current Tech Fleet org identity."
+
+Re-embed so semantic search no longer surfaces the stale prose. (Hard delete is risky — other code/links may reference these URLs; redirect-style overwrite is safer.)
+
+Rows touched:
+- `https://guide.techfleet.org/about-us/about-our-org`
+- `.../about-our-org/mission-and-values`
+- `.../about-our-org/hello-world`
+- `.../about-our-org/tech-fleets-roadmap`
+
+### 3. Bump KB version
+
+The `trg_kb_bump_version` trigger fires automatically on every INSERT/UPDATE — this invalidates Fleety's L3 semantic cache (cache key includes `kb_version`), so users see fresh answers immediately. No manual cache purge needed.
+
+### 4. Memory + BDD
+
+- Add `mem://content/org-identity-canonical` — lists the 9 canonical `org://*` URLs as the single source of truth for org-identity Q&A; instructs future agents to update these rows (not the GitBook URLs) when the org narrative changes.
+- Append BDD scenario `KB-ORG-REFRESH-001` to `bdd_scenarios`: Given Fleety is asked "what is Tech Fleet's mission?" When the L5 RAG step retrieves context, Then the top-1 chunk URL is `org://mission-vision-values` [DB] and the rendered answer references "build empowered team spaces" [UI] and the response includes the Notion source link [Code].
+
+### 5. Verification
+
+- `psql` row count: 9 new `org://*` rows present, all with `embedding IS NOT NULL`.
+- Spot-check Fleety in preview: ask "What is Tech Fleet's mission?", "What are the team practices?", "How can my company partner with Tech Fleet?" — confirm answers cite the new content (mission = "build empowered team spaces", 7 named practices, 10K service leaders by 2035).
+- Query `kb_versions` — version incremented; next Fleety turn forces L3 cache miss → fresh retrieval.
+
+## Technical details
+
+- **Migration**: one SQL migration that (a) UPSERTs the 9 `org://*` rows with NULL embedding, (b) UPDATEs the 4 outdated GitBook rows' content + sets embedding=NULL. Trigger handles version bump.
+- **Embeddings**: backfilled by the existing `embed-knowledge-base` edge function (already runs on rows where `embedding IS NULL` or `embedding_updated_at < scraped_at`). If it's not on a cron, invoke it once post-migration.
+- **RLS**: Service-role policy already covers writes; no policy changes needed.
+- **No frontend changes** — Fleety pipeline (L1–L6) consumes KB transparently.
+
+## Out of scope
+
+- Scraping the Notion pages live (they're gated; manual narrative is the source).
+- Building an admin UI to edit org content (can be a follow-up if you want one).
+- Touching the framework://* rows (skills/roles/deliverables) — those are unrelated to org identity.
