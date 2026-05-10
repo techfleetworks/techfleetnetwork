@@ -23,6 +23,10 @@ export interface Announcement {
   author_name?: string;
 }
 
+// Module-level last-known-good cache (graceful degradation pattern). Keyed by
+// limit so the bell (5) and full updates page (50) maintain separate caches.
+const lastKnownGood = new Map<number, Announcement[]>();
+
 export const AnnouncementService = {
   async list(limit = 50): Promise<Announcement[]> {
     const { data, error } = await supabase
@@ -30,8 +34,32 @@ export const AnnouncementService = {
       .select("id, title, body_html, video_url, audio_url, created_by, created_at, updated_at")
       .order("created_at", { ascending: false })
       .limit(limit);
-    handleServiceError(error, { logger: log, action: "list", message: `Failed to fetch announcements: ${error?.message ?? "Unknown error"}`, throwMessage: "Failed to load announcements." });
-    return (data ?? []) as unknown as Announcement[];
+
+    if (error) {
+      // Transient (network/5xx/connection) → degrade silently to last-known-good.
+      // Reporter has its own escalate-after-N rule for query.announcements.* so
+      // sustained outages still reach the triage queue.
+      if (isTransientError(error)) {
+        handleServiceError(error, {
+          logger: log,
+          action: "list.transient",
+          message: `Transient announcement fetch failure (degraded): ${error.message}`,
+          level: "warn",
+        });
+        return lastKnownGood.get(limit) ?? [];
+      }
+      // Structural (RLS / schema / auth) → throw so it surfaces in triage.
+      handleServiceError(error, {
+        logger: log,
+        action: "list",
+        message: `Failed to fetch announcements: ${error.message}`,
+        throwMessage: "Failed to load announcements.",
+      });
+    }
+
+    const rows = (data ?? []) as unknown as Announcement[];
+    lastKnownGood.set(limit, rows);
+    return rows;
   },
 
   async latest(limit = 5): Promise<Announcement[]> {
