@@ -117,9 +117,11 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const parsed = QuerySchema.safeParse({
     windowDays: url.searchParams.get("windowDays") ?? undefined,
+    from: url.searchParams.get("from") ?? undefined,
+    to: url.searchParams.get("to") ?? undefined,
   });
   if (!parsed.success) {
-    return new Response(JSON.stringify({ error: "Invalid windowDays" }), {
+    return new Response(JSON.stringify({ error: parsed.error.flatten() }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -127,20 +129,28 @@ Deno.serve(async (req) => {
 
   try {
     const all = await readCache();
-    const now = Date.now();
-    const windowEnd = now + parsed.data.windowDays * 24 * 60 * 60 * 1000;
-    const events = all.filter((e) => {
-      const start = Date.parse(e.startUtc);
-      const end = Date.parse(e.endUtc);
-      return end >= now && start <= windowEnd;
-    });
+    let rangeStart: number;
+    let rangeEnd: number;
+    if (parsed.data.from && parsed.data.to) {
+      rangeStart = Date.parse(parsed.data.from);
+      rangeEnd = Date.parse(parsed.data.to);
+    } else {
+      rangeStart = Date.now();
+      rangeEnd = rangeStart + (parsed.data.windowDays ?? 60) * 24 * 60 * 60 * 1000;
+    }
+    const events = all
+      .filter((e) => {
+        const start = Date.parse(e.startUtc);
+        const end = Date.parse(e.endUtc);
+        return end >= rangeStart && start <= rangeEnd;
+      })
+      .map((e) => ({ ...e, description: cleanDescription(e.description) }));
 
     return new Response(JSON.stringify({ events }), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        // 5-min CDN cache + SWR so repeat browser/CDN hits skip Deno entirely.
         "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
       },
     });
