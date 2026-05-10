@@ -5548,6 +5548,16 @@ export type Database = {
           event_type_pattern: string
         }[]
       }
+      get_community_events_health: {
+        Args: never
+        Returns: {
+          event_count: number
+          fetched_at: string
+          last_refresh_error: string
+          last_refresh_status: string
+          updated_at: string
+        }[]
+      }
       get_company_type_context: { Args: { p_id: string }; Returns: Json }
       get_course_completion_counts: {
         Args: { _course_specs: Json }
