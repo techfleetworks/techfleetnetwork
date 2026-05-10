@@ -48,9 +48,13 @@ export function AppFooter() {
           </nav>
         </div>
         <p className="text-center text-[11px] text-muted-foreground leading-relaxed">
-          8 The Grn Suite 6269, Dover, DE 19901, USA · 302-497-4065 ·{" "}
-          <a href="mailto:info@techfleet.org" className="hover:text-foreground underline">
-            info@techfleet.org
+          <a
+            href="https://techfleet.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground underline"
+          >
+            techfleet.org
           </a>
         </p>
       </div>
