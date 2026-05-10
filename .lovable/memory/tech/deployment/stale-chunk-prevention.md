@@ -24,9 +24,10 @@ Goal: a redeploy must NEVER cause a `TypeError: Failed to fetch dynamically impo
    - On mismatch: reload immediately if hidden, otherwise schedule idle reload + reload on next route change (`src/components/RouteChangeReloader.tsx`).
 
 4. **Lazy import retry safety net (`src/lib/lazy-with-retry.ts`)**
-   - Wraps every `React.lazy` route in `src/App.tsx` (imported as `lazy`).
+   - Wraps every `React.lazy` callsite — both routes in `src/App.tsx` AND inner-component lazies (widgets, tabs, modals) — imported as `import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry"`.
    - Two transient retries with backoff (400ms, 1200ms) before a single hard reload tracked via `sessionStorage["__lovable_chunk_reload__"]` to prevent loops.
    - `clearChunkReloadFlag()` is called by `RouteChangeReloader` on successful navigations.
+   - **Do NOT** use raw `lazy` from `react` anywhere outside `src/lib/lazy-with-retry.ts` — inner-component lazies bypass the retry/reload guard and surface stale-chunk errors to the ErrorBoundary.
 
 5. **ErrorBoundary backstop (`src/components/ErrorBoundary.tsx`)**
    - Detects chunk-load errors and silently hard-reloads as final recovery.
