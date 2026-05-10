@@ -30,7 +30,7 @@ import {
   useMarkAllNotificationsRead,
   type AppNotification,
 } from "@/hooks/use-notifications";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, normalizeRichTextHtml } from "@/lib/html";
 import { sanitizeHtml } from "@/lib/security";
 import { linkifyHtml } from "@/lib/linkify";
 import type { Announcement } from "@/services/announcement.service";
