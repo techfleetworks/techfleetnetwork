@@ -568,7 +568,14 @@ export function sanitizeHtml(dirty: string): string {
   if (typeof dirty !== "string" || dirty.length === 0) return "";
   // Hard cap to prevent DOM-based DoS via giant HTML blobs.
   const capped = dirty.length > 100_000 ? dirty.slice(0, 100_000) : dirty;
-  return DOMPurify.sanitize(capped, {
+  // Normalize non-breaking spaces (literal &nbsp; entities and U+00A0) that
+  // some rich-text editors / pasted Word/Google Docs content insert between
+  // every word — they suppress wrapping and make announcements look "jumbled".
+  const normalized = capped
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]{2,}/g, " ");
+  return DOMPurify.sanitize(normalized, {
     ALLOWED_TAGS: [
       "p", "br", "strong", "b", "em", "i", "u", "s",
       "a", "ul", "ol", "li", "h2", "h3", "blockquote",
