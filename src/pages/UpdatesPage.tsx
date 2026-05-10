@@ -29,7 +29,7 @@ import {
   useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, useMarkAnnouncementRead,
   useRecordAnnouncementView,
 } from "@/hooks/use-announcements";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, normalizeRichTextHtml } from "@/lib/html";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { Announcement } from "@/services/announcement.service";
 import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
