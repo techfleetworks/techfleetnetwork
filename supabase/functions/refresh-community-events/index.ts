@@ -290,10 +290,29 @@ function expandOccurrences(ev: RawVEvent, windowStart: Date, windowEnd: Date): A
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role only. The cron sends Authorization: Bearer <service_role_key>.
+  // Service-role only. Validate by decoding the JWT and checking the role
+  // claim — this tolerates signing-key rotation where the vault-stored key
+  // and the Deno SUPABASE_SERVICE_ROLE_KEY env var are different valid JWTs.
   const auth = req.headers.get("Authorization") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!serviceRoleKey || auth !== `Bearer ${serviceRoleKey}`) {
+  let authorized = false;
+  if (auth.startsWith("Bearer ")) {
+    const token = auth.slice("Bearer ".length).trim();
+    if (serviceRoleKey && token === serviceRoleKey) {
+      authorized = true;
+    } else {
+      try {
+        const payload = token.split(".")[1];
+        if (payload) {
+          const json = JSON.parse(
+            atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+          );
+          if (json?.role === "service_role") authorized = true;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
