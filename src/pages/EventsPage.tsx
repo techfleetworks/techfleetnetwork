@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { CalendarPlus, Copy, Globe, Link2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarPlus, Copy, Globe, Link2, List as ListIcon, CalendarDays, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { CommunityEventList } from "@/components/events/CommunityEventList";
+import { WeekCalendar } from "@/components/events/WeekCalendar";
+import { TimezoneSelector } from "@/components/events/TimezoneSelector";
 
 const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
-// Subscribe URLs for the public Tech Fleet community Google Calendar
 const ADD_TO_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
 const ICAL_SUBSCRIBE_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(TF_CALENDAR_EMAIL)}/public/basic.ics`;
 const OPEN_IN_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/embed?src=${encodeURIComponent(TF_CALENDAR_EMAIL)}`;
@@ -17,16 +19,55 @@ const eventTabs: TabItem[] = [
   { value: "public", label: "Public Events", icon: <Globe className="h-4 w-4" /> },
 ];
 
+const TZ_KEY = "tfn.events.tz";
+const VIEW_KEY = "tfn.events.view";
+
 export default function EventsPage() {
   const [tab, setTab] = useState("community");
   const { profile } = useAuth();
 
-  // Always render in the member's profile timezone; fall back to the browser
-  // local timezone, then EDT (America/New_York) if both are unavailable.
-  const userTimezone =
-    profile?.timezone?.trim() ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    "America/New_York";
+  // Timezone precedence: localStorage → profile → browser → America/New_York (EDT fallback).
+  const [timeZone, setTimeZone] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(TZ_KEY);
+      if (saved) return saved;
+    }
+    return (
+      profile?.timezone?.trim() ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "America/New_York"
+    );
+  });
+
+  // If profile loads after mount and user hasn't picked one, adopt profile tz.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(TZ_KEY)) return;
+    if (profile?.timezone?.trim()) setTimeZone(profile.timezone.trim());
+  }, [profile?.timezone]);
+
+  const handleTzChange = (tz: string) => {
+    setTimeZone(tz);
+    try {
+      window.localStorage.setItem(TZ_KEY, tz);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const [view, setView] = useState<"week" | "list">(() => {
+    if (typeof window === "undefined") return "week";
+    return (window.localStorage.getItem(VIEW_KEY) as "week" | "list") || "week";
+  });
+  const handleViewChange = (v: string) => {
+    if (v !== "week" && v !== "list") return;
+    setView(v);
+    try {
+      window.localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const lumaSrc = "https://luma.com/tech-fleet-network";
 
@@ -59,8 +100,6 @@ export default function EventsPage() {
               }}
               loading="lazy"
               allowFullScreen
-              aria-hidden="false"
-              tabIndex={0}
             />
             <div className="border-x border-b p-3 text-center text-sm text-muted-foreground">
               Not seeing events?{" "}
@@ -82,12 +121,12 @@ export default function EventsPage() {
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Subscribe to all Tech Fleet events</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Add the whole calendar once and new events appear automatically in Google, Apple, or Outlook Calendar.
+                  Add the whole calendar once and new events appear automatically in Google, Apple, or Outlook.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="default">
-                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Subscribe to the full Tech Fleet calendar in Google Calendar">
+                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer">
                     <CalendarPlus className="h-4 w-4" aria-hidden="true" />
                     Subscribe in Google
                   </a>
@@ -103,13 +142,12 @@ export default function EventsPage() {
                       toast({ title: "Copy failed", description: ICAL_SUBSCRIBE_URL, variant: "destructive" });
                     }
                   }}
-                  aria-label="Copy iCal subscription link for Apple Calendar or Outlook"
                 >
                   <Copy className="h-4 w-4" aria-hidden="true" />
-                  Copy iCal link (Apple / Outlook)
+                  Copy iCal link
                 </Button>
                 <Button asChild size="sm" variant="ghost">
-                  <a href={OPEN_IN_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Open the calendar on Google Calendar">
+                  <a href={OPEN_IN_GOOGLE_URL} target="_blank" rel="noopener noreferrer">
                     <Link2 className="h-4 w-4" aria-hidden="true" />
                     Open in Google
                   </a>
@@ -118,12 +156,32 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <p className="mb-3 text-xs text-muted-foreground">
-            Times shown in <span className="font-medium text-foreground">{userTimezone}</span>. Each event has its own
-            "Add to Google Calendar" button so you can save just the ones you want.
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <ToggleGroup
+              type="single"
+              value={view}
+              onValueChange={(v) => v && handleViewChange(v)}
+              aria-label="Select view"
+              className="border rounded-md"
+            >
+              <ToggleGroupItem value="week" aria-label="Week view" className="h-8 px-3 text-xs">
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                Week
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label="List view" className="h-8 px-3 text-xs">
+                <ListIcon className="h-4 w-4" aria-hidden="true" />
+                List
+              </ToggleGroupItem>
+            </ToggleGroup>
 
-          <CommunityEventList timeZone={userTimezone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
+            <TimezoneSelector value={timeZone} onChange={handleTzChange} />
+          </div>
+
+          {view === "week" ? (
+            <WeekCalendar timeZone={timeZone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
+          ) : (
+            <CommunityEventList timeZone={timeZone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
+          )}
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>

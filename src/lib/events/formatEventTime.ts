@@ -1,10 +1,20 @@
 /**
- * Format an event's start/end window in the viewer's timezone.
- *
- * - Same day: "Wed, May 14 · 6:00 – 7:30 PM EDT"
- * - Multi-day: "Wed, May 14 6:00 PM EDT → Thu, May 15 7:30 AM EDT"
- * - All day:   "All day · Wed, May 14"
+ * Format event time helpers — all timezone-aware.
  */
+
+function tzAbbr(d: Date, tz: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat(undefined, {
+      timeZone: tz,
+      timeZoneName: "short",
+      hour: "numeric",
+    }).formatToParts(d);
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export function formatEventTime(
   startUtc: string,
   endUtc: string,
@@ -23,24 +33,24 @@ export function formatEventTime(
       timeZone: tz,
     }).format(d);
 
-  const timePart = (d: Date, includeTz: boolean) =>
+  const timePart = (d: Date) =>
     new Intl.DateTimeFormat(undefined, {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
       timeZone: tz,
-      timeZoneName: includeTz ? "short" : undefined,
     }).format(d);
+
+  const abbr = tzAbbr(start, tz);
 
   let primary: string;
   if (allDay) {
     primary = `All day · ${datePart(start)}`;
   } else {
-    const sameDay =
-      datePart(start) === datePart(end);
+    const sameDay = datePart(start) === datePart(end);
     primary = sameDay
-      ? `${datePart(start)} · ${timePart(start, false)} – ${timePart(end, true)}`
-      : `${datePart(start)} ${timePart(start, true)} → ${datePart(end)} ${timePart(end, true)}`;
+      ? `${datePart(start)} · ${timePart(start)} – ${timePart(end)}${abbr ? ` ${abbr}` : ""}`
+      : `${datePart(start)} ${timePart(start)} ${abbr} → ${datePart(end)} ${timePart(end)} ${abbr}`.trim();
   }
 
   const now = Date.now();
@@ -54,4 +64,28 @@ export function formatEventTime(
   else if (diffDays >= 7 && diffDays < 14) relative = "Next week";
 
   return { primary, relative, iso: start.toISOString() };
+}
+
+/** "2:00 – 3:00 PM EST" — used inside calendar blocks and dialog. */
+export function formatTimeRangeWithZone(
+  startUtc: string,
+  endUtc: string,
+  timeZone: string,
+): string {
+  const start = new Date(startUtc);
+  const end = new Date(endUtc);
+  const tz = timeZone || "UTC";
+  const t = (d: Date) =>
+    new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: tz,
+    }).format(d);
+  const abbr = tzAbbr(start, tz);
+  return `${t(start)} – ${t(end)}${abbr ? ` ${abbr}` : ""}`;
+}
+
+export function getTimezoneAbbreviation(timeZone: string, ref: Date = new Date()): string {
+  return tzAbbr(ref, timeZone || "UTC");
 }
