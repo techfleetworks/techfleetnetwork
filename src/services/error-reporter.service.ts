@@ -302,12 +302,20 @@ async function reportToAuditLog(
   // Best-effort policy refresh; never blocks first call (uses stale snapshot).
   void refreshPolicy();
   const eventType = options.eventType ?? "client_error";
-  const policy = getPolicy(eventType);
   const fp = `${eventType}::${fingerprint(errorMessage, source)}`;
+  const policy = getPolicy(eventType, fingerprint(errorMessage, source));
   if (!checkDedup(fp, policy.dedupWindowMs)) return;
   if (!checkRateLimit(eventType, policy.capPerMinute)) {
     suppressedSinceLastFlush += 1;
     scheduleOverflowFlush();
+    return;
+  }
+  // Escalate-after-N: when policy requires multiple occurrences in the dedup
+  // window before triage, count this hit but skip writing until the threshold
+  // is reached. The aggregate suppression flush still records the drops so
+  // admins have visibility in /admin/system-health.
+  if (!recordOccurrenceAndShouldEscalate(fp, policy.dedupWindowMs, policy.minOccurrencesBeforeEscalate)) {
+    recordDedup(fp);
     return;
   }
 
