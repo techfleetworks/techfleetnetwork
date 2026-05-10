@@ -1,88 +1,79 @@
-# Replace Google Calendar iframe with a custom Tech Fleet event list
+## Goal
+Replace the flat list with a Google-Calendar-style **week view** for community events, with a list/week toggle, week-based windowed loading, timezone selector, event detail popup, and noise stripping.
 
-## Why this is needed
+## Changes
 
-The embedded Google Calendar iframe is a sealed Google widget. Its event popup, layout, and buttons cannot be customized — there is no API to inject "Add to Google Calendar" buttons into individual events, expose creator email, or control how description/link/timezone are rendered. The only way to deliver everything you asked for (per-event add button, description, link, name, time in viewer's timezone, creator email) is to render our own UI driven by the calendar's underlying iCal feed.
+### 1. Edge function — windowed week loads
+`supabase/functions/get-community-events/index.ts`
+- Accept `from` and `to` ISO query params (mutually exclusive with `windowDays`, validated via Zod, max 14-day span).
+- Return only events overlapping `[from, to]`. Keep existing cache + WAF + rate limit.
+- Strip the boilerplate `Learn more about Meet at: https://support.google.com/a/users/answer/9282720` (and any surrounding blank line) from each event's `description` before responding so all clients benefit.
 
-## What you'll see on the Community Events tab
+### 2. New `useCommunityEventsWeek(weekStart, tz)` hook
+`src/hooks/useCommunityEventsWeek.ts`
+- React Query, key = `["community-events", weekStartISO]`.
+- `staleTime` 10 min; prefetch next week on success for snappy navigation.
+- Calls edge function with `from`/`to` covering Mon 00:00 → next Mon 00:00 in selected tz.
 
-A clean, scannable agenda of upcoming Tech Fleet events. Each event card shows:
+### 3. New `WeekCalendar` component
+`src/components/events/WeekCalendar.tsx`
+- 7-column grid, Monday → Sunday header with date chips; today highlighted.
+- 24-hour timeline column on the left (hour gridlines).
+- Absolutely-positioned event blocks computed from `startUtc`/`endUtc` projected into selected tz; horizontal stacking for overlaps.
+- All-day strip above the timeline.
+- Auto-scroll to 8 AM on mount; "Today" button.
+- Prev / Next / Today week navigation; current week label "Nov 10 – Nov 16, 2026".
+- Click event block → opens `EventDetailDialog`.
+- Keyboard accessible (event blocks are `<button>`s, arrow-key nav between days, focus ring, ARIA roles `grid` / `gridcell`).
+- Mobile: collapses to single-day swipeable column with day picker (still windowed by week).
 
-- **Event name** (heading)
-- **Start → end time** formatted in the viewer's profile timezone (with timezone abbreviation like "EDT") and a relative chip ("Today", "Tomorrow", "in 3 days")
-- **Creator email** with a `mailto:` link (the iCal `ORGANIZER` field)
-- **Description** (full text, with any URLs auto-linkified, sanitized to prevent XSS)
-- **Event link** — the Google Meet / Zoom / location URL pulled from the iCal `LOCATION` or `URL` field, rendered as a prominent "Join event" button when present
-- **Add to my Google Calendar** button — uses `https://calendar.google.com/calendar/render?action=TEMPLATE&text=…&dates=…&details=…&location=…` so the viewer adds *this single event* to their personal calendar
-- **Copy event link** secondary button
+### 4. New `EventDetailDialog`
+`src/components/events/EventDetailDialog.tsx`
+- shadcn `Dialog`. Shows: title, sanitized description, location, organizer email (mailto), event URL, start/end formatted in selected tz with **timezone abbreviation appended** (e.g. "Mon Nov 10, 2026, 2:00 – 3:00 PM EST").
+- Buttons: "Add to Google Calendar", "Join meeting" (if Zoom/Meet/Teams link detected), "Copy link".
 
-Above the list, the existing "Subscribe to the whole calendar" panel stays (Add to Google Calendar / Copy iCal link / Open in Google) so power-users can still subscribe to everything in one click.
+### 5. Timezone selector
+`src/components/events/TimezoneSelector.tsx`
+- Combobox of common IANA zones + search; persisted to `localStorage` (`tfn.events.tz`) for the session.
+- Default precedence: localStorage → `profile.timezone` → browser → `America/New_York` (EDT fallback).
+- Live region announces tz changes for screen readers.
+- Selected tz drives both week view and list view.
 
-Empty state, loading skeleton, and a graceful error fallback ("Couldn't load events — open the calendar on Google →") are all handled.
+### 6. View toggle (Week | List)
+`src/pages/EventsPage.tsx`
+- Segmented control above the calendar (`ToggleGroup`), default **Week**, persisted in `localStorage` (`tfn.events.view`).
+- Week view: `WeekCalendar` (windowed loads).
+- List view: existing `CommunityEventList`, updated to accept the selected tz and append tz abbreviation after each time.
 
-## Technical approach
+### 7. Time formatting helper
+`src/lib/events/formatEventTime.ts`
+- Add `formatRangeWithZone(startUtc, endUtc, tz)` returning `"2:00 – 3:00 PM EST"` using `Intl.DateTimeFormat` with `timeZoneName: 'short'` extracted once and appended.
+- Used by both calendar blocks, list cards, and the dialog.
 
-```text
-Browser ── GET /functions/v1/get-community-events
-                                │
-                                ▼
-                    fetch public .ics from
-            calendar.google.com/calendar/ical/.../public/basic.ics
-                                │
-                                ▼
-                    parse VEVENT blocks → JSON
-                                │
-                                ▼
-                  cache 10 min in edge memory
-                                │
-                                ▼
-                Browser renders custom event list
-                (formatted in profile timezone)
-```
+### 8. Description cleanup
+- Edge function strips the Meet boilerplate (single source of truth).
+- Frontend sanitizer (`sanitizeHtml`) unchanged.
 
-### Backend — new edge function `get-community-events`
-
-- Public (no JWT required) — calendar is already public, but we still:
-  - validate optional `?windowDays=` query param (1–60, default 60) with Zod
-  - apply a simple in-memory rate limit (60 req / IP / hour) per the project's edge-function security pattern
-  - wrap the upstream fetch in the existing `CircuitBreaker` (per Core memory) with exponential backoff
-- Fetches the public `basic.ics` URL, parses `VEVENT` blocks (manual lightweight parser — no external SDK needed; handles `DTSTART`, `DTEND`, `SUMMARY`, `DESCRIPTION`, `LOCATION`, `URL`, `ORGANIZER`, `UID`, recurrence via `RRULE` expansion for the next 60 days)
-- Returns JSON: `[{ uid, title, startUtc, endUtc, allDay, description, location, url, organizerEmail }]` filtered to events ending ≥ now and starting ≤ now + windowDays, sorted ascending
-- 10-minute `Cache-Control: public, max-age=600` + edge-side memo
-- Logs failures to existing error-triage queue (per Core memory), so any iCal feed regression auto-surfaces in System Health → Triage
-
-### Frontend — `EventsPage.tsx`
-
-- Drop the Google Calendar `<iframe>` from the **Community Events** tab
-- Add `src/components/events/CommunityEventList.tsx` — fetches via `supabase.functions.invoke('get-community-events')` with React Query (10-min stale time, retry on failure)
-- Add `src/components/events/CommunityEventCard.tsx` — renders one event with all fields and the two action buttons
-- Add `src/lib/events/googleCalendarTemplate.ts` — pure helper that builds the `calendar/render?action=TEMPLATE` URL given an event (URL-encodes title, ISO-basic dates, sanitized description with link appended, location)
-- Add `src/lib/events/formatEventTime.ts` — formats start/end in the user's profile timezone using `Intl.DateTimeFormat` with `timeZoneName: "short"`; handles same-day, multi-day, all-day cases
-- Reuse existing `sanitizeHtml` util for description rendering; auto-linkify bare URLs
-- Loading skeleton + empty state + error state with a fallback link to the public calendar on Google
-- The **Public Events** tab (Luma iframe) is untouched
-- Follows the dark space theme, semantic tokens only, fully WCAG 2.0/3.0 (proper headings, ARIA labels on icon buttons, focus rings, time elements use `<time datetime>`)
-
-### Database / migrations
-
-None — the iCal feed is the source of truth, no caching table needed at this volume.
-
-### BDD scenarios (per project rule)
-
-New `bdd_scenarios` rows for feature `events-community-list` covering, with tri-layer Then-clauses (UI / DB-or-cache / Code-API):
-
-1. Loads upcoming events in viewer's profile timezone
-2. Falls back to America/New_York when profile timezone unset
-3. "Add to Google Calendar" button opens prefilled template URL with the correct event
-4. Event link button appears only when LOCATION/URL present
-5. Creator email renders as mailto link
-6. Edge function returns 400 for invalid `windowDays`
-7. Upstream iCal failure surfaces graceful error UI + logs to triage queue
-8. Cache-Control header is set to 10 minutes
+### 9. BDD scenarios (`bdd_scenarios` table)
+Insert via migration:
+- View defaults to week, Mon–Sun, current week.
+- Prev/Next/Today navigation loads only that week's events.
+- Clicking an event opens the detail dialog with all required fields.
+- Times render in selected tz with tz abbreviation suffix.
+- Profile tz used when no override; EDT fallback when neither set.
+- Meet boilerplate removed from descriptions everywhere.
+- View toggle persists across reloads.
+- Edge function rejects invalid `from`/`to`, > 14-day spans.
+- Each scenario has tri-layer Then clauses ([UI]/[DB]/[Code]).
 
 ## Out of scope
+- Public Events (Luma) tab — unchanged.
+- Drag-to-reschedule (read-only calendar).
+- Month/day views (only Week + List per request).
 
-- Public Events (Luma) tab — unchanged
-- The "Subscribe to the whole calendar" panel — unchanged
-- No new connector required (public iCal needs no auth)
-- No changes to admin tooling, notifications, or other pages
+## Technical notes
+- Week boundaries computed in selected tz using `date-fns-tz` (already pulled in transitively; if not, add `date-fns` + `date-fns-tz`).
+- Overlap layout: classic interval-graph coloring → assign each event a column index inside its overlap cluster; width = `100%/clusterSize`.
+- Loading skeleton: shimmer overlaying the timeline grid (no layout shift).
+- Empty state inside week view: "No events this week — try Next week →".
+- Errors keep existing fallback link to Google Calendar.
