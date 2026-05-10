@@ -385,6 +385,11 @@ const SUPPRESSED_PATTERNS = [
   "TypeError: Load failed",
   // (Removed earlier blanket "ZodError" suppression — it was masking real
   // false-positive validator rejections. Surface them so triage can see them.)
+  // --- Dead client sources (removed features still firing from stale bundles) ---
+  // Mirrored at the DB layer by `dead_client_sources` + audit_log BEFORE INSERT
+  // trigger, but suppressing here saves a network round-trip on live bundles.
+  "SupportWidget.token",
+  "SupportWidget",
 ] as const;
 
 // Suppress empty unhandledrejection payloads ("{}") — almost always extension noise
