@@ -384,6 +384,13 @@ const SUPPRESSED_PATTERNS = [
   "TypeError: Failed to fetch",
   "TypeError: NetworkError when attempting to fetch resource",
   "TypeError: Load failed",
+  // --- Request cancellations ---
+  // AbortError fires when a fetch / React Query is cancelled mid-flight
+  // (component unmount, query key change, route change). Expected behavior;
+  // not actionable. Was the #1 noise source (133 events in 19min, May 2026).
+  "AbortError",
+  "The operation was aborted",
+  "signal is aborted without reason",
   // (Removed earlier blanket "ZodError" suppression — it was masking real
   // false-positive validator rejections. Surface them so triage can see them.)
   // --- Dead client sources (removed features still firing from stale bundles) ---
