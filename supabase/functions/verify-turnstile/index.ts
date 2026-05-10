@@ -64,11 +64,12 @@ Deno.serve(withAuditWrapper("verify-turnstile", async (req) => {
         error: "Complete the human verification before trying again.",
       }, 400);
     }
+    const body = parsed.data;
 
     async function verifyWith(secretKey: string) {
       const form = new FormData();
       form.set("secret", secretKey);
-      form.set("response", parsed.data.token);
+      form.set("response", body.token);
       const r = await fetch(VERIFY_URL, { method: "POST", body: form });
       const j = await r.json().catch(() => ({})) as {
         success?: boolean;
@@ -89,7 +90,7 @@ Deno.serve(withAuditWrapper("verify-turnstile", async (req) => {
 
     if (!result.ok || result.body.success !== true) {
       console.warn("Turnstile verification failed", {
-        action: parsed.data.action,
+        action: body.action,
         status: result.status,
         errorCodes: result.body["error-codes"] ?? [],
         originHost,
