@@ -60,7 +60,8 @@ Deno.serve(withAuditWrapper("public-project-openings", async (req) => {
 
     const stats = {
       projects_open_applications: projectRows.filter((p) => p.project_status === "apply_now").length,
-      projects_coming_soon: projectRows.filter((p) => p.project_status === "coming_soon").length,
+      // Coming soon = pre-launch pipeline (announced, recruiting team, onboarding team).
+      projects_coming_soon: projectRows.filter((p) => ["coming_soon", "recruiting", "team_onboarding"].includes(p.project_status as string)).length,
       projects_live: projectRows.filter((p) => p.project_status === "project_in_progress").length,
       projects_previously_completed: 0,
     };
