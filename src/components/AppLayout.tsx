@@ -1,4 +1,5 @@
-import { useState, Fragment, Suspense, lazy } from "react";
+import { useState, Fragment, Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,

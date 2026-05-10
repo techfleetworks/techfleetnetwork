@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 
 const GeneralApplicationTab = lazy(() =>
   import("@/components/GeneralApplicationTab").then((m) => ({

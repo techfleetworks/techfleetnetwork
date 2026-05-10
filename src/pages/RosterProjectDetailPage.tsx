@@ -1,4 +1,5 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { Suspense, useState } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";

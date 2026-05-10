@@ -1,6 +1,7 @@
 import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import heroImage from "@/assets/hero-space.png";
