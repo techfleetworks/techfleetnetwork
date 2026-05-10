@@ -297,7 +297,7 @@ export function NotificationBell() {
               {selectedAnnouncement && (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(selectedAnnouncement.body_html)) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(normalizeRichTextHtml(selectedAnnouncement.body_html))) }}
                 />
               )}
             </div>
