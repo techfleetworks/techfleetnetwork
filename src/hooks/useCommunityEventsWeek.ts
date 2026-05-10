@@ -4,12 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CommunityEvent } from "@/components/events/CommunityEventCard";
 import { addWeeks } from "@/lib/events/weekRange";
 
+const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/get-community-events`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
 async function fetchRange(from: Date, to: Date): Promise<CommunityEvent[]> {
   const qs = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
-  const { data, error } = await supabase.functions.invoke(`get-community-events?${qs.toString()}`, {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? ANON_KEY;
+  const res = await fetch(`${FUNCTIONS_URL}?${qs.toString()}`, {
     method: "GET",
+    headers: {
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    },
   });
-  if (error) throw error;
+  if (!res.ok) throw new Error(`get-community-events ${res.status}`);
+  const data = await res.json();
   return ((data as { events?: CommunityEvent[] })?.events ?? []) as CommunityEvent[];
 }
 
