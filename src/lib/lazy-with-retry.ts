@@ -75,7 +75,11 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
       const alreadyReloaded = window.sessionStorage.getItem(RELOAD_FLAG);
       if (!alreadyReloaded) {
         window.sessionStorage.setItem(RELOAD_FLAG, "1");
-        window.location.reload();
+        // Cache-bust the reload — append a query param so the browser
+        // bypasses any intermediate cache and fetches the latest index.html.
+        const url = new URL(window.location.href);
+        url.searchParams.set("__r", Date.now().toString(36));
+        window.location.replace(url.toString());
         // Return a placeholder component so React doesn't error before reload.
         return { default: (() => null) as unknown as T };
       }
