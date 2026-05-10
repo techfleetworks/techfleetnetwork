@@ -46,8 +46,11 @@ Deno.serve(withAuditWrapper("sync-airtable", async (req) => {
     const AIRTABLE_BASE_ID = Deno.env.get("AIRTABLE_BASE_ID");
     if (!AIRTABLE_BASE_ID) throw new Error("AIRTABLE_BASE_ID is not configured");
 
-    const AIRTABLE_TABLE_NAME = Deno.env.get("AIRTABLE_TABLE_NAME");
-    if (!AIRTABLE_TABLE_NAME) throw new Error("AIRTABLE_TABLE_NAME is not configured");
+    const AIRTABLE_TABLE_NAME_RAW = Deno.env.get("AIRTABLE_TABLE_NAME");
+    if (!AIRTABLE_TABLE_NAME_RAW) throw new Error("AIRTABLE_TABLE_NAME is not configured");
+    const AIRTABLE_TABLE_NAME = AIRTABLE_TABLE_NAME_RAW.trim() === "General Appications"
+      ? "General Applications"
+      : AIRTABLE_TABLE_NAME_RAW.trim();
 
     // --- Body ---
     const body = await req.json();

@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { reportError } from "@/services/error-reporter.service";
 
+const OPTIONAL_CHAT_FAILURES = /chatwoot_not_configured|503|Failed to send a request to the Edge Function|FunctionsFetchError/i;
+
 declare global {
   interface Window {
     chatwootSDK?: {
@@ -50,8 +52,8 @@ export function SupportWidget() {
         });
         if (cancelled) return;
         if (error || !data?.baseUrl || !data?.websiteToken) {
-          // Not configured yet — silent. reportError as info so System Health sees it once.
-          if (error && error.message && !/chatwoot_not_configured|503/.test(error.message)) {
+          // Optional support chat is allowed to be unavailable; do not reopen triage noise.
+          if (error && error.message && !OPTIONAL_CHAT_FAILURES.test(error.message)) {
             reportError(error, "SupportWidget.token", { severity: "warn" });
           }
           return;
