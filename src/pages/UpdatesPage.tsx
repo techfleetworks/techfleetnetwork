@@ -29,7 +29,7 @@ import {
   useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement, useMarkAnnouncementRead,
   useRecordAnnouncementView,
 } from "@/hooks/use-announcements";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, normalizeRichTextHtml } from "@/lib/html";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { Announcement } from "@/services/announcement.service";
 import { AnnouncementViewStats } from "@/components/AnnouncementViewStats";
@@ -287,7 +287,7 @@ export default function UpdatesPage() {
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none break-words"
                   style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(selectedAnnouncement.body_html)) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkifyHtml(normalizeRichTextHtml(selectedAnnouncement.body_html))) }}
                 />
               )}
             </div>

@@ -3,6 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { safeHtmlSchema, safeRequiredTextSchema, safeUrlSchema } from "@/lib/validators/shared-input";
 import { handleServiceError } from "@/lib/service-result";
 import { linkifyHtml } from "@/lib/linkify";
+import { normalizeRichTextHtml } from "@/lib/html";
 
 const log = createLogger("AnnouncementService");
 const announcementTitleSchema = safeRequiredTextSchema("Title", 200);
@@ -37,7 +38,7 @@ export const AnnouncementService = {
   },
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
-    const linkified = linkifyHtml(bodyHtml);
+    const linkified = linkifyHtml(normalizeRichTextHtml(bodyHtml));
     const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(linkified), created_by: userId };
     const safeVideoUrl = mediaUrlSchema.parse(videoUrl);
     const safeAudioUrl = mediaUrlSchema.parse(audioUrl);
