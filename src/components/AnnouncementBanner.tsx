@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { sanitizeHtml } from "@/lib/security";
 import { linkifyHtml } from "@/lib/linkify";
+import { normalizeRichTextHtml } from "@/lib/html";
 import {
   fetchPublishedBanners,
   fetchDismissedBannerIds,
