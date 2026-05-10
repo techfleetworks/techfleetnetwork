@@ -59,6 +59,7 @@ const homeNav = [
 const communityNav = [
   { label: "Announcements", href: "/updates", icon: Megaphone },
   { label: "Events", href: "/events", icon: CalendarDays },
+  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
   { label: "Resources", href: "/resources", icon: BookOpen },
 ];
 
@@ -70,15 +71,10 @@ const trainingNav = [
   { label: "Project Openings", href: "/project-openings", icon: Handshake },
 ];
 
-const supportNav = [
-  { label: "Feedback", href: "/feedback", icon: MessageSquarePlus },
-];
-
 const navSections = [
   { label: null, items: homeNav },
   { label: "Community", items: communityNav },
   { label: "Training", items: trainingNav },
-  { label: "Support", items: supportNav },
 ];
 
 export const AppSidebar = memo(function AppSidebar() {
