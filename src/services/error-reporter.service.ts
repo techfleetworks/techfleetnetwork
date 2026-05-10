@@ -116,10 +116,11 @@ async function refreshPolicy(): Promise<void> {
       ]);
       const entries: Record<string, PolicyEntry> = {};
       if (Array.isArray(policyRows)) {
-        for (const row of policyRows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number }>) {
+        for (const row of policyRows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number; min_occurrences_before_escalate?: number }>) {
           entries[row.event_type_pattern] = {
             capPerMinute: row.cap_per_minute,
             dedupWindowMs: row.dedup_window_seconds * 1000,
+            minOccurrencesBeforeEscalate: row.min_occurrences_before_escalate ?? 1,
           };
         }
       }
