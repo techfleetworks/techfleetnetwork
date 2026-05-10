@@ -38,7 +38,7 @@ export const AnnouncementService = {
   },
 
   async create(title: string, bodyHtml: string, userId: string, videoUrl?: string | null, audioUrl?: string | null): Promise<Announcement> {
-    const linkified = linkifyHtml(bodyHtml);
+    const linkified = linkifyHtml(normalizeRichTextHtml(bodyHtml));
     const row: Record<string, unknown> = { title: announcementTitleSchema.parse(title), body_html: announcementBodySchema.parse(linkified), created_by: userId };
     const safeVideoUrl = mediaUrlSchema.parse(videoUrl);
     const safeAudioUrl = mediaUrlSchema.parse(audioUrl);
