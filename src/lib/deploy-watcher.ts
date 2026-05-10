@@ -164,6 +164,24 @@ export function reloadIfStale(): boolean {
   return false;
 }
 
+/**
+ * Trigger an out-of-band version check immediately. Used when the error
+ * reporter sees a symptom that strongly suggests a stale bundle (e.g. a
+ * FunctionsFetchError from a removed component) so a stuck tab can be
+ * detected and reloaded without waiting for the 60s poll cycle.
+ *
+ * Throttled so spammy callers cannot DoS /version.json.
+ */
+let lastForcedCheckAt = 0;
+const FORCED_CHECK_MIN_INTERVAL_MS = 10_000;
+export function checkNow(): void {
+  if (typeof window === "undefined") return;
+  const now = Date.now();
+  if (now - lastForcedCheckAt < FORCED_CHECK_MIN_INTERVAL_MS) return;
+  lastForcedCheckAt = now;
+  void checkVersion();
+}
+
 /** Internal helper for tests/debug. */
 export function __debug() {
   return { currentBuildId, serverBuildId, stale };

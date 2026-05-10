@@ -20,6 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTraceId } from "@/lib/trace";
+import { checkNow as checkDeployNow } from "@/lib/deploy-watcher";
 
 const MAX_MSG_LENGTH = 2000;
 const DEFAULT_CAP_PER_MINUTE = 10;
@@ -253,6 +254,11 @@ async function reportToAuditLog(
   source: string,
   options: ReportOptions = {},
 ) {
+  // Universal suppression — applies to every reporter path, not just the
+  // global window handlers. This closes the bypass that previously let
+  // direct callers (e.g. service-layer catches) skip the SUPPRESSED_PATTERNS
+  // list and flood `audit_log` with known-noise events.
+  if (isSuppressed(errorMessage) || isSuppressed(source)) return;
   // Best-effort policy refresh; never blocks first call (uses stale snapshot).
   void refreshPolicy();
   const eventType = options.eventType ?? "client_error";
@@ -380,6 +386,11 @@ const SUPPRESSED_PATTERNS = [
   "TypeError: Load failed",
   // (Removed earlier blanket "ZodError" suppression — it was masking real
   // false-positive validator rejections. Surface them so triage can see them.)
+  // --- Dead client sources (removed features still firing from stale bundles) ---
+  // Mirrored at the DB layer by `dead_client_sources` + audit_log BEFORE INSERT
+  // trigger, but suppressing here saves a network round-trip on live bundles.
+  "SupportWidget.token",
+  "SupportWidget",
 ] as const;
 
 // Suppress empty unhandledrejection payloads ("{}") — almost always extension noise
@@ -455,6 +466,13 @@ function isSuppressed(msg: string): boolean {
   for (const p of SUPPRESSED_PATTERNS) {
     if (msg.includes(p)) {
       recordSuppression(p.slice(0, 60));
+      // Stale-bundle nudge: a FunctionsFetchError from a removed component is
+      // a high-confidence stale-tab signal. Trigger an out-of-band version
+      // check so a stuck tab reloads on the next idle window instead of
+      // firing dozens of retries. Throttled inside checkDeployNow.
+      if (p === "FunctionsFetchError" || p.startsWith("SupportWidget")) {
+        try { checkDeployNow(); } catch { /* never throw from telemetry */ }
+      }
       return true;
     }
   }
