@@ -1,0 +1,1 @@
+SELECT public.kick_community_events_refresh();
