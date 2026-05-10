@@ -41,8 +41,10 @@ export function handleServiceError(error: ServiceErrorLike | null | undefined, o
   // Silently swallow request cancellations. They are not actionable failures
   // and they were flooding the triage queue (133 occurrences in 19min).
   if (isAbortError(error)) {
-    if (options.throwMessage) throw new Error(options.throwMessage);
-    return true;
+    // Re-throw the original abort so React Query / callers recognize it as a
+    // cancellation (not a real failure) and skip error UI / retries.
+    const abortErr = new DOMException(error.message || "Aborted", "AbortError");
+    throw abortErr;
   }
 
   const level = options.level ?? "error";
