@@ -304,7 +304,9 @@ async function fetchAndParse(windowDays: number): Promise<ParsedEvent[]> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  // The Tech Fleet ICS feed is large (~8 MB) and the cold fetch can take
+  // 10–15s. Cache layer keeps subsequent requests instant for 10 min.
+  const timeout = setTimeout(() => controller.abort(), 25_000);
   let res: Response;
   try {
     res = await fetch(ICAL_URL, {
