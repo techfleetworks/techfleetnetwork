@@ -4514,101 +4514,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ticket_events: {
-        Row: {
-          chatwoot_conversation_id: number
-          created_at: string
-          event_type: string
-          id: string
-          payload: Json
-          ticket_id: string | null
-        }
-        Insert: {
-          chatwoot_conversation_id: number
-          created_at?: string
-          event_type: string
-          id?: string
-          payload?: Json
-          ticket_id?: string | null
-        }
-        Update: {
-          chatwoot_conversation_id?: number
-          created_at?: string
-          event_type?: string
-          id?: string
-          payload?: Json
-          ticket_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ticket_events_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tickets: {
-        Row: {
-          assignee_email: string | null
-          chatwoot_account_id: number
-          chatwoot_conversation_id: number
-          chatwoot_inbox_id: number
-          created_at: string
-          id: string
-          inbox_type: Database["public"]["Enums"]["ticket_inbox_type"]
-          last_message_at: string | null
-          last_message_preview: string | null
-          owner_identifier: string | null
-          owner_user_id: string | null
-          priority: string | null
-          status: Database["public"]["Enums"]["ticket_status"]
-          subject: string
-          unread_admin_count: number
-          unread_owner_count: number
-          updated_at: string
-        }
-        Insert: {
-          assignee_email?: string | null
-          chatwoot_account_id: number
-          chatwoot_conversation_id: number
-          chatwoot_inbox_id: number
-          created_at?: string
-          id?: string
-          inbox_type: Database["public"]["Enums"]["ticket_inbox_type"]
-          last_message_at?: string | null
-          last_message_preview?: string | null
-          owner_identifier?: string | null
-          owner_user_id?: string | null
-          priority?: string | null
-          status?: Database["public"]["Enums"]["ticket_status"]
-          subject?: string
-          unread_admin_count?: number
-          unread_owner_count?: number
-          updated_at?: string
-        }
-        Update: {
-          assignee_email?: string | null
-          chatwoot_account_id?: number
-          chatwoot_conversation_id?: number
-          chatwoot_inbox_id?: number
-          created_at?: string
-          id?: string
-          inbox_type?: Database["public"]["Enums"]["ticket_inbox_type"]
-          last_message_at?: string | null
-          last_message_preview?: string | null
-          owner_identifier?: string | null
-          owner_user_id?: string | null
-          priority?: string | null
-          status?: Database["public"]["Enums"]["ticket_status"]
-          subject?: string
-          unread_admin_count?: number
-          unread_owner_count?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       triage_audit_log: {
         Row: {
           actor_id: string | null
@@ -6075,8 +5980,6 @@ export type Database = {
         | "self_report"
         | "system_verified"
         | "application"
-      ticket_inbox_type: "support" | "bug" | "internal"
-      ticket_status: "open" | "pending" | "snoozed" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6313,8 +6216,6 @@ export const Constants = {
         "system_verified",
         "application",
       ],
-      ticket_inbox_type: ["support", "bug", "internal"],
-      ticket_status: ["open", "pending", "snoozed", "resolved"],
     },
   },
 } as const
