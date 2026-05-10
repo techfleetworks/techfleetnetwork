@@ -65,7 +65,7 @@ import { AppFooter } from "./AppFooter";
 const FleetyChatWidget = lazy(() =>
   import("./FleetyChatWidget").then((m) => ({ default: m.FleetyChatWidget })),
 );
-import { SupportWidget } from "./SupportWidget";
+
 import { useNetworkQuality } from "@/hooks/use-network-quality";
 import { AdminTwoFactorGraceDialog } from "./AdminTwoFactorGraceDialog";
 import type { Profile } from "@/services/profile.service";
