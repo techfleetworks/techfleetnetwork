@@ -315,6 +315,7 @@ export type Database = {
           dedup_window_seconds: number
           event_type_pattern: string
           id: string
+          min_occurrences_before_escalate: number
           notes: string | null
           updated_at: string
         }
@@ -323,6 +324,7 @@ export type Database = {
           dedup_window_seconds?: number
           event_type_pattern: string
           id?: string
+          min_occurrences_before_escalate?: number
           notes?: string | null
           updated_at?: string
         }
@@ -331,6 +333,7 @@ export type Database = {
           dedup_window_seconds?: number
           event_type_pattern?: string
           id?: string
+          min_occurrences_before_escalate?: number
           notes?: string | null
           updated_at?: string
         }
@@ -5546,6 +5549,7 @@ export type Database = {
           cap_per_minute: number
           dedup_window_seconds: number
           event_type_pattern: string
+          min_occurrences_before_escalate: number
         }[]
       }
       get_community_events_health: {
