@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.kick_community_events_refresh() FROM PUBLIC, anon, authenticated;
