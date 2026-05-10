@@ -837,6 +837,42 @@ export type Database = {
           },
         ]
       }
+      community_events_cache: {
+        Row: {
+          etag: string | null
+          event_count: number
+          events: Json
+          fetched_at: string | null
+          id: number
+          last_modified: string | null
+          last_refresh_error: string | null
+          last_refresh_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          etag?: string | null
+          event_count?: number
+          events?: Json
+          fetched_at?: string | null
+          id?: number
+          last_modified?: string | null
+          last_refresh_error?: string | null
+          last_refresh_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          etag?: string | null
+          event_count?: number
+          events?: Json
+          fetched_at?: string | null
+          id?: number
+          last_modified?: string | null
+          last_refresh_error?: string | null
+          last_refresh_status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cookie_consents: {
         Row: {
           anon_id: string | null
@@ -5578,6 +5614,7 @@ export type Database = {
         Args: { _purpose: string }
         Returns: string
       }
+      kick_community_events_refresh: { Args: never; Returns: undefined }
       list_pending_fanout_jobs: {
         Args: { p_limit?: number }
         Returns: {
