@@ -20,6 +20,7 @@
     "test:e2e:responsive": "playwright test -- \"responsive-stability\\.e2e\\.ts\"",
     "test:e2e:sandbox": "scripts/playwright-sandbox.sh",
     "test:e2e:sandbox:server": "PLAYWRIGHT_START_SERVER=1 scripts/playwright-sandbox.sh",
+    "validate:edge-functions": "node scripts/validate-edge-functions.mjs",
     "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev",
     "audit:signatures": "npm audit signatures",
     "scan:secrets": "node scripts/secret-scan.mjs"
