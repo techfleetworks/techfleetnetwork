@@ -253,6 +253,11 @@ async function reportToAuditLog(
   source: string,
   options: ReportOptions = {},
 ) {
+  // Universal suppression — applies to every reporter path, not just the
+  // global window handlers. This closes the bypass that previously let
+  // direct callers (e.g. service-layer catches) skip the SUPPRESSED_PATTERNS
+  // list and flood `audit_log` with known-noise events.
+  if (isSuppressed(errorMessage) || isSuppressed(source)) return;
   // Best-effort policy refresh; never blocks first call (uses stale snapshot).
   void refreshPolicy();
   const eventType = options.eventType ?? "client_error";
