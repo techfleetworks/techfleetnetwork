@@ -27,7 +27,7 @@ export function AppFooter() {
           </div>
           <nav
             aria-label="Footer navigation"
-            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
+            className="mx-auto flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-xs text-muted-foreground"
           >
             <Link to="/terms" className="hover:text-foreground transition-colors">
               Terms &amp; Conditions
