@@ -69,7 +69,7 @@ export function BadgesDisplay({
     },
     {
       id: "project-training",
-      name: "Project Training",
+      name: "Project Training Readiness",
       description: "Completed Join Project Training Teams",
       image: badgeProjectTraining,
       earned: allProjectTrainingDone,
@@ -77,7 +77,7 @@ export function BadgesDisplay({
     },
     {
       id: "volunteer",
-      name: "Volunteer",
+      name: "Volunteer Readiness",
       description: "Completed Join Volunteer Teams",
       image: badgeVolunteer,
       earned: allVolunteerDone,
