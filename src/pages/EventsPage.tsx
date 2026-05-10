@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { CalendarPlus, Copy, Globe, Link2, Users } from "lucide-react";
 import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsContent, type TabItem } from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { CommunityEventList } from "@/components/events/CommunityEventList";
 
 const TF_CALENDAR_EMAIL = "techfleetnetwork@gmail.com";
 // Subscribe URLs for the public Tech Fleet community Google Calendar
@@ -20,15 +21,15 @@ export default function EventsPage() {
   const [tab, setTab] = useState("community");
   const { profile } = useAuth();
 
-  // Always render in the member's profile timezone; fall back to EDT (America/New_York) if unset.
-  const userTimezone = profile?.timezone?.trim() || "America/New_York";
+  // Always render in the member's profile timezone; fall back to the browser
+  // local timezone, then EDT (America/New_York) if both are unavailable.
+  const userTimezone =
+    profile?.timezone?.trim() ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    "America/New_York";
 
   const lumaSrc = "https://luma.com/tech-fleet-network";
-  const calendarSrc = useMemo(
-    () =>
-      `https://calendar.google.com/calendar/embed?src=techfleetnetwork%40gmail.com&ctz=${encodeURIComponent(userTimezone)}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1&mode=MONTH`,
-    [userTimezone]
-  );
+
   return (
     <div className="container-app py-8 sm:py-12">
       <div className="mb-8">
@@ -79,16 +80,16 @@ export default function EventsPage() {
           <div className="mb-4 rounded-lg border bg-card p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Add Tech Fleet events to your calendar</h2>
+                <h2 className="text-sm font-semibold text-foreground">Subscribe to all Tech Fleet events</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Subscribe once and new events appear automatically in Google, Apple, or Outlook Calendar.
+                  Add the whole calendar once and new events appear automatically in Google, Apple, or Outlook Calendar.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="default">
-                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Add to your Google Calendar">
+                  <a href={ADD_TO_GOOGLE_URL} target="_blank" rel="noopener noreferrer" aria-label="Subscribe to the full Tech Fleet calendar in Google Calendar">
                     <CalendarPlus className="h-4 w-4" aria-hidden="true" />
-                    Add to Google Calendar
+                    Subscribe in Google
                   </a>
                 </Button>
                 <Button
@@ -116,23 +117,13 @@ export default function EventsPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-lg border bg-card overflow-hidden">
-            <iframe
-              src={calendarSrc}
-              title="Tech Fleet Community Calendar"
-              className="w-full border-0"
-              style={{ minHeight: "680px" }}
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-            />
-            <div className="border-t p-3 text-center text-xs text-muted-foreground">
-              Click an event for a quick preview. For the full description, meeting link, and start time in your timezone,
-              choose <span className="font-medium">"More details"</span> in the popup or{" "}
-              <a href={OPEN_IN_GOOGLE_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                open the full calendar on Google →
-              </a>
-            </div>
-          </div>
+
+          <p className="mb-3 text-xs text-muted-foreground">
+            Times shown in <span className="font-medium text-foreground">{userTimezone}</span>. Each event has its own
+            "Add to Google Calendar" button so you can save just the ones you want.
+          </p>
+
+          <CommunityEventList timeZone={userTimezone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
