@@ -10,30 +10,41 @@ import { reportError } from "@/services/error-reporter.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { queryKeys, CACHE_SEMI_STATIC } from "@/lib/query-config";
+import { isTransientError } from "@/lib/transient-error";
 
 const ANNOUNCEMENTS_KEY = ["announcements"] as const;
 const READ_IDS_KEY = ["announcement-read-ids"] as const;
+
+// Retry transient failures up to 2 extra times with backoff. Structural
+// failures (RLS / schema) are surfaced immediately — no retry.
+const transientRetry = (failureCount: number, error: unknown) =>
+  failureCount < 2 && isTransientError(error);
+const transientRetryDelay = (attempt: number) => Math.min(1000 * 2 ** attempt, 8000);
 
 export function useAnnouncements(limit = 50) {
   return useQuery({
     queryKey: queryKeys.announcements(limit),
     queryFn: () => AnnouncementService.list(limit),
     ...CACHE_SEMI_STATIC, // 15 min — announcements change very infrequently
+    placeholderData: (prev) => prev,
+    retry: transientRetry,
+    retryDelay: transientRetryDelay,
   });
 }
 
 export function useLatestAnnouncements(limit = 5) {
-  // Fixed 30s poll (no hidden-tab back-off) so any single user sees new
-  // announcements in the bell within ~30s without refreshing the page.
-  // Also refetches when the tab regains focus, which covers users coming
-  // back from another tab faster than the next poll tick.
+  // 60s poll — the bell also revalidates on focus; 30s polling was overkill
+  // and doubled the rate of transient failures hitting the triage queue.
   return useQuery({
     queryKey: queryKeys.announcementsLatest(limit),
     queryFn: () => AnnouncementService.latest(limit),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
-    staleTime: 20_000,
+    staleTime: 45_000,
+    placeholderData: (prev) => prev,
+    retry: transientRetry,
+    retryDelay: transientRetryDelay,
   });
 }
 
@@ -43,9 +54,12 @@ export function useAnnouncementReadIds() {
     queryKey: [...READ_IDS_KEY, user?.id],
     queryFn: () => AnnouncementService.getReadIds(user!.id),
     enabled: !!user,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
-    staleTime: 20_000,
+    staleTime: 45_000,
+    placeholderData: (prev) => prev,
+    retry: transientRetry,
+    retryDelay: transientRetryDelay,
   });
 }
 

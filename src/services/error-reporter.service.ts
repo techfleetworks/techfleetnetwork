@@ -31,6 +31,7 @@ const POLICY_TTL_MS = 5 * 60_000;
 interface PolicyEntry {
   capPerMinute: number;
   dedupWindowMs: number;
+  minOccurrencesBeforeEscalate: number;
 }
 type PolicySnapshot = {
   entries: Record<string, PolicyEntry>;
@@ -50,6 +51,11 @@ const recentErrors = new Map<string, number>();
 let suppressedSinceLastFlush = 0;
 let overflowFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Per-fingerprint rolling counter for the "escalate after N occurrences in
+// dedupWindowMs" rule. Keyed by fingerprint, stores recent occurrence
+// timestamps; pruned on each touch.
+const occurrenceTimeline = new Map<string, number[]>();
+
 function pressureMultiplier(): number {
   switch (policySnapshot.pressure) {
     case "hard": return 0.1;   // 10% of normal cap
@@ -59,11 +65,44 @@ function pressureMultiplier(): number {
   }
 }
 
-function getPolicy(eventType: string): PolicyEntry {
-  const e = policySnapshot.entries[eventType];
+function matchPolicyEntry(eventTypeKey: string): PolicyEntry | undefined {
+  // Exact match first, then SQL-style LIKE pattern (% only) so a single
+  // policy row can cover all 'client_error::query.announcements.%' fingerprints.
+  const exact = policySnapshot.entries[eventTypeKey];
+  if (exact) return exact;
+  for (const [pattern, entry] of Object.entries(policySnapshot.entries)) {
+    if (!pattern.includes("%")) continue;
+    const re = new RegExp("^" + pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$");
+    if (re.test(eventTypeKey)) return entry;
+  }
+  return undefined;
+}
+
+function getPolicy(eventType: string, fingerprint?: string): PolicyEntry {
+  // Try the most specific key first (event_type::fingerprint), then event_type alone.
+  const e =
+    (fingerprint ? matchPolicyEntry(`${eventType}::${fingerprint}`) : undefined) ??
+    matchPolicyEntry(eventType);
   const cap = Math.max(1, Math.floor((e?.capPerMinute ?? DEFAULT_CAP_PER_MINUTE) * pressureMultiplier()));
   const dedup = e?.dedupWindowMs ?? DEFAULT_DEDUP_WINDOW_MS;
-  return { capPerMinute: cap, dedupWindowMs: dedup };
+  const minOcc = Math.max(1, e?.minOccurrencesBeforeEscalate ?? 1);
+  return { capPerMinute: cap, dedupWindowMs: dedup, minOccurrencesBeforeEscalate: minOcc };
+}
+
+function recordOccurrenceAndShouldEscalate(fp: string, windowMs: number, minOccurrences: number): boolean {
+  if (minOccurrences <= 1) return true;
+  const now = Date.now();
+  const cutoff = now - windowMs;
+  const arr = (occurrenceTimeline.get(fp) ?? []).filter((t) => t >= cutoff);
+  arr.push(now);
+  occurrenceTimeline.set(fp, arr);
+  // GC if map grows
+  if (occurrenceTimeline.size > 500) {
+    for (const [k, v] of occurrenceTimeline) {
+      if (v.length === 0 || v[v.length - 1] < cutoff) occurrenceTimeline.delete(k);
+    }
+  }
+  return arr.length >= minOccurrences;
 }
 
 async function refreshPolicy(): Promise<void> {
@@ -77,10 +116,11 @@ async function refreshPolicy(): Promise<void> {
       ]);
       const entries: Record<string, PolicyEntry> = {};
       if (Array.isArray(policyRows)) {
-        for (const row of policyRows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number }>) {
+        for (const row of policyRows as Array<{ event_type_pattern: string; cap_per_minute: number; dedup_window_seconds: number; min_occurrences_before_escalate?: number }>) {
           entries[row.event_type_pattern] = {
             capPerMinute: row.cap_per_minute,
             dedupWindowMs: row.dedup_window_seconds * 1000,
+            minOccurrencesBeforeEscalate: row.min_occurrences_before_escalate ?? 1,
           };
         }
       }
@@ -262,12 +302,20 @@ async function reportToAuditLog(
   // Best-effort policy refresh; never blocks first call (uses stale snapshot).
   void refreshPolicy();
   const eventType = options.eventType ?? "client_error";
-  const policy = getPolicy(eventType);
   const fp = `${eventType}::${fingerprint(errorMessage, source)}`;
+  const policy = getPolicy(eventType, fingerprint(errorMessage, source));
   if (!checkDedup(fp, policy.dedupWindowMs)) return;
   if (!checkRateLimit(eventType, policy.capPerMinute)) {
     suppressedSinceLastFlush += 1;
     scheduleOverflowFlush();
+    return;
+  }
+  // Escalate-after-N: when policy requires multiple occurrences in the dedup
+  // window before triage, count this hit but skip writing until the threshold
+  // is reached. The aggregate suppression flush still records the drops so
+  // admins have visibility in /admin/system-health.
+  if (!recordOccurrenceAndShouldEscalate(fp, policy.dedupWindowMs, policy.minOccurrencesBeforeEscalate)) {
+    recordDedup(fp);
     return;
   }
 
