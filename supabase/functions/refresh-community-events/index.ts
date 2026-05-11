@@ -385,7 +385,12 @@ Deno.serve(async (req) => {
       if (!ev.start || !ev.uid) continue;
       const occurrences = expandOccurrences(ev, pastCutoff, windowEnd);
       for (const occ of occurrences) {
+        // Hard guard: drop anything that started before pastCutoff OR ends after
+        // windowEnd. This catches malformed RRULEs, unknown FREQs, and any other
+        // path that could otherwise leak ancient or far-future events to the UI.
+        if (occ.start < pastCutoff) continue;
         if (occ.end < pastCutoff) continue;
+        if (occ.start > windowEnd) continue;
         out.push({
           uid: `${ev.uid}@${occ.start.toISOString()}`,
           title: ev.summary?.trim() || "Untitled event",

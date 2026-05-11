@@ -129,19 +129,25 @@ Deno.serve(async (req) => {
 
   try {
     const all = await readCache();
+    // Server-side floor: never serve anything that started more than 1 day ago,
+    // regardless of what the caller asks for. Defense-in-depth so a stale cache
+    // or buggy expansion can never leak ancient events to the UI.
+    const HARD_FLOOR_MS = Date.now() - 24 * 60 * 60 * 1000;
     let rangeStart: number;
     let rangeEnd: number;
     if (parsed.data.from && parsed.data.to) {
-      rangeStart = Date.parse(parsed.data.from);
+      rangeStart = Math.max(Date.parse(parsed.data.from), HARD_FLOOR_MS);
       rangeEnd = Date.parse(parsed.data.to);
     } else {
       rangeStart = Date.now();
       rangeEnd = rangeStart + (parsed.data.windowDays ?? 60) * 24 * 60 * 60 * 1000;
     }
+    if (rangeEnd < rangeStart) rangeEnd = rangeStart;
     const events = all
       .filter((e) => {
         const start = Date.parse(e.startUtc);
         const end = Date.parse(e.endUtc);
+        if (start < HARD_FLOOR_MS) return false; // hard guard
         return end >= rangeStart && start <= rangeEnd;
       })
       .map((e) => ({ ...e, description: cleanDescription(e.description) }));

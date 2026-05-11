@@ -94,6 +94,20 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
     [refDate, timeZone],
   );
 
+  // Bound week navigation: cannot go before the current week, cannot go more
+  // than one year ahead. Keeps the view aligned with what the cache holds and
+  // prevents users from ever seeing stale/historical data.
+  const { start: currentWeekStart } = useMemo(
+    () => getWeekRange(new Date(), timeZone),
+    [timeZone],
+  );
+  const maxWeekStart = useMemo(
+    () => addWeeks(currentWeekStart, 51),
+    [currentWeekStart],
+  );
+  const canGoBack = weekStart.getTime() > currentWeekStart.getTime();
+  const canGoForward = weekStart.getTime() < maxWeekStart.getTime();
+
   const { data, isLoading, isError } = useCommunityEventsWeek(weekStart);
 
   // Auto-scroll to 8 AM on mount/week change
@@ -166,6 +180,7 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
               variant="outline"
               onClick={() => setRefDate((d) => addWeeks(d, -1))}
               aria-label="Previous week"
+              disabled={!canGoBack}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -182,6 +197,7 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
               variant="outline"
               onClick={() => setRefDate((d) => addWeeks(d, 1))}
               aria-label="Next week"
+              disabled={!canGoForward}
             >
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
