@@ -314,12 +314,28 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
         slug,
         name: rawName.slice(0, 500),
         description,
+        description_source: description ? "csv" : "missing",
         category: category.slice(0, 200),
         data,
         source: "csv",
         source_row_id: `${dataset_name}#${r}`,
         is_active: true,
       });
+    }
+
+    // Hard validation: if more than 50% of rows have empty descriptions, fail
+    // loudly so admins notice mis-mapped headers instead of getting a silent
+    // wave of empty rows like the original Deliverables import.
+    const emptyDesc = upserts.filter(u => !u.description || !String(u.description).trim()).length;
+    if (upserts.length >= 5 && emptyDesc / upserts.length > 0.5) {
+      return new Response(JSON.stringify({
+        error: "Most rows have empty descriptions — the description column is likely mis-mapped",
+        dataset_name,
+        rows: upserts.length,
+        rows_empty: emptyDesc,
+        descriptionColumn: headers[descIdx],
+        headers_seen: headers,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── Placeholder-aware merge ────────────────────────────────────────
