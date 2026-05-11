@@ -599,6 +599,25 @@ export function reportValidationRejection(
   });
 }
 
+/**
+ * Stale-bundle chunk-load failures can surface via window.onerror /
+ * unhandledrejection BEFORE React's ErrorBoundary catches them (e.g. when a
+ * Suspense lazy import rejects). Without classification they would land as
+ * `client_error severity=error` and flood Triage. Route them to the dedicated
+ * `ui_chunk_load_failed` event_type at severity `warn` so they stay in
+ * `audit_log` for observability but are blocked from `agent_fix_queue`.
+ */
+function chunkAwareReport(msg: string, source: string) {
+  if (isChunkLoadMessage(msg)) {
+    void reportToAuditLog(msg, source, {
+      eventType: "ui_chunk_load_failed",
+      severity: "warn",
+    });
+    return;
+  }
+  void reportToAuditLog(msg, source);
+}
+
 export function installGlobalErrorReporter() {
   window.addEventListener("error", (event) => {
     const msg = formatError(event.error ?? event.message);
@@ -609,12 +628,12 @@ export function installGlobalErrorReporter() {
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
       : "window.onerror";
-    void reportToAuditLog(msg, source);
+    chunkAwareReport(msg, source);
   });
 
   window.addEventListener("unhandledrejection", (event) => {
     const msg = formatError(event.reason);
     if (isSuppressed(msg)) return;
-    void reportToAuditLog(msg, "unhandledrejection");
+    chunkAwareReport(msg, "unhandledrejection");
   });
 }
