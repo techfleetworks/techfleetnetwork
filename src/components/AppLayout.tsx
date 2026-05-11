@@ -349,7 +349,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 width={28}
                 height={28}
               />
-              <span className="truncate min-[360px]:inline hidden">Tech Fleet</span>
+              <span className="truncate min-[360px]:inline hidden" data-no-translate>Tech Fleet</span>
             </Link>
             <div className="flex shrink-0 items-center gap-1">
               <UniversalSearch />
