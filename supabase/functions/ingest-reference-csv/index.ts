@@ -236,27 +236,38 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
     const headers = rawHeaders.map(renameHeader);
 
     const nameIdx = 0;
-    // Broadened detection: any header containing description/definition/summary/about
-    // (case-insensitive). Falls back to the explicit allow-list for legacy CSVs.
-    let descIdx = headers.findIndex((h, i) =>
-      i !== nameIdx && /\b(description|definition|summary|about|overview)\b/i.test(h)
-    );
+    // Strict-priority description detection. We want the entity's OWN description
+    // column, not "Data Type Description (from Data Type)" — that one describes the
+    // META TYPE and would clobber every row with the same generic sentence.
+    const entityWord = (headers[0] || "").split(/\s+/)[0] ?? "";
+    const preferred = [
+      `${entityWord} Description`,
+      "Specialization Description", "Skill Description", "Practice Description",
+      "Activity Description", "Tool Description", "Workshop Description",
+      "Description of the Workshop", "Milestone Description",
+      "Job Industry Description", "Stakeholder Description", "Company Type Description",
+      "Commitment Description", "Basic Definition of the Method", "Description",
+    ];
+    let descIdx = -1;
+    for (const cand of preferred) {
+      const i = headers.findIndex((h, idx) => idx !== nameIdx && h === cand);
+      if (i !== -1) { descIdx = i; break; }
+    }
     if (descIdx === -1) {
-      descIdx = pickCol(headers, [
-        `${headers[0]} Description`, "Description", "Specialization Description", "Skill Description",
-        "Practice Description", "Activity Description", "Tool Description",
-        "Method Splash Image", "Basic Definition of the Method", "Commitment Description",
-        "Workshop Description", "Description of the Workshop", "Milestone Description",
-        "Job Industry Description", "Category Description (from Tech Job Category)",
-        "Stakeholder Description", "Company Type Description",
-      ]);
+      // Last-resort fuzzy match — but exclude the meta "Data Type Description"
+      // column that is present on most Airtable exports.
+      descIdx = headers.findIndex((h, i) =>
+        i !== nameIdx
+        && !/data type description/i.test(h)
+        && /\b(description|definition|summary|about|overview)\b/i.test(h)
+      );
     }
     if (descIdx === -1) {
       return new Response(JSON.stringify({
         error: "No description column found in CSV",
         dataset_name,
         headers_seen: headers,
-        hint: "Rename a column to include the word 'Description', 'Definition', 'Summary', 'About', or 'Overview'.",
+        hint: "Rename a column to '<Entity> Description' (e.g. 'Activity Description'), or use 'Description', 'Definition', 'Summary', 'About', or 'Overview'.",
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const catIdx = pickCol(headers, [
