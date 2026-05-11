@@ -236,14 +236,29 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
     const headers = rawHeaders.map(renameHeader);
 
     const nameIdx = 0;
-    const descIdx = pickCol(headers, [
-      `${headers[0]} Description`, "Description", "Specialization Description", "Skill Description",
-      "Practice Description", "Activity Description", "Tool Description",
-      "Method Splash Image", "Basic Definition of the Method", "Commitment Description",
-      "Workshop Description", "Description of the Workshop", "Milestone Description",
-      "Job Industry Description", "Category Description (from Tech Job Category)",
-      "Stakeholder Description", "Company Type Description",
-    ]);
+    // Broadened detection: any header containing description/definition/summary/about
+    // (case-insensitive). Falls back to the explicit allow-list for legacy CSVs.
+    let descIdx = headers.findIndex((h, i) =>
+      i !== nameIdx && /\b(description|definition|summary|about|overview)\b/i.test(h)
+    );
+    if (descIdx === -1) {
+      descIdx = pickCol(headers, [
+        `${headers[0]} Description`, "Description", "Specialization Description", "Skill Description",
+        "Practice Description", "Activity Description", "Tool Description",
+        "Method Splash Image", "Basic Definition of the Method", "Commitment Description",
+        "Workshop Description", "Description of the Workshop", "Milestone Description",
+        "Job Industry Description", "Category Description (from Tech Job Category)",
+        "Stakeholder Description", "Company Type Description",
+      ]);
+    }
+    if (descIdx === -1) {
+      return new Response(JSON.stringify({
+        error: "No description column found in CSV",
+        dataset_name,
+        headers_seen: headers,
+        hint: "Rename a column to include the word 'Description', 'Definition', 'Summary', 'About', or 'Overview'.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const catIdx = pickCol(headers, [
       "Category", "Workshop Category", "Tech Job Category", "Tech Career Category",
       "Data Type", "Skill Type",
