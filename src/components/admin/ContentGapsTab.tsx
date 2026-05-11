@@ -72,6 +72,7 @@ interface Gap {
   slug: string;
   name: string;
   description: string | null;
+  description_source: string | null;
   updated_at: string;
 }
 
