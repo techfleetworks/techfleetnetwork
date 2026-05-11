@@ -161,14 +161,45 @@ export function ContentGapsTab() {
     load();
   };
 
+  const autofill = async () => {
+    if (gaps.length === 0) return;
+    if (!confirm(`Auto-fill ${gaps.length} missing description${gaps.length === 1 ? "" : "s"} with AI?\n\nResults are tagged "ai_generated" so you can review and edit them later. CSV re-imports with real values will override AI text; your manual edits are always preserved.`)) return;
+    setAutofilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fill-content-gaps", { body: {} });
+      if (error) throw error;
+      const filled = (data as { total_filled?: number })?.total_filled ?? 0;
+      toast({ title: "Auto-fill complete", description: `Wrote ${filled} description${filled === 1 ? "" : "s"}.` });
+      await load();
+    } catch (e) {
+      toast({
+        title: "Auto-fill failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setAutofilling(false);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Content gaps</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Reference rows with missing or placeholder descriptions. Real edits
-          made here are protected from CSV re-ingest.
-        </p>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle>Content gaps</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Reference rows with missing or placeholder descriptions. Real edits
+            made here are protected from CSV re-ingest.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={autofill}
+          disabled={autofilling || loading || gaps.length === 0}
+        >
+          {autofilling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Auto-fill all with AI
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <ToggleGroup
