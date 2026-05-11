@@ -285,7 +285,7 @@ Deno.serve(async (req) => {
     }
 
     const updated = results.filter((r) => r.ok && !r.skipped && !r.dryRun).length;
-    return new Response(JSON.stringify({ ok: true, total: safeUrls.length, updated, results }), {
+    return new Response(JSON.stringify({ ok: true, total: safeUrls.length, updated, discovered: safeUrls.length, discovery, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
