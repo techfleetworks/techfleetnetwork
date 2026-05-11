@@ -84,6 +84,7 @@ export function ContentGapsTab() {
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [autofilling, setAutofilling] = useState(false);
+  const [scrapingFigma, setScrapingFigma] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
