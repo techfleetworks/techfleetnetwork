@@ -32,12 +32,19 @@ function Skeleton() {
 }
 
 export function CommunityEventList({ timeZone, fallbackUrl }: Props) {
-  const { data, isLoading, isError } = useQuery({
+  const { data: rawData, isLoading, isError } = useQuery({
     queryKey: ["community-events"],
     queryFn: fetchEvents,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 min — surface calendar corrections quickly
     refetchOnWindowFocus: false,
     retry: 1,
+  });
+
+  // Render-time floor: never show events older than 1 day, even if a stale
+  // client cache slips through. Triple guard: worker → read fn → here.
+  const data = rawData?.filter((ev) => {
+    const start = Date.parse(ev.startUtc);
+    return Number.isFinite(start) && start >= Date.now() - 24 * 60 * 60 * 1000;
   });
 
   if (isLoading) {
