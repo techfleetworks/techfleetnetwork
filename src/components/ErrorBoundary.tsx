@@ -45,7 +45,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
     const stack = `${error.name}: ${error.message}\n${error.stack ?? ""}\n\nComponent stack:${info.componentStack ?? ""}`;
     const route = typeof window !== "undefined" ? window.location.pathname : "unknown";
-    reportError(stack, `ErrorBoundary:${route}`, { eventType: "ui_render_error", severity: "error" });
+    // Stale-chunk errors that fall through here (already reloaded once this
+    // session) are infrastructure noise, not actionable bugs. Report them
+    // under the existing chunk-load event_type at warn severity so they
+    // don't enter the Triage queue (which only ingests severity=error).
+    reportError(stack, `ErrorBoundary:${route}`, {
+      eventType: isChunkError ? "ui_chunk_load_failed" : "ui_render_error",
+      severity: isChunkError ? "warn" : "error",
+    });
   }
 
   handleRetry = () => {
