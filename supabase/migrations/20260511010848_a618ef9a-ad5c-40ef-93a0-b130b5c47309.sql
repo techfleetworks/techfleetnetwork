@@ -1,0 +1,1 @@
+UPDATE public.community_events_cache SET etag = NULL, last_modified = NULL WHERE id = 1;
