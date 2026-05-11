@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { reportError } from "@/services/error-reporter.service";
+import { isChunkLoadMessage } from "@/lib/lazy-with-retry";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
