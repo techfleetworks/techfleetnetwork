@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { reportError } from "@/services/error-reporter.service";
+import { isChunkLoadMessage } from "@/lib/lazy-with-retry";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -28,11 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Stale-deployment chunk-load errors: silently hard-reload once instead of
     // showing the error UI. Guarded by sessionStorage to avoid reload loops.
     const msg = error.message || "";
-    const isChunkError =
-      msg.includes("Failed to fetch dynamically imported module") ||
-      msg.includes("Importing a module script failed") ||
-      msg.includes("error loading dynamically imported module") ||
-      /ChunkLoadError/i.test(error.name);
+    const isChunkError = isChunkLoadMessage(msg) || /ChunkLoadError/i.test(error.name);
 
     if (isChunkError && typeof window !== "undefined") {
       const FLAG = "__lovable_chunk_reload__";

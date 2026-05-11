@@ -21,6 +21,24 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTraceId } from "@/lib/trace";
 import { checkNow as checkDeployNow } from "@/lib/deploy-watcher";
+import { isChunkLoadMessage } from "@/lib/lazy-with-retry";
+
+/**
+ * Event types that are infrastructure / observability / aggregate notices.
+ * They still write to `audit_log` (admins can see them on /admin/system-health),
+ * but they MUST NEVER enter `agent_fix_queue` — they are not actionable code
+ * fixes, and surfacing them in Triage drowns out real bugs and wastes AI
+ * triage budget. The DB enforces the same rule via
+ * `block_non_actionable_fix_queue_inserts` (defense in depth).
+ */
+const NON_ACTIONABLE_EVENT_TYPES: ReadonlySet<string> = new Set([
+  "client_error_overflow",
+  "client_error_suppressed",
+  "client_error_deduped",
+  "external_api_recovered",
+  "ui_chunk_load_failed",
+  "audit_pressure_changed",
+]);
 
 const MAX_MSG_LENGTH = 2000;
 const DEFAULT_CAP_PER_MINUTE = 10;
@@ -270,9 +288,13 @@ async function writeAudit(args: WriteAuditArgs): Promise<void> {
     // Best-effort: failure here must never throw. Skip pure overflow events,
     // but include `warn` severity so validation_rejected and aggregate
     // suppressed/deduped notices reach admins.
+    // Triage queue is reserved for actionable, severity=error code bugs.
+    // Skip aggregate observability notices, infra events, and any non-error
+    // severity. The DB trigger `block_non_actionable_fix_queue_inserts`
+    // enforces the same rule belt-and-suspenders.
     const skipQueue =
-      args.severity === "info" ||
-      args.eventType === "client_error_overflow";
+      args.severity !== "error" ||
+      NON_ACTIONABLE_EVENT_TYPES.has(args.eventType);
     if (!skipQueue) {
       const fp = `${args.eventType}::${fingerprint(args.message, args.source)}`;
       await supabase.rpc("upsert_fix_queue_entry", {
@@ -577,6 +599,25 @@ export function reportValidationRejection(
   });
 }
 
+/**
+ * Stale-bundle chunk-load failures can surface via window.onerror /
+ * unhandledrejection BEFORE React's ErrorBoundary catches them (e.g. when a
+ * Suspense lazy import rejects). Without classification they would land as
+ * `client_error severity=error` and flood Triage. Route them to the dedicated
+ * `ui_chunk_load_failed` event_type at severity `warn` so they stay in
+ * `audit_log` for observability but are blocked from `agent_fix_queue`.
+ */
+function chunkAwareReport(msg: string, source: string) {
+  if (isChunkLoadMessage(msg)) {
+    void reportToAuditLog(msg, source, {
+      eventType: "ui_chunk_load_failed",
+      severity: "warn",
+    });
+    return;
+  }
+  void reportToAuditLog(msg, source);
+}
+
 export function installGlobalErrorReporter() {
   window.addEventListener("error", (event) => {
     const msg = formatError(event.error ?? event.message);
@@ -587,12 +628,12 @@ export function installGlobalErrorReporter() {
     const source = event.filename
       ? `${event.filename}:${event.lineno}:${event.colno}`
       : "window.onerror";
-    void reportToAuditLog(msg, source);
+    chunkAwareReport(msg, source);
   });
 
   window.addEventListener("unhandledrejection", (event) => {
     const msg = formatError(event.reason);
     if (isSuppressed(msg)) return;
-    void reportToAuditLog(msg, "unhandledrejection");
+    chunkAwareReport(msg, "unhandledrejection");
   });
 }

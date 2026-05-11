@@ -1,86 +1,77 @@
-## Diagnosis
+# Why these are showing in Triage
 
-Picking a language from the switcher today does:
-- `i18n.changeLanguage(code)` — sets i18next state
-- Persists `tf_lang` to localStorage and `profiles.preferred_language`
-- Updates `<html lang>` / `<html dir>`
-- Loads (or AI-translates) the `common` static bundle
+Tracing the three items the user pasted back through the codebase + DB:
 
-But the UI doesn't change because **only 2 of ~300 component files actually call `useTranslation()`/`t()`**. Every page, header, sidebar, button, label, toast, and form is hardcoded English. So switching languages re-renders the same English strings.
+1. `TypeError: error loading dynamically imported module: .../NetworkActivity-*.js`
+   (source: `ErrorBoundary:/dashboard`, event_type `ui_render_error`, severity `error`)
+   - Created **before** the previous fix that downgrades chunk-load errors to `warn`. Already `dismissed` in the queue, but the Triage tab still surfaces it because of the `severity` filter design (see #4).
 
-The infrastructure (i18next + `translate-bundle` edge fn + `i18n_translations` cache) is solid; the wiring into UI is missing.
+2. `TypeError: error loading dynamically imported module: .../NetworkActivity-*.js`
+   (source: `lazy-with-retry`, event_type `ui_chunk_load_failed`, severity `warn`, status `triaged`)
+   - This row is *correct* in severity (`warn`), but `writeAudit()` still pushes it into `agent_fix_queue`, and the AI auto-triager picks it up. Stale-chunk noise should never reach the queue.
 
-## Recommended approach: two layers in one PR
+3. `4 client error(s) suppressed by pattern "TypeError: Failed to fetch"`
+   (source: `error-reporter.suppression`, event_type `client_error_suppressed`, severity `warn`, status `triaged`)
+   - This is the aggregate observability flush meant only for /admin/system-health metrics. `writeAudit()` is also forwarding it to `agent_fix_queue` and the AI auto-triager invents a "fix" for it.
 
-A pure "convert every string to t() keys" effort would touch hundreds of files and isn't realistic in one shot. We pair a fast runtime translator with a permanent key-based foundation, so users see the language change immediately while we migrate strings over time.
+### Two real bugs in `src/services/error-reporter.service.ts`
 
-### Layer 1 — Permanent: convert high-traffic shells to `t()` keys
+- `writeAudit()` `skipQueue` rule only excludes `severity === 'info'` and `event_type === 'client_error_overflow'`. Every other infrastructure / aggregation event lands in Triage.
+- `installGlobalErrorReporter()` (window `error` + `unhandledrejection`) does **not** detect chunk-load errors. When a Suspense lazy import rejects, the rejection bubbles to `unhandledrejection` BEFORE ErrorBoundary's downgrade logic, so it gets logged as `client_error` severity `error` and is a first-class Triage citizen. (This is why the historical `client_error` count is 77 with chunk strings inside.)
 
-Add `useTranslation()` and replace English string literals with `t("…")` calls in the always-visible chrome. Add the matching keys to `src/i18n/locales/en/common.json` (which is what `translate-bundle` then auto-translates into every other language).
+### One UX bug in Triage UI
 
-Files in scope (the things every authenticated user sees on every page):
-- `src/components/AppLayout.tsx`
-- `src/components/AppHeader.tsx` (or equivalent)
-- `src/components/AppFooter.tsx`
-- `src/components/AppSidebar.tsx` + nav group labels
-- `src/components/PageHeader.tsx`
-- Toast strings in `src/lib/toast.ts` (success/error/info defaults) — wrap so callers can pass either a key or a literal
-- `src/pages/LoginPage.tsx` and `RegisterPage.tsx` (first-impression surfaces)
-- `src/components/ErrorBoundary.tsx` recovery copy
+`src/components/system-health/TriageTab.tsx` lists every status in `(pending, triaged, proposed)` with no severity filter, so warn-level infra events show alongside actionable error-level bugs.
 
-Adds ~120 keys grouped under `nav.*`, `header.*`, `footer.*`, `auth.*`, `errors.*`, `toast.*`. `translate-bundle` already covers them at runtime for any BCP-47 tag.
+---
 
-### Layer 2 — Bridge: runtime DOM translation for everything else
+# Plan
 
-Build `src/lib/i18n/dom-translator.ts`:
-- Mounts a `MutationObserver` on `<main>` (and on portals) when `i18n.language !== "en"`.
-- Walks new text nodes, collects English source strings (skip code blocks, inputs, `aria-hidden` icons, anything inside `[data-no-translate]` or `<code>`/`<pre>`/`<script>`/`<style>`).
-- Looks each string up in an in-memory `Map<sourceText, translation>` keyed by `(lang, source)`.
-- Cache miss → batches strings (debounced 250 ms) and posts them to a new edge function `translate-strings` (or extends `translate-bundle` with a `strings: string[]` mode), which:
-  - Reads/writes the existing `i18n_translations` table with `key = sha256(source)`, `value = { source, translation }`
-  - Falls back to the same Lovable AI Gateway prompt
-  - Returns `{ source → translation }` map
-- On response, updates the text nodes in place and stores the result in localStorage (`tf_dom_i18n:<lang>`) so reloads are instant.
-- Disables itself for `lang === "en"` to keep zero overhead for English users.
+## 1. `src/services/error-reporter.service.ts` — keep noise out of the queue
 
-Edge cases handled:
-- Email addresses, URLs, numbers, identifiers (regex skip): never translated
-- `data-no-translate` opt-out for brand names ("Tech Fleet", lesson IDs, code samples)
-- Mixed-content nodes (e.g. `Welcome, <b>Alex</b>`) translated piecewise per text node so React state isn't disturbed
-- Reduced-motion / RTL already handled by existing `dirFor` + `<html dir>` switch
+- Add a module-level constant `NON_ACTIONABLE_EVENT_TYPES = new Set(['client_error_overflow', 'client_error_suppressed', 'client_error_deduped', 'external_api_recovered', 'ui_chunk_load_failed', 'audit_pressure_changed'])`.
+- In `writeAudit()`, change `skipQueue` to also skip when `NON_ACTIONABLE_EVENT_TYPES.has(args.eventType)` OR `args.severity !== 'error'`. Aggregated/infra events still write to `audit_log` (admins can see them on System Health), but never enter `agent_fix_queue`.
+- In `installGlobalErrorReporter()`, before calling `reportToAuditLog`, run a shared `classifyChunkError(msg)` helper. If it matches the chunk-load patterns from `lazy-with-retry.ts` (extract them into a new exported `isChunkLoadMessage(msg)` so all three call sites agree), report with `eventType: 'ui_chunk_load_failed'` and `severity: 'warn'`. Apply to both the `error` and `unhandledrejection` listeners.
+- Same classifier in `ErrorBoundary.componentDidCatch` — replace its inline regex with the shared helper.
 
-### Layer 3 — Persistence + sync
+## 2. `src/lib/lazy-with-retry.ts` — export the classifier
 
-- Already saved: `profiles.preferred_language` is updated on pick.
-- Add an `AuthContext` boot effect: on session restore, if `profiles.preferred_language` ≠ `i18n.language`, call `ensureLocale(...)` + `i18n.changeLanguage(...)`. Today the switcher writes the preference but we don't read it back across devices.
-- New table column already exists; no migration needed beyond an index check.
+- Export `isChunkLoadMessage(msg: string): boolean` and refactor `isChunkLoadError` to call it. Single source of truth across ErrorBoundary, lazy-with-retry, and the global reporter.
 
-### Layer 4 — BDD coverage
+## 3. `src/components/system-health/TriageTab.tsx` — only surface actionable errors
 
-Add Gherkin scenarios to `bdd_scenarios`:
-- `I18N-RUNTIME-001` Picking Spanish translates the visible UI within 500 ms (UI: header/sidebar/footer text becomes Spanish; DB: `i18n_translations` has rows for the new strings; Code: `dom-translator` MutationObserver fires).
-- `I18N-RUNTIME-002` Selecting an RTL locale flips `<html dir>` and translates text (UI: `dir="rtl"` + Arabic copy; DB: cached entries; Code: `dirFor("ar")` → `"rtl"`).
-- `I18N-PERSIST-001` Sign-in on a new device restores `profiles.preferred_language` (UI: UI loads in saved language; DB: lookup of `preferred_language`; Code: AuthContext effect calls `i18n.changeLanguage`).
-- `I18N-NOTRANSLATE-001` `[data-no-translate]` and brand names stay English (UI: "Tech Fleet" unchanged; DB: not stored; Code: walker skip rule).
+- Add `.eq('severity', 'error')` to the queue query so warn/info infra events never appear in Triage even if they slip through. Add a small "Show warnings" toggle (default off) for admins who want them.
 
-### Layer 5 — Out of scope (followup)
+## 4. Database migration — defense in depth + cleanup
 
-- Per-page strings beyond the chrome (Journey, Training, Admin) — handled by Layer 2 at runtime, then converted to `t()` keys in followup PRs in priority order.
-- Date/number/currency formatting via `Intl` (already partially in `src/lib/i18n-format.ts`).
-- Right-to-left layout audit of complex grids/tables.
-- Translating dynamic, user-authored content (announcements, lesson bodies) — needs separate product decision.
+- Update `discover_audit_fingerprints` to also exclude `client_error_suppressed`, `client_error_deduped`, `audit_pressure_changed`, `ui_chunk_load_failed`, `external_api_recovered`, `client_error_overflow` (some are already excluded — confirm and add the missing ones).
+- Add a `BEFORE INSERT` trigger on `agent_fix_queue` (`block_non_actionable_fix_queue_inserts`) that raises `EXCEPTION USING ERRCODE = 'check_violation'` if `severity <> 'error'` OR `event_type IN (... non-actionable list ...)`. Belt-and-suspenders so a future code path can't reintroduce the bug.
+- Auto-dismiss the existing matching rows (the two `client_error_suppressed` rows + the `ui_chunk_load_failed` row + the historical `ui_render_error` chunk row) with `dismissed_reason = 'auto-dismissed: non-actionable infra event (perm fix 2026-05-11)'`.
+- Insert one `known_issue_catalog` rule per `event_type` so any future leak is auto-dismissed.
 
-## Verification
+## 5. BDD scenarios in `bdd_scenarios`
 
-1. Switch to `es` → header, sidebar, footer, login form, toasts re-render in Spanish without reload.
-2. Reload → still Spanish, no flash of English (cached in localStorage `tf_dom_i18n:es`).
-3. Sign out, sign in on second device → language follows from `profiles.preferred_language`.
-4. Switch to `ar` → `<html dir="rtl">` and Arabic text in chrome + body.
-5. Switch back to `en` → MutationObserver detaches, zero overhead.
-6. `SELECT count(*) FROM i18n_translations WHERE locale='es';` grows after switch, stable on subsequent visits.
+- `TRIAGE-NOISE-004`: chunk-load error from any path (ErrorBoundary, lazy-with-retry, window error, unhandledrejection) → `audit_log` row at `severity=warn`, `agent_fix_queue` count unchanged. [UI][DB][Code]
+- `TRIAGE-NOISE-005`: `client_error_suppressed` flush → `audit_log` row written, `agent_fix_queue` count unchanged. [UI][DB][Code]
+- `TRIAGE-NOISE-006`: trigger rejects direct INSERT of warn-severity row into `agent_fix_queue`. [DB]
+- `TRIAGE-UI-001`: TriageTab renders only `severity='error'` rows by default. [UI]
 
-## Risks
+## 6. Verification
 
-- Runtime cost: MutationObserver on heavy pages. Mitigation: throttle, batch, skip when `lang === "en"`, opt-out attribute for hot zones (AG Grid cells via `data-no-translate` on the grid root).
-- AI translation quality: surfaced via existing `language.machineTranslated` toast on first use of a non-vetted locale.
-- Cache cost: every unique English string pays for one AI call per locale, then is free forever.
+- After deploy, query: `select count(*) from agent_fix_queue where event_type in (...) and status in ('pending','triaged','proposed');` → expect 0.
+- Manually trigger a 404 on a chunk URL via DevTools Network throttling, confirm no new `agent_fix_queue` row is created.
+
+---
+
+## Out of scope (not the cause)
+
+- Fixing why the chunk 404s in the first place — `lazyWithRetry` already retries twice + hard-reloads; deploy-watcher already pre-empts most cases. The chunk fetch failing during a deploy window is expected and self-healing; the bug is that we were *logging it as an actionable error*.
+- Touching the i18n runtime translator from the previous turn.
+
+## Files touched (technical)
+
+- `src/services/error-reporter.service.ts`
+- `src/lib/lazy-with-retry.ts`
+- `src/components/ErrorBoundary.tsx`
+- `src/components/system-health/TriageTab.tsx`
+- `supabase/migrations/<new>.sql`
