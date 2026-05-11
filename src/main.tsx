@@ -33,5 +33,8 @@ startDeployWatcher();
 installWebVitalsBeacon();
 // Force-new-tab: Alt+Click, Alt+Enter (focused link), Alt+Shift+O (hovered link).
 installForceNewTab();
+// Runtime DOM translator — translates visible UI into the user's chosen
+// language (no-op for English). Bridges the gap until every component uses t().
+installDomTranslator();
 
 createRoot(document.getElementById("root")!).render(<App />);
