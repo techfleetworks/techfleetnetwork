@@ -9,6 +9,7 @@ interface InspectorRow {
   category: string;
   source: "cookie" | "localStorage";
   value: string;
+  setBy?: string;
 }
 
 const KEY_INDEX: Record<string, { category: string }> = {
@@ -20,16 +21,52 @@ const KEY_INDEX: Record<string, { category: string }> = {
   "tf_dashboard_layout": { category: "Functional" },
 };
 
+const EXTENSION_PATTERNS = [
+  /^ethereum-/i,
+  /^binance-/i,
+  /-walletlink$/i,
+  /^__REACT_DEVTOOLS_/,
+  /^phantom-/i,
+  /^brave-/i,
+  /^wallet_/i,
+  /^wc@/i,
+  /^trustwallet-/i,
+  /^coinbase-/i,
+  /^rabby-/i,
+  /^rainbow-/i,
+  /^argent-/i,
+  /^exodus-/i,
+  /^enkrypt-/i,
+  /^taho-/i,
+  /^__metamask/,
+  /^_wc@/,
+];
+
+function isBrowserExtensionKey(name: string): boolean {
+  return EXTENSION_PATTERNS.some((p) => p.test(name));
+}
+
+function getCategory(name: string): { category: string; setBy?: string } {
+  const known = KEY_INDEX[name];
+  if (known) return known;
+  if (name.startsWith("_ga") || name.startsWith("_clck")) return { category: "Analytics" };
+  if (name.startsWith("tf") || name.startsWith("tfn")) return { category: "Functional" };
+  if (isBrowserExtensionKey(name)) return { category: "Browser extension", setBy: "Your browser extension (not Tech Fleet)" };
+  return { category: "Other" };
+}
+
 function inspect(): InspectorRow[] {
   const rows: InspectorRow[] = [];
   if (typeof document !== "undefined") {
     document.cookie.split(";").map((c) => c.trim()).filter(Boolean).forEach((c) => {
       const [name, ...rest] = c.split("=");
+      const meta = getCategory(name);
       rows.push({
         name,
-        category: KEY_INDEX[name]?.category ?? (name.startsWith("_ga") || name.startsWith("_clck") ? "Analytics" : "Other"),
+        category: meta.category,
         source: "cookie",
         value: rest.join("=").slice(0, 32),
+        setBy: meta.setBy,
       });
     });
   }
@@ -37,8 +74,8 @@ function inspect(): InspectorRow[] {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k) continue;
-      const cat = KEY_INDEX[k]?.category ?? (k.startsWith("tf") || k.startsWith("tfn") ? "Functional" : "Other");
-      rows.push({ name: k, category: cat, source: "localStorage", value: (localStorage.getItem(k) || "").slice(0, 32) });
+      const meta = getCategory(k);
+      rows.push({ name: k, category: meta.category, source: "localStorage", value: (localStorage.getItem(k) || "").slice(0, 32), setBy: meta.setBy });
     }
   }
   return rows.sort((a, b) => a.name.localeCompare(b.name));
