@@ -21,6 +21,24 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTraceId } from "@/lib/trace";
 import { checkNow as checkDeployNow } from "@/lib/deploy-watcher";
+import { isChunkLoadMessage } from "@/lib/lazy-with-retry";
+
+/**
+ * Event types that are infrastructure / observability / aggregate notices.
+ * They still write to `audit_log` (admins can see them on /admin/system-health),
+ * but they MUST NEVER enter `agent_fix_queue` — they are not actionable code
+ * fixes, and surfacing them in Triage drowns out real bugs and wastes AI
+ * triage budget. The DB enforces the same rule via
+ * `block_non_actionable_fix_queue_inserts` (defense in depth).
+ */
+const NON_ACTIONABLE_EVENT_TYPES: ReadonlySet<string> = new Set([
+  "client_error_overflow",
+  "client_error_suppressed",
+  "client_error_deduped",
+  "external_api_recovered",
+  "ui_chunk_load_failed",
+  "audit_pressure_changed",
+]);
 
 const MAX_MSG_LENGTH = 2000;
 const DEFAULT_CAP_PER_MINUTE = 10;
