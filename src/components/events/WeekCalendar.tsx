@@ -180,6 +180,7 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
               variant="outline"
               onClick={() => setRefDate((d) => addWeeks(d, -1))}
               aria-label="Previous week"
+              disabled={!canGoBack}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -196,6 +197,7 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
               variant="outline"
               onClick={() => setRefDate((d) => addWeeks(d, 1))}
               aria-label="Next week"
+              disabled={!canGoForward}
             >
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
