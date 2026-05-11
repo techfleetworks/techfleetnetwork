@@ -3413,6 +3413,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3428,6 +3430,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3443,6 +3447,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3461,6 +3467,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3476,6 +3484,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3491,6 +3501,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3509,6 +3521,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3524,6 +3538,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3539,6 +3555,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3557,6 +3575,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3572,6 +3592,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3587,6 +3609,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3605,6 +3629,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3620,6 +3646,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3635,6 +3663,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3653,6 +3683,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3668,6 +3700,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3683,6 +3717,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3701,6 +3737,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3716,6 +3754,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3731,6 +3771,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3749,6 +3791,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3764,6 +3808,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3779,6 +3825,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3797,6 +3845,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3812,6 +3862,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3827,6 +3879,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3845,6 +3899,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3860,6 +3916,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3875,6 +3933,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3893,6 +3953,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3908,6 +3970,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3923,6 +3987,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3941,6 +4007,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -3956,6 +4024,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3971,6 +4041,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -3988,6 +4060,8 @@ export type Database = {
           all_descriptions: Json
           created_at: string
           description: string
+          description_generated_at: string | null
+          description_source: string
           from_entity: string
           id: string
           inverse_description: string | null
@@ -4001,6 +4075,8 @@ export type Database = {
           all_descriptions?: Json
           created_at?: string
           description: string
+          description_generated_at?: string | null
+          description_source?: string
           from_entity: string
           id?: string
           inverse_description?: string | null
@@ -4014,6 +4090,8 @@ export type Database = {
           all_descriptions?: Json
           created_at?: string
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           from_entity?: string
           id?: string
           inverse_description?: string | null
@@ -4031,6 +4109,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4046,6 +4126,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4061,6 +4143,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4079,6 +4163,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4094,6 +4180,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4109,6 +4197,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4127,6 +4217,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4142,6 +4234,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4157,6 +4251,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4175,6 +4271,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4190,6 +4288,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4205,6 +4305,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4223,6 +4325,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4238,6 +4342,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4253,6 +4359,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4271,6 +4379,8 @@ export type Database = {
           created_at: string
           data: Json
           description: string
+          description_generated_at: string | null
+          description_source: string
           id: string
           is_active: boolean
           is_placeholder: boolean | null
@@ -4286,6 +4396,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
@@ -4301,6 +4413,8 @@ export type Database = {
           created_at?: string
           data?: Json
           description?: string
+          description_generated_at?: string | null
+          description_source?: string
           id?: string
           is_active?: boolean
           is_placeholder?: boolean | null
