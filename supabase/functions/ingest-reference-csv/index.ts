@@ -351,16 +351,33 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
     if (incomingSlugs.length > 0) {
       const { data: existingRows } = await admin
         .from(cfg.table)
-        .select("slug, description")
+        .select("slug, description, description_source")
         .in("slug", incomingSlugs);
-      const existingBySlug = new Map<string, string | null>(
-        (existingRows ?? []).map((r: { slug: string; description: string | null }) => [r.slug, r.description])
+      const existingBySlug = new Map<string, { description: string | null; description_source: string | null }>(
+        (existingRows ?? []).map((r: { slug: string; description: string | null; description_source: string | null }) =>
+          [r.slug, { description: r.description, description_source: r.description_source }]
+        )
       );
       for (const u of upserts) {
         const incoming = (u.description as string) ?? "";
         const existing = existingBySlug.get(u.slug);
-        if (isPlaceholder(incoming) && existing && !isPlaceholder(existing)) {
-          u.description = existing;
+        if (!existing) continue;
+        const existingIsAi = existing.description_source === "ai_generated";
+        const existingIsAdmin = existing.description_source === "admin";
+        if (!isPlaceholder(incoming)) {
+          // CSV has a real value. Preserve admin edits; otherwise let CSV win
+          // (this overwrites prior ai_generated copy on purpose).
+          if (existingIsAdmin && existing.description && !isPlaceholder(existing.description)) {
+            u.description = existing.description;
+            (u as Record<string, unknown>).description_source = "admin";
+            keptExistingDescription++;
+          }
+          continue;
+        }
+        // CSV is empty/placeholder: keep any non-placeholder existing value.
+        if (existing.description && !isPlaceholder(existing.description)) {
+          u.description = existing.description;
+          (u as Record<string, unknown>).description_source = existingIsAi ? "ai_generated" : (existing.description_source ?? "csv");
           keptExistingDescription++;
         }
       }
