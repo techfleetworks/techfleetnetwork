@@ -105,6 +105,16 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
     () => addWeeks(currentWeekStart, 51),
     [currentWeekStart],
   );
+
+  // Defense-in-depth: if HMR / persisted state / hot reload ever leaves an
+  // out-of-bounds refDate behind, snap back to "now" on mount + on TZ change.
+  useEffect(() => {
+    if (weekStart.getTime() < currentWeekStart.getTime() || weekStart.getTime() > maxWeekStart.getTime()) {
+      setRefDate(new Date());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWeekStart.getTime(), maxWeekStart.getTime()]);
+
   const canGoBack = weekStart.getTime() > currentWeekStart.getTime();
   const canGoForward = weekStart.getTime() < maxWeekStart.getTime();
 
@@ -131,6 +141,9 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
   }, [weekStart, timeZone]);
 
   const { allDay, positioned } = useMemo(() => {
+    // Final render-time floor: never display anything older than 1 day, even
+    // if a stale client cache or buggy expansion returns old events.
+    const HARD_FLOOR_MS = Date.now() - 24 * 60 * 60 * 1000;
     const allDay: { ev: CommunityEvent; dayIdx: number }[] = [];
     const perDay: { ev: CommunityEvent; topPx: number; heightPx: number }[][] = Array.from(
       { length: 7 },
@@ -139,6 +152,7 @@ export function WeekCalendar({ timeZone, fallbackUrl }: Props) {
     for (const ev of data ?? []) {
       const start = new Date(ev.startUtc);
       const end = new Date(ev.endUtc);
+      if (start.getTime() < HARD_FLOOR_MS) continue; // stale guard
       const startIso = formatInTimeZone(start, timeZone, "yyyy-MM-dd");
       const dayIdx = days.findIndex((d) => d.iso === startIso);
       if (dayIdx < 0) continue; // outside this week

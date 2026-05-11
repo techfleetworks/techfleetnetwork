@@ -18,6 +18,7 @@
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { fromZonedTime } from "npm:date-fns-tz@3.2.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,6 +86,19 @@ function parseIcsDate(value: string, params: Record<string, string>): { date: Da
   const h = +value.slice(9, 11);
   const mi = +value.slice(11, 13);
   const s = +value.slice(13, 15);
+  // Trailing Z = explicit UTC.
+  if (value.endsWith("Z")) {
+    return { date: new Date(Date.UTC(y, mo, d, h, mi, s)), allDay: false };
+  }
+  // TZID present → interpret wall-clock time in that zone, convert to UTC.
+  const tzid = params.TZID;
+  if (tzid) {
+    try {
+      const local = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15) || "00"}`;
+      return { date: fromZonedTime(local, tzid), allDay: false };
+    } catch { /* fall through to UTC */ }
+  }
+  // Floating local time without TZID — treat as UTC (best-effort, matches prior behaviour).
   return { date: new Date(Date.UTC(y, mo, d, h, mi, s)), allDay: false };
 }
 
@@ -93,7 +107,9 @@ function splitParams(key: string): { name: string; params: Record<string, string
   const params: Record<string, string> = {};
   for (const p of paramParts) {
     const eq = p.indexOf("=");
-    if (eq > 0) params[p.slice(0, eq).toUpperCase()] = p.slice(eq + 1).toUpperCase();
+    // Param NAME is uppercased for lookup; param VALUE is preserved as-is
+    // (TZID values like "America/Los_Angeles" are case-sensitive).
+    if (eq > 0) params[p.slice(0, eq).toUpperCase()] = p.slice(eq + 1);
   }
   return { name: name.toUpperCase(), params };
 }
