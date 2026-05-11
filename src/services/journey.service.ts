@@ -104,7 +104,15 @@ export const JourneyService = {
       const { count, error } = await query;
       if (error) {
         log.error("getCompletedCount", `Count query failed: ${error.message}`, { userId, phase }, error);
-        throw new Error("Failed to count progress");
+        // Preserve PostgREST classification fields so QueryCache.onError can
+        // call isTransientError(err) and skip noisy reportError() for blips.
+        const wrapped = new Error("Failed to count progress") as Error & {
+          code?: string; status?: number; cause?: unknown;
+        };
+        wrapped.code = (error as { code?: string }).code;
+        wrapped.status = (error as { status?: number }).status;
+        wrapped.cause = error;
+        throw wrapped;
       }
       const result = count ?? 0;
       log.debug("getCompletedCount", `User ${userId} has ${result} completed tasks in ${phase}`, { userId, phase, count: result });
