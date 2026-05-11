@@ -219,7 +219,7 @@ function expandOccurrences(ev: RawVEvent, windowStart: Date, windowEnd: Date): A
     DAILY: 24 * 60 * 60 * 1000,
     WEEKLY: 7 * 24 * 60 * 60 * 1000,
   };
-  const MAX_INSTANCES = 200;
+  const MAX_INSTANCES = 600;
 
   if (freq === "DAILY" || freq === "WEEKLY") {
     let occurrencesEmitted = 0;
