@@ -288,9 +288,13 @@ async function writeAudit(args: WriteAuditArgs): Promise<void> {
     // Best-effort: failure here must never throw. Skip pure overflow events,
     // but include `warn` severity so validation_rejected and aggregate
     // suppressed/deduped notices reach admins.
+    // Triage queue is reserved for actionable, severity=error code bugs.
+    // Skip aggregate observability notices, infra events, and any non-error
+    // severity. The DB trigger `block_non_actionable_fix_queue_inserts`
+    // enforces the same rule belt-and-suspenders.
     const skipQueue =
-      args.severity === "info" ||
-      args.eventType === "client_error_overflow";
+      args.severity !== "error" ||
+      NON_ACTIONABLE_EVENT_TYPES.has(args.eventType);
     if (!skipQueue) {
       const fp = `${args.eventType}::${fingerprint(args.message, args.source)}`;
       await supabase.rpc("upsert_fix_queue_entry", {
