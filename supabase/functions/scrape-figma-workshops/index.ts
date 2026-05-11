@@ -93,13 +93,116 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const urls: string[] = Array.isArray(body.urls) ? body.urls : [];
     const dryRun = !!body.dryRun;
-    const safeUrls = urls
-      .filter((u) => typeof u === "string" && FIGMA_HOST_RE.test(u))
-      .slice(0, 60);
+    const autoDiscover = body.autoDiscover !== false; // default ON
+    const profileHandle: string = typeof body.profile === "string" && body.profile
+      ? body.profile.replace(/^@/, "")
+      : "techfleet";
+    const maxUrls: number = Math.min(Number(body.maxUrls) || 200, 500);
+
+    const seen = new Set<string>();
+    const safeUrls: string[] = [];
+    for (const u of urls) {
+      if (typeof u === "string" && FIGMA_HOST_RE.test(u) && !seen.has(u)) {
+        seen.add(u); safeUrls.push(u);
+      }
+    }
+
+    const discovery: Array<Record<string, unknown>> = [];
+    if (autoDiscover && safeUrls.length < maxUrls) {
+      // Tech Fleet's Figma profile lists community files across paginated tabs.
+      // Scrape the profile pages with Firecrawl `links` format and harvest
+      // every /community/file/... URL Figma exposes.
+      const profileUrls = [
+        `https://www.figma.com/@${profileHandle}`,
+        `https://www.figma.com/@${profileHandle}/resources`,
+        `https://www.figma.com/@${profileHandle}/files`,
+        `https://www.figma.com/@${profileHandle}?resource_type=files`,
+      ];
+      for (const purl of profileUrls) {
+        try {
+          const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: purl,
+              formats: ["links", "html"],
+              onlyMainContent: false,
+              waitFor: 3500,
+            }),
+          });
+          const j = await r.json();
+          const links: string[] = j?.data?.links ?? j?.links ?? [];
+          const html: string = j?.data?.html ?? j?.html ?? "";
+          const fromHtml = Array.from(
+            html.matchAll(/https:\/\/www\.figma\.com\/community\/file\/\d+\/[a-z0-9-]+/gi)
+          ).map((m) => m[0]);
+          let added = 0;
+          for (const l of [...links, ...fromHtml]) {
+            if (typeof l !== "string") continue;
+            const clean = l.split("?")[0].split("#")[0];
+            if (FIGMA_HOST_RE.test(clean) && !seen.has(clean)) {
+              seen.add(clean);
+              safeUrls.push(clean);
+              added++;
+              if (safeUrls.length >= maxUrls) break;
+            }
+          }
+          discovery.push({ source: purl, ok: r.ok, added, totalLinks: links.length });
+          if (safeUrls.length >= maxUrls) break;
+        } catch (e) {
+          discovery.push({ source: purl, ok: false, error: (e as Error).message });
+        }
+      }
+      // Firecrawl `map` as a backup — scoped + filtered to community files
+      if (safeUrls.length < maxUrls) {
+        try {
+          const r = await fetch("https://api.firecrawl.dev/v2/map", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: `https://www.figma.com/@${profileHandle}`,
+              search: "workshop template",
+              limit: 500,
+            }),
+          });
+          const j = await r.json();
+          const links: string[] = j?.data?.links ?? j?.links ?? [];
+          let added = 0;
+          for (const l of links) {
+            if (typeof l !== "string") continue;
+            const clean = l.split("?")[0].split("#")[0];
+            if (FIGMA_HOST_RE.test(clean) && !seen.has(clean)) {
+              seen.add(clean);
+              safeUrls.push(clean);
+              added++;
+              if (safeUrls.length >= maxUrls) break;
+            }
+          }
+          discovery.push({ source: "firecrawl-map", ok: r.ok, added, totalLinks: links.length });
+        } catch (e) {
+          discovery.push({ source: "firecrawl-map", ok: false, error: (e as Error).message });
+        }
+      }
+    }
 
     if (!safeUrls.length) {
-      return new Response(JSON.stringify({ error: "No valid figma.com/community/file URLs supplied" }), {
+      return new Response(JSON.stringify({
+        error: "No Figma community file URLs found",
+        discovery,
+      }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (body.discoverOnly) {
+      return new Response(JSON.stringify({ ok: true, discovered: safeUrls.length, urls: safeUrls, discovery }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
