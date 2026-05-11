@@ -1,5 +1,6 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@/lib/react-query";
 import { reportError } from "@/services/error-reporter.service";
+import { isTransientError } from "@/lib/transient-error";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -106,12 +107,17 @@ const queryClient = new QueryClient({
   // toasts. Mutations and queries both fan in here.
   queryCache: new QueryCache({
     onError: (error, query) => {
+      // Transient network/PostgREST blips are not actionable bugs — skip
+      // reportError so they don't fill the Triage queue or the Activity Log.
+      // Component-level UI continues to show normal error states from useQuery.
+      if (isTransientError(error)) return;
       const key = Array.isArray(query.queryKey) ? query.queryKey.map(String).join(".") : "query";
       reportError(error, `query.${key}`, { severity: "error" });
     },
   }),
   mutationCache: new MutationCache({
     onError: (error, _vars, _ctx, mutation) => {
+      if (isTransientError(error)) return;
       const key = mutation.options.mutationKey?.map(String).join(".") ?? "anonymous";
       reportError(error, `mutation.${key}`, { severity: "error" });
     },

@@ -158,7 +158,10 @@ async function emitExternalApiFailure(args: ExternalApiFailureArgs): Promise<voi
         `retries:${args.retries}`,
         ...(args.status ? [`status:${args.status}`] : []),
       ],
-      errorMessage: args.errorMessage?.slice(0, 500),
+      errorMessage: (args.errorMessage && args.errorMessage.trim().length > 0
+        ? args.errorMessage
+        : `Discord ${args.method} ${args.endpoint} failed${args.status ? ` (status ${args.status})` : ""} after ${args.retries} retries`
+      ).slice(0, 500),
     });
   } catch {
     /* telemetry must never break the caller */
