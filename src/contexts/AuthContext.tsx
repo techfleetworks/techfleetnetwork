@@ -5,6 +5,7 @@ import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import { clearOAuthUiMarker, hasFreshOAuthUiMarker, isRootOAuthCallback, stripRootOAuthCallbackUrl } from "@/lib/oauth-ui-guard";
+import i18n, { ensureLocale } from "@/i18n";
 import type { User, Session } from "@supabase/supabase-js";
 
 /**
@@ -147,6 +148,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
+
+  // Restore the user's saved language whenever their profile loads — without
+  // this, picking a language only persists; sign-in on another device would
+  // not surface the preference. Skip when no preference, or when it already
+  // matches the active i18next language. Best-effort: never throws.
+  useEffect(() => {
+    const pref = profile?.preferred_language;
+    if (!pref) return;
+    const current = (i18n.language || "en").toLowerCase();
+    if (current === pref.toLowerCase()) return;
+    void (async () => {
+      try {
+        await ensureLocale(pref, "common");
+        await i18n.changeLanguage(pref);
+        try { localStorage.setItem("tf_lang", pref); } catch { /* private mode */ }
+      } catch { /* non-critical */ }
+    })();
+  }, [profile?.preferred_language]);
 
   useEffect(() => {
     const { data: { subscription } } = AuthService.onAuthStateChange(

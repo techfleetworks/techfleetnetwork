@@ -22,7 +22,7 @@ export function AppFooter() {
               aria-hidden="true"
             />
             <span className="text-xs text-muted-foreground">
-              Tech Fleet&trade; · © {new Date().getFullYear()} All Rights Reserved
+              <span data-no-translate>Tech Fleet&trade;</span> · © {new Date().getFullYear()} All Rights Reserved
             </span>
           </div>
           <nav
