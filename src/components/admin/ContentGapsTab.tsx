@@ -66,38 +66,9 @@ const PRETTY: Record<TableName, string> = {
   reference_tech_job_categories: "Tech Category",
 };
 
-const FIGMA_WORKSHOP_URLS = [
-  "https://www.figma.com/community/file/1475672452916439636/working-agreements-workshop-template",
-  "https://www.figma.com/community/file/1475674526231743061/pre-kickoff-project-deliverables-template",
-  "https://www.figma.com/community/file/1475877725912583952/tech-fleet-sprint-demo-template",
-  "https://www.figma.com/community/file/1477369888931618629/agile-maturity-measurements-workshop-template",
-  "https://www.figma.com/community/file/1483485891144991171/client-intake-and-kickoff-workshop-template",
-  "https://www.figma.com/community/file/1483833252210786997/project-phase-retrospective-workshop-template",
-  "https://www.figma.com/community/file/1490313655987695188/tech-fleet-co-lead-kickoff-presentation-template",
-  "https://www.figma.com/community/file/1491439395400807650/tech-fleet-conflict-resolution-workshop-template",
-  "https://www.figma.com/community/file/1492912180313402535/tech-fleet-personal-growth-vision-scope-and-roadmap-template",
-  "https://www.figma.com/community/file/1493604689946812962/team-process-map-and-kanban-board-training",
-  "https://www.figma.com/community/file/1493975947913562977/product-and-service-development-milestones-for-different-types-of-projects",
-  "https://www.figma.com/community/file/1494349319575390329/product-release-vision-scope-and-roadmap-workshop-template",
-  "https://www.figma.com/community/file/1496250421089805550/ux-research-test-plan-creation-workshop-template",
-  "https://www.figma.com/community/file/1496587055060411868/kpi-success-measurements-definition-workshop-template",
-  "https://www.figma.com/community/file/1496587628546546141/research-analysis-presentation-template",
-  "https://www.figma.com/community/file/1497216520683778962/team-ice-breaker-kickoff-party-workshop-template",
-  "https://www.figma.com/community/file/1497223439047417750/empathy-map-workshop-template",
-  "https://www.figma.com/community/file/1497229984848823193/audience-persona-definition-workshop-template",
-  "https://www.figma.com/community/file/1499107580357372061/team-agile-workshops-template",
-  "https://www.figma.com/community/file/1499950643904017083/work-prioritization-workshop-template",
-  "https://www.figma.com/community/file/1499957535902105277/user-journey-map-workshop-template",
-  "https://www.figma.com/community/file/1500149108426942270/customer-experience-map-workshop-template",
-  "https://www.figma.com/community/file/1501780960086225557/formal-problem-statement-and-problem-checklist-workshop",
-  "https://www.figma.com/community/file/1503130355666295278/market-research-and-competitive-analysis-workshop-template",
-  "https://www.figma.com/community/file/1503447310956063367/ux-research-analysis-workshop-template",
-  "https://www.figma.com/community/file/1503448953782101642/case-study-creation-workshop-template",
-  "https://www.figma.com/community/file/1503453571414509198/agile-team-transformation-vision-scope-and-roadmap-workshop-template",
-  "https://www.figma.com/community/file/1531659996623185402/workshop-customer-experience-design-workshop-template",
-  "https://www.figma.com/community/file/1581021039761863295/audience-segmentation-goals-motivations-and-use-cases-workshop",
-  "https://www.figma.com/community/file/1611044192300473162/storyboarding-workshop-template",
-];
+// Figma workshop URLs are auto-discovered server-side by scraping the
+// Tech Fleet Figma profile pages — no hardcoded list to drift out of sync.
+
 
 interface Gap {
   table: TableName;
@@ -217,16 +188,17 @@ export function ContentGapsTab() {
   };
 
   const scrapeFigma = async () => {
-    if (!confirm("Crawl the 30 Tech Fleet Figma Community workshop templates and overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
+    if (!confirm("Auto-discover and crawl every Tech Fleet Figma Community workshop template, then overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
     setScrapingFigma(true);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-figma-workshops", {
-        body: { urls: FIGMA_WORKSHOP_URLS },
+        body: { autoDiscover: true, profile: "techfleet", maxUrls: 300 },
       });
       if (error) throw error;
-      const updated = (data as { updated?: number; total?: number })?.updated ?? 0;
-      const total = (data as { updated?: number; total?: number })?.total ?? 0;
-      toast({ title: "Figma scrape complete", description: `Updated ${updated} of ${total} workshop descriptions.` });
+      const updated = (data as { updated?: number; total?: number; discovered?: number })?.updated ?? 0;
+      const total = (data as { updated?: number; total?: number; discovered?: number })?.total ?? 0;
+      const discovered = (data as { discovered?: number })?.discovered ?? total;
+      toast({ title: "Figma scrape complete", description: `Discovered ${discovered}, updated ${updated} of ${total} workshop descriptions.` });
       await load();
     } catch (e) {
       toast({
