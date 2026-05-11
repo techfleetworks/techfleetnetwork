@@ -183,6 +183,29 @@ export function ContentGapsTab() {
     }
   };
 
+  const scrapeFigma = async () => {
+    if (!confirm("Crawl the 30 Tech Fleet Figma Community workshop templates and overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
+    setScrapingFigma(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-figma-workshops", {
+        body: { urls: FIGMA_WORKSHOP_URLS },
+      });
+      if (error) throw error;
+      const updated = (data as { updated?: number; total?: number })?.updated ?? 0;
+      const total = (data as { updated?: number; total?: number })?.total ?? 0;
+      toast({ title: "Figma scrape complete", description: `Updated ${updated} of ${total} workshop descriptions.` });
+      await load();
+    } catch (e) {
+      toast({
+        title: "Figma scrape failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setScrapingFigma(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -193,14 +216,25 @@ export function ContentGapsTab() {
             made here are protected from CSV re-ingest.
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={autofill}
-          disabled={autofilling || loading || gaps.length === 0}
-        >
-          {autofilling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Auto-fill all with AI
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={scrapeFigma}
+            disabled={scrapingFigma || loading}
+          >
+            {scrapingFigma ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Scrape Figma workshops
+          </Button>
+          <Button
+            size="sm"
+            onClick={autofill}
+            disabled={autofilling || loading || gaps.length === 0}
+          >
+            {autofilling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Auto-fill all with AI
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <ToggleGroup
