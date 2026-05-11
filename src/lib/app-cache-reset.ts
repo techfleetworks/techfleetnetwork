@@ -1,6 +1,6 @@
 import { MemoryCache } from "@/lib/memory-cache";
 
-export const APP_CACHE_RESET_VERSION = "2026-04-27-turnstile-force-cache-reset-v1";
+export const APP_CACHE_RESET_VERSION = "2026-05-11-events-tz-and-stale-guard-v1";
 
 const CACHE_RESET_VERSION_KEY = "techfleet.cacheResetVersion";
 const CACHE_RESET_RELOAD_KEY = "techfleet.cacheResetReloadedVersion";
