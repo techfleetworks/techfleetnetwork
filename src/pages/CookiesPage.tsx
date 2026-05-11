@@ -107,24 +107,27 @@ export default function CookiesPage() {
         <h2 id="inspector" className="text-lg font-semibold">What's stored on this device</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Live inspector of cookies and localStorage entries set by this site in your
-          current browser. Your current consent: {consent ? (
+          current browser. Entries marked <em>Browser extension</em> come from add-ons you have
+          installed (for example, a crypto wallet or developer tool) and are not set by Tech Fleet.
+          Your current consent: {consent ? (
             <code>{`functional=${consent.functional} analytics=${consent.analytics} marketing=${consent.marketing} gpc=${consent.gpc}`}</code>
           ) : "no decision yet"}.
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-left text-muted-foreground">
-              <tr><th className="py-1 pr-3">Name</th><th className="py-1 pr-3">Category</th><th className="py-1 pr-3">Source</th><th className="py-1">Value (truncated)</th></tr>
+              <tr><th className="py-1 pr-3">Name</th><th className="py-1 pr-3">Category</th><th className="py-1 pr-3">Source</th><th className="py-1 pr-3">Set by</th><th className="py-1">Value (truncated)</th></tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={4} className="py-2 text-muted-foreground">Nothing stored yet.</td></tr>
+                <tr><td colSpan={5} className="py-2 text-muted-foreground">Nothing stored yet.</td></tr>
               )}
               {rows.map((r) => (
                 <tr key={`${r.source}:${r.name}`} className="border-t">
                   <td className="py-1 pr-3 font-mono">{r.name}</td>
                   <td className="py-1 pr-3">{r.category}</td>
                   <td className="py-1 pr-3">{r.source}</td>
+                  <td className="py-1 pr-3 text-muted-foreground">{r.setBy ?? "Tech Fleet"}</td>
                   <td className="py-1 font-mono text-muted-foreground truncate max-w-[20ch]">{r.value}</td>
                 </tr>
               ))}
