@@ -33,6 +33,7 @@ export interface Profile {
   membership_sku: string;
   membership_gumroad_sale_id: string;
   membership_updated_at: string | null;
+  preferred_language: string | null;
 }
 
 export const ProfileService = {
