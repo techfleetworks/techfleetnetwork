@@ -101,12 +101,11 @@ export function TriageTab() {
       const [{ data: queue, error: qErr }, { data: budget }] = await Promise.all([
         supabase
           .from("agent_fix_queue")
-          // Only actionable, severity=error rows surface in Triage.
-          // warn/info rows are observability-only and live in System Health;
-          // they're additionally blocked from inserts by a DB trigger.
-          .eq("severity", "error")
-          .from("agent_fix_queue")
           .select("*")
+          // Only actionable, severity=error rows surface in Triage. warn/info
+          // rows are observability-only and live in System Health; the DB
+          // trigger `block_non_actionable_fix_queue_inserts` also blocks
+          // them from insert, so this filter is belt-and-suspenders.
           .eq("severity", "error")
           .in("status", ["pending", "triaged", "proposed"])
           .or("snoozed_until.is.null,snoozed_until.lt." + new Date().toISOString())
