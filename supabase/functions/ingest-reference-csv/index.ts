@@ -236,14 +236,29 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
     const headers = rawHeaders.map(renameHeader);
 
     const nameIdx = 0;
-    const descIdx = pickCol(headers, [
-      `${headers[0]} Description`, "Description", "Specialization Description", "Skill Description",
-      "Practice Description", "Activity Description", "Tool Description",
-      "Method Splash Image", "Basic Definition of the Method", "Commitment Description",
-      "Workshop Description", "Description of the Workshop", "Milestone Description",
-      "Job Industry Description", "Category Description (from Tech Job Category)",
-      "Stakeholder Description", "Company Type Description",
-    ]);
+    // Broadened detection: any header containing description/definition/summary/about
+    // (case-insensitive). Falls back to the explicit allow-list for legacy CSVs.
+    let descIdx = headers.findIndex((h, i) =>
+      i !== nameIdx && /\b(description|definition|summary|about|overview)\b/i.test(h)
+    );
+    if (descIdx === -1) {
+      descIdx = pickCol(headers, [
+        `${headers[0]} Description`, "Description", "Specialization Description", "Skill Description",
+        "Practice Description", "Activity Description", "Tool Description",
+        "Method Splash Image", "Basic Definition of the Method", "Commitment Description",
+        "Workshop Description", "Description of the Workshop", "Milestone Description",
+        "Job Industry Description", "Category Description (from Tech Job Category)",
+        "Stakeholder Description", "Company Type Description",
+      ]);
+    }
+    if (descIdx === -1) {
+      return new Response(JSON.stringify({
+        error: "No description column found in CSV",
+        dataset_name,
+        headers_seen: headers,
+        hint: "Rename a column to include the word 'Description', 'Definition', 'Summary', 'About', or 'Overview'.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const catIdx = pickCol(headers, [
       "Category", "Workshop Category", "Tech Job Category", "Tech Career Category",
       "Data Type", "Skill Type",
@@ -299,12 +314,28 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
         slug,
         name: rawName.slice(0, 500),
         description,
+        description_source: description ? "csv" : "missing",
         category: category.slice(0, 200),
         data,
         source: "csv",
         source_row_id: `${dataset_name}#${r}`,
         is_active: true,
       });
+    }
+
+    // Hard validation: if more than 50% of rows have empty descriptions, fail
+    // loudly so admins notice mis-mapped headers instead of getting a silent
+    // wave of empty rows like the original Deliverables import.
+    const emptyDesc = upserts.filter(u => !u.description || !String(u.description).trim()).length;
+    if (upserts.length >= 5 && emptyDesc / upserts.length > 0.5) {
+      return new Response(JSON.stringify({
+        error: "Most rows have empty descriptions — the description column is likely mis-mapped",
+        dataset_name,
+        rows: upserts.length,
+        rows_empty: emptyDesc,
+        descriptionColumn: headers[descIdx],
+        headers_seen: headers,
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── Placeholder-aware merge ────────────────────────────────────────
@@ -320,16 +351,33 @@ serve(withAuditWrapper("ingest-reference-csv", async (req) => {
     if (incomingSlugs.length > 0) {
       const { data: existingRows } = await admin
         .from(cfg.table)
-        .select("slug, description")
+        .select("slug, description, description_source")
         .in("slug", incomingSlugs);
-      const existingBySlug = new Map<string, string | null>(
-        (existingRows ?? []).map((r: { slug: string; description: string | null }) => [r.slug, r.description])
+      const existingBySlug = new Map<string, { description: string | null; description_source: string | null }>(
+        (existingRows ?? []).map((r: { slug: string; description: string | null; description_source: string | null }) =>
+          [r.slug, { description: r.description, description_source: r.description_source }]
+        )
       );
       for (const u of upserts) {
         const incoming = (u.description as string) ?? "";
         const existing = existingBySlug.get(u.slug);
-        if (isPlaceholder(incoming) && existing && !isPlaceholder(existing)) {
-          u.description = existing;
+        if (!existing) continue;
+        const existingIsAi = existing.description_source === "ai_generated";
+        const existingIsAdmin = existing.description_source === "admin";
+        if (!isPlaceholder(incoming)) {
+          // CSV has a real value. Preserve admin edits; otherwise let CSV win
+          // (this overwrites prior ai_generated copy on purpose).
+          if (existingIsAdmin && existing.description && !isPlaceholder(existing.description)) {
+            u.description = existing.description;
+            (u as Record<string, unknown>).description_source = "admin";
+            keptExistingDescription++;
+          }
+          continue;
+        }
+        // CSV is empty/placeholder: keep any non-placeholder existing value.
+        if (existing.description && !isPlaceholder(existing.description)) {
+          u.description = existing.description;
+          (u as Record<string, unknown>).description_source = existingIsAi ? "ai_generated" : (existing.description_source ?? "csv");
           keptExistingDescription++;
         }
       }
