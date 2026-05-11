@@ -139,7 +139,7 @@ export function ContentGapsTab() {
     setSaving(true);
     const { error } = await (supabase as any)
       .from(editing.table)
-      .update({ description: text })
+      .update({ description: text, description_source: "admin" })
       .eq("id", editing.id);
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
