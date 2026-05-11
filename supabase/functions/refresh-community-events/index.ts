@@ -29,7 +29,9 @@ const ICAL_URL =
   "https://calendar.google.com/calendar/ical/techfleetnetwork%40gmail.com/public/basic.ics";
 
 // Window we keep in the cache. Past events are filtered out at read time too.
-const WINDOW_DAYS = 60;
+// Kept generous (1 year) so users can browse forward in the week view without
+// running off the end of the cache.
+const WINDOW_DAYS = 365;
 // Drop events that ended more than this many days ago (safety net for bad
 // timezone math). Keep a small lookback so "happening now" stays visible.
 const PAST_CUTOFF_DAYS = 1;
@@ -217,7 +219,7 @@ function expandOccurrences(ev: RawVEvent, windowStart: Date, windowEnd: Date): A
     DAILY: 24 * 60 * 60 * 1000,
     WEEKLY: 7 * 24 * 60 * 60 * 1000,
   };
-  const MAX_INSTANCES = 200;
+  const MAX_INSTANCES = 600;
 
   if (freq === "DAILY" || freq === "WEEKLY") {
     let occurrencesEmitted = 0;

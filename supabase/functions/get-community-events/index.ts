@@ -20,7 +20,7 @@ const corsHeaders = {
 
 const QuerySchema = z
   .object({
-    windowDays: z.coerce.number().int().min(1).max(60).optional(),
+    windowDays: z.coerce.number().int().min(1).max(400).optional(),
     from: z.string().datetime().optional(),
     to: z.string().datetime().optional(),
   })
