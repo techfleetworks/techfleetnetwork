@@ -188,16 +188,17 @@ export function ContentGapsTab() {
   };
 
   const scrapeFigma = async () => {
-    if (!confirm("Crawl the 30 Tech Fleet Figma Community workshop templates and overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
+    if (!confirm("Auto-discover and crawl every Tech Fleet Figma Community workshop template, then overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
     setScrapingFigma(true);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-figma-workshops", {
-        body: { urls: FIGMA_WORKSHOP_URLS },
+        body: { autoDiscover: true, profile: "techfleet", maxUrls: 300 },
       });
       if (error) throw error;
-      const updated = (data as { updated?: number; total?: number })?.updated ?? 0;
-      const total = (data as { updated?: number; total?: number })?.total ?? 0;
-      toast({ title: "Figma scrape complete", description: `Updated ${updated} of ${total} workshop descriptions.` });
+      const updated = (data as { updated?: number; total?: number; discovered?: number })?.updated ?? 0;
+      const total = (data as { updated?: number; total?: number; discovered?: number })?.total ?? 0;
+      const discovered = (data as { discovered?: number })?.discovered ?? total;
+      toast({ title: "Figma scrape complete", description: `Discovered ${discovered}, updated ${updated} of ${total} workshop descriptions.` });
       await load();
     } catch (e) {
       toast({
