@@ -22,16 +22,25 @@ const RELOAD_FLAG = "__lovable_chunk_reload__";
 const MAX_TRANSIENT_RETRIES = 2;
 const RETRY_DELAY_MS = [400, 1200] as const;
 
-function isChunkLoadError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const msg = error.message || "";
+/**
+ * Single source of truth for "is this a stale-bundle / chunk-load failure?"
+ * Used by lazyWithRetry, ErrorBoundary, and the global window error reporter
+ * so all three paths classify identically.
+ */
+export function isChunkLoadMessage(msg: string): boolean {
+  if (!msg) return false;
   return (
     msg.includes("Failed to fetch dynamically imported module") ||
     msg.includes("Importing a module script failed") ||
     msg.includes("error loading dynamically imported module") ||
     msg.includes("Unable to preload CSS") ||
-    /ChunkLoadError/i.test(error.name)
+    /ChunkLoadError/i.test(msg)
   );
+}
+
+function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return isChunkLoadMessage(error.message || "") || /ChunkLoadError/i.test(error.name);
 }
 
 function sleep(ms: number) {
