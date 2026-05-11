@@ -83,17 +83,17 @@ export function ContentGapsTab() {
   const [editing, setEditing] = useState<Gap | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const all: Gap[] = [];
-    // Run all reads in parallel.
     const results = await Promise.all(
       TABLES.map(async (t) => {
         const { data, error } = await (supabase as any)
           .from(t)
-          .select("id, slug, name, description, updated_at")
-          .eq("is_placeholder", true)
+          .select("id, slug, name, description, description_source, updated_at")
+          .or("is_placeholder.eq.true,description.is.null,description.eq.")
           .order("name", { ascending: true });
         if (error) return [];
         return ((data ?? []) as unknown as Array<Omit<Gap, "table">>).map((r) => ({ ...r, table: t }));
