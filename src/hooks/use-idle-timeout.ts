@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { recordActivity } from "@/lib/session-activity";
 
 const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "keyup", "scroll", "touchstart", "click", "input", "focus", "change"];
 
@@ -64,6 +65,7 @@ export function useIdleTimeout({
     resetTimers();
 
     const handleActivity = () => {
+      recordActivity();
       resetTimers();
     };
 
@@ -92,7 +94,10 @@ export function useIdleTimeout({
     };
 
     pollRef.current = setInterval(() => {
-      if (isMediaActive()) resetTimers();
+      if (isMediaActive()) {
+        recordActivity();
+        resetTimers();
+      }
     }, 30 * 1000); // poll every 30s — cheap and keeps the user signed in
 
     return () => {

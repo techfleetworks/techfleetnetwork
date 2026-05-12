@@ -1,62 +1,60 @@
-## Goal
+# Stop signing out active users
 
-Drive `supabase--linter` warnings from **83 → 0** with one focused migration, no UX impact.
+## Root cause
 
-## Findings
+There are two idle-timeout systems running side-by-side, but only one of them actually watches the user:
 
-The linter reports two issue classes:
+1. **`IdleTimeoutGuard`** (`src/components/IdleTimeoutGuard.tsx` + `useIdleTimeout`) — listens to mouse/keyboard/scroll/touch and resets a 60-minute timer. This one works correctly.
+2. **`AuthService.getSession`** policy check (`src/services/auth.service.ts`) — re-reads a `lastActivityAtMs` marker from `sessionStorage` and signs the user out if it's >60 min old.
 
-1. **1 × Public Bucket Allows Listing** (`avatars`)
-   - Policy `Authenticated members can view avatars` uses bare `bucket_id = 'avatars'` — lets any signed-in user `LIST` every avatar object. The sibling policy `Avatar images are publicly readable` already grants the safe per-object read.
+The bug is in #2: `lastActivityAtMs` is only refreshed inside `getSession()` itself (via `touchSessionMarker`). It is **never updated when the user moves the mouse, types, scrolls, or watches a video**. So:
 
-2. **82 × `SECURITY DEFINER` callable by anon (24) or authenticated (58)**
-   - Many are **trigger functions** that don't need `EXECUTE` granted to anyone (Postgres invokes triggers regardless of grants): `audit_log_drop_dead_sources`, `block_non_actionable_fix_queue_inserts`, `block_skills_category_labels`, `trg_notify_class_status_change`, `triage_audit_log_capture`, plus auth triggers like `classes_set_slug`, `classes_validate_transition`, etc.
-   - Many are **internal/admin RPCs** that should not be reachable from `anon` (and most not from `authenticated` either): `fleety_*`, `fw_*`, `get_*_context`, `get_*_health`, `get_top_silent_failures`, `web_vitals_*`, `set_fix_queue_status`, `snooze_fix_queue_entry`, `upsert_fix_queue_entry`, `promote_fingerprint_to_known`, `write_audit_log`, `evaluate_system_health`, `get_announcement_view_counts`, `get_course_completion_counts`, `get_node_neighbors*`, `get_milestone_blueprint`, `get_company_type_context`, `get_deliverable_context`, `get_stakeholder_context`, `get_email_pipeline_health`, `get_community_events_health`, `count_classes_pending_review`, `approve_and_publish_class`, `archive_class`, `cancel_cohort`, `submit_dsar`, `record_policy_ack`, `record_sanctions_screening`, `request_human_review`, `submit_dispute`, `open_incident`, `get_audit_policy`, `get_member_country_distribution`, `get_network_stats`, `fleety_approve_relationship`.
-   - A small set genuinely needs **anon** access for pre-auth flows and must stay open: `check_rate_limit`, `peek_rate_limit`, `record_rate_limit_failure`, `record_failed_login`, `validate_invitation`, `use_invitation`. The linter still warns on these, but they are intentional — we'll keep them and flag them in `@security-memory` so future scans don't re-propose locking them down.
+- A user reads a long page or watches a 60+ min lesson → no React Query refetches happen → `getSession()` isn't called → marker goes stale.
+- Next time anything triggers `getSession()` (route change, refetch, focus), it sees `idleMs > 60 min` and force-signs-out an actively-engaged user.
 
-## Plan
+It also uses `sessionStorage`, so the marker is per-tab and doesn't see activity in sibling tabs.
 
-### 1. New migration: `harden_definer_grants_and_avatar_listing.sql`
+## Fix
 
-```text
-storage.objects:
-  DROP POLICY  "Authenticated members can view avatars"
-  CREATE POLICY "Avatars are viewable by signed-in users (no list)"
-    FOR SELECT TO authenticated
-    USING (bucket_id = 'avatars' AND name IS NOT NULL AND length(name) > 0);
+Make real user activity the source of truth for `lastActivityAtMs`, shared across tabs, with the same iframe/media awareness `useIdleTimeout` already has.
 
-For every public.* SECURITY DEFINER function that is purely a trigger:
-  REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC, anon, authenticated;
+### Steps
 
-For every internal/admin RPC listed above (called only by service role,
-edge functions, or admin UI via service role / RLS-checked wrappers):
-  REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC, anon, authenticated;
-  GRANT  EXECUTE ON FUNCTION ... TO service_role;
-  -- where the function is called from authenticated client RPC, keep
-  -- GRANT EXECUTE ... TO authenticated and rely on the function's own
-  -- has_role()/auth.uid() gate (already present in every one).
+1. **New module `src/lib/session-activity.ts`**
+   - `recordActivity()` writes `Date.now()` to `localStorage` under a single key (e.g. `tfn:last-activity-at`) — throttled to once every 5s to keep writes cheap.
+   - `getLastActivityAt()` reads it, falling back to `Date.now()` when missing.
+   - `installSessionActivityTracker()` attaches the same DOM listener set used by `useIdleTimeout` (`mousedown`, `mousemove`, `keydown`, `scroll`, `touchstart`, `click`, `input`, `focus`, `change`, plus `visibilitychange`) and the same iframe-focus + `<video>`/`<audio>` polling, all calling `recordActivity()`. Idempotent so it can be mounted once at app boot.
 
-Keep anon EXECUTE on:
-  check_rate_limit, peek_rate_limit, record_rate_limit_failure,
-  record_failed_login, validate_invitation, use_invitation
-```
+2. **`src/App.tsx`** — call `installSessionActivityTracker()` once on mount (alongside or just before `<IdleTimeoutGuard />`). Tracker runs whether or not the dialog is mounted, so background tabs and pre-route-load activity still count.
 
-The migration enumerates each function explicitly (no schema-wide revoke) so we don't accidentally lock down something the app calls.
+3. **`src/services/auth.service.ts`**
+   - In `readSessionMarker`, when computing `lastActivityAtMs` use `Math.max(markerLastActivity, getLastActivityAt())`. This means real DOM activity always beats the stale marker.
+   - In `touchSessionMarker`, also persist `Math.max(Date.now(), getLastActivityAt())` so cross-tab activity is preserved.
+   - Keep the existing 60-minute `IDLE_SESSION_AGE_MS` and the absolute-timeout disable (`MAX_SESSION_AGE_MS = Infinity`) — both are correct policy.
 
-### 2. `@security-memory` update
+4. **`src/hooks/use-idle-timeout.ts`** — small extension: also call `recordActivity()` from its existing `handleActivity` and media-poll paths so the warning dialog and the session marker can never disagree.
 
-Note that the 6 anon-callable RPCs above are intentional pre-auth helpers; future linter scans should not re-flag them.
+5. **`src/components/MfaEnforcementGuard.tsx`** — no change needed; it only signs out on user cancel.
 
-### 3. Verify
+### Tests
 
-After the migration, re-run `supabase--linter`. Expected: **0 warnings**, or only the 6 documented intentional anon-RPCs (which we'll then suppress in `@security-memory`).
+- Update `src/test/services/auth.service.test.ts`: existing "idle session" test should still pass (no DOM activity → marker stale → sign-out). Add a new case where `localStorage` `tfn:last-activity-at` is recent → `getSession()` does NOT sign the user out even if the in-marker `lastActivityAtMs` is stale.
+- New `src/test/lib/session-activity.test.ts` covering throttle, cross-tab read, and the iframe/`<video>` poll path.
 
-## Files
+### BDD
 
-- `supabase/migrations/<ts>_harden_definer_grants_and_avatar_listing.sql` (new)
-- `@security-memory` update via `security--update_memory`
+Add a scenario to `bdd_scenarios` (feature: Authentication & Security) — "Active user is never timed out":
+- Given a signed-in user with a stale in-tab marker but recent `tfn:last-activity-at`
+- When `getSession()` runs
+- Then [UI] no redirect to `/login`, [DB] no `session_idle_timeout` row inserted into `account_activity`, [Code] `getSessionPolicyFailureReason` returns `null`.
 
-## Out of scope
+## What this does NOT change
 
-- No edge function or frontend code changes — every RPC the client calls keeps its grant for `authenticated` (or `service_role` when invoked only from edge functions).
-- No RLS policy changes besides the avatars listing fix.
+- 60-minute idle policy stays.
+- Server-side `revoked_sessions` check stays.
+- MFA enforcement stays.
+- Admin 30-min idle / 4h max policy (separate code path) is untouched.
+
+## Risk
+
+Low — purely additive. Worst case the tracker over-reports activity, which only means users stay signed in slightly longer (the desired outcome). The 5-second write throttle + `localStorage` keep cost negligible.
