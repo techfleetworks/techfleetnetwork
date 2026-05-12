@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
+import { assertWritten } from "@/lib/db-helpers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
@@ -315,20 +316,24 @@ export default function ProjectApplicationPage() {
       }
 
       if (existingApp) {
-        const { error } = await supabase
+        const result = await supabase
           .from("project_applications")
           .update(payload as any)
-          .eq("id", existingApp.id);
-        if (error) throw error;
+          .eq("id", existingApp.id)
+          .select("id");
+        if (result.error) throw result.error;
+        assertWritten(result, "project-application.update", { id: existingApp.id });
       } else {
-        const { error } = await supabase
+        const result = await supabase
           .from("project_applications")
           .insert({
             user_id: user!.id,
             project_id: projectId!,
             ...payload,
-          } as any);
-        if (error) throw error;
+          } as any)
+          .select("id");
+        if (result.error) throw result.error;
+        assertWritten(result, "project-application.insert", { projectId });
       }
     },
     onSuccess: (_, vars) => {

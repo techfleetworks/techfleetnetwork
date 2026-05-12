@@ -3,6 +3,7 @@ import { createLogger } from "@/services/logger.service";
 import { reportError } from "@/services/error-reporter.service";
 import { airtableBreaker } from "@/lib/circuit-breaker";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
+import { assertWritten } from "@/lib/db-helpers";
 
 const log = createLogger("GeneralApplicationService");
 
@@ -174,14 +175,18 @@ export const GeneralApplicationService = {
   /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
   async save(id: string, fields: Partial<Omit<GeneralApplication, "id" | "user_id" | "created_at" | "updated_at">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
-      const { error } = await supabase
+      // Defensive .select() so silent RLS-filtered 0-row updates surface as
+      // a real error instead of a misleading green toast.
+      const result = await supabase
         .from("general_applications")
         .update(sanitizeFields(fields as Record<string, unknown>) as any)
-        .eq("id", id);
-      if (error) {
-        log.error("save", `Failed to save general app: ${error.message}`, { id }, error);
+        .eq("id", id)
+        .select("id");
+      if (result.error) {
+        log.error("save", `Failed to save general app: ${result.error.message}`, { id }, result.error);
         throw new Error("Failed to save application.");
       }
+      assertWritten(result, "general-application.save", { id });
       // Fetch updated record for syncs
       const updated = await GeneralApplicationService.fetch(id);
       if (updated) {

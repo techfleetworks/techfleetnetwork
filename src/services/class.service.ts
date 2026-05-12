@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ClassFormValues } from "@/lib/validators/class";
+import { assertWritten } from "@/lib/db-helpers";
 
 export type ClassRow = {
   id: string;
@@ -93,8 +94,9 @@ export const ClassService = {
   async update(id: string, values: Partial<ClassFormValues>): Promise<void> {
     const payload: Record<string, unknown> = { ...values };
     if (values.hero_image_url === "") payload.hero_image_url = null;
-    const { error } = await supabase.from("classes").update(payload).eq("id", id);
-    if (error) throw error;
+    const result = await supabase.from("classes").update(payload).eq("id", id).select("id");
+    if (result.error) throw result.error;
+    assertWritten(result, "class.update", { id });
   },
 
   async submitForReview(id: string, cohortIds: string[] = []): Promise<void> {
