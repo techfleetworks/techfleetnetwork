@@ -243,6 +243,56 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   const messageId = crypto.randomUUID()
 
+  // Lovable's transactional email gateway requires an unsubscribe_token on
+  // every send. Look up an existing token for this recipient (or mint+upsert
+  // a fresh one) BEFORE enqueueing — without this the dispatcher would 400
+  // with `missing_unsubscribe` and the message would dead-letter.
+  const normalizedEmail = (payload.data.email || '').trim().toLowerCase()
+  let unsubscribeToken: string | null = null
+  try {
+    const { data: existing } = await supabase
+      .from('email_unsubscribe_tokens')
+      .select('token')
+      .eq('email', normalizedEmail)
+      .order('used_at', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(1)
+    if (existing && existing.length > 0) {
+      unsubscribeToken = existing[0].token as string
+    } else {
+      const fresh = crypto.getRandomValues(new Uint8Array(32))
+      unsubscribeToken = Array.from(fresh).map((b) => b.toString(16).padStart(2, '0')).join('')
+      const { error: upsertErr } = await supabase
+        .from('email_unsubscribe_tokens')
+        .upsert({ email: normalizedEmail, token: unsubscribeToken }, { onConflict: 'email', ignoreDuplicates: true })
+      if (upsertErr) {
+        // Race: another concurrent send already inserted a row. Re-read.
+        const { data: raceRow } = await supabase
+          .from('email_unsubscribe_tokens')
+          .select('token')
+          .eq('email', normalizedEmail)
+          .limit(1)
+        if (raceRow && raceRow.length > 0) unsubscribeToken = raceRow[0].token as string
+      }
+    }
+  } catch (tokenErr) {
+    console.error('Failed to resolve unsubscribe token for auth email', { error: tokenErr, run_id, emailType })
+  }
+
+  if (!unsubscribeToken) {
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: emailType,
+      recipient_email: payload.data.email,
+      status: 'failed',
+      error_message: 'Failed to mint unsubscribe token',
+    })
+    return new Response(JSON.stringify({ error: 'Failed to mint unsubscribe token' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
   await supabase.from('email_send_log').insert({
     message_id: messageId,
@@ -264,6 +314,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       text,
       purpose: 'transactional',
       label: emailType,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   })
