@@ -12,7 +12,7 @@
  *   await assertWritten(await q, "class.update", { id });
  */
 
-import { reportError } from "./error-reporting";
+import { reportError } from "@/services/error-reporter.service";
 
 export class WriteBlockedError extends Error {
   readonly label: string;
