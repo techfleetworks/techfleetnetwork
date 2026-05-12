@@ -64,8 +64,9 @@ export const CohortService = {
   async update(id: string, values: Partial<CohortFormValues>): Promise<void> {
     const payload: Record<string, unknown> = { ...values };
     if (values.meeting_url === "") payload.meeting_url = null;
-    const { error } = await supabase.from("cohorts").update(payload).eq("id", id);
-    if (error) throw error;
+    const result = await supabase.from("cohorts").update(payload).eq("id", id).select("id");
+    if (result.error) throw result.error;
+    assertWritten(result, "cohort.update", { id });
   },
 
   async submitForReview(classId: string, cohortIds: string[] = []): Promise<void> {

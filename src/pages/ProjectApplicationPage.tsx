@@ -315,20 +315,24 @@ export default function ProjectApplicationPage() {
       }
 
       if (existingApp) {
-        const { error } = await supabase
+        const result = await supabase
           .from("project_applications")
           .update(payload as any)
-          .eq("id", existingApp.id);
-        if (error) throw error;
+          .eq("id", existingApp.id)
+          .select("id");
+        if (result.error) throw result.error;
+        assertWritten(result, "project-application.update", { id: existingApp.id });
       } else {
-        const { error } = await supabase
+        const result = await supabase
           .from("project_applications")
           .insert({
             user_id: user!.id,
             project_id: projectId!,
             ...payload,
-          } as any);
-        if (error) throw error;
+          } as any)
+          .select("id");
+        if (result.error) throw result.error;
+        assertWritten(result, "project-application.insert", { projectId });
       }
     },
     onSuccess: (_, vars) => {
