@@ -92,7 +92,7 @@ export default function LoginPage() {
     } else if (adminConfirmed === "already") {
       toast.info("Your admin role was already confirmed.");
     } else if (adminConfirmed === "error") {
-      toast.error("Failed to confirm admin role. Please try again or contact support.");
+      toast.error("We couldn't confirm your admin role. Try again, or contact support if the problem continues.");
     }
 
     // Strip the param from the URL via the navigation API so router state stays in sync
