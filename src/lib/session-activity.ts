@@ -46,17 +46,25 @@ export function recordActivity(now: number = Date.now()): void {
   }
 }
 
+/**
+ * Returns the last recorded activity timestamp in ms, or 0 when none has ever
+ * been recorded. Callers that want a sensible default (e.g. "treat fresh tab
+ * as active now") should `Math.max(getLastActivityAt(), Date.now())`.
+ * Returning 0 for the missing case is intentional: it lets a stored
+ * sessionStorage marker still drive the idle decision when no DOM activity
+ * has been observed yet (e.g. server-side tests, just-rehydrated tab).
+ */
 export function getLastActivityAt(now: number = Date.now()): number {
-  if (typeof window === "undefined") return now;
+  if (typeof window === "undefined") return 0;
   try {
     const raw = window.localStorage.getItem(LAST_ACTIVITY_KEY);
-    if (!raw) return now;
+    if (!raw) return 0;
     const parsed = Number(raw);
-    if (!Number.isFinite(parsed) || parsed <= 0) return now;
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
     // Future-dated values (clock skew) are clamped to now.
     return parsed > now ? now : parsed;
   } catch {
-    return now;
+    return 0;
   }
 }
 
