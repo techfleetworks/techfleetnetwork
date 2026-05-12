@@ -881,12 +881,12 @@ export default function ProjectApplicationPage() {
           <div className="flex items-center gap-2">
             {step === 1 && (
               <Button onClick={() => navigate("/applications/general")} disabled={isSaving}>
-                I Need to Edit My General Application
+                Edit your general application
               </Button>
             )}
             {step > 1 && (
               <Button onClick={handleBack} disabled={isSaving}>
-                Back
+                Go back
               </Button>
             )}
           </div>
@@ -897,7 +897,7 @@ export default function ProjectApplicationPage() {
             {!isCompleted && step > 1 && (
               <Button variant="secondary" onClick={handleSaveDraft} disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Save Draft
+                Save draft
               </Button>
             )}
 
@@ -905,7 +905,7 @@ export default function ProjectApplicationPage() {
             {isCompleted && (
               <Button variant="secondary" onClick={handleSaveCompleted} disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Save Changes
+                Save changes
               </Button>
             )}
 
@@ -913,7 +913,7 @@ export default function ProjectApplicationPage() {
             {step === 1 && (
               <Button onClick={handleNext} disabled={isSaving || !genAppComplete}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Continue
+                Continue to step 2
               </Button>
             )}
 
@@ -921,7 +921,7 @@ export default function ProjectApplicationPage() {
             {(step === 2 || step === 3) && !isCompleted && (
               <Button onClick={handleNext} disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Next
+                Continue
               </Button>
             )}
 
@@ -933,7 +933,7 @@ export default function ProjectApplicationPage() {
                 variant={isSubmitReady ? "default" : "outline"}
               >
                 {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Submit
+                Submit application
               </Button>
             )}
           </div>
@@ -946,15 +946,15 @@ export default function ProjectApplicationPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2 text-xl">
               <PartyPopper className="h-6 w-6 text-warning" />
-              Application Submitted!
+              Application submitted
             </DialogTitle>
             <DialogDescription>
-              Your application for {client?.name}{project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} has been submitted successfully. The team will review it and get back to you.
+              Your application for {client?.name}{project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} is in. The team will review it and follow up soon.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center pt-2">
             <Button onClick={() => { setCelebrationOpen(false); navigate("/project-openings"); }}>
-              Back to Openings
+              Browse open projects
             </Button>
           </DialogFooter>
         </DialogContent>
