@@ -36,27 +36,35 @@ function writeSessionMarker(session: Pick<AuthSession, "user">, startedAtMs = Da
 }
 
 function touchSessionMarker(session: Pick<AuthSession, "user">, marker: { startedAtMs: number }) {
+  // Persist the most recent of (now, cross-tab activity timestamp) so that
+  // activity in any other tab is preserved into this tab's marker too.
+  const lastActivityAtMs = Math.max(Date.now(), getLastActivityAt());
   sessionStorage.setItem(
     SESSION_STARTED_AT_KEY,
-    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs: marker.startedAtMs, lastActivityAtMs: Date.now() } satisfies SessionMarker),
+    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs: marker.startedAtMs, lastActivityAtMs } satisfies SessionMarker),
   );
 }
 
 function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: number; lastActivityAtMs: number; resetReason: string | null } {
+  // Real DOM activity (mouse, keyboard, scroll, video playback) ALWAYS wins
+  // over the stored marker — the marker is only refreshed when getSession()
+  // runs, but a user can be active for an hour without triggering that.
+  const liveActivity = getLastActivityAt();
   const raw = sessionStorage.getItem(SESSION_STARTED_AT_KEY);
-  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "missing" };
+  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "missing" };
 
   const legacyStartedAt = Number(raw);
-  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "legacy" };
+  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "legacy" };
 
   try {
     const marker = JSON.parse(raw) as Partial<SessionMarker>;
     if (marker.version !== SESSION_MARKER_VERSION || marker.userId !== session.user.id || !Number.isFinite(marker.startedAtMs)) {
-      return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "mismatch" };
+      return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "mismatch" };
     }
-    return { startedAtMs: marker.startedAtMs, lastActivityAtMs: Number.isFinite(marker.lastActivityAtMs) ? marker.lastActivityAtMs! : marker.startedAtMs, resetReason: null };
+    const storedLast = Number.isFinite(marker.lastActivityAtMs) ? marker.lastActivityAtMs! : marker.startedAtMs!;
+    return { startedAtMs: marker.startedAtMs!, lastActivityAtMs: Math.max(storedLast, liveActivity), resetReason: null };
   } catch {
-    return { startedAtMs: Date.now(), lastActivityAtMs: Date.now(), resetReason: "malformed" };
+    return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "malformed" };
   }
 }
 
