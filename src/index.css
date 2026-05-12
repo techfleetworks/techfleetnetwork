@@ -132,6 +132,16 @@ body {
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
 
+    /* Brand: growth (Sage archetype — healing/harmony green). Mirrors success
+       but reserved for celebratory/positive moments per Tech Fleet Brand Guide §6.2. */
+    --growth: 158 64% 38%;
+    --growth-foreground: 0 0% 100%;
+    /* Brand: graphite (authority surface — dark gray/black per §6.2). */
+    --graphite: 222 18% 18%;
+    --graphite-foreground: 210 20% 96%;
+    /* Sage gradient: blue (trust) → green (growth). Hero / celebration only. */
+    --gradient-sage: linear-gradient(135deg, hsl(217 91% 48%), hsl(158 64% 38%));
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
@@ -185,6 +195,12 @@ body {
 
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
+
+    --growth: 158 70% 48%;
+    --growth-foreground: 0 0% 100%;
+    --graphite: 222 18% 12%;
+    --graphite-foreground: 210 20% 96%;
+    --gradient-sage: linear-gradient(135deg, hsl(217 91% 60%), hsl(158 70% 48%));
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;

@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
+import brandTerms from "./scripts/lint/eslint-plugin-brand-terms.mjs";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -17,6 +18,9 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      // Tech Fleet brand voice / editorial guard. Surfaces banned terms
+      // ("TechFleet", "click here", ableist words, etc.) at lint time.
+      "brand-terms": brandTerms,
       // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
       // Recommended set covers labels, alt text, ARIA roles/props, and
       // keyboard interactivity. Surfaced violations downgraded to "warn"
@@ -45,6 +49,8 @@ export default tseslint.config(
       "jsx-a11y/aria-role": "error",
       "jsx-a11y/role-has-required-aria-props": "error",
       "jsx-a11y/role-supports-aria-props": "error",
+      // Brand voice: warn now, escalate to error after sweep is complete.
+      "brand-terms/no-banned-terms": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple

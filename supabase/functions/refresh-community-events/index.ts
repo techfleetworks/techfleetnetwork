@@ -351,6 +351,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const conditionalHeaders: Record<string, string> = {
+      // brand-allow: User-Agent token must be a single word per RFC 7231 §5.5.3.
       "User-Agent": "TechFleetNetwork/1.0 (+events-refresh)",
       "Accept-Encoding": "gzip",
     };
