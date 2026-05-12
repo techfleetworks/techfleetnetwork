@@ -38,6 +38,10 @@ const NON_ACTIONABLE_EVENT_TYPES: ReadonlySet<string> = new Set([
   "external_api_recovered",
   "ui_chunk_load_failed",
   "audit_pressure_changed",
+  // User-input validation failures: high-signal UX events for analytics, but
+  // never actionable code bugs — bad URL/short password is the user's input,
+  // not a regression. Stays in audit_log; blocked from triage queue.
+  "validation_rejected",
 ]);
 
 const MAX_MSG_LENGTH = 2000;
