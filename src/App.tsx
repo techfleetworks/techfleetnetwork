@@ -20,6 +20,13 @@ import { RouteChangeReloader } from "@/components/RouteChangeReloader";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
+import { installSessionActivityTracker } from "@/lib/session-activity";
+
+// Source-of-truth tracker for "user did something recently". Drives the
+// session-idle policy in AuthService.getSession so that active users — even
+// ones quietly reading or watching a video — are never auto-signed-out.
+// Idempotent; safe under React StrictMode.
+installSessionActivityTracker();
 
 // Eagerly loaded routes (critical path — keep small to minimize initial JS on slow networks)
 import LoginPage from "./pages/LoginPage";
