@@ -49,22 +49,24 @@ function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: n
   // Real DOM activity (mouse, keyboard, scroll, video playback) ALWAYS wins
   // over the stored marker — the marker is only refreshed when getSession()
   // runs, but a user can be active for an hour without triggering that.
+  // 0 means "no activity ever observed yet" — treat fresh-tab as `now`.
   const liveActivity = getLastActivityAt();
+  const freshDefault = liveActivity > 0 ? liveActivity : Date.now();
   const raw = sessionStorage.getItem(SESSION_STARTED_AT_KEY);
-  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "missing" };
+  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "missing" };
 
   const legacyStartedAt = Number(raw);
-  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "legacy" };
+  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "legacy" };
 
   try {
     const marker = JSON.parse(raw) as Partial<SessionMarker>;
     if (marker.version !== SESSION_MARKER_VERSION || marker.userId !== session.user.id || !Number.isFinite(marker.startedAtMs)) {
-      return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "mismatch" };
+      return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "mismatch" };
     }
     const storedLast = Number.isFinite(marker.lastActivityAtMs) ? marker.lastActivityAtMs! : marker.startedAtMs!;
     return { startedAtMs: marker.startedAtMs!, lastActivityAtMs: Math.max(storedLast, liveActivity), resetReason: null };
   } catch {
-    return { startedAtMs: Date.now(), lastActivityAtMs: liveActivity, resetReason: "malformed" };
+    return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "malformed" };
   }
 }
 
