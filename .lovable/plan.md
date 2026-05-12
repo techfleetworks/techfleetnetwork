@@ -1,46 +1,62 @@
-## Plan: ingest your 8 CSVs and close every gap
+## Goal
 
-You uploaded the source-of-truth CSVs for: Activities (1,602 rows), Deliverables (1,005), Skills (1,431), Practices (265), Agile Methods (185), Job Specializations (110), Job Functions (21), Duties (19), and Milestones (39).
+Drive `supabase--linter` warnings from **83 → 0** with one focused migration, no UX impact.
 
-Each CSV's description column is named differently (`Deliverable Description`, `Specialization Description`, `Skill Description`, `Practice Description`, `Basic Definition of the Method`, `Description`, `Commitment Description`, `Milestone Description`). The hardened ingester now recognizes all of those, so the import will populate `description` correctly this time.
+## Findings
 
-### Steps I will run
+The linter reports two issue classes:
 
-1. **Stage** — `code--copy` each `user-uploads://…csv` to `/tmp/` so scripts can read them.
+1. **1 × Public Bucket Allows Listing** (`avatars`)
+   - Policy `Authenticated members can view avatars` uses bare `bucket_id = 'avatars'` — lets any signed-in user `LIST` every avatar object. The sibling policy `Avatar images are publicly readable` already grants the safe per-object read.
 
-2. **Parse + upsert** — Run a Python ingestion script that mirrors the production `ingest-reference-csv` edge function logic for each dataset:
-   - Detect the name column (column 0) and the description column (any header containing description/definition/summary/about/overview).
-   - Slugify, dedupe, cap cells, copy other columns into JSONB `data`.
-   - Apply changes via `supabase--insert` UPSERTs (chunks of 50) on the matching `reference_*` table — sets `description_source='csv'` for every row that has real CSV text.
-   - Preserve any existing `description_source='admin'` rows untouched.
+2. **82 × `SECURITY DEFINER` callable by anon (24) or authenticated (58)**
+   - Many are **trigger functions** that don't need `EXECUTE` granted to anyone (Postgres invokes triggers regardless of grants): `audit_log_drop_dead_sources`, `block_non_actionable_fix_queue_inserts`, `block_skills_category_labels`, `trg_notify_class_status_change`, `triage_audit_log_capture`, plus auth triggers like `classes_set_slug`, `classes_validate_transition`, etc.
+   - Many are **internal/admin RPCs** that should not be reachable from `anon` (and most not from `authenticated` either): `fleety_*`, `fw_*`, `get_*_context`, `get_*_health`, `get_top_silent_failures`, `web_vitals_*`, `set_fix_queue_status`, `snooze_fix_queue_entry`, `upsert_fix_queue_entry`, `promote_fingerprint_to_known`, `write_audit_log`, `evaluate_system_health`, `get_announcement_view_counts`, `get_course_completion_counts`, `get_node_neighbors*`, `get_milestone_blueprint`, `get_company_type_context`, `get_deliverable_context`, `get_stakeholder_context`, `get_email_pipeline_health`, `get_community_events_health`, `count_classes_pending_review`, `approve_and_publish_class`, `archive_class`, `cancel_cohort`, `submit_dsar`, `record_policy_ack`, `record_sanctions_screening`, `request_human_review`, `submit_dispute`, `open_incident`, `get_audit_policy`, `get_member_country_distribution`, `get_network_stats`, `fleety_approve_relationship`.
+   - A small set genuinely needs **anon** access for pre-auth flows and must stay open: `check_rate_limit`, `peek_rate_limit`, `record_rate_limit_failure`, `record_failed_login`, `validate_invitation`, `use_invitation`. The linter still warns on these, but they are intentional — we'll keep them and flag them in `@security-memory` so future scans don't re-propose locking them down.
 
-3. **Verify** — Query each table for `description IS NULL OR length<20` and report the per-table residual gap count.
+## Plan
 
-4. **AI fill the residuals** — For any rows still empty (genuinely missing in the CSV, e.g. the `All Product Milestones` / `Nothing` placeholder rows or short-name skills), run the same Lovable AI batch script in 10-row groups, write back via `supabase--insert` with `description_source='ai_generated'`.
+### 1. New migration: `harden_definer_grants_and_avatar_listing.sql`
 
-5. **Trigger framework graph + Fleety re-embed** — Call `fw_emit_edges_for_entity`, `fw_replay_staging`, `fw_refresh_neighbors_mv`, `fw_refresh_search_mv`, `fw_sync_relationships_to_kb`, then invoke `fleety-embed` for changed slugs so Fleety answers refresh.
+```text
+storage.objects:
+  DROP POLICY  "Authenticated members can view avatars"
+  CREATE POLICY "Avatars are viewable by signed-in users (no list)"
+    FOR SELECT TO authenticated
+    USING (bucket_id = 'avatars' AND name IS NOT NULL AND length(name) > 0);
 
-6. **Report** — Final per-table summary: rows imported, descriptions from CSV, descriptions from AI, kept admin edits.
+For every public.* SECURITY DEFINER function that is purely a trigger:
+  REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC, anon, authenticated;
 
-### Dataset → table map
+For every internal/admin RPC listed above (called only by service role,
+edge functions, or admin UI via service role / RLS-checked wrappers):
+  REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC, anon, authenticated;
+  GRANT  EXECUTE ON FUNCTION ... TO service_role;
+  -- where the function is called from authenticated client RPC, keep
+  -- GRANT EXECUTE ... TO authenticated and rely on the function's own
+  -- has_role()/auth.uid() gate (already present in every one).
 
-| CSV | Reference table | Description column |
-|---|---|---|
-| Activities | `reference_activities` | Activity Description |
-| Deliverables | `reference_deliverables` | Deliverable Description |
-| Skills | `reference_skills` | Skill Description |
-| Practices | `reference_practices` | Practice Description |
-| Agile Methods | `reference_agile_methods` | Basic Definition of the Method |
-| Job Specializations | `reference_job_specializations` | Specialization Description |
-| Job Functions | `reference_job_functions` | Description |
-| Duties | `reference_duties` | Commitment Description |
-| Milestones | `reference_project_milestones` | Milestone Description |
+Keep anon EXECUTE on:
+  check_rate_limit, peek_rate_limit, record_rate_limit_failure,
+  record_failed_login, validate_invitation, use_invitation
+```
 
-### Heads-up
+The migration enumerates each function explicitly (no schema-wide revoke) so we don't accidentally lock down something the app calls.
 
-- The Skills CSV has an empty header row (line 2) — my parser will skip empty-name rows so it cannot reintroduce the previously deleted "Activity / Tool / Deliverable" leak rows.
-- The Milestones CSV has `Nothing` and `All Product Milestones` rows with no description — those will end up in the AI fill bucket unless you want them excluded; tell me if you want them deleted instead.
-- Activities and Deliverables are large; ingest will take a few minutes but completes in a single run.
-- No schema changes needed — all groundwork (`description_source`, header detection, merge precedence) shipped in the previous turn.
+### 2. `@security-memory` update
 
-Approve and I'll run it end to end.
+Note that the 6 anon-callable RPCs above are intentional pre-auth helpers; future linter scans should not re-flag them.
+
+### 3. Verify
+
+After the migration, re-run `supabase--linter`. Expected: **0 warnings**, or only the 6 documented intentional anon-RPCs (which we'll then suppress in `@security-memory`).
+
+## Files
+
+- `supabase/migrations/<ts>_harden_definer_grants_and_avatar_listing.sql` (new)
+- `@security-memory` update via `security--update_memory`
+
+## Out of scope
+
+- No edge function or frontend code changes — every RPC the client calls keeps its grant for `authenticated` (or `service_role` when invoked only from edge functions).
+- No RLS policy changes besides the avatars listing fix.
