@@ -42,7 +42,7 @@ function FeedbackForm() {
       const displayName = user.email?.split("@")[0] || "A member";
       DiscordNotifyService.feedbackSubmitted(displayName, area);
     } else {
-      toast.error("Failed to submit feedback. Please try again.");
+      toast.error("We couldn't send your feedback. Please try again.");
     }
   };
 
@@ -160,7 +160,7 @@ function AdminFeedbackView() {
       toast.success("Feedback submitted successfully.");
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
     } else {
-      toast.error("Failed to submit feedback. Please try again.");
+      toast.error("We couldn't send your feedback. Please try again.");
     }
   };
 

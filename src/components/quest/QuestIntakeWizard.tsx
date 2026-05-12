@@ -71,7 +71,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
       await refreshProfile();
       setStep("recommendations");
     } catch {
-      toast.error("Failed to save interests");
+      toast.error("We couldn't save your interests. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -93,7 +93,7 @@ export function QuestIntakeWizard({ onComplete }: QuestIntakeWizardProps) {
       toast.success("Your journey has begun!");
       onComplete();
     } catch {
-      toast.error("Failed to set up your journey");
+      toast.error("We couldn't set up your journey. Please try again.");
     } finally {
       setSaving(false);
     }

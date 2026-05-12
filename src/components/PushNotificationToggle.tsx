@@ -114,7 +114,7 @@ export function PushNotificationToggle() {
       if (success) {
         toast.success("Push notifications disabled on this device.");
       } else {
-        toast.error("Failed to disable push notifications.");
+        toast.error("We couldn't turn off push notifications. Please try again.");
       }
       return;
     }

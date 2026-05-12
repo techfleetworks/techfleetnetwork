@@ -222,7 +222,7 @@ export default function ProfileSetupPage() {
     <div className="container-app py-8 sm:py-12 max-w-2xl animate-fade-in">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Set Up Your Profile</h1>
+          <h1 className="text-2xl font-bold text-foreground">Set up your profile</h1>
           <p className="text-muted-foreground mt-1">
             Complete your profile to get the most out of Tech Fleet.
           </p>

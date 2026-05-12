@@ -109,7 +109,7 @@ export function useGeneralApplication() {
       }
       initialLoadDone.current = true;
     } catch {
-      toast.error("Failed to load application");
+      toast.error("We couldn't load your application. Refresh to try again.");
     } finally {
       setLoading(false);
     }
@@ -216,7 +216,7 @@ export function useGeneralApplication() {
         toast.success(markComplete ? "Application updated!" : "Progress saved");
       }
     } catch {
-      toast.error("Failed to save application");
+      toast.error("We couldn't save your application. Refresh and try again.");
     } finally {
       setSaving(false);
     }

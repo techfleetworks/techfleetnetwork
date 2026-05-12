@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
           <p className="text-muted-foreground">
             If an account exists with that email, we've sent a password reset link.
           </p>
-          <Link to="/login" className="inline-block mt-6"><Button variant="outline">Back to Sign In</Button></Link>
+          <Link to="/login" className="inline-block mt-6"><Button variant="outline">Back to sign in</Button></Link>
         </div>
       </div>
     );

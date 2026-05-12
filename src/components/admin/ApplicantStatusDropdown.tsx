@@ -258,7 +258,7 @@ export function ApplicantStatusDropdown({
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
         log.error("handleStatusChange", `Failed to change status: ${message}`, { applicationId }, err);
-        toast.error("Failed to update status", {
+        toast.error("We couldn't update the status. Please try again.", {
           description: message,
           duration: 5000,
           position: "top-center",

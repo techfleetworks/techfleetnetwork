@@ -67,7 +67,7 @@ export default function ConfirmAdminPage() {
           {status === "error" && (
             <>
               <XCircle className="h-10 w-10 text-destructive mx-auto" />
-              <h2 className="text-xl font-bold text-foreground">Confirmation Failed</h2>
+              <h2 className="text-xl font-bold text-foreground">We couldn't confirm your role</h2>
               <p className="text-muted-foreground text-sm">{message}</p>
               <Button variant="outline" asChild>
                 <Link to="/dashboard">Go to Dashboard</Link>

@@ -89,7 +89,7 @@ export default function UserAdminPage() {
       }
     } catch (err) {
       console.error("Failed to fetch users:", err);
-      toast.error("Failed to load users");
+      toast.error("We couldn't load the member list. Refresh to try again.");
     } finally {
       setLoading(false);
     }

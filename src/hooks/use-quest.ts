@@ -56,7 +56,7 @@ export function useAddQuestPath() {
       qc.invalidateQueries({ queryKey: ["quest-selections"] });
       toast.success("Path added to your journey");
     },
-    onError: () => toast.error("Failed to add path"),
+    onError: () => toast.error("We couldn't add that path. Please try again."),
   });
 }
 
@@ -69,7 +69,7 @@ export function useBatchAddQuestPaths() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["quest-selections"] });
     },
-    onError: () => toast.error("Failed to add paths"),
+    onError: () => toast.error("We couldn't add that path. Please try again.s"),
   });
 }
 
@@ -82,7 +82,7 @@ export function useRemoveQuestPath() {
       qc.invalidateQueries({ queryKey: ["quest-selections"] });
       toast.success("Path removed from your journey");
     },
-    onError: () => toast.error("Failed to remove path"),
+    onError: () => toast.error("We couldn't remove that path. Please try again."),
   });
 }
 
@@ -108,7 +108,7 @@ export function useCompleteSelfReportStep() {
       qc.invalidateQueries({ queryKey: ["journey-completed"] });
       qc.invalidateQueries({ queryKey: ["journey-progress"] });
     },
-    onError: () => toast.error("Failed to update step"),
+    onError: () => toast.error("We couldn't update that step. Please try again."),
   });
 }
 

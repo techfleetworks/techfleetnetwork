@@ -88,7 +88,7 @@ function CertCard({ row, profileName }: CertCardProps) {
       toast.success("Certificate downloaded!");
     } catch (err) {
       console.error("Certificate generation error:", err);
-      toast.error("Failed to generate certificate");
+      toast.error("We couldn't generate your certificate. Please try again.");
     } finally {
       setGenerating(false);
     }

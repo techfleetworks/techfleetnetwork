@@ -239,7 +239,7 @@ export default function FirstStepsPage() {
       }
     } catch (err: any) {
       console.error("[FirstSteps] toggleTask failed:", err);
-      toast.error("Failed to update task", {
+      toast.error("We couldn't update that task. Please try again.", {
         description: err?.message || "Please try again.",
       });
     } finally {
@@ -275,7 +275,7 @@ export default function FirstStepsPage() {
       }
     } catch (err: any) {
       console.error("[FirstSteps] handlePanelAccepted failed:", err);
-      toast.error("Failed to update task", {
+      toast.error("We couldn't update that task. Please try again.", {
         description: err?.message || "Please try again.",
       });
     } finally {

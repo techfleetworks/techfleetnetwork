@@ -93,7 +93,7 @@ export default function UpdatesPage() {
       setNewVideoUrl(null);
       setNewAudioUrl(null);
     } catch {
-      toast.error("Failed to create announcement.");
+      toast.error("We couldn't post that announcement. Please try again.");
     }
   };
 
@@ -104,7 +104,7 @@ export default function UpdatesPage() {
       toast.success("Announcement deleted.");
       setDeleteTarget(null);
     } catch {
-      toast.error("Failed to delete announcement.");
+      toast.error("We couldn't delete that announcement. Please try again.");
     }
   };
 

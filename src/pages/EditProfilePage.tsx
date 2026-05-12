@@ -627,7 +627,7 @@ export default function EditProfilePage() {
                       URL.revokeObjectURL(url);
                       toast.success("Data export downloaded.", { position: "top-center" });
                     } catch {
-                      toast.error("Failed to export data. Please try again.", { position: "top-center" });
+                      toast.error("We couldn't export your data. Please try again.", { position: "top-center" });
                     }
                   }}
                 >

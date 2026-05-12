@@ -88,11 +88,11 @@ export default function LoginPage() {
     queryClient.removeQueries({ queryKey: ["admin-role"] });
 
     if (adminConfirmed === "true") {
-      toast.success("Admin Role successfully confirmed!");
+      toast.success("Admin role confirmed — welcome aboard.");
     } else if (adminConfirmed === "already") {
       toast.info("Your admin role was already confirmed.");
     } else if (adminConfirmed === "error") {
-      toast.error("Failed to confirm admin role. Please try again or contact support.");
+      toast.error("We couldn't confirm your admin role. Try again, or contact support if the problem continues.");
     }
 
     // Strip the param from the URL via the navigation API so router state stays in sync
@@ -382,7 +382,7 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "login-lockout-status" : undefined}>
-              {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign In"}
+              {loading ? "Signing in…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Sign in"}
             </Button>
             {lockoutState.locked && <p id="login-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
             {from !== "/dashboard" && (
