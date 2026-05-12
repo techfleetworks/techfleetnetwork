@@ -140,7 +140,7 @@ export default function ForgotPasswordPage() {
             <TurnstileChallenge action="forgot_password" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "forgot-password-lockout-status" : undefined}>
-              {loading ? "Sending…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Send Reset Link"}
+              {loading ? "Sending reset link…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Send reset link"}
             </Button>
             {lockoutState.locked && <p id="forgot-password-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
           </form>
