@@ -94,7 +94,10 @@ export function useIdleTimeout({
     };
 
     pollRef.current = setInterval(() => {
-      if (isMediaActive()) resetTimers();
+      if (isMediaActive()) {
+        recordActivity();
+        resetTimers();
+      }
     }, 30 * 1000); // poll every 30s — cheap and keeps the user signed in
 
     return () => {
