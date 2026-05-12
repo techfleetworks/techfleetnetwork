@@ -49,6 +49,8 @@ export default tseslint.config(
       "jsx-a11y/aria-role": "error",
       "jsx-a11y/role-has-required-aria-props": "error",
       "jsx-a11y/role-supports-aria-props": "error",
+      // Brand voice: warn now, escalate to error after sweep is complete.
+      "brand-terms/no-banned-terms": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple
