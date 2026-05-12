@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ClassFormValues } from "@/lib/validators/class";
+import { assertWritten } from "@/lib/db-helpers";
 
 export type ClassRow = {
   id: string;

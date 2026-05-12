@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
+import { assertWritten } from "@/lib/db-helpers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";

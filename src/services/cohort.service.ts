@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CohortFormValues } from "@/lib/validators/cohort";
+import { assertWritten } from "@/lib/db-helpers";
 
 export type CohortRow = {
   id: string;
