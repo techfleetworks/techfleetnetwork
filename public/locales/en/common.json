@@ -5,7 +5,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "journey": "My Journey",
+    "journey": "My journey",
     "training": "Training",
     "resources": "Resources",
     "events": "Events",
@@ -19,13 +19,19 @@
   },
   "actions": {
     "save": "Save",
+    "saveDraft": "Save draft",
+    "saveChanges": "Save changes",
     "cancel": "Cancel",
     "submit": "Submit",
+    "submitApplication": "Submit application",
     "close": "Close",
     "back": "Back",
     "next": "Next",
     "delete": "Delete",
     "edit": "Edit",
+    "viewProject": "View project",
+    "scheduleInterview": "Schedule interview",
+    "tryAgain": "Try again",
     "loading": "Loading…"
   },
   "language": {
@@ -38,7 +44,7 @@
   },
   "accessibility": {
     "skipLink": "Skip to main content",
-    "policyTitle": "Accessibility Policy",
+    "policyTitle": "Accessibility policy",
     "reportBarrierTitle": "Report a barrier or request an accommodation",
     "reportBarrierIntro": "Tell us what you experienced. We treat accessibility issues as priority bugs and respond to every message.",
     "fields": {
@@ -52,8 +58,24 @@
     "contact": "Contact: info@techfleet.network"
   },
   "errors": {
-    "generic": "Something went wrong. Please try again.",
-    "network": "Network error. Check your connection and retry.",
-    "unauthorized": "You need to sign in to do that."
+    "generic": "Something didn't work on our side. Please try again in a moment.",
+    "network": "We can't reach the network right now. Check your connection and try again.",
+    "unauthorized": "You need to sign in before doing that.",
+    "saveBlocked": "We couldn't save your changes. Your session may have expired — refresh and try again.",
+    "loadFailed": "We couldn't load this just now. Refresh to try again.",
+    "notFound": "We couldn't find that page. Try the dashboard or use search."
+  },
+  "empty": {
+    "applications": "No applications yet — browse open projects to get started.",
+    "notifications": "You're all caught up — new updates will land here.",
+    "drafts": "No drafts yet — start one anytime from My applications.",
+    "events": "No events scheduled — check back soon or invite your team.",
+    "search": "No matches yet — try a different keyword."
+  },
+  "success": {
+    "draftSaved": "Draft saved — pick it up anytime.",
+    "applicationSubmitted": "Application sent. We'll be in touch soon.",
+    "settingsSaved": "Settings saved.",
+    "copied": "Copied to your clipboard."
   }
 }
