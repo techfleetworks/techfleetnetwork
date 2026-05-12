@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { recordActivity } from "@/lib/session-activity";
 
 const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "keyup", "scroll", "touchstart", "click", "input", "focus", "change"];
 
