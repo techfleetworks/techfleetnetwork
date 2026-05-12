@@ -56,7 +56,7 @@ export function KnownIssuePanel() {
       if (error) throw error;
       setRows((data ?? []) as CatalogRow[]);
     } catch (e) {
-      toast.error("Failed to load known-issue catalog", { description: (e as Error).message });
+      toast.error("We couldn't load the known-issue catalog.", { description: (e as Error).message });
     } finally {
       setLoading(false);
     }

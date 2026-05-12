@@ -122,7 +122,7 @@ export function TriageTab() {
       const today = new Date().toISOString().slice(0, 10);
       setBudgetUsed(budget?.day === today ? (budget.triage_calls_used ?? 0) : 0);
     } catch (e) {
-      toast.error("Failed to load triage queue", { description: (e as Error).message });
+      toast.error("We couldn't load the triage queue.", { description: (e as Error).message });
     } finally {
       setLoading(false);
     }
@@ -144,7 +144,7 @@ export function TriageTab() {
       if (error) throw error;
       setAuditRows((data ?? []) as TriageAuditRow[]);
     } catch (e) {
-      toast.error("Failed to load resolution history", { description: (e as Error).message });
+      toast.error("We couldn't load resolution history.", { description: (e as Error).message });
       setAuditRows([]);
     } finally {
       setAuditLoading(false);

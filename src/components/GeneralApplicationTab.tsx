@@ -71,7 +71,7 @@ export function GeneralApplicationTab() {
       });
       navigate("/applications");
     } catch (err: unknown) {
-      toast.error("Failed to delete application", {
+      toast.error("We couldn't delete that application. Please try again.", {
         description: err instanceof Error ? err.message : "An unexpected error occurred.",
       });
     } finally {

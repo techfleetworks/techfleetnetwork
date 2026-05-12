@@ -132,7 +132,7 @@ export const QuestService = {
         .upsert(rows, { onConflict: "user_id,path_id", ignoreDuplicates: true });
       if (error) {
         log.error("addPaths", error.message, { userId }, error);
-        throw new Error("Failed to add paths");
+        throw new Error("We couldn't add that path. Please try again.s");
       }
     });
   },
@@ -146,7 +146,7 @@ export const QuestService = {
       });
       if (error) {
         log.error("addPath", error.message, { userId, pathId }, error);
-        throw new Error("Failed to add path");
+        throw new Error("We couldn't add that path. Please try again.");
       }
     });
   },
@@ -160,7 +160,7 @@ export const QuestService = {
         .eq("path_id", pathId);
       if (error) {
         log.error("removePath", error.message, { userId, pathId }, error);
-        throw new Error("Failed to remove path");
+        throw new Error("We couldn't remove that path. Please try again.");
       }
     });
   },
@@ -179,7 +179,7 @@ export const QuestService = {
       );
       if (error) {
         log.error("completeSelfReportStep", error.message, { userId, stepId }, error);
-        throw new Error("Failed to update step progress");
+        throw new Error("We couldn't update that step. Please try again. progress");
       }
     });
   },

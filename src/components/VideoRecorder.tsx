@@ -333,7 +333,7 @@ export default function AnnouncementMediaRecorder({
       onMediaReady(urlData.publicUrl, type);
       toast.success(`${type === "audio" ? "Audio" : "Video"} uploaded successfully!`);
     } catch (err: any) {
-      toast.error("Failed to upload. Please try again.");
+      toast.error("Upload didn't complete. Check your connection and try again.");
       log.error("uploadMedia", `Upload failed: ${err.message}`, {}, err);
       onMediaReady(null, null);
     } finally {

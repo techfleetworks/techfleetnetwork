@@ -195,7 +195,7 @@ export default function ProjectOpeningDetailPage() {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Link copied to clipboard!");
     } catch {
-      toast.error("Failed to copy link");
+      toast.error("We couldn't copy the link. Try again or copy it from the address bar.");
     }
   };
 

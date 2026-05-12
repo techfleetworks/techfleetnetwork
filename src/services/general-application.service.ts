@@ -127,7 +127,7 @@ export const GeneralApplicationService = {
         .order("updated_at", { ascending: false });
       if (error) {
         log.error("list", `Failed to list general apps: ${error.message}`, { userId }, error);
-        throw new Error("Failed to load applications.");
+        throw new Error("We couldn't load your application. Refresh to try again.s.");
       }
       return (data ?? []) as unknown as GeneralApplication[];
     });
@@ -184,7 +184,7 @@ export const GeneralApplicationService = {
         .select("id");
       if (result.error) {
         log.error("save", `Failed to save general app: ${result.error.message}`, { id }, result.error);
-        throw new Error("Failed to save application.");
+        throw new Error("We couldn't save your application. Refresh and try again..");
       }
       assertWritten(result, "general-application.save", { id });
       // Fetch updated record for syncs
@@ -209,7 +209,7 @@ export const GeneralApplicationService = {
         .eq("id", id);
       if (error) {
         log.error("remove", `Failed to delete general app: ${error.message}`, { id }, error);
-        throw new Error("Failed to delete application.");
+        throw new Error("We couldn't delete that application. Please try again..");
       }
     });
   },

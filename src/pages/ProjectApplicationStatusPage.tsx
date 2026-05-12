@@ -526,7 +526,7 @@ export default function ProjectApplicationStatusPage() {
       queryClient.invalidateQueries({ queryKey: ["my-project-applications"] });
     },
     onError: (err: Error) => {
-      toast.error("Failed to update status", { description: err.message });
+      toast.error("We couldn't update the status. Please try again.", { description: err.message });
     },
   });
 
@@ -554,7 +554,7 @@ export default function ProjectApplicationStatusPage() {
       navigate("/applications/projects", { replace: true });
     },
     onError: (err: Error) => {
-      toast.error("Failed to delete application", { description: err.message });
+      toast.error("We couldn't delete that application. Please try again.", { description: err.message });
     },
   });
 

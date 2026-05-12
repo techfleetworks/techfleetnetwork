@@ -78,7 +78,7 @@ export const AnnouncementService = {
       .insert(row as any)
       .select()
       .single();
-    handleServiceError(error, { logger: log, action: "create", message: `Failed to create announcement: ${error?.message ?? "Unknown error"}`, throwMessage: "Failed to create announcement." });
+    handleServiceError(error, { logger: log, action: "create", message: `Failed to create announcement: ${error?.message ?? "Unknown error"}`, throwMessage: "We couldn't post that announcement. Please try again." });
     return data as unknown as Announcement;
   },
 
@@ -87,7 +87,7 @@ export const AnnouncementService = {
       .from("announcements")
       .delete()
       .eq("id", id);
-    handleServiceError(error, { logger: log, action: "remove", message: `Failed to delete announcement: ${error?.message ?? "Unknown error"}`, throwMessage: "Failed to delete announcement." });
+    handleServiceError(error, { logger: log, action: "remove", message: `Failed to delete announcement: ${error?.message ?? "Unknown error"}`, throwMessage: "We couldn't delete that announcement. Please try again." });
   },
 
   async sendNotifications(announcementId: string): Promise<void> {
