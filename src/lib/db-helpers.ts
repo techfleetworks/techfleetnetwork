@@ -48,7 +48,7 @@ export function assertWritten<T>(
     // Fire-and-forget: surface to triage queue so we can fix the underlying RLS
     // policy without blocking the user-facing throw.
     try {
-      reportError(err, label, { severity: "error", extra: context });
+      reportError(err, label, { severity: "error" });
     } catch {
       /* never let reporting throw on top of the user error */
     }
