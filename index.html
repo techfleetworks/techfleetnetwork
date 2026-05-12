@@ -159,7 +159,25 @@
       Microsoft Clarity (via src/lib/consent/loadAnalytics.ts). Global
       Privacy Control still force-denies analytics regardless of CookieYes.
     -->
-    <script id="cookieyes" type="text/javascript" async src="https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js"></script>
+    <!--
+      Load CookieYes ONLY on the registered production hostnames. The script
+      hard-throws on every other origin (lovable preview/sandbox URLs) with
+      "your website URL has changed" — noisy in console and surfaced as an
+      error to triage. Our internal CookieConsentBanner still works without it.
+    -->
+    <script>
+      (function () {
+        var h = location.hostname;
+        if (h === 'techfleet.network' || h === 'www.techfleet.network') {
+          var s = document.createElement('script');
+          s.id = 'cookieyes';
+          s.type = 'text/javascript';
+          s.async = true;
+          s.src = 'https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
