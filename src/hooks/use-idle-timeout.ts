@@ -65,6 +65,7 @@ export function useIdleTimeout({
     resetTimers();
 
     const handleActivity = () => {
+      recordActivity();
       resetTimers();
     };
 
