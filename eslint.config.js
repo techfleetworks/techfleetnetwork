@@ -18,6 +18,9 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      // Tech Fleet brand voice / editorial guard. Surfaces banned terms
+      // ("TechFleet", "click here", ableist words, etc.) at lint time.
+      "brand-terms": brandTerms,
       // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
       // Recommended set covers labels, alt text, ARIA roles/props, and
       // keyboard interactivity. Surfaced violations downgraded to "warn"
