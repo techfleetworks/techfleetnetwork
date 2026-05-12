@@ -520,7 +520,7 @@ export default function RegisterPage() {
             <TurnstileChallenge action="register" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
 
             <Button type="submit" className="w-full" disabled={loading || lockoutState.locked} aria-describedby={lockoutState.locked ? "register-lockout-status" : undefined}>
-              {loading ? "Creating account…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Create Account"}
+              {loading ? "Creating account…" : lockoutState.locked ? `Try again in ${lockoutState.remainingSeconds}s` : "Create account"}
             </Button>
             {lockoutState.locked && <p id="register-lockout-status" className="text-sm text-muted-foreground text-center" aria-live="polite">{formatAuthLockoutMessage(lockoutState.remainingSeconds)}</p>}
           </form>
