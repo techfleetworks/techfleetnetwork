@@ -402,7 +402,7 @@ export function QuestPathDetail({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmUncomplete}>Mark Incomplete</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmUncomplete}>Mark step incomplete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
