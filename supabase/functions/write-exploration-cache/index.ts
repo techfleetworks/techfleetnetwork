@@ -20,7 +20,10 @@ Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
     if (auth instanceof Response) return auth;
 
     // Parse & validate body
-    const body = await parseJsonBody(req) as Record<string, unknown>;
+    const rawBody = await parseJsonBody(req);
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) return jsonResponse({ error: "Invalid body" }, 400);
+    const body = parsedBody.data as Record<string, unknown>;
     const queryNormalized = typeof body.query_normalized === "string"
       ? body.query_normalized.trim().slice(0, 500)
       : "";
