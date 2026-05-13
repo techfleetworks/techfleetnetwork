@@ -65,7 +65,7 @@ const SignupConfirmationReminderEmail = ({
 
 export const template = {
   component: SignupConfirmationReminderEmail,
-  subject: `Reminder: confirm your ${SITE_NAME} account`,
+  subject: `Finish setting up your ${SITE_NAME} account`,
   displayName: 'Signup confirmation reminder',
   previewData: {
     confirmationUrl: 'https://techfleet.network/confirm?token=sample',

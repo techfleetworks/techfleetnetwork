@@ -27,24 +27,24 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
           <Text style={brandTag}>TECH FLEET NETWORK</Text>
         </Section>
 
-        <Heading style={h1}>Pick Back Up Your Quest 🚀</Heading>
+        <Heading style={h1}>Pick your quest back up 🚀</Heading>
 
         <Text style={text}>
-          Hey {firstName || 'there'},
+          Hi {firstName || 'there'},
         </Text>
 
         <Text style={text}>
-          We noticed you haven't made progress on <strong>{safeQuestTitle}</strong> recently.
-          No worries — life happens! But your journey is still here, and you're closer than you think.
+          We noticed you haven't moved <strong>{safeQuestTitle}</strong> forward in a bit.
+          Life happens — and your journey is right where you left it. You're closer than you think.
         </Text>
 
         <Section style={progressBox}>
-          <Text style={progressLabel}>YOUR PROGRESS</Text>
-          <Text style={progressValue}>{completedSteps} of {totalSteps} steps completed</Text>
+          <Text style={progressLabel}>Your progress</Text>
+          <Text style={progressValue}>{completedSteps} of {totalSteps} steps complete</Text>
           <Text style={progressEncourage}>
             {completedSteps === 0
-              ? "Take that first step — you've got this!"
-              : `You're ${Math.round((completedSteps / totalSteps) * 100)}% there. Keep going!`
+              ? "Take that first step — you've got this."
+              : `You're ${Math.round((completedSteps / totalSteps) * 100)}% there. Keep going.`
             }
           </Text>
         </Section>
@@ -52,7 +52,7 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
         {questUrl && (
           <Section style={ctaSection}>
             <Button style={ctaButton} href={questUrl}>
-              Continue Your Quest
+              Continue your quest
             </Button>
           </Section>
         )}
@@ -60,7 +60,7 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
         <Hr style={hr} />
 
         <Text style={text}>
-          Even 15 minutes of progress adds up. Your future self will thank you.
+          Even 15 minutes of progress adds up — your future self will thank you.
         </Text>
 
         <Text style={signature}>
@@ -75,7 +75,7 @@ const QuestNudgeEmail = ({ firstName, questTitle, completedSteps = 0, totalSteps
 export const template = {
   component: QuestNudgeEmail,
   subject: (data: Record<string, any>) =>
-    `Your quest "${data.questTitle || 'journey'}" misses you!`,
+    `Your quest "${data.questTitle || 'journey'}" is waiting`,
   displayName: 'Quest re-engagement nudge',
   previewData: {
     firstName: 'Jane',
