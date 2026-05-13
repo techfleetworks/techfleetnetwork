@@ -101,7 +101,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const rawFigmaBody = await req.json().catch(() => ({}));
+    const parsedFigmaBody = BodySchema.safeParse(rawFigmaBody);
+    if (!parsedFigmaBody.success) {
+      return new Response(JSON.stringify({ error: "Invalid body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const body = parsedFigmaBody.data as Record<string, unknown>;
     const urls: string[] = Array.isArray(body.urls) ? body.urls : [];
     const dryRun = !!body.dryRun;
     const autoDiscover = body.autoDiscover !== false; // default ON
