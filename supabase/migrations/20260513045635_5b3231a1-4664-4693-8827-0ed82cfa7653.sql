@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_course_completion_counts(jsonb) TO authenticated;
