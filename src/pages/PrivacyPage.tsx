@@ -36,6 +36,11 @@ export default function PrivacyPage() {
 
   return (
     <div className="container-app py-8 space-y-8">
+      <SEO
+        title="Privacy Policy"
+        description="Learn how Tech Fleet collects, uses, and protects your personal data."
+        canonicalPath="/privacy"
+      />
       <header>
         <h1 className="text-2xl font-bold">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mt-1">
