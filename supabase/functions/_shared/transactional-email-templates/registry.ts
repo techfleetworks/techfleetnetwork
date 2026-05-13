@@ -16,6 +16,7 @@ import { template as signupConfirmationReminder } from './signup-confirmation-re
 import { template as fleetyCoachDigest } from './fleety-coach-digest.tsx'
 import { template as triageDigest } from './triage-digest.tsx'
 import { template as observerRoleGranted } from './observer-role-granted.tsx'
+import { template as projectBlast } from './project-blast.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'interview-invite': interviewInvite,
@@ -25,4 +26,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'fleety-coach-digest': fleetyCoachDigest,
   'triage-digest': triageDigest,
   'observer-role-granted': observerRoleGranted,
+  'project-blast': projectBlast,
 }
