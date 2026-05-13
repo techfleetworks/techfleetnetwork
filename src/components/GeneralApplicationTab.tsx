@@ -186,7 +186,7 @@ export function GeneralApplicationTab() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+                    <AlertDialogTitle>Delete general application?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This will permanently remove your general application and all of your responses. 
                       This action cannot be undone.
