@@ -8,6 +8,10 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
+
+// M-01: Lenient shape guard. Existing UUID_RE check below stays authoritative.
+const BodySchema = z.object({ application_id: z.string().optional() }).passthrough()
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
