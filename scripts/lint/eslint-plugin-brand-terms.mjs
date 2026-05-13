@@ -96,6 +96,32 @@ function check(context, node, raw) {
   }
 }
 
+// JSX anchors whose only visible text is "here" violate the descriptive-link
+// rule even though the word alone wouldn't trip the BANNED list.
+const ANCHOR_TAGS = new Set(['a', 'A', 'Link', 'NavLink']);
+function checkAnchor(context, node) {
+  const tagName = node.openingElement?.name?.name;
+  if (!tagName || !ANCHOR_TAGS.has(tagName)) return;
+  const text = (node.children || [])
+    .map((c) => {
+      if (c.type === 'JSXText') return c.value;
+      if (c.type === 'Literal' && typeof c.value === 'string') return c.value;
+      if (c.type === 'JSXExpressionContainer' && c.expression?.type === 'Literal') {
+        return String(c.expression.value ?? '');
+      }
+      return '';
+    })
+    .join('')
+    .trim()
+    .toLowerCase();
+  if (text === 'here' || text === 'click here' || text === 'read more' || text === 'learn more') {
+    context.report({
+      node,
+      message: 'Brand voice: link text must describe the destination — never bare "here"/"Read more"/"Learn more".',
+    });
+  }
+}
+
 export default {
   rules: {
     'no-banned-terms': {
@@ -111,6 +137,9 @@ export default {
           },
           TemplateElement(node) {
             check(context, node, node.value.cooked);
+          },
+          JSXElement(node) {
+            checkAnchor(context, node);
           },
         };
       },
