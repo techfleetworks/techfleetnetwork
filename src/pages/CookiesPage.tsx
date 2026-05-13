@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { openCookieSettings } from "@/components/CookieConsentBanner";
 import { loadConsent } from "@/lib/consent/manager";
+import { SEO } from "@/components/SEO";
 
 interface InspectorRow {
   name: string;
