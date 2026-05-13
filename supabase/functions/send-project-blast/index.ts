@@ -174,24 +174,24 @@ Deno.serve(async (req) => {
 
   const projectName = project.friendly_name || (project as any)?.clients?.name || 'Project'
 
-  // 8. Insert blast row (DB BEFORE-INSERT trigger sanitizes body via sanitize_user_html)
-  const sanitizedBody = bodyHtml
+  // 8. Insert blast row — DB BEFORE-INSERT trigger sanitizes body_html
   const { data: blastRow, error: insErr } = await admin
     .from('project_blasts')
     .insert({
       project_id: projectId,
       sender_id: userId,
       subject,
-      body_html: sanitizedBody,
+      body_html: bodyHtml,
       audience_filter: { statuses: ['completed'] },
       recipient_count: recipients.length,
       status: 'sending',
     })
-    .select('id').single()
+    .select('id, body_html').single()
   if (insErr || !blastRow) {
     return json({ error: 'Failed to create blast', detail: insErr?.message }, 500)
   }
   const blastId = blastRow.id as string
+  const sanitizedBody = blastRow.body_html as string // sanitized by trigger
 
   // 9. Send loop (bounded concurrency)
   let emailSent = 0, emailFailed = 0, emailSuppressed = 0, notifSent = 0
