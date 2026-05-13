@@ -8,7 +8,11 @@
 // server-side via has_role() — never trust client claims.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
 import { requireFreshAdmin2fa } from '../_shared/admin-step-up.ts'
+
+// M-01: Lenient shape guard. Existing email regex + 320-char cap below stay authoritative.
+const BodySchema = z.object({ email: z.string().optional() }).passthrough()
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 
