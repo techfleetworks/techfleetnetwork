@@ -48,9 +48,12 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
-  let body: { locale?: string; strings?: unknown };
+  let body: { locale?: string; strings?: unknown; namespace?: string };
   try {
-    body = await req.json();
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "invalid_body" }, 400);
+    body = parsed.data as typeof body;
   } catch {
     return json({ error: "invalid_json" }, 400);
   }
