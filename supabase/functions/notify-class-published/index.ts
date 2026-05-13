@@ -55,8 +55,15 @@ Deno.serve(withAuditWrapper("notify-class-published", async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
-    const classId: string | undefined = body?.class_id
+    const rawBody = await req.json().catch(() => ({}))
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
+    const classId: string | undefined = body?.class_id as string | undefined
     if (!classId || !/^[0-9a-f-]{36}$/i.test(classId)) {
       return new Response(JSON.stringify({ error: 'class_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
