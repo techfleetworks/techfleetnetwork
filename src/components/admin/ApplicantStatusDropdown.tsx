@@ -159,11 +159,10 @@ export function ApplicantStatusDropdown({
 
         /* -- Pre-flight: "active_participant" requires Discord role on project & Discord on applicant -- */
         if (newStatus === "active_participant") {
-          const { data: projectData } = await supabase
-            .from("projects")
-            .select("discord_role_id, discord_role_name")
-            .eq("id", projectId)
-            .single();
+          // discord_role_id was revoked from authenticated for security; fetch via RPC.
+          const { data: linkRows } = await supabase
+            .rpc("get_project_internal_links", { p_project_id: projectId });
+          const projectData = linkRows?.[0] ?? null;
 
           if (!projectData?.discord_role_id) {
             toast.error("Discord role required", {
