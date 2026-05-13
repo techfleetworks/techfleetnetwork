@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@axe-core/playwright": "4.10.2",
-    "@cyclonedx/cyclonedx-npm": "1.19.3",
+    "@cyclonedx/cyclonedx-npm": "^4.2.1",
     "@fontsource/jost": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@hookform/resolvers": "3.10.0",
