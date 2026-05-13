@@ -177,14 +177,14 @@ export default function ProjectFormPage() {
 
   if (existingProject && !initialized) {
     setForm({
-      client_id: existingProject.client_id,
+      client_id: (existingProject as any).client_id,
       friendly_name: (existingProject as any).friendly_name ?? "",
       description: (existingProject as any).description ?? "",
-      project_type: existingProject.project_type as ProjectTypeValue,
-      phase: existingProject.phase as ProjectPhaseValue,
-      team_hats: existingProject.team_hats ?? [],
-      project_status: existingProject.project_status as ProjectStatusValue,
-      current_phase_milestones: existingProject.current_phase_milestones ?? [],
+      project_type: (existingProject as any).project_type as ProjectTypeValue,
+      phase: (existingProject as any).phase as ProjectPhaseValue,
+      team_hats: ((existingProject as any).team_hats ?? []) as string[],
+      project_status: (existingProject as any).project_status as ProjectStatusValue,
+      current_phase_milestones: ((existingProject as any).current_phase_milestones ?? []) as string[],
       timezone_range: (existingProject as any).timezone_range ?? "",
       anticipated_start_date: (existingProject as any).anticipated_start_date ?? null,
       anticipated_end_date: (existingProject as any).anticipated_end_date ?? null,
