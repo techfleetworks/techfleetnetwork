@@ -9,6 +9,20 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 
 import webpush from "npm:web-push@3.6.7";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing endpoint/keys checks below stay authoritative.
+const BodySchema = z.object({
+  endpoint: z.string().optional(),
+  keys: z.object({
+    p256dh: z.string().optional(),
+    auth: z.string().optional(),
+  }).passthrough().optional(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+  url: z.string().optional(),
+  notification_type: z.string().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
