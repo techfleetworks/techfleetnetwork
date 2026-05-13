@@ -1,0 +1,2 @@
+ALTER PUBLICATION supabase_realtime DROP TABLE public.system_health_state;
+ALTER PUBLICATION supabase_realtime DROP TABLE public.system_remediations;
