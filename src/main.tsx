@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 // Brand Visual Guide §3 — Poppins body + Jost display (Futura PT free equivalent).
 import "@fontsource/poppins/400.css";
@@ -43,4 +44,8 @@ installForceNewTab();
 // language (no-op for English). Bridges the gap until every component uses t().
 installDomTranslator();
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <HelmetProvider>
+    <App />
+  </HelmetProvider>
+);

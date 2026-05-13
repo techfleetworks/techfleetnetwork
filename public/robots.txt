@@ -44,4 +44,4 @@ Disallow: /feedback
 Disallow: /activity-log
 Disallow: /clients
 
-Sitemap: https://techfleetnetwork.lovable.app/sitemap.xml
+Sitemap: https://techfleet.network/sitemap.xml

@@ -4,6 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { SEO } from "@/components/SEO";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
   Rocket, PlayCircle, Clock, Briefcase,
@@ -180,6 +181,11 @@ export default function ProjectOpeningsPage() {
 
   return (
     <div className="container-app py-8 sm:py-12">
+      <SEO
+        title="Project Openings — Practice with Real Teams"
+        description="Browse open project opportunities at Tech Fleet. Apply to gain real-world experience and grow your skills."
+        canonicalPath="/project-openings"
+      />
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Project Openings</h1>
         <p className="text-muted-foreground mt-1">

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
+import { SEO } from "@/components/SEO";
 import heroImage from "@/assets/hero-space.png";
 import heroAvif480 from "@/assets/hero-space-480.avif?url";
 import heroAvif960 from "@/assets/hero-space-960.avif?url";
@@ -48,6 +49,11 @@ export default function LandingPage() {
   }
   return (
     <div>
+      <SEO
+        title="Tech Fleet — Professional Training Platform"
+        description="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet."
+        canonicalPath="/"
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-[60vh]" aria-labelledby="hero-heading">
         <div className="container-app py-16 sm:py-24 lg:py-32">

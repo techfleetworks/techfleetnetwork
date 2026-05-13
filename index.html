@@ -25,6 +25,38 @@
     <meta name="description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
     <meta name="author" content="Tech Fleet" />
 
+    <!-- Structured data: Organization + WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "Tech Fleet",
+            "url": "https://techfleet.network",
+            "logo": "https://techfleet.network/tech-fleet-logo.svg",
+            "description": "A nonprofit professional training platform that builds empowered team spaces through guided learning paths and real project experience.",
+            "sameAs": [
+              "https://twitter.com/TechFleet"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "name": "Tech Fleet Network",
+            "url": "https://techfleet.network",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://techfleet.network/project-openings?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
+
     <!-- Preconnect to backend origin to reduce connection latency on slow networks -->
     <link rel="preconnect" href="https://iqsjhrhsjlgjiaedzmtz.supabase.co" crossorigin />
 

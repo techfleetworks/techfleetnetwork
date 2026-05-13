@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { openCookieSettings } from "@/components/CookieConsentBanner";
+import { SEO } from "@/components/SEO";
 
 const RIGHTS: Array<{
   type: string;
@@ -35,6 +36,11 @@ export default function PrivacyPage() {
 
   return (
     <div className="container-app py-8 space-y-8">
+      <SEO
+        title="Privacy Policy"
+        description="Learn how Tech Fleet collects, uses, and protects your personal data."
+        canonicalPath="/privacy"
+      />
       <header>
         <h1 className="text-2xl font-bold">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mt-1">

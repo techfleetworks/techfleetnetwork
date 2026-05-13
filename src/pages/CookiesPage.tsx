@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { openCookieSettings } from "@/components/CookieConsentBanner";
 import { loadConsent } from "@/lib/consent/manager";
+import { SEO } from "@/components/SEO";
 
 interface InspectorRow {
   name: string;
@@ -96,6 +97,11 @@ export default function CookiesPage() {
 
   return (
     <div className="container-app py-8 space-y-8">
+      <SEO
+        title="Cookie Policy"
+        description="Learn about how Tech Fleet uses cookies and manage your consent preferences."
+        canonicalPath="/cookies"
+      />
       <header>
         <h1 className="text-2xl font-bold">Cookie Policy</h1>
         <p className="text-sm text-muted-foreground mt-1">
