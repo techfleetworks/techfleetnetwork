@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Sparkles, Star } from "lucide-react";
+import { Check, Sparkles, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ export interface MembershipTiersGridProps {
   currentTier?: TierId | null;
   /** Whether the user is already a Founding Member (locked-in rate). */
   isFoundingMember?: boolean;
+  /** Direct Gumroad customer manage URL for the current paid subscription. */
+  manageUrl?: string | null;
   /** Triggered when the user picks a CTA. */
   onSelect: (intent: {
     tier: TierId;
@@ -41,6 +43,7 @@ export interface MembershipTiersGridProps {
 export function MembershipTiersGrid({
   currentTier = "starter",
   isFoundingMember = false,
+  manageUrl = null,
   onSelect,
   className,
 }: MembershipTiersGridProps) {
@@ -71,6 +74,7 @@ export function MembershipTiersGrid({
             isCurrent={currentTier === id}
             currentTier={currentTier ?? "starter"}
             isFoundingMember={isFoundingMember}
+            manageUrl={manageUrl}
             promoActive={promoActive}
             recurrence={recurrence}
             onSelect={onSelect}
@@ -173,6 +177,7 @@ interface TierCardProps {
   isCurrent: boolean;
   currentTier: TierId;
   isFoundingMember: boolean;
+  manageUrl: string | null;
   promoActive: boolean;
   recurrence: BillingRecurrence;
   onSelect: MembershipTiersGridProps["onSelect"];
@@ -183,6 +188,7 @@ function TierCard({
   isCurrent,
   currentTier,
   isFoundingMember,
+  manageUrl,
   promoActive,
   recurrence,
   onSelect,
@@ -321,6 +327,7 @@ function TierCard({
           isUpgrade={isUpgrade}
           isDowngrade={isDowngrade}
           isFoundingMember={isFoundingMember}
+          manageUrl={manageUrl}
           promoActive={promoActive}
           recurrence={recurrence}
           onSelect={onSelect}
@@ -422,6 +429,7 @@ interface CtaProps {
   isUpgrade: boolean;
   isDowngrade: boolean;
   isFoundingMember: boolean;
+  manageUrl: string | null;
   promoActive: boolean;
   recurrence: BillingRecurrence;
   onSelect: MembershipTiersGridProps["onSelect"];
@@ -432,44 +440,62 @@ function TierCtaButtons({
   isCurrent,
   isDowngrade,
   isFoundingMember,
+  manageUrl,
   promoActive,
   recurrence,
   onSelect,
 }: CtaProps) {
-  // Current tier: non-actionable confirmation, keyboard-accessible.
-  // Uses bg-foreground/text-background for guaranteed ≥7:1 contrast (WCAG AAA)
-  // in both light and dark themes.
+  const isPaidTier = tier.id !== "starter";
+
+  // Current tier: status badge + (for paid tiers) Manage subscription button.
   if (isCurrent) {
     return (
-      <div
-        className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-foreground text-background text-sm font-semibold"
-        role="status"
-        aria-label={`${tier.name} is your current membership tier`}
-      >
-        <Check className="h-4 w-4" aria-hidden="true" strokeWidth={3} />
-        <span>Your Current Plan</span>
-        {tier.id === "community" && isFoundingMember && (
-          <Badge
-            variant="secondary"
-            className="ml-2 text-xs bg-background text-foreground"
+      <div className="space-y-2">
+        <div
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-foreground text-background text-sm font-semibold"
+          role="status"
+          aria-label={`${tier.name} is your current membership tier`}
+        >
+          <Check className="h-4 w-4" aria-hidden="true" strokeWidth={3} />
+          <span>Your Current Plan</span>
+          {tier.id === "community" && isFoundingMember && (
+            <Badge
+              variant="secondary"
+              className="ml-2 text-xs bg-background text-foreground"
+            >
+              Founding Member
+            </Badge>
+          )}
+        </div>
+        {isPaidTier && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => onSelect({ tier: tier.id, action: "manage" })}
           >
-            Founding Member
-          </Badge>
+            Manage subscription
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
         )}
       </div>
     );
   }
 
-  // Downgrade path — sends user to Gumroad customer portal via parent handler
+  // Downgrade path — opens Gumroad manage page so the member can cancel
+  // or switch their existing subscription. Starter is the free tier so
+  // downgrading to Starter means cancelling on Gumroad.
   if (isDowngrade) {
     return (
       <Button
         type="button"
         variant="outline"
-        className="w-full"
-        onClick={() => onSelect({ tier: tier.id, action: "downgrade" })}
+        className="w-full gap-2"
+        onClick={() => onSelect({ tier: tier.id, action: "manage" })}
       >
-        Switch to {tier.name}
+        {tier.id === "starter" ? "Cancel on Gumroad" : `Switch to ${tier.name}`}
+        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
       </Button>
     );
   }

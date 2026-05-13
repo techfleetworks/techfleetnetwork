@@ -1,5 +1,6 @@
-import { Sparkles, BadgeCheck } from "lucide-react";
+import { Sparkles, BadgeCheck, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FOUNDING_PROMO, MEMBERSHIP_TIERS, type TierId } from "@/config/membership-tiers";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,8 @@ interface CurrentMembershipBannerProps {
   isFoundingMember?: boolean;
   billingPeriod?: "monthly" | "yearly" | string | null;
   membershipUpdatedAt?: string | null;
+  /** Direct Gumroad customer manage URL for paid tiers. */
+  manageUrl?: string | null;
   className?: string;
 }
 
@@ -22,8 +25,10 @@ export function CurrentMembershipBanner({
   isFoundingMember = false,
   billingPeriod = null,
   membershipUpdatedAt,
+  manageUrl,
   className,
 }: CurrentMembershipBannerProps) {
+  const isPaid = currentTier !== "starter";
   const tier = MEMBERSHIP_TIERS[currentTier] ?? MEMBERSHIP_TIERS.starter;
   const billingPeriodLabel = billingPeriod === "yearly" ? "Yearly" : "Monthly";
   const priceLabel =
@@ -94,6 +99,26 @@ export function CurrentMembershipBanner({
           )}
         </div>
       </div>
+      {isPaid && manageUrl && (
+        <div className="shrink-0 sm:self-center">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <a
+              href={manageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Manage your subscription on Gumroad (opens in a new tab)"
+            >
+              Manage subscription
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

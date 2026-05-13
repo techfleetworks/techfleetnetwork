@@ -27,6 +27,6 @@ export const MEMBERSHIP_FAQ: FaqEntry[] = [
     id: "switch-tier",
     question: "Can I switch tiers later?",
     answer:
-      "Yes. You can switch any time from this Membership tab. Downgrades and cancellations are handled through the Gumroad email link from your original receipt.",
+      "Yes. You can switch any time from this Membership tab. Paid members can change billing, switch tiers, or cancel directly on Gumroad using the Manage subscription button — no need to dig through email receipts.",
   },
 ];
