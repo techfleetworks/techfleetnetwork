@@ -50,7 +50,14 @@ Deno.serve(withAuditWrapper("promote-to-teacher", async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
+    const rawBody = await req.json().catch(() => ({}))
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
     const targetUserId = body?.user_id
     if (!targetUserId || typeof targetUserId !== 'string' || !/^[0-9a-f-]{36}$/i.test(targetUserId)) {
       return new Response(JSON.stringify({ error: 'user_id is required' }), {
