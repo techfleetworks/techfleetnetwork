@@ -381,12 +381,12 @@ export function QuestPathDetail({
           <AlertDialogHeader>
             <AlertDialogTitle>Mark step as complete?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you've completed this step? You can undo this later if needed.
+              We'll mark this step as complete. You can undo it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmComplete}>Yes, I've completed it</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmComplete}>Mark step complete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
