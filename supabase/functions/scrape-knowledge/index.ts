@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
+
+// M-01: Lenient shape guard. SSRF allowlist + numeric clamps below stay authoritative.
+const BodySchema = z.object({
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+  target_url: z.string().optional(),
+}).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("scrape-knowledge");
