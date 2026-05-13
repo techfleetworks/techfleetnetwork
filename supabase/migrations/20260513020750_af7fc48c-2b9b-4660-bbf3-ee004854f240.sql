@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.sanitize_classes_html() FROM PUBLIC, anon, authenticated;
