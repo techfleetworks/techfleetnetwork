@@ -5821,6 +5821,15 @@ export type Database = {
         Args: { window_days?: number }
         Returns: Json
       }
+      get_project_internal_links: {
+        Args: { p_project_id: string }
+        Returns: {
+          client_intake_url: string
+          discord_role_id: string
+          discord_role_name: string
+          notion_repository_url: string
+        }[]
+      }
       get_stakeholder_context: { Args: { p_id: string }; Returns: Json }
       get_top_error_fingerprints: {
         Args: { p_hours?: number; p_limit?: number }
