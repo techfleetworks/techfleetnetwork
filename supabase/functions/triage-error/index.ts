@@ -12,6 +12,12 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  *     what already lives in the audit_log row that produced it.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing fix_queue_id type check below stays authoritative.
+const BodySchema = z.object({
+  fix_queue_id: z.string().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
