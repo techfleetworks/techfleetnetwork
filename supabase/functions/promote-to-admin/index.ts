@@ -1,5 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
 import { requireFreshAdmin2fa } from '../_shared/admin-step-up.ts'
+
+// M-01: Lenient shape guard. Existing user_id type/self-promotion checks below stay authoritative.
+const BodySchema = z.object({ user_id: z.string().optional() }).passthrough()
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
