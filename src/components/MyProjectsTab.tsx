@@ -70,8 +70,9 @@ interface ProjectData {
   timezone_range: string;
   anticipated_start_date: string | null;
   anticipated_end_date: string | null;
-  client_intake_url: string;
-  notion_repository_url: string;
+  // Operational links are fetched separately via roster-gated RPC.
+  client_intake_url?: string | null;
+  notion_repository_url?: string | null;
   created_at: string;
   friendly_name?: string;
   description?: string;
