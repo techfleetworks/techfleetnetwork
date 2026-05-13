@@ -39,6 +39,7 @@ import { validationBorderClass, getFieldValidationState, showFormErrors, scrollT
 import { SearchFirstCombobox } from "@/components/profile/SearchFirstCombobox";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 import { reportValidationRejection } from "@/services/error-reporter.service";
+import { getGumroadManageUrl } from "@/lib/gumroad";
 
 export default function EditProfilePage() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -524,6 +525,11 @@ export default function EditProfilePage() {
                 isFoundingMember={Boolean(profile?.is_founding_member)}
                 billingPeriod={(profile as { membership_billing_period?: string } | null)?.membership_billing_period ?? null}
                 membershipUpdatedAt={profile?.membership_updated_at ?? null}
+                manageUrl={
+                  (profile?.membership_tier ?? "starter") !== "starter"
+                    ? getGumroadManageUrl(profile?.membership_sku ?? null)
+                    : null
+                }
               />
             )}
             <div className="card-elevated p-6 sm:p-8 space-y-6">
@@ -539,6 +545,7 @@ export default function EditProfilePage() {
               <MembershipTiersGrid
                 currentTier={profile?.membership_tier ?? "starter"}
                 isFoundingMember={Boolean(profile?.is_founding_member)}
+                manageUrl={getGumroadManageUrl(profile?.membership_sku ?? null)}
                 onSelect={(intent) => {
                   if (intent.action === "subscribe" && intent.skuUrl) {
                     window.open(intent.skuUrl, "_blank", "noopener,noreferrer");
@@ -558,11 +565,9 @@ export default function EditProfilePage() {
                     );
                     return;
                   }
-                  if (intent.action === "downgrade") {
-                    toast.info(
-                      "To change or cancel your subscription, use the Gumroad email link from your original receipt.",
-                      { position: "top-center", duration: 6000 },
-                    );
+                  if (intent.action === "manage" || intent.action === "downgrade") {
+                    const url = getGumroadManageUrl(profile?.membership_sku ?? null);
+                    window.open(url, "_blank", "noopener,noreferrer");
                     return;
                   }
                 }}
