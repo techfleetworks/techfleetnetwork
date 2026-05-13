@@ -71,7 +71,7 @@ export function ProjectsTab() {
       const { error } = await supabase.from("projects").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["projects"] }); toast.success("Project deleted"); setDeleteTarget(null); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["projects"] }); toast.success("Project deleted."); setDeleteTarget(null); },
     onError: (err: Error) => toast.error(err.message),
   });
 

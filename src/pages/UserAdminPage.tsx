@@ -119,13 +119,13 @@ export default function UserAdminPage() {
       const res = await supabase.functions.invoke("promote-to-admin", {
         body: { user_id: targetUser.user_id },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to promote user");
+      if (res.error) throw new Error(res.error.message || "We couldn't promote that member. Try again in a moment.");
       const result = res.data;
       if (result?.error) throw new Error(result.error);
-      toast.success(result?.message || "Confirmation email sent");
+      toast.success(result?.message || "Confirmation email sent — they'll need to accept it.");
       await fetchData();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to promote user";
+      const message = err instanceof Error ? err.message : "We couldn't promote that member. Try again in a moment.";
       toast.error(message);
     } finally {
       setPromoting(null);
@@ -141,13 +141,13 @@ export default function UserAdminPage() {
       const res = await supabase.functions.invoke("promote-to-admin", {
         body: { user_id: targetUser.user_id },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to resend invite");
+      if (res.error) throw new Error(res.error.message || "We couldn't resend that invite. Try again in a moment.");
       const result = res.data;
       if (result?.error) throw new Error(result.error);
-      toast.success("Admin invite re-sent to " + targetUser.email);
+      toast.success(`Admin invite resent to ${targetUser.email}.`);
       await fetchData();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to resend invite";
+      const message = err instanceof Error ? err.message : "We couldn't resend that invite. Try again in a moment.";
       toast.error(message);
     } finally {
       setPromoting(null);
@@ -163,13 +163,13 @@ export default function UserAdminPage() {
       const res = await supabase.functions.invoke("admin-purge-auth-user", {
         body: { email: targetUser.email },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to delete user");
+      if (res.error) throw new Error(res.error.message || "We couldn't delete that account. Try again in a moment.");
       const result = res.data;
       if (result?.error) throw new Error(result.error);
-      toast.success(`Deleted ${targetUser.email}`);
+      toast.success(`Account for ${targetUser.email} deleted.`);
       await fetchData();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to delete user";
+      const message = err instanceof Error ? err.message : "We couldn't delete that account. Try again in a moment.";
       toast.error(message);
     } finally {
       setPromoting(null);
@@ -183,13 +183,13 @@ export default function UserAdminPage() {
       const res = await supabase.functions.invoke("promote-to-teacher", {
         body: { user_id: targetUser.user_id },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to promote teacher");
+      if (res.error) throw new Error(res.error.message || "We couldn't promote that teacher. Try again in a moment.");
       const result = res.data as { error?: string; message?: string } | null;
       if (result?.error) throw new Error(result.error);
-      toast.success(result?.message || "Teacher confirmation email sent");
+      toast.success(result?.message || "Teacher confirmation email sent — they'll need to accept it.");
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to promote teacher");
+      toast.error(err instanceof Error ? err.message : "We couldn't promote that teacher. Try again in a moment.");
     } finally {
       setPromoting(null);
       setConfirmUser(null);
@@ -202,13 +202,13 @@ export default function UserAdminPage() {
       const res = await supabase.functions.invoke("revoke-teacher-role", {
         body: { user_id: targetUser.user_id },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to revoke teacher");
+      if (res.error) throw new Error(res.error.message || "We couldn't revoke that teacher role. Try again in a moment.");
       const result = res.data as { error?: string; message?: string } | null;
       if (result?.error) throw new Error(result.error);
-      toast.success(result?.message || "Teacher role revoked");
+      toast.success(result?.message || "Teacher role revoked.");
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to revoke teacher");
+      toast.error(err instanceof Error ? err.message : "We couldn't revoke that teacher role. Try again in a moment.");
     } finally {
       setPromoting(null);
       setConfirmUser(null);

@@ -320,7 +320,7 @@ export function FleetyChatWidget() {
     } catch (e: any) {
       console.error(e);
       setIsLoading(false);
-      toast.error(e.message || "Failed to get a response.");
+      toast.error(e.message || "Fleety couldn't reply just now. Try again in a moment.");
     }
   };
 
