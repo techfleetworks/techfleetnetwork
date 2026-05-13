@@ -26,3 +26,20 @@ curves — they read as decorative.
 Respected globally via the `@media (prefers-reduced-motion: reduce)` block
 in `src/index.css` which clamps every animation/transition to 1ms. No
 component should override this without explicit accessibility review.
+
+## Documented exceptions (>300ms)
+
+These exceed the standard 200–300ms band intentionally and are reviewed
+during the brand-voice motion sweep:
+
+- **Progress-bar fills** (`transition-all duration-500` on width) —
+  longer reveal communicates incremental progress. Used in
+  `StepProgressBar`, `QuestPathDetail`, `TrainingPage`, `FirstStepsPage`,
+  `ThirdStepsPage`, `DashboardPage`, `ProjectAnalysisContent`.
+- **Sheet slide-in** (`data-[state=open]:duration-500`) — shadcn default
+  for off-canvas panels; matches platform convention (Jakob's Law).
+- **OTP caret blink** (`duration-1000`) — accessibility convention for
+  blinking text-input cursors.
+
+Any new component animating >300ms must either justify in code or move
+into this list.
