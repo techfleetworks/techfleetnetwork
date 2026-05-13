@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { FeedbackService } from "@/services/feedback.service";
+import { SEO } from "@/components/SEO";
 import { toast } from "sonner";
 
 export default function AccessibilityPage() {
