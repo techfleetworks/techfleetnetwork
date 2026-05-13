@@ -1,23 +1,30 @@
-# Fix: admin realtime leak on system_health_state & system_remediations
+# Triage: SECURITY DEFINER functions executable by anon/authenticated
 
-## Problem
-Both tables are in the `supabase_realtime` publication. Postgres-level RLS protects direct reads, but Realtime broadcasts row payloads to any authenticated subscriber of the channel. This leaks operational state, remediation rules, error patterns, and cooldowns.
+## Findings
+Only two `SECURITY DEFINER` functions in `public` are granted `EXECUTE` to `PUBLIC`:
 
-## Approach
-Keep realtime working for admins (the hook drives the System Health UI) and block everyone else by adding RLS on `realtime.messages` scoped to `has_role(auth.uid(), 'admin')`.
+- `public.peek_rate_limit(...)`
+- `public.record_rate_limit_failure(...)`
 
-## Migration
-1. Ensure RLS is enabled on `realtime.messages` (it is by default in modern Supabase, but assert).
-2. Add policy `"Admins read system-health realtime"` on `realtime.messages` for `SELECT` to `authenticated`, `USING (has_role(auth.uid(), 'admin') AND topic IN ('system-health-live'))`.
-   - The hook subscribes on channel/topic `system-health-live`; non-admin subscribers will receive nothing.
-3. Leave both tables in the publication (admins still need live updates).
-4. No client code changes — `useSystemHealthRealtime` is already only mounted from admin-gated System Health views.
+Both linter warnings (0028 anon, 0029 authenticated) point at this same pair. Every other SECURITY DEFINER function is already locked down to `postgres` / `service_role` / sandbox roles only.
+
+## Why these two are intentionally public
+They power the Login Rate-Limit Fairness flow (memory `mem://features/auth/login-rate-limit-fairness`). They MUST be callable pre-auth by anonymous visitors so we can:
+- `peek_rate_limit` — read whether the calling identity (email + device) is currently locked out before showing the password field.
+- `record_rate_limit_failure` — record a failed login attempt and decide whether to lock.
+
+They take only the caller's intended identifiers, write to a single rate-limit ledger, and return nothing sensitive. They are SECURITY DEFINER so they can write to a table `anon` cannot otherwise touch.
+
+Removing the grant would break login lockout fairness UX. This is the intended design.
+
+## Plan
+1. Mark both linter findings (0028 + 0029) as ignored via `security--manage_security_finding`, with explanations pointing to the rate-limit fairness design.
+2. Update the project security memory via `security--update_memory` so future scanners understand this is accepted risk.
+3. No code or migration changes.
 
 ## Verification
-- Linter rerun: finding `realtime_system_tables_no_channel_authz` clears.
-- Manual: signed-in non-admin opening a console subscription to `system-health-live` receives zero payloads; admin still sees invalidations.
-- Mark finding fixed via `security--manage_security_finding`.
+- After ignoring, the security view no longer surfaces those two warnings.
+- Login flow still rate-limits silently with no UX change.
 
-## BDD seed (bdd_scenarios)
-`SEC-RT-001` — Given a non-admin authenticated session, When they subscribe to `system-health-live`, Then [Code] no postgres_changes payloads arrive, [DB] `realtime.messages` SELECT returns 0 rows for that role, [UI] System Health route remains gated and unreachable.
-`SEC-RT-002` — Given an admin session, When a row in `system_health_state` or `system_remediations` changes, Then [Code] the channel callback fires, [DB] policy permits the read, [UI] affected System Health tab refetches without manual reload.
+## BDD
+None — no behavior change.
