@@ -95,7 +95,15 @@ serve(withAuditWrapper("scrape-knowledge", async (req) => {
       );
     }
 
-    const { offset = 0, limit = 10, target_url = "https://guide.techfleet.org" } = await req.json().catch(() => ({}));
+    const rawScrapeBody = await req.json().catch(() => ({}));
+    const parsedScrapeBody = BodySchema.safeParse(rawScrapeBody);
+    if (!parsedScrapeBody.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const { offset = 0, limit = 10, target_url = "https://guide.techfleet.org" } = parsedScrapeBody.data as { offset?: number; limit?: number; target_url?: string };
 
     // SSRF protection: validate target_url against allowlist (OWASP A10)
     let parsedTarget: URL;
