@@ -100,7 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const data = await ProfileService.fetch(userId);
+      // Race against a 10s safety timeout so a stalled network call can never
+      // pin profileLoaded=false forever (which used to strand users behind a
+      // full-page spinner on /dashboard, /updates, etc.).
+      const data = await Promise.race([
+        ProfileService.fetch(userId),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000)),
+      ]);
       // Only update profile if we got data — never null-out an existing profile during re-fetches
       if (data) {
         setProfile(data);
