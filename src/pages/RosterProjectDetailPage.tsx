@@ -17,15 +17,11 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 
 const ProjectAnalysisContent = lazy(() => import("@/components/admin/ProjectAnalysisContent"));
 const ProjectRosterContent = lazy(() => import("@/components/admin/ProjectRosterContent"));
+const ProjectBlastComposer = lazy(() => import("@/components/recruiting/ProjectBlastComposer"));
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
-
-const rosterTabs: TabItem[] = [
-  { value: "analysis", label: "Application Analysis" },
-  { value: "roster", label: "Project Roster" },
-];
 
 function TabFallback() {
   return (
@@ -47,7 +43,7 @@ export default function RosterProjectDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, clients(name)")
+        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, coordinator_id, clients(name)")
         .eq("id", projectId!)
         .single();
       if (error) throw error;
@@ -60,6 +56,7 @@ export default function RosterProjectDetailPage() {
         client_id: string;
         friendly_name?: string;
         description?: string;
+        coordinator_id?: string | null;
         clients: { name: string } | null;
       };
     },
@@ -147,19 +144,40 @@ export default function RosterProjectDetailPage() {
         </div>
       </div>
 
-      <ResponsiveTabs value={tab} onValueChange={setTab}>
-        <ResponsiveTabsList tabs={rosterTabs} value={tab} onValueChange={setTab} />
-        <ResponsiveTabsContent value="analysis" className="mt-6">
-          <Suspense fallback={<TabFallback />}>
-            <ProjectAnalysisContent projectId={projectId!} />
-          </Suspense>
-        </ResponsiveTabsContent>
-        <ResponsiveTabsContent value="roster" className="mt-6">
-          <Suspense fallback={<TabFallback />}>
-            <ProjectRosterContent projectId={projectId!} />
-          </Suspense>
-        </ResponsiveTabsContent>
-      </ResponsiveTabs>
+      {(() => {
+        const isCoordinator = !!project.coordinator_id && project.coordinator_id === user?.id;
+        const tabs: TabItem[] = [
+          { value: "analysis", label: "Application Analysis" },
+          { value: "roster", label: "Project Roster" },
+          ...(isCoordinator ? [{ value: "blast", label: "Blast" } as TabItem] : []),
+        ];
+        return (
+          <ResponsiveTabs value={tab} onValueChange={setTab}>
+            <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} />
+            <ResponsiveTabsContent value="analysis" className="mt-6">
+              <Suspense fallback={<TabFallback />}>
+                <ProjectAnalysisContent projectId={projectId!} />
+              </Suspense>
+            </ResponsiveTabsContent>
+            <ResponsiveTabsContent value="roster" className="mt-6">
+              <Suspense fallback={<TabFallback />}>
+                <ProjectRosterContent projectId={projectId!} />
+              </Suspense>
+            </ResponsiveTabsContent>
+            {isCoordinator && (
+              <ResponsiveTabsContent value="blast" className="mt-6">
+                <Suspense fallback={<TabFallback />}>
+                  <ProjectBlastComposer
+                    projectId={projectId!}
+                    projectName={clientName}
+                    isCoordinator={isCoordinator}
+                  />
+                </Suspense>
+              </ResponsiveTabsContent>
+            )}
+          </ResponsiveTabs>
+        );
+      })()}
     </div>
   );
 }

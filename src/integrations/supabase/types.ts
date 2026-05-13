@@ -3023,6 +3023,112 @@ export type Database = {
           },
         ]
       }
+      project_blast_recipients: {
+        Row: {
+          blast_id: string
+          created_at: string
+          email_hash: string
+          email_message_id: string | null
+          email_status: string
+          error: string | null
+          id: string
+          notification_id: string | null
+          user_id: string
+        }
+        Insert: {
+          blast_id: string
+          created_at?: string
+          email_hash: string
+          email_message_id?: string | null
+          email_status?: string
+          error?: string | null
+          id?: string
+          notification_id?: string | null
+          user_id: string
+        }
+        Update: {
+          blast_id?: string
+          created_at?: string
+          email_hash?: string
+          email_message_id?: string | null
+          email_status?: string
+          error?: string | null
+          id?: string
+          notification_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_blast_recipients_blast_id_fkey"
+            columns: ["blast_id"]
+            isOneToOne: false
+            referencedRelation: "project_blasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_blasts: {
+        Row: {
+          audience_filter: Json
+          body_html: string
+          created_at: string
+          email_failed_count: number
+          email_sent_count: number
+          email_suppressed_count: number
+          error: string | null
+          id: string
+          notification_sent_count: number
+          project_id: string
+          recipient_count: number
+          sender_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          audience_filter?: Json
+          body_html: string
+          created_at?: string
+          email_failed_count?: number
+          email_sent_count?: number
+          email_suppressed_count?: number
+          error?: string | null
+          id?: string
+          notification_sent_count?: number
+          project_id: string
+          recipient_count?: number
+          sender_id: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          audience_filter?: Json
+          body_html?: string
+          created_at?: string
+          email_failed_count?: number
+          email_sent_count?: number
+          email_suppressed_count?: number
+          error?: string | null
+          id?: string
+          notification_sent_count?: number
+          project_id?: string
+          recipient_count?: number
+          sender_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_blasts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_certifications: {
         Row: {
           airtable_record_id: string
@@ -5710,6 +5816,10 @@ export type Database = {
           promoted_by: string
           user_id: string
         }[]
+      }
+      get_project_blast_health: {
+        Args: { window_days?: number }
+        Returns: Json
       }
       get_stakeholder_context: { Args: { p_id: string }; Returns: Json }
       get_top_error_fingerprints: {

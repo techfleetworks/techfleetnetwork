@@ -1,134 +1,126 @@
-## Goal
+## Project Blast — email all applicants from a project (hardened + observable)
 
-Make Tech Fleet Network 100% compliant with both brand documents (voice/editorial guide + visual guide). The earlier 8 ships covered voice, terminology, basic tokens, typography primitives, auth/email copy, and toast voice. This plan closes the remaining gaps: exact-spec colors, fonts, spacing/grid, iconography rules, illustration families, UX content patterns (modals, dates, tooltips), expanded language guards, imagery direction, and motion standards.
+A project coordinator who is also an admin opens a project in the Recruiting Center, drafts a subject + rich-text body in a Lu.ma-Blast-style composer (advanced view only), previews recipients, and sends. Each applicant receives a branded transactional email **and** an in-app notification. Every send is observable from the existing System Health dashboard.
 
-Audience: Tech Fleet members and admins. Out of scope: redesigning core flows, changing the dark-space aesthetic baseline (the guide endorses blues + dark grays), and translating non-English bundles (the i18n auto-translator already does that).
+### Access control — admin-only, end-to-end
 
-## What's already done (reference, don't redo)
+- **Hard rule:** the only identity allowed to compose, send, or read a blast is the **currently authenticated admin** (`has_role(auth.uid(), 'admin')`). Coordinator assignment scopes *visibility* (admins see/send blasts only for projects they coordinate, unless super-admin), but admin role is the gate.
+- **Three independent layers must all agree** before a send proceeds:
+  1. **UI gate** — `Blast` tab + Send button only render when `useAdmin().isAdmin === true` AND `project.coordinator_id === auth.uid()` (or super-admin). Disabled state never sends.
+  2. **Edge function gate** — re-derives identity from JWT via `supabase.auth.getClaims(token)`, never trusts request body for `sender_id`; re-checks `has_role` and `coordinator_id` server-side. Reject → 403 + audit row.
+  3. **Database RLS** — `project_blasts` and `project_blast_recipients` enforce admin role + coordinator match for SELECT/INSERT. UPDATE/DELETE forbidden (append-only).
+- **MFA gate reuse:** sending requires the existing admin TOTP gate (`mem://features/admin-passkey-login-gate`); expired grace → step-up prompt, no bypass.
+- **No service-role from client.** All privileged work happens inside the edge function after JWT-derived identity is verified.
 
-- `docs/brand/{voice-and-tone,editorial-style,ux-copy-patterns}.md`
-- ESLint `brand-terms/no-banned-terms` + `scripts/brand/reading-level.mjs`
-- `growth` / `graphite` HSL tokens + `--gradient-sage`
-- `src/components/ui/typography.tsx` primitives (PageTitle/SectionTitle/SubsectionTitle/Lede/Body/Muted)
-- Sentence-case CTAs across auth, ProjectApplicationPage, journey
-- Toast voice sweep (UserAdminPage, UpdatesPage, FeedbackPage, EditProfilePage, FleetyChatWidget)
-- Email template voice pass (applicant-status, interview-invite, quest-nudge, signup-reminder)
-- BDD scenarios BV-001 through BV-007
+### Where it lives
 
----
+- `RosterProjectDetailPage` → new `Blast` tab next to Application Analysis + Project Roster, gated as above.
+- System Health dashboard → blasts surface in the existing **Email** tab plus a small **Project Blasts** widget (see Observability).
 
-## Phase A — Exact-spec color palette
+### Composer UI (advanced view only)
 
-Brand-guide HEX values are authoritative; current tokens are close but not exact.
+`src/components/recruiting/ProjectBlastComposer.tsx`
+- Subject line, required, trimmed, max 150 chars (Zod both sides).
+- `RichTextEditor` (TipTap, same as announcements).
+- Audience summary: "This will reach **N applicants** for *Project X*." Status filter chips (default `completed`).
+- Preview tab renders the email + sample in-app notification.
+- Sticky footer: `Cancel` · `Send blast`. `<ConfirmDialog>` with `actionLabel="Send blast"`, recipient count announced via `LiveAnnouncer`.
+- WCAG: labelled inputs, `aria-live`, focus trap, `prefers-reduced-motion`.
 
-- Update `src/index.css` brand tokens to the visual guide's exact HSL equivalents:
-  - Deep Space Navy `#01061E` → `--background` (dark) and `--brand-navy`
-  - Tech Fleet Blue `#0056A7` → `--primary` (light mode) — replaces current `217 91% 48%`
-  - Action Blue `#1863DC` → `--primary-hover` / dark-mode primary — replaces `217 91% 60%`
-  - Growth Green `#56A045` → align `--growth` (currently `158 64% 38%`)
-  - Alert Orange `#EB4F26` → `--destructive` (currently `0 90% 50%`)
-  - Off-White `#F4F4F4` → `--surface-alt`
-  - Dark Gray Text `#212121` → `--foreground` (light mode body)
-  - Medium Gray `#757575` → `--muted-foreground` floor
-- Recompute WCAG contrast for every token pair in light + dark modes; bump lightness only where 4.5:1 fails on body text or 3:1 fails on large text/UI components. Document any divergence inline.
-- Add `--brand-mint: #7DD8D0` for Family-2 illustrations (engraving line color).
-- Update `tailwind.config.ts` to expose `brand-navy`, `brand-mint`, `surface-alt`, `primary-hover`.
-- Add a Storybook-style swatch page at `src/pages/BrandTokensPage.tsx` (admin-only, route `/admin/brand-tokens`) so designers can verify what shipped.
+### Data model
 
-## Phase B — Typography migration to Futura PT + Poppins
+- `project_blasts`: `id`, `project_id`, `sender_id` (set by trigger to `auth.uid()`, never client-supplied), `subject` (1–150), `body_html` (≤50KB, sanitized by BEFORE INSERT/UPDATE trigger via `sanitize_user_html()`), `audience_filter jsonb default '{"statuses":["completed"]}'`, `recipient_count`, `email_sent_count`, `email_failed_count`, `notification_sent_count`, `status` ∈ {queued,sending,sent,partial,failed}, `error`, `created_at`, `sent_at`.
+- `project_blast_recipients`: `id`, `blast_id`, `user_id`, `email_hash` (sha256 of lowercased email), `email_status` ∈ {queued,sent,failed,suppressed}, `email_message_id` (links to `email_send_log.message_id`), `notification_id`, `created_at`. Unique `(blast_id, user_id)`.
 
-Brand guide mandates Futura PT (display) + Poppins (body). We currently ship Inter for everything.
+**RLS (deny-by-default, append-only)** — `ENABLE` + `FORCE ROW LEVEL SECURITY` on both. SELECT/INSERT only when admin AND (super-admin OR `auth.uid() = projects.coordinator_id`). No UPDATE/DELETE policies (service-role only). BEFORE INSERT trigger forces `sender_id := auth.uid()` and rejects null.
 
-- Self-host Poppins via `@fontsource/poppins` (400/500/600). Futura PT is licensed; ship a free Futura-equivalent (Jost or Spartan) as a swap-in until a license is in place, behind `--font-display`. Document the licensing gap in `docs/brand/typography.md`.
-- Update `index.html` preload tags + `src/index.css` `@font-face` blocks; remove the residual `White Rabbit` block unless it's still used for the DOS easter egg (rg first, only delete if unreferenced).
-- Update `tailwind.config.ts`:
-  - `fontFamily.display = ['"Futura PT"', 'Jost', 'Inter', 'system-ui', ...]`
-  - `fontFamily.sans   = ['Poppins', 'Inter', 'system-ui', ...]`
-- Rewrite the typography primitives so size/line-height/letter-spacing match the guide table:
-  - Display: 4rem / 110% / 1.2em (note: 1.2em letter-spacing is unusual; cap at `tracking-tight ≈ -0.025em` because 1.2em is almost certainly a doc typo and would break readability — record decision in `docs/brand/typography.md`).
-  - H1 3rem, H2 2.25rem, H3 1.5rem, H4 1.25rem.
-  - Body L 1.125rem, Body 1rem, Body S 0.875rem, Caption 0.75rem.
-- Add a codemod-style sweep: ESLint rule `brand-terms/no-raw-heading-sizes` that flags `text-3xl|text-4xl|text-5xl` on `<h1|h2|h3>` and recommends the Typography components.
+### Sending pipeline — `supabase/functions/send-project-blast/index.ts`
 
-## Phase C — 4px spacing + 12-column grid tokens
+1. Strict CORS, POST-only.
+2. Auth: requires `Authorization: Bearer …`; `auth.getClaims(token)`. Missing → 401.
+3. Identity re-verify (admin + coordinator) via user-scoped client; mismatch → 403 + `audit_log` row (`action=project_blast.denied`).
+4. Zod `.strict()` body validation: `project_id` uuid, `subject` 1–150, `body_html` ≤50KB, `audience_filter.statuses` enum subset. Reject extras → 400.
+5. Server-side HTML sanitization before render and insert (defense in depth on top of DB trigger). Allow-list only; strips `<script>`, event handlers, `javascript:`, `<iframe>`, `<object>`, `<embed>`, `<style>`, `<form>`.
+6. Rate limit: `enforce_rate_limit('project_blast', userId, projectId, 5/hour, 20/day)` → 429 + `Retry-After`.
+7. Idempotency: required `Idempotency-Key` header (UUID); 24h replay table returns original `blastId`.
+8. Recipient resolution server-side only (joins `project_applications` + `profiles`); cap 5,000.
+9. Suppression check against `suppressed_emails`.
+10. Send loop: `Promise.allSettled` batches of 25, wrapped in `CircuitBreaker` with exponential backoff. Per recipient:
+    - Email via `send-transactional-email` with `templateName='project-blast'`, `idempotencyKey='blast-${blastId}-${userId}'` → links into `email_send_log` with this `message_id`.
+    - In-app notification insert into `notifications` with `kind='project_blast'`, sanitized `body_html`, `link=/projects/${projectId}`.
+11. Audit: hash-chained `audit_log` row per blast (`action=project_blast.send`) with `blast_id`, `recipient_count`, `subject_hash`.
+12. PII hygiene: never echoes JWT/email/body in errors; structured logs use redaction wrapper.
+13. Returns `{ blastId, recipientCount }` immediately; UI subscribes via realtime to `project_blasts.id` for progress.
 
-- Add CSS variables `--space-1..--space-16` matching the guide table.
-- Extend `tailwind.config.ts` `spacing` to alias these (`space-1: '0.25rem'`, etc.).
-- Add ESLint rule `brand-terms/no-arbitrary-spacing` flagging Tailwind arbitrary spacing classes that aren't 4px multiples (e.g. `p-[10px]`, `mt-[15px]`).
-- Update `.container-app` utility in `src/index.css` to enforce per-breakpoint outer margins (16/24/32/48px) and gutters.
-- Confirm AppLayout containers use the guide's max widths (1200px desktop, 1440px XL).
+### Email template
 
-## Phase D — Iconography + illustration policy
+`supabase/functions/_shared/transactional-email-templates/project-blast.tsx` — React Email layout (Tech Fleet Blue header, Poppins). `subject` as `<Heading>`; `bodyHtml` via `dangerouslySetInnerHTML` **only after server sanitization**. System unsubscribe footer auto-appended. Registered in templates registry.
 
-- Codify lucide-react as the canonical icon library (Feather-compatible: 2px outline, rounded caps). Document deviation from the guide's "Feather Icons" line in `docs/brand/icons.md` with rationale (lucide is actively maintained and Feather-derived).
-- Standard sizes: 24px UI, 16px in-button. Add `<Icon />` wrapper at `src/components/ui/icon.tsx` enforcing default size + `currentColor` inheritance, plus `aria-hidden` when paired with text and `aria-label` when standalone.
-- Sweep imports: replace ad-hoc `className="w-5 h-5"` with `<Icon size="ui|micro">`.
-- Create `docs/brand/illustration-system.md` covering Family 1 (Sketch-Fill, Tech Fleet Blue, hatching) and Family 2 (Engraving, brand-mint, fine line). Track illustration backlog in `docs/brand/imagery-backlog.md` (already proposed in Phase 5 of the original plan — execute now).
-- Audit `src/assets/*` and `public/images/*`: list every raster, classify as keep/replace, and tag stock-photo replacements as TODO with a placeholder generated from `imagegen` using the new palette.
+### Observability — System Health UI integration
 
-## Phase E — Modal & confirmation dialog standardization
+The `system-health` dashboard already deduplicates `email_send_log` by `message_id`. Blast emails inherit that pipeline because they go through `send-transactional-email`, but we add explicit surfacing so admins can monitor blasts at a glance:
 
-The guide requires title=action, body=consequences, primary button=action verb (never OK/Yes for destructive ops).
+1. **Email tab — template filter** auto-includes `project-blast` (it appears via the existing distinct-template-name query). Color-coded status badges and per-row error reasons work without changes.
+2. **New "Project Blasts" widget** (`src/components/admin/system-health/ProjectBlastsHealthCard.tsx`) on the System Health page, alongside Email Pipeline Health:
+   - Stat cards: blasts in last 24h / 7d / 30d, recipients reached, email success rate, failure rate, suppressed count.
+   - Recent blasts table (top 10): `Sent at`, `Project`, `Coordinator`, `Subject`, `Recipients`, `Sent`, `Failed`, `Suppressed`, `Status` badge.
+   - Row click → drawer with per-recipient outcomes (joined `project_blast_recipients` ⇄ `email_send_log` by `message_id`, deduped latest status).
+   - Subscribes to `project_blasts` realtime for live updates (RLS still admin-gated; uses the existing realtime admin policy on `realtime.messages`).
+3. **New SECURITY DEFINER RPC** `get_project_blast_health(window_days int)` returns aggregated stats joining `project_blasts` ⇄ `project_blast_recipients` ⇄ deduped `email_send_log`. Admin-only `EXECUTE` grant; revoked from `anon`/`authenticated` non-admins via internal `assert_admin()` guard inside the function body.
+4. **Triage hookups:** failed blast sends emit a structured error (`feature='project_blast'`) so the existing **Triage** tab and **Triage Critical Push** memory rules pick them up automatically — no separate alert path.
+5. **Audit tab:** existing audit-log viewer surfaces `project_blast.send` and `project_blast.denied` rows with no extra work.
 
-- Audit every `AlertDialog` and `Dialog` in `src/components/**` and `src/pages/**`. List of confirmed offenders to fix:
-  - "Are you sure?" titles → action-named titles ("Delete project?", "Leave team?", "Discard changes?")
-  - "OK" / "Yes" / "Confirm" buttons → verb+object matching the title
-  - Generic "Confirm" → "Delete project", "Remove member", "Publish announcement"
-- Build a `ConfirmDialog` wrapper at `src/components/ui/confirm-dialog.tsx` that *requires* `actionLabel` and `consequence` props so future dialogs can't drift.
-- Update `EditProfilePage` (delete account), `UserAdminPage` (delete/promote), `BannerManagementPage`, `AdminClassesPage`, `ProjectFormPage`, `UpdatesPage` (delete announcement) to use the new wrapper.
+### Per-project history view
 
-## Phase F — Date, time, tooltip, link patterns
+Below the composer, AG Grid card lists prior blasts for this project with the same columns as the System Health widget but scoped to one project. Row click opens a read-only modal of the rendered email.
 
-- Centralize date/time formatting:
-  - `src/lib/format/date.ts`: `formatDate(d) → "January 15, 2026"`, `formatTime(d, tz) → "2:30 pm EST"`, `formatRange(a, b)` → "October 1 to October 5, 2026". No ordinals, no 24-hour, always include timezone abbreviation when distributed.
-  - Replace ad-hoc `date-fns` `format(d, 'MM/dd/yyyy')` callsites with the wrappers (sweep via rg).
-- Tooltip rule: extend brand-terms ESLint to flag `<TooltipContent>` children whose string length > 100 chars or that include links/markdown.
-- Link-text rule: extend the existing "click here" lint to also flag bare "Read more", "Learn more", "More info", "Here" anchor text (case-insensitive).
+### Notifications
 
-## Phase G — Inclusive-language expansion
+Reuse existing `notifications` table + realtime. New kind `project_blast` registered in `src/lib/notifications/kinds.ts`, surfaced in bell + Notifications page filter chip with email icon, links to project openings page.
 
-Add to `scripts/lint/eslint-plugin-brand-terms.mjs` `BANNED` list:
-- `\bgirls?\b` (when referring to adult women) → suggest "women" / "people"; allow inside `// brand-allow:` comments for quoted source material.
-- `\busers\b` in user-facing JSX/i18n strings → suggest "members" or "people who use the platform". Allow in code identifiers, comments, type names, and `database`/`auth` paths via path-based allow-list.
-- `\bblind\b` (when used as adjective) → suggest "person with vision impairment".
-- `\bsuffers from\b` (already there — keep).
-- Add positive checks: `\bBlack\b` capitalization required when describing race; `\bDeaf\b` capitalization required for the community term — implemented as warnings, not errors, since context is hard to detect.
-- Add Team Practices auto-capitalization check: flag lowercase "team practices" in user-facing strings.
+### BDD scenarios (`bdd_scenarios`)
 
-## Phase H — Motion standards
+- `PB-001` Admin coordinator sends → `[UI]` toast "Blast sent to N members", System Health Project Blasts widget shows new row within 2s `[DB]` `project_blasts.status='sent'`, recipients match, `audit_log` appended, `email_send_log` rows tagged `template_name='project-blast'` `[Code]` 200 `{blastId,recipientCount}`.
+- `PB-002` Non-admin → `[UI]` no Blast tab `[DB]` no rows `[Code]` 403.
+- `PB-003` Admin not this project's coordinator (and not super-admin) → `[UI]` no Blast tab `[Code]` 403.
+- `PB-004` Client tries to override `sender_id` → `[Code]` 400 (`.strict()`); trigger would also overwrite.
+- `PB-005` Body contains `<script>`/`onerror=`/`javascript:` → `[DB]` stripped in `body_html` `[Code]` outbound email + notification HTML stripped.
+- `PB-006` Subject blank or >150 → `[UI]` Send disabled `[Code]` 400.
+- `PB-007` Same `Idempotency-Key` replayed → `[DB]` one row `[Code]` 200 with original `blastId`.
+- `PB-008` 6th send within an hour → `[Code]` 429 + `Retry-After`.
+- `PB-009` Suppressed email recipient → `[DB]` `email_status='suppressed'`, in-app notification still delivered, System Health widget suppressed counter increments.
+- `PB-010` Realtime: applicant's notification badge increments within 2s.
+- `PB-011` MFA grace expired → blocked, no DB writes, audit `denied=mfa_required`.
+- `PB-012` 0 applicants → composer "No one has applied yet"; Send disabled.
+- `PB-013` >5,000 recipients → 400, no partial send.
+- `PB-014` Email tab in System Health filtered to `project-blast` shows deduped rows by `message_id` with correct latest status.
+- `PB-015` Failed transactional send for one recipient → `[DB]` `project_blast_recipients.email_status='failed'`, blast `status='partial'`, Triage tab surfaces fingerprint `feature=project_blast`.
+- `PB-016` Non-admin calling `get_project_blast_health` RPC → 403 from `assert_admin()` guard.
 
-- Extend `tailwind.config.ts` with named durations: `duration-quick: 150ms`, `duration-standard: 200ms`, `duration-emphasized: 300ms`.
-- Document in `docs/brand/motion.md`: 200–300ms ease-in-out for UI transitions, 800ms+ animations require justification, never use looping animation without `prefers-reduced-motion: no-preference` guard.
-- Sweep `animate-` utilities in components for durations >300ms; either justify with a code comment or shorten.
+### Memory updates after build
 
-## Phase I — Imagery & illustration sweep
+- Update `mem://features/security/defense-in-depth` with the project-blast admin-only + coordinator-scoped + append-only constraints.
+- New `mem://features/admin/project-blast` describing the hardening + observability rules.
+- Extend `mem://features/admin/error-monitoring` to note `project-blast` template now flows into Email tab + Project Blasts widget.
 
-- Generate replacement hero/celebration art via `imagegen` using the sage gradient (Primary Blue → Growth Green) and the engraving style for hero placements.
-- Replace any obvious staged stock photos (audit `src/assets/*`, `public/images/*`).
-- Every `<img>` must have `alt` describing content + purpose, or `alt=""` when decorative. Add ESLint `jsx-a11y/alt-text` if not already enforced (check `eslint.config.js`).
+### Out of scope
 
-## Phase J — Guardrails, BDD, verification
+- Lu.ma "simple view", scheduled sends, segments beyond status, edit/recall after send (immutable by RLS), cross-project blasts.
 
-- New BDD scenarios (BV-008 through BV-014) covering: exact-color compliance, typography stack, spacing tokens, modal pattern, date/time format, tooltip length, motion duration. Each tri-layered (UI/DB/Code).
-- New Playwright suite `e2e/brand/visual.e2e.ts`: screenshots 8 high-traffic routes, asserts computed `font-family` includes Poppins/Futura, computed `--primary` matches Tech Fleet Blue, no `text-[10px]`-style off-grid font sizes.
-- Update `mem://index.md` Core: add "Visual baseline = Tech Fleet Brand Visual Guide v1: Tech Fleet Blue #0056A7, Growth Green #56A045, Futura PT display + Poppins body, 4px spacing grid, lucide icons 24/16, sage gradient for celebrations."
-- Run `bdd-coverage.ts` to confirm new rows exist; fail CI if any BV-* scenario lacks a tri-layer Then-clause.
+### Files to add / change
 
-## Rollout order
+Add:
+- `supabase/migrations/<ts>_project_blasts.sql`
+- `supabase/functions/send-project-blast/index.ts`
+- `supabase/functions/_shared/transactional-email-templates/project-blast.tsx` (+ registry entry)
+- `src/components/recruiting/ProjectBlastComposer.tsx`
+- `src/components/recruiting/ProjectBlastHistory.tsx`
+- `src/components/admin/system-health/ProjectBlastsHealthCard.tsx`
+- `src/services/project-blast.service.ts`
+- BDD seed `PB-001..016`.
 
-Ship in 6 incremental PRs (each ≤ ~12 files, all CI-green):
-
-1. Phase A (color tokens) + Phase J BDD rows for color
-2. Phase B (typography swap)
-3. Phase C (spacing/grid) + Phase H (motion)
-4. Phase D (icons + illustration policy docs)
-5. Phase E (modal standardization) + Phase F (date/time/tooltip/link patterns)
-6. Phase G (inclusive language guards) + Phase I (imagery sweep) + final BDD/Playwright wiring
-
-## Technical notes
-
-- WCAG re-check mandatory after Phase A: use `chroma-js` or the existing `pentest/web-http.mjs` to compute contrast ratios for every token pair; block deploy if any fail 4.5:1 / 3:1.
-- Futura PT licensing: until a commercial license is procured, the production font stack uses Jost as a free near-equivalent. Note this in `docs/brand/typography.md` and surface as a backlog item, not a blocker.
-- Letter-spacing of `1.2em` from the guide is treated as a typo — using `tracking-tight` instead. Recorded as an explicit deviation.
-- All edits respect existing constraints: WCAG 2.0/3.0, dark-theme baseline, 100dvh mobile, AG Grid v32.3.3, no PWA, BDD-with-tri-layer-Thens, no UX regression for security/perf code.
-- No backend/auth/RLS changes; this is pure frontend + docs + CI tooling.
+Change:
+- `src/pages/RosterProjectDetailPage.tsx` — gated `Blast` tab.
+- `src/pages/SystemHealthPage.tsx` — mount `ProjectBlastsHealthCard`; verify Email tab template filter renders `project-blast`.
+- `src/lib/notifications/kinds.ts` — register `project_blast`.
+- `src/components/NotificationBell.tsx` / Notifications page filter — new kind chip.
