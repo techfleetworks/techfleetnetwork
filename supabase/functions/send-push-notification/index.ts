@@ -64,7 +64,15 @@ Deno.serve(withAuditWrapper("send-push-notification", async (req) => {
       vapidPrivate,
     );
 
-    const body = await req.json();
+    const rawBody = await req.json();
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const body = parsedBody.data as Record<string, any>;
     const { endpoint, keys, title, body: notifBody, url, notification_type } = body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
