@@ -70,8 +70,9 @@ interface ProjectData {
   timezone_range: string;
   anticipated_start_date: string | null;
   anticipated_end_date: string | null;
-  client_intake_url: string;
-  notion_repository_url: string;
+  // Operational links are fetched separately via roster-gated RPC.
+  client_intake_url?: string | null;
+  notion_repository_url?: string | null;
   created_at: string;
   friendly_name?: string;
   description?: string;
@@ -181,6 +182,24 @@ function ActiveProjectDetail({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Operational links (notion repo, client intake) require a roster-gated RPC
+  // because column SELECT was revoked from authenticated for security.
+  const { data: links } = useQuery({
+    queryKey: ["project-internal-links", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc("get_project_internal_links", { p_project_id: project.id });
+      if (error) throw error;
+      return (data?.[0] ?? null) as {
+        client_intake_url: string | null;
+        notion_repository_url: string | null;
+      } | null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const clientIntakeUrl = links?.client_intake_url ?? "";
+  const notionRepoUrl = links?.notion_repository_url ?? "";
+
   const hasDateRange = project.anticipated_start_date || project.anticipated_end_date;
 
   return (
@@ -282,26 +301,26 @@ function ActiveProjectDetail({
       )}
 
       {/* External Links */}
-      {(project.client_intake_url || project.notion_repository_url) && (
+      {(clientIntakeUrl || notionRepoUrl) && (
         <InfoSection icon={Link2} title="External Links">
           <div className="grid sm:grid-cols-2 gap-4">
-            {project.client_intake_url && (
+            {clientIntakeUrl && (
               <DetailRow
                 label="Client Intake"
                 value={
-                  <SafeExternalLink href={project.client_intake_url} className="text-primary hover:underline inline-flex items-center gap-1">
-                    {getSafeLinkHostname(project.client_intake_url) ?? "Unavailable"}
+                  <SafeExternalLink href={clientIntakeUrl} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(clientIntakeUrl) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
                   </SafeExternalLink>
                 }
               />
             )}
-            {project.notion_repository_url && (
+            {notionRepoUrl && (
               <DetailRow
                 label="Project Repository (Notion)"
                 value={
-                  <SafeExternalLink href={project.notion_repository_url} className="text-primary hover:underline inline-flex items-center gap-1">
-                    {getSafeLinkHostname(project.notion_repository_url) ?? "Unavailable"}
+                  <SafeExternalLink href={notionRepoUrl} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(notionRepoUrl) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
                   </SafeExternalLink>
                 }
@@ -388,7 +407,7 @@ export function MyProjectsTab() {
           id, project_type, phase, project_status, team_hats,
           current_phase_milestones, timezone_range,
           anticipated_start_date, anticipated_end_date,
-          client_intake_url, notion_repository_url, created_at,
+          created_at,
           friendly_name, description,
           clients!projects_client_id_fkey ( name, website, mission, project_summary, primary_contact )
         `)

@@ -120,14 +120,23 @@ export default function ProjectFormPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectForm, string>>>({});
   const [initialized, setInitialized] = useState(!isEditing);
 
-  // Fetch existing project when editing
+  // Fetch existing project when editing.
+  // Sensitive operational columns were revoked from authenticated for security
+  // and must be re-merged via the admin/roster-gated RPC.
+  const fetchProjectWithLinks = async () => {
+    const [{ data, error }, { data: linkRows, error: linkErr }] = await Promise.all([
+      supabase.from("projects").select("*").eq("id", id!).single(),
+      supabase.rpc("get_project_internal_links", { p_project_id: id! }),
+    ]);
+    if (error) throw error;
+    if (linkErr) throw linkErr;
+    const links = (linkRows?.[0] ?? {}) as Record<string, string | null>;
+    return { ...(data as Record<string, unknown>), ...links };
+  };
+
   const { isLoading: projectLoading } = useQuery({
     queryKey: ["project", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*").eq("id", id!).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchProjectWithLinks,
     enabled: isEditing,
     meta: {
       onSettled: (data: any) => {
@@ -160,11 +169,7 @@ export default function ProjectFormPage() {
   // Workaround: useQuery doesn't support meta.onSettled in all versions
   const { data: existingProject } = useQuery({
     queryKey: ["project-init", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*").eq("id", id!).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchProjectWithLinks,
     enabled: isEditing && !initialized,
     staleTime: 0,
     gcTime: 0,
@@ -172,14 +177,14 @@ export default function ProjectFormPage() {
 
   if (existingProject && !initialized) {
     setForm({
-      client_id: existingProject.client_id,
+      client_id: (existingProject as any).client_id,
       friendly_name: (existingProject as any).friendly_name ?? "",
       description: (existingProject as any).description ?? "",
-      project_type: existingProject.project_type as ProjectTypeValue,
-      phase: existingProject.phase as ProjectPhaseValue,
-      team_hats: existingProject.team_hats ?? [],
-      project_status: existingProject.project_status as ProjectStatusValue,
-      current_phase_milestones: existingProject.current_phase_milestones ?? [],
+      project_type: (existingProject as any).project_type as ProjectTypeValue,
+      phase: (existingProject as any).phase as ProjectPhaseValue,
+      team_hats: ((existingProject as any).team_hats ?? []) as string[],
+      project_status: (existingProject as any).project_status as ProjectStatusValue,
+      current_phase_milestones: ((existingProject as any).current_phase_milestones ?? []) as string[],
       timezone_range: (existingProject as any).timezone_range ?? "",
       anticipated_start_date: (existingProject as any).anticipated_start_date ?? null,
       anticipated_end_date: (existingProject as any).anticipated_end_date ?? null,

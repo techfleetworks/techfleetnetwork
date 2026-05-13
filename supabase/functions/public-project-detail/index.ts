@@ -38,7 +38,10 @@ Deno.serve(withAuditWrapper("public-project-detail", async (req) => {
     // Fetch project
     const { data: project, error: projErr } = await supabase
       .from("projects")
-      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, client_intake_url, notion_repository_url, coordinator_id, friendly_name, description, requires_interview")
+      // NOTE: discord_role_id, discord_role_name, notion_repository_url, client_intake_url
+      // are intentionally OMITTED — they are operational fields for project members/admins
+      // only and must never be returned by this anonymous public endpoint.
+      .select("id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, coordinator_id, friendly_name, description, requires_interview")
       .eq("id", projectId)
       .neq("project_status", "project_complete")
       .maybeSingle();

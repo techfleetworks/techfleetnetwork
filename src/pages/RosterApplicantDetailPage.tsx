@@ -64,7 +64,9 @@ export default function RosterApplicantDetailPage() {
     enabled: !!applicationId && !!user && isAdmin,
   });
 
-  // Fetch project
+  // Fetch project (broad fields). Operational/internal links (discord_role_id,
+  // notion_repository_url, etc.) are revoked from authenticated for security
+  // and must be fetched via get_project_internal_links RPC.
   const { data: project } = useQuery({
     queryKey: ["roster-proj-detail", projectId],
     queryFn: async () => {
@@ -75,6 +77,21 @@ export default function RosterApplicantDetailPage() {
         .single();
       if (error) throw error;
       return data as Record<string, unknown> & { clients: { name: string } | null };
+    },
+    enabled: !!projectId && !!user && isAdmin,
+  });
+
+  // Admin-only operational links (discord role, notion, intake URL)
+  const { data: projectLinks } = useQuery({
+    queryKey: ["roster-proj-links", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc("get_project_internal_links", { p_project_id: projectId! });
+      if (error) throw error;
+      return (data?.[0] ?? null) as {
+        discord_role_id: string | null;
+        discord_role_name: string | null;
+      } | null;
     },
     enabled: !!projectId && !!user && isAdmin,
   });
@@ -319,8 +336,8 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION: Discord Role Management */}
       {project && (
         <DiscordRoleAssignment
-          discordRoleId={(project.discord_role_id as string) ?? ""}
-          discordRoleName={(project.discord_role_name as string) ?? ""}
+          discordRoleId={projectLinks?.discord_role_id ?? ""}
+          discordRoleName={projectLinks?.discord_role_name ?? ""}
           applicantDiscordUserId={(profile?.discord_user_id as string) ?? ""}
           applicantDiscordUsername={(profile?.discord_username as string) ?? ""}
           applicantName={applicantName}
