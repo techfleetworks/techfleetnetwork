@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_announcement_view_counts() TO authenticated;
