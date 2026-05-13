@@ -125,7 +125,12 @@ serve(withAuditWrapper("discord-project-update", async (req) => {
       return jsonResponse({ error: "Request body too large" }, 413);
     }
 
-    const payload: ProjectUpdatePayload = await req.json();
+    const rawPayload = await req.json();
+    const parsedPayload = PayloadSchema.safeParse(rawPayload);
+    if (!parsedPayload.success) {
+      return jsonResponse({ error: "Invalid payload" }, 400);
+    }
+    const payload = parsedPayload.data as ProjectUpdatePayload;
 
     if (!payload?.action || !VALID_ACTIONS.has(payload.action)) {
       return jsonResponse({ error: "Invalid action" }, 400);
