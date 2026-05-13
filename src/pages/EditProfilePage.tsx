@@ -667,9 +667,9 @@ export default function EditProfilePage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+            <DialogTitle className="text-destructive">Delete your account?</DialogTitle>
             <DialogDescription>
-              This action is permanent and cannot be undone. All of your data, including your profile, progress, and activity, will be permanently deleted.
+              This permanently removes your profile, progress, and activity. You can't undo this.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5 py-2">
@@ -687,7 +687,7 @@ export default function EditProfilePage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteConfirmText !== "Delete" || deleting}>
-              {deleting ? "Deleting…" : "Permanently Delete"}
+              {deleting ? "Deleting…" : "Delete account"}
             </Button>
           </DialogFooter>
         </DialogContent>
