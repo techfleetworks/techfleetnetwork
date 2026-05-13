@@ -44,8 +44,13 @@ Deno.serve(withAuditWrapper("revoke-user-sessions", async (req) => {
       return new Response(JSON.stringify({ error: stepUp.error }), { status: stepUp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const body = await req.json();
-    const { target_user_id, reason } = body;
+    const rawBody = await req.json();
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const body = parsedBody.data as Record<string, unknown>;
+    const { target_user_id, reason } = body as { target_user_id?: string; reason?: string };
     if (!target_user_id) {
       return new Response(JSON.stringify({ error: "Missing target_user_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
