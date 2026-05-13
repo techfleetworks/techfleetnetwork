@@ -62,3 +62,36 @@ Every external host is allow-listed in code or in `CSP connect-src` / Vault webh
 - Account deletion: `delete-account` edge fn → triggers `handle_user_deletion()` cascade.
 - Admin promotion: two-step (`promote-to-admin` → emailed `confirm-admin-role` link).
 - Session revocation: `sign-out-all-devices` writes `revoked_sessions` row → `is_session_revoked()` consulted on every gate.
+
+## Realtime channels — audience matrix (audit L-03)
+
+The `realtime.messages` RLS policy is intentionally permissive (`true` on the catch-all branch) because tightening it risks breaking every live subscription in production. This table documents the intended audience per channel so the frontend can enforce subscription guards and a future per-channel policy pass has a verified spec.
+
+| Channel name pattern | Producer | Intended audience | Enforced by |
+|---|---|---|---|
+| `notifications:<user_id>` | `process-notification-fanout` | owner only (`auth.uid() = user_id`) | row-level RLS on `notifications` table; channel name embeds owner uid |
+| `announcements` | `send-announcement-email` + DB trigger | all signed-in users | row RLS on `announcements` (audience filter) |
+| `system_health` | cron + edge fns | admin only | `has_role(uid,'admin')` checked by subscriber hook before subscribing |
+| `cohort:<cohort_id>` | teacher / cohort members | cohort members + teacher + admin | `cohort_members` row RLS |
+| `triage` | `triage-error` | admin only | client-side `useAdmin` gate before subscribe |
+| `web_vitals` | `record-web-vital` | admin only | client-side `useAdmin` gate |
+| `fleety:<turn_id>` | `techfleet-chat` streaming | turn owner only | turn_id is uuid scoped to caller's session |
+
+**Frontend rule:** every `supabase.channel()` call must be wrapped in a role check. Channels marked "admin only" must short-circuit when `useAdmin()` returns false. Channels embedding a user/cohort id must validate the id matches the current session before subscribing.
+
+**Backend rule (deferred):** once every producer has been migrated to a structured topic name, replace the catch-all `true` policy with a per-prefix policy. Not done in this pass — risk of breaking live subscriptions.
+
+## Edge function CORS posture (audit M-05)
+
+64 of 81 edge functions currently set `Access-Control-Allow-Origin: *`. This is intentional for now because:
+- Bearer-token auth makes CSRF surface minimal (no cookie auth on edge fns).
+- Several functions are called from preview origins, custom domains, and signed webhooks — a single wildcard avoids per-environment header maintenance.
+- Replacing `*` with the request origin (echo allow-list) is a no-op for first-party callers but requires per-function curl verification before merge.
+
+Functions that **must** keep `*` because they receive third-party signed webhooks (signature is the auth, not origin):
+- `discord-interactions` (Discord signature header)
+- `gumroad-webhook` (Gumroad signature)
+- `handle-email-suppression`, `handle-email-unsubscribe` (Resend webhooks)
+- `auth-email-hook` (Supabase Auth hook)
+
+Tightening the rest is tracked in the M-01/M-05 phased rollout (see `docs/runbooks/edge-fn-zod-rollout.md`).

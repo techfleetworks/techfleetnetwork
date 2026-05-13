@@ -99,3 +99,19 @@
 | `style-src 'unsafe-inline'` | Tailwind / shadcn need it; nonce migration is infeasible without rewriting design system. | All user HTML stripped of `style`, `class`, `id` attrs at write + read time; CSS-injection vector closed. |
 | Cookie-token theft via XSS | SPA stores tokens in localStorage. | Multi-layer XSS defense (CSP `script-src` no inline, DOMPurify, deepSanitize, server-side HTML sanitizer trigger). |
 | Session ID in URL during password recovery | Required by Supabase recovery flow. | Single-use token; 5s race-condition guard; HSTS prevents leak via referrer. |
+
+## COEP intentionally disabled (audit M-03)
+
+`Cross-Origin-Embedder-Policy` is **not** set. Enabling COEP would break:
+- Google OAuth popup (`accounts.google.com`)
+- YouTube / YouTube-nocookie embeds (course player)
+- Luma calendar embeds (events page)
+- Cloudflare Turnstile widget
+
+Compensating controls already in place:
+- `Cross-Origin-Opener-Policy: same-origin` (window-isolation)
+- `frame-ancestors 'none'` (clickjacking)
+- Per-origin allow-list in CSP `frame-src` / `connect-src` / `script-src`
+- `X-Frame-Options: DENY` on hosts that honor `_headers`
+
+If a future cross-origin isolation requirement appears (e.g. SharedArrayBuffer for WASM), embed-affected widgets must move to first-party proxies before enabling COEP.
