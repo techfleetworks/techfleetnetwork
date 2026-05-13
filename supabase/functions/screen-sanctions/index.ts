@@ -24,7 +24,12 @@ Deno.serve(withAuditWrapper("screen-sanctions", async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let body: Body = {};
-  try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "invalid_body" }, 400);
+    body = parsed.data as Body;
+  } catch { return json({ error: "invalid_json" }, 400); }
 
   const country = (body.country_code || "").trim().toUpperCase();
   if (!/^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(country)) return json({ error: "invalid_country" }, 400);
