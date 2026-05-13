@@ -144,19 +144,40 @@ export default function RosterProjectDetailPage() {
         </div>
       </div>
 
-      <ResponsiveTabs value={tab} onValueChange={setTab}>
-        <ResponsiveTabsList tabs={rosterTabs} value={tab} onValueChange={setTab} />
-        <ResponsiveTabsContent value="analysis" className="mt-6">
-          <Suspense fallback={<TabFallback />}>
-            <ProjectAnalysisContent projectId={projectId!} />
-          </Suspense>
-        </ResponsiveTabsContent>
-        <ResponsiveTabsContent value="roster" className="mt-6">
-          <Suspense fallback={<TabFallback />}>
-            <ProjectRosterContent projectId={projectId!} />
-          </Suspense>
-        </ResponsiveTabsContent>
-      </ResponsiveTabs>
+      {(() => {
+        const isCoordinator = !!project.coordinator_id && project.coordinator_id === user?.id;
+        const tabs: TabItem[] = [
+          { value: "analysis", label: "Application Analysis" },
+          { value: "roster", label: "Project Roster" },
+          ...(isCoordinator ? [{ value: "blast", label: "Blast" } as TabItem] : []),
+        ];
+        return (
+          <ResponsiveTabs value={tab} onValueChange={setTab}>
+            <ResponsiveTabsList tabs={tabs} value={tab} onValueChange={setTab} />
+            <ResponsiveTabsContent value="analysis" className="mt-6">
+              <Suspense fallback={<TabFallback />}>
+                <ProjectAnalysisContent projectId={projectId!} />
+              </Suspense>
+            </ResponsiveTabsContent>
+            <ResponsiveTabsContent value="roster" className="mt-6">
+              <Suspense fallback={<TabFallback />}>
+                <ProjectRosterContent projectId={projectId!} />
+              </Suspense>
+            </ResponsiveTabsContent>
+            {isCoordinator && (
+              <ResponsiveTabsContent value="blast" className="mt-6">
+                <Suspense fallback={<TabFallback />}>
+                  <ProjectBlastComposer
+                    projectId={projectId!}
+                    projectName={clientName}
+                    isCoordinator={isCoordinator}
+                  />
+                </Suspense>
+              </ResponsiveTabsContent>
+            )}
+          </ResponsiveTabs>
+        );
+      })()}
     </div>
   );
 }
