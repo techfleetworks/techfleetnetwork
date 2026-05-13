@@ -26,7 +26,15 @@ Deno.serve(withAuditWrapper("rate-limit", async (req) => {
   log.info("handler", `Request received [${requestId}]`, { requestId });
 
   try {
-    const { identifier, action } = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const { identifier, action } = parsedBody.data as { identifier?: unknown; action?: unknown };
 
     const VALID_ACTIONS = ["login_attempt", "signup_attempt", "signup_resend", "password_reset"];
     if (!identifier || typeof identifier !== "string" || identifier.length > 255) {
