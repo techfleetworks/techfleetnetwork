@@ -18,6 +18,7 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 const ProjectAnalysisContent = lazy(() => import("@/components/admin/ProjectAnalysisContent"));
 const ProjectRosterContent = lazy(() => import("@/components/admin/ProjectRosterContent"));
 const ProjectBlastComposer = lazy(() => import("@/components/recruiting/ProjectBlastComposer"));
+const ProjectBlastHistory = lazy(() => import("@/components/recruiting/ProjectBlastHistory"));
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
