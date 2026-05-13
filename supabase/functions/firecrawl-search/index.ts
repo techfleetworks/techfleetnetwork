@@ -1,4 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing per-field checks below stay authoritative.
+const BodySchema = z.object({
+  query: z.string().optional(),
+  limit: z.number().optional(),
+}).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
@@ -47,7 +54,15 @@ Deno.serve(withAuditWrapper("firecrawl-search", async (req) => {
       );
     }
 
-    const { query, limit } = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const { query, limit } = parsedBody.data as { query?: unknown; limit?: unknown };
 
     if (!query || typeof query !== "string" || query.trim().length < 2) {
       return new Response(

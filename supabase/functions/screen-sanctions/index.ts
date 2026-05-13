@@ -6,18 +6,30 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  * user does not yet have an account when they are screened.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import {
   corsHeaders, json, clientIp, isEmbargoed, SANCTIONS_LIST_VERSION,
 } from "../_shared/compliance.ts";
 
 interface Body { email?: string; country_code?: string }
 
+// M-01: Lenient shape guard. Existing country regex + email slice below stay authoritative.
+const BodySchema = z.object({
+  email: z.string().optional(),
+  country_code: z.string().optional(),
+}).passthrough();
+
 Deno.serve(withAuditWrapper("screen-sanctions", async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   let body: Body = {};
-  try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400); }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "invalid_body" }, 400);
+    body = parsed.data as Body;
+  } catch { return json({ error: "invalid_json" }, 400); }
 
   const country = (body.country_code || "").trim().toUpperCase();
   if (!/^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(country)) return json({ error: "invalid_country" }, 400);

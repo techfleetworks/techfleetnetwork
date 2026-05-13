@@ -1,6 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing application_id type check below stays authoritative.
+const BodySchema = z.object({
+  application_id: z.string().optional(),
+  title: z.string().optional(),
+  about_yourself: z.string().optional(),
+  status: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+  email: z.string().optional(),
+}).passthrough();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -53,7 +65,14 @@ Deno.serve(withAuditWrapper("sync-airtable", async (req) => {
       : AIRTABLE_TABLE_NAME_RAW.trim();
 
     // --- Body ---
-    const body = await req.json();
+    const rawSyncBody = await req.json();
+    const parsedSyncBody = BodySchema.safeParse(rawSyncBody);
+    if (!parsedSyncBody.success) {
+      return new Response(JSON.stringify({ error: "Invalid body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const body = parsedSyncBody.data as Record<string, any>;
     const { application_id, title, about_yourself, status, created_at, updated_at, email } = body;
 
     if (!application_id || typeof application_id !== "string") {

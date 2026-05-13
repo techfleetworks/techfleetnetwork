@@ -1,8 +1,15 @@
+import { z } from "npm:zod@4.3.6";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { errorResponse, handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
 import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing per-field length/type checks below stay authoritative.
+const BodySchema = z.object({
+  query_normalized: z.string().optional(),
+  response_markdown: z.string().optional(),
+}).passthrough();
 Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -13,7 +20,10 @@ Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
     if (auth instanceof Response) return auth;
 
     // Parse & validate body
-    const body = await parseJsonBody(req) as Record<string, unknown>;
+    const rawBody = await parseJsonBody(req);
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) return jsonResponse({ error: "Invalid body" }, 400);
+    const body = parsedBody.data as Record<string, unknown>;
     const queryNormalized = typeof body.query_normalized === "string"
       ? body.query_normalized.trim().slice(0, 500)
       : "";

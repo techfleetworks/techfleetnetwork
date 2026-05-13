@@ -5,8 +5,15 @@
 // "Drafts" tab for human review before going live. Uses Gemini Flash via the
 // Lovable AI Gateway with structured tool-calling for schema safety.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing entity allow-list + clamp below stay authoritative.
+const BodySchema = z.object({
+  entity: z.string().optional(),
+  limit: z.number().optional(),
+}).passthrough();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -50,7 +57,11 @@ Deno.serve(withAuditWrapper("fleety-bulk-draft-playbooks", async (req) => {
 
   // Parse body
   let body: { entity?: string; limit?: number } = {};
-  try { body = await req.json(); } catch { /* default */ }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (parsed.success) body = parsed.data as typeof body;
+  } catch { /* default */ }
   const entityKey = (body.entity || "deliverable").toLowerCase();
   const ent = ENTITIES[entityKey];
   if (!ent) return json({ error: `entity must be one of ${Object.keys(ENTITIES).join(", ")}` }, 400);

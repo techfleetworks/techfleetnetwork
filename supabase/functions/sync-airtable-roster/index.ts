@@ -1,6 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing table_name string check below stays authoritative.
+const BodySchema = z.object({
+  table_name: z.string().optional(),
+}).passthrough();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -177,9 +183,11 @@ Deno.serve(withAuditWrapper("sync-airtable-roster", async (req) => {
     let tableName = "Project Roster";
     if (req.method === "POST") {
       try {
-        const body = await req.json();
+        const raw = await req.json();
+        const parsed = BodySchema.safeParse(raw);
+        const body = parsed.success ? (parsed.data as Record<string, unknown>) : {};
         if (body.table_name && typeof body.table_name === "string") {
-          tableName = body.table_name.trim();
+          tableName = (body.table_name as string).trim();
         }
       } catch {
         // No body or invalid JSON — use default

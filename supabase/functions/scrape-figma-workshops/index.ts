@@ -1,6 +1,17 @@
 // Admin-only: scrape Tech Fleet Figma Community workshop pages via Firecrawl,
 // fuzzy-match titles to reference_workshops, and update descriptions.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing FIGMA_HOST_RE + Math.min/Number coercion below stay authoritative.
+const BodySchema = z.object({
+  urls: z.array(z.unknown()).optional(),
+  dryRun: z.unknown().optional(),
+  autoDiscover: z.unknown().optional(),
+  profile: z.string().optional(),
+  maxUrls: z.unknown().optional(),
+  discoverOnly: z.unknown().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,7 +101,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const rawFigmaBody = await req.json().catch(() => ({}));
+    const parsedFigmaBody = BodySchema.safeParse(rawFigmaBody);
+    if (!parsedFigmaBody.success) {
+      return new Response(JSON.stringify({ error: "Invalid body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const body = parsedFigmaBody.data as Record<string, unknown>;
     const urls: string[] = Array.isArray(body.urls) ? body.urls : [];
     const dryRun = !!body.dryRun;
     const autoDiscover = body.autoDiscover !== false; // default ON

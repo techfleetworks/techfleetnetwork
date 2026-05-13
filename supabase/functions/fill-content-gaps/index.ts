@@ -4,7 +4,14 @@
 // descriptions for them in batches of 10. Writes results back tagged as
 // description_source='ai_generated' so admins can later filter for review.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing TABLES filter below stays authoritative.
+const BodySchema = z.object({
+  table: z.string().optional(),
+  dry_run: z.boolean().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -148,7 +155,11 @@ Deno.serve(withAuditWrapper("fill-content-gaps", async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   let body: { table?: string; dry_run?: boolean } = {};
-  try { body = await req.json(); } catch { /* default */ }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (parsed.success) body = parsed.data as typeof body;
+  } catch { /* default */ }
   const targetTables = body.table
     ? TABLES.filter(t => t.table === body.table)
     : TABLES;
