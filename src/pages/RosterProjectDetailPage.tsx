@@ -166,13 +166,16 @@ export default function RosterProjectDetailPage() {
               </Suspense>
             </ResponsiveTabsContent>
             {isCoordinator && (
-              <ResponsiveTabsContent value="blast" className="mt-6">
+              <ResponsiveTabsContent value="blast" className="mt-6 space-y-6">
                 <Suspense fallback={<TabFallback />}>
                   <ProjectBlastComposer
                     projectId={projectId!}
                     projectName={clientName}
                     isCoordinator={isCoordinator}
                   />
+                </Suspense>
+                <Suspense fallback={<TabFallback />}>
+                  <ProjectBlastHistory projectId={projectId!} />
                 </Suspense>
               </ResponsiveTabsContent>
             )}
