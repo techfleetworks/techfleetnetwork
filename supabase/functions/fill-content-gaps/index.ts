@@ -155,7 +155,11 @@ Deno.serve(withAuditWrapper("fill-content-gaps", async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   let body: { table?: string; dry_run?: boolean } = {};
-  try { body = await req.json(); } catch { /* default */ }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (parsed.success) body = parsed.data as typeof body;
+  } catch { /* default */ }
   const targetTables = body.table
     ? TABLES.filter(t => t.table === body.table)
     : TABLES;
