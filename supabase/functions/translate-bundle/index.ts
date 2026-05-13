@@ -28,7 +28,14 @@ Deno.serve(withAuditWrapper("translate-bundle", async (req) => {
       });
     }
 
-    const { locale, namespace = "common" } = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: "invalid_body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { locale, namespace = "common" } = parsedBody.data;
     if (!locale || !SUPPORTED.test(locale)) {
       return new Response(JSON.stringify({ error: "invalid_locale" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
