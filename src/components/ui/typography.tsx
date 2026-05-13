@@ -2,10 +2,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Tech Fleet typography hierarchy — sentence case, Inter family.
- * Brand rule: H1 page title, H2 section, H3 subsection, body. Pages should
- * stop hand-rolling sizes and use these primitives so voice + scale stay
- * consistent. See docs/brand/voice-and-tone.md.
+ * Tech Fleet typography hierarchy — sentence case, Futura PT (display) /
+ * Poppins (body) per Brand Visual Guide §3. Falls back to Jost / Inter.
+ * Pages should stop hand-rolling sizes and use these primitives so voice +
+ * scale stay consistent. See docs/brand/voice-and-tone.md and
+ * docs/brand/typography.md.
  */
 
 type AsProp<T extends React.ElementType> = { as?: T };
