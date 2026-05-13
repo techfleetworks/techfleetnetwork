@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.99.1";
+import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("resolve-discord-id");
+
+const BodySchema = z.object({
+  discord_username: z.string().optional(),
+  confirm_user_id: z.string().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -137,7 +143,12 @@ serve(withAuditWrapper("resolve-discord-id", async (req) => {
       );
     }
 
-    const body = await req.json();
+    const _raw = await req.json().catch(() => ({}));
+    const _parsed = BodySchema.safeParse(_raw);
+    if (!_parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const body: any = _parsed.data;
     const discord_username = body.discord_username;
     const confirm_user_id = body.confirm_user_id; // Optional: user picked a candidate
     if (confirm_user_id && typeof confirm_user_id === "string" && /^\d{15,25}$/.test(confirm_user_id)) {

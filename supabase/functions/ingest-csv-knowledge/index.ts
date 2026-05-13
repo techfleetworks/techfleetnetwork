@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("ingest-csv-knowledge");
+
+const BodySchema = z.object({
+  csv_text: z.string().optional(),
+  dataset_name: z.string().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,7 +137,14 @@ serve(withAuditWrapper("ingest-csv-knowledge", async (req) => {
   // --- End auth ---
 
   try {
-    const { csv_text, dataset_name } = await req.json();
+    const _raw = await req.json().catch(() => ({}));
+    const _parsed = BodySchema.safeParse(_raw);
+    if (!_parsed.success) {
+      return new Response(JSON.stringify({ success: false, error: "Invalid request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { csv_text, dataset_name } = _parsed.data as { csv_text?: string; dataset_name?: string };
 
     if (!csv_text || !dataset_name) {
       log.warn("validate", `Missing required fields [${requestId}]: csv_text=${!!csv_text}, dataset_name=${!!dataset_name}`, { requestId });
