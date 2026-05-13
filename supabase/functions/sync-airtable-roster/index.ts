@@ -183,9 +183,11 @@ Deno.serve(withAuditWrapper("sync-airtable-roster", async (req) => {
     let tableName = "Project Roster";
     if (req.method === "POST") {
       try {
-        const body = await req.json();
+        const raw = await req.json();
+        const parsed = BodySchema.safeParse(raw);
+        const body = parsed.success ? (parsed.data as Record<string, unknown>) : {};
         if (body.table_name && typeof body.table_name === "string") {
-          tableName = body.table_name.trim();
+          tableName = (body.table_name as string).trim();
         }
       } catch {
         // No body or invalid JSON — use default
