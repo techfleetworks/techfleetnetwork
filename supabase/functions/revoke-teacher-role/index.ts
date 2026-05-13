@@ -48,7 +48,14 @@ Deno.serve(withAuditWrapper("revoke-teacher-role", async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
+    const rawBody = await req.json().catch(() => ({}))
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
     const targetUserId = String(body.user_id ?? '')
     if (!targetUserId) {
       return new Response(JSON.stringify({ error: 'user_id required' }), {
