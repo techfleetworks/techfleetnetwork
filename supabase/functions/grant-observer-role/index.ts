@@ -76,7 +76,12 @@ serve(withAuditWrapper("grant-observer-role", async (req) => {
   const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
   if (contentLength > MAX_BODY_BYTES) return json({ error: "Body too large" }, 413);
   let body: unknown;
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "Invalid body" }, 400);
+    body = parsed.data;
+  } catch { return json({ error: "Invalid JSON" }, 400); }
   if (!body || typeof body !== "object" || (body as Record<string, unknown>).confirm !== true) {
     return json({ error: "Missing confirm:true" }, 400);
   }
