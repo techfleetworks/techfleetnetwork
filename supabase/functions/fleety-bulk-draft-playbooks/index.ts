@@ -57,7 +57,11 @@ Deno.serve(withAuditWrapper("fleety-bulk-draft-playbooks", async (req) => {
 
   // Parse body
   let body: { entity?: string; limit?: number } = {};
-  try { body = await req.json(); } catch { /* default */ }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (parsed.success) body = parsed.data as typeof body;
+  } catch { /* default */ }
   const entityKey = (body.entity || "deliverable").toLowerCase();
   const ent = ENTITIES[entityKey];
   if (!ent) return json({ error: `entity must be one of ${Object.keys(ENTITIES).join(", ")}` }, 400);
