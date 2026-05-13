@@ -14,6 +14,7 @@ import { useQueryClient, useQuery } from "@/lib/react-query";
 import { ApprovalActions } from "@/components/classes/ApprovalActions";
 import { ClassAuditHistory } from "@/components/classes/ClassAuditHistory";
 import { ClassService } from "@/services/class.service";
+import { sanitizeHtml } from "@/lib/security";
 
 const STATUS_CLASS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
