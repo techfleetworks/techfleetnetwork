@@ -181,6 +181,24 @@ function ActiveProjectDetail({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Operational links (notion repo, client intake) require a roster-gated RPC
+  // because column SELECT was revoked from authenticated for security.
+  const { data: links } = useQuery({
+    queryKey: ["project-internal-links", project.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc("get_project_internal_links", { p_project_id: project.id });
+      if (error) throw error;
+      return (data?.[0] ?? null) as {
+        client_intake_url: string | null;
+        notion_repository_url: string | null;
+      } | null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const clientIntakeUrl = links?.client_intake_url ?? "";
+  const notionRepoUrl = links?.notion_repository_url ?? "";
+
   const hasDateRange = project.anticipated_start_date || project.anticipated_end_date;
 
   return (
