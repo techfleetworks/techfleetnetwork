@@ -1,242 +1,125 @@
-# Full Security Audit — Tech Fleet Network (Read-Only)
+# Audit Remediation Plan — Zero-Brick Guarantee
 
-## Goal
-Audit the entire system against OWASP Cheat Sheets. **No code, schema, RLS, or config changes.** The single deliverable is a written audit report.
+## Hard guardrails (non-negotiable)
 
-## Scope
-- Stack: React 18 + Vite 5 + TypeScript + Tailwind, Supabase (Postgres + RLS + Auth + Storage + Realtime), Deno edge functions, Lovable AI Gateway, Discord/Notion/Resend integrations.
-- Roles: `admin`, `teacher`, `member`, plus `anon` and `service_role`.
-- Surface area: 119 RLS-protected tables, 317 policies, ~120 edge functions, 5 storage buckets, 30+ third-party integrations.
+1. **No RLS policy changes.** No `CREATE/DROP/ALTER POLICY`. No `ALTER TABLE ... ENABLE/DISABLE ROW LEVEL SECURITY`. No `GRANT`/`REVOKE`. No role drops.
+2. **No `SECURITY DEFINER` function changes** (the 27 documented ones, including `has_role`, stay byte-for-byte identical).
+3. **No `service_role` key handling changes** — admin client (`getAdminClient`) untouched.
+4. **No edge-function auth gate changes** (`requireAuthenticatedRequest`, `requireAdminRequest` untouched).
+5. **No changes to `src/integrations/supabase/client.ts` or `types.ts`.**
+6. **No migrations in this remediation pass.** Every fix is frontend code, edge-fn input parsing, or static config.
+7. **Verification gate before merge:** dry-run on preview, then run the existing pentest workflow (`scripts/pentest/db-rls.mjs`) plus a smoke matrix (admin/teacher/member CRUD on profile, announcement, class, project application) to prove nothing regressed.
 
-## Hard guardrails (read-only contract)
-1. **No migrations, no edge-fn deploys, no code edits, no secret rotations.** Findings only.
-2. Use only read tools: `supabase--read_query`, `supabase--linter`, `security--run_security_scan`, `security--get_scan_results`, `code--exec` for filesystem-level grep + `npm audit --json`, `code--fetch_website` for OWASP cheat sheets.
-3. Permission baseline (role × table × action) is captured for documentation only — no policy is added, removed, or altered.
-4. UX, latency, and admin/member/teacher capabilities remain untouched.
+If any planned step would touch items 1–5, it is dropped from this pass and re-scoped to a separate, explicitly-approved migration.
 
-## OWASP cheat sheets in scope and the exact parameters checked for each
+## Permission preservation matrix (snapshot to verify against post-fix)
 
-For every cheat sheet below: (a) the controls extracted from the OWASP page, (b) the concrete checks run against this codebase, (c) what evidence is captured.
+| Role | Reads | Creates | Updates | Deletes | Must still work after fix |
+|---|---|---|---|---|---|
+| anon | public landing, public project openings, policy pages, signup, login, password reset, DSAR submit | account (signup), DSAR request, feedback (public form), application draft after signup | own session tokens | none | yes |
+| member | own profile, own journey, own classes, announcements, events, resources, notifications, own applications, framework KB, Fleety chat | own profile, own application, own feedback, own quest progress, own push subscription, own avatar upload | own profile, own application (pre-submit), own preferences, own notification read-state | own application (draft), own avatar, own notifications, own account | yes |
+| teacher | everything member can + own classes & cohorts roster, own class submissions queue | own classes, own cohorts, class announcements | own classes, own cohorts (pre-approval) | own draft classes/cohorts | yes |
+| admin | every table via `has_role()` policies, audit log, system health, error triage, recruiting center, application analysis, all rosters, all DSARs | announcements (any), banners, project openings, clients, projects, blasts, ingest CSVs, role grants | any record (RLS admin branch), class approval/denial, role promotions | any record (RLS admin branch + cascading user delete), DSAR fulfillment | yes |
+| service_role (Lovable agent + edge fns) | full bypass for migrations, cron jobs, edge fns, audit log writes | same | same | same | yes |
 
-### 1. Authentication
-- Controls: credential strength, account-enumeration resistance, brute-force protection, secure password reset, re-auth for sensitive ops.
-- Checks: HIBP/pwned-password gate on signup + reset; uniform error messages on login failure; `peek_rate_limit` thresholds and lockout windows; password-reset token TTL; re-auth required before email change / role change / MFA disable.
-- Evidence: edge-fn source paths, rate-limit table contents, sample failure messages.
+Every fix below is checked against this matrix in the verification step.
 
-### 2. Authorization & Access Control
-- Controls: deny-by-default, least privilege, server-side enforcement, no client-trust.
-- Checks: every table has RLS enabled; no policy uses `using (true)` outside intentional public reads; admin checks use `has_role()` not client claims; no `service_role` keys in client bundle.
-- Evidence: full `pg_policy` dump, grep of `dangerouslySetInnerHTML`, grep of `service_role` in `src/`.
+## Findings → fixes (only the open ones)
 
-### 3. Session Management
-- Controls: idle timeout, absolute timeout, secure cookie flags, server-side revocation, rotation on privilege change.
-- Checks: 30-min idle / 4-hr absolute enforcement; `revoked_sessions` consulted on every request; refresh-token rotation on; session fixation impossible (Supabase-managed JWT).
-- Evidence: session config, `revoked_sessions` schema + policies, client refresh path.
+### H-01 · Sanitize event description HTML (frontend-only)
+- Files: `src/components/events/EventDetailDialog.tsx:98`, `src/components/events/CommunityEventCard.tsx:99`.
+- Wrap the existing `descriptionHtml` strings with `sanitizeHtml()` from `@/lib/security` before passing to `dangerouslySetInnerHTML`.
+- Memoize with `useMemo` on `event.description` to avoid re-sanitizing per render.
+- No DB, no edge fn, no schema. Zero permission impact.
 
-### 4. Multi-Factor Authentication
-- Controls: phishing-resistant factors, enrollment friction, recovery codes, admin-required MFA.
-- Checks: TOTP enrollment for admins enforced after 5-day grace; recovery-code generation + one-time use; MFA-gate edge fn; no SMS fallback.
-- Evidence: `mfa_factors` schema, admin gate fn source, BDD scenarios.
+### H-02 · Production response headers (static config only)
+- `public/_headers` already declares the full CSP, `X-Frame-Options: DENY`, `Permissions-Policy`, COOP, HSTS-with-preload. The probe failed because the live host (`*.lovable.app`) doesn't honor Netlify-style `_headers`.
+- Action: add the same header set as `<meta http-equiv>` tags inside `index.html` for the directives that are honored as meta (CSP, Referrer-Policy, Permissions-Policy via `<meta>` is partially honored; X-Frame-Options is **not** meta-honored — document this gap as accepted).
+- Add `frame-ancestors 'none'` via CSP meta tag (this IS the modern replacement for X-Frame-Options and IS honored as meta on most browsers).
+- Keep `public/_headers` for the custom-domain Cloudflare path that does honor it.
+- No code paths that fetch from current allow-listed origins are affected (Supabase, Discord webhooks server-side only, Lovable AI Gateway, Google OAuth, Clarity, GA4, CookieYes — all already in CSP).
 
-### 5. Forgot Password
-- Controls: time-limited single-use tokens, no enumeration, rate-limit, no auto-login on reset.
-- Checks: token TTL, single-use enforcement, identical response for known/unknown emails, 5-second race-condition guard, `keep_current=true` behavior.
-- Evidence: edge-fn source, rate-limit table.
+### M-01 · Zod coverage on edge functions
+- Scope: add Zod parsing to handler entry points that currently `await req.json()` without validation. Excludes:
+  - functions that already validate (do not double-wrap),
+  - functions that take **no body** (GET-style),
+  - cron-triggered functions called only by service-role.
+- Pattern: at the top of each handler, parse with a `z.object({...}).safeParse(...)`; on failure return `400` with the existing `corsHeaders`. Do NOT change auth gates, do NOT change DB writes, do NOT change response shapes on success.
+- Schemas mirror the existing field expectations (read each fn's current usage of `body.x` first; schema is a documentation of the status quo, not a tightening).
+- Rollout: 10–15 functions per PR, each PR independently revertible. Any function whose existing client call passes an extra/legacy field gets that field added as `.optional()` to avoid breakage.
+- Verification per fn: `supabase--curl_edge_functions` with the exact body the client sends today; assert 200.
 
-### 6. Credential Stuffing Prevention
-- Checks: HIBP integration, device-aware lockout, CAPTCHA fallback (if any), anomaly detection on burst logins.
-- Evidence: `peek_rate_limit` config, login fairness rules.
+### M-02 · HSTS preload
+- Already present in `public/_headers` (`max-age=63072000; includeSubDomains; preload`).
+- Action: add the same as a `<meta>` is **not possible** for HSTS (HSTS only works as response header). Document in `docs/runbooks/` that custom-domain hosting (Cloudflare) serves the header; `*.lovable.app` is out of our control. Submit `techfleet.network` to `hstspreload.org` once we re-verify the header is live on the apex.
+- No code change. Documentation + external submission only.
 
-### 7. Password Storage
-- Checks: managed by Supabase Auth (bcrypt) — confirm no custom password hashing in app code; confirm no plaintext password fields anywhere.
-- Evidence: grep of `password`, `pwd`, `hash` in `src/` and `supabase/functions/`.
+### M-03 · COOP/COEP
+- `Cross-Origin-Opener-Policy: same-origin` is already in `public/_headers`. COEP would break Google OAuth popup + YouTube/Luma iframes (we use them) so we will **NOT** enable COEP.
+- Action: explicit accepted-risk note in the security memory and in `docs/threat-model.md` explaining COEP is intentionally off; mitigation is `frame-ancestors 'none'` + per-origin allow-list in CSP.
 
-### 8. OAuth 2.0 / Social Auth
-- Checks: scopes minimal (Google profile+email only); state parameter validated; PKCE on; redirect URIs allowlisted; no token leakage in URL fragments.
-- Evidence: Supabase auth provider config, redirect-URI list.
+### M-05 · Per-edge-fn CORS audit
+- Read-only inventory pass: grep every `supabase/functions/*/index.ts` for `Access-Control-Allow-Origin` overrides.
+- Where a function currently sets `*`, replace with `corsHeaders` from `npm:@supabase/supabase-js@2/cors` (which echoes the request origin against the Supabase-managed allow-list). No behavior change for first-party callers.
+- Functions that intentionally must accept `*` (public webhooks signed by sender — Discord, Resend bounces) keep `*` and get a code comment + memory note.
+- Verification: `supabase--curl_edge_functions` from preview origin returns same status as before for every changed fn.
 
-### 9. JWT
-- Checks: `alg` pinned (no `none`); short access-token TTL with refresh rotation; audience/issuer validated server-side; no JWT in localStorage exposed to XSS (uses Supabase secure storage).
-- Evidence: edge-fn JWT validation pattern.
+### L-01 · `npm audit`
+- Action: run `npm audit --json` in CI (`.github/workflows/secret-scan.yml` already exists; add an `audit` step). No dependency upgrades in this pass — upgrades go through the standard PR review.
 
-### 10. Secrets Management
-- Checks: every secret in Supabase Vault (`Deno.env`), none in `.env` committed, none in `src/`; rotation logs present; `service_role` never exposed.
-- Evidence: `git ls-files` filter, env-var inventory, Vault rotation timestamps.
+### L-03 · Realtime channel scope
+- The finding is "ELSE true on non-admin topics — scope per channel." We will **NOT** modify the `realtime.messages` policy (touching it risks breaking every live subscription including admin telemetry, notifications, announcements, system health, cohort chat).
+- Action: document each realtime topic's intended audience in `docs/attack-surface.md`, and add a frontend assertion that subscriptions only request topics the current role is allowed to see. Backend stays permissive (current behavior preserved).
 
-### 11. Key Management & Cryptographic Storage
-- Checks: PII-at-rest encryption (pgsodium), key rotation cadence, KMS-equivalent for symmetric keys, no homemade crypto.
-- Evidence: `pgsodium` key list, encrypted columns inventory.
+### L-04 · `fleety_turn_signals` (already accepted-risk)
+- No change. Memory note already exists.
 
-### 12. Input Validation
-- Checks: every edge-fn entrypoint runs Zod (or equivalent) on body/query/params; allowlist not denylist; size caps on text fields; UUID/email/URL types narrowed.
-- Evidence: per-edge-fn Zod schema audit.
+### M-04 · Cloudflare `cf_bm` (already accepted-risk)
+- No change. Third-party cookie out of our control.
 
-### 13. Mass Assignment
-- Checks: client `update({...})` calls use explicit column allowlists; no `select * from` paths returning sensitive cols (PII columns flagged); `profiles.email` immutability trigger present.
-- Evidence: grep of `.update(` and `.upsert(` in `src/`.
+## Execution order
 
-### 14. IDOR (Insecure Direct Object Reference)
-- Checks: every RLS policy filters by `auth.uid()` or `has_role()`; no edge fn trusts `userId` from request body; UUID v4 used (not sequential ids).
-- Evidence: policy WHERE-clause review, edge-fn body-param audit.
+1. **Read-only verification first.** Snapshot `pg_policies`, `pg_proc.proname`, role grants, storage policies → save to `/mnt/documents/security-audit-evidence/pre-fix-baseline/`. This is the rollback reference.
+2. H-01 sanitization (1 PR, ~15 LOC).
+3. H-02 + M-02 + M-03 header/meta + docs (1 PR, no code logic changes).
+4. M-05 CORS inventory + non-behavioral cleanup (1 PR).
+5. M-01 Zod rollout (multiple small PRs, batched 10 fns each).
+6. L-01 CI step (1 PR).
+7. L-03 docs + frontend assertion (1 PR).
+8. **Post-fix verification.** Re-snapshot `pg_policies`/`pg_proc`/grants → diff vs. baseline → expected diff = **empty**. Run smoke matrix below.
 
-### 15. SQL Injection / Query Parameterization
-- Checks: all RPCs use parameterized args (`$1`, `_param`); no `format(... %s ...)` without `%L`/`%I`; PostgREST filters from client never built via string concat.
-- Evidence: grep of `format(` and `EXECUTE` in `pg_proc.prosrc`.
+## Smoke matrix (run after every PR)
 
-### 16. XSS (Reflected, Stored, DOM)
-- Checks: DOMPurify on announcement/lesson WYSIWYG render paths; React escaping intact; no `dangerouslySetInnerHTML` without sanitizer; URL-render fields validated.
-- Evidence: grep of `dangerouslySetInnerHTML`, sanitizer wrapper inventory.
+| Actor | Action | Expected |
+|---|---|---|
+| anon | submit DSAR | 200 |
+| anon | view `/project-openings/:slug` | 200 |
+| member | update own profile | 200, row updated |
+| member | submit project application | 200 |
+| member | delete own notification | 200 |
+| teacher | create class | 200 |
+| teacher | edit own class | 200 |
+| admin | publish announcement | 200 |
+| admin | promote user to teacher | 200 |
+| admin | delete a test user (cascade) | 200 |
+| service_role (edge fn) | write `audit_log` | 200, hash chain valid |
+| Lovable agent (`supabase--read_query`) | `select count(*) from profiles` | row count > 0 |
+| Lovable agent (`supabase--migration` dry run) | `select 1` | 1 |
 
-### 17. Content Security Policy
-- Checks: header present and not `unsafe-inline`/`unsafe-eval` for scripts (Vite hash where possible); `connect-src` allowlist names exact origins (Supabase, Discord, Notion, Resend, AI Gateway); `frame-ancestors 'none'`.
-- Evidence: deployed response headers.
+Any red row = immediate revert of the most recent PR before continuing.
 
-### 18. HTTP Security Headers
-- Checks: `Strict-Transport-Security` ≥ 1y + preload; `X-Content-Type-Options: nosniff`; `Referrer-Policy: strict-origin-when-cross-origin`; `Permissions-Policy` denies camera/mic/geo unless used.
-- Evidence: live header dump per route family.
+## Out of scope for this pass (explicitly deferred, separate approval required)
 
-### 19. HSTS
-- Checks: HSTS on all custom domains; preload status verified.
-- Evidence: `curl -I` of `techfleet.network`, `www.techfleet.network`.
-
-### 20. Clickjacking
-- Checks: `X-Frame-Options: DENY` or CSP `frame-ancestors 'none'`; no third-party iframe embedding of app.
-- Evidence: response headers.
-
-### 21. CSRF
-- Checks: state-changing edge fns require Supabase JWT (bearer, not cookie) → CSRF surface limited; any cookie-auth path has SameSite=Lax+ and CSRF token.
-- Evidence: edge-fn auth gate review.
-
-### 22. REST Security
-- Checks: no verbs leak (`OPTIONS` minimal); CORS allowlist (no `*` on auth'd routes); error envelopes don't leak stack/SQL; pagination bounded.
-- Evidence: per-edge-fn CORS header audit.
-
-### 23. SSRF
-- Checks: no edge fn fetches a user-controlled URL; integrations (Discord, Notion, Resend, AI Gateway) use allowlisted hostnames; outbound to private CIDRs blocked.
-- Evidence: grep `fetch(` in `supabase/functions/`.
-
-### 24. File Upload
-- Checks: storage RLS scopes uploads to user folder; size cap (avatars <2MB); MIME allowlist; path-traversal blocked; antivirus or content-type sniff (where applicable).
-- Evidence: storage policies, upload util source.
-
-### 25. Logging & Monitoring
-- Checks: `audit_log` hash-chain intact (DELETE-blocked trigger); no PII in logs (DLP redactor confirmed); Lane-2 self-heal events present; admin-visible Triage queue.
-- Evidence: `audit_log` row-count + chain verify, sample log payloads.
-
-### 26. Error Handling
-- Checks: production builds strip stack traces from client responses; generic 500 to user, detailed to log; no SQL errors surfaced.
-- Evidence: edge-fn catch blocks, client error boundary copy.
-
-### 27. User Privacy
-- Checks: GA4/Clarity gated on consent; GPC honored; DSAR pipeline reaches all FK chains; deletion ledger maintained; data-retention windows documented (7d/90d/forever per type).
-- Evidence: `cookie_consents`, `dsar_requests`, retention SQL.
-
-### 28. LLM Prompt Injection
-- Checks: Fleety system prompt + KB delimited from user input; user content never concatenated into instruction blocks; output filter for prompt-leak markers; tool-use scoped.
-- Evidence: Fleety pipeline source (L1–L6).
-
-### 29. RAG Security
-- Checks: KB rows tagged with audience; cache key includes `audience+kb_version`; per-user cache isolation; no cross-tenant chunk bleed.
-- Evidence: `knowledge_base` schema, cache-key code.
-
-### 30. Vulnerable & Outdated Components
-- Checks: `npm audit --json` high+critical; Deno import-map versions pinned; no abandoned packages; SBOM regenerable.
-- Evidence: `npm audit` output, `package.json` pin strategy.
-
-### 31. NPM Security
-- Checks: lockfile committed; no `postinstall` scripts from untrusted packages; no typosquat candidates.
-- Evidence: `package-lock.json` review.
-
-### 32. Secure Cloud Architecture
-- Checks: backend/frontend separation honored; no direct DB exposure to internet; service-role key server-only; least-privilege Postgres roles.
-- Evidence: project topology summary.
-
-### 33. Multi-Tenant (per-role)
-- Checks: every tenant-scoping policy uses `auth.uid()` or `has_role()`; no cross-role data bleed in RPCs; admin reads logged.
-- Evidence: cross-role probe matrix.
-
-### 34. Denial of Service
-- Checks: rate limits on auth, password reset, DSAR, project-blast, Fleety, edge fns; CircuitBreaker thresholds; AI cost guard 30d projection.
-- Evidence: rate-limit table, breaker config.
-
-### 35. Bot Management
-- Checks: signup/contact forms have abuse signals; Discord bot endpoints validate signatures; no open scraping endpoints for member data.
-- Evidence: bot-signature verification source.
-
-### 36. Unvalidated Redirects
-- Checks: `?next=` / `?redirect=` params allowlisted to in-app paths; no open redirect on auth callback.
-- Evidence: redirect-utility source.
-
-### 37. Transport Layer Security
-- Checks: TLS 1.2+ enforced; no mixed content; cert chain healthy on all custom domains.
-- Evidence: SSL Labs grade or equivalent.
-
-### 38. Cookie Theft Mitigation
-- Checks: cookies marked `Secure`, `HttpOnly` (where set), `SameSite=Lax`+; auth tokens not in `document.cookie`-readable storage where avoidable.
-- Evidence: cookie inventory.
-
-### 39. XS-Leaks
-- Checks: `Cross-Origin-Opener-Policy: same-origin`; `Cross-Origin-Embedder-Policy` where compatible; no timing oracles in auth responses.
-- Evidence: response headers.
-
-### 40. Prototype Pollution
-- Checks: no use of `lodash.merge` < safe; no recursive merge of untrusted JSON into JS objects; framework deps not on the published-vuln list.
-- Evidence: dependency grep.
-
-## Audit phases (all read-only)
-0. **Discovery** — capture baseline: `pg_policy`, `pg_proc`, `pg_class`, storage policies, edge-fn list, env-var names, deployed headers.
-1. Cheat-sheets 1–11 (identity, sessions, MFA, secrets/crypto).
-2. Cheat-sheets 12–16 (input/IDOR/mass assign/SQLi/XSS).
-3. Cheat-sheets 17–22 (CSP/headers/HSTS/clickjacking/CSRF/REST).
-4. Cheat-sheets 23–26 (SSRF/upload/logging/errors).
-5. Cheat-sheets 27–29 (privacy/LLM/RAG).
-6. Cheat-sheets 30–32 (deps/npm/cloud).
-7. Cheat-sheets 33–40 (multi-tenant/DoS/bots/redirects/TLS/cookies/XS-leaks/prototype).
-8. Report assembly.
-
-## Findings document — exact contents
-
-Output: `/mnt/documents/security-audit-report.md` plus machine-readable `/mnt/documents/security-audit-findings.json`.
-
-### Document structure
-1. **Executive summary** — counts by severity (critical/high/medium/low/info), top 10 risks, residual-risk statement.
-2. **Scope and method** — stack, roles, tools used, time window, exclusions.
-3. **Permission baseline matrix** — full role × table × action table (documentation only; not enforced).
-4. **Findings register** — one entry per finding with the schema below.
-5. **Per-cheat-sheet appendix** — for each of the 40 cheat sheets: controls checked, pass/partial/fail verdict, evidence links, gap list.
-6. **Compliance crosswalk** — SOC 2 CC, ISO 27001 Annex A, HIPAA §164.312 mapping per finding.
-7. **Recommended remediation backlog** — prioritized, sized (S/M/L), dependency-aware, with explicit "no-lockout" notes.
-8. **Accepted-risks register** — anything intentionally left as-is, with owner + review date.
-9. **Appendix A** — raw evidence dumps (linter output, `npm audit`, header dumps, policy dump).
-10. **Appendix B** — methodology (queries run, grep patterns, fetch list).
-
-### Per-finding schema
-```
-- id:               SA-NNNN
-- title:            Short business-impact title
-- cheat_sheet:      e.g. "Authorization & Access Control"
-- severity:         critical | high | medium | low | info
-- likelihood:       high | medium | low
-- impact:           confidentiality | integrity | availability (one or more)
-- affected_assets:  table / fn / route / bucket / dependency
-- roles_at_risk:    anon | member | teacher | admin | service_role
-- description:      ≤40 words, harm first
-- evidence:         file:line, query result, header dump, screenshot path
-- reproduction:     exact steps or query
-- recommendation:   concrete fix, no-lockout caveat
-- effort:           S | M | L
-- compliance_refs:  SOC2 / ISO / HIPAA tags
-- status:           open | accepted-risk | duplicate | informational
-```
+- Any new RLS policy or policy revision.
+- Any change to `SECURITY DEFINER` functions.
+- Any role-grant change in Postgres.
+- Any dependency major-version bump.
+- Enabling COEP.
+- Tightening realtime.messages policies.
 
 ## Deliverables
-- `/mnt/documents/security-audit-report.md`
-- `/mnt/documents/security-audit-findings.json`
-- `/mnt/documents/security-audit-evidence/` (raw dumps: policy export, headers, npm-audit, linter output)
 
-## Explicitly out of scope for this run
-- No SQL migrations.
-- No edge-function code changes.
-- No client code changes.
-- No secret rotation.
-- No `@security-memory` updates (those happen only after a follow-up remediation pass you approve separately).
+- Code PRs as listed above.
+- Updated `.lovable/memory/tech/security/audit-2026-05-13.md` recording what shipped and what was deferred.
+- `/mnt/documents/security-audit-evidence/post-fix-diff.md` proving zero diff in policies/grants/definers.
+- Updated `security-audit-findings.json` with each finding flipped to `fixed`, `accepted-risk`, or `deferred`.
