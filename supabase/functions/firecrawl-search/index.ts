@@ -54,7 +54,15 @@ Deno.serve(withAuditWrapper("firecrawl-search", async (req) => {
       );
     }
 
-    const { query, limit } = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const { query, limit } = parsedBody.data as { query?: unknown; limit?: unknown };
 
     if (!query || typeof query !== "string" || query.trim().length < 2) {
       return new Response(
