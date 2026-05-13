@@ -356,9 +356,9 @@ export default function BannerManagementPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Banner</AlertDialogTitle>
+            <AlertDialogTitle>Delete banner?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{deleteTarget?.title}". This action cannot be undone.
+              "{deleteTarget?.title}" will be permanently removed. You can't undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -367,7 +367,7 @@ export default function BannerManagementPage() {
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Delete banner
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
