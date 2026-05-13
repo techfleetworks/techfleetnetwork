@@ -1,6 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
+
+// M-01: Lenient shape guard. Existing field checks (action / project_id / client_name) below stay authoritative.
+const PayloadSchema = z.object({
+  action: z.string().optional(),
+  project_id: z.string().optional(),
+  client_name: z.string().optional(),
+  project_type: z.string().optional(),
+  project_status: z.string().optional(),
+  phase: z.string().optional(),
+  team_hats: z.array(z.string()).optional(),
+  timezone_range: z.string().optional(),
+  anticipated_start_date: z.string().nullable().optional(),
+  anticipated_end_date: z.string().nullable().optional(),
+  current_phase_milestones: z.array(z.string()).optional(),
+  changes: z.array(z.string()).optional(),
+}).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("discord-project-update");
@@ -108,7 +125,12 @@ serve(withAuditWrapper("discord-project-update", async (req) => {
       return jsonResponse({ error: "Request body too large" }, 413);
     }
 
-    const payload: ProjectUpdatePayload = await req.json();
+    const rawPayload = await req.json();
+    const parsedPayload = PayloadSchema.safeParse(rawPayload);
+    if (!parsedPayload.success) {
+      return jsonResponse({ error: "Invalid payload" }, 400);
+    }
+    const payload = parsedPayload.data as ProjectUpdatePayload;
 
     if (!payload?.action || !VALID_ACTIONS.has(payload.action)) {
       return jsonResponse({ error: "Invalid action" }, 400);

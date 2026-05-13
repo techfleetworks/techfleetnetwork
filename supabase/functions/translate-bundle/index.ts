@@ -1,6 +1,13 @@
 // translate-bundle: AI fallback translator for any BCP-47 locale.
 // Reads English source bundle, asks Lovable AI Gateway to translate, caches in i18n_translations.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing locale regex (SUPPORTED) below stays authoritative.
+const BodySchema = z.object({
+  locale: z.string().optional(),
+  namespace: z.string().optional(),
+}).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const corsHeaders = {
@@ -21,7 +28,14 @@ Deno.serve(withAuditWrapper("translate-bundle", async (req) => {
       });
     }
 
-    const { locale, namespace = "common" } = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => ({}));
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: "invalid_body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { locale, namespace = "common" } = parsedBody.data;
     if (!locale || !SUPPORTED.test(locale)) {
       return new Response(JSON.stringify({ error: "invalid_locale" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -9,6 +9,20 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 
 import webpush from "npm:web-push@3.6.7";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing endpoint/keys checks below stay authoritative.
+const BodySchema = z.object({
+  endpoint: z.string().optional(),
+  keys: z.object({
+    p256dh: z.string().optional(),
+    auth: z.string().optional(),
+  }).passthrough().optional(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+  url: z.string().optional(),
+  notification_type: z.string().optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,7 +64,15 @@ Deno.serve(withAuditWrapper("send-push-notification", async (req) => {
       vapidPrivate,
     );
 
-    const body = await req.json();
+    const rawBody = await req.json();
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const body = parsedBody.data as Record<string, any>;
     const { endpoint, keys, title, body: notifBody, url, notification_type } = body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {

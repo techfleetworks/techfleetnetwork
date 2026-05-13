@@ -6,6 +6,15 @@
 // because the underlying table is publicly readable and writes go through the
 // service role inside this function.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "npm:zod@4.3.6";
+
+// M-01: Lenient shape guard. Existing field-by-field checks below remain authoritative;
+// this only rejects requests whose top-level body is not a JSON object.
+const BodySchema = z.object({
+  locale: z.string().optional(),
+  namespace: z.string().optional(),
+  strings: z.array(z.unknown()).optional(),
+}).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,9 +48,12 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
-  let body: { locale?: string; strings?: unknown };
+  let body: { locale?: string; strings?: unknown; namespace?: string };
   try {
-    body = await req.json();
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "invalid_body" }, 400);
+    body = parsed.data as typeof body;
   } catch {
     return json({ error: "invalid_json" }, 400);
   }
