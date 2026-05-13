@@ -68,8 +68,10 @@ Deno.serve(withAuditWrapper("admin-purge-auth-user", async (req) => {
   // 2)) Parse + validate input.
   let email: string
   try {
-    const body = await req.json()
-    email = String(body?.email ?? '').trim().toLowerCase()
+    const rawBody = await req.json()
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) return jsonResponse({ error: 'Invalid body' }, 400)
+    email = String(parsedBody.data?.email ?? '').trim().toLowerCase()
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400)
   }
