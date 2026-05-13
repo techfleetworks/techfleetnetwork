@@ -92,7 +92,12 @@ Deno.serve(withAuditWrapper("triage-error", async (req) => {
 
   // --- Validate body -------------------------------------------------------
   let body: { fix_queue_id?: string };
-  try { body = await req.json(); } catch { return jsonResponse({ error: "bad_request" }, 400); }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return jsonResponse({ error: "bad_request" }, 400);
+    body = parsed.data as { fix_queue_id?: string };
+  } catch { return jsonResponse({ error: "bad_request" }, 400); }
   const fixId = body.fix_queue_id;
   if (!fixId || typeof fixId !== "string") {
     return jsonResponse({ error: "fix_queue_id required" }, 400);
