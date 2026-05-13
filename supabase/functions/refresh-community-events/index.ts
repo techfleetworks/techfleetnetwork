@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
     if (cacheRow?.last_modified) conditionalHeaders["If-Modified-Since"] = cacheRow.last_modified;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25_000);
+    const timeout = setTimeout(() => controller.abort(), 90_000);
     let res: Response;
     try {
       res = await fetch(ICAL_URL, { headers: conditionalHeaders, signal: controller.signal });
