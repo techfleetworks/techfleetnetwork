@@ -70,7 +70,7 @@ export default function EventsPage() {
     }
   };
 
-  const lumaSrc = "https://luma.com/tech-fleet-network";
+  
 
   return (
     <div className="container-app py-8 sm:py-12">
