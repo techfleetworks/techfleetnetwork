@@ -336,8 +336,8 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION: Discord Role Management */}
       {project && (
         <DiscordRoleAssignment
-          discordRoleId={(project.discord_role_id as string) ?? ""}
-          discordRoleName={(project.discord_role_name as string) ?? ""}
+          discordRoleId={projectLinks?.discord_role_id ?? ""}
+          discordRoleName={projectLinks?.discord_role_name ?? ""}
           applicantDiscordUserId={(profile?.discord_user_id as string) ?? ""}
           applicantDiscordUsername={(profile?.discord_username as string) ?? ""}
           applicantName={applicantName}
