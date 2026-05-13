@@ -73,7 +73,15 @@ Deno.serve(withAuditWrapper("promote-to-admin", async (req) => {
       })
     }
 
-    const body = await req.json()
+    const rawBody = await req.json()
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
     const targetUserId = body?.user_id
 
     if (!targetUserId || typeof targetUserId !== 'string') {
