@@ -1,5 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
+
+// M-01: Lenient shape guard. Existing identifier/action checks below remain authoritative.
+const BodySchema = z.object({
+  identifier: z.unknown().optional(),
+  action: z.unknown().optional(),
+}).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("rate-limit");
