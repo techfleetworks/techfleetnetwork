@@ -30,9 +30,9 @@ const StatusChangeEmail = ({
           <Text style={brandTag}>TECH FLEET NETWORK</Text>
         </Section>
 
-        <Heading style={h1}>Application Status Update</Heading>
+        <Heading style={h1}>Your application status changed</Heading>
 
-        <Text style={text}>Hello {firstName || 'there'},</Text>
+        <Text style={text}>Hi {firstName || 'there'},</Text>
 
         <Text style={text}>
           {projectName
@@ -42,7 +42,7 @@ const StatusChangeEmail = ({
 
         {statusLabel ? (
           <Section style={statusBox}>
-            <Text style={statusLabelStyle}>NEW STATUS</Text>
+            <Text style={statusLabelStyle}>New status</Text>
             <Text style={statusValueStyle}>{statusLabel}</Text>
           </Section>
         ) : null}
@@ -52,7 +52,7 @@ const StatusChangeEmail = ({
         {ctaUrl ? (
           <Section style={{ textAlign: 'center' as const, margin: '28px 0' }}>
             <Button href={ctaUrl} style={button}>
-              {ctaLabel || 'View Application'}
+              {ctaLabel || 'View your application'}
             </Button>
           </Section>
         ) : null}
@@ -75,17 +75,17 @@ export const template = {
   subject: (data: Record<string, any>) => {
     const project = data?.projectName ? ` — ${data.projectName}` : ''
     const status = data?.statusLabel ? `: ${data.statusLabel}` : ''
-    return `Application Status Update${project}${status}`
+    return `Your application status changed${project}${status}`
   },
-  displayName: 'Applicant Status Change',
+  displayName: 'Applicant status change',
   previewData: {
     firstName: 'Jane',
-    statusLabel: 'Not Selected',
+    statusLabel: 'Not selected',
     statusMessage:
-      'Thank you for applying. Unfortunately, you were not selected for this project at this time. We encourage you to apply to future projects!',
+      "Thanks for applying. You weren't selected for this project this time, but we'd love to see you apply to future ones.",
     projectName: 'Acme — Discovery Sprint',
     ctaUrl: 'https://techfleet.network/applications',
-    ctaLabel: 'View Your Applications',
+    ctaLabel: 'View your applications',
   },
 } satisfies TemplateEntry
 
