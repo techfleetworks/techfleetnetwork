@@ -100,16 +100,11 @@ Deno.serve(async (req) => {
   if (!v.ok) return json({ error: v.error }, 400)
   const { projectId, subject, bodyHtml } = v.data
 
-  // 3. Admin role check (server-side, not from JWT/body)
-  const { data: roleRow, error: roleErr } = await admin
+  // 3. Admin role check (server-side, not trusted from body/JWT)
+  const { count: adminCount, error: roleErr } = await admin
     .from('user_roles').select('id', { head: true, count: 'exact' })
     .eq('user_id', userId).eq('role', 'admin')
   if (roleErr) return json({ error: 'Role lookup failed' }, 500)
-  const isAdmin = (roleRow as any) === null ? false : true // count-only response shape
-  // Re-fetch with count safely:
-  const { count: adminCount } = await admin
-    .from('user_roles').select('id', { head: true, count: 'exact' })
-    .eq('user_id', userId).eq('role', 'admin')
   if (!adminCount || adminCount < 1) {
     await admin.rpc('write_audit_log', {
       p_event_type: 'project_blast.denied',
