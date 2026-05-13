@@ -93,6 +93,7 @@ const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const AccessDeniedPage = lazy(() => import("./pages/AccessDeniedPage"));
 const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
+const BrandTokensPage = lazy(() => import("./pages/BrandTokensPage"));
 const MyClassesPage = lazy(() => import("./pages/MyClassesPage"));
 const ClassFormPage = lazy(() => import("./pages/ClassFormPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
