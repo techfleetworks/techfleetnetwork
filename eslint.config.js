@@ -49,6 +49,9 @@ export default tseslint.config(
       "jsx-a11y/aria-role": "error",
       "jsx-a11y/role-has-required-aria-props": "error",
       "jsx-a11y/role-supports-aria-props": "error",
+      // WCAG 1.1.1 Non-text Content — every <img> must carry alt (empty for
+      // decorative). Brand Visual Guide v1 mandates purposeful alt copy.
+      "jsx-a11y/alt-text": "error",
       // Brand voice: warn now, escalate to error after sweep is complete.
       "brand-terms/no-banned-terms": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
