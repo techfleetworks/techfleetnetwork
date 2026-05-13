@@ -1,5 +1,11 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+// Brand Visual Guide §3 — Poppins body + Jost display (Futura PT free equivalent).
+import "@fontsource/poppins/400.css";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/jost/600.css";
+import "@fontsource/jost/700.css";
 import "./index.css";
 import { installGlobalErrorReporter } from "@/services/error-reporter.service";
 import { startDeployWatcher } from "@/lib/deploy-watcher";

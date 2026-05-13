@@ -14,9 +14,26 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        display: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        // Brand Visual Guide §3 — Poppins body, Futura PT display
+        // (Jost ships as the free near-equivalent until license acquired).
+        sans: ["Poppins", "Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ['"Futura PT"', "Jost", "Poppins", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+      },
+      transitionDuration: {
+        quick: "150ms",
+        standard: "200ms",
+        emphasized: "300ms",
+      },
+      spacing: {
+        "space-1": "0.25rem",
+        "space-2": "0.5rem",
+        "space-3": "0.75rem",
+        "space-4": "1rem",
+        "space-6": "1.5rem",
+        "space-8": "2rem",
+        "space-12": "3rem",
+        "space-16": "4rem",
       },
       colors: {
         border: "hsl(var(--border))",
@@ -29,7 +46,12 @@ export default {
           foreground: "hsl(var(--primary-foreground))",
           /* WCAG-AAA-safe text variant for inline links / link buttons. */
           text: "hsl(var(--primary-text))",
+          hover: "hsl(var(--primary-hover))",
         },
+        // Brand Visual Guide §1 — exact-spec brand surfaces.
+        "brand-navy": "hsl(var(--brand-navy))",
+        "brand-mint": "hsl(var(--brand-mint))",
+        "surface-alt": "hsl(var(--surface-alt))",
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
