@@ -103,9 +103,13 @@ export function useCreateAnnouncement() {
 }
 
 export function useAnnouncementViewCounts() {
+  // RPC requires authenticated role; skip cleanly for anon viewers (e.g. when
+  // an announcement banner renders before sign-in completes) to avoid 42501.
+  const { user } = useAuth();
   return useQuery({
     queryKey: ["announcement-view-counts"],
     queryFn: () => AnnouncementService.getViewCounts(),
+    enabled: !!user,
     staleTime: 30_000,
   });
 }
