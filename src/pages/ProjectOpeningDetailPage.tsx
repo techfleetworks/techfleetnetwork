@@ -392,41 +392,9 @@ export default function ProjectOpeningDetailPage() {
         </InfoSection>
       )}
 
-      {/* ── External Links ────────────────────────────────── */}
-      {(project.client_intake_url || project.notion_repository_url) && (
-        <InfoSection icon={Link2} title="External Links">
-          <div className="grid sm:grid-cols-2 gap-4">
-            {project.client_intake_url && (
-              <DetailRow
-                label="Client Intake"
-                value={
-                  <SafeExternalLink
-                    href={project.client_intake_url}
-                    className="text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    {getSafeLinkHostname(project.client_intake_url) ?? "Unavailable"}
-                    <ExternalLink className="h-3 w-3" />
-                  </SafeExternalLink>
-                }
-              />
-            )}
-            {project.notion_repository_url && (
-              <DetailRow
-                label="Project Repository (Notion)"
-                value={
-                  <SafeExternalLink
-                    href={project.notion_repository_url}
-                    className="text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    {getSafeLinkHostname(project.notion_repository_url) ?? "Unavailable"}
-                    <ExternalLink className="h-3 w-3" />
-                  </SafeExternalLink>
-                }
-              />
-            )}
-          </div>
-        </InfoSection>
-      )}
+      {/* External operational links (client intake / Notion repo) are intentionally
+          NOT shown on this public-facing recruitment page. They are member-only and
+          appear inside the project workspace once you join the roster. */}
 
       {/* ── Team Hats ─────────────────────────────────────── */}
       <InfoSection icon={Users} title="Team Hats (Roles)">
