@@ -1,0 +1,34 @@
+# Tech Fleet Network
+
+> A nonprofit professional training platform that builds empowered team spaces through guided learning paths, real project experience, and Service Leadership development.
+
+Tech Fleet is a 501(c)(3) nonprofit organization on a mission to build empowered team spaces in the world. We believe everyone can be a leader and that teams accomplish more when they belong, decide, and achieve together.
+
+The platform offers structured training programs where members develop human-centered skills — communication, teamwork, problem-solving, and collective decision-making — by practicing on real projects with real teams. Our training covers agile mindset, Discord collaboration, agile teamwork, project training, and volunteer team leadership. Members track their professional journey through a quest system, apply to project openings, access community events, and engage with an AI-powered assistant called Fleety.
+
+Core beliefs that drive our training: Service Leadership (everyone leads others' growth), Psychological Safety, Collective Decision Making, Empowerment, Shared Ownership, Continuous Improvement, and Agility.
+
+## Pages
+
+- [Home](/): Learn about Tech Fleet's mission and begin the journey.
+- [Project Openings](/project-openings): Browse and apply to real project opportunities for hands-on training.
+- [Accessibility](/accessibility): Accessibility policy and accommodation request form.
+- [Privacy](/privacy): Privacy policy and data practices.
+- [Cookies](/cookies): Cookie policy and consent preferences.
+- [Terms](/terms): Terms and conditions of use.
+- [Terms of Use](/terms-of-use): Additional terms governing platform use.
+- [Code of Conduct](/code-of-conduct): Community standards and behavioral expectations.
+- [Data Subject Access Request](/privacy/dsar): Submit a request for your personal data.
+
+## Optional
+
+- [Dashboard](/dashboard): Member dashboard with progress, notifications, and widgets.
+- [Courses](/courses): Training curriculum including onboarding, agile mindset, and project training.
+- [Events](/events): Community calendar synced to your timezone.
+- [Resources](/resources): Guidance, handbooks, templates, and AI-driven content recommendations.
+- [Chat](/chat): AI assistant (Fleety) for platform help and knowledge queries.
+- [Applications](/applications): Manage general and project applications.
+- [My Journey](/my-journey): Track professional quest progress and milestones.
+- [Updates](/updates): Platform announcements and community updates.
+- [Profile](/profile/edit): Edit your member profile and preferences.
+- [Unsubscribe](/unsubscribe): Manage email subscription preferences.
