@@ -4,6 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { SEO } from "@/components/SEO";
 import {
   Handshake, ExternalLink, LayoutGrid, List, Loader2, Eye, CheckCircle2,
   Rocket, PlayCircle, Clock, Briefcase,
