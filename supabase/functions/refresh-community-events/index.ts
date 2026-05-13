@@ -239,14 +239,28 @@ function expandOccurrences(ev: RawVEvent, windowStart: Date, windowEnd: Date): A
 
   if (freq === "DAILY" || freq === "WEEKLY") {
     let occurrencesEmitted = 0;
+    // Occurrences emitted per step, used to keep COUNT honest when we
+    // fast-forward the cursor close to windowStart. Without this accounting,
+    // a finite series like RRULE:FREQ=WEEKLY;COUNT=2 from 2022 would skip
+    // forward to 2026 and emit a fresh batch of 2 — leaking ancient series
+    // into the upcoming week. (The #1 cause of "events from years ago".)
+    const occPerStep =
+      freq === "WEEKLY" && byday && byday.length > 0 ? byday.length : 1;
     // Fast-forward cursor close to windowStart for efficiency
     let cursor = new Date(start.getTime());
     if (cursor < windowStart) {
       const stepsBehind = Math.floor((windowStart.getTime() - cursor.getTime()) / (stepMs[freq] * interval));
       if (stepsBehind > 0) {
         cursor = new Date(cursor.getTime() + stepsBehind * stepMs[freq] * interval);
+        // Charge the skipped occurrences against COUNT so finite series stop.
+        occurrencesEmitted += stepsBehind * occPerStep;
+        if (occurrencesEmitted >= count) {
+          return out; // series already exhausted before windowStart
+        }
       }
     }
+    // UNTIL guard: if the series ended before the window, skip entirely.
+    if (until && until < windowStart) return out;
     let iterations = 0;
     while (cursor <= windowEnd && occurrencesEmitted < count && out.length < MAX_INSTANCES && iterations < 5000) {
       iterations++;
