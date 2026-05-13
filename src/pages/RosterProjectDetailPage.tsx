@@ -43,7 +43,7 @@ export default function RosterProjectDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, clients(name)")
+        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, coordinator_id, clients(name)")
         .eq("id", projectId!)
         .single();
       if (error) throw error;
@@ -56,6 +56,7 @@ export default function RosterProjectDetailPage() {
         client_id: string;
         friendly_name?: string;
         description?: string;
+        coordinator_id?: string | null;
         clients: { name: string } | null;
       };
     },
