@@ -127,6 +127,45 @@ Deno.serve(withAuditWrapper("resend-signup-confirmations", async (req) => {
         const hoursAgo = Math.max(1, Math.round((now.getTime() - new Date(c.created_at).getTime()) / 3600000))
         const attemptNumber = reminderCount + 1
         const messageId = `signup-fallback-${c.id}-${attemptNumber}-${crypto.randomUUID()}`
+
+        // Mint or look up an unsubscribe token. Lovable's transactional email
+        // gateway 400s with `missing_unsubscribe` and dead-letters the message
+        // if this is absent — same logic as auth-email-hook.
+        const normalizedEmail = c.email.trim().toLowerCase()
+        let unsubscribeToken: string | null = null
+        try {
+          const { data: existingTok } = await supabase
+            .from('email_unsubscribe_tokens')
+            .select('token')
+            .eq('email', normalizedEmail)
+            .order('used_at', { ascending: true })
+            .order('created_at', { ascending: true })
+            .limit(1)
+          if (existingTok && existingTok.length > 0) {
+            unsubscribeToken = existingTok[0].token as string
+          } else {
+            const fresh = crypto.getRandomValues(new Uint8Array(32))
+            unsubscribeToken = Array.from(fresh).map((b) => b.toString(16).padStart(2, '0')).join('')
+            const { error: upsertErr } = await supabase
+              .from('email_unsubscribe_tokens')
+              .upsert({ email: normalizedEmail, token: unsubscribeToken }, { onConflict: 'email', ignoreDuplicates: true })
+            if (upsertErr) {
+              const { data: raceRow } = await supabase
+                .from('email_unsubscribe_tokens')
+                .select('token')
+                .eq('email', normalizedEmail)
+                .limit(1)
+              if (raceRow && raceRow.length > 0) unsubscribeToken = raceRow[0].token as string
+            }
+          }
+        } catch (tokenErr) {
+          console.error('[resend-signup-confirmations] failed to mint unsubscribe token', { email: c.email, err: String(tokenErr) })
+        }
+        if (!unsubscribeToken) {
+          errors.push({ email: c.email, error: 'failed to mint unsubscribe token' })
+          continue
+        }
+
         const templateProps = {
           siteName: SITE_NAME,
           siteUrl: APP_URL,
@@ -155,6 +194,7 @@ Deno.serve(withAuditWrapper("resend-signup-confirmations", async (req) => {
             text,
             purpose: 'transactional',
             label: 'signup',
+            unsubscribe_token: unsubscribeToken,
             idempotency_key: `signup-fallback-${c.id}-${attemptNumber}`,
             queued_at: new Date().toISOString(),
             recovery_reason: 'unconfirmed_signup_safety_net',
