@@ -125,7 +125,15 @@ serve(withAuditWrapper("manage-discord-roles", async (req) => {
       );
     }
 
-    const body = await req.json();
+    const rawBody = await req.json();
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const body = parsedBody.data as Record<string, unknown>;
     if (!isValidAction(body)) {
       return new Response(
         JSON.stringify({ error: "Invalid request. Provide { action: 'list' | 'create' | 'assign' | 'remove', ... }" }),
