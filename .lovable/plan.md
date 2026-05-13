@@ -1,124 +1,242 @@
-# Full Security Audit — Tech Fleet Network
+# Full Security Audit — Tech Fleet Network (Read-Only)
 
 ## Goal
-Audit the entire system against OWASP Cheat Sheets without locking out the database, admins, teachers, or members. Every existing read/create/edit/delete capability must work identically before and after the audit.
+Audit the entire system against OWASP Cheat Sheets. **No code, schema, RLS, or config changes.** The single deliverable is a written audit report.
 
-## Roles in scope
-The `app_role` enum has exactly **three** roles: `admin`, `teacher`, `member`. Every permission below is verified for each role plus the `anon` (signed-out) and `service_role` (edge functions) actors.
+## Scope
+- Stack: React 18 + Vite 5 + TypeScript + Tailwind, Supabase (Postgres + RLS + Auth + Storage + Realtime), Deno edge functions, Lovable AI Gateway, Discord/Notion/Resend integrations.
+- Roles: `admin`, `teacher`, `member`, plus `anon` and `service_role`.
+- Surface area: 119 RLS-protected tables, 317 policies, ~120 edge functions, 5 storage buckets, 30+ third-party integrations.
 
-## Hard guardrails — the no-lockout contract
-Apply on **every** migration in this audit:
+## Hard guardrails (read-only contract)
+1. **No migrations, no edge-fn deploys, no code edits, no secret rotations.** Findings only.
+2. Use only read tools: `supabase--read_query`, `supabase--linter`, `security--run_security_scan`, `security--get_scan_results`, `code--exec` for filesystem-level grep + `npm audit --json`, `code--fetch_website` for OWASP cheat sheets.
+3. Permission baseline (role × table × action) is captured for documentation only — no policy is added, removed, or altered.
+4. UX, latency, and admin/member/teacher capabilities remain untouched.
 
-1. **Permission-preservation invariant.** Before any change, snapshot the role → table → action matrix into `/mnt/documents/security-audit-permissions-baseline.json`. After the change, re-run the same probe; **the diff must be empty for retained capabilities**. Net new restrictions ship only as opt-in additions in a new column or scope, never by removing an existing allow.
-2. **Smoke test inside the migration tx.** Each migration ends with `SELECT` and `EXPLAIN`-style probes impersonating `admin`, `teacher`, `member`, `anon`, `service_role`. If any probe regresses an allowed action, `ROLLBACK`.
-3. **Additive-first.** New restrictive policies ship alongside existing permissive ones for a 24h shadow window; only flip after live traffic confirms no breakage.
-4. **No DROP without paired CREATE OR REPLACE.** Every change reversible in one statement.
-5. **Service-role tables stay untouched.** `web_vital_samples`, `fleety_turn_signals`, `agent_fix_queue`, `audit_log`, `email_outbox`, `notification_outbox` keep service-role-only writes — do not add client INSERT policies.
-6. **Pre-auth RPCs stay anon-executable.** `peek_rate_limit`, `record_rate_limit_failure`, public-project-opening reads, policy pages, accessibility form, DSAR submit.
-7. **No `ALTER ROLE`, no blanket `REVOKE … FROM authenticated`, no edits to `auth/storage/realtime/supabase_functions/vault` schemas.**
-8. **UX invariant.** Zero added clicks, prompts, redirects, or latency on user-facing screens.
+## OWASP cheat sheets in scope and the exact parameters checked for each
 
-## Permission baseline matrix
-Current scope: **119 RLS-protected tables, 317 policies**, 3 app roles + anon + service_role. The full row-per-table dump lands in `/mnt/documents/security-audit-permissions-baseline.json` during Phase 0. The following grouped matrix captures every capability that must remain intact. **R**=read, **C**=create, **U**=update, **D**=delete, **—**=denied. `(self)` = own row only. `(scope)` = scoped to a relationship (e.g., teacher's own classes, member's own roster row).
+For every cheat sheet below: (a) the controls extracted from the OWASP page, (b) the concrete checks run against this codebase, (c) what evidence is captured.
 
-### Identity & access
-| Domain (tables) | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `profiles` | — | R(self) U(self, except email) | R(self) U(self) + R(students in own cohorts) | R C U D | R C U D |
-| `user_roles` | — | R(self) | R(self) | R C U D (two-step) | R C U D |
-| `revoked_sessions` | — | C(self on signout) | C(self) | R C | R C U D |
-| `mfa_factors / totp_*` | — | R C U D(self) | R C U D(self) | R(all) D(reset others) | R C U D |
-| `rate_limit_*` (peek, record fns) | EXEC | EXEC | EXEC | EXEC | EXEC |
-| `cookie_consents`, `dsar_requests`, `deleted_users_ledger` | C(own DSAR via fn) | C(self) R(self) | C(self) R(self) | R(all) U(status) | R C U D |
+### 1. Authentication
+- Controls: credential strength, account-enumeration resistance, brute-force protection, secure password reset, re-auth for sensitive ops.
+- Checks: HIBP/pwned-password gate on signup + reset; uniform error messages on login failure; `peek_rate_limit` thresholds and lockout windows; password-reset token TTL; re-auth required before email change / role change / MFA disable.
+- Evidence: edge-fn source paths, rate-limit table contents, sample failure messages.
 
-### Learning & journey
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `learning_paths`, `lessons`, `quizzes` | — | R(published) | R(published, own classes) | R C U D | R C U D |
-| `lesson_progress`, `quiz_attempts` | — | R C U(self) | R(students in own cohorts) | R C U D | R C U D |
-| `quests`, `quest_steps`, `quest_progress` | — | R C U(self) | R(students in own cohorts) | R C U D | R C U D |
-| `certifications` | — | R(self) | R(students in own cohorts) | R C U D | R C U D |
+### 2. Authorization & Access Control
+- Controls: deny-by-default, least privilege, server-side enforcement, no client-trust.
+- Checks: every table has RLS enabled; no policy uses `using (true)` outside intentional public reads; admin checks use `has_role()` not client claims; no `service_role` keys in client bundle.
+- Evidence: full `pg_policy` dump, grep of `dangerouslySetInnerHTML`, grep of `service_role` in `src/`.
 
-### Teacher-authored content (Classes & Cohorts)
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `classes` | — | R(approved + enrolled) | R C U D(own) — submit→admin approval RPC | R C U D + approve/deny/archive RPCs | R C U D |
-| `cohorts` | — | R(enrolled) | R C U D(own classes) | R C U D | R C U D |
-| `class_registrations` | — | C(self) R(self) D(self before start) | R(own cohorts) | R C U D | R C U D |
+### 3. Session Management
+- Controls: idle timeout, absolute timeout, secure cookie flags, server-side revocation, rotation on privilege change.
+- Checks: 30-min idle / 4-hr absolute enforcement; `revoked_sessions` consulted on every request; refresh-token rotation on; session fixation impossible (Supabase-managed JWT).
+- Evidence: session config, `revoked_sessions` schema + policies, client refresh path.
 
-### Projects & recruiting
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `projects` | R(public openings, public columns only) | R(non-complete, public columns) + R(roster-scoped, internal columns via RPC) | R(non-complete, public) | R C U D + internal columns via RPC | R C U D |
-| `project_applications` | C(via public form) | R C U(self) D(self before review) | — | R C U D + status transitions | R C U D |
-| `project_roster` | — | R(self row only via member RPC) | — | R C U D | R C U D |
-| `project_blasts` | — | — | — | R C (append-only) | R C |
-| `discord_*`, `notion_*`, `client_intake_*` columns | — | — | — | R U via RPC | R U |
+### 4. Multi-Factor Authentication
+- Controls: phishing-resistant factors, enrollment friction, recovery codes, admin-required MFA.
+- Checks: TOTP enrollment for admins enforced after 5-day grace; recovery-code generation + one-time use; MFA-gate edge fn; no SMS fallback.
+- Evidence: `mfa_factors` schema, admin gate fn source, BDD scenarios.
 
-### Communications
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `announcements` | — | R(published, audience-matching) | R(published) + R(own cohorts) | R C U D | R C U D |
-| `notifications`, `notification_preferences` | — | R U(self) | R U(self) | R(all) C(via fn) | R C U D |
-| `notification_outbox`, `email_outbox`, `web_push_subscriptions` | — | C U(self subscriptions) | C U(self subscriptions) | R(all) | R C U D |
-| `feedback_submissions` | C(via fn) | C(self) R(self) | C(self) R(self) | R(all) U(triage) | R C U D |
+### 5. Forgot Password
+- Controls: time-limited single-use tokens, no enumeration, rate-limit, no auto-login on reset.
+- Checks: token TTL, single-use enforcement, identical response for known/unknown emails, 5-second race-condition guard, `keep_current=true` behavior.
+- Evidence: edge-fn source, rate-limit table.
 
-### Knowledge base & framework reference
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `knowledge_base`, `knowledge_chunks` | — | — | — | R C U D | R C U D |
-| `reference_*` (roles, hard_skills, soft_skills, team_functions) | — | R | R | R C U D | R C U D |
-| `framework_edges`, MV | — | R | R | R + refresh RPC | R C U D |
-| `bdd_scenarios` | — | — | — | R C U D | R C U D |
+### 6. Credential Stuffing Prevention
+- Checks: HIBP integration, device-aware lockout, CAPTCHA fallback (if any), anomaly detection on burst logins.
+- Evidence: `peek_rate_limit` config, login fairness rules.
 
-### Fleety chatbot
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `chat_conversations`, `chat_messages` | — | R C U D(self) | R C U D(self) | R(all) | R C U D |
-| `fleety_turn_signals`, `fleety_feedback` | — | R(self) C(via fn) | R(self) C(via fn) | R(all) | R C U D |
-| `canned_answers`, `proposed_relationships` | — | — | — | R C U D | R C U D |
+### 7. Password Storage
+- Checks: managed by Supabase Auth (bcrypt) — confirm no custom password hashing in app code; confirm no plaintext password fields anywhere.
+- Evidence: grep of `password`, `pwd`, `hash` in `src/` and `supabase/functions/`.
 
-### Observability & system health (admin-only)
-| Domain | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `web_vital_samples`, `agent_fix_queue`, `audit_log`, `error_log`, `external_api_events` | — | — | — | R | R C (no UPDATE/DELETE on audit_log) |
-| `known_issue_catalog` | — | — | — | R C U D | R C U D |
+### 8. OAuth 2.0 / Social Auth
+- Checks: scopes minimal (Google profile+email only); state parameter validated; PKCE on; redirect URIs allowlisted; no token leakage in URL fragments.
+- Evidence: Supabase auth provider config, redirect-URI list.
 
-### Storage buckets
-| Bucket | anon | member | teacher | admin | service_role |
-|---|---|---|---|---|---|
-| `avatars` | R(public URL) | C U D(own folder, <2MB image/*) | C U D(own folder) | R D(any) | R C U D |
-| `client_logos` | R(public URL) | R | R | R C U D | R C U D |
-| `lesson_media` | — | R(enrolled) | R C U D(own classes) | R C U D | R C U D |
-| `meeting_recordings`, `private_attachments` | — | R(scoped) | R(own cohorts) | R C U D | R C U D |
-| `transactional_email_assets` | — | — | — | R | R C U D |
+### 9. JWT
+- Checks: `alg` pinned (no `none`); short access-token TTL with refresh rotation; audience/issuer validated server-side; no JWT in localStorage exposed to XSS (uses Supabase secure storage).
+- Evidence: edge-fn JWT validation pattern.
 
-### Edge functions (auth gate)
-Every edge function continues to require **either** a valid JWT **or** the service-role key. Public functions stay public: `dsar-submit`, `submit-feedback`, public project-opening reads, `record-web-vital`, `peek_rate_limit`, `record_rate_limit_failure`. All others remain JWT-gated.
+### 10. Secrets Management
+- Checks: every secret in Supabase Vault (`Deno.env`), none in `.env` committed, none in `src/`; rotation logs present; `service_role` never exposed.
+- Evidence: `git ls-files` filter, env-var inventory, Vault rotation timestamps.
 
-## OWASP scope (30 of 124 cheat sheets — only ones that match React + Vite + Supabase + Deno)
-Authentication · Authorization · Access Control · Session Management · MFA · Forgot Password · Credential Stuffing · Password Storage · OAuth2 · JWT · Secrets Management · Key Management · Cryptographic Storage · Input Validation · Mass Assignment · IDOR · SQL Injection · Query Parameterization · XSS · DOM XSS · CSP · HTTP Headers · HSTS · Clickjacking · CSRF · REST Security · File Upload · SSRF · Logging · Error Handling · User Privacy · LLM Prompt Injection · RAG Security · Vulnerable Dependency Management · NPM Security · Secure Cloud Architecture · Multi-Tenant · DoS · Bot Management · Unvalidated Redirects · TLS · Cookie Theft · XS-Leaks · Prototype Pollution.
+### 11. Key Management & Cryptographic Storage
+- Checks: PII-at-rest encryption (pgsodium), key rotation cadence, KMS-equivalent for symmetric keys, no homemade crypto.
+- Evidence: `pgsodium` key list, encrypted columns inventory.
 
-## Phases (each gated by the no-lockout contract)
-0. **Discovery & baseline** — snapshot every policy/grant/function/bucket/secret/route into the baseline JSON; run `supabase--linter`, security scan, `dependency_scan`, `npm audit`.
-1. **AuthN, sessions, MFA** — verify HIBP, idle/absolute timeouts, admin TOTP gate, password-reset race guard, OAuth scopes minimal.
-2. **Data access (RLS, IDOR, mass assignment, multi-tenant)** — diff every policy against the baseline matrix above; flag any `using (true)` outside intentional public reads; audit client `update({...})` for column allowlists.
-3. **Injection, parameterization, validation** — grep for string-concat SQL, dynamic `format()` without `%L/%I`; confirm Zod on every edge fn entry.
-4. **XSS, CSP, headers, clickjacking, redirects** — DOMPurify on announcement WYSIWYG; tighten CSP `script-src`/`connect-src` to exact origins; verify HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy.
-5. **Secrets, keys, crypto, transport** — confirm no service-role/Discord/Resend/Notion key reaches client bundle; PII-at-rest rotation healthy; DLP redactor active.
-6. **Edge fns, REST, SSRF, file upload** — every fn has CORS allowlist (not `*`), Zod input + output, CircuitBreaker, no user-controlled outbound URL; storage size/mime/path-traversal checks.
-7. **Logging, errors, privacy** — no PII/stack to clients; audit_log hash-chain intact; DSAR export complete; deletion scrubs all FKs.
-8. **AI, RAG, prompt injection** — Fleety system prompt + KB delimited from user input; audience cache key isolation; output filter for prompt-leak markers.
-9. **Dependencies & supply chain** — triage high/critical only; pin via overrides; regenerate SBOM.
-10. **DoS, bots, abuse** — rate-limit coverage on auth, password reset, DSAR, project blast, AI; CircuitBreaker thresholds.
-11. **Reporting & memory update** — `/mnt/documents/security-audit-report.md`; update `@security-memory`; mark scanner findings fixed/ignored with justifications.
+### 12. Input Validation
+- Checks: every edge-fn entrypoint runs Zod (or equivalent) on body/query/params; allowlist not denylist; size caps on text fields; UUID/email/URL types narrowed.
+- Evidence: per-edge-fn Zod schema audit.
+
+### 13. Mass Assignment
+- Checks: client `update({...})` calls use explicit column allowlists; no `select * from` paths returning sensitive cols (PII columns flagged); `profiles.email` immutability trigger present.
+- Evidence: grep of `.update(` and `.upsert(` in `src/`.
+
+### 14. IDOR (Insecure Direct Object Reference)
+- Checks: every RLS policy filters by `auth.uid()` or `has_role()`; no edge fn trusts `userId` from request body; UUID v4 used (not sequential ids).
+- Evidence: policy WHERE-clause review, edge-fn body-param audit.
+
+### 15. SQL Injection / Query Parameterization
+- Checks: all RPCs use parameterized args (`$1`, `_param`); no `format(... %s ...)` without `%L`/`%I`; PostgREST filters from client never built via string concat.
+- Evidence: grep of `format(` and `EXECUTE` in `pg_proc.prosrc`.
+
+### 16. XSS (Reflected, Stored, DOM)
+- Checks: DOMPurify on announcement/lesson WYSIWYG render paths; React escaping intact; no `dangerouslySetInnerHTML` without sanitizer; URL-render fields validated.
+- Evidence: grep of `dangerouslySetInnerHTML`, sanitizer wrapper inventory.
+
+### 17. Content Security Policy
+- Checks: header present and not `unsafe-inline`/`unsafe-eval` for scripts (Vite hash where possible); `connect-src` allowlist names exact origins (Supabase, Discord, Notion, Resend, AI Gateway); `frame-ancestors 'none'`.
+- Evidence: deployed response headers.
+
+### 18. HTTP Security Headers
+- Checks: `Strict-Transport-Security` ≥ 1y + preload; `X-Content-Type-Options: nosniff`; `Referrer-Policy: strict-origin-when-cross-origin`; `Permissions-Policy` denies camera/mic/geo unless used.
+- Evidence: live header dump per route family.
+
+### 19. HSTS
+- Checks: HSTS on all custom domains; preload status verified.
+- Evidence: `curl -I` of `techfleet.network`, `www.techfleet.network`.
+
+### 20. Clickjacking
+- Checks: `X-Frame-Options: DENY` or CSP `frame-ancestors 'none'`; no third-party iframe embedding of app.
+- Evidence: response headers.
+
+### 21. CSRF
+- Checks: state-changing edge fns require Supabase JWT (bearer, not cookie) → CSRF surface limited; any cookie-auth path has SameSite=Lax+ and CSRF token.
+- Evidence: edge-fn auth gate review.
+
+### 22. REST Security
+- Checks: no verbs leak (`OPTIONS` minimal); CORS allowlist (no `*` on auth'd routes); error envelopes don't leak stack/SQL; pagination bounded.
+- Evidence: per-edge-fn CORS header audit.
+
+### 23. SSRF
+- Checks: no edge fn fetches a user-controlled URL; integrations (Discord, Notion, Resend, AI Gateway) use allowlisted hostnames; outbound to private CIDRs blocked.
+- Evidence: grep `fetch(` in `supabase/functions/`.
+
+### 24. File Upload
+- Checks: storage RLS scopes uploads to user folder; size cap (avatars <2MB); MIME allowlist; path-traversal blocked; antivirus or content-type sniff (where applicable).
+- Evidence: storage policies, upload util source.
+
+### 25. Logging & Monitoring
+- Checks: `audit_log` hash-chain intact (DELETE-blocked trigger); no PII in logs (DLP redactor confirmed); Lane-2 self-heal events present; admin-visible Triage queue.
+- Evidence: `audit_log` row-count + chain verify, sample log payloads.
+
+### 26. Error Handling
+- Checks: production builds strip stack traces from client responses; generic 500 to user, detailed to log; no SQL errors surfaced.
+- Evidence: edge-fn catch blocks, client error boundary copy.
+
+### 27. User Privacy
+- Checks: GA4/Clarity gated on consent; GPC honored; DSAR pipeline reaches all FK chains; deletion ledger maintained; data-retention windows documented (7d/90d/forever per type).
+- Evidence: `cookie_consents`, `dsar_requests`, retention SQL.
+
+### 28. LLM Prompt Injection
+- Checks: Fleety system prompt + KB delimited from user input; user content never concatenated into instruction blocks; output filter for prompt-leak markers; tool-use scoped.
+- Evidence: Fleety pipeline source (L1–L6).
+
+### 29. RAG Security
+- Checks: KB rows tagged with audience; cache key includes `audience+kb_version`; per-user cache isolation; no cross-tenant chunk bleed.
+- Evidence: `knowledge_base` schema, cache-key code.
+
+### 30. Vulnerable & Outdated Components
+- Checks: `npm audit --json` high+critical; Deno import-map versions pinned; no abandoned packages; SBOM regenerable.
+- Evidence: `npm audit` output, `package.json` pin strategy.
+
+### 31. NPM Security
+- Checks: lockfile committed; no `postinstall` scripts from untrusted packages; no typosquat candidates.
+- Evidence: `package-lock.json` review.
+
+### 32. Secure Cloud Architecture
+- Checks: backend/frontend separation honored; no direct DB exposure to internet; service-role key server-only; least-privilege Postgres roles.
+- Evidence: project topology summary.
+
+### 33. Multi-Tenant (per-role)
+- Checks: every tenant-scoping policy uses `auth.uid()` or `has_role()`; no cross-role data bleed in RPCs; admin reads logged.
+- Evidence: cross-role probe matrix.
+
+### 34. Denial of Service
+- Checks: rate limits on auth, password reset, DSAR, project-blast, Fleety, edge fns; CircuitBreaker thresholds; AI cost guard 30d projection.
+- Evidence: rate-limit table, breaker config.
+
+### 35. Bot Management
+- Checks: signup/contact forms have abuse signals; Discord bot endpoints validate signatures; no open scraping endpoints for member data.
+- Evidence: bot-signature verification source.
+
+### 36. Unvalidated Redirects
+- Checks: `?next=` / `?redirect=` params allowlisted to in-app paths; no open redirect on auth callback.
+- Evidence: redirect-utility source.
+
+### 37. Transport Layer Security
+- Checks: TLS 1.2+ enforced; no mixed content; cert chain healthy on all custom domains.
+- Evidence: SSL Labs grade or equivalent.
+
+### 38. Cookie Theft Mitigation
+- Checks: cookies marked `Secure`, `HttpOnly` (where set), `SameSite=Lax`+; auth tokens not in `document.cookie`-readable storage where avoidable.
+- Evidence: cookie inventory.
+
+### 39. XS-Leaks
+- Checks: `Cross-Origin-Opener-Policy: same-origin`; `Cross-Origin-Embedder-Policy` where compatible; no timing oracles in auth responses.
+- Evidence: response headers.
+
+### 40. Prototype Pollution
+- Checks: no use of `lodash.merge` < safe; no recursive merge of untrusted JSON into JS objects; framework deps not on the published-vuln list.
+- Evidence: dependency grep.
+
+## Audit phases (all read-only)
+0. **Discovery** — capture baseline: `pg_policy`, `pg_proc`, `pg_class`, storage policies, edge-fn list, env-var names, deployed headers.
+1. Cheat-sheets 1–11 (identity, sessions, MFA, secrets/crypto).
+2. Cheat-sheets 12–16 (input/IDOR/mass assign/SQLi/XSS).
+3. Cheat-sheets 17–22 (CSP/headers/HSTS/clickjacking/CSRF/REST).
+4. Cheat-sheets 23–26 (SSRF/upload/logging/errors).
+5. Cheat-sheets 27–29 (privacy/LLM/RAG).
+6. Cheat-sheets 30–32 (deps/npm/cloud).
+7. Cheat-sheets 33–40 (multi-tenant/DoS/bots/redirects/TLS/cookies/XS-leaks/prototype).
+8. Report assembly.
+
+## Findings document — exact contents
+
+Output: `/mnt/documents/security-audit-report.md` plus machine-readable `/mnt/documents/security-audit-findings.json`.
+
+### Document structure
+1. **Executive summary** — counts by severity (critical/high/medium/low/info), top 10 risks, residual-risk statement.
+2. **Scope and method** — stack, roles, tools used, time window, exclusions.
+3. **Permission baseline matrix** — full role × table × action table (documentation only; not enforced).
+4. **Findings register** — one entry per finding with the schema below.
+5. **Per-cheat-sheet appendix** — for each of the 40 cheat sheets: controls checked, pass/partial/fail verdict, evidence links, gap list.
+6. **Compliance crosswalk** — SOC 2 CC, ISO 27001 Annex A, HIPAA §164.312 mapping per finding.
+7. **Recommended remediation backlog** — prioritized, sized (S/M/L), dependency-aware, with explicit "no-lockout" notes.
+8. **Accepted-risks register** — anything intentionally left as-is, with owner + review date.
+9. **Appendix A** — raw evidence dumps (linter output, `npm audit`, header dumps, policy dump).
+10. **Appendix B** — methodology (queries run, grep patterns, fetch list).
+
+### Per-finding schema
+```
+- id:               SA-NNNN
+- title:            Short business-impact title
+- cheat_sheet:      e.g. "Authorization & Access Control"
+- severity:         critical | high | medium | low | info
+- likelihood:       high | medium | low
+- impact:           confidentiality | integrity | availability (one or more)
+- affected_assets:  table / fn / route / bucket / dependency
+- roles_at_risk:    anon | member | teacher | admin | service_role
+- description:      ≤40 words, harm first
+- evidence:         file:line, query result, header dump, screenshot path
+- reproduction:     exact steps or query
+- recommendation:   concrete fix, no-lockout caveat
+- effort:           S | M | L
+- compliance_refs:  SOC2 / ISO / HIPAA tags
+- status:           open | accepted-risk | duplicate | informational
+```
 
 ## Deliverables
-- `/mnt/documents/security-audit-permissions-baseline.json` (pre-audit role × table × action matrix)
-- `/mnt/documents/security-audit-permissions-after.json` (post-audit; diff must show **only** new restrictions, never removed allows for any role above)
-- Per-phase migrations (each rolled back if smoke test fails)
-- `/mnt/documents/security-audit-report.md` final report
-- Updated `@security-memory`
+- `/mnt/documents/security-audit-report.md`
+- `/mnt/documents/security-audit-findings.json`
+- `/mnt/documents/security-audit-evidence/` (raw dumps: policy export, headers, npm-audit, linter output)
 
-## Rollback plan
-Every migration ships with a paired down-migration. If any post-migration smoke probe regresses an allowed capability for **any** of the five actors, immediate `ROLLBACK` and re-plan before re-attempting.
+## Explicitly out of scope for this run
+- No SQL migrations.
+- No edge-function code changes.
+- No client code changes.
+- No secret rotation.
+- No `@security-memory` updates (those happen only after a follow-up remediation pass you approve separately).
