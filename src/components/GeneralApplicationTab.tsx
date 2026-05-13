@@ -198,7 +198,7 @@ export function GeneralApplicationTab() {
                       onClick={handleDeleteApplication}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Yes, Delete Permanently
+                      Delete application
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
