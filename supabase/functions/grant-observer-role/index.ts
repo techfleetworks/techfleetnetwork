@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
+
+// M-01: Lenient shape guard. Existing confirm:true check below stays authoritative.
+const BodySchema = z.object({ confirm: z.unknown().optional() }).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("grant-observer-role");
