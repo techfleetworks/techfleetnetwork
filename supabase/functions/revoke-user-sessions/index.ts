@@ -1,7 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@4.3.6";
 import { requireFreshAdmin2fa } from "../_shared/admin-step-up.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing target_user_id presence check stays authoritative.
+const BodySchema = z.object({
+  target_user_id: z.string().optional(),
+  reason: z.string().optional(),
+}).passthrough();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
