@@ -1,6 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing String() coercion + self-revoke check below stay authoritative.
+const BodySchema = z.object({ user_id: z.unknown().optional() }).passthrough()
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -44,7 +48,14 @@ Deno.serve(withAuditWrapper("revoke-teacher-role", async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
+    const rawBody = await req.json().catch(() => ({}))
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
     const targetUserId = String(body.user_id ?? '')
     if (!targetUserId) {
       return new Response(JSON.stringify({ error: 'user_id required' }), {

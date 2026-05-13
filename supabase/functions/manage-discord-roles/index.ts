@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
+
+// M-01: Lenient shape guard. Existing isValidAction discriminator below stays authoritative.
+const BodySchema = z.object({ action: z.string().optional() }).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("manage-discord-roles");
@@ -121,7 +125,15 @@ serve(withAuditWrapper("manage-discord-roles", async (req) => {
       );
     }
 
-    const body = await req.json();
+    const rawBody = await req.json();
+    const parsedBody = BodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({ error: "Invalid body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const body = parsedBody.data as Record<string, unknown>;
     if (!isValidAction(body)) {
       return new Response(
         JSON.stringify({ error: "Invalid request. Provide { action: 'list' | 'create' | 'assign' | 'remove', ... }" }),

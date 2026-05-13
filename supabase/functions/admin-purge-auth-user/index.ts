@@ -8,7 +8,11 @@
 // server-side via has_role() — never trust client claims.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
 import { requireFreshAdmin2fa } from '../_shared/admin-step-up.ts'
+
+// M-01: Lenient shape guard. Existing email regex + 320-char cap below stay authoritative.
+const BodySchema = z.object({ email: z.string().optional() }).passthrough()
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 
@@ -64,8 +68,10 @@ Deno.serve(withAuditWrapper("admin-purge-auth-user", async (req) => {
   // 2)) Parse + validate input.
   let email: string
   try {
-    const body = await req.json()
-    email = String(body?.email ?? '').trim().toLowerCase()
+    const rawBody = await req.json()
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) return jsonResponse({ error: 'Invalid body' }, 400)
+    email = String(parsedBody.data?.email ?? '').trim().toLowerCase()
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400)
   }

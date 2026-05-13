@@ -4,8 +4,12 @@
 // follower per class via a metadata check on notifications.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+// M-01: Lenient shape guard. Existing UUID regex below stays authoritative.
+const BodySchema = z.object({ class_id: z.string().optional() }).passthrough()
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -51,8 +55,15 @@ Deno.serve(withAuditWrapper("notify-class-published", async (req) => {
       })
     }
 
-    const body = await req.json().catch(() => ({}))
-    const classId: string | undefined = body?.class_id
+    const rawBody = await req.json().catch(() => ({}))
+    const parsedBody = BodySchema.safeParse(rawBody)
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const body = parsedBody.data as Record<string, unknown>
+    const classId: string | undefined = body?.class_id as string | undefined
     if (!classId || !/^[0-9a-f-]{36}$/i.test(classId)) {
       return new Response(JSON.stringify({ error: 'class_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

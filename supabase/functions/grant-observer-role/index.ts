@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { z } from "npm:zod@4.3.6";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { discordFetch } from "../_shared/discord-fetch.ts";
+
+// M-01: Lenient shape guard. Existing confirm:true check below stays authoritative.
+const BodySchema = z.object({ confirm: z.unknown().optional() }).passthrough();
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("grant-observer-role");
@@ -72,7 +76,12 @@ serve(withAuditWrapper("grant-observer-role", async (req) => {
   const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
   if (contentLength > MAX_BODY_BYTES) return json({ error: "Body too large" }, 413);
   let body: unknown;
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+  try {
+    const raw = await req.json();
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) return json({ error: "Invalid body" }, 400);
+    body = parsed.data;
+  } catch { return json({ error: "Invalid JSON" }, 400); }
   if (!body || typeof body !== "object" || (body as Record<string, unknown>).confirm !== true) {
     return json({ error: "Missing confirm:true" }, 400);
   }

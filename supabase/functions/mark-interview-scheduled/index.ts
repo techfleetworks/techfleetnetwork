@@ -8,6 +8,10 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { z } from 'npm:zod@4.3.6'
+
+// M-01: Lenient shape guard. Existing UUID_RE check below stays authoritative.
+const BodySchema = z.object({ application_id: z.string().optional() }).passthrough()
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +57,10 @@ Deno.serve(withAuditWrapper("mark-interview-scheduled", async (req) => {
   // Parse body
   let body: Record<string, unknown>
   try {
-    body = await req.json()
+    const raw = await req.json()
+    const parsed = BodySchema.safeParse(raw)
+    if (!parsed.success) return new Response(JSON.stringify({ error: 'Invalid body' }), { status: 400, headers: JSON_HEADERS })
+    body = parsed.data as Record<string, unknown>
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: JSON_HEADERS })
   }
