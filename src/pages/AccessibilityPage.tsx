@@ -61,6 +61,11 @@ export default function AccessibilityPage() {
 
   return (
     <div className="container-app py-8 space-y-8">
+      <SEO
+        title="Accessibility Policy"
+        description="Tech Fleet's commitment to digital accessibility. Read our policy and request accommodations."
+        canonicalPath="/accessibility"
+      />
       <header>
         <h1 className="text-2xl font-bold">{t("accessibility.policyTitle")}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t("accessibility.contact")}</p>
