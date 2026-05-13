@@ -65,7 +65,14 @@ Deno.serve(withAuditWrapper("sync-airtable", async (req) => {
       : AIRTABLE_TABLE_NAME_RAW.trim();
 
     // --- Body ---
-    const body = await req.json();
+    const rawSyncBody = await req.json();
+    const parsedSyncBody = BodySchema.safeParse(rawSyncBody);
+    if (!parsedSyncBody.success) {
+      return new Response(JSON.stringify({ error: "Invalid body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const body = parsedSyncBody.data as Record<string, any>;
     const { application_id, title, about_yourself, status, created_at, updated_at, email } = body;
 
     if (!application_id || typeof application_id !== "string") {
