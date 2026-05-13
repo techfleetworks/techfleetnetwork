@@ -954,10 +954,9 @@ export default function ProjectApplicationStatusPage() {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure you want to delete this application?</AlertDialogTitle>
+                <AlertDialogTitle>Delete project application?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently remove your application for <span className="font-semibold">{clientName}</span>. 
-                  All of your responses will be lost and cannot be recovered. This action cannot be undone.
+                  Your application for <span className="font-semibold">{clientName}</span> and all of your responses will be permanently removed. You can't undo this.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -966,7 +965,7 @@ export default function ProjectApplicationStatusPage() {
                   onClick={() => deleteMutation.mutate()}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Yes, Delete Permanently
+                  Delete application
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
