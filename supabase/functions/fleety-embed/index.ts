@@ -11,8 +11,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "npm:zod@3.23.8";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+const BodySchema = z.object({}).passthrough();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -95,7 +98,9 @@ serve(withAuditWrapper("fleety-embed", async (req) => {
 
   try {
     const auth = req.headers.get("Authorization") || "";
-    const body = await req.json().catch(() => ({}));
+    const _raw = await req.json().catch(() => ({}));
+    const _parsed = BodySchema.safeParse(_raw);
+    const body: any = _parsed.success ? _parsed.data : {};
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Cron / service-role path: bearer token == service role key OR

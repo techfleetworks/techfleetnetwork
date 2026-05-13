@@ -1,7 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.23.8";
 
 // --- linkify helpers (kept in-sync with src/lib/linkify.ts) ---
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+const BodySchema = z.object({ announcement_id: z.string().optional() }).passthrough();
 const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"'()]+[^\s<>"'(),.;:!?])/gi;
 const EMAIL_RE = /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
 const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -95,7 +98,14 @@ Deno.serve(withAuditWrapper("send-announcement-email", async (req) => {
       });
     }
 
-    const { announcement_id } = await req.json();
+    const _raw = await req.json().catch(() => ({}));
+    const _parsed = BodySchema.safeParse(_raw);
+    if (!_parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { announcement_id } = _parsed.data as { announcement_id?: string };
     if (!announcement_id) {
       return new Response(JSON.stringify({ error: "announcement_id is required" }), {
         status: 400,

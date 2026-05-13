@@ -1,6 +1,9 @@
 import { queueTransactionalEmail } from '../_shared/transactional-email.ts'
+import { z } from 'npm:zod@3.23.8'
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+const BodySchema = z.object({}).passthrough();
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -31,7 +34,9 @@ Deno.serve(withAuditWrapper("send-transactional-email", async (req) => {
   let messageId: string | undefined
   let templateData: Record<string, unknown> = {}
   try {
-    const body = await req.json()
+    const _raw = await req.json()
+    const _parsed = BodySchema.safeParse(_raw)
+    const body: any = _parsed.success ? _parsed.data : {}
     templateName = body.templateName || body.template_name
     recipientEmail = body.recipientEmail || body.recipient_email
     messageId = body.messageId || body.message_id

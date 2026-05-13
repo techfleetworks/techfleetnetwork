@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("ingest-workshop-docs");
+
+const BodySchema = z.object({ docs: z.array(z.any()).optional() }).passthrough();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,7 +148,14 @@ serve(withAuditWrapper("ingest-workshop-docs", async (req) => {
   // ── Validation ──────────────────────────────────────────────────────
   let body: { docs?: WorkshopDoc[] };
   try {
-    body = await req.json();
+    const _raw = await req.json();
+    const _parsed = BodySchema.safeParse(_raw);
+    if (!_parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    body = _parsed.data as { docs?: WorkshopDoc[] };
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,

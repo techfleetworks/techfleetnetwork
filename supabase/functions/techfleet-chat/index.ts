@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+
+const ChatBodySchema = z.object({
+  messages: z.array(z.any()).optional(),
+  conversation_id: z.string().optional(),
+  client_path: z.string().optional(),
+}).passthrough();
 
 const log = createEdgeLogger("techfleet-chat");
 
@@ -608,7 +615,12 @@ serve(withAuditWrapper("techfleet-chat", async (req) => {
       );
     }
 
-    const { messages, conversation_id, client_path } = await req.json();
+    const _rawChat = await req.json().catch(() => ({}));
+    const _parsedChat = ChatBodySchema.safeParse(_rawChat);
+    if (!_parsedChat.success) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { messages, conversation_id, client_path } = _parsedChat.data as { messages?: any[]; conversation_id?: string; client_path?: string };
     const safeClientPath = typeof client_path === "string"
       ? client_path.replace(/[^A-Za-z0-9/_\-?=&.]/g, "").slice(0, 200)
       : "";
