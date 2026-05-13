@@ -174,9 +174,8 @@ Deno.serve(async (req) => {
 
   const projectName = project.friendly_name || (project as any)?.clients?.name || 'Project'
 
-  // 8. Insert blast row (sanitize trigger runs; we still pre-strip server-side)
-  const safeBodyResp = await admin.rpc('sanitize_user_html' as any, { input: bodyHtml }) as any
-  const sanitizedBody = typeof safeBodyResp.data === 'string' ? safeBodyResp.data : bodyHtml
+  // 8. Insert blast row (DB BEFORE-INSERT trigger sanitizes body via sanitize_user_html)
+  const sanitizedBody = bodyHtml
   const { data: blastRow, error: insErr } = await admin
     .from('project_blasts')
     .insert({
