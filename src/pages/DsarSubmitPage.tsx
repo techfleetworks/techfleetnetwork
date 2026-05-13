@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { SEO } from "@/components/SEO";
 import { toast } from "sonner";
 
 const TYPES = [
@@ -59,6 +60,11 @@ export default function DsarSubmitPage() {
 
   return (
     <div className="container-app py-8 max-w-2xl">
+      <SEO
+        title="Submit a Privacy Request"
+        description="Submit a data subject access request to Tech Fleet. We respond within 30 days."
+        canonicalPath="/privacy/dsar"
+      />
       <h1 className="text-2xl font-bold">Submit a privacy request</h1>
       <p className="text-sm text-muted-foreground mt-1">
         We respond within 30 days. You'll receive a confirmation email with a reference number.
