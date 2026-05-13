@@ -406,7 +406,7 @@ export function MyProjectsTab() {
           id, project_type, phase, project_status, team_hats,
           current_phase_milestones, timezone_range,
           anticipated_start_date, anticipated_end_date,
-          client_intake_url, notion_repository_url, created_at,
+          created_at,
           friendly_name, description,
           clients!projects_client_id_fkey ( name, website, mission, project_summary, primary_contact )
         `)
