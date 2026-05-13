@@ -46,7 +46,16 @@ export function SilentFailuresTab() {
         p_hours: Number(hours),
         p_limit: 25,
       });
-      if (error) throw error instanceof Error ? error : new Error(String(error));
+      if (error) {
+        // PostgREST/Supabase errors are plain objects, not Error instances —
+        // String(obj) yields "[object Object]". Surface message/code/details instead.
+        if (error instanceof Error) throw error;
+        const e = error as { message?: string; code?: string; details?: string; hint?: string };
+        const parts = [e.message, e.code ? `(${e.code})` : null, e.details, e.hint]
+          .filter(Boolean)
+          .join(" ");
+        throw new Error(parts || JSON.stringify(error));
+      }
       return (data ?? []) as SilentFailureRow[];
     },
     staleTime: 60_000,
