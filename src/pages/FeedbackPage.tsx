@@ -157,7 +157,7 @@ function AdminFeedbackView() {
       setArea("");
       setMessage("");
       setFormOpen(false);
-      toast.success("Feedback submitted successfully.");
+      toast.success("Feedback sent — thanks for helping us improve.");
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
     } else {
       toast.error("We couldn't send your feedback. Please try again.");

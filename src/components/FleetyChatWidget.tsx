@@ -320,7 +320,7 @@ export function FleetyChatWidget() {
     } catch (e: any) {
       console.error(e);
       setIsLoading(false);
-      toast.error(e.message || "Failed to get a response.");
+      toast.error(e.message || "Fleety couldn't reply just now. Try again in a moment.");
     }
   };
 
@@ -586,9 +586,9 @@ export function FleetyChatWidget() {
                                       _context: { turn_id: msg.turnId, snippet: msg.content.slice(0, 500) },
                                     });
                                     if (error) throw error;
-                                    toast.success("Human review requested. We'll reply within 30 days.");
+                                    toast.success("Human review requested — we'll reply within 30 days.");
                                   } catch (e) {
-                                    toast.error("Could not file your request. Please try again.");
+                                    toast.error("We couldn't file that request. Please try again.");
                                   }
                                 }}
                                 className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1"

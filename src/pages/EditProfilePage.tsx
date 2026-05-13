@@ -220,7 +220,7 @@ export default function EditProfilePage() {
       // Force form re-initialization from fresh profile on next render
       setInitialized(false);
       setTouched({});
-      toast.success("Profile updated successfully", { duration: 5000, position: "top-center" });
+      toast.success("Profile saved.", { duration: 5000, position: "top-center" });
     } catch (err: any) {
       setErrors({ general: err.message });
       showFormErrors({ general: err.message }, { general: "Save" });
@@ -234,7 +234,7 @@ export default function EditProfilePage() {
     setResetPasswordLoading(true);
     try {
       await AuthService.resetPassword(user.email, `${window.location.origin}/reset-password`);
-      toast.success("Password reset email sent", {
+      toast.success("Password reset email sent — check your inbox.", {
         description: "Check your inbox for a link to reset your password.",
         duration: 5000,
         position: "top-center",
@@ -261,7 +261,7 @@ export default function EditProfilePage() {
       await supabase.auth.signOut({ scope: "local" });
       navigate("/", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete account. Please try again.", { duration: 30000, position: "top-center" });
+      toast.error(err.message || "We couldn't delete your account. Please try again.", { duration: 30000, position: "top-center" });
     } finally {
       setDeleting(false);
     }
