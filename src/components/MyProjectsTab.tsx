@@ -300,26 +300,26 @@ function ActiveProjectDetail({
       )}
 
       {/* External Links */}
-      {(project.client_intake_url || project.notion_repository_url) && (
+      {(clientIntakeUrl || notionRepoUrl) && (
         <InfoSection icon={Link2} title="External Links">
           <div className="grid sm:grid-cols-2 gap-4">
-            {project.client_intake_url && (
+            {clientIntakeUrl && (
               <DetailRow
                 label="Client Intake"
                 value={
-                  <SafeExternalLink href={project.client_intake_url} className="text-primary hover:underline inline-flex items-center gap-1">
-                    {getSafeLinkHostname(project.client_intake_url) ?? "Unavailable"}
+                  <SafeExternalLink href={clientIntakeUrl} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(clientIntakeUrl) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
                   </SafeExternalLink>
                 }
               />
             )}
-            {project.notion_repository_url && (
+            {notionRepoUrl && (
               <DetailRow
                 label="Project Repository (Notion)"
                 value={
-                  <SafeExternalLink href={project.notion_repository_url} className="text-primary hover:underline inline-flex items-center gap-1">
-                    {getSafeLinkHostname(project.notion_repository_url) ?? "Unavailable"}
+                  <SafeExternalLink href={notionRepoUrl} className="text-primary hover:underline inline-flex items-center gap-1">
+                    {getSafeLinkHostname(notionRepoUrl) ?? "Unavailable"}
                     <ExternalLink className="h-3 w-3" />
                   </SafeExternalLink>
                 }
