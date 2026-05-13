@@ -17,15 +17,11 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 
 const ProjectAnalysisContent = lazy(() => import("@/components/admin/ProjectAnalysisContent"));
 const ProjectRosterContent = lazy(() => import("@/components/admin/ProjectRosterContent"));
+const ProjectBlastComposer = lazy(() => import("@/components/recruiting/ProjectBlastComposer"));
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
-
-const rosterTabs: TabItem[] = [
-  { value: "analysis", label: "Application Analysis" },
-  { value: "roster", label: "Project Roster" },
-];
 
 function TabFallback() {
   return (
