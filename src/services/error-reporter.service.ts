@@ -580,11 +580,22 @@ export function reportValidationRejection(
   options: Omit<ReportOptions, "eventType" | "severity"> = {},
 ) {
   if (!issues || issues.length === 0) return;
-  const first = issues[0];
+  // Filter out "user just forgot to fill a required field" rejections — those are
+  // normal UX, not regex/schema bugs. We only want to surface high-signal issues
+  // (format/regex/refine failures on non-empty input) so admin triage stays useful.
+  const REQUIRED_PATTERN = /required|cannot be empty|must not be empty|too_small|invalid_type/i;
+  const meaningful = issues.filter((i) => {
+    const code = String(i.code ?? "");
+    if (code === "too_small" || code === "invalid_type") return false;
+    if (REQUIRED_PATTERN.test(i.message)) return false;
+    return true;
+  });
+  if (meaningful.length === 0) return;
+  const first = meaningful[0];
   const fieldPath = first.path.map(String).join(".") || "(root)";
   const code = first.code ?? "validation";
   // Compact message lists every offending field so admins can see scope.
-  const fields = issues.slice(0, 8).map((i) => {
+  const fields = meaningful.slice(0, 8).map((i) => {
     const f = i.path.map(String).join(".") || "(root)";
     return `${f}: ${i.message}`;
   }).join(" | ");
@@ -597,7 +608,7 @@ export function reportValidationRejection(
       `schema:${schemaName.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`,
       `field:${fieldPath.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`,
       `code:${String(code).replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 40)}`,
-      `count:${issues.length}`,
+      `count:${meaningful.length}`,
       ...(options.extraFields ?? []),
     ],
   });
