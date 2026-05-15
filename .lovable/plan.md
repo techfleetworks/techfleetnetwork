@@ -1,37 +1,18 @@
-# Rename "Public Events" → "Onboarding" + Luma embed
+# Fix: Classes failing to save
 
-## Scope
-Frontend-only change to `src/pages/EventsPage.tsx`. No backend, no DB, no edge functions.
+## Root cause
+DB error: `new row for relation "classes" violates check constraint "classes_summary_check"`.
 
-## Changes
+The `classes` table has `CHECK (length(summary) BETWEEN 20 AND 600)`, but the client validator (`safeHtmlSchema("Summary", 10_000)`) allows 0–10,000 chars and gives no min/max guidance. Because Summary is rendered through `RichTextEditor`, the stored value is HTML (`<p>...</p>`) which inflates length quickly — users hit either the 20-char floor (empty editor) or 600-char ceiling without warning.
 
-1. **Tab rename** (`eventTabs` array):
-   - `value: "public"` → `value: "onboarding"`
-   - `label: "Public Events"` → `label: "Onboarding"`
-   - Keep `Globe` icon (or swap to a more onboarding-appropriate icon — keeping Globe for minimum churn).
-
-2. **Tab content** (`<ResponsiveTabsContent value="public">` → `value="onboarding"`):
-   - Remove `TimezoneSelector`, `EventsSyncHealthBanner`, and `CommunityEventList` (those belong to the Community tab).
-   - Replace with a responsive Luma iframe embed:
-     ```tsx
-     <div className="w-full overflow-hidden rounded-lg border bg-card">
-       <iframe
-         src="https://luma.com/embed/calendar/cal-Iy1vN2k9O1VcEBC/events?tag=Onboarding"
-         title="Tech Fleet onboarding events calendar"
-         className="w-full h-[600px] border-0"
-         loading="lazy"
-         allowFullScreen
-       />
-     </div>
-     ```
-   - Wrapper makes it responsive (full width instead of fixed 600px) and uses semantic tokens (`border`, `bg-card`).
-   - `title` attribute satisfies WCAG 2.0 / 4.1.2 for iframes (replaces the invalid `aria-hidden="false"` from the source snippet).
-
-3. **No changes** to Community Events tab, sync-health banner, week/list view, or timezone logic.
-
-## BDD
-Update existing `EVT-002` scenario (currently "Public Events Luma embed loads") — title already matches. Add new scenario `EVT-004`: "Onboarding tab renders Luma iframe with accessible title and lazy loading" stored in `bdd_scenarios` via migration.
+## Fix
+1. **Migration** — relax the DB check to match the validator: `CHECK (length(summary) BETWEEN 1 AND 10000)`. Same as the other long-form HTML columns. Keeps a sanity bound, removes the silent rejection.
+2. **No client/UI changes needed** — the form already passes summary as HTML; it will now save.
 
 ## Files
-- `src/pages/EventsPage.tsx` — tab label/value + content swap
-- One migration to insert `EVT-004` BDD scenario (tri-layer: [UI] iframe present with title, [DB] no DB writes expected, [Code] iframe src matches Luma calendar URL)
+- New migration: `ALTER TABLE public.classes DROP CONSTRAINT classes_summary_check; ALTER TABLE public.classes ADD CONSTRAINT classes_summary_check CHECK (length(summary) BETWEEN 1 AND 10000);`
+
+## Out of scope
+- Reintroducing Description (user explicitly removed it).
+- Title check (`3..160`) is already in line with the validator.
+- BDD: existing class scenarios still apply; no new behavior.
