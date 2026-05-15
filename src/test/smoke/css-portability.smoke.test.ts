@@ -94,9 +94,12 @@ describe("CSS portability (smoke)", () => {
   });
 
   it("CSS-COMPAT-011: shadcn Table + Calendar primitives no longer rely on CSS :has()", () => {
-    expect(read("src/components/ui/table.tsx")).not.toMatch(/:has\(/);
-    expect(read("src/components/ui/table.tsx")).toMatch(/data-\[has-checkbox=true\]:pr-0/);
-    expect(read("src/components/ui/calendar.tsx")).not.toMatch(/:has\(/);
+    // Match `:has(` only inside Tailwind/CSS selectors (preceded by `&` or `[`),
+    // so doc comments mentioning `:has()` don't trip the test.
+    const tablesrc = read("src/components/ui/table.tsx");
+    expect(tablesrc).not.toMatch(/[&[]:has\(/);
+    expect(tablesrc).toMatch(/data-\[has-checkbox=true\]:pr-0/);
+    expect(read("src/components/ui/calendar.tsx")).not.toMatch(/[&[]:has\(/);
   });
 
   it("CSS-COMPAT-012: bottom-fixed Fleety launcher clears the iPhone home indicator", () => {
