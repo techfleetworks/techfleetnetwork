@@ -120,7 +120,7 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       value === null
     ) {
       // Always 204 so the browser doesn't surface beacon errors to users.
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
 
     const navType = clampStr(body.navigationType, 32);
