@@ -11,7 +11,7 @@ interface FlowMobileNavProps {
 
 export function FlowMobileNav({ backTo, backLabel, title, className }: FlowMobileNavProps) {
   return (
-    <header className={cn("sticky top-0 z-30 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden", className)}>
+    <header className={cn("sticky top-0 z-30 border-b bg-background/95 px-4 py-3 pt-safe pl-safe pr-safe backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden", className)}>
       <div className="flex items-center gap-3">
         <Link
           to={backTo}
