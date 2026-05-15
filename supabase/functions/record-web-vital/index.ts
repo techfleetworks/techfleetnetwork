@@ -98,13 +98,13 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
     // Content-Type: application/json).
     const raw = await req.text();
     if (raw.length > 16 * 1024) {
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
     let body: Record<string, unknown> = {};
     try {
       body = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
     } catch {
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
     const metric_name = clampStr(body.name, 8);
     const rating = clampStr(body.rating, 32);
