@@ -1,37 +1,28 @@
-# Make Blast available on every project for any admin
+## Root cause
 
-## Goal
-Today, the Blast tab only appears on a project where the signed-in user is the assigned `coordinator_id`. You want any admin to send blasts on any project shown in Recruiting Center, regardless of phase/status or whether a coordinator is set.
+The two "pending" rows you saw in the digest are not real errors — they're a feedback loop:
 
-## Changes
+1. Yesterday, the auto-resolver / admin called `set_fix_queue_status(id, 'resolved', '<reason>')` on the original `email_signup_confirmation_pipeline_unhealthy` (×3) and `client_error` (×1) rows.
+2. `set_fix_queue_status` writes an audit row with `event_type='fix_queue_status_changed'` and `error_message=<the resolution note>`.
+3. The cron `discover_audit_fingerprints` scans `audit_log` for rows with `error_message IS NOT NULL`, fingerprints them, and inserts them into `agent_fix_queue` as new pending items — **except** for an `v_excluded_events` allowlist that does NOT contain `fix_queue_status_changed`.
+4. Result: every resolution re-creates a phantom pending entry whose message reads like "Resolved: …", and the next digest reports those as new open errors. The original underlying issues are genuinely fixed (0 failed sends in last 24h, confirmed).
 
-### 1. Frontend gate — `src/pages/RosterProjectDetailPage.tsx`
-- Replace the `isCoordinator` gate with an `isAdmin` check (read from existing auth/role context already used elsewhere in the admin area).
-- Always render the `Blast` tab and its `<ResponsiveTabsContent value="blast">` block when the viewer is an admin.
-- Pass `canSend={isAdmin}` (renamed from `isCoordinator`) into `<ProjectBlastComposer>`.
+This violates the memory `mem://features/triage-noise-suppression` (6-layer defense — admin-action audit events should not enter the queue).
 
-### 2. Composer — `src/components/recruiting/ProjectBlastComposer.tsx`
-- Rename the `isCoordinator` prop to `canSend` (or just rely on admin context); update the `enabled:` query flag, the empty-state guard, and the disabled-button logic so the composer is usable for any admin.
-- No copy changes beyond removing coordinator-specific wording if any remains.
+## Fix (3 changes)
 
-### 3. Edge function — `supabase/functions/send-project-blast/index.ts`
-- Remove the `project.coordinator_id !== userId` block (lines ~120–135). The admin-role check immediately above (lines 104–118) is retained as the sole authorization gate.
-- Keep the project lookup (still need `friendly_name` / `clients(name)` for the email), the rate limit, recipient query, audit logging, and everything else unchanged.
-- Audit log `project_blast.denied` reason `not_coordinator` is no longer emitted; `not_admin` remains.
+1. **Migration — exclude meta-events from the discover loop.** Update `public.discover_audit_fingerprints` so `v_excluded_events` adds: `fix_queue_status_changed`, `fix_queue_triaged`, `fix_queue_proposed`, `fix_queue_dismissed`. (The other three are defensive — same admin-action class.) No behavior change for real errors.
 
-### 4. RLS on `project_blasts`
-- If the insert/select policy currently restricts to `coordinator_id = auth.uid()`, broaden it to `has_role(auth.uid(), 'admin')`. I'll confirm the current policy during implementation and migrate only if needed.
+2. **Migration — clean up the two phantom rows.** `UPDATE agent_fix_queue SET status='dismissed', dismissed_at=now(), dismissed_reason='meta: fix_queue_status_changed feedback loop (auto-cleanup)' WHERE event_type='fix_queue_status_changed' AND status='pending';` Idempotent, scoped to the 2 rows.
 
-### 5. BDD scenarios — `bdd_scenarios` table
-Add tri-layer (UI/DB/Code) scenarios under feature `Project Blast`:
-- PB-017 Any admin sees Blast tab on any project
-- PB-018 Non-admin coordinator no longer sees Blast tab (admin-only now)
-- PB-019 Edge function accepts blast from admin who is not the coordinator
-- PB-020 Edge function still rejects non-admin with 403 `not_admin`
+3. **Memory update.** Append to `mem://features/triage-noise-suppression`: "Layer 7: `discover_audit_fingerprints` v_excluded_events now includes `fix_queue_status_changed` and sibling admin-action events to prevent the resolve→audit→requeue feedback loop."
 
 ## Out of scope
-- No changes to email template, rate limit, recipient selection, history widget, or System Health observability.
-- No new UI surfaces.
+
+- No changes to `set_fix_queue_status`, the digest builder, edge functions, or the auth-email pipeline (already healthy).
+- No new tables, RLS, or UI work.
+- No BDD additions — this is a SQL hygiene fix to existing infrastructure; the existing `triage-noise-suppression` BDD scenarios already assert "admin-action audit events do not enter agent_fix_queue."
 
 ## Risk
-Low. Removes a restriction; admin role check + rate limit + audit logging stay intact.
+
+Very low. Migration is additive (array extension) + a 2-row dismissal. Pre/post diff: the daily digest will go quiet (0 pending) on next run.
