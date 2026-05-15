@@ -146,11 +146,10 @@ export default function RosterProjectDetailPage() {
       </div>
 
       {(() => {
-        const isCoordinator = !!project.coordinator_id && project.coordinator_id === user?.id;
         const tabs: TabItem[] = [
           { value: "analysis", label: "Application Analysis" },
           { value: "roster", label: "Project Roster" },
-          ...(isCoordinator ? [{ value: "blast", label: "Blast" } as TabItem] : []),
+          { value: "blast", label: "Blast" },
         ];
         return (
           <ResponsiveTabs value={tab} onValueChange={setTab}>
@@ -165,20 +164,18 @@ export default function RosterProjectDetailPage() {
                 <ProjectRosterContent projectId={projectId!} />
               </Suspense>
             </ResponsiveTabsContent>
-            {isCoordinator && (
-              <ResponsiveTabsContent value="blast" className="mt-6 space-y-6">
-                <Suspense fallback={<TabFallback />}>
-                  <ProjectBlastComposer
-                    projectId={projectId!}
-                    projectName={clientName}
-                    isCoordinator={isCoordinator}
-                  />
-                </Suspense>
-                <Suspense fallback={<TabFallback />}>
-                  <ProjectBlastHistory projectId={projectId!} />
-                </Suspense>
-              </ResponsiveTabsContent>
-            )}
+            <ResponsiveTabsContent value="blast" className="mt-6 space-y-6">
+              <Suspense fallback={<TabFallback />}>
+                <ProjectBlastComposer
+                  projectId={projectId!}
+                  projectName={clientName}
+                  canSend={isAdmin}
+                />
+              </Suspense>
+              <Suspense fallback={<TabFallback />}>
+                <ProjectBlastHistory projectId={projectId!} />
+              </Suspense>
+            </ResponsiveTabsContent>
           </ResponsiveTabs>
         );
       })()}
