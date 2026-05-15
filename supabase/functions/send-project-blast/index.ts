@@ -212,24 +212,12 @@ Deno.serve(async (req) => {
 
   // 9. Send loop (bounded concurrency)
   let emailSent = 0, emailFailed = 0, emailSuppressed = 0, notifSent = 0
+  const recipRows: Array<Record<string, unknown>> = []
 
   async function processOne(rcp: typeof recipients[number]) {
     const idem = rcp.isSenderCopy
       ? `blast-${blastId}-sender-${userId}`
       : `blast-${blastId}-${rcp.user_id}`
-    .select('id, body_html').single()
-  if (insErr || !blastRow) {
-    return json({ error: 'Failed to create blast', detail: insErr?.message }, 500)
-  }
-  const blastId = blastRow.id as string
-  const sanitizedBody = blastRow.body_html as string // sanitized by trigger
-
-  // 9. Send loop (bounded concurrency)
-  let emailSent = 0, emailFailed = 0, emailSuppressed = 0, notifSent = 0
-  const recipRows: Array<Record<string, unknown>> = []
-
-  async function processOne(rcp: typeof recipients[number]) {
-    const idem = `blast-${blastId}-${rcp.user_id}`
     let emailStatus: 'sent' | 'failed' | 'suppressed' = 'failed'
     let messageId: string | undefined
     let errMsg: string | undefined
@@ -260,19 +248,21 @@ Deno.serve(async (req) => {
       errMsg = e instanceof Error ? e.message : 'send failed'
     }
 
-    // In-app notification (always, unless user_id missing)
+    // In-app notification — skipped for the sender's self-copy (they triggered it)
     let notificationId: string | undefined
-    try {
-      const { data: notif } = await admin.from('notifications').insert({
-        user_id: rcp.user_id,
-        title: subject.slice(0, 150),
-        body_html: sanitizedBody,
-        notification_type: 'project_blast',
-        link_url: `/projects/${projectId}`,
-        read: false,
-      }).select('id').single()
-      if (notif?.id) { notificationId = notif.id; notifSent++ }
-    } catch (_e) { /* ignore */ }
+    if (!rcp.isSenderCopy) {
+      try {
+        const { data: notif } = await admin.from('notifications').insert({
+          user_id: rcp.user_id,
+          title: subject.slice(0, 150),
+          body_html: sanitizedBody,
+          notification_type: 'project_blast',
+          link_url: `/projects/${projectId}`,
+          read: false,
+        }).select('id').single()
+        if (notif?.id) { notificationId = notif.id; notifSent++ }
+      } catch (_e) { /* ignore */ }
+    }
 
     recipRows.push({
       blast_id: blastId,
