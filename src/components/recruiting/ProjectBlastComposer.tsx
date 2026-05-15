@@ -42,20 +42,6 @@ export default function ProjectBlastComposer({ projectId, projectName, isCoordin
     enabled: !!user && isCoordinator,
   });
 
-  const { data: history = [], refetch: refetchHistory } = useQuery({
-    queryKey: ["project-blast-history", projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("project_blasts")
-        .select("id, subject, status, recipient_count, email_sent_count, email_failed_count, email_suppressed_count, created_at, sent_at")
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!user && isCoordinator,
-  });
 
   const subjectTrim = subject.trim();
   const bodyText = useMemo(() => body.replace(/<[^>]+>/g, "").trim(), [body]);
