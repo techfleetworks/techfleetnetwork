@@ -244,7 +244,7 @@ export default function ProjectOpeningDetailPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <NavLink to="/project-openings">Project Openings</NavLink>
+              <NavLink to={user ? "/project-openings" : "/login?redirect=%2Fproject-openings"}>Project Openings</NavLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
