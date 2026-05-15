@@ -17,10 +17,10 @@ const BODY_MAX = 50_000;
 interface Props {
   projectId: string;
   projectName: string;
-  isCoordinator: boolean;
+  canSend?: boolean;
 }
 
-export default function ProjectBlastComposer({ projectId, projectName, isCoordinator }: Props) {
+export default function ProjectBlastComposer({ projectId, projectName, canSend: canSendProp = true }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [subject, setSubject] = useState("");
@@ -39,14 +39,14 @@ export default function ProjectBlastComposer({ projectId, projectName, isCoordin
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: !!user && isCoordinator,
+    enabled: !!user && canSendProp,
   });
 
 
   const subjectTrim = subject.trim();
   const bodyText = useMemo(() => body.replace(/<[^>]+>/g, "").trim(), [body]);
   const canSend =
-    isCoordinator &&
+    canSendProp &&
     subjectTrim.length > 0 &&
     subjectTrim.length <= SUBJECT_MAX &&
     body.length > 0 &&
@@ -55,13 +55,13 @@ export default function ProjectBlastComposer({ projectId, projectName, isCoordin
     applicantCount > 0 &&
     !sending;
 
-  if (!isCoordinator) {
+  if (!canSendProp) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Project blasts</CardTitle>
           <CardDescription>
-            Only the assigned project coordinator (with admin role) can send blasts.
+            Only admins can send project blasts.
           </CardDescription>
         </CardHeader>
       </Card>

@@ -117,22 +117,12 @@ Deno.serve(async (req) => {
     return json({ error: 'Forbidden' }, 403)
   }
 
-  // 4. Project + coordinator check
+  // 4. Project lookup (any admin can blast any project)
   const { data: project, error: projErr } = await admin
     .from('projects')
     .select('id, coordinator_id, friendly_name, clients(name)')
     .eq('id', projectId).single()
   if (projErr || !project) return json({ error: 'Project not found' }, 404)
-  if (project.coordinator_id !== userId) {
-    await admin.rpc('write_audit_log', {
-      p_event_type: 'project_blast.denied',
-      p_table_name: 'project_blasts',
-      p_record_id: projectId,
-      p_user_id: userId,
-      p_changed_fields: ['not_coordinator'],
-    }).then(() => {}, () => {})
-    return json({ error: 'Only the project coordinator can send blasts' }, 403)
-  }
 
   // 5. Rate limit: 5 / hour
   const sinceHour = new Date(Date.now() - 60 * 60 * 1000).toISOString()
