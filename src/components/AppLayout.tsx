@@ -153,7 +153,7 @@ function DesktopHeader({
 
   return (
     <header
-      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4"
+      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 pt-safe pl-safe pr-safe"
       role="banner"
       style={{ minHeight: header ? undefined : "3rem" }}
     >
@@ -271,12 +271,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   if (isPublicPage) {
     return (
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <div className="min-h-dvh flex flex-col bg-background text-foreground">
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
         <header
-          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-safe pl-safe pr-safe"
           role="banner"
         >
           <nav
@@ -325,12 +325,12 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Authenticated: sidebar on desktop, hamburger on mobile
   const authenticatedLayout = isMobile ? (
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <div className="min-h-dvh flex flex-col bg-background text-foreground">
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
         <header
-          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-safe pl-safe pr-safe"
           role="banner"
         >
           <nav
@@ -375,7 +375,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {mobileMenuOpen && (
             <div
               id="mobile-menu"
-              className="border-t animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto"
+              className="border-t animate-fade-in max-h-[calc(100dvh-4rem)] overflow-y-auto"
               role="menu"
             >
               <div className="container-app py-4 space-y-1">
@@ -482,7 +482,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
     ) : (
       <SidebarProvider defaultOpen={true}>
-        <div className="min-h-screen flex w-full bg-background text-foreground">
+        <div className="min-h-dvh flex w-full bg-background text-foreground">
           <a href="#main-content" className="skip-link">
             Skip to main content
           </a>

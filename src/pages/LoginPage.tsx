@@ -302,7 +302,7 @@ export default function LoginPage() {
     validationBorderClass(getFieldValidationState(errors[field], value, !!touched[field]));
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="text-center">
           <img src={techFleetLogo} alt="" className="h-12 w-12 mx-auto mb-4 dark:invert" aria-hidden="true" />

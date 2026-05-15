@@ -262,6 +262,11 @@ body {
   html {
     scroll-behavior: smooth;
     font-size: 16px;
+    /* iOS Safari: prevent landscape auto-zoom of text. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Anchor links + keyboard tab navigation must clear sticky 64px headers. */
+    scroll-padding-top: 5rem;
   }
 
   /* Prevent text from appearing too small on very large displays */
@@ -273,6 +278,21 @@ body {
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* Kill the iOS blue tap-flash; rely on :focus-visible + hover styles instead. */
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Cross-browser dynamic-viewport fallback. Tailwind 3.4 emits dvh on
+     h-dvh / min-h-dvh / max-h-dvh utilities; iOS Safari < 15.4 + older
+     Android WebView don't understand dvh, so they fall back to the
+     widely-supported viewport-height baseline below. */
+  @supports not (height: 100dvh) {
+    .h-dvh { height: 100vh; }
+    .min-h-dvh { min-height: 100vh; }
+    .max-h-dvh { max-height: 100vh; }
   }
 
   /* Placeholder text: grey, italic, distinct from entered values */
@@ -349,6 +369,22 @@ body {
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* iOS notch / home-indicator safe-area utilities (Brand Visual Guide §
+     mobile baseline). Wrapped in max() so they NEVER make padding smaller
+     than the existing fallback value when the device has no safe area. */
+  .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+  .pl-safe { padding-left: max(env(safe-area-inset-left), 0px); }
+  .pr-safe { padding-right: max(env(safe-area-inset-right), 0px); }
+  .px-safe {
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+  /* Combine with an existing top padding (e.g. py-3) — adds the inset on
+     top of whatever Tailwind already applied. */
+  .pt-safe-add { padding-top: calc(env(safe-area-inset-top) + var(--pt-base, 0px)); }
+  .pb-safe-add { padding-bottom: calc(env(safe-area-inset-bottom) + var(--pb-base, 0px)); }
 }
 
 /* Fleety chat prose — scannable, well-spaced formatting */

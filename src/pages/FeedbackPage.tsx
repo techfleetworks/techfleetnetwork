@@ -241,7 +241,7 @@ function AdminFeedbackView() {
 
       <ThemedAgGrid<Feedback>
         gridId="admin-feedback"
-        height="calc(100vh - 240px)"
+        height="calc(100dvh - 240px)"
         rowData={feedback}
         columnDefs={columnDefs}
         onRowClicked={onRowClicked}

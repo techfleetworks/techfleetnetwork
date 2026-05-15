@@ -155,7 +155,7 @@ export default function ResetPasswordPage() {
 
   if (checking) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+      <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
           <div className="h-8 w-8 mx-auto mb-4 animate-spin rounded-full border-4 border-muted border-t-primary" />
           <p className="text-muted-foreground">Verifying your reset link…</p>
@@ -166,7 +166,7 @@ export default function ResetPasswordPage() {
 
   if (!validRecovery) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+      <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md text-center animate-fade-in card-elevated p-8">
           <h1 className="text-2xl font-bold text-foreground mb-2">Invalid or expired link</h1>
           <p className="text-muted-foreground mb-4">This password reset link is invalid or has expired.</p>
@@ -177,7 +177,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="text-center">
           <img src={techFleetLogo} alt="" className="h-12 w-12 mx-auto mb-4 dark:invert" aria-hidden="true" />

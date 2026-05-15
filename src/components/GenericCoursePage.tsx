@@ -751,7 +751,7 @@ export default function GenericCoursePage({
           <DialogHeader
             className={
               fullscreen
-                ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10 shrink-0 text-left space-y-1"
+                ? "px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur sticky top-0 z-10 shrink-0 text-left space-y-1"
                 : "px-6 pt-6 pb-4 border-b border-border shrink-0"
             }
           >
@@ -876,7 +876,7 @@ export default function GenericCoursePage({
                 <div
                   className={
                     fullscreen
-                      ? "px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-border space-y-2 shrink-0 bg-background/95 backdrop-blur"
+                      ? "px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-border space-y-2 shrink-0 bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur"
                       : "px-6 py-4 border-t border-border space-y-3 shrink-0"
                   }
                 >

@@ -538,7 +538,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
               Applicants who also applied elsewhere — {multiProjectSheet?.hat}
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-6rem)] mt-4 pr-3">
+          <ScrollArea className="h-[calc(100dvh-6rem)] mt-4 pr-3">
             <div className="space-y-4">
               {(() => {
                 if (!multiProjectSheet || !completedApps || !analysis) return null;
