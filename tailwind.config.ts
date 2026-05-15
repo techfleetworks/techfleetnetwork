@@ -34,7 +34,19 @@ export default {
         "space-8": "2rem",
         "space-12": "3rem",
         "space-16": "4rem",
+        // CSS-COMPAT: iOS notch / home-indicator safe-area tokens.
+        // Use as `pt-safe-t`, `pb-safe-b`, `pl-safe-l`, `pr-safe-r`
+        // in addition to the .pt-safe / .pb-safe utility classes in index.css.
+        "safe-t": "env(safe-area-inset-top)",
+        "safe-b": "env(safe-area-inset-bottom)",
+        "safe-l": "env(safe-area-inset-left)",
+        "safe-r": "env(safe-area-inset-right)",
       },
+      // CSS-COMPAT D1: dynamic viewport units (iOS Safari URL-bar safe).
+      // Fallback to 100vh provided by `@supports not (height: 100dvh)` in index.css.
+      height: { dvh: "100dvh", svh: "100svh", lvh: "100lvh" },
+      minHeight: { dvh: "100dvh", svh: "100svh", lvh: "100lvh" },
+      maxHeight: { dvh: "100dvh", svh: "100svh", lvh: "100lvh" },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
