@@ -295,7 +295,7 @@ export default function EditProfilePage() {
     >
       <ResponsiveTabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         {/* Sticky tabs */}
-        <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2">
+        <div className="sticky top-0 z-30 bg-background border-b px-4 sm:px-6 py-2 pt-safe pl-safe pr-safe">
           {errors.general && (
             <div className="mb-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm" role="alert">
               {errors.general}
