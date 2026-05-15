@@ -21,7 +21,8 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse } from "../_shared/http.ts";
+// Note: _shared/http helpers intentionally not used — this endpoint needs
+// origin-reflecting CORS to support credentialed sendBeacon requests.
 
 // Origin-reflecting CORS — sendBeacon includes credentials (cookies), so the
 // browser rejects "Access-Control-Allow-Origin: *". We must echo the request
