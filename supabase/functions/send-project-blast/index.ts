@@ -190,7 +190,8 @@ Deno.serve(async (req) => {
 
   const projectName = project.friendly_name || (project as any)?.clients?.name || 'Project'
 
-  // 8. Insert blast row — DB BEFORE-INSERT trigger sanitizes body_html
+  // 8. Insert blast row — DB BEFORE-INSERT trigger sanitizes body_html.
+  // recipient_count reflects applicants only (sender self-copy is bookkeeping).
   const { data: blastRow, error: insErr } = await admin
     .from('project_blasts')
     .insert({
@@ -199,9 +200,23 @@ Deno.serve(async (req) => {
       subject,
       body_html: bodyHtml,
       audience_filter: { statuses: ['completed'] },
-      recipient_count: recipients.length,
+      recipient_count: recipientCount,
       status: 'sending',
     })
+    .select('id, body_html').single()
+  if (insErr || !blastRow) {
+    return json({ error: 'Failed to create blast', detail: insErr?.message }, 500)
+  }
+  const blastId = blastRow.id as string
+  const sanitizedBody = blastRow.body_html as string // sanitized by trigger
+
+  // 9. Send loop (bounded concurrency)
+  let emailSent = 0, emailFailed = 0, emailSuppressed = 0, notifSent = 0
+
+  async function processOne(rcp: typeof recipients[number]) {
+    const idem = rcp.isSenderCopy
+      ? `blast-${blastId}-sender-${userId}`
+      : `blast-${blastId}-${rcp.user_id}`
     .select('id, body_html').single()
   if (insErr || !blastRow) {
     return json({ error: 'Failed to create blast', detail: insErr?.message }, 500)
