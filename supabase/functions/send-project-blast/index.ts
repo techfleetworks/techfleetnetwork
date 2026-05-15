@@ -162,21 +162,36 @@ Deno.serve(async (req) => {
       user_id: p.id as string,
       email: ((p.email ?? '') as string).trim().toLowerCase(),
       firstName: (p.first_name ?? '') as string,
+      isSenderCopy: false,
     }))
     .filter((r) => r.email)
 
   if (recipients.length === 0) return json({ error: 'No applicants with valid email' }, 400)
 
-  // 7. Sender display name
+  // 7. Sender display name + self-copy. Privacy: sends are 1:1 (BCC-equivalent);
+  // no Cc/multi-To header is ever constructed, so recipients never see each other.
+  // The admin sender always receives a copy of their own blast.
   const { data: senderProfile } = await admin
     .from('profiles').select('first_name, last_name, email').eq('id', userId).maybeSingle()
   const senderName =
     [senderProfile?.first_name, senderProfile?.last_name].filter(Boolean).join(' ').trim() ||
     senderProfile?.email || 'Project Coordinator'
 
+  const senderEmail = ((senderProfile?.email ?? '') as string).trim().toLowerCase()
+  const recipientCount = recipients.length // applicants only — sender copy excluded
+  if (senderEmail && !recipients.some((r) => r.email === senderEmail)) {
+    recipients.push({
+      user_id: userId,
+      email: senderEmail,
+      firstName: (senderProfile?.first_name ?? '') as string,
+      isSenderCopy: true,
+    })
+  }
+
   const projectName = project.friendly_name || (project as any)?.clients?.name || 'Project'
 
-  // 8. Insert blast row — DB BEFORE-INSERT trigger sanitizes body_html
+  // 8. Insert blast row — DB BEFORE-INSERT trigger sanitizes body_html.
+  // recipient_count reflects applicants only (sender self-copy is bookkeeping).
   const { data: blastRow, error: insErr } = await admin
     .from('project_blasts')
     .insert({
@@ -185,7 +200,7 @@ Deno.serve(async (req) => {
       subject,
       body_html: bodyHtml,
       audience_filter: { statuses: ['completed'] },
-      recipient_count: recipients.length,
+      recipient_count: recipientCount,
       status: 'sending',
     })
     .select('id, body_html').single()
@@ -200,7 +215,9 @@ Deno.serve(async (req) => {
   const recipRows: Array<Record<string, unknown>> = []
 
   async function processOne(rcp: typeof recipients[number]) {
-    const idem = `blast-${blastId}-${rcp.user_id}`
+    const idem = rcp.isSenderCopy
+      ? `blast-${blastId}-sender-${userId}`
+      : `blast-${blastId}-${rcp.user_id}`
     let emailStatus: 'sent' | 'failed' | 'suppressed' = 'failed'
     let messageId: string | undefined
     let errMsg: string | undefined
@@ -231,19 +248,21 @@ Deno.serve(async (req) => {
       errMsg = e instanceof Error ? e.message : 'send failed'
     }
 
-    // In-app notification (always, unless user_id missing)
+    // In-app notification — skipped for the sender's self-copy (they triggered it)
     let notificationId: string | undefined
-    try {
-      const { data: notif } = await admin.from('notifications').insert({
-        user_id: rcp.user_id,
-        title: subject.slice(0, 150),
-        body_html: sanitizedBody,
-        notification_type: 'project_blast',
-        link_url: `/projects/${projectId}`,
-        read: false,
-      }).select('id').single()
-      if (notif?.id) { notificationId = notif.id; notifSent++ }
-    } catch (_e) { /* ignore */ }
+    if (!rcp.isSenderCopy) {
+      try {
+        const { data: notif } = await admin.from('notifications').insert({
+          user_id: rcp.user_id,
+          title: subject.slice(0, 150),
+          body_html: sanitizedBody,
+          notification_type: 'project_blast',
+          link_url: `/projects/${projectId}`,
+          read: false,
+        }).select('id').single()
+        if (notif?.id) { notificationId = notif.id; notifSent++ }
+      } catch (_e) { /* ignore */ }
+    }
 
     recipRows.push({
       blast_id: blastId,

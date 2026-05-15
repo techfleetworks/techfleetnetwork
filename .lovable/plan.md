@@ -1,28 +1,35 @@
-## Root cause
+## Current state
 
-The two "pending" rows you saw in the digest are not real errors — they're a feedback loop:
+Project blasts already send **one transactional email per recipient** through the queue — each recipient's email goes only to them, so no recipient ever sees another recipient's address in `To:`/`Cc:`. The "BCC privacy" goal is therefore already met by the existing 1:1 architecture (the email API has no batch/BCC field).
 
-1. Yesterday, the auto-resolver / admin called `set_fix_queue_status(id, 'resolved', '<reason>')` on the original `email_signup_confirmation_pipeline_unhealthy` (×3) and `client_error` (×1) rows.
-2. `set_fix_queue_status` writes an audit row with `event_type='fix_queue_status_changed'` and `error_message=<the resolution note>`.
-3. The cron `discover_audit_fingerprints` scans `audit_log` for rows with `error_message IS NOT NULL`, fingerprints them, and inserts them into `agent_fix_queue` as new pending items — **except** for an `v_excluded_events` allowlist that does NOT contain `fix_queue_status_changed`.
-4. Result: every resolution re-creates a phantom pending entry whose message reads like "Resolved: …", and the next digest reports those as new open errors. The original underlying issues are genuinely fixed (0 failed sends in last 24h, confirmed).
+What's missing: the **admin sender does not currently receive a copy** of the blast they send.
 
-This violates the memory `mem://features/triage-noise-suppression` (6-layer defense — admin-action audit events should not enter the queue).
+## Change (one edge-function edit + one BDD addition)
 
-## Fix (3 changes)
+**File:** `supabase/functions/send-project-blast/index.ts`
 
-1. **Migration — exclude meta-events from the discover loop.** Update `public.discover_audit_fingerprints` so `v_excluded_events` adds: `fix_queue_status_changed`, `fix_queue_triaged`, `fix_queue_proposed`, `fix_queue_dismissed`. (The other three are defensive — same admin-action class.) No behavior change for real errors.
+1. After the recipient list is built (line ~168) and before the send loop, look up the sender's profile email (already fetched at line ~171 as `senderProfile.email`).
+2. If `senderProfile.email` is present and not already in the recipient list (case-insensitive match), append a synthetic recipient `{ user_id: userId, email: senderProfile.email, firstName: senderProfile.first_name }` with an `isSenderCopy: true` flag.
+3. In `processOne`:
+   - Use idempotency key `blast-${blastId}-sender-${userId}` for the sender copy so retries are safe and it never collides with a real recipient row.
+   - Skip the in-app `notifications` insert for the sender copy (they triggered it — don't self-notify).
+   - Still record a `project_blast_recipients` row with a marker (`error: 'sender_copy'` or a new boolean column is overkill — reuse the `email_status` field; the email_hash differs so no UNIQUE collision).
+4. Bump `recipient_count` and `email_sent_count` accounting to include the sender copy (or, cleaner, exclude it from `recipient_count` by tracking `senderCopySent` separately and only adding to `email_sent_count`). Pick: **exclude from `recipient_count`** so the audit/UI still says "you emailed N applicants" — the sender copy is bookkeeping, not an applicant.
 
-2. **Migration — clean up the two phantom rows.** `UPDATE agent_fix_queue SET status='dismissed', dismissed_at=now(), dismissed_reason='meta: fix_queue_status_changed feedback loop (auto-cleanup)' WHERE event_type='fix_queue_status_changed' AND status='pending';` Idempotent, scoped to the 2 rows.
+**Privacy reaffirmation (no code change needed):** Document in the function header comment that 1:1 sends are the BCC equivalent — no `Cc`/multi-`To` is ever constructed.
 
-3. **Memory update.** Append to `mem://features/triage-noise-suppression`: "Layer 7: `discover_audit_fingerprints` v_excluded_events now includes `fix_queue_status_changed` and sibling admin-action events to prevent the resolve→audit→requeue feedback loop."
+**BDD scenarios** (append to `bdd_scenarios`): 
+- `PB-021` — Admin sender receives a self-copy of every blast they send (idempotency key `blast-{id}-sender-{userId}`, no duplicate notification row).
+- `PB-022` — Recipient email headers contain only the recipient's own address (no other recipient leaked via Cc/To). Asserts on `project_blast_recipients` count == applicants count, and sender copy row has distinct `email_hash`.
+- `PB-023` — If the sender's email is already in the applicant list (sender applied to their own project), no second copy is sent (dedupe by case-insensitive email).
 
 ## Out of scope
 
-- No changes to `set_fix_queue_status`, the digest builder, edge functions, or the auth-email pipeline (already healthy).
-- No new tables, RLS, or UI work.
-- No BDD additions — this is a SQL hygiene fix to existing infrastructure; the existing `triage-noise-suppression` BDD scenarios already assert "admin-action audit events do not enter agent_fix_queue."
+- No DB schema changes — `project_blast_recipients` already has `email_hash`, `email_status`, `email_message_id`, no UNIQUE on `(blast_id, user_id)` that would block a sender copy with the same `user_id` only if it exists; if it does exist, we'll dedupe by email instead and skip writing a recipient row.
+- No UI changes (the composer empty-state, history widget, and recipient counts continue to work; sender copy is invisible).
+- No template changes — the existing `project-blast` template is reused for the sender copy.
+- No rate-limit change.
 
 ## Risk
 
-Very low. Migration is additive (array extension) + a 2-row dismissal. Pre/post diff: the daily digest will go quiet (0 pending) on next run.
+Low. One extra queued email per blast (capped by existing 5/hr rate limit). Idempotency key prevents duplicates on retry. If the sender's email is missing/invalid, the copy is silently skipped (already covered by the `recipients.filter((r) => r.email)` pattern).
