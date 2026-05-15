@@ -181,15 +181,6 @@ export default function ClassFormPage() {
         </div>
 
         <div>
-          <Label>Description</Label>
-          <RichTextEditor
-            content={description}
-            onChange={(html) => form.setValue("description", html, { shouldDirty: true })}
-            placeholder="Full description of the class content…"
-          />
-        </div>
-
-        <div>
           <Label>Why take this course?</Label>
           <RichTextEditor
             content={whyTake}
