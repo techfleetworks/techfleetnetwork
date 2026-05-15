@@ -83,8 +83,7 @@ export default function ProjectBlastComposer({ projectId, projectName, isCoordin
       setSubject("");
       setBody("");
       setConfirmOpen(false);
-      qc.invalidateQueries({ queryKey: ["project-blast-history", projectId] });
-      refetchHistory();
+      qc.invalidateQueries({ queryKey: ["project-blasts-history", projectId] });
     } catch (e: any) {
       toast({
         title: "Couldn't send blast",
