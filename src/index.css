@@ -262,6 +262,11 @@ body {
   html {
     scroll-behavior: smooth;
     font-size: 16px;
+    /* iOS Safari: prevent landscape auto-zoom of text. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Anchor links + keyboard tab navigation must clear sticky 64px headers. */
+    scroll-padding-top: 5rem;
   }
 
   /* Prevent text from appearing too small on very large displays */
@@ -273,6 +278,21 @@ body {
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* Kill the iOS blue tap-flash; rely on :focus-visible + hover styles instead. */
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Cross-browser dynamic-viewport fallback. Tailwind 3.4 emits `100dvh`
+     on h-dvh / min-h-dvh / max-h-dvh utilities; iOS Safari < 15.4 + older
+     Android WebView ignore dvh, so they get clamped to 100vh which is the
+     widely-supported baseline. */
+  @supports not (height: 100dvh) {
+    .h-dvh { height: 100vh; }
+    .min-h-dvh { min-height: 100vh; }
+    .max-h-dvh { max-height: 100vh; }
   }
 
   /* Placeholder text: grey, italic, distinct from entered values */
