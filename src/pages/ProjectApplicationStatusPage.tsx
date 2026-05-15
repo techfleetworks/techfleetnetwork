@@ -721,7 +721,7 @@ export default function ProjectApplicationStatusPage() {
                 : "Interview details"}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-14rem)] pr-4">
+          <ScrollArea className="h-[calc(100dvh-14rem)] pr-4">
             {interviewNotification?.body_html ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"

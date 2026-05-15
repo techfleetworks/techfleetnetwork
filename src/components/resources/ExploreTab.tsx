@@ -221,7 +221,7 @@ export default function ExploreTab() {
               All Popular Explorations
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-8rem)] mt-4 pr-2">
+          <ScrollArea className="h-[calc(100dvh-8rem)] mt-4 pr-2">
             <div className="space-y-2">
               {allPopularQueries.map((pq, idx) => (
                 <button
