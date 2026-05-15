@@ -81,10 +81,15 @@ function normaliseRoute(raw: unknown): string | null {
 }
 
 Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
-  const cors = handleCors(req);
-  if (cors) return cors;
+  const cors = corsFor(req);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
   }
 
   try {
