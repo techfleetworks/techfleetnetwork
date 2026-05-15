@@ -1,50 +1,66 @@
-## Plan: Add Gumroad Subscription Management Links to Profile
+# Fix project blast 500 error
 
-### Problem
-Members on paid tiers (Community, Professional) cannot manage their subscription directly from the profile. The only guidance is a toast saying "use the Gumroad email link from your original receipt." Users expect a direct, seamless path to upgrade, downgrade, or cancel on Gumroad from the Membership tab.
+## Root cause
 
-### Solution
-Add a direct "Manage subscription" link to Gumroad for all paid members, and wire every downgrade/manage action to open Gumroad instead of showing a passive toast.
+In `supabase/functions/send-project-blast/index.ts` (step 6, lines 148–163) the recipients query is:
 
-### Files to change
+```ts
+.from('project_applications')
+.select('user_id, email, profiles!project_applications_user_id_fkey(first_name, email)')
+```
 
-#### 1. `src/lib/gumroad.ts` — NEW
-- Helper `getGumroadManageUrl(sku: string): string | null`
-- Normalizes the stored `membership_sku` (may be a permalink slug like `founding-membership` or a full URL like `https://techfleet.gumroad.com/l/founding-membership`) into `https://app.gumroad.com/d/{slug}/manage`
-- Returns `null` for invalid/empty input
+But `project_applications` has **no `email` column** and **no foreign key named `project_applications_user_id_fkey`** (the only FK is `project_id_fkey` to `projects`). PostgREST rejects this select, the function throws, and returns a 500 — before any `project_blasts` row is inserted. This matches what we see:
 
-#### 2. `src/components/CurrentMembershipBanner.tsx` — EDIT
-- Add optional `manageUrl?: string | null` prop
-- For paid tiers (`currentTier !== 'starter'`), render a "Manage subscription on Gumroad" button below the plan details using `SafeExternalLink`
-- Button opens in a new tab with `noopener,noreferrer`
-- Starter tier omits the button (nothing to manage)
+- Edge logs: `POST /send-project-blast → 500` (2475ms), no function-level log lines.
+- DB: zero rows in `project_blasts` ever.
+- No `project_blast.denied` audit row, so failure is past the admin/coordinator checks but inside the recipients lookup.
 
-#### 3. `src/components/MembershipTiersGrid.tsx` — EDIT
-- Add optional `manageUrl?: string | null` prop
-- In `TierCtaButtons`, when `isCurrent` and tier is paid:
-  - Replace the static non-interactive "Your Current Plan" badge with the badge **plus** a "Manage subscription" button underneath it
-- For `isDowngrade` on any card: change CTA from generic "Switch to X" to "Manage on Gumroad" and trigger `action: "manage"` instead of `action: "downgrade"`
+## Fix
 
-#### 4. `src/pages/EditProfilePage.tsx` — EDIT
-- Compute `manageUrl` from `profile.membership_sku` using the new helper
-- Pass `manageUrl` to both `CurrentMembershipBanner` and `MembershipTiersGrid`
-- Update `MembershipTiersGrid.onSelect` handler:
-  - `action === "manage"` or `action === "downgrade"`: open `manageUrl` (or `https://gumroad.com/library` as fallback) in a new tab
-  - Remove the old toast-only downgrade message
-  - Keep existing `subscribe` and `waitlist` behaviors
+Rewrite step 6 to fetch user_ids from `project_applications`, then bulk-load names + emails from `profiles` by id (no embedded join, no nonexistent column).
 
-#### 5. `src/data/membership-faq.ts` — EDIT
-- Update the `switch-tier` FAQ entry to mention the direct manage link: "You can switch any time from this Membership tab. Paid members can manage, change, or cancel their subscription directly on Gumroad using the Manage subscription button."
+```ts
+// 6. Recipients (status = completed)
+const { data: applicants, error: appErr } = await admin
+  .from('project_applications')
+  .select('user_id')
+  .eq('project_id', projectId)
+  .eq('status', 'completed')
+if (appErr) return json({ error: 'Recipient lookup failed', detail: appErr.message }, 500)
 
-#### 6. Database migration — NEW `supabase/migrations/`
-- Insert BDD scenarios for the new feature:
-  - `MEMBER-MANAGE-001`: Starter member sees no manage button
-  - `MEMBER-MANAGE-002`: Community/Professional member sees "Manage subscription" on current plan banner and in tier grid
-  - `MEMBER-MANAGE-003`: Downgrade CTA opens Gumroad manage URL
-  - `MEMBER-MANAGE-004`: SKU normalization correctly handles full URL vs slug
+const userIds = Array.from(
+  new Set((applicants ?? []).map((r: any) => r.user_id).filter(Boolean))
+) as string[]
+if (userIds.length === 0) return json({ error: 'No applicants to email' }, 400)
+if (userIds.length > MAX_RECIPIENTS) return json({ error: 'Recipient cap exceeded' }, 400)
 
-### Technical details
-- Gumroad manage URL format: `https://app.gumroad.com/d/{permalink-slug}/manage`
-- The stored `profiles.membership_sku` may be a full Gumroad URL or just the permalink slug; the helper strips the domain/path prefix to extract the slug safely
-- All external links use the existing `SafeExternalLink` component for security (URL validation + `noopener noreferrer nofollow`)
-- No backend changes needed; this is purely a frontend UX improvement using already-stored profile data
+const { data: profiles, error: profErr } = await admin
+  .from('profiles')
+  .select('id, email, first_name')
+  .in('id', userIds)
+if (profErr) return json({ error: 'Profile lookup failed', detail: profErr.message }, 500)
+
+const recipients = (profiles ?? [])
+  .map((p: any) => ({
+    user_id: p.id as string,
+    email: ((p.email ?? '') as string).trim().toLowerCase(),
+    firstName: (p.first_name ?? '') as string,
+  }))
+  .filter((r) => r.email)
+
+if (recipients.length === 0) return json({ error: 'No applicants with valid email' }, 400)
+```
+
+Everything downstream (`processOne`, blast row insert, audit log) already uses `recipients[].user_id / email / firstName`, so no other changes needed.
+
+## Defense-in-depth (small, included)
+
+- Wrap the whole handler body after CORS/method check in `try/catch` that returns `json({ error: 'Internal error', detail: e.message }, 500)` and emits a `reportError`-style audit row, so any future PostgREST shape mismatch surfaces in System Health instead of being a silent 500.
+- Add one BDD scenario `BLAST-FIX-001` covering "completed applicants without an email column on project_applications still receive the blast".
+
+## Files touched
+
+- `supabase/functions/send-project-blast/index.ts` — recipients query rewrite + outer try/catch.
+- New migration: insert `BLAST-FIX-001` BDD scenario row.
+
+No frontend, schema, or RLS changes required.

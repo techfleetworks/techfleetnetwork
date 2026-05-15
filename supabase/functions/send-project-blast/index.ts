@@ -144,26 +144,37 @@ Deno.serve(async (req) => {
     return json({ error: 'Rate limit exceeded. Try again later.' }, 429, { 'Retry-After': '3600' })
   }
 
-  // 6. Recipients (status = completed by default audience filter)
+  // 6. Recipients (status = completed). Fetch user_ids, then bulk-load
+  // profiles separately — there is no FK from project_applications to profiles
+  // and project_applications has no email column, so an embedded join fails.
   const { data: applicants, error: appErr } = await admin
     .from('project_applications')
-    .select('user_id, email, profiles!project_applications_user_id_fkey(first_name, email)')
+    .select('user_id')
     .eq('project_id', projectId)
     .eq('status', 'completed')
-  if (appErr) return json({ error: 'Recipient lookup failed' }, 500)
-  // Dedup by user_id
-  const seen = new Set<string>()
-  const recipients = (applicants || []).filter((r: any) => {
-    if (!r.user_id || seen.has(r.user_id)) return false
-    seen.add(r.user_id); return true
-  }).map((r: any) => ({
-    user_id: r.user_id as string,
-    email: ((r.profiles?.email || r.email || '') as string).trim().toLowerCase(),
-    firstName: (r.profiles?.first_name || '') as string,
-  })).filter((r) => r.email)
+  if (appErr) return json({ error: 'Recipient lookup failed', detail: appErr.message }, 500)
 
-  if (recipients.length === 0) return json({ error: 'No applicants to email' }, 400)
-  if (recipients.length > MAX_RECIPIENTS) return json({ error: 'Recipient cap exceeded' }, 400)
+  const userIds = Array.from(
+    new Set((applicants ?? []).map((r: any) => r.user_id).filter(Boolean))
+  ) as string[]
+  if (userIds.length === 0) return json({ error: 'No applicants to email' }, 400)
+  if (userIds.length > MAX_RECIPIENTS) return json({ error: 'Recipient cap exceeded' }, 400)
+
+  const { data: profileRows, error: profErr } = await admin
+    .from('profiles')
+    .select('id, email, first_name')
+    .in('id', userIds)
+  if (profErr) return json({ error: 'Profile lookup failed', detail: profErr.message }, 500)
+
+  const recipients = (profileRows ?? [])
+    .map((p: any) => ({
+      user_id: p.id as string,
+      email: ((p.email ?? '') as string).trim().toLowerCase(),
+      firstName: (p.first_name ?? '') as string,
+    }))
+    .filter((r) => r.email)
+
+  if (recipients.length === 0) return json({ error: 'No applicants with valid email' }, 400)
 
   // 7. Sender display name
   const { data: senderProfile } = await admin
