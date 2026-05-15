@@ -48,32 +48,18 @@ function getConnection(): { effectiveType: string | null; saveData: boolean | nu
 }
 
 function send(payload: Record<string, unknown>): void {
-  // Prefer sendBeacon — fires reliably on page hide, even during navigation.
-  // Fall back to keepalive fetch when sendBeacon isn't available (rare).
+  // Use CORS-safelisted "text/plain" so sendBeacon doesn't trigger a preflight
+  // (which beacons cannot perform). The edge function parses the body as JSON.
+  // No fetch fallback: RUM is best-effort and must never surface in console
+  // (ad-blockers commonly block any URL containing "vital"/analytics paths).
   const body = JSON.stringify(payload);
   try {
     if (typeof navigator.sendBeacon === "function") {
-      const blob = new Blob([body], { type: "application/json" });
-      const ok = navigator.sendBeacon(ENDPOINT, blob);
-      if (ok) return;
+      const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
+      navigator.sendBeacon(ENDPOINT, blob);
     }
   } catch {
-    /* fall through to fetch */
-  }
-  try {
-    void fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(ANON_KEY ? { apikey: ANON_KEY } : {}),
-      },
-      body,
-      keepalive: true,
-      mode: "cors",
-      credentials: "omit",
-    }).catch(() => undefined);
-  } catch {
-    /* swallow */
+    /* swallow — RUM must never surface */
   }
 }
 
