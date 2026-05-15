@@ -162,17 +162,31 @@ Deno.serve(async (req) => {
       user_id: p.id as string,
       email: ((p.email ?? '') as string).trim().toLowerCase(),
       firstName: (p.first_name ?? '') as string,
+      isSenderCopy: false,
     }))
     .filter((r) => r.email)
 
   if (recipients.length === 0) return json({ error: 'No applicants with valid email' }, 400)
 
-  // 7. Sender display name
+  // 7. Sender display name + self-copy. Privacy: sends are 1:1 (BCC-equivalent);
+  // no Cc/multi-To header is ever constructed, so recipients never see each other.
+  // The admin sender always receives a copy of their own blast.
   const { data: senderProfile } = await admin
     .from('profiles').select('first_name, last_name, email').eq('id', userId).maybeSingle()
   const senderName =
     [senderProfile?.first_name, senderProfile?.last_name].filter(Boolean).join(' ').trim() ||
     senderProfile?.email || 'Project Coordinator'
+
+  const senderEmail = ((senderProfile?.email ?? '') as string).trim().toLowerCase()
+  const recipientCount = recipients.length // applicants only — sender copy excluded
+  if (senderEmail && !recipients.some((r) => r.email === senderEmail)) {
+    recipients.push({
+      user_id: userId,
+      email: senderEmail,
+      firstName: (senderProfile?.first_name ?? '') as string,
+      isSenderCopy: true,
+    })
+  }
 
   const projectName = project.friendly_name || (project as any)?.clients?.name || 'Project'
 
