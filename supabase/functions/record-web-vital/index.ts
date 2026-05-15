@@ -21,12 +21,24 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  errorResponse,
-  handleCors,
-  jsonResponse,
-  parseJsonBody,
-} from "../_shared/http.ts";
+// Note: _shared/http helpers intentionally not used — this endpoint needs
+// origin-reflecting CORS to support credentialed sendBeacon requests.
+
+// Origin-reflecting CORS — sendBeacon includes credentials (cookies), so the
+// browser rejects "Access-Control-Allow-Origin: *". We must echo the request
+// Origin and set Allow-Credentials accordingly.
+function corsFor(req: Request): HeadersInit {
+  const origin = req.headers.get("origin") ?? "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
 
 const ALLOWED_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB", "FID"]);
 const ALLOWED_RATINGS = new Set(["good", "needs-improvement", "poor"]);
@@ -70,10 +82,15 @@ function normaliseRoute(raw: unknown): string | null {
 }
 
 Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
-  const cors = handleCors(req);
-  if (cors) return cors;
+  const cors = corsFor(req);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -82,13 +99,13 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
     // Content-Type: application/json).
     const raw = await req.text();
     if (raw.length > 16 * 1024) {
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
     let body: Record<string, unknown> = {};
     try {
       body = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
     } catch {
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
     const metric_name = clampStr(body.name, 8);
     const rating = clampStr(body.rating, 32);
@@ -104,7 +121,7 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       value === null
     ) {
       // Always 204 so the browser doesn't surface beacon errors to users.
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: cors });
     }
 
     const navType = clampStr(body.navigationType, 32);
@@ -145,11 +162,11 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       user_agent,
     });
 
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   } catch (err) {
     if (err instanceof Response) return err;
     // Swallow errors — RUM must never surface to users.
     console.error("[record-web-vital] error", (err as Error)?.message);
-    return errorResponse(err, "RUM ingestion failed");
+    return new Response(null, { status: 204, headers: cors });
   }
 }));
