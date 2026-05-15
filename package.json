@@ -150,5 +150,13 @@
     "js-yaml": "4.1.1",
     "yaml": "2.8.3",
     "@tootallnate/once": "3.0.1"
-  }
+  },
+  "browserslist": [
+    ">0.5%",
+    "last 2 versions",
+    "Firefox ESR",
+    "not dead",
+    "iOS >= 14.5",
+    "Safari >= 14.1"
+  ]
 }
