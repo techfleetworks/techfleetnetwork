@@ -77,8 +77,19 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
   }
 
   try {
-    const body = (await parseJsonBody(req, 16 * 1024)) as Record<string, unknown>;
-
+    // Beacons are sent as text/plain (CORS-safelisted, no preflight).
+    // Parse manually instead of using parseJsonBody (which enforces
+    // Content-Type: application/json).
+    const raw = await req.text();
+    if (raw.length > 16 * 1024) {
+      return new Response(null, { status: 204 });
+    }
+    let body: Record<string, unknown> = {};
+    try {
+      body = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    } catch {
+      return new Response(null, { status: 204 });
+    }
     const metric_name = clampStr(body.name, 8);
     const rating = clampStr(body.rating, 32);
     const route = normaliseRoute(body.route);
