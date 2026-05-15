@@ -118,7 +118,7 @@ export default function ClassFormPage() {
 
   const skills = form.watch("skills");
   const summary = form.watch("summary");
-  const description = form.watch("description");
+  
   const outcomes = form.watch("outcomes");
   const whyTake = form.watch("why_take");
   const audiences = form.watch("audiences");
@@ -178,15 +178,6 @@ export default function ClassFormPage() {
           {form.formState.errors.summary && (
             <p className="text-xs text-destructive mt-1">{form.formState.errors.summary.message}</p>
           )}
-        </div>
-
-        <div>
-          <Label>Description</Label>
-          <RichTextEditor
-            content={description}
-            onChange={(html) => form.setValue("description", html, { shouldDirty: true })}
-            placeholder="Full description of the class content…"
-          />
         </div>
 
         <div>
