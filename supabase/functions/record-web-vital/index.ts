@@ -35,7 +35,7 @@ function corsFor(req: Request): HeadersInit {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Max-Age": "86400",
+    "Access-Control-Max-Age": "600",
     "Vary": "Origin",
   };
 }
