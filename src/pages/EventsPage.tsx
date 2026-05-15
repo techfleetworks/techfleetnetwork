@@ -17,7 +17,7 @@ const OPEN_IN_GOOGLE_URL = `https://calendar.google.com/calendar/u/0/embed?src=$
 
 const eventTabs: TabItem[] = [
   { value: "community", label: "Community Events", icon: <Users className="h-4 w-4" /> },
-  { value: "public", label: "Public Events", icon: <Globe className="h-4 w-4" /> },
+  { value: "onboarding", label: "Onboarding", icon: <Globe className="h-4 w-4" /> },
 ];
 
 const TZ_KEY = "tfn.events.tz";
@@ -84,12 +84,16 @@ export default function EventsPage() {
       <ResponsiveTabs value={tab} onValueChange={setTab} className="w-full">
         <ResponsiveTabsList tabs={eventTabs} value={tab} onValueChange={setTab} className="mb-6" />
 
-        <ResponsiveTabsContent value="public">
-          <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
-            <TimezoneSelector value={timeZone} onChange={handleTzChange} />
+        <ResponsiveTabsContent value="onboarding">
+          <div className="w-full overflow-hidden rounded-lg border bg-card">
+            <iframe
+              src="https://luma.com/embed/calendar/cal-Iy1vN2k9O1VcEBC/events?tag=Onboarding"
+              title="Tech Fleet onboarding events calendar"
+              className="w-full h-[600px] border-0"
+              loading="lazy"
+              allowFullScreen
+            />
           </div>
-          <EventsSyncHealthBanner />
-          <CommunityEventList timeZone={timeZone} fallbackUrl={OPEN_IN_GOOGLE_URL} />
         </ResponsiveTabsContent>
 
         <ResponsiveTabsContent value="community">
