@@ -424,7 +424,7 @@ export function FleetyChatWidget() {
       {/* Floating button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center group"
+        className="fixed bottom-[max(env(safe-area-inset-bottom),1.5rem)] right-[max(env(safe-area-inset-right),1.5rem)] z-50 h-14 w-14 rounded-full bg-primary shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center group"
         aria-label="Chat with Fleety"
       >
         <img
