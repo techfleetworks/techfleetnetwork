@@ -118,7 +118,7 @@ export default function ClassFormPage() {
 
   const skills = form.watch("skills");
   const summary = form.watch("summary");
-  const description = form.watch("description");
+  
   const outcomes = form.watch("outcomes");
   const whyTake = form.watch("why_take");
   const audiences = form.watch("audiences");
