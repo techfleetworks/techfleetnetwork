@@ -21,12 +21,23 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  errorResponse,
-  handleCors,
-  jsonResponse,
-  parseJsonBody,
-} from "../_shared/http.ts";
+import { errorResponse } from "../_shared/http.ts";
+
+// Origin-reflecting CORS — sendBeacon includes credentials (cookies), so the
+// browser rejects "Access-Control-Allow-Origin: *". We must echo the request
+// Origin and set Allow-Credentials accordingly.
+function corsFor(req: Request): HeadersInit {
+  const origin = req.headers.get("origin") ?? "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
 
 const ALLOWED_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB", "FID"]);
 const ALLOWED_RATINGS = new Set(["good", "needs-improvement", "poor"]);
