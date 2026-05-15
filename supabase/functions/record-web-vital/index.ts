@@ -161,11 +161,11 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       user_agent,
     });
 
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   } catch (err) {
     if (err instanceof Response) return err;
     // Swallow errors — RUM must never surface to users.
     console.error("[record-web-vital] error", (err as Error)?.message);
-    return errorResponse(err, "RUM ingestion failed");
+    return new Response(null, { status: 204, headers: cors });
   }
 }));
