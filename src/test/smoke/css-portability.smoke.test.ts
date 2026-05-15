@@ -92,4 +92,25 @@ describe("CSS portability (smoke)", () => {
     expect(read("src/components/ui/toast.tsx")).toMatch(/pt-safe[^"]*pb-safe/);
     expect(read("src/components/FlowMobileNav.tsx")).toMatch(/pt-safe/);
   });
+
+  it("CSS-COMPAT-011: shadcn Table + Calendar primitives no longer rely on CSS :has()", () => {
+    // Match `:has(` only inside Tailwind/CSS selectors (preceded by `&` or `[`),
+    // so doc comments mentioning `:has()` don't trip the test.
+    const tablesrc = read("src/components/ui/table.tsx");
+    expect(tablesrc).not.toMatch(/[&[]:has\(/);
+    expect(tablesrc).toMatch(/data-\[has-checkbox=true\]:pr-0/);
+    expect(read("src/components/ui/calendar.tsx")).not.toMatch(/[&[]:has\(/);
+  });
+
+  it("CSS-COMPAT-012: bottom-fixed Fleety launcher clears the iPhone home indicator", () => {
+    expect(read("src/components/FleetyChatWidget.tsx")).toMatch(/safe-area-inset-bottom/);
+  });
+
+  it("CSS-COMPAT-013: custom CSS in index.css uses logical padding (RTL-safe)", () => {
+    const css = read("src/index.css");
+    // .fleety-prose lists/items must use logical inline-start, not physical left.
+    const proseBlock = css.slice(css.indexOf(".fleety-prose ul,"));
+    expect(proseBlock).toMatch(/padding-inline-start:\s*1\.25rem/);
+    expect(proseBlock).toMatch(/padding-inline-start:\s*0\.25rem/);
+  });
 });
