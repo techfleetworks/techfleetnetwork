@@ -158,49 +158,6 @@ export default function ProjectBlastComposer({ projectId, projectName, isCoordin
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Blast history</CardTitle>
-          <CardDescription>Most recent project blasts you sent for this project.</CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No blasts sent yet.</p>
-          ) : (
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="text-left text-muted-foreground border-b">
-                <tr>
-                  <th className="px-3 py-2">Sent</th>
-                  <th className="px-3 py-2">Subject</th>
-                  <th className="px-3 py-2">Recipients</th>
-                  <th className="px-3 py-2">Sent</th>
-                  <th className="px-3 py-2">Failed</th>
-                  <th className="px-3 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((b: any) => (
-                  <tr key={b.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {b.sent_at ? formatDistanceToNow(new Date(b.sent_at), { addSuffix: true }) :
-                        formatDistanceToNow(new Date(b.created_at), { addSuffix: true })}
-                    </td>
-                    <td className="px-3 py-2 font-medium text-foreground truncate max-w-[260px]">{b.subject}</td>
-                    <td className="px-3 py-2">{b.recipient_count}</td>
-                    <td className="px-3 py-2 text-success">{b.email_sent_count}</td>
-                    <td className="px-3 py-2 text-destructive">{b.email_failed_count}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={b.status === "sent" ? "default" : b.status === "partial" ? "secondary" : b.status === "failed" ? "destructive" : "outline"}>
-                        {b.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
 
       <ConfirmDialog
         open={confirmOpen}
