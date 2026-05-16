@@ -101,12 +101,6 @@ export default function RegisterPage() {
     }
   }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, electronicCommsConsent, guardianEmail, touched, countryCode]);
 
-  useEffect(() => {
-    if (redirectParam) {
-      sessionStorage.setItem("auth_redirect", redirectParam);
-    }
-  }, [redirectParam]);
-
   // Auto-heal stale device-side lockouts on mount (shared with LoginPage).
   useEffect(() => {
     maybeAutoHealAuthLockout();
