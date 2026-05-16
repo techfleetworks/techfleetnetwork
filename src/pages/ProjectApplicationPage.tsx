@@ -109,7 +109,7 @@ function ReadOnlyArrayField({ label, items }: { label: string; items: string[] }
 export default function ProjectApplicationPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading, profileLoaded } = useAuth();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
@@ -492,10 +492,18 @@ export default function ProjectApplicationPage() {
     }
   }, [genAppLoaded, genAppComplete, initialized, genAppDialogShown]);
 
-  if (projLoading || appLoading || !initialized) {
+  if (authLoading || !user || !profileLoaded || projLoading || appLoading || !initialized) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container-app py-12" role="status" aria-live="polite" aria-busy="true">
+        <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+          <div className="h-28 rounded-md bg-muted animate-pulse" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="h-36 rounded-md bg-muted animate-pulse" />
+            <div className="h-36 rounded-md bg-muted animate-pulse" />
+          </div>
+          <span className="sr-only">Loading project application…</span>
+        </div>
       </div>
     );
   }
