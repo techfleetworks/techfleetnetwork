@@ -92,6 +92,23 @@ const WINDOW_OPTIONS = [
 ] as const;
 
 export function PerformanceTab() {
+  return (
+    <Tabs defaultValue="route" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="route">By route</TabsTrigger>
+        <TabsTrigger value="browser">By browser</TabsTrigger>
+      </TabsList>
+      <TabsContent value="route" className="mt-0">
+        <PerformanceByRouteTab />
+      </TabsContent>
+      <TabsContent value="browser" className="mt-0">
+        <PerformanceByBrowserTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function PerformanceByRouteTab() {
   const [windowHours, setWindowHours] = useState("24");
   const numericWindow = useMemo(() => Number.parseInt(windowHours, 10) || 24, [windowHours]);
 
