@@ -17,6 +17,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { SelfHealingRunner } from "@/components/SelfHealingRunner";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { RouteChangeReloader } from "@/components/RouteChangeReloader";
+import { AuthRedirectHandler } from "@/components/AuthRedirectHandler";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
@@ -180,6 +181,7 @@ const App = () => (
           <AuthProvider>
             <ErrorBoundary>
               <RouteChangeReloader />
+              <AuthRedirectHandler />
               <AnalyticsTracker />
               <AppLayout>
                 <IdleTimeoutGuard />

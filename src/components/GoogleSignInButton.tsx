@@ -12,6 +12,13 @@ interface GoogleSignInButtonProps {
   redirectTo?: string;
 }
 
+const AUTH_REDIRECT_KEY = "auth_redirect";
+
+function storeAuthRedirect(target: string) {
+  try { localStorage.setItem(AUTH_REDIRECT_KEY, target); } catch { /* storage disabled */ }
+  try { sessionStorage.setItem(AUTH_REDIRECT_KEY, target); } catch { /* storage disabled */ }
+}
+
 export function GoogleSignInButton({ label = "Sign in with Google", className, onBeforeSubmit, redirectTo }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
   const oauthInFlightRef = useRef(false);
@@ -23,7 +30,7 @@ export function GoogleSignInButton({ label = "Sign in with Google", className, o
     setLoading(true);
     try {
       if (redirectTo && redirectTo !== "/dashboard" && isSafeRedirectUrl(redirectTo)) {
-        sessionStorage.setItem("auth_redirect", redirectTo);
+        storeAuthRedirect(redirectTo);
       }
       markOAuthUiInitiated("google");
       const result = await lovable.auth.signInWithOAuth("google", {

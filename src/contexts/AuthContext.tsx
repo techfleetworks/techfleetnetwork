@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef, type ReactNode } from "react";
 import { toast } from "sonner";
-import { isSafeRedirectUrl } from "@/lib/security";
 import { AuthService } from "@/services/auth.service";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
@@ -97,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const authEventSessionRef = useRef<Session | null>(null);
+  const sessionRestoreSettledRef = useRef(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -192,6 +192,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           stripRootOAuthCallbackUrl();
         }
 
+        // Firefox can emit INITIAL_SESSION before storage-backed getSession()
+        // has finished restoring tokens. Do not mark auth as ready from that
+        // early event or protected routes can bounce/reload during sign-in.
+        if (_event === "INITIAL_SESSION" && !sessionRestoreSettledRef.current) {
+          authEventSessionRef.current = session;
+          if (session?.user) {
+            setSession(session);
+            setUser(session.user);
+            void fetchProfile(session.user.id);
+          }
+          return;
+        }
+
         // For token refreshes, only update session/user if the user ID actually changed
         if (_event === "TOKEN_REFRESHED") {
           setSession((prev) => {
@@ -225,16 +238,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
 
             }
-            const storedRedirect = sessionStorage.getItem("auth_redirect");
-            if (storedRedirect) {
-              sessionStorage.removeItem("auth_redirect");
-              // WSTG-CLNT-04: Validate redirect target to prevent open redirect.
-              if (isSafeRedirectUrl(storedRedirect)) {
-                setTimeout(() => {
-                  window.location.replace(storedRedirect);
-                }, 100);
-              }
-            }
           }
           setTimeout(async () => {
             const p = await fetchProfile(session.user.id);
@@ -253,12 +256,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     AuthService.getSession()
       .then((initialSession) => {
+        sessionRestoreSettledRef.current = true;
         const freshEventSession = authEventSessionRef.current;
         const resolvedSession = initialSession ?? freshEventSession;
-
-        if (!initialSession && freshEventSession) {
-          return;
-        }
 
         setSession(resolvedSession);
         setUser(resolvedSession?.user ?? null);
@@ -270,6 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((error) => {
+        sessionRestoreSettledRef.current = true;
         if (isInvalidRefreshTokenAuthError(error)) {
           AuthService.clearLocalAuthState();
         }

@@ -23,6 +23,7 @@ import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeA
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { reportValidationRejection } from "@/services/error-reporter.service";
+import { normalizeSafeRedirectTarget } from "@/lib/security";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -51,7 +52,7 @@ export default function LoginPage() {
   const searchParams = new URLSearchParams(location.search);
   const redirectParam = searchParams.get("redirect");
   const fromState = (location.state as { from?: { pathname: string } })?.from?.pathname;
-  const from = fromState || redirectParam || "/dashboard";
+  const from = normalizeSafeRedirectTarget(fromState || redirectParam || "/dashboard");
 
   const markTouched = (field: string) =>
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -103,13 +104,6 @@ export default function LoginPage() {
       { replace: true },
     );
   }, [queryClient, location.search, location.pathname, navigate]);
-
-  // Store redirect for OAuth flows
-  useEffect(() => {
-    if (from && from !== "/dashboard") {
-      sessionStorage.setItem("auth_redirect", from);
-    }
-  }, [from]);
 
   // Auto-heal stale device-side lockouts on mount. Users should never have
   // to clear sessionStorage by hand — see auth-lockout.ts for the security
