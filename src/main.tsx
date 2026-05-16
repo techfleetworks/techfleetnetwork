@@ -31,7 +31,7 @@ if ("serviceWorker" in navigator) {
 installGlobalErrorReporter();
 installLoginCaptchaCrossTabSync();
 installClientRequestThrottle();
-void clearAppCachesForVersion({ reloadAfterClear: true });
+void clearAppCachesForVersion({ reloadAfterClear: false });
 // Detect new deploys while the tab is open and refresh BEFORE a stale chunk
 // fetch can fail. Pairs with lazyWithRetry as the safety net.
 startDeployWatcher();
