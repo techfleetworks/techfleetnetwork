@@ -109,4 +109,15 @@ export default tseslint.config(
       "no-restricted-imports": "off",
     },
   },
+  {
+    // CSS-portability guard tests intentionally contain the forbidden strings.
+    files: [
+      "src/test/smoke/css-portability.smoke.test.ts",
+      "scripts/lint/eslint-plugin-css-portability.mjs",
+    ],
+    rules: {
+      "css-portability/no-h-screen": "off",
+      "css-portability/no-vh-units": "off",
+    },
+  },
 );
