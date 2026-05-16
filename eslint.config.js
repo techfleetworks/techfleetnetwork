@@ -22,6 +22,8 @@ export default tseslint.config(
       // Tech Fleet brand voice / editorial guard. Surfaces banned terms
       // ("TechFleet", "click here", ableist words, etc.) at lint time.
       "brand-terms": brandTerms,
+      // CSS portability — guards against iOS/Android-breaking `h-screen`/`100vh`.
+      "css-portability": cssPortability,
       // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
       // Recommended set covers labels, alt text, ARIA roles/props, and
       // keyboard interactivity. Surfaced violations downgraded to "warn"
