@@ -12,10 +12,11 @@ export function AuthRedirectHandler() {
 
   useEffect(() => {
     if (loading || !user) return;
-    const storedRedirect = sessionStorage.getItem(AUTH_REDIRECT_KEY);
+    const storedRedirect = sessionStorage.getItem(AUTH_REDIRECT_KEY) ?? localStorage.getItem(AUTH_REDIRECT_KEY);
     if (!storedRedirect) return;
 
     sessionStorage.removeItem(AUTH_REDIRECT_KEY);
+    localStorage.removeItem(AUTH_REDIRECT_KEY);
     const target = normalizeSafeRedirectTarget(storedRedirect);
     const current = `${location.pathname}${location.search}${location.hash}`;
     if (target !== current) navigate(target, { replace: true });
