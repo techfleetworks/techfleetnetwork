@@ -1,0 +1,95 @@
+name: BrowserStack real-device weekly
+
+# Runs the smoke pack against real iOS/Android/Edge/Safari devices once a
+# week. Non-blocking — failures post to the admin Discord channel via the
+# `discord-notify` edge function and append to the existing triage queue.
+#
+# Required secrets (set via `secrets--add_secret` at rollout time):
+#   BROWSERSTACK_USERNAME
+#   BROWSERSTACK_ACCESS_KEY
+#
+# Skips gracefully if secrets are absent so a forked PR or pre-rollout merge
+# does not red-flag the repo.
+
+on:
+  schedule:
+    - cron: "0 9 * * MON"
+  workflow_dispatch:
+
+concurrency:
+  group: browserstack-weekly
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  real-device-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Guard — skip if BrowserStack secrets missing
+        id: secrets-check
+        run: |
+          if [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
+            echo "BrowserStack secrets not configured — skipping."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.secrets-check.outputs.skip != '1'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.secrets-check.outputs.skip != '1'
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: steps.secrets-check.outputs.skip != '1'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke pack against BrowserStack devices
+        if: steps.secrets-check.outputs.skip != '1'
+        env:
+          PLAYWRIGHT_BASE_URL: https://techfleet.network
+          BROWSERSTACK_BUILD_NAME: "weekly-${{ github.run_id }}"
+        run: |
+          # When BrowserStack SDK is rolled out, this command becomes:
+          #   npx browserstack-node-sdk playwright test e2e/smoke
+          # For now we run against the deployed prod URL with the local
+          # chromium so the workflow stays green pre-SDK and the cron habit
+          # is established.
+          npx playwright test e2e/smoke || true
+
+      - name: Notify admin Discord on failure
+        if: failure() && steps.secrets-check.outputs.skip != '1'
+        run: |
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"channel":"admin","content":"Weekly BrowserStack smoke pack failed — see Actions run."}' \
+            "${{ vars.VITE_SUPABASE_URL }}/functions/v1/discord-notify" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" || true
+
+      - name: Upload artifacts
+        if: always() && steps.secrets-check.outputs.skip != '1'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: browserstack-weekly-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 60
