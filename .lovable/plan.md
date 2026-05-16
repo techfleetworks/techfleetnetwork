@@ -1,178 +1,230 @@
-# CSS Universality Audit — Findings + Fix Plan
+# Cross-browser testing hardening — 4-track plan
 
-Scope: every CSS-affecting pattern in `src/` was scanned for cross-browser/cross-device portability gaps. This sits between Phase 1 (browser support contract) and Phase 2 (CSS portability sweep) of the parent plan.
-
----
-
-## What I scanned + raw counts
-
-| Pattern | Count | Status |
-|---|---|---|
-| `100vh` | 13 | ❌ iOS Safari URL-bar bug |
-| `100dvh` | 7 | ✅ correct |
-| `h-screen` / `min-h-screen` (Tailwind = `100vh`) | 6 | ❌ same bug |
-| `:has(…)` in JSX/CSS | 3 | ⚠️ Firefox <121, FF ESR 115 broken |
-| `backdrop-blur` / `backdrop-filter` | 6 | 4 guarded with `supports-[backdrop-filter]:`, **2 unguarded** |
-| `sticky top-…` headers | 11 | ✅ |
-| `gap-N` in flex | 991 | ⚠️ Safari <14.1 no flex-gap |
-| `aspect-…` | 13 | ✅ Safari 15+ |
-| `env(safe-area-inset-*)` | 3 | ❌ should be ~15+ surfaces |
-| `overscroll-contain` | 3 | ⚠️ should be on every modal/sheet |
-| `scroll-padding` / `scroll-snap` | 0 | ⚠️ keyboard nav lands under sticky headers |
-| `-webkit-overflow-scrolling: touch` | 0 | ⚠️ jerky momentum scroll on iOS <13 |
-| `-webkit-tap-highlight-color` | 0 | ⚠️ blue tap flash on iOS |
-| `text-size-adjust: 100%` | 0 | ❌ iOS landscape auto-zoom |
-| `@supports` blocks | 0 | ❌ no progressive enhancement |
-| Logical props (`*-inline-*`) | 0 | ⚠️ RTL ships per memory but uses physical properties |
-| `oklch`/`oklab`/`conic-gradient`/`color-mix` | 0 | ✅ |
-| `text-wrap: balance` | 0 | ✅ (no risky uses) |
-| `font-display: swap` | 5 | ✅ |
-| `prefers-reduced-motion` | 2 (App.css + index.css) | ✅ honored |
-| `container-app` class name | 75 | ℹ️ this is a layout utility, **not** CSS `@container` queries — naming is misleading but no compat issue |
+Ship all four tracks. Each track is self-contained, gated by its own BDD scenarios (tri-layer Then), and wired into existing CI workflows (`cross-browser.yml`, `regression.yml`, `lighthouse.yml`). No UX regressions — all work is CI/observability only.
 
 ---
 
-## Specific defects worth fixing
+## Track 1 — Visual regression on PR (Playwright snapshots)
 
-### D1 — Viewport height: 13 × `100vh` + 6 × `h-screen` clip layouts on iOS Safari
-Affects every auth page, FeedbackPage iframe, ProjectApplicationStatusPage scrollers, AppLayout overlay, ProjectAnalysisContent and ExploreTab scroll areas.
-**Fix**: codemod `100vh` → `100dvh`, replace `h-screen`/`min-h-screen` with `h-dvh`/`min-h-dvh` (custom utility), `@supports not (height: 100dvh) { … 100vh fallback }`.
+**Goal:** Block any PR that visually changes a curated set of routes/components without an approved snapshot update.
 
-### D2 — `:has()` in shadcn `Table` (rows 49, 60) and `Calendar` (row 31)
-Firefox ESR 115 (still in many enterprise environments) silently ignores the rule, so checkbox cells lose padding and selected calendar days lose their range/round-corner styling.
-**Fix**: replace `[&:has([role=checkbox])]:pr-0` with React-applied `data-has-checkbox` attribute on the cell; same trick for calendar selection state via react-day-picker's existing `data-*` attributes.
+### Scope
+- Add a dedicated Playwright project `visual-regression` (chromium-desktop + mobile-chrome only — webkit/firefox font rendering is too noisy for pixel diffs).
+- Snapshot 12 routes × 2 viewports (1280×720, 390×844): `/`, `/login`, `/register`, `/forgot-password`, `/project-openings`, `/project-openings/:sample`, `/dashboard` (logged-out redirect), `/accessibility`, `/privacy`, `/cookies`, `/terms`, `/404`.
+- Snapshot 6 critical components in isolation via a `/dev/visual` harness route (gated behind `import.meta.env.DEV || VITE_VISUAL_HARNESS=1`): `Button` variants, `Card`, `Badge`, `Toast`, `ConfirmDialog`, `StepProgressBar`.
 
-### D3 — Two unguarded `backdrop-blur` in `GenericCoursePage.tsx` (lines 754, 879)
-Firefox supports `backdrop-filter` since 103, but on older Android WebView and Samsung Internet ≤14 the header becomes fully transparent (text overlaps content underneath).
-**Fix**: add `supports-[backdrop-filter]:bg-background/80` pattern matching the rest of the codebase, or wrap with `@supports (backdrop-filter: blur(8px))`.
+### Technical details
+- New file `e2e/visual/visual.e2e.ts` using `expect(page).toHaveScreenshot()` with `maxDiffPixelRatio: 0.01`, `animations: "disabled"`, `caret: "hide"`.
+- Stabilize: inject `*, *::before, *::after { transition: none !important; animation: none !important; caret-color: transparent !important; }` via `page.addStyleTag` in `beforeEach`. Mock `Date.now()` and `Math.random` via `page.addInitScript`. Wait for `document.fonts.ready` + `[data-rum-ready="true"]` sentinel on `<body>` (added in track 4) so RUM idle has settled.
+- Baseline snapshots committed to `e2e/visual/__screenshots__/` (LFS not needed — PNGs small).
+- New script `npm run test:visual` + `npm run test:visual:update` (`--update-snapshots`).
+- New GitHub Action job `visual-regression` in `cross-browser.yml`: runs on every PR, uploads `playwright-report/` + diff artifacts. PRs with intentional UI changes use the `visual-baseline-update` label → workflow auto-runs `--update-snapshots` and commits via a bot PR comment with the new PNGs attached for review.
+- Use `actions/cache` keyed on `package-lock.json` hash for Playwright browser binaries.
 
-### D4 — Safe-area coverage gaps
-Only `GenericCoursePage` and `ProfileSetupDialog` honor the iPhone notch/home indicator. Missing on:
-- `AppLayout` top bar, `FlowMobileNav`, sidebar Sheet
-- Toast container (toasts hide behind home indicator on iPhone landscape)
-- `CookieConsentBanner` (sits over home indicator)
-- Sticky form footers in dialogs (Project application, Class form, Profile edit)
-- Fleety chat widget
-**Fix**: add Tailwind utilities `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe` in `tailwind.config.ts` and apply across the surfaces above.
-
-### D5 — Missing global mobile baseline
-`html`/`body` lack three iOS/Android polish lines that should be in `index.css` `@layer base`:
-```css
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { -webkit-tap-highlight-color: transparent; }
-* { -webkit-overflow-scrolling: touch; }
-```
-Without these: iOS rotates and zooms text, every tap flashes a blue rectangle, and any nested scroll container stutters on iOS <13.
-
-### D6 — `overscroll-behavior` only set in 3 places
-Modal/Sheet/Dialog scrolls bleed into the page underneath on iOS — pull-to-refresh fires inside dialogs.
-**Fix**: add `overscroll-contain` to all `Dialog`, `Sheet`, `Drawer`, `Popover`, `ScrollArea` primitives globally.
-
-### D7 — `scroll-padding-top` not set
-With sticky headers at 64px, in-page anchor links and keyboard tab navigation land **under** the header.
-**Fix**: `html { scroll-padding-top: 5rem; }` plus `scroll-margin-top: 5rem` on heading utilities.
-
-### D8 — Logical properties absent despite shipped RTL
-Memory says i18n + RTL ships, but code uses `pl-*`/`pr-*`/`left-*`/`right-*` everywhere. Tailwind's RTL plugin maps these via `dir`, but custom CSS in `index.css` (8 occurrences of `left:`/`right:`) won't flip.
-**Fix**: convert custom CSS to logical properties (`inset-inline-start` etc.) and audit any one-off positional styles.
-
-### D9 — `gap-N` everywhere — verified safe but pin the floor
-Flex `gap` requires Safari 14.1+ (Apr 2021). Browser support contract should hard-floor Safari ≥ 14.1; iOS 14.0 users (a small minority on older iPhones) see collapsed layouts everywhere.
-**Fix**: declare in `browserslist` and surface a single "browser too old" notice if `CSS.supports('gap', '1px') === false` and the user is in Flex contexts.
-
-### D10 — No `@supports` progressive enhancement anywhere
-Zero `@supports` blocks means we have no graceful fallbacks for any of the above. Every modern feature is used unconditionally.
-**Fix**: introduce a small "feature shim" CSS block in `index.css` that supplies fallbacks for `dvh`, `:has()`, `backdrop-filter`, and `aspect-ratio`.
+### BDD (insert into `bdd_scenarios`)
+- **VISREG-001** Snapshot baseline matches on unchanged PR  
+  Given baseline PNGs exist for all 12 routes × 2 viewports  
+  When the visual job runs on a PR with no UI changes  
+  Then [UI] zero diff PNGs are produced  
+  And [Code] the `visual-regression` job exits 0  
+  And [DB] no `bdd_scenarios.last_run_status` regression is recorded
+- **VISREG-002** Unintentional UI drift fails the PR  
+  Given a PR changes `Button` padding by 2px  
+  When the visual job runs  
+  Then [UI] the diff PNG for the harness `Button` snapshot is uploaded  
+  And [Code] the job exits non-zero and the GitHub check is red  
+  And [DB] no baseline mutation occurs
+- **VISREG-003** Approved update via `visual-baseline-update` label  
+  Given a maintainer adds the `visual-baseline-update` label  
+  When CI re-runs  
+  Then [UI] new baseline PNGs are committed and a bot comment links the diffs  
+  And [Code] the workflow exits 0 after the update commit  
+  And [DB] no schema change
+- **VISREG-004** Font/animation jitter does not flake  
+  Given the same PR is re-run 5 times back-to-back  
+  When the visual job runs each time  
+  Then [UI] zero pixel diffs across all 5 runs  
+  And [Code] the job is green ≥99% over the last 50 main-branch runs  
+  And [DB] no entry appears in `agent_fix_queue` for visual flake
 
 ---
 
-## Fix plan (additive to parent CSS plan)
+## Track 2 — Expanded device matrix (config + beyond config)
 
-### A. One-shot codemod (script, then commit)
-- `scripts/migrate/css-portability.mjs`:
-  - Rewrite `100vh` → `100dvh`, `h-screen` → `h-dvh`, `min-h-screen` → `min-h-dvh` across `src/**/*.{ts,tsx,css}`.
-  - Inject `supports-[backdrop-filter]:bg-background/80` on the 2 unguarded `backdrop-blur` sites.
-  - Add `overscroll-contain` to every `ScrollArea`, `DialogContent`, `SheetContent`, `DrawerContent`, `PopoverContent` in shadcn primitives once at source.
+**Goal:** Cover the smallest, largest, and most-broken real devices we currently miss.
 
-### B. New utility classes in `tailwind.config.ts`
-```ts
-spacing: {
-  'safe-t': 'env(safe-area-inset-top)',
-  'safe-b': 'env(safe-area-inset-bottom)',
-  'safe-l': 'env(safe-area-inset-left)',
-  'safe-r': 'env(safe-area-inset-right)',
-},
-height:    { 'dvh': '100dvh', 'svh': '100svh', 'lvh': '100lvh' },
-minHeight: { 'dvh': '100dvh' },
-maxHeight: { 'dvh': '100dvh' },
-```
-Plus shortcut classes `.pt-safe`, `.pb-safe`, `.pl-safe`, `.pr-safe`.
+### Within `playwright.config.ts`
+Add these projects to `allProjects` (run only under `PLAYWRIGHT_FULL_MATRIX=1`):
+- `mobile-safari-se` — `devices["iPhone SE (3rd gen)"]` (375×667 — smallest modern iOS)
+- `mobile-chrome-fold` — `devices["Galaxy Z Fold 5"]` w/ inner viewport 344×882 (narrowest Android)
+- `mobile-safari-pro-max` — `devices["iPhone 15 Pro Max"]` (430×932 — largest phone)
+- `tablet-landscape` — iPad Pro 11 rotated `viewport: { width: 1194, height: 834 }`
+- `desktop-1366` — `devices["Desktop Chrome"]` viewport 1366×768 (still the global modal desktop)
+- `desktop-4k` — 3840×2160 with `deviceScaleFactor: 2`
+- `firefox-esr` — pinned Firefox ESR channel (`channel: "firefox-beta"` toggled per release window)
 
-### C. Global baseline added to `src/index.css` `@layer base`
-```css
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  scroll-padding-top: 5rem;
-}
-body {
-  -webkit-tap-highlight-color: transparent;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-@supports not (height: 100dvh) {
-  .min-h-dvh { min-height: 100vh; }
-  .h-dvh    { height: 100vh; }
-}
-@supports not selector(:has(*)) {
-  /* fallback styles for table + calendar emitted by codemod */
-}
-```
+### Beyond Playwright config (real-device cloud)
+- Add `.github/workflows/browserstack-weekly.yml` (cron `0 9 * * MON`, `workflow_dispatch`).
+- Uses `browserstack/github-actions/setup-env` + `browserstack-node-sdk` to run a tiny smoke pack (`e2e/smoke/*.smoke.e2e.ts` — new dir, 6 happy-path flows: load landing, login, view project opening, apply, dashboard load, logout).
+- Real-device matrix (free OSS tier compatible): iPhone 12 (iOS 15), iPhone 15 (iOS 17), Samsung Galaxy S22 (Android 13), Pixel 8 (Android 14), Surface Duo, Macbook Safari 17, Windows 11 Edge.
+- Secrets: `BROWSERSTACK_USERNAME`, `BROWSERSTACK_ACCESS_KEY` (add via `secrets--add_secret` at implementation time).
+- Failure path: posts a Discord notification via existing `discord-notify` edge fn (admin channel) — never blocks `main`.
 
-### D. shadcn primitives: replace `:has()` selectors
-- `src/components/ui/table.tsx`: cell components inspect children for a checkbox and apply `data-has-checkbox`; CSS becomes `[data-has-checkbox]:pr-0`.
-- `src/components/ui/calendar.tsx`: rely on react-day-picker's built-in `data-selected`, `data-range-end`, `data-outside` attributes already exposed; remove `[&:has([aria-selected])]` selectors.
+### Throttled-network profile
+- Add Playwright `use.contextOptions` profile `slow3g` (`downloadThroughput: 50 * 1024`, `latency: 400`) used by 3 critical-path tests (login, project opening view, apply) — catches blocking-resource regressions WebPageTest would catch.
 
-### E. Safe-area apply pass
-Add `pt-safe`/`pb-safe` to these specific files:
-1. `src/components/AppLayout.tsx` lines 156, 279, 333 (sticky headers → `pt-safe`)
-2. `src/components/FlowMobileNav.tsx` line 14 (`pt-safe`)
-3. `src/components/ui/toaster.tsx` viewport (`pt-safe pb-safe`)
-4. `src/components/CookieConsentBanner.tsx` (`pb-safe pl-safe pr-safe`)
-5. `src/components/ProfileSetupDialog.tsx` already done — verify
-6. `src/pages/EditProfilePage.tsx` line 298 sticky bar (`pt-safe`)
-7. `src/components/FleetyWidget.tsx` (whichever file) bottom-fixed (`pb-safe`)
-
-### F. RTL audit
-- Run `rg "left-|right-|pl-|pr-|ml-|mr-|border-l|border-r|rounded-l|rounded-r" src/**/*.css` — convert any in plain CSS files to logical properties; Tailwind utilities flip automatically with the `tailwindcss-logical` plugin or `dir`-aware variants (already wired per project memory — verify).
-
-### G. Smoke + visual regression
-- Add `src/test/smoke/css-portability.smoke.test.ts`:
-  - Asserts `index.css` contains `text-size-adjust`, `tap-highlight-color`, `scroll-padding-top`, the `@supports not (height: 100dvh)` block, and the safe-area utilities.
-  - Greps `src/**/*.{ts,tsx}` for forbidden patterns: `100vh`, `h-screen`, unguarded `backdrop-blur` (no `supports-` prefix on the same className).
-- Add 8-shot Playwright visual snapshot at iPhone 13, Pixel 7, iPad, MBP 14 in Chromium/WebKit/Firefox covering: `/`, `/login`, `/dashboard`, `/journey`, `/training`, `/admin`, `/feedback`, `/cookies`. Snapshot diffs gate the PR.
+### BDD
+- **DEVMAT-001** Smallest iOS viewport (iPhone SE) renders nav without overflow  
+  Given the `mobile-safari-se` project runs `e2e/responsive-stability.e2e.ts`  
+  When the landing page loads  
+  Then [UI] no element has `scrollWidth > clientWidth`  
+  And [Code] the project exits 0 in CI  
+  And [DB] `bdd_scenarios.coverage` row DEVMAT-001 is updated by the post-run reporter
+- **DEVMAT-002** Foldable inner display (344px) keeps primary CTA visible  
+  Given `mobile-chrome-fold` viewport  
+  When `/project-openings/:id` loads  
+  Then [UI] `[data-testid="apply-cta"]` is in the viewport above the fold  
+  And [Code] the assertion passes in CI  
+  And [DB] no regression recorded
+- **DEVMAT-003** 4K desktop does not blow up max-width layouts  
+  Given `desktop-4k` viewport  
+  When the dashboard loads as an admin  
+  Then [UI] the main content `max-width` is honoured (≤ 1440px)  
+  And [Code] CI passes  
+  And [DB] no regression recorded
+- **DEVMAT-004** BrowserStack weekly smoke pack stays green on real devices  
+  Given the weekly cron at Monday 09:00 UTC  
+  When the 6 smoke flows run across the 7 real-device matrix  
+  Then [UI] ≥95% pass rate over rolling 4 weeks  
+  And [Code] failures post to the admin Discord channel  
+  And [DB] failure fingerprints land in `agent_fix_queue` via existing triage path
+- **DEVMAT-005** Slow-3g profile keeps login interactive < 8s  
+  Given the `slow3g` context  
+  When `/login` loads  
+  Then [UI] the email input is focusable within 8s  
+  And [Code] the Playwright timeout asserts < 8000ms  
+  And [DB] a `web_vital_samples` row is recorded with `connectionType="slow-2g"|"3g"`
 
 ---
 
-## Severity-ranked rollout order
+## Track 3 — Static guardrails (browserslist + compat + stylelint)
 
-1. **D1 + D5** — visible to every iPhone user today (clipped layouts, blue tap flashes, landscape zoom). Ship first.
-2. **D2** — silent visual breakage on FF ESR; ship with D1.
-3. **D4 + D6 + D7** — accessibility + iPhone polish; ship together.
-4. **D3 + D10** — old-Android resilience; ship together.
-5. **D8 + RTL audit** — needed before next translated-language launch.
-6. **G** — lock in regressions for the next contributor.
+**Goal:** Catch unsupported CSS/JS at lint time, before CI even runs Playwright. Fails fast, costs nothing.
+
+### Pieces
+1. **`eslint-plugin-compat`** — fails on JS APIs not in browserslist.
+   - Add to `devDependencies`, register in `eslint.config.js` as `compat/compat: "error"`.
+   - Reads existing `browserslist` from `package.json` (already correct).
+2. **`stylelint` + `stylelint-no-unsupported-browser-features`** — fails on CSS not in browserslist.
+   - New `.stylelintrc.json` extending `stylelint-config-standard` + the unsupported-browser-features rule with `severity: "error"`, `ignore: ["css-nesting", "css-when-else"]` (we transpile via Tailwind).
+   - Add `npm run lint:css` → `stylelint "src/**/*.css" "src/**/*.tsx"`.
+3. **`@unocss/eslint-plugin` substitute — custom rule** to forbid raw `100vh` / `h-screen` (already a Core memory rule but unenforced in lint). Implement as `scripts/lint/eslint-plugin-css-portability.mjs` with `no-vh-units` + `no-h-screen` rules. Co-locates with existing `eslint-plugin-brand-terms.mjs`.
+4. **Tailwind config audit** — extend `tailwind.config.ts` with `safelist` for our dynamic class names + add `corePlugins.preflight: true` (already on). No behavioural change.
+5. **CI**: extend `regression.yml` to run `npm run lint && npm run lint:css` as a single gating step before unit tests.
+
+### BDD
+- **GUARD-001** ESLint-compat blocks unsupported JS API  
+  Given a PR adds `structuredClone(deep)` without a polyfill  
+  When `npm run lint` runs in CI  
+  Then [UI] N/A (lint output only)  
+  And [Code] eslint exits non-zero with `compat/compat` error citing iOS 14.5  
+  And [DB] no schema change
+- **GUARD-002** Stylelint blocks unsupported CSS  
+  Given a PR adds `aspect-ratio: 1` without a `@supports` fallback in `src/index.css`  
+  When `npm run lint:css` runs  
+  Then [UI] N/A  
+  And [Code] stylelint exits non-zero  
+  And [DB] no change
+- **GUARD-003** Custom rule blocks `h-screen` / `100vh`  
+  Given a PR adds `<div className="h-screen">`  
+  When eslint runs  
+  Then [UI] N/A  
+  And [Code] `css-portability/no-h-screen` errors with the dvh-fallback fix hint  
+  And [DB] no change
+- **GUARD-004** Lint guardrails block merge in `regression.yml`  
+  Given a PR opens with any of GUARD-001..003 violations  
+  When the `regression` workflow runs  
+  Then [UI] the PR check shows red  
+  And [Code] the workflow exits before reaching unit tests  
+  And [DB] no `agent_fix_queue` row (these are pre-runtime errors)
 
 ---
 
-## Deliverables
-- Codemod script + diff (auto-applied)
-- `tailwind.config.ts` utilities update
-- `index.css` global baseline + `@supports` shims
-- `Table`/`Calendar` `:has()` removal
-- Safe-area apply pass on 7 files
-- BDD scenario `CSS-COMPAT-001..010` rows in `bdd_scenarios` (tri-layer per memory)
-- Smoke + Playwright visual harness wired into CI
+## Track 4 — RUM browser breakdown (extend existing beacon)
 
-After this lands, no per-page CSS class can opt out of cross-browser correctness — the global baseline + Tailwind utilities + smoke greps make portability the default.
+**Goal:** Slice existing web-vitals data by browser/device so we can see "p75 LCP on Firefox mobile is 4.3s" not just the global p75.
+
+### Client (`src/lib/web-vitals.ts`)
+- Add to payload: `browserName`, `browserMajor`, `osName`, `osMajor`, `deviceType` (`desktop|mobile|tablet|bot`).
+- Detect via lightweight UA-CH first (`navigator.userAgentData.getHighEntropyValues(["platform","platformVersion","model","architecture"])`) with a UA-string regex fallback (no `ua-parser-js` — adds 30KB; we hand-roll a 40-line parser).
+- Add `<body data-rum-ready>` sentinel toggled after first beacon flush, used by Track 1's visual tests.
+
+### Edge function (`supabase/functions/record-web-vital/index.ts`)
+- Extend Zod schema with new fields (each capped: `browserName` ≤ 32, `osName` ≤ 32, `deviceType` enum-validated).
+- Continue to swallow on overflow → 204.
+
+### Database
+- Migration adds columns `browser_name text`, `browser_major int`, `os_name text`, `os_major int`, `device_type text check (device_type in ('desktop','mobile','tablet','bot'))` to `web_vital_samples`.
+- Backfill: `update web_vital_samples set device_type='unknown' where device_type is null;` (default value, not retroactive parsing).
+- Index: `create index web_vital_samples_browser_idx on web_vital_samples(metric_name, browser_name, created_at desc);`.
+
+### RPCs
+- New `web_vitals_p75_by_browser(p_window_hours int)` — returns `(browser_name, device_type, metric_name, sample_count, p75, p95, good_pct)` with `sample_count >= 10` privacy floor.
+- New `web_vitals_p75_by_route_browser(p_window_hours int, p_route text)` — drill-down.
+- Security definer, granted to `authenticated`; admin-only via existing SELECT policy.
+
+### UI (`PerformanceTab.tsx`)
+- New sub-tab "By browser" showing a heatmap-style table: rows = browser × OS × deviceType, cols = LCP/INP/CLS/FCP/TTFB p75 with Good/NI/Poor color chips.
+- Existing "By route" tab gets a "Filter by browser" Select that pipes into the new RPC.
+- All Card/Table from existing design system, no new tokens.
+
+### BDD
+- **RUMBR-001** Beacon emits browser/OS fields on Chrome desktop  
+  Given a Chrome user loads `/`  
+  When LCP is reported  
+  Then [UI] N/A (background beacon)  
+  And [Code] the `record-web-vital` edge fn receives a payload with `browserName="Chrome"`, `deviceType="desktop"`  
+  And [DB] a row in `web_vital_samples` has matching `browser_name`/`device_type`
+- **RUMBR-002** UA-CH absent → UA-string fallback parses Safari iOS  
+  Given a request with no `Sec-CH-UA` and `User-Agent: iPhone … Safari`  
+  When the beacon is sent  
+  Then [UI] N/A  
+  And [Code] payload contains `browserName="Safari"`, `osName="iOS"`, `deviceType="mobile"`  
+  And [DB] row stored with same values
+- **RUMBR-003** Performance tab renders By-browser breakdown for admins  
+  Given an admin opens System Health → Performance → By browser  
+  When the table loads  
+  Then [UI] rows appear only for browsers with ≥10 samples in the window  
+  And [Code] the `web_vitals_p75_by_browser` RPC returns rows  
+  And [DB] RLS blocks the same RPC for non-admin auth users
+- **RUMBR-004** Privacy floor hides low-sample browsers  
+  Given a browser has 7 samples in 24h  
+  When the RPC runs  
+  Then [UI] that browser does not appear in the table  
+  And [Code] the RPC filters `having sample_count >= 10`  
+  And [DB] underlying rows are not deleted
+- **RUMBR-005** Save-Data clients still skip the beacon (regression guard)  
+  Given a user with `navigator.connection.saveData === true`  
+  When pages load  
+  Then [UI] no console errors  
+  And [Code] zero fetches to `/functions/v1/record-web-vital`  
+  And [DB] zero rows inserted from that session
+
+---
+
+## Rollout order & CI cost
+1. **Track 3** (static guardrails) — 1 day, zero CI minutes added.
+2. **Track 4** (RUM browser breakdown) — 1 day client + 1 migration + 1 day UI; no CI impact.
+3. **Track 1** (visual regression) — 2 days; adds ~5 min/PR (chromium + mobile-chrome only).
+4. **Track 2** (device matrix expansion) — 1 day config + 1 day BrowserStack wiring; weekly cron only.
+
+## Out of scope
+- Cross-browser ad-blocker simulation (separate effort)
+- Lighthouse-CI per-browser (already covered by `lighthouse.yml`)
+- Visual regression on Firefox/WebKit (too noisy — covered by functional E2E instead)
+- Replacing existing `e2e/brand/visual.e2e.ts` token suite (kept; complements pixel diffs)
+
+## Files touched (summary)
+- New: `e2e/visual/visual.e2e.ts`, `e2e/visual/__screenshots__/*`, `e2e/smoke/*.smoke.e2e.ts`, `.github/workflows/browserstack-weekly.yml`, `.stylelintrc.json`, `scripts/lint/eslint-plugin-css-portability.mjs`, `supabase/migrations/<ts>_rum_browser_breakdown.sql`, `src/components/system-health/PerformanceByBrowserTab.tsx`, `src/lib/ua-parse.ts`
+- Edited: `playwright.config.ts`, `package.json` (scripts + devDeps), `eslint.config.js`, `.github/workflows/cross-browser.yml`, `.github/workflows/regression.yml`, `src/lib/web-vitals.ts`, `src/components/system-health/PerformanceTab.tsx`, `supabase/functions/record-web-vital/index.ts`
+- BDD inserts: 18 scenarios across `VISREG-001..004`, `DEVMAT-001..005`, `GUARD-001..004`, `RUMBR-001..005`

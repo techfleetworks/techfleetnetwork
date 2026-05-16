@@ -4,7 +4,9 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
+import compat from "eslint-plugin-compat";
 import brandTerms from "./scripts/lint/eslint-plugin-brand-terms.mjs";
+import cssPortability from "./scripts/lint/eslint-plugin-css-portability.mjs";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -21,6 +23,11 @@ export default tseslint.config(
       // Tech Fleet brand voice / editorial guard. Surfaces banned terms
       // ("TechFleet", "click here", ableist words, etc.) at lint time.
       "brand-terms": brandTerms,
+      // CSS portability — guards against iOS/Android-breaking `h-screen`/`100vh`.
+      "css-portability": cssPortability,
+      // Browser-compat — fails on JS APIs unsupported in our `browserslist`
+      // (package.json: iOS >=14.5, Safari >=14.1, Firefox ESR, last 2 versions).
+      compat,
       // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
       // Recommended set covers labels, alt text, ARIA roles/props, and
       // keyboard interactivity. Surfaced violations downgraded to "warn"
@@ -54,6 +61,13 @@ export default tseslint.config(
       "jsx-a11y/alt-text": "error",
       // Brand voice: warn now, escalate to error after sweep is complete.
       "brand-terms/no-banned-terms": "warn",
+      // CSS portability — these always block (memory: CSS-COMPAT-006).
+      "css-portability/no-h-screen": "error",
+      "css-portability/no-vh-units": "error",
+      // Static browser-compat: block JS APIs that don't exist in the oldest
+      // supported browser per `browserslist`. Tighten to "error" — the
+      // matrix is conservative so violations are rare and always fixable.
+      "compat/compat": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       // Force a single canonical import path for context modules. Multiple
@@ -101,6 +115,17 @@ export default tseslint.config(
     files: ["src/contexts/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": "off",
+    },
+  },
+  {
+    // CSS-portability guard tests intentionally contain the forbidden strings.
+    files: [
+      "src/test/smoke/css-portability.smoke.test.ts",
+      "scripts/lint/eslint-plugin-css-portability.mjs",
+    ],
+    rules: {
+      "css-portability/no-h-screen": "off",
+      "css-portability/no-vh-units": "off",
     },
   },
 );

@@ -18,6 +18,7 @@ import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
 import { PerformanceTab } from "@/components/system-health/PerformanceTab";
+import { PerformanceByBrowserTab } from "@/components/system-health/PerformanceByBrowserTab";
 import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
 import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 import { ProjectBlastsHealthCard } from "@/components/system-health/ProjectBlastsHealthCard";
@@ -237,7 +238,10 @@ export default function SystemHealthPage() {
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="triage"><TriageTab /></TabsContent>
         <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
-        <TabsContent value="performance"><PerformanceTab /></TabsContent>
+        <TabsContent value="performance" className="space-y-4">
+          <PerformanceTab />
+          <PerformanceByBrowserTab />
+        </TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
         <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>

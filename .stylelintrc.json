@@ -1,0 +1,51 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["stylelint-no-unsupported-browser-features"],
+  "ignoreFiles": [
+    "dist/**",
+    "node_modules/**",
+    "src/index.css",
+    "public/**",
+    "**/*.tsx",
+    "**/*.ts"
+  ],
+  "rules": {
+    "plugin/no-unsupported-browser-features": [
+      true,
+      {
+        "severity": "error",
+        "ignore": [
+          "css-nesting",
+          "css-when-else",
+          "css-cascade-layers",
+          "css-color-function",
+          "css-color-mix",
+          "css-container-queries",
+          "css-container-queries-style",
+          "css-has",
+          "css-relative-colors",
+          "css-not-sel-list",
+          "css-text-wrap-balance",
+          "css-focus-visible",
+          "css-backdrop-filter",
+          "css-overflow-overlay",
+          "css-scroll-behavior",
+          "css-subgrid",
+          "css-when-else",
+          "viewport-unit-variants"
+        ]
+      }
+    ],
+    "no-descending-specificity": null,
+    "selector-class-pattern": null,
+    "custom-property-pattern": null,
+    "media-feature-range-notation": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "hue-degree-notation": null,
+    "import-notation": null,
+    "at-rule-no-unknown": [true, {
+      "ignoreAtRules": ["tailwind", "apply", "variants", "responsive", "screen", "layer", "config"]
+    }]
+  }
+}

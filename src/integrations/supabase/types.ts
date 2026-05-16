@@ -5011,12 +5011,17 @@ export type Database = {
       }
       web_vital_samples: {
         Row: {
+          browser_major: number | null
+          browser_name: string | null
           connection_type: string | null
           created_at: string
           device_memory: number | null
+          device_type: string | null
           id: string
           metric_name: string
           navigation_type: string | null
+          os_major: number | null
+          os_name: string | null
           rating: string
           route: string
           save_data: boolean | null
@@ -5027,12 +5032,17 @@ export type Database = {
           viewport_w: number | null
         }
         Insert: {
+          browser_major?: number | null
+          browser_name?: string | null
           connection_type?: string | null
           created_at?: string
           device_memory?: number | null
+          device_type?: string | null
           id?: string
           metric_name: string
           navigation_type?: string | null
+          os_major?: number | null
+          os_name?: string | null
           rating: string
           route: string
           save_data?: boolean | null
@@ -5043,12 +5053,17 @@ export type Database = {
           viewport_w?: number | null
         }
         Update: {
+          browser_major?: number | null
+          browser_name?: string | null
           connection_type?: string | null
           created_at?: string
           device_memory?: number | null
+          device_type?: string | null
           id?: string
           metric_name?: string
           navigation_type?: string | null
+          os_major?: number | null
+          os_name?: string | null
           rating?: string
           route?: string
           save_data?: boolean | null
@@ -6141,6 +6156,32 @@ export type Database = {
       web_vitals_p75: {
         Args: { window_hours?: number }
         Returns: {
+          good_pct: number
+          metric_name: string
+          p75: number
+          p95: number
+          route: string
+          sample_count: number
+        }[]
+      }
+      web_vitals_p75_by_browser: {
+        Args: { p_window_hours?: number }
+        Returns: {
+          browser_name: string
+          device_type: string
+          good_pct: number
+          metric_name: string
+          os_name: string
+          p75: number
+          p95: number
+          sample_count: number
+        }[]
+      }
+      web_vitals_p75_by_route_browser: {
+        Args: { p_route?: string; p_window_hours?: number }
+        Returns: {
+          browser_name: string
+          device_type: string
           good_pct: number
           metric_name: string
           p75: number

@@ -59,3 +59,66 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  # Track 1 — Visual regression on PR.
+  # Runs only the `e2e/visual/*` suite under chromium + mobile-chrome (the
+  # cross-platform pixel jitter on firefox/webkit makes them unreliable for
+  # pixel diffs; functional E2E covers those engines).
+  # On the `visual-baseline-update` label, the job re-runs with
+  # --update-snapshots and uploads the new baselines as an artifact for review.
+  # ---------------------------------------------------------------------------
+  visual-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      PLAYWRIGHT_VISUAL: "1"
+      PLAYWRIGHT_START_SERVER: "1"
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright (chromium only — pixel diff suite)
+        run: npx playwright install --with-deps chromium
+
+      - name: Detect baseline-update label
+        id: update-flag
+        run: |
+          if [ "${{ contains(github.event.pull_request.labels.*.name, 'visual-baseline-update') }}" = "true" ]; then
+            echo "update=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "update=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run visual regression suite
+        run: |
+          if [ "${{ steps.update-flag.outputs.update }}" = "1" ]; then
+            npm run test:visual:update
+          else
+            npm run test:visual
+          fi
+
+      - name: Upload visual diffs (on failure) or new baselines (on label)
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: visual-regression-report
+          path: |
+            playwright-report/
+            test-results/
+            e2e/visual/**/*.png
+          retention-days: 30

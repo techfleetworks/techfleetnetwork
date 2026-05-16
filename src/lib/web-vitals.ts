@@ -109,6 +109,19 @@ export function installWebVitalsBeacon({ userId }: ReportInit = {}): void {
         }
       }
 
+      // Resolve browser/OS/device once. UA Client Hints can be async; fall
+      // back to UA-string parsing synchronously when not available.
+      const { detectUserAgent } = await import("@/lib/ua-parse");
+      const ua = await detectUserAgent();
+
+      // Signal "RUM is initialised" — Track-1 visual tests wait on this
+      // sentinel so pixel diffs are taken after deferred work has settled.
+      try {
+        document.body.setAttribute("data-rum-ready", "true");
+      } catch {
+        /* noop */
+      }
+
       const handler = (metric: { name: string; value: number; rating: string }) => {
         send({
           name: metric.name,
@@ -122,6 +135,11 @@ export function installWebVitalsBeacon({ userId }: ReportInit = {}): void {
           viewportW,
           viewportH,
           userId: resolvedUserId,
+          browserName: ua.browserName,
+          browserMajor: ua.browserMajor,
+          osName: ua.osName,
+          osMajor: ua.osMajor,
+          deviceType: ua.deviceType,
         });
       };
 
@@ -133,6 +151,11 @@ export function installWebVitalsBeacon({ userId }: ReportInit = {}): void {
     } catch {
       // web-vitals failed to load — beacon stays installed=true so we don't
       // retry forever, but no metrics will flow. Acceptable degradation.
+      try {
+        document.body.setAttribute("data-rum-ready", "true");
+      } catch {
+        /* noop */
+      }
     }
   });
 }

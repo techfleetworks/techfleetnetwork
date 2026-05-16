@@ -50,6 +50,7 @@ const ALLOWED_NAV_TYPES = new Set([
   "prerender",
   "restore",
 ]);
+const ALLOWED_DEVICE_TYPES = new Set(["desktop", "mobile", "tablet", "bot", "unknown"]);
 
 function clampStr(v: unknown, max: number): string | null {
   if (typeof v !== "string") return null;
@@ -140,6 +141,14 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       user_id = rawUserId.toLowerCase();
     }
 
+    // Browser/OS/device breakdown — Track 4 RUM browser breakdown.
+    const browser_name = clampStr(body.browserName, 32);
+    const browser_major = clampInt(body.browserMajor, 0, 9999);
+    const os_name = clampStr(body.osName, 32);
+    const os_major = clampInt(body.osMajor, 0, 9999);
+    const rawDeviceType = clampStr(body.deviceType, 16);
+    const device_type = rawDeviceType && ALLOWED_DEVICE_TYPES.has(rawDeviceType) ? rawDeviceType : null;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -160,6 +169,11 @@ Deno.serve(withAuditWrapper("record-web-vital", async (req) => {
       viewport_w,
       viewport_h,
       user_agent,
+      browser_name,
+      browser_major,
+      os_name,
+      os_major,
+      device_type,
     });
 
     return new Response(null, { status: 204, headers: cors });

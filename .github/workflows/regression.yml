@@ -55,6 +55,12 @@ jobs:
         run: npm audit signatures
         continue-on-error: true # report-only until ecosystem maturity catches up
 
+      - name: Lint (ESLint + browser-compat + CSS portability)
+        run: npm run lint
+
+      - name: Lint CSS (stylelint + unsupported-browser-features)
+        run: npm run lint:css
+
       - name: Type-check (tsc --noEmit)
         run: npx tsc --noEmit
 
