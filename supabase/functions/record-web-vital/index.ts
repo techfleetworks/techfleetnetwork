@@ -50,6 +50,7 @@ const ALLOWED_NAV_TYPES = new Set([
   "prerender",
   "restore",
 ]);
+const ALLOWED_DEVICE_TYPES = new Set(["desktop", "mobile", "tablet", "bot", "unknown"]);
 
 function clampStr(v: unknown, max: number): string | null {
   if (typeof v !== "string") return null;
