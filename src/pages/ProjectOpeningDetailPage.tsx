@@ -205,7 +205,6 @@ export default function ProjectOpeningDetailPage() {
     if (user) {
       navigate(applicationPath);
     } else {
-      sessionStorage.setItem("auth_redirect", applicationPath);
       toast.info("Sign in to continue your application. We’ll bring you back here afterward.");
       navigate(`/login?redirect=${encodeURIComponent(applicationPath)}`, { state: { from: { pathname: applicationPath } } });
     }
