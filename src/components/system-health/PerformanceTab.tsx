@@ -23,7 +23,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, RefreshCw } from "lucide-react";
+import { PerformanceByBrowserTab } from "./PerformanceByBrowserTab";
 
 type MetricName = "LCP" | "INP" | "CLS" | "FCP" | "TTFB";
 
@@ -90,6 +92,23 @@ const WINDOW_OPTIONS = [
 ] as const;
 
 export function PerformanceTab() {
+  return (
+    <Tabs defaultValue="route" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="route">By route</TabsTrigger>
+        <TabsTrigger value="browser">By browser</TabsTrigger>
+      </TabsList>
+      <TabsContent value="route" className="mt-0">
+        <PerformanceByRouteTab />
+      </TabsContent>
+      <TabsContent value="browser" className="mt-0">
+        <PerformanceByBrowserTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function PerformanceByRouteTab() {
   const [windowHours, setWindowHours] = useState("24");
   const numericWindow = useMemo(() => Number.parseInt(windowHours, 10) || 24, [windowHours]);
 
