@@ -238,7 +238,10 @@ export default function SystemHealthPage() {
         <TabsContent value="errors"><ErrorList errors={data.recent_errors} generatedAt={generatedAt} /></TabsContent>
         <TabsContent value="triage"><TriageTab /></TabsContent>
         <TabsContent value="silent"><SilentFailuresTab /></TabsContent>
-        <TabsContent value="performance"><PerformanceTab /></TabsContent>
+        <TabsContent value="performance" className="space-y-4">
+          <PerformanceTab />
+          <PerformanceByBrowserTab />
+        </TabsContent>
         <TabsContent value="fleety"><FleetyHealthTab /></TabsContent>
         <TabsContent value="content"><ContentGapsTab /></TabsContent>
         <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>
