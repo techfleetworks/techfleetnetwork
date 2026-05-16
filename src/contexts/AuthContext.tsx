@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = AuthService.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (_event === "SIGNED_OUT") {
           AuthService.clearLocalAuthState();
         }
