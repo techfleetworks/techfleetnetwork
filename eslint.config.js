@@ -25,6 +25,9 @@ export default tseslint.config(
       "brand-terms": brandTerms,
       // CSS portability — guards against iOS/Android-breaking `h-screen`/`100vh`.
       "css-portability": cssPortability,
+      // Browser-compat — fails on JS APIs unsupported in our `browserslist`
+      // (package.json: iOS >=14.5, Safari >=14.1, Firefox ESR, last 2 versions).
+      compat,
       // WCAG 2.1/2.2 + EN 301 549 — static a11y enforcement on every PR.
       // Recommended set covers labels, alt text, ARIA roles/props, and
       // keyboard interactivity. Surfaced violations downgraded to "warn"
