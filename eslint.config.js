@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
+import compat from "eslint-plugin-compat";
 import brandTerms from "./scripts/lint/eslint-plugin-brand-terms.mjs";
 import cssPortability from "./scripts/lint/eslint-plugin-css-portability.mjs";
 
