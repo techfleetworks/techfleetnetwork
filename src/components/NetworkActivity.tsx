@@ -1,9 +1,10 @@
 import { memo, Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
-import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2 } from "lucide-react";
+import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2, MessageCircle } from "lucide-react";
 import { useQuery } from "@/lib/react-query";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 const MemberWorldMap = lazy(() =>
   import("@/components/MemberWorldMap").then((m) => ({ default: m.MemberWorldMap }))
@@ -98,6 +99,22 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     refetchOnReconnect: true,
   });
 
+  // Discord community member count — cached server-side for 24h.
+  const { data: discordStats } = useQuery({
+    queryKey: ["discord-member-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke<{ member_count: number }>(
+        "get-discord-member-count",
+        { method: "GET" },
+      );
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 60 * 60 * 1000, // 1h client cache
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
   // Graceful degradation: if the live RPC failed and the service-layer cache
   // also threw, try the cache directly here so the widget still renders
   // last-known stats instead of an empty error state.
@@ -175,6 +192,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="New Sign-ups" colorClass="bg-primary/10" />
+              <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />

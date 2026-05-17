@@ -72,4 +72,8 @@ project_id = "iqsjhrhsjlgjiaedzmtz"
     # tokens aren't reliably available. Endpoint is hardened: strict
     # allow-lists, body cap, no PII, swallows errors.
     verify_jwt = false
+  [functions.get-discord-member-count]
+    # Public — surfaces cached Discord community member count on the
+    # logged-out landing page. Refreshes from Discord at most once per 24h.
+    verify_jwt = false
 
