@@ -472,6 +472,14 @@ const SUPPRESSED_PATTERNS = [
   // trigger, but suppressing here saves a network round-trip on live bundles.
   "SupportWidget.token",
   "SupportWidget",
+  // --- Third-party consent banner (CookieYes) noise ---
+  // CookieYes script (loaded by published-site wrapper, not our code) logs a
+  // loud Error when the registered site URL on its dashboard doesn't match the
+  // current host (preview vs custom domain vs published). Not actionable in
+  // our codebase. Was flooding the fix queue with hundreds of events.
+  "cdn-cookieyes.com",
+  "cookieyes.com/support",
+  "Looks like your website URL has changed",
 ] as const;
 
 // Suppress empty unhandledrejection payloads ("{}") — almost always extension noise
