@@ -193,16 +193,17 @@ body {
     /* === Tech Fleet partner-page stat circle (verbatim port from
        techfleet.org/partner .framer-csrn0j). Brand-asset hex kept here
        so component code stays token-based. === */
-    --tf-stat-border: #f4f6ff;
-    --tf-stat-bg: rgba(77, 140, 255, 0.05);
-    --tf-stat-glow-1: rgba(112, 207, 255, 0.30);
-    --tf-stat-glow-2: rgba(112, 207, 255, 0.40);
-    --tf-stat-text: #f4f6ff;
+    --tf-stat-border: hsl(209 100% 33%); /* Tech Fleet Blue in light mode */
+    --tf-stat-bg: rgba(0, 86, 167, 0.05);
+    --tf-stat-glow-1: rgba(0, 86, 167, 0.20);
+    --tf-stat-glow-2: rgba(0, 86, 167, 0.28);
+    --tf-stat-text: hsl(209 100% 33%);
+    --tf-stat-label: hsl(209 100% 33%);
 
-    /* === Tech Fleet partner-page buttons (verbatim from
-       techfleet.org/partner .framer-1dba239 / .framer-1m8ay15) === */
-    --tf-btn-primary-bg: #f4f6ff;
-    --tf-btn-primary-fg: rgb(51, 51, 51);
+    /* === Tech Fleet partner-page buttons (light = Tech Fleet Blue;
+       dark mode overrides below preserve the original off-white) === */
+    --tf-btn-primary-bg: hsl(209 100% 33%);
+    --tf-btn-primary-fg: #f4f6ff;
     --tf-btn-secondary-bg: #01061e;
     --tf-btn-secondary-bg-hover: #0a1130;
     --tf-btn-shadow: 0.398096px 0.398096px 0.562993px -0.9375px rgba(0,0,0,0.18), 1.20725px 1.20725px 1.70731px -1.875px rgba(0,0,0,0.17), 3.19133px 3.19133px 4.51322px -2.8125px rgba(0,0,0,0.15), 10px 10px 14.1421px -3.75px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.25);
@@ -269,6 +270,18 @@ body {
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 229 30% 18%;
     --sidebar-ring: 217 73% 60%;
+
+    /* Dark-mode preserves the original techfleet.org/partner off-white
+       on the primary button + stat circle border (Tech Fleet Blue is
+       reserved for light mode). */
+    --tf-btn-primary-bg: #f4f6ff;
+    --tf-btn-primary-fg: rgb(51, 51, 51);
+    --tf-stat-border: #f4f6ff;
+    --tf-stat-bg: rgba(77, 140, 255, 0.05);
+    --tf-stat-glow-1: rgba(112, 207, 255, 0.30);
+    --tf-stat-glow-2: rgba(112, 207, 255, 0.40);
+    --tf-stat-text: #f4f6ff;
+    --tf-stat-label: #f4f6ff;
   }
 }
 

@@ -40,29 +40,32 @@ interface StatCardProps {
 
 const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
   return (
-    <div className="flex flex-col items-center text-center gap-3">
-      <div
-        className="flex aspect-square w-[225px] lg:w-[260px] flex-col items-center justify-center overflow-hidden p-6"
+    <div
+      className="flex aspect-square w-[225px] lg:w-[260px] flex-col items-center justify-center text-center overflow-hidden p-6"
+      style={{
+        border: "3px solid var(--tf-stat-border)",
+        backgroundColor: "var(--tf-stat-bg)",
+        borderRadius: "400px",
+        boxShadow:
+          "inset 5px 5px 20px 3px var(--tf-stat-glow-1), inset -5px -5px 20px 5px var(--tf-stat-glow-2)",
+      }}
+    >
+      <p
+        className="font-display font-semibold leading-none"
         style={{
-          border: "3px solid var(--tf-stat-border)",
-          backgroundColor: "var(--tf-stat-bg)",
-          borderRadius: "400px",
-          boxShadow:
-            "inset 5px 5px 20px 3px var(--tf-stat-glow-1), inset -5px -5px 20px 5px var(--tf-stat-glow-2)",
+          color: "var(--tf-stat-text)",
+          fontSize: "clamp(2rem, 4vw, 3.5rem)",
+          letterSpacing: "1px",
         }}
       >
-        <p
-          className="font-display font-semibold leading-none"
-          style={{
-            color: "var(--tf-stat-text)",
-            fontSize: "clamp(2rem, 4vw, 3.5rem)",
-            letterSpacing: "1px",
-          }}
-        >
-          {value}
-        </p>
-      </div>
-      <p className="text-xs text-muted-foreground max-w-[14rem]">{label}</p>
+        {value}
+      </p>
+      <p
+        className="mt-2 text-xs sm:text-sm font-medium leading-tight max-w-[80%]"
+        style={{ color: "var(--tf-stat-label, var(--tf-stat-text))" }}
+      >
+        {label}
+      </p>
     </div>
   );
 });
