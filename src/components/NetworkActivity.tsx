@@ -32,22 +32,21 @@ const defaultStats: NetworkStats = {
 };
 
 interface StatCardProps {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   value: number;
   label: string;
   colorClass: string;
 }
 
-const StatCard = memo(function StatCard({ icon, value, label, colorClass }: StatCardProps) {
+const StatCard = memo(function StatCard({ value, label, colorClass }: StatCardProps) {
   return (
-    <div className="card-elevated p-5 flex items-center gap-3">
-      <div className={`h-10 w-10 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
-        {icon}
+    <div className="flex flex-col items-center text-center gap-3">
+      <div
+        className={`card-elevated ${colorClass} aspect-square w-32 sm:w-36 rounded-full flex items-center justify-center`}
+      >
+        <p className="text-3xl font-bold text-foreground leading-none">{value}</p>
       </div>
-      <div>
-        <p className="text-2xl font-bold text-foreground leading-tight">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-      </div>
+      <p className="text-xs text-muted-foreground max-w-[10rem]">{label}</p>
     </div>
   );
 });
