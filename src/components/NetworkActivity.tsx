@@ -208,8 +208,8 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
 
         {showActivity && (
           <>
-            <SectionTitle className="mb-3">All Time</SectionTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
+            <SectionTitle className="mb-3 text-center sm:text-left">All Time</SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="Platform Signups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
@@ -219,8 +219,8 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
               <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.badges_earned} label="Badges Earned" colorClass="bg-primary/10" />
             </div>
 
-            <SectionTitle className="mb-3 mt-8">Project Training</SectionTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
+            <SectionTitle className="mb-3 mt-8 text-center sm:text-left">Project Training</SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center mb-10">
               <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
               <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
               <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.projects_live} label="Live" colorClass="bg-primary/10" />
@@ -228,13 +228,13 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             </div>
 
             <div className="border-t pt-8">
-              <SectionTitle>Past 7 Days</SectionTitle>
+              <SectionTitle className="text-center sm:text-left">Past 7 Days</SectionTitle>
               {safeStats.prev_week_start && safeStats.prev_week_end && (
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-muted-foreground mb-4 text-center sm:text-left">
                   {formatDateRange(safeStats.prev_week_start, safeStats.prev_week_end)}
                 </p>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
                 <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.prev_week_signups} label="Platform Signups" colorClass="bg-primary/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
