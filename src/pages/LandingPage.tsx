@@ -96,7 +96,7 @@ export default function LandingPage() {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="card-elevated p-6 hover:shadow-md transition-shadow duration-200"
+                className="tf-card p-6 transition-shadow duration-200"
                 role="article"
               >
                 <CardTitle as="h3" className="mb-2">{feature.title}</CardTitle>
