@@ -200,7 +200,11 @@
     <script>
       (function () {
         var h = location.hostname;
-        if (h === 'techfleet.network' || h === 'www.techfleet.network' || h === 'techfleetnetwork.lovable.app') {
+        var allowed =
+          h === 'techfleet.network' ||
+          h === 'www.techfleet.network' ||
+          /(^|\.)lovable\.app$/.test(h);
+        if (allowed) {
           var s = document.createElement('script');
           s.id = 'cookieyes';
           s.type = 'text/javascript';
