@@ -228,13 +228,13 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             </div>
 
             <div className="border-t pt-8">
-              <SectionTitle>Past 7 Days</SectionTitle>
+              <SectionTitle className="text-center sm:text-left">Past 7 Days</SectionTitle>
               {safeStats.prev_week_start && safeStats.prev_week_end && (
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-muted-foreground mb-4 text-center sm:text-left">
                   {formatDateRange(safeStats.prev_week_start, safeStats.prev_week_end)}
                 </p>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
                 <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.prev_week_signups} label="Platform Signups" colorClass="bg-primary/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
