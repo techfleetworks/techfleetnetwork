@@ -50,7 +50,7 @@ export default function LandingPage() {
                 Develop the skills and mindset for{" "}
                 <span className="text-primary">success</span>
               </Display>
-              <Lede className="max-w-lg">
+              <Lede className="max-w-lg text-[1rem]">
                 No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
               </Lede>
               <div className="flex flex-wrap gap-3 pt-2">
