@@ -42,7 +42,7 @@ export default function LandingPage() {
         canonicalPath="/"
       />
       {/* Hero Section */}
-      <section className="relative overflow-hidden flex items-center min-h-[calc(100dvh-5rem)]" aria-labelledby="hero-heading">
+      <section className="relative overflow-hidden flex items-center min-h-[calc(100svh-5rem)]" aria-labelledby="hero-heading">
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
