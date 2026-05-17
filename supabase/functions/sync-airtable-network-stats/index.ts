@@ -84,12 +84,14 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   const isServiceRole = !!token && token === SERVICE_ROLE;
+  const cronSecret = Deno.env.get("NETWORK_STATS_CRON_SECRET") ?? "";
+  const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
 
   const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  if (!isServiceRole) {
+  if (!isServiceRole && !isCron) {
     if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
