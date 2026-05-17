@@ -40,7 +40,7 @@ export const Display = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h1
     ref={ref}
-    className={cn(HEADING_BASE, "text-[2.5rem] sm:text-[3.25rem] lg:text-[4rem]", className)}
+    className={cn(HEADING_BASE, "leading-none text-[2.5rem] sm:text-[3.25rem] lg:text-[4rem]", className)}
     {...props}
   />
 ));
