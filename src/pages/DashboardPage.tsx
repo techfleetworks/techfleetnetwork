@@ -439,10 +439,10 @@ export default function DashboardPage() {
             return isVisible("my_project_apps") ? (
               <section key="my_project_apps" aria-labelledby="my-apps-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="my-apps-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                  <SectionTitle id="my-apps-heading" className="flex items-center gap-2">
                     <FolderKanban className="h-5 w-5 text-primary" />
                     My Applications
-                  </h2>
+                  </SectionTitle>
                   <Link
                     to="/applications"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
