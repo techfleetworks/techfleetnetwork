@@ -207,7 +207,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
 
         {showActivity && (
           <>
-            <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3">All Time</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="Platform Signups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
@@ -218,7 +218,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
               <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.badges_earned} label="Badges Earned" colorClass="bg-primary/10" />
             </div>
 
-            <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3 mt-8">Project Training</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
               <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
               <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
@@ -229,7 +229,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             <div className="border-t pt-8">
               <div className="flex items-center gap-2 mb-1">
                 <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-                <h3 className="text-lg font-semibold text-foreground">Past 7 Days</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground">Past 7 Days</h3>
               </div>
               {safeStats.prev_week_start && safeStats.prev_week_end && (
                 <p className="text-sm text-muted-foreground mb-4">

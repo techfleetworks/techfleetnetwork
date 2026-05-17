@@ -46,7 +46,7 @@ export default function LandingPage() {
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
-              <h1 id="hero-heading" className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.05]">
+              <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
                 Develop the skills and mindset for{" "}
                 <span className="text-primary">success</span>
               </h1>
@@ -84,7 +84,7 @@ export default function LandingPage() {
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
           <div className="mb-12">
-            <h2 id="features-heading" className="text-3xl font-bold text-foreground">
+            <h2 id="features-heading" className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Get ready for the future of work with Tech Fleet
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl">
@@ -102,7 +102,7 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
-                <h2 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{feature.title}</h2>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
             ))}
