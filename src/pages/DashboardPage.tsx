@@ -47,7 +47,7 @@ import { useQuery, useQueryClient } from "@/lib/react-query";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
 import { useAdmin } from "@/hooks/use-admin";
-import { PageTitle, SectionTitle, CardTitle, Body, BodySmall, Caption } from "@/components/ui/typography";
+import { PageTitle, SectionTitle, CardTitle, Body, Caption } from "@/components/ui/typography";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
