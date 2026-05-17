@@ -318,7 +318,7 @@ body {
 
   html {
     scroll-behavior: smooth;
-    font-size: 16px;
+    font-size: 20px;
     /* iOS Safari: prevent landscape auto-zoom of text. */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -326,12 +326,7 @@ body {
     scroll-padding-top: 5rem;
   }
 
-  /* Prevent text from appearing too small on very large displays */
-  @media (min-width: 1920px) {
-    html {
-      font-size: 18px;
-    }
-  }
+  /* 1rem = 20px universally (overrides browser default 16px) */
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
