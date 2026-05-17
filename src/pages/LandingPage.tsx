@@ -99,7 +99,7 @@ export default function LandingPage() {
                 className="tf-card p-6 transition-shadow duration-200"
                 role="article"
               >
-                <SectionTitle as="h2" className="mb-2">{feature.title}</SectionTitle>
+                <SectionTitle className="mb-2">{feature.title}</SectionTitle>
                 <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
