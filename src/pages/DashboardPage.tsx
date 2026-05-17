@@ -47,6 +47,7 @@ import { useQuery, useQueryClient } from "@/lib/react-query";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
 import { useAdmin } from "@/hooks/use-admin";
+import { PageTitle, SectionTitle, CardTitle, Body, Caption } from "@/components/ui/typography";
 
 // Lazy-load heavy components
 const NetworkActivity = lazy(() =>
@@ -337,8 +338,8 @@ export default function DashboardPage() {
     <div className="container-app py-8 sm:py-12 space-y-9">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1] truncate">Welcome back, {displayName} 👋</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</p>
+          <PageTitle className="truncate">Welcome back, {displayName} 👋</PageTitle>
+          <Body className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</Body>
         </div>
         <div className="flex-shrink-0">
           <DashboardCustomizer
@@ -364,8 +365,8 @@ export default function DashboardPage() {
                     <MessageSquare className="h-4 w-4 text-primary" aria-hidden="true" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h2 id="feedback-heading" className="font-semibold text-sm text-foreground">Share Feedback</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Send ideas, report issues, or suggest improvements.</p>
+                    <CardTitle as="h2" id="feedback-heading">Share Feedback</CardTitle>
+                    <Caption className="mt-0.5">Send ideas, report issues, or suggest improvements.</Caption>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
                 </Link>
@@ -405,9 +406,9 @@ export default function DashboardPage() {
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
                         <div className="flex items-center gap-2 justify-center sm:justify-start">
                           <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
-                          <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+                          <CardTitle as="h2">
                             You finished the onboarding and core courses!
-                          </h2>
+                          </CardTitle>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed text-center sm:text-left">
                           Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.
@@ -438,10 +439,10 @@ export default function DashboardPage() {
             return isVisible("my_project_apps") ? (
               <section key="my_project_apps" aria-labelledby="my-apps-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="my-apps-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                  <SectionTitle id="my-apps-heading" className="flex items-center gap-2">
                     <FolderKanban className="h-5 w-5 text-primary" />
                     My Applications
-                  </h2>
+                  </SectionTitle>
                   <Link
                     to="/applications"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
@@ -571,10 +572,10 @@ export default function DashboardPage() {
             return isVisible("latest_updates") ? (
               <section key="latest_updates" aria-labelledby="announcements-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="announcements-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                  <SectionTitle id="announcements-heading" className="flex items-center gap-2">
                     <Megaphone className="h-5 w-5 text-primary" />
                     Latest Updates
-                  </h2>
+                  </SectionTitle>
                   <Link
                     to="/updates"
                     className="text-sm text-primary hover:underline flex items-center gap-1"

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
+import { Display, SectionTitle, CardTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
 import worldImage from "@/assets/world.svg";
 import sunImage from "@/assets/sun.svg";
@@ -46,13 +47,13 @@ export default function LandingPage() {
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
-              <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
+              <Display id="hero-heading">
                 Develop the skills and mindset for{" "}
                 <span className="text-primary">success</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-lg">
+              </Display>
+              <Lede className="max-w-lg">
                 No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
-              </p>
+              </Lede>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/register">
                   <Button variant="hero" size="xl">
@@ -84,12 +85,12 @@ export default function LandingPage() {
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
           <div className="mb-12">
-            <h2 id="features-heading" className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <SectionTitle id="features-heading">
               Get ready for the future of work with Tech Fleet
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl">
+            </SectionTitle>
+            <Body className="mt-3 max-w-2xl text-muted-foreground">
               Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
-            </p>
+            </Body>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -102,8 +103,8 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{feature.title}</h2>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                <CardTitle as="h3" className="mb-2">{feature.title}</CardTitle>
+                <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
           </div>

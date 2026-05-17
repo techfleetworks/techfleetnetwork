@@ -6,6 +6,7 @@ import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { COUNTRY_NAME_TO_ID, COUNTRY_ID_TO_NAME } from "@/lib/country-id-map";
 import countriesTopologyRaw from "world-atlas/countries-110m.json?raw";
+import { PageTitle } from "@/components/ui/typography";
 
 interface CountryCount {
   country: string;
@@ -109,7 +110,7 @@ export function MemberWorldMap() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">Member Locations</h1>
+          <PageTitle>Member Locations</PageTitle>
         </div>
         <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
           <span>
