@@ -1014,6 +1014,33 @@ export type Database = {
         }
         Relationships: []
       }
+      discord_guild_stats: {
+        Row: {
+          created_at: string
+          fetched_at: string
+          guild_id: string
+          member_count: number
+          presence_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fetched_at?: string
+          guild_id: string
+          member_count?: number
+          presence_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fetched_at?: string
+          guild_id?: string
+          member_count?: number
+          presence_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discord_role_grant_queue: {
         Row: {
           attempts: number
