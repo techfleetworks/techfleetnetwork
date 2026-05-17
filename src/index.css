@@ -270,6 +270,18 @@ body {
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 229 30% 18%;
     --sidebar-ring: 217 73% 60%;
+
+    /* Dark-mode preserves the original techfleet.org/partner off-white
+       on the primary button + stat circle border (Tech Fleet Blue is
+       reserved for light mode). */
+    --tf-btn-primary-bg: #f4f6ff;
+    --tf-btn-primary-fg: rgb(51, 51, 51);
+    --tf-stat-border: #f4f6ff;
+    --tf-stat-bg: rgba(77, 140, 255, 0.05);
+    --tf-stat-glow-1: rgba(112, 207, 255, 0.30);
+    --tf-stat-glow-2: rgba(112, 207, 255, 0.40);
+    --tf-stat-text: #f4f6ff;
+    --tf-stat-label: #f4f6ff;
   }
 }
 
