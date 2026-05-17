@@ -6,6 +6,7 @@ import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import { COUNTRY_NAME_TO_ID, COUNTRY_ID_TO_NAME } from "@/lib/country-id-map";
 import countriesTopologyRaw from "world-atlas/countries-110m.json?raw";
+import { PageTitle } from "@/components/ui/typography";
 
 interface CountryCount {
   country: string;
