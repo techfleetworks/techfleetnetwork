@@ -197,8 +197,8 @@ body {
     --tf-stat-bg: rgba(0, 86, 167, 0.05);
     --tf-stat-glow-1: rgba(0, 86, 167, 0.20);
     --tf-stat-glow-2: rgba(0, 86, 167, 0.28);
-    --tf-stat-text: 0 0% 0%;
-    --tf-stat-label: 0 0% 0%;
+    --tf-stat-text: #000000;
+    --tf-stat-label: #000000;
 
     /* === Tech Fleet partner-page buttons (light = Tech Fleet Blue;
        dark mode overrides below preserve the original off-white) === */
