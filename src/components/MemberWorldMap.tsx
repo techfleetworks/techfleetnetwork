@@ -98,7 +98,7 @@ export function MemberWorldMap() {
 
   if (loading || WORLD_GEO_FEATURES.length === 0) {
     return (
-      <div className="card-elevated p-6" style={{ minHeight: 420 }}>
+      <div className="p-6" style={{ minHeight: 420 }}>
         <div className="h-6 w-48 bg-muted rounded animate-pulse mb-4" />
         <div className="h-[300px] bg-muted/30 rounded animate-pulse" />
       </div>
@@ -106,7 +106,7 @@ export function MemberWorldMap() {
   }
 
   return (
-    <div className="card-elevated p-6 space-y-4">
+    <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
