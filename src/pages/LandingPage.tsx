@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
-import { Display, SectionTitle, CardTitle, Lede, Body } from "@/components/ui/typography";
+import { Display, PageTitle, SectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
 import worldImage from "@/assets/world.svg";
 import sunImage from "@/assets/sun.svg";
