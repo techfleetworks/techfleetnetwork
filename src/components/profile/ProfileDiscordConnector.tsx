@@ -222,19 +222,19 @@ export function ProfileDiscordConnector() {
           <div className="flex flex-wrap gap-2">
             {inviteUrl ? (
               <>
-                <a href={inviteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                <a href={inviteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2 text-sm font-semibold text-background transition-colors hover:bg-[hsl(var(--primary-hover))] hover:text-primary-foreground">
                   Open Discord Invite
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </a>
                 <Button type="button" variant="outline" size="sm" onClick={copyInvite} className="gap-2">
-                  <Copy className="h-4 w-4" aria-hidden="true" />
                   {copied ? "Copied" : "Copy invite"}
+                  <Copy className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </>
             ) : (
               <Button type="button" variant="outline" size="sm" onClick={generateInvite} disabled={generating} className="gap-2">
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
                 Get Discord invite
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
               </Button>
             )}
           </div>
