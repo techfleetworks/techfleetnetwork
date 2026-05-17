@@ -119,27 +119,27 @@ export default function LandingPage() {
 
 const features = [
   {
-    title: "Guided Onboarding",
-    description: "Get everything you need to decide how to start all in one place.",
-  },
-  {
-    title: "Tiered Training",
-    description: "Start with the basics, and move up from there as you practice empowered team.",
-  },
-  {
-    title: "Real Team Projects",
-    description: "Train on agile teams with real nonprofit clients and practice building empowered team spaces together.",
+    title: "Community Involvement",
+    description: "Get resources, tools, and peer support from thousands of Tech Fleet community members.",
   },
   {
     title: "Growth Paths",
     description: "Focus on the skills, practices, and activities that matter to you for your growth.",
   },
   {
-    title: "Track Accomplishments",
-    description: "Keep track of what you've done and why it matters as you move through the Tech Fleet community.",
+    title: "Guided Onboarding",
+    description: "Get everything you need to decide how to start all in one place.",
   },
   {
-    title: "Community Involvement",
-    description: "Get resources, tools, and peer support from thousands of Tech Fleet community members.",
+    title: "Real Team Projects",
+    description: "Train on agile teams with real nonprofit clients and practice building empowered team spaces together.",
+  },
+  {
+    title: "Tiered Training",
+    description: "Start with the basics, and move up from there as you practice empowered team.",
+  },
+  {
+    title: "Track Accomplishments",
+    description: "Keep track of what you've done and why it matters as you move through the Tech Fleet community.",
   },
 ];
