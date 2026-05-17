@@ -72,7 +72,7 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt={heroAlt}
-                className="w-1/2 h-auto object-contain"
+                className="w-full h-auto object-contain"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
