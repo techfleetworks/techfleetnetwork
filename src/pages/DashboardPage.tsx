@@ -405,7 +405,7 @@ export default function DashboardPage() {
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
                         <div className="flex items-center gap-2 justify-center sm:justify-start">
                           <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
-                          <h2 className="text-lg font-bold text-foreground">
+                          <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                             You finished the onboarding and core courses!
                           </h2>
                         </div>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
             return isVisible("my_project_apps") ? (
               <section key="my_project_apps" aria-labelledby="my-apps-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="my-apps-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                  <h2 id="my-apps-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
                     <FolderKanban className="h-5 w-5 text-primary" />
                     My Applications
                   </h2>
@@ -571,7 +571,7 @@ export default function DashboardPage() {
             return isVisible("latest_updates") ? (
               <section key="latest_updates" aria-labelledby="announcements-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="announcements-heading" className="text-xl font-semibold text-foreground flex items-center gap-2">
+                  <h2 id="announcements-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
                     <Megaphone className="h-5 w-5 text-primary" />
                     Latest Updates
                   </h2>
