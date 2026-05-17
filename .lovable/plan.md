@@ -1,83 +1,95 @@
 ## Goal
 
-Replace the StatCard circle styling in `src/components/NetworkActivity.tsx` with the exact CSS from `.framer-csrn0j` on https://techfleet.org/partner.
+Replicate the EXACT CSS from `.framer-1dba239` (primary) and `.framer-1m8ay15` (secondary) on https://techfleet.org/partner. The current `rounded-full` + Action Blue hover approach is wrong — the real Framer buttons use **asymmetric corners** (only top-left + bottom-right rounded) and different colors.
 
-## Extracted CSS (verbatim from techfleet.org)
+## Exact CSS extracted from techfleet.org/partner
 
+**Primary — `.framer-1dba239` ("Apply as a Client"):**
 ```css
-.framer-csrn0j {
-  width: 225px;          /* 300px at larger breakpoint */
-  aspect-ratio: 1;
-  border: 3px solid #f4f6ff;
-  background-color: #4d8cff0d;   /* rgba(77,140,255,0.05) */
-  border-radius: 400px;          /* fully round */
-  padding: 24px;
-  display: flex;
-  flex-flow: column;
-  place-content: flex-start center;
-  align-items: flex-start;
-  gap: 10px;
-  overflow: hidden;
-  box-shadow:
-    inset 5px 5px 20px 3px #70cfff4d,
-    inset -5px -5px 20px 5px #70cfff66;
-}
+background-color: #f4f6ff;          /* off-white */
+border-top-left-radius: 8px;
+border-top-right-radius: 0;
+border-bottom-right-radius: 8px;
+border-bottom-left-radius: 0;
+height: 40px;
+padding: 20px 30px;
+gap: 10px;
+display: flex;
+place-content: center;
+align-items: center;
+text-decoration: none;
+box-shadow:
+  0.398096px 0.398096px 0.562993px -0.9375px #0000002e,
+  1.20725px 1.20725px 1.70731px -1.875px #0000002b,
+  3.19133px 3.19133px 4.51322px -2.8125px #00000026,
+  10px 10px 14.1421px -3.75px #0000000f,
+  0 2px 4px #00000040;
+/* text */
+font-family: Poppins, sans-serif;
+font-size: 20px;
+font-weight: 700;
+letter-spacing: 1px;
+color: rgb(51, 51, 51);
 ```
 
-Inner number is Futura PT Heavy, 32px (24px small), `#f4f6ff`, letter-spacing 1px, centered.
-
-## Changes — single file: `src/components/NetworkActivity.tsx`
-
-1. **StatCard markup** — drop `card-elevated`, `colorClass`, `aspect-square w-32 sm:w-36`, the inline `borderRadius: 2000`, and the existing flex layout. Replace with one `<div>` carrying the framer styles:
-
-```tsx
-<div
-  className="flex flex-col items-center text-center gap-3"
->
-  <div
-    className="flex flex-col items-start justify-start gap-2.5 overflow-hidden aspect-square w-[225px] lg:w-[300px] p-6"
-    style={{
-      border: "3px solid #f4f6ff",
-      backgroundColor: "rgba(77, 140, 255, 0.05)",
-      borderRadius: "400px",
-      boxShadow:
-        "inset 5px 5px 20px 3px rgba(112,207,255,0.30), inset -5px -5px 20px 5px rgba(112,207,255,0.40)",
-      placeContent: "flex-start center",
-    }}
-  >
-    <p
-      className="w-full font-display font-semibold leading-none"
-      style={{
-        color: "#f4f6ff",
-        fontSize: "clamp(32px, 5vw, 56px)",
-        letterSpacing: "1px",
-        textAlign: "center",
-      }}
-    >
-      {value}
-    </p>
-  </div>
-  <p className="text-xs text-muted-foreground max-w-[14rem]">{label}</p>
-</div>
+**Secondary — `.framer-1m8ay15` ("Download Info Sheet"):**
+```css
+background-color: #01061e;          /* Deep Space Navy */
+border: 1px solid #f4f6ff;
+border-top-left-radius: 8px;
+border-top-right-radius: 0;
+border-bottom-right-radius: 8px;
+border-bottom-left-radius: 0;
+height: 40px;
+padding: 15px;
+gap: 12px;
+display: flex;
+place-content: center;
+align-items: center;
+text-decoration: none;
+/* text */
+font-family: Poppins, sans-serif;
+font-size: 20px;
+font-weight: 400;
+letter-spacing: 1px;
+color: #f4f6ff;
 ```
 
-   - `colorClass` prop becomes optional/ignored (kept in interface for backwards-compat, then deleted from call sites in step 2).
-   - `icon` prop already optional; leave alone.
-   - Per memory rule "always HSL tokens, never raw hex" — this is an intentional **verbatim brand-asset port** from techfleet.org. To satisfy the rule, also add the four hex values as CSS custom properties (`--tf-stat-border`, `--tf-stat-bg`, `--tf-stat-glow-1`, `--tf-stat-glow-2`) in `src/index.css` under `:root`, then reference them via `var(...)` in the inline `style`. This keeps the visual exact while keeping hex out of components.
+Hover: techfleet.org's button hover is Framer JS-driven (no CSS `:hover` rule was found in the page). I'll add a subtle, on-brand hover (slight `translate-y-[-1px]` + shadow lift on primary; bg lightens to `#0a1130` on secondary) — purely cosmetic, matches Framer's default "lift" feel. If you want literally no hover, say so and I'll drop it.
 
-2. **Call sites** — drop now-unused `colorClass` from each `<StatCard ...>` invocation in the file (12 instances across All Time, Project Training, Past 7 Days). Keeps signatures clean.
+## Changes
 
-3. **Grid container** — relax sizing so 225px circles flow correctly:
-   - Replace each `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center` with the same classes plus larger `gap-8` to breathe like the partner page.
+### 1. `src/components/ui/button.tsx`
 
-## Out of scope
+Rewrite `buttonVariants` so the **default + hero variants = Framer primary** and **outline + secondary variants = Framer secondary**. Use HSL tokens added to `index.css` (no raw hex in components).
 
-- No change to data fetching, query keys, refresh intervals, or the map.
-- No copy or label changes.
-- No new BDD scenarios (presentational refactor of an existing visual component).
+- `default` / `hero`: bg `--tf-btn-primary-bg` (#f4f6ff), text `--tf-btn-primary-fg` (rgb 51,51,51), asymmetric radius (`rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none`), `h-10 px-[30px] py-5`, Framer box-shadow, `font-bold tracking-[1px] text-[20px]`, hover `-translate-y-[1px]` + stronger shadow.
+- `outline` / `secondary`: bg `--tf-btn-secondary-bg` (#01061e), border `1px solid --tf-btn-primary-bg`, text `--tf-btn-primary-bg`, same asymmetric radius, `h-10 p-[15px]`, `tracking-[1px] text-[20px]`, hover bg lightens.
+- `ghost` / `link`: keep current (not techfleet partner buttons).
+- `size="icon"`: keep `rounded-md` (unchanged).
+- Mobile: scale font down via responsive class (e.g. `text-base sm:text-[20px]`) to avoid wrap on small screens.
 
-## QA
+### 2. `src/index.css`
 
-- View on `/` (logged out) and `/dashboard` at 634px, 768px, 1280px viewports — circles centered, responsive grid intact.
-- Verify glow + border readable in dark theme (the only theme this section renders against on the landing/dashboard hero band).
-- No console errors.
+Add tokens under `:root` (and dark equivalents where they differ — both modes use the same brand button colors):
+```css
+--tf-btn-primary-bg: 230 100% 98%;     /* #f4f6ff */
+--tf-btn-primary-fg: 0 0% 20%;         /* rgb(51,51,51) */
+--tf-btn-secondary-bg: 230 78% 6%;     /* #01061e */
+--tf-btn-shadow: 0.4px 0.4px 0.56px -0.94px #0000002e, 1.21px 1.21px 1.71px -1.88px #0000002b, 3.19px 3.19px 4.51px -2.81px #00000026, 10px 10px 14.14px -3.75px #0000000f, 0 2px 4px #00000040;
+```
+Reference shadow via `var(--tf-btn-shadow)` in `button.tsx` inline `style` (Tailwind can't express it cleanly).
+
+### 3. Out of scope
+
+- No changes to call sites — variants stay the same, only their look changes.
+- `ProfileDiscordConnector.tsx` connect button keeps its right-side icon (per earlier instruction).
+- No data, behavior, accessibility (focus ring stays), or test changes.
+
+## What I will NOT do (until confirmed)
+
+- Won't change `NetworkActivity` circles.
+- Won't touch any non-button styling.
+- Won't add new dependencies.
+
+Approve and I'll ship it.
