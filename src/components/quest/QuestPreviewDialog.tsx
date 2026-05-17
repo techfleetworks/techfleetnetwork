@@ -144,7 +144,6 @@ export function QuestPreviewDialog({
 
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
           <Button variant="outline" onClick={onFindAnother} className="w-full sm:w-auto">
-            <Search className="mr-2 h-4 w-4" />
             Find Another Quest
           </Button>
           <Button

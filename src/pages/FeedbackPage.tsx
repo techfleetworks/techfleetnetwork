@@ -101,7 +101,6 @@ function FeedbackForm() {
               disabled={!canSubmit || submitting}
               className="w-full"
             >
-              <Send className="h-4 w-4 mr-2" />
               {submitting ? "Submitting…" : "Submit Feedback"}
             </Button>
           </CardContent>
@@ -206,7 +205,6 @@ function AdminFeedbackView() {
     <div className="container-app py-8 sm:py-12 space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => setFormOpen(true)}>
-          <MessageSquarePlus className="h-4 w-4 mr-2" />
           Add Feedback
         </Button>
       </div>
@@ -234,7 +232,6 @@ function AdminFeedbackView() {
     <div className="container-app py-8 sm:py-12 space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => setFormOpen(true)}>
-          <MessageSquarePlus className="h-4 w-4 mr-2" />
           Add Feedback
         </Button>
       </div>
@@ -338,7 +335,6 @@ function AdminFeedbackDialog({
             Cancel
           </Button>
           <Button onClick={onSubmit} disabled={!canSubmit || submitting}>
-            <Send className="h-4 w-4 mr-2" />
             {submitting ? "Submitting…" : "Submit Feedback"}
           </Button>
         </DialogFooter>

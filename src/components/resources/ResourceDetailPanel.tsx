@@ -91,7 +91,6 @@ export default function ResourceDetailPanel({
               rel="noopener noreferrer"
             >
               <Button className="w-full">
-                <ExternalLink className="h-4 w-4 mr-1.5" />
                 {externalLinkLabel}
               </Button>
             </a>

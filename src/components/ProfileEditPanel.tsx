@@ -544,7 +544,6 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
                     onClick={handleResetPassword}
                     disabled={resetPasswordLoading}
                   >
-                    <KeyRound className="h-4 w-4 mr-2" />
                     {resetPasswordLoading ? "Sending…" : "Reset Password"}
                   </Button>
                   <p className="text-xs text-muted-foreground">We'll send a reset link to your email.</p>

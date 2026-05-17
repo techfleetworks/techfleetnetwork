@@ -476,7 +476,6 @@ export default function ThirdStepsPage() {
                   href={selectedLesson?.sourceUrl}
                 >
                   <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-1.5" />
                     Read on Guide
                   </Button>
                 </SafeExternalLink>

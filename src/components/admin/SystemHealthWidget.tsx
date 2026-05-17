@@ -144,7 +144,6 @@ export const SystemHealthWidget = memo(function SystemHealthWidget() {
             onClick={handleRunNow}
             aria-label="Run remediations now"
           >
-            <RefreshCw className="h-4 w-4 mr-1.5" aria-hidden />
             Run now
           </Button>
         </div>

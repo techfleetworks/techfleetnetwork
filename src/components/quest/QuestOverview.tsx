@@ -82,7 +82,6 @@ export function QuestOverview() {
             <p className="text-base font-semibold text-foreground">Want to do more?</p>
             <p className="text-sm text-muted-foreground mt-1">Explore more quests in Tech Fleet!</p>
             <Button className="mt-4" onClick={() => setPickerOpen(true)}>
-              <Search className="mr-2 h-4 w-4" />
               Find More Quests
             </Button>
           </div>
@@ -97,7 +96,6 @@ export function QuestOverview() {
             Browse available quests, review what's involved, and subscribe to begin tracking your progress.
           </p>
           <Button onClick={() => setPickerOpen(true)}>
-            <Search className="mr-2 h-4 w-4" />
             Find Quests
           </Button>
         </div>

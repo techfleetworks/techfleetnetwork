@@ -388,7 +388,6 @@ export default function FirstStepsPage() {
                     ) : (
                       <Link to={task.action}>
                         <Button variant="outline" size="sm" disabled={task.completed}>
-                          <Icon className="h-4 w-4 mr-1" />
                           Start
                         </Button>
                       </Link>

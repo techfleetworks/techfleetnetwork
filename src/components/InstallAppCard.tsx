@@ -136,7 +136,6 @@ export function InstallAppCard() {
           disabled={!deferredPrompt || installing}
           aria-label="Install Tech Fleet Network app"
         >
-          <Download className="h-3.5 w-3.5 mr-1.5" />
           {installing ? "Installing…" : deferredPrompt ? "Install App" : "Install via Browser Menu"}
         </Button>
         {!deferredPrompt && (
