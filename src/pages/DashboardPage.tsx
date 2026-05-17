@@ -365,7 +365,7 @@ export default function DashboardPage() {
                     <MessageSquare className="h-4 w-4 text-primary" aria-hidden="true" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <CardTitle id="feedback-heading">Share Feedback</CardTitle>
+                    <CardTitle as="h2" id="feedback-heading">Share Feedback</CardTitle>
                     <Caption className="mt-0.5">Send ideas, report issues, or suggest improvements.</Caption>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
