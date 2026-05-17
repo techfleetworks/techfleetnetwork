@@ -83,14 +83,12 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
-          <div className="mb-12">
-            <PageTitle id="features-heading">
-              Get ready for the future of work with Tech Fleet
-            </PageTitle>
-            <Body className="mt-3 max-w-2xl text-muted-foreground">
-              Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
-            </Body>
-          </div>
+          <PageTitle id="features-heading">
+            Get ready for the future of work with Tech Fleet
+          </PageTitle>
+          <Body className="max-w-2xl text-muted-foreground">
+            Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
+          </Body>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
@@ -99,7 +97,7 @@ export default function LandingPage() {
                 className="tf-card p-6 transition-shadow duration-200"
                 role="article"
               >
-                <SubsectionTitle className="mb-2">{feature.title}</SubsectionTitle>
+                <SubsectionTitle>{feature.title}</SubsectionTitle>
                 <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
