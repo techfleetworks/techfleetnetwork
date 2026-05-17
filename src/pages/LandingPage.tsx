@@ -1,4 +1,3 @@
-import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
@@ -100,9 +99,6 @@ export default function LandingPage() {
                 className="card-elevated p-6 hover:shadow-md transition-shadow duration-200"
                 role="article"
               >
-                <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
-                  <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
-                </div>
                 <CardTitle as="h3" className="mb-2">{feature.title}</CardTitle>
                 <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
@@ -123,32 +119,26 @@ export default function LandingPage() {
 
 const features = [
   {
-    icon: Rocket,
     title: "Guided Onboarding",
     description: "Get everything you need to decide how to start all in one place.",
   },
   {
-    icon: GraduationCap,
     title: "Tiered Training",
     description: "Start with the basics, and move up from there as you practice empowered team.",
   },
   {
-    icon: Users,
     title: "Real Team Projects",
     description: "Train on agile teams with real nonprofit clients and practice building empowered team spaces together.",
   },
   {
-    icon: BookOpen,
     title: "Growth Paths",
     description: "Focus on the skills, practices, and activities that matter to you for your growth.",
   },
   {
-    icon: Shield,
     title: "Track Accomplishments",
     description: "Keep track of what you've done and why it matters as you move through the Tech Fleet community.",
   },
   {
-    icon: Users,
     title: "Community Involvement",
     description: "Get resources, tools, and peer support from thousands of Tech Fleet community members.",
   },
