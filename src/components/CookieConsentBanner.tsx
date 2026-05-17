@@ -43,6 +43,25 @@ declare global {
   }
 }
 
+const COOKIEYES_SRC = "https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js";
+
+function loadCookieYesScript() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("cookieyes")) return;
+
+  const script = document.createElement("script");
+  script.id = "cookieyes";
+  script.type = "text/javascript";
+  script.src = COOKIEYES_SRC;
+  script.async = true;
+  script.defer = true;
+  script.onerror = () => {
+    // eslint-disable-next-line no-console
+    console.warn("[consent] CookieYes failed to load — analytics remain disabled");
+  };
+  document.head.appendChild(script);
+}
+
 export function openCookieSettings() {
   if (typeof window === "undefined") return;
   if (typeof window.revisitCkyConsent === "function") {
@@ -110,6 +129,7 @@ export function CookieConsentBanner() {
     };
     window.addEventListener("cookieyes_consent_update", onConsent as EventListener);
     window.addEventListener("cookieyes_banner_load", onConsent as EventListener);
+    window.setTimeout(loadCookieYesScript, 0);
     return () => {
       window.removeEventListener("cookieyes_consent_update", onConsent as EventListener);
       window.removeEventListener("cookieyes_banner_load", onConsent as EventListener);
