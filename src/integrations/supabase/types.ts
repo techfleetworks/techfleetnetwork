@@ -2574,6 +2574,39 @@ export type Database = {
         }
         Relationships: []
       }
+      network_stats_baselines: {
+        Row: {
+          airtable_general_apps: number
+          airtable_masterclass_total: number
+          airtable_service_leadership_unique: number
+          id: number
+          last_sync_error: string | null
+          last_sync_status: string | null
+          last_synced_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          airtable_general_apps?: number
+          airtable_masterclass_total?: number
+          airtable_service_leadership_unique?: number
+          id?: number
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          airtable_general_apps?: number
+          airtable_masterclass_total?: number
+          airtable_service_leadership_unique?: number
+          id?: number
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_dlq: {
         Row: {
           attempts: number
