@@ -3,15 +3,10 @@ import { Link } from "react-router-dom";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
-import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { SEO } from "@/components/SEO";
-import heroImage from "@/assets/hero-space.png";
-import heroAvif480 from "@/assets/hero-space-480.avif?url";
-import heroAvif960 from "@/assets/hero-space-960.avif?url";
-import heroAvif1440 from "@/assets/hero-space-1440.avif?url";
-import heroWebp480 from "@/assets/hero-space-480.webp?url";
-import heroWebp960 from "@/assets/hero-space-960.webp?url";
-import heroWebp1440 from "@/assets/hero-space-1440.webp?url";
+import { useTheme } from "@/components/ThemeProvider";
+import worldImage from "@/assets/world.svg";
+import sunImage from "@/assets/sun.svg";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
