@@ -572,10 +572,10 @@ export default function DashboardPage() {
             return isVisible("latest_updates") ? (
               <section key="latest_updates" aria-labelledby="announcements-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 id="announcements-heading" className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2">
+                  <SectionTitle id="announcements-heading" className="flex items-center gap-2">
                     <Megaphone className="h-5 w-5 text-primary" />
                     Latest Updates
-                  </h2>
+                  </SectionTitle>
                   <Link
                     to="/updates"
                     className="text-sm text-primary hover:underline flex items-center gap-1"
