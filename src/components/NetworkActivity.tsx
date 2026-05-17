@@ -3,6 +3,7 @@ import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Users, BookOpen, Award, FileCheck, CalendarDays, UserPlus, Briefcase, Rocket, PlayCircle, CheckCircle2, MessageCircle } from "lucide-react";
 import { useQuery } from "@/lib/react-query";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
+import { PageTitle, SubsectionTitle, Body, Caption } from "@/components/ui/typography";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
