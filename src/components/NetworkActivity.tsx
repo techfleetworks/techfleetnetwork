@@ -41,7 +41,7 @@ interface StatCardProps {
 const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
   return (
     <div
-      className="flex aspect-square w-[225px] lg:w-[260px] flex-col items-center justify-center text-center overflow-hidden p-6"
+      className="flex aspect-square w-[150px] sm:w-[170px] lg:w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
       style={{
         border: "3px solid var(--tf-stat-border)",
         backgroundColor: "var(--tf-stat-bg)",
@@ -54,14 +54,14 @@ const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
         className="font-display font-semibold leading-none"
         style={{
           color: "var(--tf-stat-text)",
-          fontSize: "clamp(2rem, 4vw, 3.5rem)",
+          fontSize: "clamp(1.75rem, 3vw, 2.75rem)",
           letterSpacing: "1px",
         }}
       >
         {value}
       </p>
       <p
-        className="mt-2 text-xs sm:text-sm font-medium leading-tight max-w-[80%]"
+        className="mt-2 text-sm sm:text-base font-medium leading-tight max-w-[90%]"
         style={{ color: "var(--tf-stat-label, var(--tf-stat-text))" }}
       >
         {label}
