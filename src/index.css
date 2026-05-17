@@ -326,8 +326,13 @@ body {
     scroll-padding-top: 5rem;
   }
 
-  /* 1rem = 16px on SM/XS (<768px); 1rem = 24px on MD/LG/XL (≥768px) */
+  /* 1rem = 16px on XS/SM (<768px); 20px on MD/LG (768–1279px); 24px on XL (≥1280px) */
   @media (min-width: 768px) {
+    html {
+      font-size: 20px;
+    }
+  }
+  @media (min-width: 1280px) {
     html {
       font-size: 24px;
     }
