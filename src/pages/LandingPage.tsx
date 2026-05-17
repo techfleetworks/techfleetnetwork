@@ -84,7 +84,7 @@ export default function LandingPage() {
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
           <div className="mb-12">
-            <h2 id="features-heading" className="text-3xl font-bold text-foreground">
+            <h2 id="features-heading" className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Get ready for the future of work with Tech Fleet
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl">
