@@ -42,8 +42,8 @@ export default function LandingPage() {
         canonicalPath="/"
       />
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[60vh]" aria-labelledby="hero-heading">
-        <div className="container-app max-w-[1500px] py-16 sm:py-24 lg:py-32">
+      <section className="relative overflow-hidden flex items-center min-h-[calc(100dvh-5rem)]" aria-labelledby="hero-heading">
+        <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
               <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
