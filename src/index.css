@@ -291,6 +291,26 @@ body {
   }
 }
 
+@layer components {
+  /* Global Tech Fleet card — dark mode mirrors framer-too1hc on
+     techfleet.org/about; light mode mirrors the partner-page stat
+     circle treatment (same tokens, asymmetric 40px radius for cards). */
+  .tf-card {
+    background-color: var(--tf-stat-bg);
+    border: 3px solid var(--tf-stat-border);
+    border-top-left-radius: 40px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 40px;
+    border-bottom-left-radius: 0;
+    box-shadow:
+      inset 5px 5px 20px 3px var(--tf-stat-glow-1),
+      inset -5px -5px 20px 5px var(--tf-stat-glow-2);
+    color: hsl(var(--card-foreground));
+    position: relative;
+    overflow: hidden;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
