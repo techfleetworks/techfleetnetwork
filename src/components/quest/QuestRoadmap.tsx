@@ -135,7 +135,6 @@ export function QuestRoadmap({ onNeedIntake }: QuestRoadmapProps) {
         <h2 className="text-lg font-semibold text-foreground">Your Journey Roadmap</h2>
         {unselectedCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleOpenExplore}>
-            <Plus className="h-4 w-4 mr-1" />
             Explore More Paths ({unselectedCount} available)
           </Button>
         )}

@@ -132,7 +132,6 @@ export function AdminTwoFactorGraceDialog() {
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => void handleSignOut()}>
-            <LogOut className="h-4 w-4 mr-1.5" aria-hidden="true" />
             Sign out
           </Button>
           <Button asChild>

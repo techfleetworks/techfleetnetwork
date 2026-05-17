@@ -302,7 +302,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               {!loading && !user && (
                 <Link to="/login">
                   <Button variant="outline" size="sm">
-                    <LogIn className="h-4 w-4 mr-1" />
                     Connect
                   </Button>
                 </Link>
@@ -459,7 +458,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                     className="w-full justify-start"
                     onClick={handleSignOut}
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </Button>
                 </div>

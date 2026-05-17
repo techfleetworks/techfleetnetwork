@@ -207,7 +207,6 @@ export function GeneralApplicationTab() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-              <Save className="h-4 w-4 mr-2" />
               {saving ? "Saving…" : isCompleted ? "Save Changes" : "Save Draft"}
             </Button>
             {section < TOTAL_SECTIONS ? (
@@ -216,7 +215,6 @@ export function GeneralApplicationTab() {
               </Button>
             ) : (
               <Button onClick={() => handleSave(true)} disabled={saving || !canSubmit()}>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
                 {saving ? "Submitting…" : isCompleted ? "Update Application" : "Submit Application"}
               </Button>
             )}
@@ -239,7 +237,6 @@ export function GeneralApplicationTab() {
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-2">
             <Button onClick={() => { setShowCelebration(false); navigate("/applications"); }}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
               Back to Applications
             </Button>
           </div>

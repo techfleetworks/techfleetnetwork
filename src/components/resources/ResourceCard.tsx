@@ -39,7 +39,6 @@ export default function ResourceCard({
         </p>
 
         <Button size="sm" variant="outline" className="w-full mt-auto" onClick={onView}>
-          <Eye className="h-4 w-4 mr-1.5" />
           View
         </Button>
       </div>

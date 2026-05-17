@@ -265,7 +265,6 @@ export default function BannerManagementPage() {
           <p className="text-sm text-muted-foreground">Create and manage banners shown to all users across the platform.</p>
         </div>
         <Button onClick={handleNew}>
-          <Plus className="h-4 w-4 mr-2" />
           New Banner
         </Button>
       </div>
@@ -275,7 +274,6 @@ export default function BannerManagementPage() {
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No banners created yet.</p>
             <Button variant="outline" className="mt-4" onClick={handleNew}>
-              <Plus className="h-4 w-4 mr-2" />
               Create your first banner
             </Button>
           </CardContent>

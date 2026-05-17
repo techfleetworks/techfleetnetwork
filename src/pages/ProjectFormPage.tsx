@@ -534,7 +534,6 @@ export default function ProjectFormPage() {
                     !form.anticipated_start_date && "text-muted-foreground",
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
                   {form.anticipated_start_date ? format(new Date(form.anticipated_start_date + "T00:00:00"), "PPP") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
@@ -560,7 +559,6 @@ export default function ProjectFormPage() {
                     !form.anticipated_end_date && "text-muted-foreground",
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
                   {form.anticipated_end_date ? format(new Date(form.anticipated_end_date + "T00:00:00"), "PPP") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
