@@ -90,7 +90,7 @@ export default function LandingPage() {
               Get ready for the future of work with Tech Fleet
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl">
-              A structured, step-by-step path from onboarding to full community participation and professional growth.
+              Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
             </p>
           </div>
 
@@ -126,31 +126,31 @@ const features = [
   {
     icon: Rocket,
     title: "Guided Onboarding",
-    description: "Complete structured steps from profile setup through handbooks, quizzes, and observer phases.",
+    description: "Get everything you need to decide how to start all in one place.",
   },
   {
     icon: GraduationCap,
     title: "Tiered Training",
-    description: "Access courses from self-paced Tier 0 through one-on-one coaching in Tier 2.",
+    description: "Start with the basics, and move up from there as you practice empowered team.",
   },
   {
     icon: Users,
     title: "Real Team Projects",
-    description: "Apply for and join real projects after completing your observer phase.",
+    description: "Train on agile teams with real nonprofit clients and practice building empowered team spaces together.",
   },
   {
     icon: BookOpen,
     title: "Growth Paths",
-    description: "Follow personalized learning paths based on your skills, goals, and completed activities.",
+    description: "Focus on the skills, practices, and activities that matter to you for your growth.",
   },
   {
     icon: Shield,
     title: "Track Accomplishments",
-    description: "Earn badges, certificates, and build a shareable public profile of your achievements.",
+    description: "Keep track of what you've done and why it matters as you move through the Tech Fleet community.",
   },
   {
     icon: Users,
-    title: "Community Support",
-    description: "AI chatbot, Discord integration, and mentorship throughout your journey.",
+    title: "Community Involvement",
+    description: "Get resources, tools, and peer support from thousands of Tech Fleet community members.",
   },
 ];
