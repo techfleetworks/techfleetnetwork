@@ -160,9 +160,9 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
       <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
         <div className="container-app">
           <div className="mb-8">
-            <h2 id="network-activity-heading" className="text-xl font-semibold text-foreground">
+            <h1 id="network-activity-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
               Network Activity
-            </h2>
+            </h1>
             <p className="text-muted-foreground mt-2">
               We could not load community activity right now. Please refresh in a moment.
             </p>
@@ -184,9 +184,9 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16">
       <div className="container-app">
         <div className="mb-8">
-          <h2 id="network-activity-heading" className="text-xl font-semibold text-foreground">
+          <h1 id="network-activity-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
             Network Activity
-          </h2>
+          </h1>
           <p className="text-muted-foreground mt-2">
             See what our community members are working on right now
           </p>
