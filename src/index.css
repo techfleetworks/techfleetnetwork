@@ -204,8 +204,10 @@ body {
        dark mode overrides below preserve the original off-white) === */
     --tf-btn-primary-bg: hsl(209 100% 33%);
     --tf-btn-primary-fg: #f4f6ff;
-    --tf-btn-secondary-bg: #01061e;
-    --tf-btn-secondary-bg-hover: #0a1130;
+    --tf-btn-secondary-bg: #ffffff;
+    --tf-btn-secondary-fg: hsl(209 100% 33%);
+    --tf-btn-secondary-border: hsl(209 100% 33%);
+    --tf-btn-secondary-bg-hover: hsla(209, 100%, 33%, 0.12);
     --tf-btn-shadow: 0.398096px 0.398096px 0.562993px -0.9375px rgba(0,0,0,0.18), 1.20725px 1.20725px 1.70731px -1.875px rgba(0,0,0,0.17), 3.19133px 3.19133px 4.51322px -2.8125px rgba(0,0,0,0.15), 10px 10px 14.1421px -3.75px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.25);
     --tf-btn-shadow-hover: 0.5px 0.5px 0.7px -0.94px rgba(0,0,0,0.22), 1.5px 1.5px 2.1px -1.88px rgba(0,0,0,0.20), 4px 4px 5.6px -2.81px rgba(0,0,0,0.18), 14px 14px 20px -3.75px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.30);
   }
