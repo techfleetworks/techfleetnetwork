@@ -228,10 +228,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             </div>
 
             <div className="border-t pt-8">
-              <div className="flex items-center gap-2 mb-1">
-                <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-                <SectionTitle>Past 7 Days</SectionTitle>
-              </div>
+              <SectionTitle>Past 7 Days</SectionTitle>
               {safeStats.prev_week_start && safeStats.prev_week_end && (
                 <p className="text-sm text-muted-foreground mb-4">
                   {formatDateRange(safeStats.prev_week_start, safeStats.prev_week_end)}
