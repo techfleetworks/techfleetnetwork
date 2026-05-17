@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
-import { Display, PageTitle, SectionTitle, Lede, Body } from "@/components/ui/typography";
+import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
 import worldImage from "@/assets/world.svg";
 import sunImage from "@/assets/sun.svg";
@@ -99,7 +99,7 @@ export default function LandingPage() {
                 className="tf-card p-6 transition-shadow duration-200"
                 role="article"
               >
-                <SectionTitle className="mb-2">{feature.title}</SectionTitle>
+                <SubsectionTitle className="mb-2">{feature.title}</SubsectionTitle>
                 <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
