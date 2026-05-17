@@ -56,14 +56,12 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/register">
                   <Button variant="hero" size="xl">
-                    <Rocket className="h-5 w-5 mr-2" />
                     Get Started
                   </Button>
                 </Link>
                 <a href="https://techfleet.org/overview" target="_blank" rel="noopener noreferrer">
                   <Button variant="hero-outline" size="xl">
                     Training Overview
-                    <ArrowRight className="h-5 w-5 ml-2" />
                   </Button>
                 </a>
               </div>
