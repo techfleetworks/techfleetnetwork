@@ -405,9 +405,9 @@ export default function DashboardPage() {
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
                         <div className="flex items-center gap-2 justify-center sm:justify-start">
                           <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
-                          <h3 className="text-lg font-bold text-foreground">
+                          <h2 className="text-lg font-bold text-foreground">
                             You finished the onboarding and core courses!
-                          </h3>
+                          </h2>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed text-center sm:text-left">
                           Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.
