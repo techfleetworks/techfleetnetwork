@@ -192,6 +192,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="New Sign-ups" colorClass="bg-primary/10" />
+              <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
