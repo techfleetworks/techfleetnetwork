@@ -47,13 +47,13 @@ export default function LandingPage() {
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
-              <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
+              <Display id="hero-heading">
                 Develop the skills and mindset for{" "}
                 <span className="text-primary">success</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-lg">
+              </Display>
+              <Lede className="max-w-lg">
                 No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
-              </p>
+              </Lede>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/register">
                   <Button variant="hero" size="xl">
