@@ -3,15 +3,10 @@ import { Link } from "react-router-dom";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
-import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { SEO } from "@/components/SEO";
-import heroImage from "@/assets/hero-space.png";
-import heroAvif480 from "@/assets/hero-space-480.avif?url";
-import heroAvif960 from "@/assets/hero-space-960.avif?url";
-import heroAvif1440 from "@/assets/hero-space-1440.avif?url";
-import heroWebp480 from "@/assets/hero-space-480.webp?url";
-import heroWebp960 from "@/assets/hero-space-960.webp?url";
-import heroWebp1440 from "@/assets/hero-space-1440.webp?url";
+import { useTheme } from "@/components/ThemeProvider";
+import worldImage from "@/assets/world.svg";
+import sunImage from "@/assets/sun.svg";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
@@ -33,20 +28,12 @@ function NetworkActivityFallback() {
 }
 
 export default function LandingPage() {
-  // Inject LCP-image preload only on the landing route. Use AVIF srcset so modern
-  // browsers fetch the ~6 KB variant; older browsers will fall back to the PNG <img>.
-  if (typeof document !== "undefined" && !document.getElementById("hero-space-preload")) {
-    const link = document.createElement("link");
-    link.id = "hero-space-preload";
-    link.rel = "preload";
-    link.as = "image";
-    link.type = "image/avif";
-    (link as HTMLLinkElement & { imageSrcset?: string; imageSizes?: string; fetchPriority?: string }).imageSrcset =
-      `${heroAvif480} 480w, ${heroAvif960} 960w, ${heroAvif1440} 1440w`;
-    (link as HTMLLinkElement & { imageSizes?: string }).imageSizes = "448px";
-    (link as HTMLLinkElement & { fetchPriority?: string }).fetchPriority = "high";
-    document.head.appendChild(link);
-  }
+  const { resolvedTheme } = useTheme();
+  const heroSrc = resolvedTheme === "light" ? sunImage : worldImage;
+  const heroAlt =
+    resolvedTheme === "light"
+      ? "Illustration of a stylized sun, representing growth and energy"
+      : "Illustration of a stylized world map, representing global community";
   return (
     <div>
       <SEO
@@ -56,7 +43,7 @@ export default function LandingPage() {
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-[60vh]" aria-labelledby="hero-heading">
-        <div className="container-app py-16 sm:py-24 lg:py-32">
+        <div className="container-app max-w-[1500px] py-16 sm:py-24 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
               <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
@@ -81,17 +68,11 @@ export default function LandingPage() {
                 </a>
               </div>
             </div>
-            {/* Explicit aspect-ratio container prevents CLS when image loads */}
-            <div className="hidden lg:flex justify-center" style={{ aspectRatio: "448 / 224", minHeight: 224 }}>
-              <ResponsiveImage
-                png={heroImage}
-                avif={{ 480: heroAvif480, 960: heroAvif960, 1440: heroAvif1440 }}
-                webp={{ 480: heroWebp480, 960: heroWebp960, 1440: heroWebp1440 }}
-                sizes="448px"
-                alt="Illustration of an astronaut floating in space near planets, representing the journey of learning and growth"
-                className="w-full max-w-md object-contain"
-                width={448}
-                height={224}
+            <div className="hidden lg:flex justify-center">
+              <img
+                src={heroSrc}
+                alt={heroAlt}
+                className="w-full h-auto object-contain"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
