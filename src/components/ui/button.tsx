@@ -26,7 +26,7 @@ const buttonVariants = cva(tfFramerBase, {
         link:
           "rounded-none text-primary-text underline-offset-4 hover:underline",
         hero:
-          "bg-[var(--tf-btn-primary-bg)] text-[color:var(--tf-btn-primary-fg)] font-bold shadow-[var(--tf-btn-shadow)] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)]",
+          "bg-[var(--tf-btn-primary-bg)] text-[color:var(--tf-btn-primary-fg)] font-bold shadow-[var(--tf-btn-shadow)] hover:bg-[#4d8cff] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)]",
         "hero-outline":
           "bg-[var(--tf-btn-secondary-bg)] text-[color:var(--tf-btn-secondary-fg)] border border-[color:var(--tf-btn-secondary-border)] hover:bg-[var(--tf-btn-secondary-bg-hover)]",
         success:
