@@ -123,53 +123,13 @@
           try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
         });
 
-        // Mount watchdog — catches every other blank-screen cause that doesn't
-        // surface as an asset error event (CSP refusals, module-eval throws,
-        // hung top-level awaits, stale CDN HTML referencing chunks that 200
-        // but fail to evaluate). If #root is still empty 8s after DOM parse,
-        // hard-reload ONCE per tab with a fresh cache-bust query param.
-        var WATCHDOG_KEY = '__tfn_blank_watchdog_reload__';
-        function rootHasContent() {
-          var root = document.getElementById('root');
-          return !!(root && root.firstElementChild);
-        }
-        function hardReloadWithBust() {
-          try {
-            if (sessionStorage.getItem(WATCHDOG_KEY)) return;
-            sessionStorage.setItem(WATCHDOG_KEY, '1');
-          } catch (e) { /* ignore */ }
-          var u = new URL(window.location.href);
-          u.searchParams.set('_w', String(Date.now()));
-          window.location.replace(u.toString());
-        }
-        // Also start a pre-DOM watchdog immediately. This catches parser-blocking
-        // third-party scripts that can stall before <body>/<div id="root"> exist,
-        // which otherwise produces a blank page with no React, console, or network
-        // signal from inside the app.
-        setTimeout(function () {
-          if (!rootHasContent() && document.visibilityState !== 'hidden') {
-            hardReloadWithBust();
-          }
-        }, 8000);
-
-        // Run watchdog 8s after the document finishes parsing too, for slower
-        // devices where parsing completes but React still fails to mount.
-        document.addEventListener('DOMContentLoaded', function () {
-          setTimeout(function () {
-            if (!rootHasContent() && document.visibilityState !== 'hidden') {
-              hardReloadWithBust();
-            }
-          }, 8000);
-          // Once React mounts, drop the flag so future blank states can recover.
-          var clearObserver = new MutationObserver(function () {
-            if (rootHasContent()) {
-              try { sessionStorage.removeItem(WATCHDOG_KEY); } catch (e) {}
-              clearObserver.disconnect();
-            }
-          });
-          var rootEl = document.getElementById('root');
-          if (rootEl) clearObserver.observe(rootEl, { childList: true });
-        });
+        // NOTE: The aggressive blank-screen watchdog was removed — it was
+        // hard-reloading the page (with a `_w=` cache-bust) whenever React
+        // took longer than 8s to mount on slow networks / cold caches,
+        // producing a visible white-flash loop. Real stale-bundle recovery
+        // is still handled by the chunk-404 listener above and by
+        // src/lib/deploy-watcher.ts + src/lib/lazy-with-retry.ts.
+        try { sessionStorage.removeItem('__tfn_blank_watchdog_reload__'); } catch (e) {}
       })();
     </script>
 
