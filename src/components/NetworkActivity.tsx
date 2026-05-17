@@ -221,10 +221,10 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
 
             <SectionTitle className="mb-3 mt-8 text-center sm:text-left">Project Training</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center mb-10">
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />} value={safeStats.projects_previously_completed} label="Previously Completed" colorClass="bg-muted" />
               <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
               <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
               <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.projects_live} label="Live" colorClass="bg-primary/10" />
-              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />} value={safeStats.projects_previously_completed} label="Previously Completed" colorClass="bg-muted" />
             </div>
 
             <div className="border-t pt-8">
