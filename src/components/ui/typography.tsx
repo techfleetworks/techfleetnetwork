@@ -85,17 +85,22 @@ export const SubsectionTitle = React.forwardRef<
 ));
 SubsectionTitle.displayName = "SubsectionTitle";
 
-/** H4 Card Title — 20px Futura Medium. */
-export const CardTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h4
-    ref={ref}
-    className={cn(HEADING_MEDIUM, "text-[1.125rem] sm:text-[1.25rem]", className)}
-    {...props}
-  />
-));
+/** H4 Card Title — 20px Futura Medium. Polymorphic (default h4). */
+type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement> & {
+  as?: "h2" | "h3" | "h4" | "h5" | "h6";
+};
+export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, as = "h4", ...props }, ref) => {
+    const Comp = as as React.ElementType;
+    return (
+      <Comp
+        ref={ref}
+        className={cn(HEADING_MEDIUM, "text-[1.125rem] sm:text-[1.25rem]", className)}
+        {...props}
+      />
+    );
+  }
+);
 CardTitle.displayName = "CardTitle";
 
 /** Body Large — 18px Poppins. */
