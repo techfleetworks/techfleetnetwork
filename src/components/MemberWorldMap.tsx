@@ -108,10 +108,7 @@ export function MemberWorldMap() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
-          <PageTitle>Member Locations</PageTitle>
-        </div>
+        <PageTitle>Member Locations</PageTitle>
         <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
           <span>
             <strong className="text-foreground">{totalMembers}</strong> members
