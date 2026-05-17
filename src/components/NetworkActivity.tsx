@@ -42,7 +42,8 @@ const StatCard = memo(function StatCard({ value, label, colorClass }: StatCardPr
   return (
     <div className="flex flex-col items-center text-center gap-3">
       <div
-        className={`card-elevated ${colorClass} aspect-square w-32 sm:w-36 rounded-full flex items-center justify-center`}
+        className={`card-elevated ${colorClass} aspect-square w-32 sm:w-36 flex items-center justify-center`}
+        style={{ borderRadius: 2000 }}
       >
         <p className="text-3xl font-bold text-foreground leading-none">{value}</p>
       </div>
