@@ -183,17 +183,8 @@
     <meta property="og:description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
     <meta name="twitter:description" content="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet.">
 
-    <!--
-      CookieYes consent banner. Renders the visible cookie UI, persists the
-      user's category choices in `cookieyes-consent`, and emits
-      `cookieyes_consent_update` events. Our app listens for those events in
-      src/components/CookieConsentBanner.tsx and only then loads GA4 +
-      Microsoft Clarity (via src/lib/consent/loadAnalytics.ts). Global
-      Privacy Control still force-denies analytics regardless of CookieYes.
-    -->
-    <!-- Start cookieyes banner -->
-    <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/d4f48648fa538464e81930cedd3aff82/script.js"></script>
-    <!-- End cookieyes banner -->
+    <!-- CookieYes loads after React mounts in CookieConsentBanner.tsx so a
+      third-party consent script can never block the app shell from rendering. -->
   </head>
   <body>
     <div id="root"></div>
