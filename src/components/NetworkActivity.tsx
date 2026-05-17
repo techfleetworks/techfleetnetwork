@@ -208,8 +208,8 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
 
         {showActivity && (
           <>
-            <SectionTitle className="mb-3">All Time</SectionTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
+            <SectionTitle className="mb-3 text-center sm:text-left">All Time</SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="Platform Signups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
