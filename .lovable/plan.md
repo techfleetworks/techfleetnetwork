@@ -1,71 +1,83 @@
 ## Goal
 
-1. Re-style every Button on techfleet.network to match techfleet.org's pill button system (radius, colors, hover).
-2. Remove leading icons from Buttons across the platform.
-3. Keep the Discord **Connect** button's icon and move it to the right side.
+Replace the StatCard circle styling in `src/components/NetworkActivity.tsx` with the exact CSS from `.framer-csrn0j` on https://techfleet.org/partner.
 
-## What techfleet.org buttons look like
+## Extracted CSS (verbatim from techfleet.org)
 
-From inspection of techfleet.org hero + nav:
+```css
+.framer-csrn0j {
+  width: 225px;          /* 300px at larger breakpoint */
+  aspect-ratio: 1;
+  border: 3px solid #f4f6ff;
+  background-color: #4d8cff0d;   /* rgba(77,140,255,0.05) */
+  border-radius: 400px;          /* fully round */
+  padding: 24px;
+  display: flex;
+  flex-flow: column;
+  place-content: flex-start center;
+  align-items: flex-start;
+  gap: 10px;
+  overflow: hidden;
+  box-shadow:
+    inset 5px 5px 20px 3px #70cfff4d,
+    inset -5px -5px 20px 5px #70cfff66;
+}
+```
 
-- **Shape:** fully pill (`border-radius: 9999px`)
-- **Primary (filled):** white background, deep-navy text (`--background` in dark / Deep Space Navy `#01061E`), no visible border
-- **Outline:** transparent background, 1.5px white/foreground border, foreground text
-- **Padding:** generous (~`px-8 py-3` for default, `px-10 py-3.5` for hero)
-- **Font:** semibold, sans-serif (matches our Poppins body)
-- **Hover (primary):** background shifts to Action Blue `#1863DC` (`hsl(var(--primary-hover))`), text stays white — matches Brand Visual Guide v1
-- **Hover (outline):** fills with foreground color, text inverts to background
-- **Nav "Join Platform":** white pill with arrow inside a bordered circle on the right edge
+Inner number is Futura PT Heavy, 32px (24px small), `#f4f6ff`, letter-spacing 1px, centered.
 
-## Changes
+## Changes — single file: `src/components/NetworkActivity.tsx`
 
-### 1. `src/components/ui/button.tsx`
+1. **StatCard markup** — drop `card-elevated`, `colorClass`, `aspect-square w-32 sm:w-36`, the inline `borderRadius: 2000`, and the existing flex layout. Replace with one `<div>` carrying the framer styles:
 
-Update `buttonVariants` so every variant is pill-shaped and recolored to the org look. All colors via HSL tokens (no raw hex):
+```tsx
+<div
+  className="flex flex-col items-center text-center gap-3"
+>
+  <div
+    className="flex flex-col items-start justify-start gap-2.5 overflow-hidden aspect-square w-[225px] lg:w-[300px] p-6"
+    style={{
+      border: "3px solid #f4f6ff",
+      backgroundColor: "rgba(77, 140, 255, 0.05)",
+      borderRadius: "400px",
+      boxShadow:
+        "inset 5px 5px 20px 3px rgba(112,207,255,0.30), inset -5px -5px 20px 5px rgba(112,207,255,0.40)",
+      placeContent: "flex-start center",
+    }}
+  >
+    <p
+      className="w-full font-display font-semibold leading-none"
+      style={{
+        color: "#f4f6ff",
+        fontSize: "clamp(32px, 5vw, 56px)",
+        letterSpacing: "1px",
+        textAlign: "center",
+      }}
+    >
+      {value}
+    </p>
+  </div>
+  <p className="text-xs text-muted-foreground max-w-[14rem]">{label}</p>
+</div>
+```
 
-- Base class: replace `rounded-md` with `rounded-full`
-- `default` (primary/filled): `bg-foreground text-background hover:bg-primary hover:text-primary-foreground`
-- `outline`: `border-[1.5px] border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background`
-- `hero`: same as `default` but larger padding, font-semibold
-- `hero-outline`: same as `outline` but larger padding, font-semibold
-- `secondary` / `ghost` / `destructive` / `success` / `link`: keep semantics, just swap `rounded-md` → `rounded-full` so radius is consistent
-- Sizes: bump horizontal padding (`default: h-11 px-6`, `lg: h-12 px-8`, `xl: h-14 px-10`) so the pill silhouette reads like techfleet.org
-- Keep `[&_svg]:size-4 [&_svg]:shrink-0` (icons still render where allowed)
+   - `colorClass` prop becomes optional/ignored (kept in interface for backwards-compat, then deleted from call sites in step 2).
+   - `icon` prop already optional; leave alone.
+   - Per memory rule "always HSL tokens, never raw hex" — this is an intentional **verbatim brand-asset port** from techfleet.org. To satisfy the rule, also add the four hex values as CSS custom properties (`--tf-stat-border`, `--tf-stat-bg`, `--tf-stat-glow-1`, `--tf-stat-glow-2`) in `src/index.css` under `:root`, then reference them via `var(...)` in the inline `style`. This keeps the visual exact while keeping hex out of components.
 
-### 2. Strip leading icons from `<Button>` instances across the app
+2. **Call sites** — drop now-unused `colorClass` from each `<StatCard ...>` invocation in the file (12 instances across All Time, Project Training, Past 7 Days). Keeps signatures clean.
 
-Sweep `src/**/*.tsx` and remove any `<Icon … className="… mr-2" />` or leading `<LucideIcon … />` child of a `<Button>`. Keep the text label. Touches the 102 files identified by `rg '<Button[^>]*>'`. High-traffic spots include:
-
-- `src/pages/LandingPage.tsx` — hero `Rocket` icon + `ArrowRight` on Training Overview
-- `src/pages/DashboardPage.tsx`, sidebar quick actions, empty-state CTAs
-- Modal footers (`ConfirmDialog` actions already iconless — confirm no regression)
-- AG Grid toolbars, NetworkActivity CTA, etc.
-
-**Exception — Connect button(s):**
-
-- `src/components/profile/ProfileDiscordConnector.tsx`
-- `src/components/DiscordUsernameTutorial.tsx`
-- Anywhere else a Button labeled "Connect" / "Connect Discord" appears
-
-Keep the icon, but render it **after** the label (replace `mr-2` with `ml-2` and move the JSX past the label text). Default icon stays Discord/`Link2`/`ArrowRight` — whichever the component already uses.
-
-### 3. QA pass
-
-- Visual diff hero buttons against techfleet.org screenshot
-- Snapshot the landing page, dashboard, profile (Discord connect section), and one AG Grid toolbar to confirm no broken layouts after icon removal
-- Verify hover state across light + dark themes
-- Tab/keyboard focus ring still visible (we keep `focus-visible:ring-2`)
-- WCAG: contrast on `bg-foreground / text-background` ≥ 4.5:1 in both themes (already satisfied by tokens)
+3. **Grid container** — relax sizing so 225px circles flow correctly:
+   - Replace each `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center` with the same classes plus larger `gap-8` to breathe like the partner page.
 
 ## Out of scope
 
-- No backend / data changes
-- No copy changes
-- Icon-only buttons (`size="icon"`, e.g. close, menu, sort) — these stay as-is because the icon **is** the label
-- No new BDD scenarios required (pure presentational refactor of existing components)
+- No change to data fetching, query keys, refresh intervals, or the map.
+- No copy or label changes.
+- No new BDD scenarios (presentational refactor of an existing visual component).
 
-## Files touched (estimate)
+## QA
 
-- `src/components/ui/button.tsx` (variant rewrite)
-- ~30–60 component / page files for leading-icon removal
-- 2–3 Discord-connect components for icon-right move
+- View on `/` (logged out) and `/dashboard` at 634px, 768px, 1280px viewports — circles centered, responsive grid intact.
+- Verify glow + border readable in dark theme (the only theme this section renders against on the landing/dashboard hero band).
+- No console errors.

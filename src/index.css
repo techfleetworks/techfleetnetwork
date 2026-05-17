@@ -189,6 +189,15 @@ body {
     /* Custom tokens */
     --nav-height: 4rem;
     --container-max: 80rem;
+
+    /* === Tech Fleet partner-page stat circle (verbatim port from
+       techfleet.org/partner .framer-csrn0j). Brand-asset hex kept here
+       so component code stays token-based. === */
+    --tf-stat-border: #f4f6ff;
+    --tf-stat-bg: rgba(77, 140, 255, 0.05);
+    --tf-stat-glow-1: rgba(112, 207, 255, 0.30);
+    --tf-stat-glow-2: rgba(112, 207, 255, 0.40);
+    --tf-stat-text: #f4f6ff;
   }
 
   .dark {
