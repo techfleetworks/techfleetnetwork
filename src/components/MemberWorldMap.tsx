@@ -109,7 +109,7 @@ export function MemberWorldMap() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h3 className="text-lg font-semibold text-foreground">Member Locations</h3>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">Member Locations</h1>
         </div>
         <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
           <span>
