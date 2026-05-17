@@ -90,7 +90,7 @@ export default function LandingPage() {
               Get ready for the future of work with Tech Fleet
             </h2>
             <p className="text-muted-foreground mt-3 max-w-2xl">
-              A structured, step-by-step path from onboarding to full community participation and professional growth.
+              Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
             </p>
           </div>
 
