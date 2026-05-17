@@ -83,7 +83,7 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
-          <div className="w-full max-w-[700px]">
+          <div className="w-full max-w-[700px] mb-9">
             <PageTitle id="features-heading">
               Get ready for the future of work with Tech Fleet
             </PageTitle>
