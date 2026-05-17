@@ -278,6 +278,10 @@ body {
        reserved for light mode). */
     --tf-btn-primary-bg: #f4f6ff;
     --tf-btn-primary-fg: rgb(51, 51, 51);
+    --tf-btn-secondary-bg: #01061e;
+    --tf-btn-secondary-fg: #f4f6ff;
+    --tf-btn-secondary-border: #f4f6ff;
+    --tf-btn-secondary-bg-hover: #0a1130;
     --tf-stat-border: #f4f6ff;
     --tf-stat-bg: rgba(77, 140, 255, 0.05);
     --tf-stat-glow-1: rgba(112, 207, 255, 0.30);
