@@ -4,27 +4,40 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
-  {
+// Tech Fleet partner-page button base (verbatim port from
+// techfleet.org/partner .framer-1dba239 + .framer-1m8ay15): asymmetric
+// corner radius (top-left + bottom-right only), Poppins 20px / 1px tracking.
+const tfFramerBase =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-poppins tracking-[1px] text-base sm:text-[20px] leading-none rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none transition-all duration-200 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer no-underline";
+
+const buttonVariants = cva(tfFramerBase, {
     variants: {
       variant: {
-        default: "bg-foreground text-background hover:bg-[hsl(var(--primary-hover))] hover:text-primary-foreground",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border-[1.5px] border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary-text underline-offset-4 hover:underline",
-        hero: "bg-foreground text-background hover:bg-[hsl(var(--primary-hover))] hover:text-primary-foreground shadow-lg shadow-foreground/10",
-        "hero-outline": "border-[1.5px] border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
-        success: "bg-success text-success-foreground hover:bg-success/90",
+        default:
+          "bg-[var(--tf-btn-primary-bg)] text-[color:var(--tf-btn-primary-fg)] font-bold shadow-[var(--tf-btn-shadow)] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)]",
+        destructive:
+          "bg-destructive text-destructive-foreground font-bold shadow-[var(--tf-btn-shadow)] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)] rounded-tl-lg rounded-br-lg",
+        outline:
+          "bg-[var(--tf-btn-secondary-bg)] text-[color:var(--tf-btn-primary-bg)] border border-[color:var(--tf-btn-primary-bg)] hover:bg-[var(--tf-btn-secondary-bg-hover)]",
+        secondary:
+          "bg-[var(--tf-btn-secondary-bg)] text-[color:var(--tf-btn-primary-bg)] border border-[color:var(--tf-btn-primary-bg)] hover:bg-[var(--tf-btn-secondary-bg-hover)]",
+        ghost:
+          "rounded-md hover:bg-accent hover:text-accent-foreground",
+        link:
+          "rounded-none text-primary-text underline-offset-4 hover:underline",
+        hero:
+          "bg-[var(--tf-btn-primary-bg)] text-[color:var(--tf-btn-primary-fg)] font-bold shadow-[var(--tf-btn-shadow)] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)]",
+        "hero-outline":
+          "bg-[var(--tf-btn-secondary-bg)] text-[color:var(--tf-btn-primary-bg)] border border-[color:var(--tf-btn-primary-bg)] hover:bg-[var(--tf-btn-secondary-bg-hover)]",
+        success:
+          "bg-success text-success-foreground font-bold shadow-[var(--tf-btn-shadow)] hover:-translate-y-[1px] hover:shadow-[var(--tf-btn-shadow-hover)]",
       },
       size: {
-        default: "h-11 px-6 py-2",
-        sm: "h-9 px-4",
-        lg: "h-12 px-8",
-        xl: "h-14 px-10 text-base",
-        icon: "h-10 w-10",
+        default: "h-10 px-[30px] py-5",
+        sm: "h-9 px-5 py-4 text-sm sm:text-base",
+        lg: "h-12 px-[36px] py-6",
+        xl: "h-14 px-[40px] py-7",
+        icon: "h-10 w-10 rounded-md",
       },
     },
     defaultVariants: {
