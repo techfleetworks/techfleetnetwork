@@ -359,6 +359,19 @@ body {
     opacity: 1;
   }
 
+  /* Universal content rhythm (Brand Visual Guide):
+     - 12px between a heading and the paragraph immediately after it.
+     - 36px between a paragraph and the next non-paragraph sibling
+       (button, link group, card, image, list, etc.) within the same section.
+     Adjacent-sibling selectors only fire when elements are DOM siblings,
+     so flex/grid/space-y layouts that wrap children are unaffected. */
+  :where(h1, h2, h3, h4, h5, h6) + p {
+    margin-top: 12px;
+  }
+  p + :where(button, a, .btn, .button, ul, ol, img, figure, video, iframe, div, section, form, blockquote, hr) {
+    margin-top: 36px;
+  }
+
   /* WCAG 2.0 / 3.0: Visible focus indicators */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring rounded-sm;
