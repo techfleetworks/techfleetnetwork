@@ -26,7 +26,7 @@ const HEADING_BASE =
   "font-display font-bold leading-[1.1] tracking-[0.012em] text-foreground";
 const HEADING_MEDIUM =
   "font-display font-medium leading-[1.1] tracking-[0.012em] text-foreground";
-const BODY_BASE = "font-sans leading-[1.1] tracking-[0.012em]";
+const BODY_BASE = "font-sans leading-[1.5] tracking-[0.012em]";
 
 type AsProp<T extends React.ElementType> = { as?: T };
 type PolymorphicProps<T extends React.ElementType, P = {}> = P &
