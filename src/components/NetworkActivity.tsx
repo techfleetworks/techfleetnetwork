@@ -41,7 +41,7 @@ interface StatCardProps {
 const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
   return (
     <div
-      className="flex aspect-square w-[225px] lg:w-[260px] flex-col items-center justify-center text-center overflow-hidden p-6"
+      className="flex aspect-square w-[150px] sm:w-[170px] lg:w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
       style={{
         border: "3px solid var(--tf-stat-border)",
         backgroundColor: "var(--tf-stat-bg)",
@@ -54,14 +54,14 @@ const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
         className="font-display font-semibold leading-none"
         style={{
           color: "var(--tf-stat-text)",
-          fontSize: "clamp(2rem, 4vw, 3.5rem)",
+          fontSize: "clamp(1.75rem, 3vw, 2.75rem)",
           letterSpacing: "1px",
         }}
       >
         {value}
       </p>
       <p
-        className="mt-2 text-xs sm:text-sm font-medium leading-tight max-w-[80%]"
+        className="mt-2 text-sm sm:text-base font-medium leading-tight max-w-[90%]"
         style={{ color: "var(--tf-stat-label, var(--tf-stat-text))" }}
       >
         {label}
@@ -145,7 +145,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
       <section aria-labelledby="network-activity-heading" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
         <div className="container-app">
           <Skeleton className="h-8 w-48 mb-8" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-start sm:justify-items-center">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-20 rounded-lg" />
             ))}
@@ -208,7 +208,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
         {showActivity && (
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3">All Time</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-start sm:justify-items-center mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="New Sign-ups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
@@ -219,7 +219,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">Project Training</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-start sm:justify-items-center mb-10">
               <StatCard icon={<Briefcase className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.projects_open_applications} label="Open Applications" colorClass="bg-success/10" />
               <StatCard icon={<Rocket className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.projects_coming_soon} label="Coming Soon" colorClass="bg-warning/10" />
               <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.projects_live} label="Live" colorClass="bg-primary/10" />
@@ -236,7 +236,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
                   {formatDateRange(safeStats.prev_week_start, safeStats.prev_week_end)}
                 </p>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-start sm:justify-items-center">
                 <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.prev_week_signups} label="New Sign-ups" colorClass="bg-primary/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.prev_week_core_active} label="Core Course Completions" colorClass="bg-warning/10" />
                 <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.prev_week_beginner_active} label="Beginner Course Completions" colorClass="bg-info/10" />
