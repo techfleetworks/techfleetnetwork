@@ -99,6 +99,22 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
     refetchOnReconnect: true,
   });
 
+  // Discord community member count — cached server-side for 24h.
+  const { data: discordStats } = useQuery({
+    queryKey: ["discord-member-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke<{ member_count: number }>(
+        "get-discord-member-count",
+        { method: "GET" },
+      );
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 60 * 60 * 1000, // 1h client cache
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
   // Graceful degradation: if the live RPC failed and the service-layer cache
   // also threw, try the cache directly here so the widget still renders
   // last-known stats instead of an empty error state.
