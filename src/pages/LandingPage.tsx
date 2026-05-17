@@ -85,12 +85,12 @@ export default function LandingPage() {
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
           <div className="mb-12">
-            <h2 id="features-heading" className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <SectionTitle id="features-heading">
               Get ready for the future of work with Tech Fleet
-            </h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl">
+            </SectionTitle>
+            <Body className="mt-3 max-w-2xl text-muted-foreground">
               Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
-            </p>
+            </Body>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,8 +103,8 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{feature.title}</h2>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                <CardTitle as="h3" className="mb-2">{feature.title}</CardTitle>
+                <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
           </div>
