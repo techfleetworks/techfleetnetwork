@@ -1,4 +1,3 @@
-import { Rocket, ArrowRight, Users, BookOpen, GraduationCap, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
