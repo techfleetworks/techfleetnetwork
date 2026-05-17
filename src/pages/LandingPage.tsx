@@ -83,12 +83,14 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="border-t bg-card" aria-labelledby="features-heading">
         <div className="container-app py-16 sm:py-20">
-          <PageTitle id="features-heading">
-            Get ready for the future of work with Tech Fleet
-          </PageTitle>
-          <Body className="max-w-2xl text-muted-foreground">
-            Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
-          </Body>
+          <div className="w-full max-w-[700px]">
+            <PageTitle id="features-heading">
+              Get ready for the future of work with Tech Fleet
+            </PageTitle>
+            <Body className="text-muted-foreground">
+              Tech Fleet's a nonprofit on a mission to build empowered team spaces in the world. We're changing the ways we work together. You, too, can be a part of it.
+            </Body>
+          </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
