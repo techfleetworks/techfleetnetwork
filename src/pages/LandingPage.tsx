@@ -103,7 +103,7 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
                 </div>
-                <CardTitle className="mb-2">{feature.title}</CardTitle>
+                <CardTitle as="h3" className="mb-2">{feature.title}</CardTitle>
                 <Body className="text-muted-foreground">{feature.description}</Body>
               </div>
             ))}
