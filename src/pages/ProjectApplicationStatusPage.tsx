@@ -1,5 +1,7 @@
 import { useMemo, useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { CommunityAgreementSheet } from "@/components/agreements/CommunityAgreementSheet";
+import { useAgreementStatus } from "@/hooks/use-agreement-status";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -368,6 +370,17 @@ export default function ProjectApplicationStatusPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [invitePanelOpen, setInvitePanelOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [agreementOpen, setAgreementOpen] = useState(false);
+  const agreement = useAgreementStatus(applicationId);
+  useEffect(() => {
+    if (searchParams.get("agreement") === "open") {
+      setAgreementOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("agreement");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   /* ── poll for status updates (realtime removed for security) ── */
   useEffect(() => {

@@ -840,6 +840,87 @@ export type Database = {
           },
         ]
       }
+      community_agreement_signatures: {
+        Row: {
+          application_id: string
+          id: string
+          ip_address: unknown
+          project_id: string
+          signed_at: string
+          user_agent: string | null
+          user_id: string
+          version_id: string
+        }
+        Insert: {
+          application_id: string
+          id?: string
+          ip_address?: unknown
+          project_id: string
+          signed_at?: string
+          user_agent?: string | null
+          user_id: string
+          version_id: string
+        }
+        Update: {
+          application_id?: string
+          id?: string
+          ip_address?: unknown
+          project_id?: string
+          signed_at?: string
+          user_agent?: string | null
+          user_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_agreement_signatures_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "project_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_agreement_signatures_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "community_agreement_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_agreement_versions: {
+        Row: {
+          body_html: string
+          created_at: string
+          id: string
+          is_current: boolean
+          source_url: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          source_url?: string
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          source_url?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       community_events_cache: {
         Row: {
           etag: string | null
@@ -3013,6 +3094,8 @@ export type Database = {
         Row: {
           applicant_status: string
           client_project_knowledge: string
+          community_agreement_required_at: string | null
+          community_agreement_signed_at: string | null
           completed_at: string | null
           created_at: string
           cross_functional_contribution: string
@@ -3034,6 +3117,8 @@ export type Database = {
         Insert: {
           applicant_status?: string
           client_project_knowledge?: string
+          community_agreement_required_at?: string | null
+          community_agreement_signed_at?: string | null
           completed_at?: string | null
           created_at?: string
           cross_functional_contribution?: string
@@ -3055,6 +3140,8 @@ export type Database = {
         Update: {
           applicant_status?: string
           client_project_knowledge?: string
+          community_agreement_required_at?: string | null
+          community_agreement_signed_at?: string | null
           completed_at?: string | null
           created_at?: string
           cross_functional_contribution?: string
@@ -5977,6 +6064,10 @@ export type Database = {
         Args: { p_access_reason?: string; p_accessed_user_id: string }
         Returns: undefined
       }
+      mark_community_agreement_required: {
+        Args: { p_application_id: string }
+        Returns: undefined
+      }
       mark_discord_role_grant_result: {
         Args: { p_error?: string; p_id: string; p_success: boolean }
         Returns: undefined
@@ -6140,6 +6231,25 @@ export type Database = {
       set_fix_queue_status: {
         Args: { p_id: string; p_reason?: string; p_status: string }
         Returns: undefined
+      }
+      sign_community_agreement: {
+        Args: { p_application_id: string; p_user_agent?: string }
+        Returns: {
+          application_id: string
+          id: string
+          ip_address: unknown
+          project_id: string
+          signed_at: string
+          user_agent: string | null
+          user_id: string
+          version_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "community_agreement_signatures"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       snooze_fix_queue_entry: {
         Args: { p_days?: number; p_id: string }
