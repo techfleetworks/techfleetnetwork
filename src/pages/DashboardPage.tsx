@@ -392,8 +392,7 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
-                        <div className="flex items-center gap-2 justify-center sm:justify-start">
-                          <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
+                        <div className="text-center sm:text-left">
                           <CardTitle as="h2">
                             You finished the onboarding and core courses!
                           </CardTitle>
