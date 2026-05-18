@@ -37,7 +37,7 @@ import { LiveAnnouncer, useRouteAnnouncer } from "./LiveAnnouncer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAnnouncementRealtime } from "@/hooks/use-announcement-realtime";
