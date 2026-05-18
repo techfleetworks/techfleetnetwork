@@ -335,7 +335,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="container-app py-8 sm:py-12 space-y-9">
+    <div className="container-app !px-4 sm:!px-4 lg:!px-4 py-8 sm:py-12 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="min-w-0">
           <PageTitle className="truncate">Welcome back, {displayName} 👋</PageTitle>
