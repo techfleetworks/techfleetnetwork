@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // techfleet.org/partner .framer-1dba239 + .framer-1m8ay15): asymmetric
 // corner radius (top-left + bottom-right only), Poppins 20px / 1px tracking.
 const tfFramerBase =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-poppins tracking-[1px] text-base sm:text-[20px] leading-none rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none transition-all duration-200 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer no-underline";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-poppins tracking-[1px] text-base leading-none rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none transition-all duration-200 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer no-underline";
 
 const buttonVariants = cva(tfFramerBase, {
     variants: {
