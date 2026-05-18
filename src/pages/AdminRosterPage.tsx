@@ -76,9 +76,7 @@ export default function AdminRosterPage() {
   return (
     <div className="container-app py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Target className="h-6 w-6 text-primary" aria-hidden="true" />
-          Recruiting Center
+        <h1 className="text-2xl font-bold flex items-center gap-2">Recruiting Center
         </h1>
         <p className="text-muted-foreground mt-1">
           Select a project to view application analysis and manage the team roster.

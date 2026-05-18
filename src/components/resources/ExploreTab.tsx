@@ -152,9 +152,7 @@ export default function ExploreTab() {
           {popularQueries.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  Popular Explorations
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">Popular Explorations
                 </h3>
                 {allPopularQueries.length > 5 && (
                   <Button
@@ -180,9 +178,7 @@ export default function ExploreTab() {
           {recentQueries.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Your Recently Explored
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">Your Recently Explored
                 </h3>
                 <Button
                   variant="ghost"

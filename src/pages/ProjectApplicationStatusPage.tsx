@@ -240,9 +240,7 @@ function ActiveTeammateCelebration({ clientName, friendlyName }: { clientName: s
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-          <PartyPopper className="h-6 w-6 text-success" />
-          Congratulations!
+        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">Congratulations!
           <PartyPopper className="h-6 w-6 text-success" />
         </h2>
         <p className="text-lg font-medium text-foreground">
