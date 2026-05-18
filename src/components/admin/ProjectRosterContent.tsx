@@ -10,6 +10,8 @@ import { ThemedAgGrid } from "@/components/AgGrid";
 import { format } from "date-fns";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
+import { AgreementResendButton } from "@/components/agreements/AgreementResendButton";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileRow {
   user_id: string;
