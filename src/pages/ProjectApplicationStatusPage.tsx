@@ -11,7 +11,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
   XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
   Trophy, Star, Sparkles, Mail, User, Briefcase, GraduationCap,
-  Trash2,
+  Trash2, FileCheck2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
