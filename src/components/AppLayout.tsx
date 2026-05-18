@@ -37,7 +37,7 @@ import { LiveAnnouncer, useRouteAnnouncer } from "./LiveAnnouncer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { PageHeaderProvider, usePageHeader } from "@/contexts/PageHeaderContext";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAnnouncementRealtime } from "@/hooks/use-announcement-realtime";
@@ -157,9 +157,6 @@ function DesktopHeader({
       role="banner"
       style={{ minHeight: header ? undefined : "3rem" }}
     >
-      {/* Sidebar toggle — always available so users can reopen if collapsed */}
-      <SidebarTrigger className="shrink-0 mr-2" aria-label="Toggle sidebar" />
-
       {/* Left: page context */}
       {header ? (
         <div className="flex flex-col justify-center py-1.5 min-w-0 mr-4">
