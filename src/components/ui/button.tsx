@@ -35,8 +35,8 @@ const buttonVariants = cva(tfFramerBase, {
       size: {
         default: "h-10 px-[30px] py-0",
         sm: "h-10 px-5 py-0 text-sm sm:text-base",
-        lg: "h-10 px-[36px] py-0",
-        xl: "h-10 px-[40px] py-0",
+        lg: "h-10 px-[36px] py-0 w-full lg:w-auto",
+        xl: "h-10 px-[40px] py-0 w-full lg:w-auto",
         icon: "h-10 w-10 rounded-md",
       },
     },
