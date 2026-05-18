@@ -58,9 +58,9 @@ export default function LandingPage() {
             </div>
             <div className="space-y-6 animate-fade-in">
               <Display id="hero-heading" className="leading-[1.1]">
-                Welcome to the Network for{" "}
-                <span className="text-primary">Empowered</span>{" "}
-                Team Spaces
+                Welcome to the network for{" "}
+                <span className="text-primary">empowered</span>{" "}
+                team spaces
               </Display>
               <Lede className="max-w-lg text-[1rem]">
                 No portfolio required. Practice agile with other people and real nonprofit clients.
