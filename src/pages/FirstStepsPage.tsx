@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
 import { CheckCircle2, Circle, Play, User, ExternalLink, Figma, ScrollText, ShieldCheck, FileText, Cookie, Gavel, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -212,11 +212,17 @@ export default function FirstStepsPage() {
     if (!task) return;
 
     const newCompleted = !task.completed;
+
+    // CWV pass 4 (INP): paint the optimistic state IMMEDIATELY so the click
+    // commits within the 200ms INP budget. The network round-trip and the
+    // Discord notify happen after the paint; a failure rolls the row back.
+    startTransition(() => {
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
+    });
     setLoadingId(id);
 
     try {
       await JourneyService.upsertTask(user.id, "first_steps", id, newCompleted);
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t)));
       queryClient.invalidateQueries({ queryKey: ["journey-completed", user.id, "first_steps"] });
       queryClient.invalidateQueries({ queryKey: ["journey-progress", user.id, "first_steps"] });
 
@@ -228,16 +234,21 @@ export default function FirstStepsPage() {
         // Check if all tasks are now complete — send phase notification instead of task
         const newCompletedCount = tasks.filter((t) => t.id !== id ? t.completed : true).length;
         if (newCompletedCount === tasks.length) {
-          DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
+          // Fire-and-forget — must not block the click commit.
+          void DiscordNotifyService.phaseCompleted(name, "first_steps", discord, discordId);
           if (!completionShownRef.current) {
             completionShownRef.current = true;
             setShowCompletionDialog(true);
           }
         } else {
-          DiscordNotifyService.taskCompleted(name, id, discord, discordId);
+          void DiscordNotifyService.taskCompleted(name, id, discord, discordId);
         }
       }
     } catch (err: any) {
+      // Roll back optimistic update on failure.
+      startTransition(() => {
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: task.completed } : t)));
+      });
       console.error("[FirstSteps] toggleTask failed:", err);
       toast.error("We couldn't update that task. Please try again.", {
         description: err?.message || "Please try again.",
