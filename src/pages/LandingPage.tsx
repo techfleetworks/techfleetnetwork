@@ -64,13 +64,13 @@ export default function LandingPage() {
               <Lede className="max-w-lg text-[1rem]">
                 No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
               </Lede>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <Link to="/register">
+              <div className="flex flex-col lg:flex-row flex-wrap gap-3 pt-2">
+                <Link to="/register" className="w-full lg:w-auto">
                   <Button variant="hero" size="xl">
                     Get Started
                   </Button>
                 </Link>
-                <a href="https://techfleet.org/overview" target="_blank" rel="noopener noreferrer">
+                <a href="https://techfleet.org/overview" target="_blank" rel="noopener noreferrer" className="w-full lg:w-auto">
                   <Button variant="hero-outline" size="xl">
                     Training Overview
                   </Button>
