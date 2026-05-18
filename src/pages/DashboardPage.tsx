@@ -159,6 +159,8 @@ export default function DashboardPage() {
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
 
+  const [agreementCtx, setAgreementCtx] = useState<{ id: string; name: string; clientName: string } | null>(null);
+
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
   // Single round-trip RPC: phase counts + general app + project apps in one call.
