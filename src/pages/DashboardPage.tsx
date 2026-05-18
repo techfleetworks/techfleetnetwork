@@ -16,7 +16,7 @@ import {
   
   CheckCircle2,
 } from "lucide-react";
-import celebrationImg from "@/assets/courses-complete-celebration.png";
+import celebrationImg from "@/assets/courses-complete-rocket.svg";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationStatusBadge } from "@/components/ApplicationStatusBadge";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
