@@ -92,7 +92,10 @@
 /* Body font: Poppins (loaded via @fontsource in main.tsx) per Tech Fleet
    Brand Visual Guide §3. Falls back to system sans for resilience. */
 body {
-  font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Metric-matched 'Poppins Fallback' sits before the system stack so first
+     paint uses a box-equivalent local face — eliminates CLS when Poppins
+     swaps in. Defined in /fonts/fonts.css. */
+  font-family: 'Poppins', 'Poppins Fallback', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-display: swap;
 }
 
