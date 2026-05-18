@@ -4,17 +4,9 @@ import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
-  ChevronRight,
   ClipboardCheck,
-  Clock,
-  FolderKanban,
   Heart,
-  Lock,
-  Megaphone,
   MessageSquare,
-  PartyPopper,
-  
-  CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-rocket.svg";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +32,7 @@ import { TOTAL_DISCORD_LESSONS } from "@/data/discord-course";
 import { TOTAL_TEAMWORK_LESSONS } from "@/data/teamwork-course";
 import { TOTAL_PROJECT_TRAINING_LESSONS } from "@/data/project-training-course";
 import { TOTAL_VOLUNTEER_LESSONS } from "@/data/volunteer-teams-course";
-import { CheckCircle2 as CheckCircle2Icon } from "lucide-react";
+
 import { format } from "date-fns";
 import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
@@ -84,15 +76,11 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
         aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
       >
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-          </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm text-muted-foreground truncate">{course.title}</h3>
             <p className="text-xs text-muted-foreground/70 truncate">{course.description}</p>
           </div>
-          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs gap-1 flex-shrink-0">
-            <Lock className="h-3 w-3" />
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
             Locked
           </Badge>
         </div>
@@ -106,9 +94,6 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
       className="tf-card p-4 hover:border-primary/40 transition-all group block"
     >
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
@@ -140,7 +125,6 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
             </div>
           )}
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
       </div>
     </Link>
   );
@@ -361,14 +345,10 @@ export default function DashboardPage() {
             return isVisible("feedback") ? (
               <section key="feedback" aria-labelledby="feedback-heading">
                 <Link to="/feedback" className="tf-card p-4 hover:border-primary/40 transition-all flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="h-4 w-4 text-primary" aria-hidden="true" />
-                  </div>
                   <div className="min-w-0 flex-1">
                     <CardTitle as="h2" id="feedback-heading">Share Feedback</CardTitle>
                     <Caption className="mt-0.5">Send ideas, report issues, or suggest improvements.</Caption>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
                 </Link>
               </section>
             ) : null;
@@ -404,8 +384,7 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
-                        <div className="flex items-center gap-2 justify-center sm:justify-start">
-                          <PartyPopper className="h-5 w-5 text-primary" aria-hidden="true" />
+                        <div className="text-center sm:text-left">
                           <CardTitle as="h2">
                             You finished the onboarding and core courses!
                           </CardTitle>
@@ -419,7 +398,6 @@ export default function DashboardPage() {
                             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                           >
                             Continue Courses
-                            <ChevronRight className="h-4 w-4" />
                           </Link>
                         </div>
                       </div>
@@ -439,15 +417,14 @@ export default function DashboardPage() {
             return isVisible("my_project_apps") ? (
               <section key="my_project_apps" aria-labelledby="my-apps-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <SectionTitle id="my-apps-heading" className="flex items-center gap-2">
-                    <FolderKanban className="h-5 w-5 text-primary" />
+                  <SectionTitle id="my-apps-heading">
                     My Applications
                   </SectionTitle>
                   <Link
                     to="/applications"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                    className="text-sm text-primary hover:underline"
                   >
-                    View all <ChevronRight className="h-3 w-3" />
+                    View all
                   </Link>
                 </div>
 
@@ -458,22 +435,17 @@ export default function DashboardPage() {
                     className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <ClipboardCheck className="h-4 w-4 text-primary" />
-                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-sm text-foreground truncate">
                             General Application
                           </h3>
                           {generalApp.status === "completed" ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0">
                               Completed
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                              <Clock className="h-3 w-3" />
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0">
                               Draft
                             </Badge>
                           )}
@@ -484,7 +456,6 @@ export default function DashboardPage() {
                             : `Section ${generalApp.current_section} of 5 · Updated ${format(new Date(generalApp.updated_at), "MMM d")}`}
                         </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
                   </Link>
                 ) : (
@@ -493,22 +464,17 @@ export default function DashboardPage() {
                     className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                        <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm text-foreground truncate">General Application</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">Required before applying to projects</p>
                       </div>
                       <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
                   </Link>
                 )}
 
                 {myProjectApps.length === 0 ? (
                   <SectionEmptyState
-                    icon={FolderKanban}
                     title="No project applications yet"
                     description="When project openings are available, you can apply and track your progress here."
                   />
@@ -536,9 +502,6 @@ export default function DashboardPage() {
                           className="tf-card p-4 hover:border-primary/40 transition-all block"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <FolderKanban className="h-4 w-4 text-primary" />
-                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <h3 className="font-semibold text-sm text-foreground truncate">
@@ -558,7 +521,6 @@ export default function DashboardPage() {
                                 {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
                               </p>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           </div>
                         </Link>
                       );
@@ -572,20 +534,18 @@ export default function DashboardPage() {
             return isVisible("latest_updates") ? (
               <section key="latest_updates" aria-labelledby="announcements-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <SectionTitle id="announcements-heading" className="flex items-center gap-2">
-                    <Megaphone className="h-5 w-5 text-primary" />
+                  <SectionTitle id="announcements-heading">
                     Latest Updates
                   </SectionTitle>
                   <Link
                     to="/updates"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                    className="text-sm text-primary hover:underline"
                   >
-                    View all <ChevronRight className="h-3 w-3" />
+                    View all
                   </Link>
                 </div>
                 {latestAnnouncements.length === 0 ? (
                   <SectionEmptyState
-                    icon={Megaphone}
                     title="No updates yet"
                     description="Announcements and news from Tech Fleet will appear here."
                   />
