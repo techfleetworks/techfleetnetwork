@@ -472,15 +472,11 @@ export default function DashboardPage() {
                     className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                        <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm text-foreground truncate">General Application</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">Required before applying to projects</p>
                       </div>
                       <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
                   </Link>
                 )}
