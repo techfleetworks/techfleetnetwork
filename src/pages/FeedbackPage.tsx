@@ -286,9 +286,7 @@ function AdminFeedbackDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquarePlus className="h-5 w-5 text-primary" />
-            Add Feedback
+          <DialogTitle className="flex items-center gap-2">Add Feedback
           </DialogTitle>
           <DialogDescription>
             Share your feedback about the platform as an admin.

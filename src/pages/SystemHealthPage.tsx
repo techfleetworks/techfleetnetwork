@@ -133,7 +133,7 @@ export default function SystemHealthPage() {
       <section className="container-app py-8" aria-labelledby="system-health-heading">
         <Card className="border-destructive/40">
           <CardHeader>
-            <CardTitle id="system-health-heading" className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" />System Health unavailable</CardTitle>
+            <CardTitle id="system-health-heading" className="flex items-center gap-2">System Health unavailable</CardTitle>
             <CardDescription>{error instanceof Error ? error.message : "The health dashboard could not load."}</CardDescription>
           </CardHeader>
           <CardContent><Button onClick={() => refetch()}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button></CardContent>
@@ -217,7 +217,7 @@ export default function SystemHealthPage() {
           {data.queue_stats.map((queue) => (
             <Card key={queue.queue_name}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" />{queue.queue_name.replace(/_/g, " ")}</CardTitle>
+                <CardTitle className="flex items-center gap-2">{queue.queue_name.replace(/_/g, " ")}</CardTitle>
                 <CardDescription className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)}
                 </CardDescription>
@@ -250,7 +250,7 @@ export default function SystemHealthPage() {
         <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Processing controls</CardTitle>
+              <CardTitle className="flex items-center gap-2">Processing controls</CardTitle>
               <CardDescription className="flex items-center gap-1 text-xs">
                 <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(data.send_state?.updated_at ?? generatedAt)}
               </CardDescription>

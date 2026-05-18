@@ -143,7 +143,7 @@ export function IncidentsTab() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" /> Open incident</DialogTitle>
+                  <DialogTitle className="flex items-center gap-2">Open incident</DialogTitle>
                   <DialogDescription>Starts the 72-hour regulator notification clock.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
@@ -190,7 +190,7 @@ export function IncidentsTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Active &amp; recent incidents</CardTitle>
+          <CardTitle className="flex items-center gap-2">Active &amp; recent incidents</CardTitle>
           <CardDescription>Live 72-hour regulator countdown shown for unresolved incidents.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

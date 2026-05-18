@@ -152,9 +152,7 @@ export default function ExploreTab() {
           {popularQueries.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  Popular Explorations
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">Popular Explorations
                 </h3>
                 {allPopularQueries.length > 5 && (
                   <Button
@@ -180,9 +178,7 @@ export default function ExploreTab() {
           {recentQueries.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Your Recently Explored
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">Your Recently Explored
                 </h3>
                 <Button
                   variant="ghost"
@@ -216,9 +212,7 @@ export default function ExploreTab() {
       <Sheet open={showAllPopular} onOpenChange={setShowAllPopular}>
         <SheetContent resizeKey="explore-popular" className="w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              All Popular Explorations
+            <SheetTitle className="flex items-center gap-2">All Popular Explorations
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100dvh-8rem)] mt-4 pr-2">

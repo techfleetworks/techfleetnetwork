@@ -110,9 +110,7 @@ export function PerformanceByBrowserTab() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Globe className="h-4 w-4" aria-hidden="true" />
-              By browser & device
+            <CardTitle className="flex items-center gap-2 text-base">By browser & device
             </CardTitle>
             <CardDescription>
               p75 of each Core Web Vital grouped by browser, OS, and device type.

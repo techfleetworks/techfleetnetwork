@@ -72,9 +72,7 @@ export function SilentFailuresTab() {
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden />
-              Silent failures
+            <CardTitle className="flex items-center gap-2">Silent failures
             </CardTitle>
             <CardDescription className="flex items-center gap-1 text-xs">
               <Clock className="h-3 w-3" aria-hidden /> Updated {relativeTime(generatedAt)} · Grouped from the audit log.

@@ -480,9 +480,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
       {/* ── Core Role Staffing ───────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Core Role Staffing
+          <CardTitle className="flex items-center gap-2">Core Role Staffing
           </CardTitle>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
@@ -511,9 +509,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
       {otherHats.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Additional Roles
+            <CardTitle className="flex items-center gap-2">Additional Roles
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Supporting roles that strengthen the team. Not weighted as heavily in the readiness score, but still important for well-rounded recruiting.

@@ -331,9 +331,7 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION 1: Applicant Profile */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5 text-primary" />
-            Applicant Profile
+          <CardTitle className="flex items-center gap-2 text-lg">Applicant Profile
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -374,9 +372,7 @@ export default function RosterApplicantDetailPage() {
       {genApp && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="h-5 w-5 text-primary" />
-              General Application
+            <CardTitle className="flex items-center gap-2 text-lg">General Application
             </CardTitle>
             {genApp.completed_at && (
               <p className="text-xs text-muted-foreground">
@@ -413,9 +409,7 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION 3: Project Application */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            Project Application — {clientName}
+          <CardTitle className="flex items-center gap-2 text-lg">Project Application — {clientName}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

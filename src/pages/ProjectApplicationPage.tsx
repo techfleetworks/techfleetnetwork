@@ -527,9 +527,7 @@ export default function ProjectApplicationPage() {
       <Dialog open={genAppDialogOpen} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
         <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} className="[&>button[class*='close']]:hidden">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              General Application Required
+            <DialogTitle className="flex items-center gap-2">General Application Required
             </DialogTitle>
             <DialogDescription>
               You must complete your General Application before submitting a project application. Admins review it alongside project applications to evaluate your readiness.
@@ -952,9 +950,7 @@ export default function ProjectApplicationPage() {
       <Dialog open={celebrationOpen} onOpenChange={setCelebrationOpen}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
-              <PartyPopper className="h-6 w-6 text-warning" />
-              Application submitted
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">Application submitted
             </DialogTitle>
             <DialogDescription>
               Your application for {client?.name}{project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} is in. The team will review it and follow up soon.

@@ -102,9 +102,7 @@ export function CommunityAgreementSheet({ open, onOpenChange, applicationId, pro
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl w-full flex flex-col p-0">
         <SheetHeader className="p-6 pb-3 border-b">
-          <SheetTitle className="flex items-center gap-2 text-lg">
-            <FileCheck2 className="h-5 w-5 text-primary" />
-            Community Contributor Terms
+          <SheetTitle className="flex items-center gap-2 text-lg">Community Contributor Terms
           </SheetTitle>
           <SheetDescription>
             {projectName ? (

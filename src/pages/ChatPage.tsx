@@ -332,9 +332,7 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Bot className="h-6 w-6 text-primary" aria-hidden="true" />
-              Fleety
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">Fleety
             </h1>
             <p className="text-sm text-muted-foreground mt-1 break-words">
               Ask me anything about Tech Fleet, team practices, workshops, and onboarding.

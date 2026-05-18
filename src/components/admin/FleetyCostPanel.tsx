@@ -87,8 +87,7 @@ export function FleetyCostPanel() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Gauge className="h-5 w-5 text-primary" aria-hidden /> Fleety Cost Guard
+              <CardTitle className="flex items-center gap-2">Fleety Cost Guard
               </CardTitle>
               <CardDescription>
                 Live spend telemetry. Guard auto-tightens caching/RAG when 30-day projection exceeds budget.
@@ -134,8 +133,7 @@ export function FleetyCostPanel() {
       {/* Daily table */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <DollarSign className="h-4 w-4" aria-hidden /> Daily spend (last 14 days)
+          <CardTitle className="text-base flex items-center gap-2">Daily spend (last 14 days)
           </CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">

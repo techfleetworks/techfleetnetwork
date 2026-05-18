@@ -146,9 +146,7 @@ function PerformanceByRouteTab() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Activity className="h-4 w-4" aria-hidden="true" />
-              Real User Monitoring (Core Web Vitals)
+            <CardTitle className="flex items-center gap-2 text-base">Real User Monitoring (Core Web Vitals)
             </CardTitle>
             <CardDescription>
               p75 / p95 latency by route, captured in real users' browsers via the{" "}

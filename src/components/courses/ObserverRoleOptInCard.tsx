@@ -263,9 +263,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden />
-                You're an Observer! 🎉
+              <DialogTitle className="flex items-center gap-2">You're an Observer! 🎉
               </DialogTitle>
               <DialogDescription>
                 Your Projects and Observers Discord roles are active. Here's what to do next.

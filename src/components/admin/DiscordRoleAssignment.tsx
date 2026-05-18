@@ -87,9 +87,7 @@ export function DiscordRoleAssignment({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          Discord Role Management
+        <CardTitle className="flex items-center gap-2 text-lg">Discord Role Management
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

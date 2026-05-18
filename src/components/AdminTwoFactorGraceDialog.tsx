@@ -110,9 +110,7 @@ export function AdminTwoFactorGraceDialog() {
         {...({ "data-no-close": "true" } as any)}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-            Set up admin 2FA
+          <DialogTitle className="flex items-center gap-2">Set up admin 2FA
           </DialogTitle>
           <DialogDescription>
             You were promoted to admin and have a 5-day grace period to set up
