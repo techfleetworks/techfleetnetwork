@@ -542,20 +542,18 @@ export default function DashboardPage() {
             return isVisible("latest_updates") ? (
               <section key="latest_updates" aria-labelledby="announcements-heading">
                 <div className="flex items-center justify-between mb-4">
-                  <SectionTitle id="announcements-heading" className="flex items-center gap-2">
-                    <Megaphone className="h-5 w-5 text-primary" />
+                  <SectionTitle id="announcements-heading">
                     Latest Updates
                   </SectionTitle>
                   <Link
                     to="/updates"
-                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                    className="text-sm text-primary hover:underline"
                   >
-                    View all <ChevronRight className="h-3 w-3" />
+                    View all
                   </Link>
                 </div>
                 {latestAnnouncements.length === 0 ? (
                   <SectionEmptyState
-                    icon={Megaphone}
                     title="No updates yet"
                     description="Announcements and news from Tech Fleet will appear here."
                   />
