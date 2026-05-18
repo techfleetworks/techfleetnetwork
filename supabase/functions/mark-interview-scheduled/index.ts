@@ -9,6 +9,7 @@ import { withAuditWrapper } from "../_shared/audit.ts";
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { z } from 'npm:zod@4.3.6'
+import { queueTransactionalEmail } from '../_shared/transactional-email.ts'
 
 // M-01: Lenient shape guard. Existing UUID_RE check below stays authoritative.
 const BodySchema = z.object({ application_id: z.string().optional() }).passthrough()
@@ -199,10 +200,48 @@ Deno.serve(withAuditWrapper("mark-interview-scheduled", async (req) => {
     if (error) console.error('Failed to enqueue notification', { userId, error: error.message })
   }
 
+  // Always email the admin too — these alerts must NOT be silently lost in
+  // the in-app inbox. We bypass per-user notify_announcements opt-outs on
+  // purpose; suppressed_emails (bounces/complaints) is still respected by
+  // the email queue.
+  async function safeEmailAdmin(userId: string) {
+    try {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('email, first_name')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const email = (prof?.email as string) || ''
+      if (!email) {
+        console.warn('No email on file for admin', { userId })
+        return
+      }
+      await queueTransactionalEmail({
+        supabase,
+        templateName: 'admin-member-alert',
+        recipientEmail: email,
+        idempotencyKey: `admin-alert-interview-scheduled-${applicationId}-${userId}`,
+        templateData: {
+          adminFirstName: (prof?.first_name as string) || undefined,
+          alertTitle: notifTitle,
+          alertBodyHtml: notifBody,
+          ctaLabel: 'Open Recruiting Center',
+          ctaUrl: 'https://techfleet.network/admin/roster',
+        },
+      })
+    } catch (e) {
+      console.error('Failed to queue admin alert email', { userId, error: (e as Error).message })
+    }
+  }
+
+  async function notifyAdmin(userId: string) {
+    await Promise.all([safeNotify(userId), safeEmailAdmin(userId)])
+  }
+
   if (adminUserId) {
     try {
-      await safeNotify(adminUserId)
-      console.info('Admin notification queued', { adminUserId, applicantName, clientName })
+      await notifyAdmin(adminUserId)
+      console.info('Admin notification + email queued', { adminUserId, applicantName, clientName })
     } catch (e) {
       console.error('Failed to enqueue admin notification', e)
     }
@@ -214,7 +253,7 @@ Deno.serve(withAuditWrapper("mark-interview-scheduled", async (req) => {
         .select('user_id')
         .eq('role', 'admin')
       if (adminRoles && adminRoles.length > 0) {
-        await Promise.all(adminRoles.map((r: { user_id: string }) => safeNotify(r.user_id)))
+        await Promise.all(adminRoles.map((r: { user_id: string }) => notifyAdmin(r.user_id)))
         console.info('All admins notified', { count: adminRoles.length, applicantName })
       }
     } catch (e) {
