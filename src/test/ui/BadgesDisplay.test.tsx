@@ -74,7 +74,7 @@ describe("BadgesDisplay UI (BDD 25.1–25.2)", () => {
 
   it("25.1: badge names do not include the word 'Badge'", () => {
     renderWithRouter(<BadgesDisplay allFirstStepsDone={false} allSecondStepsDone={false} />);
-    const badgeNames = ["Onboarding", "Agile Mindset", "Discord Learning", "Cross-Functional", "Project Training Readiness", "Volunteer Readiness"];
+    const badgeNames = ["Onboarding", "Agile Mindset", "Discord Learning", "Cross-Functional Dynamics", "Project Training Readiness", "Volunteer Readiness"];
     badgeNames.forEach((name) => {
       expect(screen.getByText(name)).toBeInTheDocument();
     });
