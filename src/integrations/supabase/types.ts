@@ -5992,6 +5992,10 @@ export type Database = {
           notion_repository_url: string
         }[]
       }
+      get_roster_project_header: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       get_stakeholder_context: { Args: { p_id: string }; Returns: Json }
       get_top_error_fingerprints: {
         Args: { p_hours?: number; p_limit?: number }
