@@ -25,9 +25,9 @@ const ProjectBlastEmail = ({ firstName, projectName, bodyHtml, senderName }: Pro
 
         <Text style={text}>Hi {firstName || 'there'},</Text>
 
-        <Section
+        {/* Body is sanitized server-side via sanitize_user_html() before render. */}
+        <div
           style={bodySection}
-          // Body is sanitized server-side via sanitize_user_html() before render.
           dangerouslySetInnerHTML={{ __html: bodyHtml || '' }}
         />
 
