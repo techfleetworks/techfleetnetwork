@@ -58,8 +58,9 @@ export default function LandingPage() {
             </div>
             <div className="space-y-6 animate-fade-in">
               <Display id="hero-heading" className="leading-[1.1]">
-                Develop the skills and mindset for{" "}
-                <span className="text-primary">success</span>
+                Welcome to the Network for{" "}
+                <span className="text-primary">Empowered</span>{" "}
+                Team Spaces
               </Display>
               <Lede className="max-w-lg text-[1rem]">
                 No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
