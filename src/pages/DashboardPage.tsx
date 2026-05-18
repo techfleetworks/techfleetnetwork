@@ -385,8 +385,11 @@ export default function DashboardPage() {
                         <img
                           src={celebrationImg}
                           alt="Celebration — all core courses completed"
+                          width={224}
+                          height={224}
                           className="w-full h-48 sm:h-full object-cover"
                           loading="lazy"
+                          decoding="async"
                         />
                       </div>
                       <div className="flex-1 p-6 flex flex-col justify-center space-y-3">
@@ -550,24 +553,33 @@ export default function DashboardPage() {
             const lastNetworkIdx = widgetOrder.reduce((acc, w, i) => (w === "network_activity" || w === "world_map") ? i : acc, -1);
             if (widgetOrder[lastNetworkIdx] !== widgetId) return null;
             const showAny = isVisible("network_activity") || isVisible("world_map");
+            // CWV pass 2 (LCP): NetworkActivity ships a heavy map + recent-activity
+            // query that competes for bandwidth on dashboard cold load. Defer the
+            // entire section to browser idle so it never blocks LCP on the
+            // dashboard hero (welcome card + getting-started checklist).
             return showAny ? (
-              <section key="network" className="border-t pt-9">
-                <Suspense fallback={<Skeleton className="h-[400px] rounded-lg" />}>
-                  <NetworkActivity
-                    showMap={isVisible("world_map")}
-                    showActivity={isVisible("network_activity")}
-                  />
-                </Suspense>
+              <section key="network" className="border-t pt-9 min-h-[400px]">
+                <IdleMount>
+                  <Suspense fallback={<Skeleton className="h-[400px] rounded-lg" />}>
+                    <NetworkActivity
+                      showMap={isVisible("world_map")}
+                      showActivity={isVisible("network_activity")}
+                    />
+                  </Suspense>
+                </IdleMount>
               </section>
             ) : null;
           }
 
           case "system_health":
+            // Admin-only widget — defer to idle so it never blocks LCP on /dashboard.
             return isAdmin && isVisible("system_health") ? (
-              <section key="system_health">
-                <Suspense fallback={<Skeleton className="h-[200px] rounded-lg" />}>
-                  <SystemHealthWidget />
-                </Suspense>
+              <section key="system_health" className="min-h-[200px]">
+                <IdleMount>
+                  <Suspense fallback={<Skeleton className="h-[200px] rounded-lg" />}>
+                    <SystemHealthWidget />
+                  </Suspense>
+                </IdleMount>
               </section>
             ) : null;
 
