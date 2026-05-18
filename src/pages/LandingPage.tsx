@@ -44,7 +44,18 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden flex items-center min-h-[calc(100svh-5rem)]" aria-labelledby="hero-heading">
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Mobile/tablet: image above headline */}
+            <div className="flex lg:hidden justify-center order-first">
+              <img
+                src={heroSrc}
+                alt={heroAlt}
+                className="w-full max-w-[260px] sm:max-w-[340px] md:max-w-[420px] h-auto object-contain"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+              />
+            </div>
             <div className="space-y-6 animate-fade-in">
               <Display id="hero-heading" className="leading-[1.1]">
                 Develop the skills and mindset for{" "}
@@ -66,6 +77,7 @@ export default function LandingPage() {
                 </a>
               </div>
             </div>
+            {/* Desktop: image to the right of headline */}
             <div className="hidden lg:flex justify-center">
               <img
                 src={heroSrc}
