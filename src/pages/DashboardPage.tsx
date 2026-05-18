@@ -393,12 +393,9 @@ export default function DashboardPage() {
                           Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.
                         </p>
                         <div className="text-center sm:text-left">
-                          <Link
-                            to="/courses"
-                            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                          >
-                            Continue Courses
-                          </Link>
+                          <Button asChild variant="hero" size="lg">
+                            <Link to="/courses">Continue Courses</Link>
+                          </Button>
                         </div>
                       </div>
                     </div>
