@@ -17,7 +17,7 @@ function NetworkActivityFallback() {
     <section aria-label="Loading network activity" className="py-12 sm:py-16" style={{ minHeight: 800 }}>
       <div className="container-app">
         <div className="h-8 w-48 bg-muted rounded animate-pulse mb-8" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid min-[560px]:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="card-elevated p-5 h-20 animate-pulse bg-muted/30" />
           ))}
@@ -92,7 +92,7 @@ export default function LandingPage() {
             </Body>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid min-[560px]:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
               <div
                 key={feature.title}
