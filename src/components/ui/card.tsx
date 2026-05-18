@@ -2,8 +2,29 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("tf-card", className)} {...props} />
+type CardVariant = "default" | "muted" | "compact";
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * Visual variant of the tf-card surface.
+   * - default: full 40px asymmetric radius
+   * - muted: same shape, muted background (nested cards)
+   * - compact: 24px asymmetric radius (small tiles)
+   */
+  variant?: CardVariant;
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant = "default", ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "tf-card",
+      variant === "muted" && "tf-card--muted",
+      variant === "compact" && "tf-card--compact",
+      className,
+    )}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
 

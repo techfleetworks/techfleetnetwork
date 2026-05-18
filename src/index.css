@@ -295,7 +295,61 @@ body {
   /* Global Tech Fleet card — dark mode mirrors framer-too1hc on
      techfleet.org/about; light mode mirrors the partner-page stat
      circle treatment (same tokens, asymmetric 40px radius for cards). */
-  .tf-card {
+  .tf-card,
+  .tf-card-auto {
+    background-color: var(--tf-stat-bg);
+    border: 3px solid var(--tf-stat-border);
+    border-top-left-radius: 40px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 40px;
+    border-bottom-left-radius: 0;
+    box-shadow:
+      inset 5px 5px 20px 3px var(--tf-stat-glow-1),
+      inset -5px -5px 20px 5px var(--tf-stat-glow-2);
+    color: hsl(var(--card-foreground));
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Compact variant for small tiles where 40px radius would dominate. */
+  .tf-card--compact {
+    border-top-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+  }
+
+  /* Muted variant — same shape, muted surface for nested cards. */
+  .tf-card--muted {
+    background-color: hsl(var(--muted) / 0.4);
+  }
+
+  /* ----------------------------------------------------------------
+   * Global auto-retrofit: any container element using shadcn card
+   * tokens (bg-card / bg-background) WITH a border AND a rounded-*
+   * class becomes a tf-card automatically. This unifies every card
+   * surface across the app without touching ~60 ad-hoc files.
+   *
+   * Excluded (preserve usability):
+   *   - elements inside Radix popovers, menus, dialogs, tooltips,
+   *     dropdowns, selects, comboboxes, hovercards, sheets
+   *   - elements with role= menu/dialog/listbox/tooltip/etc.
+   *   - elements with [data-no-card] escape hatch
+   *   - form controls (input, textarea, select, button)
+   *   - the .tf-card primitive itself (already styled)
+   *   - chart / toast / sonner surfaces
+   * -------------------------------------------------------------- */
+  :where(div, section, article, aside, main, header, footer, nav)[class*="bg-card"][class*="border"]:where(
+      [class*="rounded-md"],
+      [class*="rounded-lg"],
+      [class*="rounded-xl"],
+      [class*="rounded-2xl"],
+      [class*="rounded-3xl"]
+    ):not(.tf-card):not([data-no-card]):not([role="menu"]):not([role="menuitem"]):not([role="dialog"]):not([role="alertdialog"]):not([role="listbox"]):not([role="option"]):not([role="tooltip"]):not([role="combobox"]):not([role="tab"]):not([role="tabpanel"]):not([role="status"]):not([role="alert"]):not([data-radix-popper-content-wrapper] *):not([data-sonner-toaster] *):not([data-sonner-toast]):not([data-radix-popover-content]):not([data-radix-dropdown-menu-content]):not([data-radix-select-content]):not([data-radix-tooltip-content]):not([data-radix-hover-card-content]):not([data-radix-menubar-content]):not([data-radix-context-menu-content]),
+  :where(div, section, article, aside, main, header, footer, nav)[class*="bg-background"][class*="border"]:where(
+      [class*="rounded-lg"],
+      [class*="rounded-xl"],
+      [class*="rounded-2xl"],
+      [class*="rounded-3xl"]
+    ):not(.tf-card):not([data-no-card]):not([role="menu"]):not([role="menuitem"]):not([role="dialog"]):not([role="alertdialog"]):not([role="listbox"]):not([role="option"]):not([role="tooltip"]):not([role="combobox"]):not([role="tab"]):not([role="tabpanel"]):not([role="status"]):not([role="alert"]):not([data-radix-popper-content-wrapper] *):not([data-sonner-toaster] *):not([data-sonner-toast]):not([data-radix-popover-content]):not([data-radix-dropdown-menu-content]):not([data-radix-select-content]):not([data-radix-tooltip-content]):not([data-radix-hover-card-content]):not([data-radix-menubar-content]):not([data-radix-context-menu-content]) {
     background-color: var(--tf-stat-bg);
     border: 3px solid var(--tf-stat-border);
     border-top-left-radius: 40px;
@@ -310,6 +364,7 @@ body {
     overflow: hidden;
   }
 }
+
 
 @layer base {
   * {
