@@ -227,8 +227,7 @@ export function FleetyHealthTab() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Fleety Learning
+          <CardTitle className="flex items-center gap-2">Fleety Learning
           </CardTitle>
           <CardDescription className="flex items-center gap-1 text-xs">
             <Clock className="h-3 w-3" aria-hidden /> Updated {updatedRel} · Last 7 days of Fleety chat signals.

@@ -216,9 +216,7 @@ export default function ExploreTab() {
       <Sheet open={showAllPopular} onOpenChange={setShowAllPopular}>
         <SheetContent resizeKey="explore-popular" className="w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              All Popular Explorations
+            <SheetTitle className="flex items-center gap-2">All Popular Explorations
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100dvh-8rem)] mt-4 pr-2">

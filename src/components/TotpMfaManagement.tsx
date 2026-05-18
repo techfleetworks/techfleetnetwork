@@ -171,9 +171,7 @@ export function TotpMfaManagement() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Smartphone className="h-5 w-5 text-primary" aria-hidden="true" />
-          Two-Factor Authentication (2FA)
+        <CardTitle className="flex items-center gap-2">Two-Factor Authentication (2FA)
         </CardTitle>
         <CardDescription>
           Add an extra layer of security with a one-time code from an authenticator app like
@@ -344,9 +342,7 @@ export function TotpMfaManagement() {
       <Dialog open={disableOpen} onOpenChange={handleDisableDialogChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldOff className="h-5 w-5 text-destructive" aria-hidden="true" />
-              Disable Two-Factor Authentication
+            <DialogTitle className="flex items-center gap-2">Disable Two-Factor Authentication
             </DialogTitle>
             <DialogDescription>
               This will remove all of your authenticator apps and stop asking for a 6-digit code at sign-in.

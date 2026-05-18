@@ -344,9 +344,7 @@ export function TriageTab() {
           {detailRow && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  {detailRow.event_type}
+                <DialogTitle className="flex items-center gap-2">{detailRow.event_type}
                 </DialogTitle>
                 <DialogDescription className="font-mono text-xs">
                   {detailRow.source}

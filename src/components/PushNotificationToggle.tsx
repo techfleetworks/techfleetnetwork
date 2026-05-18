@@ -221,9 +221,7 @@ export function PushNotificationToggle() {
       <Dialog open={showUnblockGuide} onOpenChange={setShowUnblockGuide}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Enable Push Notifications
+            <DialogTitle className="flex items-center gap-2">Enable Push Notifications
             </DialogTitle>
             <DialogDescription>
               Notifications were previously blocked for this site. Here's how to turn them back on in {getBrowserName()}:

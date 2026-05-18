@@ -135,7 +135,7 @@ export function PrivacyRequestsTab() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Privacy requests</CardTitle>
+            <CardTitle className="flex items-center gap-2">Privacy requests</CardTitle>
             <CardDescription>Access, erasure, correction, restriction, objection, portability, appeal, and human-review requests.</CardDescription>
           </div>
           <div className="flex items-center gap-2">

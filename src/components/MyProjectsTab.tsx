@@ -40,9 +40,7 @@ function InfoSection({ icon: Icon, title, children }: { icon: React.ElementType;
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-          {title}
+        <CardTitle className="flex items-center gap-2 text-lg">{title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>

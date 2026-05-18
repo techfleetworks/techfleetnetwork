@@ -696,9 +696,7 @@ export default function ProjectApplicationStatusPage() {
       {requiresInterview && ["pending_review", "invited_to_interview", "interview_scheduled"].includes(applicantStatus) && (
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              What to Expect
+            <CardTitle className="text-lg flex items-center gap-2">What to Expect
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -756,9 +754,7 @@ export default function ProjectApplicationStatusPage() {
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
         <SheetContent resizeKey="interview-invite" className="sm:max-w-lg">
           <SheetHeader className="pb-4">
-            <SheetTitle className="flex items-center gap-2 text-lg">
-              <Calendar className="h-5 w-5 text-primary" />
-              {interviewNotification?.title ?? "Interview Invitation"}
+            <SheetTitle className="flex items-center gap-2 text-lg">{interviewNotification?.title ?? "Interview Invitation"}
             </SheetTitle>
             <SheetDescription>
               {interviewNotification
@@ -876,9 +872,7 @@ export default function ProjectApplicationStatusPage() {
       {profile && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
-              Your Profile
+            <CardTitle className="flex items-center gap-2 text-lg">Your Profile
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -909,9 +903,7 @@ export default function ProjectApplicationStatusPage() {
       {genApp && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="h-5 w-5 text-primary" />
-              General Application
+            <CardTitle className="flex items-center gap-2 text-lg">General Application
             </CardTitle>
             {genApp.completed_at && (
               <p className="text-xs text-muted-foreground">
@@ -948,9 +940,7 @@ export default function ProjectApplicationStatusPage() {
       {/* ── Project Application Responses ─────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            Project Application — {clientName}
+          <CardTitle className="flex items-center gap-2 text-lg">Project Application — {clientName}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

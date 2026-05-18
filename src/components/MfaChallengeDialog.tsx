@@ -87,9 +87,7 @@ export function MfaChallengeDialog({ open, onSuccess, onCancel }: Props) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) void handleCancel(); }}>
       <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-            Two-Factor Verification
+          <DialogTitle className="flex items-center gap-2">Two-Factor Verification
           </DialogTitle>
           <DialogDescription>
             Open your authenticator app and enter the 6-digit code for your Tech Fleet account.

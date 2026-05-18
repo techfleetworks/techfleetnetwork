@@ -111,8 +111,7 @@ export default function ProjectBlastComposer({ projectId, projectName, canSend: 
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" /> Send a project blast
+          <CardTitle className="flex items-center gap-2">Send a project blast
           </CardTitle>
           <CardDescription>
             Sends a branded email and an in-app notification to everyone who applied to this project.
