@@ -52,6 +52,22 @@ export default function LoginPage() {
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
+  // CWV pass 3: defer Turnstile mount until the user interacts with the form
+  // OR the browser is idle. The reserved-height shell below keeps layout
+  // stable when the widget pops in. Email focus is the canonical trigger
+  // since it's the first form field and users tab/click here first.
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  useEffect(() => {
+    if (turnstileReady) return;
+    const arm = () => setTurnstileReady(true);
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const idleId = typeof ric === "function" ? ric(arm, { timeout: 2000 }) : window.setTimeout(arm, 1200);
+    return () => {
+      const cic = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+      if (typeof ric === "function" && typeof cic === "function") cic(idleId as number);
+      else window.clearTimeout(idleId as number);
+    };
+  }, [turnstileReady]);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -377,7 +393,17 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
+            {/* CLS guard: reserve 78px (Turnstile compact widget height + margin)
+                so the form does not shift when the lazy widget mounts. */}
+            <div style={{ minHeight: 78 }} onFocusCapture={() => setTurnstileReady(true)}>
+              {turnstileReady ? (
+                <Suspense fallback={<div style={{ height: 78 }} aria-hidden="true" />}>
+                  <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
+                </Suspense>
+              ) : (
+                <div style={{ height: 78 }} aria-hidden="true" />
+              )}
+            </div>
             {captchaNotice && !authError && (
               <p className="-mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">{captchaNotice}</p>
             )}
