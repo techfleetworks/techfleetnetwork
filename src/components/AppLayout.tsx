@@ -157,9 +157,6 @@ function DesktopHeader({
       role="banner"
       style={{ minHeight: header ? undefined : "3rem" }}
     >
-      {/* Sidebar toggle — always available so users can reopen if collapsed */}
-      <SidebarTrigger className="shrink-0 mr-2" aria-label="Toggle sidebar" />
-
       {/* Left: page context */}
       {header ? (
         <div className="flex flex-col justify-center py-1.5 min-w-0 mr-4">
