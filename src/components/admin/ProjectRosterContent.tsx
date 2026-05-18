@@ -10,6 +10,8 @@ import { ThemedAgGrid } from "@/components/AgGrid";
 import { format } from "date-fns";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
+import { AgreementResendButton } from "@/components/agreements/AgreementResendButton";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileRow {
   user_id: string;
@@ -28,6 +30,8 @@ interface AppRow {
   team_hats_interest: string[];
   completed_at: string | null;
   created_at: string;
+  community_agreement_required_at: string | null;
+  community_agreement_signed_at: string | null;
 }
 
 interface EnrichedApp extends AppRow {
@@ -35,6 +39,7 @@ interface EnrichedApp extends AppRow {
   applicantFirstName: string;
   applicantEmail: string;
   hats: string;
+  agreementStatus: "not_required" | "pending" | "signed";
 }
 
 interface ProjectRosterContentProps {
@@ -51,7 +56,7 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("id, user_id, project_id, status, applicant_status, team_hats_interest, completed_at, created_at")
+        .select("id, user_id, project_id, status, applicant_status, team_hats_interest, completed_at, created_at, community_agreement_required_at, community_agreement_signed_at")
         .eq("project_id", projectId)
         .eq("status", "completed");
       if (error) throw error;
@@ -88,12 +93,18 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
   const enrichedApps = useMemo<EnrichedApp[]>(() => {
     return (apps ?? []).map((app) => {
       const profile = profileMap.get(app.user_id);
+      const agreementStatus: EnrichedApp["agreementStatus"] = !app.community_agreement_required_at
+        ? "not_required"
+        : app.community_agreement_signed_at
+          ? "signed"
+          : "pending";
       return {
         ...app,
         applicantName: profile?.display_name || `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() || "Unknown",
         applicantFirstName: profile?.first_name ?? "",
         applicantEmail: profile?.email ?? "",
         hats: app.team_hats_interest.join(", "),
+        agreementStatus,
       };
     });
   }, [apps, profileMap]);
@@ -111,6 +122,32 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
     return Renderer;
   }, [navigate, projectId]);
 
+  const AgreementCellRenderer = useMemo(() => {
+    const Renderer = (params: ICellRendererParams<EnrichedApp>) => {
+      const row = params.data!;
+      if (row.agreementStatus === "not_required") {
+        return <span className="text-xs text-muted-foreground">—</span>;
+      }
+      if (row.agreementStatus === "signed") {
+        return (
+          <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
+            Signed {row.community_agreement_signed_at ? format(new Date(row.community_agreement_signed_at), "MMM d, yyyy") : ""}
+          </Badge>
+        );
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300">
+            Pending{row.community_agreement_required_at ? ` since ${format(new Date(row.community_agreement_required_at), "MMM d")}` : ""}
+          </Badge>
+          <AgreementResendButton applicationId={row.id} />
+        </div>
+      );
+    };
+    Renderer.displayName = "AgreementCellRenderer";
+    return Renderer;
+  }, []);
+
   const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
     { headerName: "Applicant", field: "applicantName", flex: 2, minWidth: 150, filter: true },
     { headerName: "Email", field: "applicantEmail", flex: 2, minWidth: 180, filter: true },
@@ -120,6 +157,10 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
       valueFormatter: (p) => applicantStatusLabel(p.value ?? "pending_review"),
     },
     {
+      headerName: "Agreement", field: "agreementStatus", flex: 1.6, minWidth: 220, filter: true,
+      cellRenderer: AgreementCellRenderer,
+    },
+    {
       headerName: "Submitted", field: "completed_at", flex: 1.2, minWidth: 130,
       valueFormatter: (p) => p.value ? format(new Date(p.value), "MMM d, yyyy") : "—",
     },
@@ -127,7 +168,7 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
       headerName: "", field: "id", width: 80, pinned: "right", sortable: false, filter: false,
       cellRenderer: ViewCellRenderer,
     },
-  ], [ViewCellRenderer]);
+  ], [ViewCellRenderer, AgreementCellRenderer]);
 
   if (appsLoading) {
     return (

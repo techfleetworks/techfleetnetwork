@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useEffect, Suspense } from "react";
+import { memo, useMemo, useRef, useEffect, useState, Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Link } from "react-router-dom";
 import {
@@ -7,7 +7,10 @@ import {
   ClipboardCheck,
   Heart,
   MessageSquare,
+  FileCheck2,
 } from "lucide-react";
+import { useAgreementStatus } from "@/hooks/use-agreement-status";
+import { CommunityAgreementSheet } from "@/components/agreements/CommunityAgreementSheet";
 import celebrationImg from "@/assets/courses-complete-rocket.svg";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationStatusBadge } from "@/components/ApplicationStatusBadge";
@@ -155,6 +158,8 @@ export default function DashboardPage() {
   const { isAdmin } = useAdmin();
 
   const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
+
+  const [agreementCtx, setAgreementCtx] = useState<{ id: string; name: string; clientName: string } | null>(null);
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
@@ -482,45 +487,14 @@ export default function DashboardPage() {
                       const proj = dashProjectMap.get(app.project_id);
                       const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
                       const friendly = (proj as any)?.friendly_name?.trim();
-                      const isCompleted = app.status === "completed";
-                      const isDraft = app.status === "draft";
-                      const applicantStatus = (app as any).applicant_status as string | undefined;
-
-                      // Route completed apps to status page, drafts to editor
-                      const appHref = isCompleted
-                        ? `/applications/projects/${app.id}/status`
-                        : `/project-openings/${app.project_id}/apply`;
-
-                      // Badge rendered by shared component
-
                       return (
-                        <Link
+                        <DashboardProjectAppCard
                           key={app.id}
-                          to={appHref}
-                          className="tf-card p-4 hover:border-primary/40 transition-all block"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-sm text-foreground truncate">
-                                  {clientName}
-                                </h3>
-                                <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
-                              </div>
-                              {friendly && (
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>
-                              )}
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {isCompleted && app.completed_at
-                                  ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
-                                  : isDraft
-                                    ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
-                                    : ""}
-                                {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
-                              </p>
-                            </div>
-                          </div>
-                        </Link>
+                          app={app}
+                          clientName={clientName}
+                          friendly={friendly}
+                          onOpenAgreement={() => setAgreementCtx({ id: app.id, name: friendly || clientName, clientName })}
+                        />
                       );
                     })}
                   </div>
@@ -604,6 +578,91 @@ export default function DashboardPage() {
 
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
+      )}
+
+      {agreementCtx && (
+        <CommunityAgreementSheet
+          open={!!agreementCtx}
+          onOpenChange={(o) => { if (!o) setAgreementCtx(null); }}
+          applicationId={agreementCtx.id}
+          projectName={agreementCtx.name}
+          clientName={agreementCtx.clientName}
+        />
+      )}
+    </div>
+  );
+}
+
+interface DashboardAppLike {
+  id: string;
+  project_id: string;
+  status: string;
+  applicant_status: string | null;
+  completed_at: string | null;
+  updated_at: string;
+  current_step: number;
+  team_hats_interest: string[];
+}
+
+function DashboardProjectAppCard({
+  app,
+  clientName,
+  friendly,
+  onOpenAgreement,
+}: {
+  app: DashboardAppLike;
+  clientName: string;
+  friendly?: string;
+  onOpenAgreement: () => void;
+}) {
+  const isCompleted = app.status === "completed";
+  const isDraft = app.status === "draft";
+  const applicantStatus = app.applicant_status ?? undefined;
+  const isActive = applicantStatus === "active_participant";
+  const agreement = useAgreementStatus(app.id, isActive);
+  const showAgreementPending = isActive && agreement.data?.status === "pending";
+
+  const appHref = isCompleted
+    ? `/applications/projects/${app.id}/status`
+    : `/project-openings/${app.project_id}/apply`;
+
+  return (
+    <div className="tf-card p-4 hover:border-primary/40 transition-all">
+      <Link to={appHref} className="block">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-sm text-foreground truncate">{clientName}</h3>
+              <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
+              {showAgreementPending && (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs">
+                  Sign Community Agreement
+                </Badge>
+              )}
+            </div>
+            {friendly && <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isCompleted && app.completed_at
+                ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                : isDraft
+                  ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                  : ""}
+              {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+            </p>
+          </div>
+        </div>
+      </Link>
+      {showAgreementPending && (
+        <div className="mt-3 flex">
+          <Button
+            size="sm"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenAgreement(); }}
+            className="gap-1.5"
+          >
+            <FileCheck2 className="h-3.5 w-3.5" />
+            Sign now
+          </Button>
+        </div>
       )}
     </div>
   );
