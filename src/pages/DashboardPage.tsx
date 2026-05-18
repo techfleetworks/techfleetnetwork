@@ -18,6 +18,7 @@ import { DashboardEmptyState } from "@/components/DashboardEmptyState";
 import { GettingStartedChecklist, type ChecklistItem } from "@/components/GettingStartedChecklist";
 import { SectionEmptyState } from "@/components/SectionEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
