@@ -54,7 +54,7 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_applications")
-        .select("id, user_id, project_id, status, applicant_status, team_hats_interest, completed_at, created_at")
+        .select("id, user_id, project_id, status, applicant_status, team_hats_interest, completed_at, created_at, community_agreement_required_at, community_agreement_signed_at")
         .eq("project_id", projectId)
         .eq("status", "completed");
       if (error) throw error;
