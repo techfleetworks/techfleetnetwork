@@ -645,6 +645,38 @@ export default function ProjectApplicationStatusPage() {
       {/* Active Teammate Celebration */}
       {isActiveTeammate && <ActiveTeammateCelebration clientName={clientName} friendlyName={(project as any)?.friendly_name} />}
 
+      {/* Community Agreement callout */}
+      {agreement.data?.status === "pending" && (
+        <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/20">
+          <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-semibold text-foreground">Sign your Community Contributor Terms</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Before you start training on {clientName}, please review and agree to the Community Contributor Terms.
+              </p>
+            </div>
+            <Button onClick={() => setAgreementOpen(true)} className="gap-2 self-start sm:self-auto">
+              <FileCheck2 className="h-4 w-4" />
+              Review and agree
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {agreement.data?.status === "signed" && (
+        <p className="text-xs text-muted-foreground">
+          Community Contributor Terms signed{agreement.data.signedAt ? ` on ${format(new Date(agreement.data.signedAt), "MMMM d, yyyy")}` : ""}.
+        </p>
+      )}
+
+      <CommunityAgreementSheet
+        open={agreementOpen}
+        onOpenChange={setAgreementOpen}
+        applicationId={applicationId!}
+        projectName={(project as any)?.friendly_name ?? clientName}
+        clientName={clientName}
+      />
+
+
       {/* Timeline Card */}
       <Card>
         <CardHeader className="pb-4">
