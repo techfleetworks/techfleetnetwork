@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useEffect, Suspense } from "react";
+import { memo, useMemo, useRef, useEffect, useState, Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Link } from "react-router-dom";
 import {
@@ -7,7 +7,10 @@ import {
   ClipboardCheck,
   Heart,
   MessageSquare,
+  FileCheck2,
 } from "lucide-react";
+import { useAgreementStatus } from "@/hooks/use-agreement-status";
+import { CommunityAgreementSheet } from "@/components/agreements/CommunityAgreementSheet";
 import celebrationImg from "@/assets/courses-complete-rocket.svg";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationStatusBadge } from "@/components/ApplicationStatusBadge";
