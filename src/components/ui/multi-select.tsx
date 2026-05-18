@@ -87,7 +87,7 @@ export function MultiSelect({
             aria-invalid={ariaInvalid}
             disabled={disabled}
             className={cn(
-              "w-full justify-between font-normal min-h-10 transition-colors",
+              "w-full justify-between font-normal min-h-10 text-sm tracking-normal transition-colors",
               !selected.length && "text-muted-foreground",
               ariaInvalid && "border-destructive focus-visible:ring-destructive/40"
             )}
