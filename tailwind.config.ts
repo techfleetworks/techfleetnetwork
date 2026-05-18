@@ -16,8 +16,12 @@ export default {
       fontFamily: {
         // Brand Visual Guide §3 — Poppins body, Futura PT display
         // (Jost ships as the free near-equivalent until license acquired).
-        sans: ["Poppins", "Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        display: ['"Futura PT"', "Jost", "Poppins", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Metric-matched fallbacks ("Poppins Fallback" / "Futura PT Fallback")
+        // sit between the web font and the system stack so first paint uses a
+        // box-equivalent local font — eliminates CLS from font swap (see
+        // public/fonts/fonts.css).
+        sans: ["Poppins", "Poppins Fallback", "Inter", "Inter Fallback", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ['"Futura PT"', '"Futura PT Fallback"', "Jost", "Poppins", "Poppins Fallback", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       transitionDuration: {

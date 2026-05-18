@@ -1,5 +1,11 @@
 /* Self-hosted fonts (latin subset, variable). Saves the round-trip to
-   fonts.googleapis.com + fonts.gstatic.com on every cold load. */
+   fonts.googleapis.com + fonts.gstatic.com on every cold load.
+
+   Web Vitals (CLS):
+   The metric-matched fallback faces below (`Poppins Fallback`, `Inter Fallback`,
+   `Futura PT Fallback`) make the system font occupy the same box as the real
+   web font so the eventual swap does not shift surrounding layout. Wired into
+   the Tailwind `sans` / `display` stacks first, before the real face name. */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -13,4 +19,41 @@
   font-weight: 100 800;
   font-display: swap;
   src: url('/fonts/jetbrains-mono-var.woff2') format('woff2');
+}
+
+/* Metric-matched fallback for Poppins — eliminates CLS from font swap.
+   Values derived from comparing Poppins x-height/ascent to Arial. */
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('Arial');
+  size-adjust: 112%;
+  ascent-override: 93%;
+  descent-override: 27%;
+  line-gap-override: 9%;
+}
+
+/* Metric-matched fallback for Inter. */
+@font-face {
+  font-family: 'Inter Fallback';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('Arial');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+/* Metric-matched fallback for Futura PT (display headings). */
+@font-face {
+  font-family: 'Futura PT Fallback';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('Trebuchet MS');
+  size-adjust: 100%;
+  ascent-override: 98%;
+  descent-override: 23%;
+  line-gap-override: 0%;
 }
