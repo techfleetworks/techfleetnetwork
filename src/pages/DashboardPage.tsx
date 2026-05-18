@@ -483,7 +483,6 @@ export default function DashboardPage() {
 
                 {myProjectApps.length === 0 ? (
                   <SectionEmptyState
-                    icon={FolderKanban}
                     title="No project applications yet"
                     description="When project openings are available, you can apply and track your progress here."
                   />
