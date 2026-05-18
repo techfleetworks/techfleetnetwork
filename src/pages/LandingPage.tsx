@@ -7,6 +7,7 @@ import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@
 import { useTheme } from "@/components/ThemeProvider";
 import worldImage from "@/assets/world.svg";
 import sunImage from "@/assets/sun.svg";
+import rocketImage from "@/assets/rocket.png";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
@@ -118,6 +119,16 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* Decorative rocket divider */}
+      <section className="border-t bg-[#01061E]" aria-hidden="true">
+        <img
+          src={rocketImage}
+          alt=""
+          className="w-full h-auto block"
+          loading="lazy"
+        />
       </section>
 
       {/* Network Activity Section — lazy loaded with reserved space */}
