@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha } from "@/lib/auth-captcha";
-import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
+// Turnstile is deferred — Cloudflare's API.js + iframe is ~50KB and blocks
+// LCP on /login. We mount it lazily after the user focuses the form OR after
+// idle, whichever comes first. Until then we reserve a fixed-height shell
+// (matches Turnstile's 65px compact size) so swapping in the widget does
+// not shift layout (CLS guard).
+const TurnstileChallenge = lazy(() =>
+  import("@/components/auth/TurnstileChallenge").then(m => ({ default: m.TurnstileChallenge }))
+);
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
@@ -45,6 +52,22 @@ export default function LoginPage() {
   const [lockoutState, setLockoutState] = useState(() => getAuthLockoutState());
   const [loading, setLoading] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
+  // CWV pass 3: defer Turnstile mount until the user interacts with the form
+  // OR the browser is idle. The reserved-height shell below keeps layout
+  // stable when the widget pops in. Email focus is the canonical trigger
+  // since it's the first form field and users tab/click here first.
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  useEffect(() => {
+    if (turnstileReady) return;
+    const arm = () => setTurnstileReady(true);
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const idleId = typeof ric === "function" ? ric(arm, { timeout: 2000 }) : window.setTimeout(arm, 1200);
+    return () => {
+      const cic = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+      if (typeof ric === "function" && typeof cic === "function") cic(idleId as number);
+      else window.clearTimeout(idleId as number);
+    };
+  }, [turnstileReady]);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -352,7 +375,7 @@ export default function LoginPage() {
             <ValidatedField id="email" label="Email address" required error={errors.email} value={email} touched={touched.email}>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input id="email" type="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} />
+                <Input id="email" type="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setTurnstileReady(true)} onBlur={() => markTouched("email")} className={`pl-10 ${bc("email", email)}`} autoComplete="email" required aria-required="true" aria-invalid={!!errors.email} />
               </div>
             </ValidatedField>
 
@@ -370,7 +393,17 @@ export default function LoginPage() {
               </div>
             </ValidatedField>
 
-            <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
+            {/* CLS guard: reserve 78px (Turnstile compact widget height + margin)
+                so the form does not shift when the lazy widget mounts. */}
+            <div style={{ minHeight: 78 }} onFocusCapture={() => setTurnstileReady(true)}>
+              {turnstileReady ? (
+                <Suspense fallback={<div style={{ height: 78 }} aria-hidden="true" />}>
+                  <TurnstileChallenge action="login" onTokenChange={setCaptchaToken} failureCount={captchaFailureCount} />
+                </Suspense>
+              ) : (
+                <div style={{ height: 78 }} aria-hidden="true" />
+              )}
+            </div>
             {captchaNotice && !authError && (
               <p className="-mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">{captchaNotice}</p>
             )}

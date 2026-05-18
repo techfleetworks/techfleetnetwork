@@ -13,21 +13,32 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { TeacherRoute } from "@/components/TeacherRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { OfflineBanner } from "@/components/OfflineBanner";
-import { SelfHealingRunner } from "@/components/SelfHealingRunner";
-import { AnalyticsTracker } from "@/components/AnalyticsTracker";
-import { RouteChangeReloader } from "@/components/RouteChangeReloader";
 import { AuthRedirectHandler } from "@/components/AuthRedirectHandler";
+import { IdleMount } from "@/components/IdleMount";
 import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { consumeQueryCacheResetPending } from "@/lib/app-cache-reset";
 import { installSessionActivityTracker } from "@/lib/session-activity";
 
+// Non-critical side-effect mounts — deferred to idle so they don't compete
+// with LCP/FCP on cold load. Lazy-imported so their JS isn't in the entry chunk.
+const OfflineBanner = lazy(() => import("@/components/OfflineBanner").then(m => ({ default: m.OfflineBanner })));
+const SelfHealingRunner = lazy(() => import("@/components/SelfHealingRunner").then(m => ({ default: m.SelfHealingRunner })));
+const AnalyticsTracker = lazy(() => import("@/components/AnalyticsTracker").then(m => ({ default: m.AnalyticsTracker })));
+const RouteChangeReloader = lazy(() => import("@/components/RouteChangeReloader").then(m => ({ default: m.RouteChangeReloader })));
+
 // Source-of-truth tracker for "user did something recently". Drives the
 // session-idle policy in AuthService.getSession so that active users — even
 // ones quietly reading or watching a video — are never auto-signed-out.
-// Idempotent; safe under React StrictMode.
-installSessionActivityTracker();
+// Idempotent; safe under React StrictMode. Deferred to idle so it never blocks
+// first paint on slow devices (the tracker itself is cheap but adds listeners).
+if (typeof window !== "undefined") {
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+  if (typeof ric === "function") ric(() => installSessionActivityTracker());
+  else window.setTimeout(() => installSessionActivityTracker(), 0);
+} else {
+  installSessionActivityTracker();
+}
 
 // Eagerly loaded routes (critical path — keep small to minimize initial JS on slow networks)
 import LoginPage from "./pages/LoginPage";
@@ -180,14 +191,24 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ErrorBoundary>
-              <RouteChangeReloader />
+              {/* AuthRedirectHandler stays eager — it gates routing decisions and
+                  must run on first paint. The rest are non-critical and deferred. */}
               <AuthRedirectHandler />
-              <AnalyticsTracker />
+              <IdleMount>
+                <Suspense fallback={null}>
+                  <RouteChangeReloader />
+                  <AnalyticsTracker />
+                </Suspense>
+              </IdleMount>
               <AppLayout>
                 <IdleTimeoutGuard />
-                <SelfHealingRunner />
-                <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-                <OfflineBanner />
+                <IdleMount>
+                  <Suspense fallback={null}>
+                    <SelfHealingRunner />
+                    <PWAInstallPrompt />
+                    <OfflineBanner />
+                  </Suspense>
+                </IdleMount>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
