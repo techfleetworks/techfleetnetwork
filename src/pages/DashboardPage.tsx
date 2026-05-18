@@ -80,7 +80,7 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
   if (course.locked) {
     return (
       <div
-        className="card-elevated p-4 opacity-50 cursor-not-allowed relative overflow-hidden"
+        className="tf-card p-4 opacity-50 cursor-not-allowed relative overflow-hidden"
         aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
       >
         <div className="flex items-center gap-3">
@@ -103,7 +103,7 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
   return (
     <Link
       to={course.href}
-      className="card-elevated p-4 hover:border-primary/40 transition-all group block"
+      className="tf-card p-4 hover:border-primary/40 transition-all group block"
     >
       <div className="flex items-center gap-3">
         <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -360,7 +360,7 @@ export default function DashboardPage() {
           case "feedback":
             return isVisible("feedback") ? (
               <section key="feedback" aria-labelledby="feedback-heading">
-                <Link to="/feedback" className="card-elevated p-4 hover:border-primary/40 transition-all flex items-center gap-3">
+                <Link to="/feedback" className="tf-card p-4 hover:border-primary/40 transition-all flex items-center gap-3">
                   <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <MessageSquare className="h-4 w-4 text-primary" aria-hidden="true" />
                   </div>
@@ -392,7 +392,7 @@ export default function DashboardPage() {
             return isVisible("core_courses") ? (
               <section key="core_courses">
                 {allOnboardingDone ? (
-                  <div className="card-elevated overflow-hidden" aria-labelledby="core-courses-heading">
+                  <div className="tf-card overflow-hidden" aria-labelledby="core-courses-heading">
                     <h2 id="core-courses-heading" className="sr-only">Onboard to Tech Fleet</h2>
                     <div className="flex flex-col sm:flex-row items-stretch">
                       <div className="sm:w-48 md:w-56 flex-shrink-0 bg-primary/5">
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                 {generalApp ? (
                   <Link
                     to="/applications/general"
-                    className="card-elevated p-4 hover:border-primary/40 transition-all block mb-2"
+                    className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                 ) : (
                   <Link
                     to="/applications/general"
-                    className="card-elevated p-4 hover:border-primary/40 transition-all block mb-2"
+                    className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
@@ -533,7 +533,7 @@ export default function DashboardPage() {
                         <Link
                           key={app.id}
                           to={appHref}
-                          className="card-elevated p-4 hover:border-primary/40 transition-all block"
+                          className="tf-card p-4 hover:border-primary/40 transition-all block"
                         >
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -595,7 +595,7 @@ export default function DashboardPage() {
                       <Link
                         key={a.id}
                         to="/updates"
-                        className="card-elevated p-4 hover:border-primary/40 transition-all block border border-white/50"
+                        className="tf-card p-4 hover:border-primary/40 transition-all block border border-white/50"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
