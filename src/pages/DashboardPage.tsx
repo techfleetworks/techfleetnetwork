@@ -84,15 +84,11 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
         aria-label={`${course.title} — Locked. Complete ${course.prerequisiteLabel} first.`}
       >
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-          </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm text-muted-foreground truncate">{course.title}</h3>
             <p className="text-xs text-muted-foreground/70 truncate">{course.description}</p>
           </div>
-          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs gap-1 flex-shrink-0">
-            <Lock className="h-3 w-3" />
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
             Locked
           </Badge>
         </div>
