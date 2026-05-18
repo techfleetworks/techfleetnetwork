@@ -577,6 +577,91 @@ export default function DashboardPage() {
       {showEmptyState && (
         <DashboardEmptyState onCustomize={handleOpenCustomizer} />
       )}
+
+      {agreementCtx && (
+        <CommunityAgreementSheet
+          open={!!agreementCtx}
+          onOpenChange={(o) => { if (!o) setAgreementCtx(null); }}
+          applicationId={agreementCtx.id}
+          projectName={agreementCtx.name}
+          clientName={agreementCtx.clientName}
+        />
+      )}
+    </div>
+  );
+}
+
+interface DashboardAppLike {
+  id: string;
+  project_id: string;
+  status: string;
+  applicant_status: string | null;
+  completed_at: string | null;
+  updated_at: string;
+  current_step: number;
+  team_hats_interest: string[];
+}
+
+function DashboardProjectAppCard({
+  app,
+  clientName,
+  friendly,
+  onOpenAgreement,
+}: {
+  app: DashboardAppLike;
+  clientName: string;
+  friendly?: string;
+  onOpenAgreement: () => void;
+}) {
+  const isCompleted = app.status === "completed";
+  const isDraft = app.status === "draft";
+  const applicantStatus = app.applicant_status ?? undefined;
+  const isActive = applicantStatus === "active_participant";
+  const agreement = useAgreementStatus(app.id, isActive);
+  const showAgreementPending = isActive && agreement.data?.status === "pending";
+
+  const appHref = isCompleted
+    ? `/applications/projects/${app.id}/status`
+    : `/project-openings/${app.project_id}/apply`;
+
+  return (
+    <div className="tf-card p-4 hover:border-primary/40 transition-all">
+      <Link to={appHref} className="block">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-sm text-foreground truncate">{clientName}</h3>
+              <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
+              {showAgreementPending && (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs">
+                  Sign Community Agreement
+                </Badge>
+              )}
+            </div>
+            {friendly && <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isCompleted && app.completed_at
+                ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
+                : isDraft
+                  ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
+                  : ""}
+              {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
+            </p>
+          </div>
+        </div>
+      </Link>
+      {showAgreementPending && (
+        <div className="mt-3 flex">
+          <Button
+            size="sm"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenAgreement(); }}
+            className="gap-1.5"
+          >
+            <FileCheck2 className="h-3.5 w-3.5" />
+            Sign now
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
