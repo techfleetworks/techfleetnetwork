@@ -107,20 +107,47 @@ export function AnnouncementBanner() {
     [user, dismissedIds, queryClient],
   );
 
-  if (!user || isLoading) return null;
+  // CLS guard: while banner data is loading, if the previous session saw a
+  // banner, reserve the same vertical space so the page does not jump when
+  // the real banner mounts. Stored as a single integer (px) in localStorage.
+  const LAST_HEIGHT_KEY = "tf:lastBannerHeight";
+  const reservedHeight = (() => {
+    if (typeof window === "undefined") return 0;
+    const raw = Number(window.localStorage.getItem(LAST_HEIGHT_KEY) || 0);
+    return Number.isFinite(raw) && raw > 0 && raw < 200 ? raw : 0;
+  })();
+
+  if (!user || isLoading) {
+    return reservedHeight > 0
+      ? <div aria-hidden="true" style={{ height: reservedHeight }} />
+      : null;
+  }
 
   // Filter: show banners not dismissed, OR banners with reopen_after_dismiss
   const visibleBanners = banners.filter(
     (b) => !dismissedIds.includes(b.id) || b.reopen_after_dismiss,
   );
 
-  if (visibleBanners.length === 0) return null;
+  if (visibleBanners.length === 0) {
+    // Persist "no banner" so next load also doesn't reserve space.
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LAST_HEIGHT_KEY, "0");
+    }
+    return null;
+  }
 
   return (
-    <>
+    <div
+      ref={(el) => {
+        // Persist measured height so next cold load can reserve the same space.
+        if (el && typeof window !== "undefined") {
+          window.localStorage.setItem(LAST_HEIGHT_KEY, String(Math.round(el.getBoundingClientRect().height)));
+        }
+      }}
+    >
       {visibleBanners.map((banner) => (
         <SingleBanner key={banner.id} banner={banner} onDismiss={handleDismiss} />
       ))}
-    </>
+    </div>
   );
 }
