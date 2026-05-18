@@ -148,7 +148,7 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
 
 function DashboardSkeleton() {
   return (
-    <div className="container-app py-8 sm:py-12 space-y-9">
+    <div className="container-app !px-4 sm:!px-4 lg:!px-4 py-8 sm:py-12 space-y-8">
       <div>
         <Skeleton className="h-8 w-64 mb-2" />
         <Skeleton className="h-4 w-96" />
