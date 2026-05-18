@@ -91,12 +91,18 @@ export default function ProjectRosterContent({ projectId }: ProjectRosterContent
   const enrichedApps = useMemo<EnrichedApp[]>(() => {
     return (apps ?? []).map((app) => {
       const profile = profileMap.get(app.user_id);
+      const agreementStatus: EnrichedApp["agreementStatus"] = !app.community_agreement_required_at
+        ? "not_required"
+        : app.community_agreement_signed_at
+          ? "signed"
+          : "pending";
       return {
         ...app,
         applicantName: profile?.display_name || `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() || "Unknown",
         applicantFirstName: profile?.first_name ?? "",
         applicantEmail: profile?.email ?? "",
         hats: app.team_hats_interest.join(", "),
+        agreementStatus,
       };
     });
   }, [apps, profileMap]);
