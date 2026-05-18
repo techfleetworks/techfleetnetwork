@@ -42,7 +42,7 @@ interface StatCardProps {
 const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
   return (
     <div
-      className="flex aspect-square w-[150px] sm:w-[170px] lg:w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
+      className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
       style={{
         border: "3px solid var(--tf-stat-border)",
         backgroundColor: "var(--tf-stat-bg)",
