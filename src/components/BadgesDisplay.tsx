@@ -61,7 +61,7 @@ export function BadgesDisplay({
     },
     {
       id: "cross-functional",
-      name: "Cross-Functional",
+      name: "Cross-Functional Dynamics",
       description: "Completed Agile Cross-Functional Team Dynamics",
       image: badgeThirdSteps,
       earned: allThirdStepsDone,
