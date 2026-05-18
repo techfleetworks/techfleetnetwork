@@ -12,7 +12,7 @@ describe("BadgesDisplay UI (BDD 25.1–25.2)", () => {
     expect(screen.getByText("Onboarding")).toBeInTheDocument();
     expect(screen.getByText("Agile Mindset")).toBeInTheDocument();
     expect(screen.getByText("Discord Learning")).toBeInTheDocument();
-    expect(screen.getByText("Cross-Functional")).toBeInTheDocument();
+    expect(screen.getByText("Cross-Functional Dynamics")).toBeInTheDocument();
     expect(screen.getByText("Project Training Readiness")).toBeInTheDocument();
     expect(screen.getByText("Volunteer Readiness")).toBeInTheDocument();
   });
