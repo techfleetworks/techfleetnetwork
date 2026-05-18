@@ -195,7 +195,7 @@ function DesktopHeader({
       )}
 
       {/* Right: controls */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-3 shrink-0 px-9 py-3" data-no-card>
         <UniversalSearch />
         <ThemeToggle />
         <LanguageSwitcher />
