@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void fetchProfile(resolvedSession.user.id);
         } else {
           setProfile(null);
-          setProfileLoaded(false);
+          setProfileLoaded(true);
         }
       })
       .catch((error) => {
