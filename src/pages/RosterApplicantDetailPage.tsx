@@ -22,6 +22,7 @@ import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-
 import { toast } from "sonner";
 import { ApplicantStatusDropdown, applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
 import { DiscordRoleAssignment } from "@/components/admin/DiscordRoleAssignment";
+import { AgreementResendButton } from "@/components/agreements/AgreementResendButton";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -254,6 +255,31 @@ export default function RosterApplicantDetailPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Community Agreement Status */}
+      {projApp.community_agreement_required_at ? (
+        <Card className={projApp.community_agreement_signed_at ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}>
+          <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Community Contributor Agreement</p>
+              {projApp.community_agreement_signed_at ? (
+                <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
+                  Signed {format(new Date(projApp.community_agreement_signed_at as string), "MMMM d, yyyy")}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300">
+                  Pending since {format(new Date(projApp.community_agreement_required_at as string), "MMMM d, yyyy")}
+                </Badge>
+              )}
+            </div>
+            {!projApp.community_agreement_signed_at && (
+              <AgreementResendButton applicationId={applicationId!} />
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+
 
       {/* Next/Previous Navigation */}
       {totalCount > 1 && (
