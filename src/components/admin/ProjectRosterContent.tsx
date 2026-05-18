@@ -28,6 +28,8 @@ interface AppRow {
   team_hats_interest: string[];
   completed_at: string | null;
   created_at: string;
+  community_agreement_required_at: string | null;
+  community_agreement_signed_at: string | null;
 }
 
 interface EnrichedApp extends AppRow {
@@ -35,6 +37,7 @@ interface EnrichedApp extends AppRow {
   applicantFirstName: string;
   applicantEmail: string;
   hats: string;
+  agreementStatus: "not_required" | "pending" | "signed";
 }
 
 interface ProjectRosterContentProps {
