@@ -63,7 +63,7 @@ export default function LandingPage() {
                 Team Spaces
               </Display>
               <Lede className="max-w-lg text-[1rem]">
-                No portfolio required. Practice with real teams. Work as a leader in service to others' growth.
+                No portfolio required. Practice agile with other people and real nonprofit clients.
               </Lede>
               <div className="flex flex-col lg:flex-row flex-wrap gap-3 pt-2">
                 <Link to="/register" className="w-full lg:w-auto">
