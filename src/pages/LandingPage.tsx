@@ -51,7 +51,7 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt={heroAlt}
-                className="w-full max-w-[260px] sm:max-w-[340px] md:max-w-[420px] h-auto object-contain"
+                className="w-full max-w-[260px] sm:max-w-[340px] md:max-w-[420px] h-auto object-contain motion-safe:opacity-0 motion-safe:animate-[fade-in_1.5s_ease-out_forwards]"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
@@ -84,7 +84,7 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt={heroAlt}
-                className="w-full h-auto object-contain"
+                className="w-full h-auto object-contain motion-safe:opacity-0 motion-safe:animate-[fade-in_1.5s_ease-out_forwards]"
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
