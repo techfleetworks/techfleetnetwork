@@ -443,22 +443,17 @@ export default function DashboardPage() {
                     className="tf-card p-4 hover:border-primary/40 transition-all block mb-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <ClipboardCheck className="h-4 w-4 text-primary" />
-                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-sm text-foreground truncate">
                             General Application
                           </h3>
                           {generalApp.status === "completed" ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0 gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0">
                               Completed
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0 gap-1">
-                              <Clock className="h-3 w-3" />
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0">
                               Draft
                             </Badge>
                           )}
@@ -469,7 +464,6 @@ export default function DashboardPage() {
                             : `Section ${generalApp.current_section} of 5 · Updated ${format(new Date(generalApp.updated_at), "MMM d")}`}
                         </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
                   </Link>
                 ) : (
