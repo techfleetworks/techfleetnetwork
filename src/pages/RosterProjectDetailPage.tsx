@@ -82,9 +82,14 @@ export default function RosterProjectDetailPage() {
   const clientName = project?.friendly_name?.trim()
     ? `${baseClientName} — ${project.friendly_name}`
     : baseClientName;
-  const isLoading = adminLoading || projLoading;
 
-  if (isLoading) {
+  // CWV pass 2 (LCP): Render the breadcrumb + H1 + applicant-count summary
+  // synchronously. Previously this page blocked the entire shell behind a
+  // single spinner until the project query resolved (~600–900ms TTFB on
+  // admin routes), pushing LCP above 3s. The page header is now first paint
+  // and the tabs hydrate underneath it as data lands.
+
+  if (adminLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Loading" />
@@ -101,7 +106,7 @@ export default function RosterProjectDetailPage() {
     );
   }
 
-  if (!project) {
+  if (!projLoading && !project) {
     return (
       <div className="container-app py-12 text-center">
         <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-40 text-muted-foreground" />
@@ -131,17 +136,24 @@ export default function RosterProjectDetailPage() {
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">{clientName}</h1>
-        {project.description?.trim() && (
+        {project?.description?.trim() && (
           <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap leading-relaxed">{project.description}</p>
         )}
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
-          <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
-          <Badge variant="outline">{statusLabel(project.project_status)}</Badge>
-          <Badge variant="default" className="gap-1">
-            <Users className="h-3 w-3" />
-            {appCount} {appCount === 1 ? "applicant" : "applicants"}
-          </Badge>
+        <div className="flex items-center gap-2 mt-2 flex-wrap min-h-[24px]">
+          {project ? (
+            <>
+              <Badge variant="secondary">{typeLabel(project.project_type)}</Badge>
+              <Badge variant="outline">{phaseLabel(project.phase)}</Badge>
+              <Badge variant="outline">{statusLabel(project.project_status)}</Badge>
+              <Badge variant="default" className="gap-1">
+                <Users className="h-3 w-3" />
+                {appCount} {appCount === 1 ? "applicant" : "applicants"}
+              </Badge>
+            </>
+          ) : (
+            // Reserve badge-row height to prevent CLS while project loads
+            <span aria-hidden="true" className="inline-block h-[24px]" />
+          )}
         </div>
       </div>
 
