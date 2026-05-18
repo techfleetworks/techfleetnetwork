@@ -2,23 +2,39 @@
    fonts.googleapis.com + fonts.gstatic.com on every cold load.
 
    Web Vitals (CLS):
-   - Body font uses `font-display: optional` — eliminates FOUT shift entirely
-     on first paint (custom font swaps in on next navigation if not cached
-     in <100ms). Combined with the size-adjusted local fallback below,
-     the fallback metrics already match Inter closely, so the visual
-     difference during that first render is negligible.
-   - JetBrains Mono keeps `swap` (code blocks; below-the-fold, low CLS risk).
-   - `size-adjust` + ascent/descent overrides on the fallback face make the
-     system font occupy the same box as Inter so the eventual swap (when it
-     happens on subsequent loads) does not shift surrounding layout. */
+   The metric-matched fallback faces below (`Poppins Fallback`, `Inter Fallback`,
+   `Futura PT Fallback`) make the system font occupy the same box as the real
+   web font so the eventual swap does not shift surrounding layout. Wired into
+   the Tailwind `sans` / `display` stacks first, before the real face name. */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 100 900;
-  font-display: optional;
+  font-display: swap;
   src: url('/fonts/inter-var.woff2') format('woff2');
 }
-/* Metric-matched fallback for Inter — eliminates CLS from font swap. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-var.woff2') format('woff2');
+}
+
+/* Metric-matched fallback for Poppins — eliminates CLS from font swap.
+   Values derived from comparing Poppins x-height/ascent to Arial. */
+@font-face {
+  font-family: 'Poppins Fallback';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('Arial');
+  size-adjust: 112%;
+  ascent-override: 93%;
+  descent-override: 27%;
+  line-gap-override: 9%;
+}
+
+/* Metric-matched fallback for Inter. */
 @font-face {
   font-family: 'Inter Fallback';
   font-style: normal;
@@ -29,10 +45,15 @@
   descent-override: 22%;
   line-gap-override: 0%;
 }
+
+/* Metric-matched fallback for Futura PT (display headings). */
 @font-face {
-  font-family: 'JetBrains Mono';
+  font-family: 'Futura PT Fallback';
   font-style: normal;
-  font-weight: 100 800;
-  font-display: swap;
-  src: url('/fonts/jetbrains-mono-var.woff2') format('woff2');
+  font-weight: 100 900;
+  src: local('Trebuchet MS');
+  size-adjust: 100%;
+  ascent-override: 98%;
+  descent-override: 23%;
+  line-gap-override: 0%;
 }
