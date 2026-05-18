@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   // Load application + project + client + applicant profile
   const { data: app, error: appErr } = await supabase
     .from('project_applications')
-    .select('id, user_id, project_id, applicant_status, community_agreement_required_at, community_agreement_signed_at')
+    .select('id, user_id, project_id, applicant_status, community_agreement_required_at, community_agreement_signed_at, team_hats_interest')
     .eq('id', applicationId)
     .maybeSingle()
   if (appErr || !app) return err('Application not found', 404)
