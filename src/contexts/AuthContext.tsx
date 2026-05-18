@@ -248,7 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
-          setProfileLoaded(false);
+          // No user → nothing to load. Mark loaded so guards proceed to redirect
+          // instead of spinning forever on logged-out / expired-session loads.
+          setProfileLoaded(true);
         }
         setLoading(false);
       }
