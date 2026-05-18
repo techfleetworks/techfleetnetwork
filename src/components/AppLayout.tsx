@@ -153,7 +153,7 @@ function DesktopHeader({
 
   return (
     <header
-      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 pt-safe pl-safe pr-safe"
+      className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-9 pt-safe pl-safe pr-safe"
       role="banner"
       style={{ minHeight: header ? undefined : "3rem" }}
     >
