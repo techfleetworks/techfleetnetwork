@@ -5,9 +5,18 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
-import worldImage from "@/assets/world.svg";
-import sunImage from "@/assets/sun.svg";
-import rocketImage from "@/assets/rocket.png";
+// Stable public URLs (not Vite-hashed) so index.html <link rel="preload">
+// can warm the browser cache before React mounts — eliminates hero pop-in.
+const worldImage = "/hero/world.svg";
+const sunImage = "/hero/sun.svg";
+const rocketImage = "/hero/rocket.webp";
+
+// Intrinsic dimensions reserve layout space from the very first paint so
+// the image renders atomically in place (no CLS, no "snap").
+const HERO_W = 514;
+const HERO_H = 500;
+const ROCKET_W = 1830;
+const ROCKET_H = 1540;
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
@@ -51,10 +60,12 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt={heroAlt}
-                className="w-full max-w-[260px] sm:max-w-[340px] md:max-w-[420px] h-auto object-contain motion-safe:opacity-0 motion-safe:animate-[fade-in_1.5s_ease-out_forwards]"
+                width={HERO_W}
+                height={HERO_H}
+                className="w-full max-w-[260px] sm:max-w-[340px] md:max-w-[420px] h-auto object-contain"
                 loading="eager"
                 fetchPriority="high"
-                decoding="async"
+                decoding="sync"
               />
             </div>
             <div className="space-y-6 animate-fade-in">
@@ -84,10 +95,12 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt={heroAlt}
-                className="w-full h-auto object-contain motion-safe:opacity-0 motion-safe:animate-[fade-in_1.5s_ease-out_forwards]"
+                width={HERO_W}
+                height={HERO_H}
+                className="w-full h-auto object-contain"
                 loading="eager"
                 fetchPriority="high"
-                decoding="async"
+                decoding="sync"
               />
             </div>
           </div>
@@ -126,8 +139,11 @@ export default function LandingPage() {
         <img
           src={rocketImage}
           alt=""
+          width={ROCKET_W}
+          height={ROCKET_H}
           className="w-full h-auto block"
           loading="lazy"
+          decoding="async"
         />
       </section>
 

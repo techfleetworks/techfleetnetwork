@@ -79,6 +79,13 @@
     <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/fonts/fonts.css" />
 
+    <!-- Preload landing-page hero art so it arrives in parallel with the JS
+         bundle instead of after React mounts. Eliminates the "pop-in" on first
+         paint. Stable URLs in /public/hero/ (not Vite-hashed) so these links
+         keep working across deploys. -->
+    <link rel="preload" as="image" href="/hero/world.svg" type="image/svg+xml" fetchpriority="high" />
+    <link rel="preload" as="image" href="/hero/sun.svg" type="image/svg+xml" fetchpriority="high" />
+
     <!--
       Blank-screen recovery (runs BEFORE any module script).
       Some returning users still have a legacy PWA / Workbox service worker
