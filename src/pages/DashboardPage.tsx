@@ -353,14 +353,10 @@ export default function DashboardPage() {
             return isVisible("feedback") ? (
               <section key="feedback" aria-labelledby="feedback-heading">
                 <Link to="/feedback" className="tf-card p-4 hover:border-primary/40 transition-all flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="h-4 w-4 text-primary" aria-hidden="true" />
-                  </div>
                   <div className="min-w-0 flex-1">
                     <CardTitle as="h2" id="feedback-heading">Share Feedback</CardTitle>
                     <Caption className="mt-0.5">Send ideas, report issues, or suggest improvements.</Caption>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
                 </Link>
               </section>
             ) : null;
