@@ -39,44 +39,40 @@ export default function RosterProjectDetailPage() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [tab, setTab] = useState("analysis");
 
-  const { data: project, isLoading: projLoading } = useQuery({
-    queryKey: ["roster-project-detail", projectId],
+  // CWV pass 5 (TTFB): single combined RPC replaces two sequential queries
+  // (project header + applicant count). Cuts admin roster header round-trips
+  // from 2 → 1 and lets RLS check run server-side once instead of twice.
+  const { data: header, isLoading: projLoading } = useQuery({
+    queryKey: ["roster-project-header", projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, friendly_name, description, coordinator_id, clients(name)")
-        .eq("id", projectId!)
-        .single();
+      const { data, error } = await supabase.rpc("get_roster_project_header", {
+        p_project_id: projectId!,
+      });
       if (error) throw error;
-      return data as unknown as {
-        id: string;
-        project_type: string;
-        phase: string;
-        project_status: string;
-        team_hats: string[];
-        client_id: string;
-        friendly_name?: string;
-        description?: string;
-        coordinator_id?: string | null;
-        clients: { name: string } | null;
-      };
+      return data as {
+        project: {
+          id: string;
+          project_type: string;
+          phase: string;
+          project_status: string;
+          team_hats: string[];
+          client_id: string;
+          friendly_name?: string;
+          description?: string;
+          coordinator_id?: string | null;
+          client_name: string | null;
+        } | null;
+        app_count: number;
+      } | null;
     },
     enabled: !!projectId && !!user && isAdmin,
   });
 
-  const { data: appCount = 0 } = useQuery({
-    queryKey: ["roster-project-app-count", projectId],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("project_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", projectId!)
-        .eq("status", "completed");
-      if (error) throw error;
-      return count ?? 0;
-    },
-    enabled: !!projectId && !!user && isAdmin,
-  });
+  const project = header?.project
+    ? { ...header.project, clients: header.project.client_name ? { name: header.project.client_name } : null }
+    : undefined;
+  const appCount = header?.app_count ?? 0;
+
 
   const baseClientName = project?.clients?.name ?? "Project";
   const clientName = project?.friendly_name?.trim()
