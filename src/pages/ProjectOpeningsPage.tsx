@@ -282,7 +282,7 @@ function ProjectSection({ icon: Icon, items, emptyText, navigate, typeLabel, pha
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   {p.clientLogoUrl ? (
-                    <img src={p.clientLogoUrl} alt={`${p.clientName} logo`} className="h-10 w-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                    <img src={p.clientLogoUrl} alt={`${p.clientName} logo`} width={40} height={40} loading="lazy" decoding="async" className="h-10 w-10 rounded-lg object-cover border border-border flex-shrink-0" />
                   ) : (
                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                       <Handshake className="h-5 w-5 text-muted-foreground" />
