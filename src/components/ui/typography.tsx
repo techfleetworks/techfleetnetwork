@@ -40,7 +40,7 @@ export const Display = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h1
     ref={ref}
-    className={cn(HEADING_BASE, "leading-none text-[2.5rem] sm:text-[3.25rem] lg:text-[4rem]", className)}
+    className={cn(HEADING_BASE, "leading-none text-[clamp(2rem,5vw,3.5rem)]", className)}
     {...props}
   />
 ));
@@ -53,7 +53,7 @@ export const PageTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h1
     ref={ref}
-    className={cn(HEADING_BASE, "text-[2rem] sm:text-[2.5rem] lg:text-[3rem]", className)}
+    className={cn(HEADING_BASE, "text-[clamp(1.625rem,3.5vw,2.5rem)]", className)}
     {...props}
   />
 ));
@@ -66,7 +66,7 @@ export const SectionTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn(HEADING_BASE, "text-[1.75rem] sm:text-[2rem] lg:text-[2.25rem]", className)}
+    className={cn(HEADING_BASE, "text-[clamp(1.375rem,2.5vw,1.875rem)]", className)}
     {...props}
   />
 ));
