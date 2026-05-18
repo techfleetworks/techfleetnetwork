@@ -134,18 +134,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Decorative rocket divider */}
-      <section className="border-t bg-[#01061E]" aria-hidden="true">
-        <img
-          src={rocketImage}
-          alt=""
-          width={ROCKET_W}
-          height={ROCKET_H}
-          className="w-full h-auto block"
-          loading="lazy"
-          decoding="async"
-        />
-      </section>
 
       {/* Network Activity Section — lazy loaded with reserved space */}
       <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
