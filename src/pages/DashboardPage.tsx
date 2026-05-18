@@ -595,7 +595,7 @@ export default function DashboardPage() {
                       <Link
                         key={a.id}
                         to="/updates"
-                        className="tf-card p-4 hover:border-primary/40 transition-all block border border-white/50"
+                        className="tf-card p-4 hover:border-primary/40 transition-all block"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
