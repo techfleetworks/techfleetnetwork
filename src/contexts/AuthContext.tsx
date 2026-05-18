@@ -248,7 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
-          setProfileLoaded(false);
+          // No user → nothing to load. Mark loaded so guards proceed to redirect
+          // instead of spinning forever on logged-out / expired-session loads.
+          setProfileLoaded(true);
         }
         setLoading(false);
       }
@@ -266,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void fetchProfile(resolvedSession.user.id);
         } else {
           setProfile(null);
-          setProfileLoaded(false);
+          setProfileLoaded(true);
         }
       })
       .catch((error) => {
@@ -277,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
         setProfile(null);
-        setProfileLoaded(false);
+        setProfileLoaded(true);
       })
       .finally(() => setLoading(false));
 
@@ -289,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    setProfileLoaded(false);
+    setProfileLoaded(true);
   }, []);
 
   const signOutAllDevices = useCallback(async () => {
@@ -297,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    setProfileLoaded(false);
+    setProfileLoaded(true);
   }, []);
 
   const contextValue = useMemo(
