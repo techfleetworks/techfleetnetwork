@@ -120,6 +120,16 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Decorative rocket divider */}
+      <section className="border-t bg-[#01061E]" aria-hidden="true">
+        <img
+          src={rocketImage}
+          alt=""
+          className="w-full h-auto block"
+          loading="lazy"
+        />
+      </section>
+
       {/* Network Activity Section — lazy loaded with reserved space */}
       <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
         <Suspense fallback={<NetworkActivityFallback />}>
