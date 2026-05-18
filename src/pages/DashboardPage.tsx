@@ -102,9 +102,6 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
       className="tf-card p-4 hover:border-primary/40 transition-all group block"
     >
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
@@ -136,7 +133,6 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
             </div>
           )}
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
       </div>
     </Link>
   );
