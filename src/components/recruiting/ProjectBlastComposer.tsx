@@ -74,7 +74,19 @@ export default function ProjectBlastComposer({ projectId, projectName, canSend: 
       const { data, error } = await supabase.functions.invoke("send-project-blast", {
         body: { projectId, subject: subjectTrim, bodyHtml: body },
       });
-      if (error) throw error;
+      // Surface the JSON error body the edge fn returned (e.g. "No applicants to email")
+      // instead of the generic "Edge Function returned a non-2xx status code".
+      if (error) {
+        let serverMsg: string | undefined;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const parsed = await ctx.json();
+            serverMsg = parsed?.error || parsed?.detail;
+          }
+        } catch { /* fall through to generic */ }
+        throw new Error(serverMsg || error.message || "Send failed");
+      }
       const result = data as { recipientCount: number; emailSent: number; emailFailed: number; status: string };
       toast({
         title: `Blast sent to ${result.recipientCount} ${result.recipientCount === 1 ? "applicant" : "applicants"}`,
