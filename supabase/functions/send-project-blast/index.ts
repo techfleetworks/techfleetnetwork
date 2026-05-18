@@ -151,15 +151,17 @@ Deno.serve(async (req) => {
   if (userIds.length === 0) return json({ error: 'No applicants to email' }, 400)
   if (userIds.length > MAX_RECIPIENTS) return json({ error: 'Recipient cap exceeded' }, 400)
 
+  // profiles.user_id is the auth user FK (profiles.id is the row PK and does
+  // NOT match auth.uid()), so look up by user_id.
   const { data: profileRows, error: profErr } = await admin
     .from('profiles')
-    .select('id, email, first_name')
-    .in('id', userIds)
+    .select('user_id, email, first_name')
+    .in('user_id', userIds)
   if (profErr) return json({ error: 'Profile lookup failed', detail: profErr.message }, 500)
 
   const recipients = (profileRows ?? [])
     .map((p: any) => ({
-      user_id: p.id as string,
+      user_id: p.user_id as string,
       email: ((p.email ?? '') as string).trim().toLowerCase(),
       firstName: (p.first_name ?? '') as string,
       isSenderCopy: false,
@@ -172,7 +174,7 @@ Deno.serve(async (req) => {
   // no Cc/multi-To header is ever constructed, so recipients never see each other.
   // The admin sender always receives a copy of their own blast.
   const { data: senderProfile } = await admin
-    .from('profiles').select('first_name, last_name, email').eq('id', userId).maybeSingle()
+    .from('profiles').select('first_name, last_name, email').eq('user_id', userId).maybeSingle()
   const senderName =
     [senderProfile?.first_name, senderProfile?.last_name].filter(Boolean).join(' ').trim() ||
     senderProfile?.email || 'Project Coordinator'
