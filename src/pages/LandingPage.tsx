@@ -64,7 +64,7 @@ export default function LandingPage() {
                 team spaces
               </Display>
               <Lede className="max-w-lg text-[1rem]">
-                No portfolio required. Practice agile with other people and real nonprofit clients.
+                No portfolio required. Practice teamwork with other members and real nonprofit clients.
               </Lede>
               <div className="flex flex-col lg:flex-row flex-wrap gap-3 pt-2">
                 <Link to="/register" className="w-full lg:w-auto">
