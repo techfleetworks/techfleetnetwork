@@ -4,17 +4,9 @@ import { Link } from "react-router-dom";
 import {
   BookOpen,
   Briefcase,
-  ChevronRight,
   ClipboardCheck,
-  Clock,
-  FolderKanban,
   Heart,
-  Lock,
-  Megaphone,
   MessageSquare,
-  PartyPopper,
-  
-  CheckCircle2,
 } from "lucide-react";
 import celebrationImg from "@/assets/courses-complete-rocket.svg";
 import { Badge } from "@/components/ui/badge";
