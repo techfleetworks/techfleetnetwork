@@ -7,6 +7,7 @@ import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@
 import { useTheme } from "@/components/ThemeProvider";
 import worldImage from "@/assets/world.svg";
 import sunImage from "@/assets/sun.svg";
+import rocketImage from "@/assets/rocket.png";
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
