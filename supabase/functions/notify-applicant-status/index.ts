@@ -600,6 +600,21 @@ Deno.serve(withAuditWrapper("notify-applicant-status", async (req) => {
     }
   }
 
+  /* ---- 6. Community Contributor Agreement trigger (active_participant only) ---- */
+  if (newStatus === 'active_participant') {
+    try {
+      await supabase.rpc('mark_community_agreement_required', { p_application_id: applicationId })
+      // Fire the dedicated trigger function (handles notification + email + opt-in gating)
+      await supabase.functions.invoke('send-community-agreement-trigger', {
+        body: { application_id: applicationId },
+        headers: { 'x-internal-secret': serviceKey },
+      })
+    } catch (e) {
+      console.error('Community agreement trigger failed (non-critical)', e)
+    }
+  }
+
+
   /* ---- Response ---- */
   return jsonResponse({
     success: true,
