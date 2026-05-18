@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    setProfileLoaded(false);
+    setProfileLoaded(true);
   }, []);
 
   const signOutAllDevices = useCallback(async () => {
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    setProfileLoaded(false);
+    setProfileLoaded(true);
   }, []);
 
   const contextValue = useMemo(
