@@ -485,45 +485,14 @@ export default function DashboardPage() {
                       const proj = dashProjectMap.get(app.project_id);
                       const clientName = proj ? (dashClientMap.get(proj.client_id)?.name ?? "Client") : "Client";
                       const friendly = (proj as any)?.friendly_name?.trim();
-                      const isCompleted = app.status === "completed";
-                      const isDraft = app.status === "draft";
-                      const applicantStatus = (app as any).applicant_status as string | undefined;
-
-                      // Route completed apps to status page, drafts to editor
-                      const appHref = isCompleted
-                        ? `/applications/projects/${app.id}/status`
-                        : `/project-openings/${app.project_id}/apply`;
-
-                      // Badge rendered by shared component
-
                       return (
-                        <Link
+                        <DashboardProjectAppCard
                           key={app.id}
-                          to={appHref}
-                          className="tf-card p-4 hover:border-primary/40 transition-all block"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-sm text-foreground truncate">
-                                  {clientName}
-                                </h3>
-                                <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
-                              </div>
-                              {friendly && (
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>
-                              )}
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {isCompleted && app.completed_at
-                                  ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
-                                  : isDraft
-                                    ? `Step ${app.current_step} of 3 · Updated ${format(new Date(app.updated_at), "MMM d")}`
-                                    : ""}
-                                {app.team_hats_interest.length > 0 && ` · ${app.team_hats_interest.join(", ")}`}
-                              </p>
-                            </div>
-                          </div>
-                        </Link>
+                          app={app}
+                          clientName={clientName}
+                          friendly={friendly}
+                          onOpenAgreement={() => setAgreementCtx({ id: app.id, name: friendly || clientName, clientName })}
+                        />
                       );
                     })}
                   </div>
