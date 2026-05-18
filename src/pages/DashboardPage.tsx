@@ -406,7 +406,6 @@ export default function DashboardPage() {
                             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                           >
                             Continue Courses
-                            <ChevronRight className="h-4 w-4" />
                           </Link>
                         </div>
                       </div>
