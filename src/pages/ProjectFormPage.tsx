@@ -530,7 +530,7 @@ export default function ProjectFormPage() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left text-sm tracking-normal font-normal",
                     !form.anticipated_start_date && "text-muted-foreground",
                   )}
                 >
