@@ -119,16 +119,38 @@ Deno.serve(async (req) => {
   const projectLabel = projectName || 'your Tech Fleet project'
   const clientLabel = clientName || 'a nonprofit client'
 
+  const hats: string[] = Array.isArray((app as any).team_hats_interest)
+    ? ((app as any).team_hats_interest as string[]).filter((h) => typeof h === 'string' && h.trim().length > 0)
+    : []
+  const hatsListHtml = hats.length > 0
+    ? `<ul>${hats.map((h) => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`
+    : '<p><em>The hats you selected when you applied.</em></p>'
+
   // 1. Always create in-app notification (workflow-critical)
   let notificationCreated = false
   try {
     const bodyHtml =
-      `<p>Congratulations! You have been selected to be a part of <strong>${escapeHtml(projectLabel)}</strong> ` +
-      `with the nonprofit client <strong>${escapeHtml(clientLabel)}</strong>.</p>` +
-      `<p>Before you begin your team training, you need to review and agree to the Community Terms and Conditions for trainees. Click below to review and agree.</p>`
+      `<p>Hello ${escapeHtml(firstName || 'there')}!</p>` +
+      `<p>Thank you so much for taking the time to chat with the project coordinator. It was so wonderful getting to know you.</p>` +
+      `<p><strong>Training Offer</strong></p>` +
+      `<p>I am delighted to offer you a training position for the upcoming apprenticeship!</p>` +
+      `<p><strong>${escapeHtml(projectLabel)}</strong> – Cross-Functional Agile Teammate</p>` +
+      `<p><strong>Hats</strong></p>` +
+      hatsListHtml +
+      `<p><strong>Reply Now</strong></p>` +
+      `<p>If you want to commit to this training, click the button below to sign the Community Trainee Terms and Conditions so that you know what to expect about the training.</p>` +
+      `<p><strong>Next steps</strong></p>` +
+      `<ol>` +
+      `<li>Sign the Community Trainee Terms and Conditions.</li>` +
+      `<li>We can get you into the project channels in Discord.</li>` +
+      `<li>We will have a full teammate kickoff after we build the entire training team, so look out for communications in email and Discord to schedule.</li>` +
+      `<li>After that we will all start working with an Agile Coach to do “pre-kickoff” for the first 3 weeks of the project.</li>` +
+      `<li>After pre-kickoff, we will start our 8 weeks of project training work together.</li>` +
+      `</ol>` +
+      `<p>Looking forward to hearing from you soon!</p>`
     const { error: nErr } = await supabase.rpc('safe_create_notification', {
       p_user_id: app.user_id,
-      p_title: 'Sign Community Agreement',
+      p_title: 'Project Training Offer from Tech Fleet',
       p_body_html: bodyHtml,
       p_notification_type: 'community_agreement_request',
       p_link_url: `/applications/projects/${applicationId}/status?agreement=open`,
@@ -159,6 +181,7 @@ Deno.serve(async (req) => {
           projectName: projectLabel,
           clientName: clientLabel,
           agreementUrl: agreementLink,
+          hats,
         },
       })
       if (result.ok) emailSent = !result.suppressed
