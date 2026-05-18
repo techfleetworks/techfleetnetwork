@@ -9,14 +9,11 @@ import { useTheme } from "@/components/ThemeProvider";
 // can warm the browser cache before React mounts — eliminates hero pop-in.
 const worldImage = "/hero/world.svg";
 const sunImage = "/hero/sun.svg";
-const rocketImage = "/hero/rocket.webp";
 
 // Intrinsic dimensions reserve layout space from the very first paint so
 // the image renders atomically in place (no CLS, no "snap").
 const HERO_W = 514;
 const HERO_H = 500;
-const ROCKET_W = 1830;
-const ROCKET_H = 1540;
 
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
@@ -134,18 +131,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Decorative rocket divider */}
-      <section className="border-t bg-[#01061E]" aria-hidden="true">
-        <img
-          src={rocketImage}
-          alt=""
-          width={ROCKET_W}
-          height={ROCKET_H}
-          className="w-full h-auto block"
-          loading="lazy"
-          decoding="async"
-        />
-      </section>
 
       {/* Network Activity Section — lazy loaded with reserved space */}
       <section className="border-t bg-muted/30" style={{ minHeight: 800 }}>
