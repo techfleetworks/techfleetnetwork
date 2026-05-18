@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { MfaService } from "@/services/mfa.service";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 import { clearLoginCaptcha, getLoginCaptchaState, recordFailedLoginAttempt, refreshLoginCaptcha } from "@/lib/auth-captcha";
-import { TurnstileChallenge } from "@/components/auth/TurnstileChallenge";
+// Turnstile is deferred — Cloudflare's API.js + iframe is ~50KB and blocks
+// LCP on /login. We mount it lazily after the user focuses the form OR after
+// idle, whichever comes first. Until then we reserve a fixed-height shell
+// (matches Turnstile's 65px compact size) so swapping in the widget does
+// not shift layout (CLS guard).
+const TurnstileChallenge = lazy(() =>
+  import("@/components/auth/TurnstileChallenge").then(m => ({ default: m.TurnstileChallenge }))
+);
 import { clearAuthLockout, formatAuthLockoutMessage, getAuthLockoutState, maybeAutoHealAuthLockout, recordInvalidAuthAttempt, resetAuthLockoutForEmailChange } from "@/lib/auth-lockout";
 import { logCaptchaTelemetry } from "@/lib/auth-captcha-telemetry";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
