@@ -47,7 +47,20 @@ export const safeMultilineTextSchema = safeLongTextSchema;
 
 export const safeHtmlSchema = (label: string, max = 100_000) => z.string().max(max, `${label} must be under ${max} characters`).transform((value) => sanitizeHtml(value));
 
-export const safeUrlSchema = (label: string, max = 500) => z.string().trim().max(max, `${label} must be under ${max} characters`).refine((value) => value === "" || /^https?:\/\/.+/i.test(value), `${label} must start with http:// or https://`).superRefine(attachUnsafeIssue(label, false));
+export const safeUrlSchema = (label: string, max = 500) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      if (trimmed === "") return "";
+      // Auto-prepend https:// when scheme is missing, so members never have to think about it.
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      // Skip if it looks like another explicit scheme (mailto:, ftp:, etc.) — leave for the refine to flag.
+      if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+      return `https://${trimmed}`;
+    },
+    z.string().trim().max(max, `${label} must be under ${max} characters`).refine((value) => value === "" || /^https?:\/\/.+/i.test(value), `${label} must start with http:// or https://`).superRefine(attachUnsafeIssue(label, false)),
+  );
 
 export const safeStringArraySchema = (label: string, maxItems = 30, maxItemLength = 200) => z.array(safeShortTextSchema(label, maxItemLength)).max(maxItems, `Too many ${label.toLowerCase()} selected`);
 
