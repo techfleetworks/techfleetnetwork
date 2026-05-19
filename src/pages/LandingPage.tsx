@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
+import heroBg from "@/assets/bg_techfleet_network.svg";
 // Stable public URLs (not Vite-hashed) so index.html <link rel="preload">
 // can warm the browser cache before React mounts — eliminates hero pop-in.
 const worldImage = "/hero/world.svg";
 const sunImage = "/hero/sun.svg";
+
 
 // Intrinsic dimensions reserve layout space from the very first paint so
 // the image renders atomically in place (no CLS, no "snap").
