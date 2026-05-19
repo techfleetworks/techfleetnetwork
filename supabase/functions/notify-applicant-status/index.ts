@@ -625,6 +625,53 @@ Deno.serve(withAuditWrapper("notify-applicant-status", async (req) => {
             } catch (auditErr) {
               console.warn('Discord role audit log failed', auditErr)
             }
+
+            // Post welcome message in welcome channel (idempotent per application)
+            try {
+              const { data: priorWelcome } = await supabase
+                .from('audit_log')
+                .select('id')
+                .eq('event_type', 'discord_welcome_posted')
+                .eq('record_id', applicationId)
+                .limit(1)
+                .maybeSingle()
+
+              if (!priorWelcome) {
+                const welcome = await postProjectWelcome({
+                  discordUserId: applicantDiscordUserId,
+                  discordRoleId,
+                })
+                if (welcome.ok) {
+                  try {
+                    await supabase.rpc('write_audit_log', {
+                      p_event_type: 'discord_welcome_posted',
+                      p_table_name: 'project_applications',
+                      p_record_id: applicationId,
+                      p_user_id: user.id,
+                      p_changed_fields: [applicantUserId, discordRoleId, discordRoleName || ''],
+                    })
+                  } catch (auditErr) {
+                    console.warn('Welcome post audit log failed', auditErr)
+                  }
+                } else {
+                  try {
+                    await supabase.rpc('write_audit_log', {
+                      p_event_type: 'discord_welcome_post_failed',
+                      p_table_name: 'project_applications',
+                      p_record_id: applicationId,
+                      p_user_id: user.id,
+                      p_changed_fields: [applicantUserId, discordRoleId],
+                      p_error_message: welcome.error || 'Unknown error',
+                    })
+                  } catch (auditErr) {
+                    console.warn('Welcome failure audit log failed', auditErr)
+                  }
+                }
+              }
+            } catch (welcomeErr) {
+              console.error('Welcome post flow error (non-blocking)', welcomeErr)
+            }
+
           } else {
             console.error('Discord role assignment failed', {
               applicantUserId,
