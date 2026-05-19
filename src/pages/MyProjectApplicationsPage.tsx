@@ -6,10 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { format } from "date-fns";
 import {
-import { PageTitle } from "@/components/ui/typography";
   ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
   LayoutGrid, List,
 } from "lucide-react";
+import { PageTitle } from "@/components/ui/typography";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";

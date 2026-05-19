@@ -257,6 +257,58 @@ async function assignDiscordRole(discordUserId: string, roleId: string): Promise
 }
 
 /* ------------------------------------------------------------------ */
+/*  Project welcome post helper                                        */
+/* ------------------------------------------------------------------ */
+
+const WELCOME_CHANNEL_ID = '1506083368679379044'
+const WELCOME_VIDEO_URL = 'https://www.youtube.com/watch?v=ht35r4GSwoY'
+
+async function postProjectWelcome(params: {
+  discordUserId: string
+  discordRoleId: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const botToken = Deno.env.get('DISCORD_BOT_TOKEN')
+  if (!botToken) return { ok: false, error: 'Discord bot not configured' }
+
+  const content =
+    `<@${params.discordUserId}> welcome to the <@&${params.discordRoleId}>\n\n` +
+    `Say hello to your teammates in the project channels!\n\n` +
+    `We will start onboarding soon.\n\n` +
+    `Please go to <id:browse> to set the project channels in your menu.\n\n` +
+    `Watch this video on how to do this: ${WELCOME_VIDEO_URL}`
+
+  try {
+    const { response: res } = await discordFetch(
+      `https://discord.com/api/v10/channels/${WELCOME_CHANNEL_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bot ${botToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          allowed_mentions: { parse: ['users', 'roles'] },
+        }),
+      },
+    )
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('Project welcome post failed', { status: res.status, error: errorText.substring(0, 500) })
+      return { ok: false, error: `Discord API ${res.status}` }
+    }
+    await res.text()
+    return { ok: true }
+  } catch (e) {
+    console.error('Project welcome post error after retries', e)
+    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
+  }
+}
+
+
+
+/* ------------------------------------------------------------------ */
 /*  Main handler                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -573,6 +625,53 @@ Deno.serve(withAuditWrapper("notify-applicant-status", async (req) => {
             } catch (auditErr) {
               console.warn('Discord role audit log failed', auditErr)
             }
+
+            // Post welcome message in welcome channel (idempotent per application)
+            try {
+              const { data: priorWelcome } = await supabase
+                .from('audit_log')
+                .select('id')
+                .eq('event_type', 'discord_welcome_posted')
+                .eq('record_id', applicationId)
+                .limit(1)
+                .maybeSingle()
+
+              if (!priorWelcome) {
+                const welcome = await postProjectWelcome({
+                  discordUserId: applicantDiscordUserId,
+                  discordRoleId,
+                })
+                if (welcome.ok) {
+                  try {
+                    await supabase.rpc('write_audit_log', {
+                      p_event_type: 'discord_welcome_posted',
+                      p_table_name: 'project_applications',
+                      p_record_id: applicationId,
+                      p_user_id: user.id,
+                      p_changed_fields: [applicantUserId, discordRoleId, discordRoleName || ''],
+                    })
+                  } catch (auditErr) {
+                    console.warn('Welcome post audit log failed', auditErr)
+                  }
+                } else {
+                  try {
+                    await supabase.rpc('write_audit_log', {
+                      p_event_type: 'discord_welcome_post_failed',
+                      p_table_name: 'project_applications',
+                      p_record_id: applicationId,
+                      p_user_id: user.id,
+                      p_changed_fields: [applicantUserId, discordRoleId],
+                      p_error_message: welcome.error || 'Unknown error',
+                    })
+                  } catch (auditErr) {
+                    console.warn('Welcome failure audit log failed', auditErr)
+                  }
+                }
+              }
+            } catch (welcomeErr) {
+              console.error('Welcome post flow error (non-blocking)', welcomeErr)
+            }
+
           } else {
             console.error('Discord role assignment failed', {
               applicantUserId,

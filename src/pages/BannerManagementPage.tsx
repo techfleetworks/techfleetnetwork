@@ -7,7 +7,6 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
-import { SectionTitle } from "@/components/ui/typography";
   fetchAllBanners,
   createBanner,
   updateBanner,
@@ -16,6 +15,8 @@ import { SectionTitle } from "@/components/ui/typography";
   type BannerInsert,
   type BannerUpdate,
 } from "@/services/banner.service";
+import { SectionTitle } from "@/components/ui/typography";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
