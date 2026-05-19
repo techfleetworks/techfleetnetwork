@@ -71,7 +71,7 @@ export function PerformanceByBrowserTab() {
   const [windowHours, setWindowHours] = useState("168");
   const numericWindow = useMemo(() => Number.parseInt(windowHours, 10) || 168, [windowHours]);
 
-  const { data, isLoading, isFetching, refetch, error } = useQuery({
+  const { data, isLoading, isFetching, refetch, error, dataUpdatedAt } = useQuery({
     queryKey: ["web-vitals-p75-by-browser", numericWindow],
     queryFn: async (): Promise<BrowserRow[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,9 +81,10 @@ export function PerformanceByBrowserTab() {
       if (error) throw error;
       return (data ?? []) as BrowserRow[];
     },
-    staleTime: 60_000,
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
+
 
   // Pivot rows: one row per (browser, os, deviceType), columns = metrics
   const pivoted = useMemo(() => {
@@ -118,6 +119,12 @@ export function PerformanceByBrowserTab() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            {dataUpdatedAt ? (
+              <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+                Updated {new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}
+              </span>
+            ) : null}
+
             <Select value={windowHours} onValueChange={setWindowHours}>
               <SelectTrigger className="w-[160px]" aria-label="Time window">
                 <SelectValue />
