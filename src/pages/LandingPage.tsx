@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
+import heroBg from "@/assets/bg_techfleet_network.svg";
 // Stable public URLs (not Vite-hashed) so index.html <link rel="preload">
 // can warm the browser cache before React mounts — eliminates hero pop-in.
 const worldImage = "/hero/world.svg";
 const sunImage = "/hero/sun.svg";
+
 
 // Intrinsic dimensions reserve layout space from the very first paint so
 // the image renders atomically in place (no CLS, no "snap").
@@ -50,7 +52,13 @@ export default function LandingPage() {
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden flex items-center min-h-[calc(100svh-5rem)]" aria-labelledby="hero-heading">
-        <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 dark:opacity-100"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
+        <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full relative">
+
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Mobile/tablet: image above headline */}
             <div className="flex lg:hidden justify-center order-first">
