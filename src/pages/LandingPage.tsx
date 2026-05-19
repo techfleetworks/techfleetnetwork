@@ -52,11 +52,14 @@ export default function LandingPage() {
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden flex items-center min-h-[calc(100svh-5rem)]" aria-labelledby="hero-heading">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 dark:opacity-100"
-          style={{ backgroundImage: `url(${heroBg})` }}
-        />
+        {resolvedTheme === "dark" && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${heroBg})` }}
+          />
+        )}
+
         <div className="container-app max-w-[1500px] pt-0 pb-8 sm:pb-12 lg:pb-16 w-full relative">
 
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
