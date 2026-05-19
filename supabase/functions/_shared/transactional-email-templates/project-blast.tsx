@@ -25,11 +25,17 @@ const ProjectBlastEmail = ({ firstName, projectName, bodyHtml, senderName }: Pro
 
         <Text style={text}>Hi {firstName || 'there'},</Text>
 
-        {/* Body is sanitized server-side via sanitize_user_html() before render. */}
-        <div
-          style={bodySection}
-          dangerouslySetInnerHTML={{ __html: bodyHtml || '' }}
-        />
+        {/*
+          Body is sanitized server-side via sanitize_user_html() before render.
+          Use React.createElement explicitly to guarantee no `children` prop
+          coexists with `dangerouslySetInnerHTML` (react-email/renderAsync
+          throws "Can only set one of `children` or `props.dangerouslySetInnerHTML`"
+          when JSX whitespace sneaks in as a child).
+        */}
+        {React.createElement('div', {
+          style: bodySection,
+          dangerouslySetInnerHTML: { __html: (bodyHtml ?? '').toString() },
+        })}
 
         <Hr style={hr} />
 
