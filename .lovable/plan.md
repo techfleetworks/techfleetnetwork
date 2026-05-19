@@ -1,41 +1,76 @@
-# Stop the hero image pop-in on the landing page
+# Universal information architecture: bigger card titles everywhere
 
-## Why it's happening
-The world/sun/rocket images aren't tiny — combined they're **~360 KB**:
-- `world.svg` 179 KB (oversized SVG, likely embedded raster)
-- `sun.svg` 20 KB
-- `rocket.png` 157 KB
+## The target hierarchy
+| Role | Component | Tag | Size |
+|---|---|---|---|
+| Page title | `PageTitle` | `h1` | 48 px Futura Bold |
+| Page subtitle (lede under H1) | `SubsectionTitle` | `h3` | 24 px Futura Bold |
+| **Card title** | `CardTitle` (shadcn) | **`h2`** | **36 px Futura Bold** |
+| Card subtitle | `CardDescription` (shadcn) | **`h3`** | 24 px Futura Bold |
+| Card body | `<p>` via `Body` | `p` | 16 px Poppins |
 
-The browser parses HTML, then JS, then *finally* requests the images, so the hero column renders empty and then snaps in. The 1.5s fade made it worse because it added an obvious "empty → fade" sequence.
+## Strategy — one source of truth, not 100 page edits
 
-## Plan — ship all four steps together
+Instead of touching every page, **rewrite the two shadcn primitives** (`CardTitle`, `CardDescription` in `src/components/ui/card.tsx`) to render the Futura H2 / H3 styles. Every Card in the system — 57 `CardTitle` + 31 `CardDescription` usages across 32 files — automatically picks up the new architecture in a single change.
 
-### 1. Revert the fade-in (done by you via History)
-Remove the `motion-safe:opacity-0 motion-safe:animate-[fade-in_1.5s...]` classes from both `<img>` tags in `src/pages/LandingPage.tsx`.
+For body copy inside cards, **add a lint-style audit pass** that replaces raw `<p className="text-sm/text-muted-foreground">…</p>` inside `<CardContent>` with the `<Body>` typography wrapper. Same for stray `<h3 className="...">` inside cards → `<CardDescription>`.
 
-### 2. Preload the hero art in `index.html`
-Add to `<head>`, so the browser fetches them in parallel with JS instead of after:
-```html
-<link rel="preload" as="image" href="/assets/sun-[hash].svg" fetchpriority="high" type="image/svg+xml" />
-<link rel="preload" as="image" href="/assets/world-[hash].svg" fetchpriority="high" type="image/svg+xml" />
+## Step 1 — Rewrite the shadcn Card primitives (1 file)
+
+`src/components/ui/card.tsx`:
+- `CardTitle` becomes polymorphic, defaults to `h2`, renders with the same classes as `SectionTitle` (36 px Futura Bold, clamped responsive). Accept an `as` prop so the rare tight surface (popover, metric tile, dialog) can step down to `h3`/`h4` without losing semantics.
+- `CardDescription` becomes `h3` and renders with the same classes as `SubsectionTitle` (24 px Futura Bold). Same `as` escape hatch.
+- Keep export signatures identical so no import changes are needed.
+
+This alone delivers the universal hierarchy for every Card already in the system — Dashboard widgets, Recruiting Center cards, System Health tiles, Quest cards, Project cards, Application cards, Admin panels, **all of them**.
+
+## Step 2 — Triage the tight surfaces (escape hatch, ~10 files)
+
+H2 at 36 px will overflow inside small surfaces. We'll audit and apply `as="h3"` (or `h4`) only where the card is intentionally compact:
+- `src/components/ui/popover.tsx` consumers (Universal Search results, header popovers)
+- `src/components/ui/dialog.tsx` content cards (`DialogTitle` is separate — untouched)
+- System Health metric tiles (already use `CardTitle` for KPI labels — those want `as="h4"`)
+- Dashboard sidebar widgets (`NotificationsBell`, `ConnectivityPill` cards)
+- Sidebar collapsed widgets
+
+We'll grep for `<CardTitle` in each, screenshot-spot-check, and add `as="h3"` / `as="h4"` only where the visual breaks. All others stay default H2.
+
+## Step 3 — Card body copy: replace raw `<p>` with `<Body>` (audit pass)
+
+Run a scoped grep across all files that import from `@/components/ui/card`:
 ```
-Since Vite hashes asset names, we'll instead move `world.svg` and `sun.svg` into `public/hero/` so they have stable URLs (`/hero/world.svg`, `/hero/sun.svg`) suitable for preload links, and update the imports in `LandingPage.tsx` to reference those stable paths.
+rg -l "from \"@/components/ui/card\"" src
+```
+For each, replace patterns like:
+- `<p className="text-sm text-muted-foreground">` inside `<CardContent>` → `<Body className="text-muted-foreground">`
+- `<p className="text-xs ...">` for metadata → `<Caption>`
+- Raw `<h3>`/`<h4>` inside cards → `<CardDescription>` or `<SubsectionTitle>`
 
-### 3. Reserve the layout box (kills the "snap")
-Even with preload, a few ms can pass before bytes arrive. Add explicit `width`, `height`, and `decoding="sync"` to both hero `<img>` tags so the box is sized from the very first paint and the image renders atomically in place — no layout shift, no pop.
+This is mechanical. We do it in batches by page area:
+1. Landing + Auth (already done — reference)
+2. Dashboard + Journey (active projects, quests, certifications, profile)
+3. Project Openings + Applications + Status pages
+4. Admin: Recruiting Center, Applications Review, Clients & Projects, Class Approval, Banner Management, Project Blasts
+5. System Health (Triage, Fleety, Performance, Privacy, Email, Content tabs)
+6. Resources (Guidance, Explore, Handbooks, Templates) + Events + Network Activity
+7. Feedback, Unsubscribe, Privacy/Cookies/Accessibility, DSAR, Account settings, Notifications management
 
-### 4. Shrink the assets (the real perf win)
-- **`world.svg` (179 KB)** — run through SVGO; if it's a traced raster it'll stay big, in which case export a **WebP at ~40 KB** and use that instead. Same for `sun.svg` if SVGO doesn't help.
-- **`rocket.png` (157 KB)** — convert to WebP (~30–50 KB) and add `loading="lazy"` (already lazy, keep it) + explicit `width`/`height` so it doesn't shift when it loads further down.
+## Step 4 — Single ESLint rule + smoke test to lock it in
 
-Target: hero art drops from ~200 KB to **~60 KB total**, fully cached before React mounts.
+- Add an ESLint rule `tf-typography/no-raw-headings-in-cards` that flags raw `<h1..h6>` and `<p>` with size classes inside any `<CardContent>` / `<CardHeader>` block, suggesting the right typography component.
+- Add a smoke test `src/test/smoke/card-typography.smoke.test.tsx` that mounts each Card primitive and asserts `CardTitle` renders as `<h2>` and `CardDescription` as `<h3>` by default.
 
-## Result
-- First paint of the hero shows the image already in place (preload + sized box).
-- No fade, no pop, no layout shift.
-- Landing page LCP improves measurably (tracked by your existing Web Vitals RUM).
+This guarantees no future page can drift out of the standard.
 
 ## Out of scope
-- No changes to copy, layout, or theme-swap logic.
-- No animation libraries.
-- No changes to `NetworkActivity` lazy loading (already correct).
+- The two `typography.tsx` exports (`Display`, `PageTitle`, `SectionTitle`, `SubsectionTitle`, `CardTitle`, `Lede`, `Body`, `BodySmall`, `Caption`) stay as-is — they're already correct. We only rewire the shadcn Card primitives to reuse those styles.
+- No color, spacing, or layout changes.
+- AG Grid headers, sidebar nav labels, toast titles, and form field labels are not "card titles" and stay on their current sizes.
+
+## Effort estimate
+- Step 1 (primitives): ~5 min, 1 file, zero risk if the `as` escape hatch is added simultaneously.
+- Step 2 (tight-surface overrides): ~15 min after visual spot-check.
+- Step 3 (raw `<p>`/`<h*>` → typography components across pages): the big chunk — done in batches per area, ~30 files touched.
+- Step 4 (lint + smoke): ~10 min, locks the standard.
+
+Total: one shipped change set covering every page in the system, with a guardrail that prevents regression.

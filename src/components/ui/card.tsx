@@ -35,17 +35,50 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn("text-2xl font-semibold leading-none tracking-tight", className)} {...props} />
-  ),
+/**
+ * Universal information architecture (Brand Visual Guide v1):
+ * - CardTitle    → H2 (36px Futura Bold, responsive clamp)
+ * - CardDescription → H3 (24px Futura Bold)
+ * The `as` escape hatch lets tight surfaces (popovers, KPI tiles, dialogs,
+ * sidebar widgets) step the heading level down without losing semantics.
+ */
+type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement> & {
+  as?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+};
+const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, as = "h2", ...props }, ref) => {
+    const Comp = as as React.ElementType;
+    return (
+      <Comp
+        ref={ref}
+        className={cn(
+          "tf-h font-display font-bold leading-[1.1] tracking-[0.012em] text-foreground break-words [overflow-wrap:anywhere] text-[clamp(1.25rem,2.25vw,1.75rem)]",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 CardTitle.displayName = "CardTitle";
 
-const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
-  ),
+type CardDescriptionProps = React.HTMLAttributes<HTMLHeadingElement> & {
+  as?: "h2" | "h3" | "h4" | "h5" | "h6" | "p";
+};
+const CardDescription = React.forwardRef<HTMLHeadingElement, CardDescriptionProps>(
+  ({ className, as = "h3", ...props }, ref) => {
+    const Comp = as as React.ElementType;
+    return (
+      <Comp
+        ref={ref}
+        className={cn(
+          "tf-h font-display font-bold leading-[1.15] tracking-[0.012em] text-muted-foreground text-[1.125rem] sm:text-[1.25rem]",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 CardDescription.displayName = "CardDescription";
 
