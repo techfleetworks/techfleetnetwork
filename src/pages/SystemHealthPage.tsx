@@ -22,6 +22,7 @@ import { PerformanceByBrowserTab } from "@/components/system-health/PerformanceB
 import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
 import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 import { ProjectBlastsHealthCard } from "@/components/system-health/ProjectBlastsHealthCard";
+import { PageTitle } from "@/components/ui/typography";
 
 const FIVE_MIN = 5 * 60 * 1000;
 
@@ -146,7 +147,7 @@ export default function SystemHealthPage() {
     <section className="container-app py-8 space-y-6" aria-labelledby="system-health-heading">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 id="system-health-heading" className="text-2xl font-semibold text-foreground">System Health</h1>
+          <PageTitle id="system-health-heading">System Health</PageTitle>
           <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
             <span>Snapshot generated {relativeTime(data.generated_at)}</span>
             <span aria-hidden>·</span>

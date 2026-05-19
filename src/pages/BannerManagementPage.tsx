@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
+import { SectionTitle } from "@/components/ui/typography";
   fetchAllBanners,
   createBanner,
   updateBanner,
@@ -261,7 +262,7 @@ export default function BannerManagementPage() {
     <div className="container-app py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">System Banners</h2>
+          <SectionTitle className="text-lg">System Banners</SectionTitle>
           <p className="text-sm text-muted-foreground">Create and manage banners shown to all users across the platform.</p>
         </div>
         <Button onClick={handleNew}>
