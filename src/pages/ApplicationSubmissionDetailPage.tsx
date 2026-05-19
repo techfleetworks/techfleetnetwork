@@ -18,6 +18,7 @@ import {
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
+import { PageTitle } from "@/components/ui/typography";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
@@ -154,7 +155,7 @@ export default function ApplicationSubmissionDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Application Submission Details</h1>
+            <PageTitle>Application Submission Details</PageTitle>
             <p className="text-sm text-muted-foreground">
               {applicantName} — {(client?.name as string) ?? "Project"}
               {(project as any)?.friendly_name?.trim() && (

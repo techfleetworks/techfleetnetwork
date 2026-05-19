@@ -7,6 +7,7 @@ import { Loader2, CheckCircle2, AlertCircle, FileText, Trash2, UploadCloud } fro
 import { toast } from "sonner";
 import { extractMarkdownFromPdf } from "@/lib/pdf-to-markdown";
 import { supabase } from "@/integrations/supabase/client";
+import { SectionTitle } from "@/components/ui/typography";
 
 type DocStatus = "parsing" | "ready" | "uploading" | "uploaded" | "error";
 
@@ -147,7 +148,7 @@ export function WorkshopDocsUploader() {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold">Workshop Documents</h2>
+        <SectionTitle className="text-xl">Workshop Documents</SectionTitle>
         <p className="text-sm text-muted-foreground">
           Upload detailed workshop PDFs. Each becomes a rich entry in Fleety's knowledge base so it can give step-by-step
           facilitation guidance instead of one-line summaries.

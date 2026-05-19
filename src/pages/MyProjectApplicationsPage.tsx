@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { format } from "date-fns";
 import {
+import { PageTitle } from "@/components/ui/typography";
   ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
   LayoutGrid, List,
 } from "lucide-react";
@@ -268,7 +269,7 @@ export default function MyProjectApplicationsPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Your Project Applications</h1>
+            <PageTitle>Your Project Applications</PageTitle>
             <p className="text-sm text-muted-foreground">
               Track the status of your project team applications.
             </p>

@@ -6,6 +6,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
+import { PageTitle } from "@/components/ui/typography";
   ArrowLeft, ArrowRight, Share2, CheckCircle2, XCircle, User,
   Briefcase, GraduationCap, Loader2, Copy, ShieldAlert,
 } from "lucide-react";
@@ -216,7 +217,7 @@ export default function RosterApplicantDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{applicantName}</h1>
+          <PageTitle>{applicantName}</PageTitle>
           <p className="text-sm text-muted-foreground">{clientName} — Applicant Details</p>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 self-start" onClick={handleShare}>
