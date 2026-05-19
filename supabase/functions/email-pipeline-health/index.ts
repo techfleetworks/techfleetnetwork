@@ -38,19 +38,14 @@ const FAILED_WINDOW_HOURS = 24
 Deno.serve(withAuditWrapper("email-pipeline-health", async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
-  // Service-role only.
+  // Service-role only. Compare the bearer token directly to the env-injected
+  // service-role key. A JWT-decode fallback is intentionally NOT used — it
+  // accepted any structurally valid JWT whose unsigned payload claimed
+  // `role: service_role`, which is forgeable without credentials.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace(/^Bearer\s+/i, '').trim()
-  let isServiceRole = false
-  try {
-    const part = token.split('.')[1]
-    if (part) {
-      const padded = part + '='.repeat((4 - (part.length % 4)) % 4)
-      const decoded = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/')))
-      isServiceRole = decoded?.role === 'service_role'
-    }
-  } catch { /* ignore */ }
-  if (!isServiceRole) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (!serviceRoleKey || !token || token !== serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
