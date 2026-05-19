@@ -27,23 +27,14 @@ Deno.serve(withAuditWrapper("resend-signup-confirmations", async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Service-role only (cron / admin invocation). Accept any token whose JWT
-  // payload has role=service_role — this works whether the caller uses the
-  // env-injected key or a vault-stored historical key.
+  // Service-role only (cron / admin invocation). Compare the bearer token
+  // directly against the env-injected service-role key. Do NOT fall back to
+  // decoding the JWT payload and trusting an unsigned `role` claim — anyone
+  // could forge `header.{"role":"service_role"}.sig` and bypass auth.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace(/^Bearer\s+/i, '').trim()
-  let isServiceRole = false
-  try {
-    const payloadPart = token.split('.')[1]
-    if (payloadPart) {
-      const padded = payloadPart + '='.repeat((4 - (payloadPart.length % 4)) % 4)
-      const decoded = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/')))
-      isServiceRole = decoded?.role === 'service_role'
-    }
-  } catch {
-    isServiceRole = false
-  }
-  if (!isServiceRole) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (!serviceRoleKey || !token || token !== serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

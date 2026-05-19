@@ -1,7 +1,6 @@
 import { z } from "npm:zod@4.3.6";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { errorResponse, handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
-import { requireAuthenticatedRequest } from "../_shared/request-auth.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 
@@ -10,14 +9,30 @@ const BodySchema = z.object({
   query_normalized: z.string().optional(),
   response_markdown: z.string().optional(),
 }).passthrough();
+
 Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   try {
-    const auth = await requireAuthenticatedRequest(req);
-    if (auth instanceof Response) return auth;
+    // Service-role only. The exploration cache is shared across all users,
+    // so writes must originate from trusted server-side callers (techfleet-chat
+    // edge fn, admin tooling). Any authenticated user calling this directly
+    // could poison the L3 semantic cache served to other members.
+    //
+    // We compare against the env-injected service-role key (constant-time-ish
+    // via length-checked === in JS). A JWT-decode fallback path is intentionally
+    // omitted — it was previously bypassable by anyone who could craft a JWT
+    // with role=service_role in the payload.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!serviceRoleKey || !token || token !== serviceRoleKey) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
 
     // Parse & validate body
     const rawBody = await parseJsonBody(req);
@@ -35,7 +50,6 @@ Deno.serve(withAuditWrapper("write-exploration-cache", async (req) => {
       return jsonResponse({ error: "query_normalized and response_markdown are required" }, 400);
     }
 
-    // Use service role to write to the cache
     const serviceClient = getAdminClient();
 
     const { error: upsertError } = await serviceClient
