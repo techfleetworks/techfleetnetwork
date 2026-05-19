@@ -116,13 +116,36 @@
           }
         } catch (e) { /* non-fatal */ }
 
+        // Pre-mount-only chunk-404 reloader.
+        //
+        // Firefox dispatches a bubbling `error` event on the <script> tag
+        // for EVERY failed dynamic import — including the in-flight imports
+        // that React Router fires when a user clicks a sidebar link. Chrome
+        // surfaces those failures only as promise rejections, which
+        // src/lib/lazy-with-retry.ts catches and retries. If we run this
+        // inline handler post-mount, Firefox users get reloaded to the
+        // CURRENT URL (pre-navigation) on every click of a stale chunk —
+        // looking like "every link goes back to /dashboard". This handler
+        // is therefore strictly scoped to the pre-mount window: it only
+        // fires when the very first entry bundle 404s before React has
+        // mounted. After mount, lazyWithRetry + ErrorBoundary own recovery.
         var RELOAD_KEY = '__tfn_blank_recovery_reload__';
         function isChunk404(target) {
           if (!target) return false;
           var src = target.src || target.href || '';
+          // Ignore lazyWithRetry's own cache-busted retries (?_n=… or ?__r=…).
+          if (/[?&](_n|__r)=/.test(src)) return false;
           return /\/assets\/.+\.(js|css)(\?|$)/.test(src);
         }
+        function appMounted() {
+          try {
+            return !!(window.__tfnAppMounted) ||
+              document.documentElement.getAttribute('data-tfn-mounted') === '1';
+          } catch (e) { return false; }
+        }
         window.addEventListener('error', function (ev) {
+          // Post-mount: leave it to lazyWithRetry / ErrorBoundary.
+          if (appMounted()) return;
           if (!isChunk404(ev.target)) return;
           try {
             if (sessionStorage.getItem(RELOAD_KEY)) return;
@@ -132,9 +155,17 @@
           url.searchParams.set('_r', String(Date.now()));
           window.location.replace(url.toString());
         }, true);
-        // Clear the recovery flag once the app successfully boots.
+        // Clear the recovery flag a few seconds after the app has booted
+        // (not just on `load` — load fires before React mounts and before
+        // user-initiated lazy imports can fail). Clearing on `load` was
+        // the second half of the Firefox loop: each click re-armed the
+        // guard, then another stale chunk error re-tripped it.
         window.addEventListener('load', function () {
-          try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
+          setTimeout(function () {
+            if (appMounted()) {
+              try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
+            }
+          }, 10000);
         });
 
         // NOTE: The aggressive blank-screen watchdog was removed — it was
