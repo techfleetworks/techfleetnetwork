@@ -1,76 +1,54 @@
-# Universal information architecture: bigger card titles everywhere
+## Goal
+When an admin marks an applicant as **Active Participant** ("Accepted") on a project, the Tech Fleet Discord bot posts a welcome message in channel `1506083368679379044` mentioning the new member and their project role.
 
-## The target hierarchy
-| Role | Component | Tag | Size |
-|---|---|---|---|
-| Page title | `PageTitle` | `h1` | 48 px Futura Bold |
-| Page subtitle (lede under H1) | `SubsectionTitle` | `h3` | 24 px Futura Bold |
-| **Card title** | `CardTitle` (shadcn) | **`h2`** | **36 px Futura Bold** |
-| Card subtitle | `CardDescription` (shadcn) | **`h3`** | 24 px Futura Bold |
-| Card body | `<p>` via `Body` | `p` | 16 px Poppins |
-
-## Strategy — one source of truth, not 100 page edits
-
-Instead of touching every page, **rewrite the two shadcn primitives** (`CardTitle`, `CardDescription` in `src/components/ui/card.tsx`) to render the Futura H2 / H3 styles. Every Card in the system — 57 `CardTitle` + 31 `CardDescription` usages across 32 files — automatically picks up the new architecture in a single change.
-
-For body copy inside cards, **add a lint-style audit pass** that replaces raw `<p className="text-sm/text-muted-foreground">…</p>` inside `<CardContent>` with the `<Body>` typography wrapper. Same for stray `<h3 className="...">` inside cards → `<CardDescription>`.
-
-## Step 1 — Rewrite the shadcn Card primitives (1 file)
-
-`src/components/ui/card.tsx`:
-- `CardTitle` becomes polymorphic, defaults to `h2`, renders with the same classes as `SectionTitle` (36 px Futura Bold, clamped responsive). Accept an `as` prop so the rare tight surface (popover, metric tile, dialog) can step down to `h3`/`h4` without losing semantics.
-- `CardDescription` becomes `h3` and renders with the same classes as `SubsectionTitle` (24 px Futura Bold). Same `as` escape hatch.
-- Keep export signatures identical so no import changes are needed.
-
-This alone delivers the universal hierarchy for every Card already in the system — Dashboard widgets, Recruiting Center cards, System Health tiles, Quest cards, Project cards, Application cards, Admin panels, **all of them**.
-
-## Step 2 — Triage the tight surfaces (escape hatch, ~10 files)
-
-H2 at 36 px will overflow inside small surfaces. We'll audit and apply `as="h3"` (or `h4`) only where the card is intentionally compact:
-- `src/components/ui/popover.tsx` consumers (Universal Search results, header popovers)
-- `src/components/ui/dialog.tsx` content cards (`DialogTitle` is separate — untouched)
-- System Health metric tiles (already use `CardTitle` for KPI labels — those want `as="h4"`)
-- Dashboard sidebar widgets (`NotificationsBell`, `ConnectivityPill` cards)
-- Sidebar collapsed widgets
-
-We'll grep for `<CardTitle` in each, screenshot-spot-check, and add `as="h3"` / `as="h4"` only where the visual breaks. All others stay default H2.
-
-## Step 3 — Card body copy: replace raw `<p>` with `<Body>` (audit pass)
-
-Run a scoped grep across all files that import from `@/components/ui/card`:
+## Message format
 ```
-rg -l "from \"@/components/ui/card\"" src
+<@DISCORD_USER_ID> welcome to the <@&PROJECT_ROLE_ID>
+
+Say hello to your teammates in the project channels!
+
+We will start onboarding soon.
+
+Please go to <id:browse> to set the project channels in your menu.
+
+Watch this video on how to do this: https://www.youtube.com/watch?v=ht35r4GSwoY
 ```
-For each, replace patterns like:
-- `<p className="text-sm text-muted-foreground">` inside `<CardContent>` → `<Body className="text-muted-foreground">`
-- `<p className="text-xs ...">` for metadata → `<Caption>`
-- Raw `<h3>`/`<h4>` inside cards → `<CardDescription>` or `<SubsectionTitle>`
+- `<@USER_ID>` pings the new member.
+- `<@&ROLE_ID>` renders as the project role name as a colored mention (e.g. "@Design Researcher — Lewis Foundation").
+- `<id:browse>` is Discord's native deep-link to the server's **Channels & Roles** picker.
 
-This is mechanical. We do it in batches by page area:
-1. Landing + Auth (already done — reference)
-2. Dashboard + Journey (active projects, quests, certifications, profile)
-3. Project Openings + Applications + Status pages
-4. Admin: Recruiting Center, Applications Review, Clients & Projects, Class Approval, Banner Management, Project Blasts
-5. System Health (Triage, Fleety, Performance, Privacy, Email, Content tabs)
-6. Resources (Guidance, Explore, Handbooks, Templates) + Events + Network Activity
-7. Feedback, Unsubscribe, Privacy/Cookies/Accessibility, DSAR, Account settings, Notifications management
+## Where it hooks in
+Existing path: `supabase/functions/notify-applicant-status/index.ts` already runs section "5. Discord role assignment for active_participant" when status flips to `active_participant`. We piggyback on the same gate so the welcome post only fires once, in the same flow, with no new RPC/cron.
 
-## Step 4 — Single ESLint rule + smoke test to lock it in
+## Implementation (1 file edit, 0 new tables)
 
-- Add an ESLint rule `tf-typography/no-raw-headings-in-cards` that flags raw `<h1..h6>` and `<p>` with size classes inside any `<CardContent>` / `<CardHeader>` block, suggesting the right typography component.
-- Add a smoke test `src/test/smoke/card-typography.smoke.test.tsx` that mounts each Card primitive and asserts `CardTitle` renders as `<h2>` and `CardDescription` as `<h3>` by default.
+**Edit `supabase/functions/notify-applicant-status/index.ts`**
+- Add constant `WELCOME_CHANNEL_ID = "1506083368679379044"`.
+- Inside the existing `if (newStatus === 'active_participant')` block, right after a successful `assignDiscordRole` (so we don't welcome someone whose Discord linkage failed), call a new local helper `postProjectWelcome(...)`.
+- Helper does:
+  - `POST https://discord.com/api/v10/channels/${WELCOME_CHANNEL_ID}/messages` via the shared `discordFetch` wrapper (auto-retry, circuit-breaker logging).
+  - `Authorization: Bot ${DISCORD_BOT_TOKEN}` (already a project secret).
+  - Body: `{ content, allowed_mentions: { parse: ["users", "roles"] } }` so the user + role mentions actually ping, but `@everyone`/`@here` cannot be injected.
+- Idempotency: write an `audit_log` event `discord_welcome_posted` keyed on `application_id`; before posting, query for an existing row and skip if found. Prevents duplicate welcomes when an admin toggles status back and forth.
+- Failure handling: wrap in try/catch, log `discord_welcome_post_failed` to audit, never throw — same non-blocking pattern used by the role-assignment block above it.
 
-This guarantees no future page can drift out of the standard.
+## Edge cases handled
+- **No `discord_role_id` on project** → skip welcome (no role to mention; message would be meaningless).
+- **No `discord_user_id` on applicant** → skip welcome (already blocked upstream by `ApplicantStatusDropdown` pre-flight, but defensive).
+- **Discord API 5xx / rate limit** → `discordFetch` retries with backoff; final failure emits `external_api_failure` and `discord_welcome_post_failed` audit rows surfaced in System Health → Triage.
+- **Status re-set to Active Participant after rollback** → idempotency check on audit log prevents double-posting.
+- **Webhook flood prevention** → reuses existing per-request audit-wrapper rate limiting; no new endpoint exposed.
+
+## BDD scenarios (added to `bdd_scenarios` table)
+- `DISCORD-WELCOME-001` Successful welcome post on first acceptance — [UI] toast confirms, [DB] `audit_log` has `discord_welcome_posted`, [Code] `discordFetch` returns 200.
+- `DISCORD-WELCOME-002` Idempotency on re-acceptance — second flip to Active Participant does NOT post again — [DB] only one `discord_welcome_posted` row per application.
+- `DISCORD-WELCOME-003` Missing project role gracefully skips — [DB] no `discord_welcome_posted` row, no failure log.
+- `DISCORD-WELCOME-004` Discord API failure logs and does not block status change — [UI] status still updates, [DB] `discord_welcome_post_failed` audit row, [Code] `external_api_failure` emitted for Triage.
 
 ## Out of scope
-- The two `typography.tsx` exports (`Display`, `PageTitle`, `SectionTitle`, `SubsectionTitle`, `CardTitle`, `Lede`, `Body`, `BodySmall`, `Caption`) stay as-is — they're already correct. We only rewire the shadcn Card primitives to reuse those styles.
-- No color, spacing, or layout changes.
-- AG Grid headers, sidebar nav labels, toast titles, and form field labels are not "card titles" and stay on their current sizes.
+- New table, new edge function, new cron — none needed.
+- Changing the existing role-assignment flow, agreement trigger, or notification emails.
+- Per-project welcome-channel override (one global channel for now per your request).
 
-## Effort estimate
-- Step 1 (primitives): ~5 min, 1 file, zero risk if the `as` escape hatch is added simultaneously.
-- Step 2 (tight-surface overrides): ~15 min after visual spot-check.
-- Step 3 (raw `<p>`/`<h*>` → typography components across pages): the big chunk — done in batches per area, ~30 files touched.
-- Step 4 (lint + smoke): ~10 min, locks the standard.
-
-Total: one shipped change set covering every page in the system, with a guardrail that prevents regression.
+## Effort
+~15 min: one helper + one call site + idempotency check + 4 BDD rows. Tested via `supabase--curl_edge_functions` against a test applicant.
