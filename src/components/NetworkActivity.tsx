@@ -227,7 +227,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
               <StatCard icon={<PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.projects_live} label="Live" colorClass="bg-primary/10" />
             </div>
 
-            <div className="border-t pt-8">
+            <div className="pt-8">
               <div className="mb-9">
                 <SectionTitle className="text-center sm:text-left">Past 7 Days</SectionTitle>
                 {safeStats.prev_week_start && safeStats.prev_week_end && (
@@ -249,7 +249,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
         )}
 
         {showMap && (
-          <div className={showActivity ? "border-t pt-8 mt-8" : ""}>
+          <div className={showActivity ? "pt-8 mt-8" : ""}>
             <Suspense fallback={<MapFallback />}>
               <MemberWorldMap />
             </Suspense>
