@@ -18,6 +18,7 @@ import {
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
+import { PageTitle } from "@/components/ui/typography";
 
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
