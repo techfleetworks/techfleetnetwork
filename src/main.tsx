@@ -49,3 +49,13 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </HelmetProvider>
 );
+
+// Beacon read by the inline pre-mount chunk-404 reloader in index.html.
+// Once set, that handler becomes a no-op so Firefox's bubbled error
+// events from in-flight dynamic imports cannot reload the page to a
+// stale pre-navigation URL (the "every click goes back to /dashboard"
+// Firefox bug). lazyWithRetry + ErrorBoundary take over from here.
+try {
+  (window as unknown as { __tfnAppMounted?: boolean }).__tfnAppMounted = true;
+  document.documentElement.setAttribute("data-tfn-mounted", "1");
+} catch { /* non-fatal */ }
