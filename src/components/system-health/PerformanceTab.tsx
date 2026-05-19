@@ -109,10 +109,10 @@ export function PerformanceTab() {
 }
 
 function PerformanceByRouteTab() {
-  const [windowHours, setWindowHours] = useState("24");
+  const [windowHours, setWindowHours] = useState("1");
   const numericWindow = useMemo(() => Number.parseInt(windowHours, 10) || 24, [windowHours]);
 
-  const { data, isLoading, isFetching, refetch, error } = useQuery({
+  const { data, isLoading, isFetching, refetch, error, dataUpdatedAt } = useQuery({
     queryKey: ["web-vitals-p75", numericWindow],
     queryFn: async (): Promise<VitalRow[]> => {
       const { data, error } = await supabase.rpc("web_vitals_p75", {
@@ -121,9 +121,10 @@ function PerformanceByRouteTab() {
       if (error) throw error;
       return (data ?? []) as VitalRow[];
     },
-    staleTime: 60_000,
+    staleTime: 0,
     refetchOnWindowFocus: false,
   });
+
 
   // Group rows by route for a scannable two-level view.
   const grouped = useMemo(() => {
