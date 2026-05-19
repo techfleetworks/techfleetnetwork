@@ -156,6 +156,11 @@ function PerformanceByRouteTab() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            {dataUpdatedAt ? (
+              <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+                Updated {new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}
+              </span>
+            ) : null}
             <Select value={windowHours} onValueChange={setWindowHours}>
               <SelectTrigger className="w-[160px]" aria-label="Time window">
                 <SelectValue />
@@ -178,6 +183,7 @@ function PerformanceByRouteTab() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} aria-hidden="true" />
             </Button>
           </div>
+
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
