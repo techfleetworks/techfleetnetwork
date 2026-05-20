@@ -248,7 +248,8 @@ export default function SystemHealthPage() {
         <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>
         <TabsContent value="incidents"><IncidentsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="space-y-4">
+          <StatsControlsCard />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">Processing controls</CardTitle>
