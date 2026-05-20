@@ -13,6 +13,7 @@ import {
 } from "@/services/discord-notify.service";
 import { JourneyService } from "@/services/journey.service";
 import { toast } from "sonner";
+import { isUsableDiscordUsername, normalizeDiscordSearchInput } from "@/lib/discord/username";
 
 const TASK_ID = "connect-discord";
 const PHASE = "first_steps" as const;
@@ -39,10 +40,9 @@ function formatDiscordAccountLabel(account: {
 }
 
 function normalizeDiscordUsername(raw: string): string {
-  let name = raw.trim();
-  if (name.startsWith("@")) name = name.slice(1);
-  if (!name.startsWith(".")) name = `.${name}`;
-  return name;
+  // Uses the shared helper. NEVER prepends "." — that legacy behavior produced
+  // stored usernames like ".alice" (or just ".") and rendered as "@." in the UI.
+  return normalizeDiscordSearchInput(raw);
 }
 
 export function ProfileDiscordConnector() {
@@ -211,7 +211,12 @@ export function ProfileDiscordConnector() {
       {isLinked ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Connected as <strong className="text-foreground">@{linkedDiscordUsername || profile?.discord_username}</strong>.
+            {(() => {
+              const candidate = linkedDiscordUsername || profile?.discord_username;
+              return isUsableDiscordUsername(candidate)
+                ? <>Connected as <strong className="text-foreground">@{candidate}</strong>.</>
+                : <>Connected to Discord. <span className="text-foreground/70">Your username will refresh automatically.</span></>;
+            })()}
           </p>
           <Button type="button" variant="outline" size="sm" onClick={() => setRelinking(true)}>
             Re-link a different account

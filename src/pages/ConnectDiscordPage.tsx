@@ -41,6 +41,7 @@ import { JourneyService } from "@/services/journey.service";
 import { useJourneyProgress } from "@/hooks/use-journey-progress";
 import { useQueryClient } from "@/lib/react-query";
 import { toast } from "sonner";
+import { isUsableDiscordUsername, normalizeDiscordSearchInput } from "@/lib/discord/username";
 
 const TASK_ID = "connect-discord";
 const PHASE = "first_steps" as const;
@@ -172,16 +173,10 @@ export default function ConnectDiscordPage() {
     }
   };
 
-  const normalizeDiscordUsername = (raw: string): string => {
-    let name = raw.trim();
-    if (name.startsWith("@")) {
-      name = name.slice(1);
-    }
-    if (!name.startsWith(".")) {
-      name = "." + name;
-    }
-    return name;
-  };
+  // Uses the shared helper. NEVER prepends "." — the legacy dot-prepend produced
+  // stored usernames like ".alice" (or just ".") and broke the profile label as "@."
+  // for affected members.
+  const normalizeDiscordUsername = (raw: string): string => normalizeDiscordSearchInput(raw);
 
   const assignCommunityRole = async (discordUserId: string) => {
     const {
@@ -428,7 +423,10 @@ export default function ConnectDiscordPage() {
             <p className="text-sm text-muted-foreground">
               Your Discord account{" "}
               <strong className="text-foreground">
-                @{linkedDiscordUsername || profile?.discord_username || username}
+                {(() => {
+                  const candidate = linkedDiscordUsername || profile?.discord_username || username;
+                  return isUsableDiscordUsername(candidate) ? `@${candidate}` : "Connected to Discord";
+                })()}
               </strong>{" "}
               is linked to your Tech Fleet Network profile.
             </p>

@@ -3255,7 +3255,7 @@ export type Database = {
           discord_invite_created_at: string | null
           discord_invite_url: string
           discord_user_id: string
-          discord_username: string
+          discord_username: string | null
           display_name: string
           education_background: string[]
           electronic_comms_consent_at: string | null
@@ -3301,7 +3301,7 @@ export type Database = {
           discord_invite_created_at?: string | null
           discord_invite_url?: string
           discord_user_id?: string
-          discord_username?: string
+          discord_username?: string | null
           display_name?: string
           education_background?: string[]
           electronic_comms_consent_at?: string | null
@@ -3347,7 +3347,7 @@ export type Database = {
           discord_invite_created_at?: string | null
           discord_invite_url?: string
           discord_user_id?: string
-          discord_username?: string
+          discord_username?: string | null
           display_name?: string
           education_background?: string[]
           electronic_comms_consent_at?: string | null
