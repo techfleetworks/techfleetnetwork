@@ -4,6 +4,14 @@ import { handleServiceError } from "@/lib/service-result";
 
 const log = createLogger("StatsService");
 
+export interface HistoricalStats {
+  general_applications_pre_platform: number;
+  service_leadership_unique: number;
+  masterclass_total: number;
+  masterclass_minus_servlead: number;
+  last_synced_at: string | null;
+}
+
 export interface NetworkStats {
   total_signups: number;
   core_courses_active: number;
@@ -23,12 +31,17 @@ export interface NetworkStats {
   projects_coming_soon: number;
   projects_live: number;
   projects_previously_completed: number;
+  historical?: HistoricalStats;
 }
 
-// v2 — cache key bumped 2026-05-06 to evict stale payloads that were sticking
-// around for up to 7 days and making the widget look frozen ("1 sign-up today").
-const CACHE_KEY = "tfn:network-stats:last-known:v2";
-const LEGACY_CACHE_KEYS = ["tfn:network-stats:last-known:v1"];
+// v3 — cache key bumped 2026-05-20: snapshot-backed RPC now returns a
+// `historical` block; evict prior payloads so the UI never renders a stale
+// shape missing the Historical (pre-platform) section.
+const CACHE_KEY = "tfn:network-stats:last-known:v3";
+const LEGACY_CACHE_KEYS = [
+  "tfn:network-stats:last-known:v1",
+  "tfn:network-stats:last-known:v2",
+];
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day — fallback only, not a freshness window
 
 export interface CachedNetworkStats {

@@ -14,6 +14,7 @@ import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
+import { StatsControlsCard } from "@/components/admin/StatsControlsCard";
 import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
@@ -248,7 +249,8 @@ export default function SystemHealthPage() {
         <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>
         <TabsContent value="incidents"><IncidentsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="space-y-4">
+          <StatsControlsCard />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">Processing controls</CardTitle>

@@ -5812,6 +5812,7 @@ export type Database = {
       admin_2fa_grace_active: { Args: { _user_id: string }; Returns: boolean }
       admin_2fa_grace_deadline: { Args: { _user_id: string }; Returns: string }
       admin_recompute_stats: { Args: never; Returns: Json }
+      admin_reconcile_parity: { Args: never; Returns: Json }
       admin_set_test_account: {
         Args: { _is_test: boolean; _user_id: string }
         Returns: undefined
@@ -6461,6 +6462,7 @@ export type Database = {
       }
       recompute_all_stats: { Args: never; Returns: Json }
       reconcile_account_orphans: { Args: never; Returns: Json }
+      reconcile_course_badge_parity: { Args: never; Returns: Json }
       record_failed_login: {
         Args: { _email: string; _ip?: string; _user_agent?: string }
         Returns: Json
