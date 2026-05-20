@@ -20,6 +20,7 @@ export interface UserRow {
   isTeacher: boolean;
   pendingPromotion: boolean;
   pendingTeacher: boolean;
+  isTestAccount?: boolean;
 }
 
 interface UserActionsDropdownProps {
