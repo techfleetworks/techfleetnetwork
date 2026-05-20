@@ -14,6 +14,7 @@ import { useSystemHealthRealtime } from "@/hooks/use-system-health-realtime";
 import { SystemHealthService, type EmailPipelineLog } from "@/services/system-health.service";
 import { FleetyHealthTab } from "@/components/admin/FleetyHealthTab";
 import { ContentGapsTab } from "@/components/admin/ContentGapsTab";
+import { StatsControlsCard } from "@/components/admin/StatsControlsCard";
 import { SilentFailuresTab } from "@/components/admin/SilentFailuresTab";
 import { AuditPressureTab } from "@/components/system-health/AuditPressureTab";
 import { TriageTab } from "@/components/system-health/TriageTab";
