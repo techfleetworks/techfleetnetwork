@@ -154,7 +154,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
             {typeof course.otherCompleters === "number" && (
               <p
                 className="flex items-center gap-1.5 text-xs text-muted-foreground mt-3"
-                aria-label={`${course.otherCompleters} other members have completed this course`}
+                aria-label={`${course.otherCompleters} members have completed this course`}
               >
                 <Users className="h-3 w-3" aria-hidden="true" />
                 <span>{formatCompleters(course.otherCompleters, isComplete)}</span>
