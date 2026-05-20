@@ -40,10 +40,9 @@ function formatDiscordAccountLabel(account: {
 }
 
 function normalizeDiscordUsername(raw: string): string {
-  let name = raw.trim();
-  if (name.startsWith("@")) name = name.slice(1);
-  if (!name.startsWith(".")) name = `.${name}`;
-  return name;
+  // Uses the shared helper. NEVER prepends "." — that legacy behavior produced
+  // stored usernames like ".alice" (or just ".") and rendered as "@." in the UI.
+  return normalizeDiscordSearchInput(raw);
 }
 
 export function ProfileDiscordConnector() {
