@@ -62,6 +62,12 @@ export default function UserAdminPage() {
         .is("confirmed_at", null);
       const pendingTeacherIds = new Set(((teacherPromos as { user_id: string }[] | null) || []).map((p) => p.user_id));
 
+      const { data: testFlags } = await supabase
+        .from("profiles")
+        .select("user_id, is_test_account")
+        .eq("is_test_account", true);
+      const testIds = new Set(((testFlags as { user_id: string }[] | null) || []).map((r) => r.user_id));
+
       const rows: UserRow[] = (profiles || []).map((p) => ({
         user_id: p.user_id,
         email: p.email,
@@ -73,6 +79,7 @@ export default function UserAdminPage() {
         isTeacher: teacherIds.has(p.user_id),
         pendingPromotion: pendingIds.has(p.user_id),
         pendingTeacher: pendingTeacherIds.has(p.user_id),
+        isTestAccount: testIds.has(p.user_id),
       }));
       setUsers(rows);
 
