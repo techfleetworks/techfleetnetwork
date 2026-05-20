@@ -164,7 +164,7 @@ export function TurnstileChallenge({ action, onTokenChange, failureCount = 0 }: 
   })();
 
   return (
-    <div className="rounded-md border border-border bg-muted/40 p-3" role="group" aria-label="Human verification">
+    <div data-no-card className="rounded-md border border-border bg-muted/40 p-3" role="group" aria-label="Human verification">
       <div ref={containerRef} className={retrySeconds > 0 ? "min-h-[65px] pointer-events-none opacity-60" : "min-h-[65px]"} />
       {!scriptReady && <p className="text-sm text-muted-foreground" aria-live="polite">Loading verification…</p>}
       {errorMessage && (
