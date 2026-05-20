@@ -22,6 +22,8 @@ const BANNED = [
   { re: /\bdumb\b/gi,        fix: null,        msg: 'Avoid ableist "dumb" — pick a precise word.' },
   { re: /\bsuffers from\b/gi, fix: null,       msg: 'Avoid victimizing language — say "lives with" or rewrite.' },
   { re: /\bblind to\b/gi,    fix: null,        msg: 'Avoid metaphorical "blind to" — try "unaware of".' },
+  { re: /\bservant[- ]leadership\b/gi, fix: 'service leadership', msg: 'Tech Fleet uses "service leadership", not "servant leadership".' },
+  { re: /\bservant leaders?\b/gi,       fix: 'service leader',    msg: 'Tech Fleet uses "service leader(s)", not "servant leader(s)".' },
 ];
 
 // Warnings — surface but don't block. Context is hard to detect so we
