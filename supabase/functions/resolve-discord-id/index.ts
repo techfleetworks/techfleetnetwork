@@ -169,6 +169,27 @@ serve(withAuditWrapper("resolve-discord-id", async (req) => {
       const member = await confirmRes.json() as DiscordMember;
       const confirmedUsername = member.user?.username ?? "";
       const confirmedDisplayName = discordDisplayName(member);
+
+      // Layer 3: refuse to persist empty / dot-only usernames. Without this guard
+      // the profile would render as "@" or "@." in every UI surface.
+      const usernameCore = confirmedUsername.trim().replace(/^\.+/, "").trim();
+      if (!confirmedUsername || confirmedUsername === "." || usernameCore.length === 0) {
+        log.error("resolve", `Discord returned unusable username for ${confirm_user_id} [${requestId}]`, { requestId, confirm_user_id, raw: confirmedUsername });
+        try {
+          await adminClient.rpc("write_audit_log", {
+            p_event_type: "discord_link_rejected_empty_username",
+            p_table_name: "profiles",
+            p_record_id: userId,
+            p_user_id: userId,
+            p_error_message: `Discord returned empty/dot-only username for discord_user_id=${confirm_user_id}`,
+            p_changed_fields: [`raw:${confirmedUsername}`],
+          });
+        } catch { /* swallow */ }
+        return new Response(
+          JSON.stringify({ discord_user_id: null, error: "Discord did not return a usable username — please retry in a moment." }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const { data: claimedProfiles, error: claimedError } = await adminClient
         .from("profiles")
         .select("user_id, display_name, discord_user_id, discord_username")
