@@ -5815,7 +5815,7 @@ export type Database = {
       admin_reconcile_parity: { Args: never; Returns: Json }
       admin_set_test_account: {
         Args: { _is_test: boolean; _user_id: string }
-        Returns: undefined
+        Returns: boolean
       }
       approve_and_publish_class: {
         Args: { p_class_id: string }
