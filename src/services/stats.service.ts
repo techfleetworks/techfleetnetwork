@@ -9,6 +9,8 @@ export interface HistoricalStats {
   service_leadership_unique: number;
   masterclass_total: number;
   masterclass_minus_servlead: number;
+  historical_beginner_courses: number;
+  historical_advanced_courses: number;
   last_synced_at: string | null;
 }
 
