@@ -38,7 +38,7 @@ export function DiscordRepairTab() {
         description: data
           ? `Scanned ${data.scanned} • Repaired ${data.repaired} • Skipped ${data.skipped_unchanged + data.skipped_discord_dot_legit}`
           : "Repair complete",
-        variant: "success",
+        variant: "default",
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
