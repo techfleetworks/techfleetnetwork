@@ -13,6 +13,7 @@ import {
 } from "@/services/discord-notify.service";
 import { JourneyService } from "@/services/journey.service";
 import { toast } from "sonner";
+import { isUsableDiscordUsername, normalizeDiscordSearchInput } from "@/lib/discord/username";
 
 const TASK_ID = "connect-discord";
 const PHASE = "first_steps" as const;
