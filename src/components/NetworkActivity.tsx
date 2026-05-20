@@ -36,10 +36,11 @@ interface StatCardProps {
   icon?: React.ReactNode;
   value: number;
   label: string;
+  sublabel?: string;
   colorClass?: string;
 }
 
-const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
+const StatCard = memo(function StatCard({ value, label, sublabel }: StatCardProps) {
   return (
     <div
       className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
@@ -67,6 +68,14 @@ const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
       >
         {label}
       </p>
+      {sublabel ? (
+        <p
+          className="mt-1 text-[0.7rem] leading-tight max-w-[90%] opacity-80"
+          style={{ color: "var(--tf-stat-label, var(--tf-stat-text))" }}
+        >
+          {sublabel}
+        </p>
+      ) : null}
     </div>
   );
 });
@@ -212,7 +221,7 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
             <div className="grid grid-cols-1 min-[560px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-start mb-10">
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="Platform Signups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" colorClass="bg-warning/10" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" sublabel={safeStats.distinct_course_completers ? `across ${safeStats.distinct_course_completers} members` : undefined} colorClass="bg-warning/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
               <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.applications_completed} label="General Applications Completed" colorClass="bg-success/10" />

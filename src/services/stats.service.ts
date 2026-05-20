@@ -15,6 +15,7 @@ export interface HistoricalStats {
 export interface NetworkStats {
   total_signups: number;
   core_courses_active: number;
+  distinct_course_completers?: number;
   beginner_courses_active: number;
   advanced_courses_active: number;
   applications_completed: number;
