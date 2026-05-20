@@ -23,6 +23,7 @@ import { PerformanceByBrowserTab } from "@/components/system-health/PerformanceB
 import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
 import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 import { ProjectBlastsHealthCard } from "@/components/system-health/ProjectBlastsHealthCard";
+import { DiscordRepairTab } from "@/components/system-health/DiscordRepairTab";
 import { PageTitle } from "@/components/ui/typography";
 
 const FIVE_MIN = 5 * 60 * 1000;
@@ -211,6 +212,7 @@ export default function SystemHealthPage() {
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="incidents">Incidents</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
+          <TabsTrigger value="discord">Discord</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -249,6 +251,7 @@ export default function SystemHealthPage() {
         <TabsContent value="privacy"><PrivacyRequestsTab /></TabsContent>
         <TabsContent value="incidents"><IncidentsTab /></TabsContent>
         <TabsContent value="audit"><AuditPressureTab /></TabsContent>
+        <TabsContent value="discord"><DiscordRepairTab /></TabsContent>
         <TabsContent value="settings" className="space-y-4">
           <StatsControlsCard />
           <Card>
