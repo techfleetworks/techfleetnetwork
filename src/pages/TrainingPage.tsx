@@ -49,15 +49,13 @@ interface CourseCard {
   otherCompleters?: number;
 }
 
-function formatCompleters(n: number, viewerCompleted: boolean): string {
-  if (n <= 0) {
-    return viewerCompleted
-      ? "You're the first to complete this"
-      : "Be the first to complete this";
-  }
-  if (n === 1) return "Completed by 1 other member";
-  return `Completed by ${n.toLocaleString()} other members`;
+function formatCompleters(n: number, _viewerCompleted: boolean): string {
+  // v4: count is total (includes viewer) per course_completion_stats.
+  if (n <= 0) return "No one has completed this yet";
+  if (n === 1) return "1 member completed this course";
+  return `${n.toLocaleString()} members completed this course`;
 }
+
 
 function CourseGrid({ courses }: { courses: CourseCard[] }) {
   if (courses.length === 0) {
@@ -156,7 +154,7 @@ function CourseGrid({ courses }: { courses: CourseCard[] }) {
             {typeof course.otherCompleters === "number" && (
               <p
                 className="flex items-center gap-1.5 text-xs text-muted-foreground mt-3"
-                aria-label={`${course.otherCompleters} other members have completed this course`}
+                aria-label={`${course.otherCompleters} members have completed this course`}
               >
                 <Users className="h-3 w-3" aria-hidden="true" />
                 <span>{formatCompleters(course.otherCompleters, isComplete)}</span>
