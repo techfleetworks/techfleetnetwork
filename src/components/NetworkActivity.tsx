@@ -119,7 +119,7 @@ interface NetworkActivityProps {
 
 export const NetworkActivity = memo(function NetworkActivity({ showMap = true, showActivity = true }: NetworkActivityProps) {
   const { data: stats, isError, isLoading: loading } = useQuery({
-    queryKey: ["network-stats", "v3"],
+    queryKey: ["network-stats", "v4"],
     queryFn: () => StatsService.getNetworkStats(),
     staleTime: 60 * 1000, // 1 min — keep numbers fresh on the landing page
     refetchInterval: 2 * 60 * 1000, // refresh every 2 min while mounted
@@ -222,8 +222,8 @@ export const NetworkActivity = memo(function NetworkActivity({ showMap = true, s
               <StatCard icon={<UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.total_signups} label="Platform Signups" colorClass="bg-primary/10" />
               <StatCard icon={<MessageCircle className="h-5 w-5 text-info" aria-hidden="true" />} value={discordStats?.member_count ?? 0} label="Discord Members" colorClass="bg-info/10" />
               <StatCard icon={<BookOpen className="h-5 w-5 text-warning" aria-hidden="true" />} value={safeStats.core_courses_active} label="Core Course Completions" sublabel={safeStats.distinct_course_completers ? `across ${safeStats.distinct_course_completers} members` : undefined} colorClass="bg-warning/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={safeStats.beginner_courses_active} label="Beginner Course Completions" colorClass="bg-info/10" />
-              <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={safeStats.advanced_courses_active} label="Advanced Course Completions" colorClass="bg-accent/50" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-info" aria-hidden="true" />} value={(safeStats.historical?.historical_beginner_courses ?? 0) + (safeStats.beginner_courses_active ?? 0)} label="Beginner course registrations" sublabel={`+${safeStats.beginner_courses_active ?? 0} since platform launch`} colorClass="bg-info/10" />
+              <StatCard icon={<BookOpen className="h-5 w-5 text-accent-foreground" aria-hidden="true" />} value={(safeStats.historical?.historical_advanced_courses ?? 0) + (safeStats.advanced_courses_active ?? 0)} label="Advanced course registrations" sublabel={`+${safeStats.advanced_courses_active ?? 0} since platform launch`} colorClass="bg-accent/50" />
               <StatCard icon={<FileCheck className="h-5 w-5 text-success" aria-hidden="true" />} value={safeStats.applications_completed} label="General Applications Completed" colorClass="bg-success/10" />
               <StatCard icon={<Award className="h-5 w-5 text-primary" aria-hidden="true" />} value={safeStats.badges_earned} label="Badges Earned" colorClass="bg-primary/10" />
             </div>

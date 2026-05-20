@@ -9,6 +9,8 @@ export interface HistoricalStats {
   service_leadership_unique: number;
   masterclass_total: number;
   masterclass_minus_servlead: number;
+  historical_beginner_courses: number;
+  historical_advanced_courses: number;
   last_synced_at: string | null;
 }
 
@@ -35,13 +37,15 @@ export interface NetworkStats {
   historical?: HistoricalStats;
 }
 
-// v3 — cache key bumped 2026-05-20: snapshot-backed RPC now returns a
-// `historical` block; evict prior payloads so the UI never renders a stale
-// shape missing the Historical (pre-platform) section.
-const CACHE_KEY = "tfn:network-stats:last-known:v3";
+// v4 — cache key bumped 2026-05-20: HistoricalStats now includes
+// historical_beginner_courses + historical_advanced_courses so the home/dashboard
+// Beginner & Advanced cards render the Airtable carry-over numbers. Evict prior
+// payloads so no client renders a stale shape missing these fields.
+const CACHE_KEY = "tfn:network-stats:last-known:v4";
 const LEGACY_CACHE_KEYS = [
   "tfn:network-stats:last-known:v1",
   "tfn:network-stats:last-known:v2",
+  "tfn:network-stats:last-known:v3",
 ];
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day — fallback only, not a freshness window
 
