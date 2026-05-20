@@ -36,10 +36,11 @@ interface StatCardProps {
   icon?: React.ReactNode;
   value: number;
   label: string;
+  sublabel?: string;
   colorClass?: string;
 }
 
-const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
+const StatCard = memo(function StatCard({ value, label, sublabel }: StatCardProps) {
   return (
     <div
       className="flex aspect-square w-full max-w-[190px] flex-col items-center justify-center text-center overflow-hidden p-4"
@@ -67,6 +68,14 @@ const StatCard = memo(function StatCard({ value, label }: StatCardProps) {
       >
         {label}
       </p>
+      {sublabel ? (
+        <p
+          className="mt-1 text-[0.7rem] leading-tight max-w-[90%] opacity-80"
+          style={{ color: "var(--tf-stat-label, var(--tf-stat-text))" }}
+        >
+          {sublabel}
+        </p>
+      ) : null}
     </div>
   );
 });
