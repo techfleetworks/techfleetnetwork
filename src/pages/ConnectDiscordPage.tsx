@@ -172,16 +172,10 @@ export default function ConnectDiscordPage() {
     }
   };
 
-  const normalizeDiscordUsername = (raw: string): string => {
-    let name = raw.trim();
-    if (name.startsWith("@")) {
-      name = name.slice(1);
-    }
-    if (!name.startsWith(".")) {
-      name = "." + name;
-    }
-    return name;
-  };
+  // Uses the shared helper. NEVER prepends "." — the legacy dot-prepend produced
+  // stored usernames like ".alice" (or just ".") and broke the profile label as "@."
+  // for affected members.
+  const normalizeDiscordUsername = (raw: string): string => normalizeDiscordSearchInput(raw);
 
   const assignCommunityRole = async (discordUserId: string) => {
     const {
