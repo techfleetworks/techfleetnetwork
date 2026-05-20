@@ -182,7 +182,7 @@ export function DiscordRolePicker({
 
       {/* Search mode */}
       {mode === "search" && (
-        <div className="space-y-2 rounded-md border bg-popover p-3">
+        <div data-no-card className="space-y-2 rounded-md border bg-popover p-3">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
