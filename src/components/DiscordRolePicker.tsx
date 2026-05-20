@@ -257,7 +257,7 @@ export function DiscordRolePicker({
 
       {/* Create mode */}
       {mode === "create" && (
-        <div className="space-y-2 rounded-md border bg-popover p-3">
+        <div data-no-card className="space-y-2 rounded-md border bg-popover p-3">
           <Label htmlFor="new-role-name" className="text-xs">
             New Role Name
           </Label>
