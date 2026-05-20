@@ -23,6 +23,7 @@ import { PerformanceByBrowserTab } from "@/components/system-health/PerformanceB
 import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
 import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 import { ProjectBlastsHealthCard } from "@/components/system-health/ProjectBlastsHealthCard";
+import { DiscordRepairTab } from "@/components/system-health/DiscordRepairTab";
 import { PageTitle } from "@/components/ui/typography";
 
 const FIVE_MIN = 5 * 60 * 1000;
