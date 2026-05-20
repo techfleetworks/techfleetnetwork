@@ -41,6 +41,7 @@ import { JourneyService } from "@/services/journey.service";
 import { useJourneyProgress } from "@/hooks/use-journey-progress";
 import { useQueryClient } from "@/lib/react-query";
 import { toast } from "sonner";
+import { isUsableDiscordUsername, normalizeDiscordSearchInput } from "@/lib/discord/username";
 
 const TASK_ID = "connect-discord";
 const PHASE = "first_steps" as const;
