@@ -324,6 +324,48 @@ export default function UserAdminPage() {
       },
     },
     {
+      headerName: "Test acct",
+      field: "isTestAccount",
+      flex: 1,
+      headerTooltip: "Excludes this account from public network activity totals.",
+      valueGetter: (params) => (params.data?.isTestAccount ? "Yes" : "No"),
+      cellRenderer: (params: ICellRendererParams<UserRow>) => {
+        const row = params.data;
+        if (!row) return null;
+        const isTest = !!row.isTestAccount;
+        return (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isTest}
+            aria-label={`Toggle test account for ${row.email}`}
+            onClick={async () => {
+              try {
+                const { error } = await supabase.rpc("admin_set_test_account", {
+                  _user_id: row.user_id,
+                  _is_test: !isTest,
+                });
+                if (error) throw error;
+                setUsers((prev) =>
+                  prev.map((u) => (u.user_id === row.user_id ? { ...u, isTestAccount: !isTest } : u)),
+                );
+                toast.success(!isTest ? "Marked as test account" : "Removed test account flag");
+              } catch (e) {
+                toast.error((e as Error)?.message || "Couldn't update test account flag");
+              }
+            }}
+            className={`text-xs font-medium px-2 py-0.5 rounded ${
+              isTest
+                ? "bg-warning/15 text-warning hover:bg-warning/25"
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
+            }`}
+          >
+            {isTest ? "Yes" : "No"}
+          </button>
+        );
+      },
+    },
+    {
       headerName: "Actions",
       sortable: false,
       filter: false,
