@@ -32,7 +32,7 @@ export function StatsControlsCard() {
       if (error) throw error;
       await qc.invalidateQueries({ queryKey: ["network-stats"] });
       setLastReport(`Recomputed at ${new Date().toLocaleString()}`);
-      toast({ title: "Stats recomputed", description: "Network activity numbers rebuilt from source.", variant: "success" });
+      toast({ title: "Stats recomputed", description: "Network activity numbers rebuilt from source.", variant: "default" });
     } catch (err) {
       toast({ title: "Recompute failed", description: (err as Error)?.message ?? "Unknown error", variant: "destructive" });
     } finally {
@@ -49,11 +49,11 @@ export function StatsControlsCard() {
       const drift = report?.drift_count ?? 0;
       if (drift === 0) {
         setLastReport(`Parity verified at ${new Date().toLocaleString()} — no drift.`);
-        toast({ title: "Parity verified", description: "Course completions, badges, and snapshots all agree.", variant: "success" });
+        toast({ title: "Parity verified", description: "Course completions, badges, and snapshots all agree.", variant: "default" });
       } else {
         await qc.invalidateQueries({ queryKey: ["network-stats"] });
         setLastReport(`Drift detected (${drift}) and auto-corrected at ${new Date().toLocaleString()}.`);
-        toast({ title: "Drift corrected", description: `${drift} check(s) failed — snapshots rebuilt.`, variant: "warning" });
+        toast({ title: "Drift corrected", description: `${drift} check(s) failed — snapshots rebuilt.`, variant: "default" });
       }
     } catch (err) {
       toast({ title: "Reconcile failed", description: (err as Error)?.message ?? "Unknown error", variant: "destructive" });
