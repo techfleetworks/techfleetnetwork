@@ -423,7 +423,10 @@ export default function ConnectDiscordPage() {
             <p className="text-sm text-muted-foreground">
               Your Discord account{" "}
               <strong className="text-foreground">
-                @{linkedDiscordUsername || profile?.discord_username || username}
+                {(() => {
+                  const candidate = linkedDiscordUsername || profile?.discord_username || username;
+                  return isUsableDiscordUsername(candidate) ? `@${candidate}` : "Connected to Discord";
+                })()}
               </strong>{" "}
               is linked to your Tech Fleet Network profile.
             </p>
