@@ -13,7 +13,7 @@ export function AuthCaptchaField({ id, captchaState, value, onChange }: AuthCapt
   const labelId = `${id}-label`;
 
   return (
-    <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2" role="group" aria-labelledby={labelId}>
+    <div data-no-card className="rounded-md border border-border bg-muted/40 p-3 space-y-2" role="group" aria-labelledby={labelId}>
       <Label id={labelId} htmlFor={id}>Human verification: what is {captchaState.question}?</Label>
       <Input
         id={id}
