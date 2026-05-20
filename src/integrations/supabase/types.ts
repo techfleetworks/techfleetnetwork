@@ -2670,6 +2670,33 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_phase_definitions: {
+        Row: {
+          display_label: string | null
+          phase: string
+          required_tasks: number
+          tier: string | null
+          total_tasks: number
+          updated_at: string
+        }
+        Insert: {
+          display_label?: string | null
+          phase: string
+          required_tasks?: number
+          tier?: string | null
+          total_tasks?: number
+          updated_at?: string
+        }
+        Update: {
+          display_label?: string | null
+          phase?: string
+          required_tasks?: number
+          tier?: string | null
+          total_tasks?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       journey_progress: {
         Row: {
           completed: boolean
