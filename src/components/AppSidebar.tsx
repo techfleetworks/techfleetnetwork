@@ -250,6 +250,18 @@ export const AppSidebar = memo(function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
+                    isActive={isActive("/admin/curriculum")}
+                    tooltip="Curriculum"
+                  >
+                    <Link to="/admin/curriculum">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Curriculum</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive("/admin/system-health")}
                     tooltip="System Health"
                   >
