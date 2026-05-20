@@ -1,92 +1,68 @@
 ## Goal
 
-Tech Fleet uses **service leadership**, never *servant leadership*. Replace every variant across the app's content.
+Make the home + dashboard **General Applications Completed** card show the **combined** total = live platform count (`applications_completed`) + historical Airtable carry-over (`general_applications_pre_platform = 890`).
 
-## Audit results
+## Current state
 
-**Source code** (`rg -in "servant.{0,3}lead"`): **0 matches** — no React, TS, edge function, SQL migration, doc, or test references this term. Good news: no UI strings to change.
-
-**Database — `knowledge_base` table only** (all other content tables scanned and clean: `fleety_playbooks`, `fleety_examples`, `announcements`, `admin_banners`, `classes`, `cohorts`, all `reference_*`, `bdd_scenarios`, `content_blocks`, etc.):
-
-| Variant | Occurrences |
-|---|---|
-| `Servant Leadership` | 27 |
-| `servant leaders` | 7 |
-| `servant leadership` | 7 |
-| `servant leader` | 4 |
-| `Servant leadership` | 3 |
-| `Servant Leader` | 3 |
-| `servant-leadership` | 1 |
-| **Total** | **52 substring hits across ~25 rows** |
-
-No matches in `title`, only in `content`.
-
-**Storage / other layers**: no PDFs or markdown in `/docs` reference the term; nothing in edge functions; nothing in `network_stats_historical` (the `service_leadership_unique` metric key is already correctly named).
+- `get_network_stats()` returns `applications_completed` from `network_stats_snapshots` (platform-only, distinct submitted general apps) and `historical.general_applications_pre_platform = 890` (unique Airtable submitters).
+- `NetworkActivity.tsx` line 227 renders the All-Time card with `safeStats.applications_completed` only — the 890 sits separately in the Historical (pre-platform) section.
 
 ## Plan
 
-### 1) Case-preserving DB rewrite (single migration, transactional)
+Mirror the pattern just shipped for Beginner/Advanced — keep the SQL source-of-truth split (live vs historical) and combine at render time.
 
-Run on `knowledge_base.content` with `regexp_replace(..., 'g')` for each variant, preserving capitalization:
+### 1) UI — `src/components/NetworkActivity.tsx`
 
-```sql
-UPDATE knowledge_base
-SET content = regexp_replace(
-                regexp_replace(
-                  regexp_replace(
-                    regexp_replace(content,
-                      'Servant Leadership', 'Service Leadership', 'g'),
-                    'Servant leadership', 'Service leadership', 'g'),
-                  'servant leadership', 'service leadership', 'g'),
-                'servant-leadership', 'service-leadership', 'g')
-WHERE content ~* 'servant[- ]leadership';
+Change the All-Time **General Applications Completed** card (line 227):
 
-UPDATE knowledge_base
-SET content = regexp_replace(
-                regexp_replace(
-                  regexp_replace(content,
-                    'Servant Leaders', 'Service Leaders', 'g'),
-                  'Servant Leader', 'Service Leader', 'g'),
-                'servant leaders', 'service leaders', 'g')
-WHERE content ~* 'servant leader';
-
-UPDATE knowledge_base
-SET content = regexp_replace(content, 'servant leader', 'service leader', 'g')
-WHERE content ~* 'servant leader';
+```tsx
+<StatCard
+  icon={<FileCheck …/>}
+  value={(safeStats.historical?.general_applications_pre_platform ?? 0) + (safeStats.applications_completed ?? 0)}
+  label="General applications submitted"
+  sublabel={`+${safeStats.applications_completed ?? 0} since platform launch`}
+  colorClass="bg-success/10"
+/>
 ```
 
-Notes:
-- Only `content` is mutated. `title` has zero hits.
-- Verified zero matches in every other text/jsonb column across `public.*`.
-- Migration logs the affected row count for the audit trail.
-- Re-embedding: `knowledge_base` rows feed Fleety via `framework://` sync. Bumping `updated_at` on the touched rows will trigger the existing `trg_kb_bump_version` so Fleety re-embeds on next sync — no extra code needed.
+- Sentence case + verb-of-action label per brand voice ("submitted" matches what Airtable + platform both measure).
+- Sublabel makes the live delta auditable, same shape as Beginner/Advanced.
+- Past-7-days card stays as-is (it's a delta window — combining would be wrong).
+- Historical (pre-platform) section keeps the standalone "890" card so the carry-over remains auditable.
 
-### 2) Post-write verification (same migration)
+### 2) DB / RPC
 
-```sql
-DO $$
-DECLARE n int;
-BEGIN
-  SELECT count(*) INTO n FROM knowledge_base WHERE content ~* 'servant[- ]?leader';
-  IF n > 0 THEN RAISE EXCEPTION 'servant-leadership leak: % rows', n; END IF;
-END $$;
-```
+No change. `get_network_stats()` already returns both values in the right shape. No new historical row, no new override.
 
-### 3) Guardrail (brand-terms lint)
+### 3) TypeScript contract
 
-Add `servant leadership`, `servant leader`, `servant-leadership` (case-insensitive) to the existing ESLint `brand-terms/no-banned-terms` banned list with the autofix → `service leadership`. This is the same enforcement layer used for "TechFleet", "click here", etc., so any future code or content imports get caught.
+No change. `HistoricalStats.general_applications_pre_platform` already exists.
 
 ### 4) BDD scenario
 
-Add one row to `bdd_scenarios` (feature_area = `Brand Voice`):
-- `BRAND-SERVICE-LEAD-001` — Given any knowledge_base row containing "servant leadership", When the brand-terms scan runs, Then [DB] no row matches `servant[- ]?leader`, [Code] ESLint flags it as error, [UI] no rendered text in Fleety responses or guides contains the banned variant.
+Insert `NETSTATS-COMBINED-GENAPPS-001` (feature_area `Network Stats v4`):
+
+```
+Given general_applications_pre_platform=890 and live applications_completed=N
+When an unauthenticated visitor loads "/" and an authenticated member loads "/dashboard"
+Then [DB] get_network_stats() returns applications_completed=N and historical.general_applications_pre_platform=890
+And  [Code] NetworkActivity sums historical + live for the All-Time card without mutating either source field
+And  [UI] both surfaces render "General applications submitted" with value 890+N and sublabel "+N since platform launch"
+And  [UI] the Past 7 Days card still shows only the live weekly delta
+```
 
 ### 5) Memory
 
-Update the existing **Brand Voice** core memory line to explicitly list "servant leadership / servant leader" as banned terms → use **service leadership / service leader**.
+Append to the Network Stats v4 memory line: "General Applications = live `applications_completed` + historical `general_applications_pre_platform` (890), combined at render in `NetworkActivity` — DB stays split."
 
 ## Out of scope
 
-- The historical metric key `service_leadership_unique` (already correct).
-- Renaming any DB columns or storage buckets — none use the term.
-- Editing external sources (guide.techfleet.org) referenced from `knowledge_base` URLs.
+- No Airtable re-sync; 890 is already in `network_stats_historical` and admin-editable.
+- No changes to badges, courses, or projects cards.
+- Past-7-days card stays live-only.
+
+## Technical details
+
+- 1 file touched: `src/components/NetworkActivity.tsx` (single StatCard).
+- 1 BDD insert into `bdd_scenarios`.
+- No migration, no type change, no cache-key bump.
