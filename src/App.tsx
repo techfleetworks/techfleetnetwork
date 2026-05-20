@@ -242,6 +242,7 @@ const App = () => (
                     <Route path="/project-openings/:projectId" element={<ProjectOpeningDetailPage />} />
                     <Route path="/project-openings/:projectId/apply" element={<ProtectedRoute><ProjectApplicationPage /></ProtectedRoute>} />
                     <Route path="/admin/ingest" element={<AdminRoute><AdminIngestPage /></AdminRoute>} />
+                    <Route path="/admin/curriculum" element={<AdminRoute><CurriculumAdminPage /></AdminRoute>} />
                     <Route path="/admin/users" element={<AdminRoute><UserAdminPage /></AdminRoute>} />
                     <Route path="/admin/activity-log" element={<AdminRoute><ActivityLogPage /></AdminRoute>} />
                     <Route path="/admin/applications/analysis/:projectId" element={<AdminRoute><ProjectAnalysisDetailPage /></AdminRoute>} />
