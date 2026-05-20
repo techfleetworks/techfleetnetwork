@@ -159,7 +159,7 @@ function DesktopHeader({
     >
       {/* Left: page context */}
       {header ? (
-        <div className="flex flex-col justify-center py-1.5 min-w-0 mr-4">
+        <div className="flex flex-col justify-center py-1.5 pl-9 min-w-0 mr-4">
           {header.breadcrumbs && header.breadcrumbs.length > 0 && (
             <Breadcrumb>
               <BreadcrumbList className="text-xs">
