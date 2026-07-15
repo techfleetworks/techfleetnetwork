@@ -22,6 +22,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_catalog
 AS $$
+#variable_conflict use_column
 DECLARE
   r record;
   v_role text;
