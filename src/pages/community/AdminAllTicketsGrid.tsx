@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@/lib/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,40 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, UserPlus, EyeOff, XCircle, RotateCcw } from "lucide-react";
+import { MoreHorizontal, UserPlus, Users, EyeOff, XCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import type { ColDef } from "ag-grid-community";
 import { invokeFreescout } from "@/lib/support/freescoutInvoke";
+
+interface Agent {
+  user_id: string;
+  display_name: string | null;
+  email: string | null;
+}
+
+/** Admin roster for the "Assign to …" picker (admin-gated RPC). */
+function useAgents() {
+  return useQuery({
+    queryKey: ["support", "agents"] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("support_list_agents");
+      if (error) throw error;
+      return (data ?? []) as Agent[];
+    },
+    staleTime: 300_000,
+    gcTime: 600_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+function agentLabel(a: Agent): string {
+  return a.display_name?.trim() || a.email || "Unknown admin";
+}
 
 interface Row {
   id: number;
@@ -56,6 +85,7 @@ export default function AdminAllTicketsGrid({ scope: fixedScope }: { scope?: Sco
   const scope = fixedScope ?? internalScope;
   const qc = useQueryClient();
   const { data: rows = [], isLoading } = useScopedTickets(scope);
+  const { data: agents = [] } = useAgents();
 
   const runAction = async (conversationId: number, body: Record<string, unknown>, success: string) => {
     const { error } = await invokeFreescout({ conversationId, ...body });
@@ -107,6 +137,30 @@ export default function AdminAllTicketsGrid({ scope: fixedScope }: { scope?: Sco
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign me
                 </DropdownMenuItem>
+                {agents.length > 0 && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Users className="h-4 w-4 mr-2" />
+                      Assign to…
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                      {agents.map((a) => (
+                        <DropdownMenuItem
+                          key={a.user_id}
+                          onClick={() =>
+                            runAction(
+                              id,
+                              { action: "assign", assigneeUserId: a.user_id },
+                              `Assigned to ${agentLabel(a)}.`
+                            )
+                          }
+                        >
+                          {agentLabel(a)}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
                 <DropdownMenuItem onClick={() => runAction(id, { action: "setPrivate", isPrivate: true }, "Marked private.")}>
                   <EyeOff className="h-4 w-4 mr-2" />
                   Mark private
@@ -129,7 +183,8 @@ export default function AdminAllTicketsGrid({ scope: fixedScope }: { scope?: Sco
         );
       },
     },
-  ], []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [agents]);
 
   return (
     <div className="space-y-4">
