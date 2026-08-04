@@ -12,6 +12,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+#variable_conflict use_column
 BEGIN
   IF NOT public.has_role(auth.uid(), 'admin') THEN
     RAISE EXCEPTION 'insufficient_privilege' USING ERRCODE = '42501';
