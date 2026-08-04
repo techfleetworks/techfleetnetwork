@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, UserPlus, Users, EyeOff, XCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import type { ColDef } from "ag-grid-community";
+import type { ColDef, CellClickedEvent } from "ag-grid-community";
 import { invokeFreescout } from "@/lib/support/freescoutInvoke";
+import TicketDetail from "./TicketDetail";
 
 interface Agent {
   user_id: string;
@@ -86,6 +87,7 @@ export default function AdminAllTicketsGrid({ scope: fixedScope }: { scope?: Sco
   const qc = useQueryClient();
   const { data: rows = [], isLoading } = useScopedTickets(scope);
   const { data: agents = [] } = useAgents();
+  const [openId, setOpenId] = useState<number | null>(null);
 
   const runAction = async (conversationId: number, body: Record<string, unknown>, success: string) => {
     const { error } = await invokeFreescout({ conversationId, ...body });
@@ -207,7 +209,18 @@ export default function AdminAllTicketsGrid({ scope: fixedScope }: { scope?: Sco
           height="600px"
           gridId={`support-tickets-admin-${scope}`}
           exportFileName={`support-tickets-${scope}`}
+          // Open the ticket thread on click — but not when the click lands in the
+          // actions column (empty headerName), which owns the kebab menu.
+          onCellClicked={(e: CellClickedEvent<Row>) => {
+            if (e.colDef.headerName === "") return;
+            const id = e.data?.id;
+            if (id) setOpenId(id);
+          }}
         />
+      )}
+
+      {openId !== null && (
+        <TicketDetail conversationId={openId} viewerRole="admin" onClose={() => setOpenId(null)} />
       )}
     </div>
   );
