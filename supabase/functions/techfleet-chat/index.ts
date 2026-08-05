@@ -6,7 +6,12 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
-import { buildSystemPrompt, extractSourceUrls, NO_KNOWLEDGE_DIRECTIVE } from "./prompt.ts";
+import {
+  buildSourcesHeaderValue,
+  buildSystemPrompt,
+  resolveKnowledgeSlot,
+  wrapUntrusted,
+} from "./prompt.ts";
 
 const ChatBodySchema = z
   .object({
@@ -754,6 +759,11 @@ serve(
           if (knowledgeContext.length + block.length > MAX_KB_CONTEXT_CHARS) break;
           knowledgeContext += block;
         }
+        // D-21: wrap retrieved KB content in an untrusted-data boundary so a
+        // poisoned guide page/chunk ("ignore previous instructions...") cannot
+        // hijack the system prompt. Pairs with the SYSTEM_PROMPT_BASE precedence
+        // clause. Empty stays empty, so the honesty gate below still fires.
+        knowledgeContext = wrapUntrusted(knowledgeContext);
       }
       // UC-04: no fake "knowledge base is being set up" text. When retrieval
       // genuinely returned nothing, knowledgeContext stays "" and the honesty
@@ -1336,15 +1346,14 @@ serve(
       // canned, playbook, example or few-shot context), swap the empty KB slot for
       // an explicit do-not-fabricate directive so the model answers honestly
       // instead of inventing playbooks/processes.
-      const hasGrounding = !!(
-        knowledgeContext ||
-        frameworkContext ||
-        cannedContext ||
-        playbookContext ||
-        exampleContext ||
-        fewShotContext
-      );
-      const groundedKnowledge = hasGrounding ? knowledgeContext : NO_KNOWLEDGE_DIRECTIVE;
+      const groundedKnowledge = resolveKnowledgeSlot({
+        knowledgeContext,
+        frameworkContext,
+        cannedContext,
+        playbookContext,
+        exampleContext,
+        fewShotContext,
+      });
 
       const fullSystemPrompt = buildSystemPrompt({
         audience,
@@ -1672,7 +1681,7 @@ serve(
 
       // D-08: structural citations — navigable source URLs from the KB hits,
       // guaranteed by code (not the LLM). http(s) only, deduped, capped.
-      const sourceUrls = extractSourceUrls(kbHits);
+      const sourcesHeader = buildSourcesHeaderValue(kbHits);
 
       const exposeHeaders: Record<string, string> = {
         ...corsHeaders,
@@ -1688,7 +1697,7 @@ serve(
       };
       if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
       if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
-      if (sourceUrls.length) exposeHeaders["X-Fleety-Sources"] = JSON.stringify(sourceUrls);
+      if (sourcesHeader) exposeHeaders["X-Fleety-Sources"] = sourcesHeader;
 
       return new Response(sanitizedBody, { headers: exposeHeaders });
     } catch (err) {
