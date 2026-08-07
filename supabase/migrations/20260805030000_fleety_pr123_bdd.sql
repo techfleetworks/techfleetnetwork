@@ -27,9 +27,9 @@ VALUES
 
   ('FLEETY-004', 'Fleety', 30,
    '@security Fleety DEFINER RPCs are hardened (search_path='''', least privilege)',
-   'Feature: Hardened RPCs\n  Scenario: fleety_observe_synonym and fleety_load_user_memories\n    Then both are SECURITY DEFINER with SET search_path = ''''\n    And EXECUTE is revoked from PUBLIC and granted only to service_role\n    So neither is reachable by the authenticated/anon roles via PostgREST (IDOR-safe)',
+   'Feature: Hardened RPCs\n  Scenario: fleety_observe_synonym and fleety_load_user_memories\n    Then both are SECURITY DEFINER with SET search_path = ''''\n    And EXECUTE is REVOKEd from PUBLIC, anon AND authenticated, and granted only to service_role\n    So neither is reachable by the authenticated/anon roles via PostgREST (IDOR-safe)',
    'implemented', 'unit', 'supabase/tests/fleety_rpc_hardening_test.sql',
-   'search_path='''' blocks search-path hijack of a DEFINER function; grant-scoping is the IDOR control for the caller-supplied p_user_id.'),
+   'search_path='''' blocks search-path hijack; explicit REVOKE from the named anon/authenticated roles is the IDOR control (REVOKE FROM PUBLIC alone does not remove Supabase''s default direct grant). Fixed per adversarial review HIGH-1.'),
 
   ('FLEETY-005', 'Fleety', 30,
    '@security Honesty hard-gate: no grounding means no fabrication (UC-04)',

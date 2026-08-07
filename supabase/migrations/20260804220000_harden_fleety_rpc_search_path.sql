@@ -13,9 +13,12 @@
 -- function called by techfleet-chat with the SERVICE-ROLE client after the edge
 -- function has already authenticated the user. service_role has no auth.uid(),
 -- so an auth.uid() bind would break it. The IDOR control is therefore
--- least-privilege GRANTing: EXECUTE is granted to service_role ONLY and REVOKEd
--- from PUBLIC, so the authenticated/anon roles can never call it via PostgREST.
--- This migration re-asserts that grant scoping so it cannot silently drift.
+-- least-privilege GRANTing: EXECUTE granted to service_role ONLY and explicitly
+-- REVOKEd from PUBLIC *and* the named anon/authenticated roles.
+-- NOTE: `REVOKE ... FROM PUBLIC` alone is NOT sufficient on Supabase — its
+-- `ALTER DEFAULT PRIVILEGES ... GRANT ... ON FUNCTIONS TO anon, authenticated`
+-- gives those roles a DIRECT grant at CREATE time, which a PUBLIC revoke does
+-- not remove. We revoke from the named roles so PostgREST can never reach it.
 --
 -- Idempotent and safe to re-run.
 
@@ -59,7 +62,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.fleety_observe_synonym(text, text, text, int) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fleety_observe_synonym(text, text, text, int) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.fleety_observe_synonym(text, text, text, int) TO service_role;
 
 -- =============================================================================
@@ -77,5 +80,5 @@ SET search_path = '' AS $$
   ORDER BY category, memory_key;
 $$;
 
-REVOKE ALL ON FUNCTION public.fleety_load_user_memories(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.fleety_load_user_memories(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.fleety_load_user_memories(uuid) TO service_role;
