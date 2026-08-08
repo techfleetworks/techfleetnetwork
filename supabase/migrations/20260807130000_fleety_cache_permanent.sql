@@ -67,6 +67,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, extensions, pg_temp
 AS $$
+#variable_conflict use_column
 DECLARE
   current_v bigint;
 BEGIN
@@ -107,6 +108,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions, pg_temp
 AS $$
+#variable_conflict use_column
 DECLARE
   current_v bigint;
 BEGIN
@@ -148,6 +150,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
+#variable_conflict use_column
 DECLARE
   current_v bigint;
 BEGIN
