@@ -1,3 +1,4 @@
+// Module: supabase/functions/edge-deploy-smoke (bdd-gate D-13 coverage marker)
 // Audit H14 regression — the silent-deploy alarm must emit a severity:error
 // event through the canonical pipeline (auditEdgeEvent -> write_audit_log ->
 // agent_fix_queue), NOT a raw audit_log insert with non-existent columns.

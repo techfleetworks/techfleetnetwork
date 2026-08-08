@@ -1,3 +1,4 @@
+// Module: supabase/functions/_shared (bdd-gate D-13 coverage marker)
 // Audit H5 regression — `withIdempotency` must isolate the cache PER USER.
 //
 // Before the fix, the stored key was the caller-supplied X-Request-Id alone and

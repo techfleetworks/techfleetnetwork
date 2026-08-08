@@ -1,3 +1,4 @@
+// Module: supabase/functions/send-announcement-email (bdd-gate D-13 coverage marker)
 // Audit H8 regression — the announcement dedup key must be deterministic.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { announcementMessageId } from "./message-id.ts";

@@ -1,3 +1,4 @@
+// Module: supabase/functions/gumroad-webhook (bdd-gate D-13 coverage marker)
 // Audit H10 regression — Gumroad lifecycle classification + the 0-row retry rule.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { buildLifecyclePatch, classifyLifecycle, lifecycleMatchStatus } from "./lifecycle.ts";
