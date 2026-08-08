@@ -52,7 +52,14 @@ test.describe("AUTH-RESET-011 password reset round trip", () => {
       expect(linkError).toBeNull();
       expect(linkData.properties?.action_link).toBeTruthy();
 
-      await page.goto(linkData.properties!.action_link!);
+      // Navigate via the token_hash recovery format the app actually consumes
+      // (verifyOtp {type:'recovery', token_hash}). In prod the auth-email-hook
+      // rewrites GoTrue recovery links to this shape; the RAW admin action_link
+      // instead establishes a session and drops the user on onboarding, so it
+      // never reaches the reset form. generateLink returns hashed_token.
+      const tokenHash = linkData.properties!.hashed_token;
+      expect(tokenHash).toBeTruthy();
+      await page.goto(`${appBaseUrl}/reset-password?token_hash=${tokenHash}&type=recovery`);
       await reachSetNewPasswordForm(page);
       await page.getByLabel(/^new password$/i).fill(newPassword);
       await page.getByLabel(/confirm new password/i).fill(newPassword);
@@ -105,8 +112,8 @@ test.describe("AUTH-RESET-011 password reset round trip", () => {
         options: { redirectTo: `${appBaseUrl}/reset-password` },
       });
       expect(linkError).toBeNull();
-      const actionLink = linkData.properties?.action_link;
-      expect(actionLink).toBeTruthy();
+      const tokenHash = linkData.properties?.hashed_token;
+      expect(tokenHash).toBeTruthy();
 
       // The auth-email-hook rewrites recovery links to `?token_hash=…&type=recovery`.
       // Whether the test runs against the rewritten format or the legacy GoTrue
@@ -115,7 +122,7 @@ test.describe("AUTH-RESET-011 password reset round trip", () => {
       const ctxB = await browser.newContext();
       try {
         const pageB = await ctxB.newPage();
-        await pageB.goto(actionLink!);
+        await pageB.goto(`${appBaseUrl}/reset-password?token_hash=${tokenHash}&type=recovery`);
         await reachSetNewPasswordForm(pageB);
         await pageB.getByLabel(/^new password$/i).fill(newPassword);
         await pageB.getByLabel(/confirm new password/i).fill(newPassword);
