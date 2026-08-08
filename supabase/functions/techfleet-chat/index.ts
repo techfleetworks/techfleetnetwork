@@ -41,6 +41,23 @@ const MAX_MESSAGE_LENGTH = 20_000;
 // RPC, so there are no per-isolate full-table scans at scale.
 // D-04: the web-search timeout was removed along with web search.
 
+// ── Groq answer model (the "brain" that writes replies) ──────────────────────
+// Single source of truth so the router + main generation + cost accounting can
+// never drift onto different / deprecated models. `llama-3.3-70b-versatile` is
+// being DEPRECATED by Groq (scheduled shutoff 2026-08-16) — the same silent-
+// breakage pattern that killed retrieval when Google retired an embedding model.
+// `openai/gpt-oss-120b` is Groq's current top non-reasoning production model:
+// higher quality than llama-3.3-70b AND faster (~500 vs ~280 tok/s), 131k ctx.
+// It is reasoning-capable, so we pin reasoning_effort="low": Groq streams any
+// reasoning on a SEPARATE `delta.reasoning` channel (never in `delta.content`,
+// so the client stream stays clean) and "low" protects the p95<3s latency SLO.
+const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_REASONING_EFFORT = "low";
+// Groq list price for gpt-oss-120b ($/token). Used only for the soft cost meter
+// (fleety_record_cost) — tune if Groq re-prices; not a correctness dependency.
+const PRICE_IN_PER_TOKEN = 0.15 / 1_000_000;
+const PRICE_OUT_PER_TOKEN = 0.6 / 1_000_000;
+
 /**
  * OWASP AI: Prompt injection detection patterns.
  * Detects common prompt injection / jailbreak attempts in user messages.
@@ -115,8 +132,9 @@ function sanitizeAIOutput(text: string): string {
 
 /**
  * Generate a 768-dim embedding for the user's query via Gemini
- * text-embedding-004 (the single embedding model across Fleety, D-01). No
- * external-gateway fallback (D-04). Returns null on failure so callers can
+ * gemini-embedding-001 (the single embedding model across Fleety, D-01, defined
+ * in _shared/gemini-embed.ts). No external-gateway fallback (D-04). Returns null
+ * on failure so callers can
  * degrade to trigram retrieval (UC-22).
  */
 // EMBED_DIM lives in _shared/gemini-embed.ts (GEMINI_EMBED_DIM) now — one source
@@ -268,7 +286,8 @@ async function routeWithModel(
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: GROQ_MODEL,
+        reasoning_effort: GROQ_REASONING_EFFORT,
         messages: [
           {
             role: "system",
@@ -1365,7 +1384,7 @@ serve(
       });
       log.info("ai", `Sending request to Groq [${requestId}]`, {
         requestId,
-        model: "llama-3.3-70b-versatile",
+        model: GROQ_MODEL,
         systemPromptLength: fullSystemPrompt.length,
         webSourceCount: webResult.sources.length,
         frameworkContextLength: frameworkContext.length,
@@ -1422,12 +1441,10 @@ serve(
             0
           ) / 4
         );
-      const PRICE_LLAMA_IN = 0.59 / 1_000_000; // $/token, Groq llama-3.3-70b-versatile
-      const PRICE_LLAMA_OUT = 0.79 / 1_000_000;
-      const estUsd = estTokensIn * PRICE_LLAMA_IN + 4096 * PRICE_LLAMA_OUT * 0.4; // assume 40% of cap
+      const estUsd = estTokensIn * PRICE_IN_PER_TOKEN + 4096 * PRICE_OUT_PER_TOKEN * 0.4; // assume 40% of cap
       supabase
         .rpc("fleety_record_cost", {
-          _model: "llama-3.3-70b-versatile",
+          _model: GROQ_MODEL,
           _tier: "B",
           _tokens_in: estTokensIn,
           _tokens_out: Math.round(4096 * 0.4),
@@ -1478,7 +1495,8 @@ serve(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: GROQ_MODEL,
+          reasoning_effort: GROQ_REASONING_EFFORT, // reasoning stays on delta.reasoning, not delta.content
           messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
           stream: true,
           max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
