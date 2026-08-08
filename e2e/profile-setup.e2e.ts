@@ -72,10 +72,13 @@ test.describe("Profile Setup Dialog (BDD 43.1–43.5)", () => {
     await page.goto("/profile-setup");
     await page.waitForLoadState("networkidle").catch(() => {});
 
-    // The profile setup page should have first name, last name, email fields
+    // The profile setup page should have first name, last name, email fields.
+    // Target the form's #setup-email specifically: once authenticated, the
+    // sidebar also surfaces the member's email, so getByLabel(/email/i) matched
+    // two elements and tripped strict mode.
     await expect(page.getByLabel(/first name/i)).toBeVisible();
     await expect(page.getByLabel(/last name/i)).toBeVisible();
-    await expect(page.getByLabel(/email/i)).toBeVisible();
+    await expect(page.locator("#setup-email")).toBeVisible();
   });
 
   test("43.3: Step 1 validation shows errors when submitting empty fields", async ({ page }) => {
