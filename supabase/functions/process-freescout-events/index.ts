@@ -40,11 +40,16 @@ async function processOne(admin: ReturnType<typeof getAdminClient>, ev: Freescou
   if (customerEmail) {
     const { data: prof } = await admin
       .from("profiles")
-      .select("id, freescout_customer_id")
+      .select("id, user_id, freescout_customer_id")
       .eq("email", customerEmail)
       .maybeSingle();
-    if (prof?.id) {
-      customerUserId = prof.id;
+    if (prof?.user_id) {
+      // customer_user_id must be the AUTH uid (profiles.user_id) to match RLS
+      // (`customer_user_id = auth.uid()`) and the FK to profiles(user_id).
+      // Writing profiles.id (the random PK) here made drain-created tickets
+      // invisible to the owner (audit C3). Profile row updates below still key
+      // on the PK (prof.id).
+      customerUserId = prof.user_id;
       if (freescoutCustomerId && !prof.freescout_customer_id) {
         await admin
           .from("profiles")
