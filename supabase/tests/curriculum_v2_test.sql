@@ -35,13 +35,14 @@ INSERT INTO public.user_roles (user_id, role) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Class C owned by T; a cohort starting today; learner L registered in it.
-INSERT INTO public.classes (id, owner_user_id, track, title, slug, status)
+INSERT INTO public.classes (id, owner_user_id, track, title, slug, summary, status)
 VALUES ('11111111-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        'basic_training', 'Test Class', 'test-class-curriculum-v2', 'draft');
+        'basic_training', 'Test Class', 'test-class-curriculum-v2',
+        'A test class used by the curriculum v2 pgTAP suite.', 'draft');
 
-INSERT INTO public.cohorts (id, class_id, label, start_date, end_date, timezone, status)
+INSERT INTO public.cohorts (id, class_id, label, start_date, end_date, timezone, registration_url, status)
 VALUES ('55555555-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000',
-        'Cohort 1', CURRENT_DATE, CURRENT_DATE + 30, 'UTC', 'draft');
+        'Cohort 1', CURRENT_DATE, CURRENT_DATE + 30, 'UTC', 'https://example.com/register', 'draft');
 
 INSERT INTO public.cohort_registrations (cohort_id, user_id)
 VALUES ('55555555-0000-0000-0000-000000000000', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
