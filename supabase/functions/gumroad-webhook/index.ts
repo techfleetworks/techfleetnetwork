@@ -170,10 +170,24 @@ Deno.serve(
       else if (p.subscription_id) q = q.eq("subscription_id", p.subscription_id);
       else return json({ error: "Missing sale_id/subscription_id" }, 400);
 
-      const { error } = await q;
+      // `.select()` so we can see how many ledger rows the lifecycle event hit.
+      const { data: updated, error } = await q.select("sale_id");
       if (error) {
         void emitWebhookPersistFailure("lifecycle", error.message);
         return json({ error: "Persist failed" }, 500); // 500 -> Gumroad retries
+      }
+      if (!updated || updated.length === 0) {
+        // Audit H10: a lifecycle event (refund/dispute/cancel/ended) that matches
+        // NO ledger row must NOT be acked 200. The original sale webhook may
+        // simply be arriving out of order — acking would make Gumroad stop
+        // retrying and leave a refunded/cancelled buyer with "Early Career
+        // Membership" forever (refund fraud). Return a retryable non-2xx so
+        // Gumroad redelivers, and surface it for reconciliation/drift-sweep.
+        void emitWebhookPersistFailure(
+          "lifecycle_no_match",
+          `no gumroad_sales row for sale_id=${p.sale_id ?? "-"} subscription_id=${p.subscription_id ?? "-"}`
+        );
+        return json({ error: "No matching sale yet; retry" }, 409); // 409 -> Gumroad retries
       }
       return json({ ok: true, lifecycle: true }, 200);
     }
