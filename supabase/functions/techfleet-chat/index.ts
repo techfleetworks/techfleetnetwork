@@ -266,7 +266,7 @@ function isOperationalIntent(i: Intent): boolean {
 }
 
 /**
- * Stage-1 router: a cheap Groq (Llama 3.3 70B) tool call returning structured
+ * Stage-1 router: a Groq (GROQ_MODEL) forced tool call returning structured
  * intent. Runs in parallel with embedding so it adds zero serial latency.
  * Silently falls back to regex (classifyIntent) on any failure. The web-search
  * decision fields are vestigial — web search was removed (D-04) and is ignored.
