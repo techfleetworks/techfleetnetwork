@@ -36,8 +36,10 @@ describe("fleety-embed single embedding provider", () => {
     expect(shared).toMatch(/GEMINI_EMBED_DIM\s*=\s*768/);
     // ...and never uses the retired model as the active model (a comment noting
     // its retirement is fine; `models/text-embedding-004` as a call is not).
+    // Guard the ACTIVE-model URL form only — the header comment legitimately
+    // documents that text-embedding-004 was retired.
     expect(embed).not.toMatch(/models\/text-embedding-004/);
-    expect(shared).not.toMatch(/text-embedding-004/);
+    expect(shared).not.toMatch(/models\/text-embedding-004/);
   });
 
   it("FLEETY-EMBED-003: fails loudly when the embedding key is missing", () => {
