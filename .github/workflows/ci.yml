@@ -590,6 +590,7 @@ jobs:
             supabase/functions/techfleet-chat/prompt.test.ts \
             supabase/functions/_shared/freescout.test.ts \
             supabase/functions/_shared/gemini-embed.test.ts \
+            supabase/functions/_shared/idempotency.test.ts \
             supabase/functions/process-freescout-events/auth.test.ts
 
   dependency-review:
