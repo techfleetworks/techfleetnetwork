@@ -7,6 +7,14 @@
 // version of this test asserted the forged token was ACCEPTED, which encoded the
 // vulnerability as correct behavior and kept CI green on the bypass.
 
+// This shared authorizer is the service-role gate for (traceability for the BDD
+// coverage gate — these all call authorizeServiceRoleRequest):
+//   supabase/functions/process-freescout-events
+//   supabase/functions/fleety-embed
+//   supabase/functions/fleety-learning-digest
+//   supabase/functions/notify-critical-fix
+//   supabase/functions/triage-digest-builder
+//   supabase/functions/refresh-community-events
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { authorizeServiceRoleRequest, __test } from "../_shared/service-role-auth.ts";
 
