@@ -22,6 +22,7 @@
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { z } from "npm:zod@3.23.8";
+import { buildLifecyclePatch, classifyLifecycle, lifecycleMatchStatus } from "./lifecycle.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,11 +44,6 @@ function safeEqual(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
-}
-
-/** Gumroad encodes booleans inconsistently across event types. */
-function truthy(v: string | undefined | null): boolean {
-  return v === "true" || v === "1" || v === "yes";
 }
 
 /** Neutralize LIKE/ILIKE wildcards (`%` `_` `\`) so an email with those legal
@@ -148,22 +144,13 @@ Deno.serve(
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date().toISOString();
 
-    const isRefund = truthy(p.refunded) || p.resource_name === "refund";
-    const isDispute =
-      (truthy(p.disputed) && !truthy(p.dispute_won)) || p.resource_name === "dispute";
-    const isCancelled = truthy(p.cancelled) || p.resource_name === "cancellation";
-    const isEnded = truthy(p.ended) || p.resource_name === "subscription_ended";
-    const isLifecycle = isRefund || isDispute || isCancelled || isEnded;
+    const flags = classifyLifecycle(p);
 
     // 4a. Lifecycle event: patch timestamps on the existing ledger row(s). We do
     // NOT upsert here — that would clobber the sale's resolution. Match by sale_id
     // when present, else by subscription_id. The projector trigger downgrades.
-    if (isLifecycle) {
-      const patch: Record<string, string> = {};
-      if (isRefund) patch.refunded_at = now;
-      if (isDispute) patch.disputed_at = now;
-      if (isCancelled) patch.subscription_cancelled_at = now;
-      if (isEnded) patch.subscription_ended_at = now;
+    if (flags.isLifecycle) {
+      const patch = buildLifecyclePatch(flags, now);
 
       let q = supabase.from("gumroad_sales").update(patch);
       if (p.sale_id) q = q.eq("sale_id", p.sale_id);
@@ -176,7 +163,7 @@ Deno.serve(
         void emitWebhookPersistFailure("lifecycle", error.message);
         return json({ error: "Persist failed" }, 500); // 500 -> Gumroad retries
       }
-      if (!updated || updated.length === 0) {
+      if (lifecycleMatchStatus(updated?.length ?? 0) === 409) {
         // Audit H10: a lifecycle event (refund/dispute/cancel/ended) that matches
         // NO ledger row must NOT be acked 200. The original sale webhook may
         // simply be arriving out of order — acking would make Gumroad stop
