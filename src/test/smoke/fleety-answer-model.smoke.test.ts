@@ -31,8 +31,9 @@ describe("fleety answer model (Groq) single source of truth", () => {
   });
 
   it("FLEETY-MODEL-002: a single GROQ_MODEL constant drives every call site", () => {
-    // Defined once, on the current non-deprecated production model.
-    expect(chat).toMatch(/const GROQ_MODEL\s*=\s*["']openai\/gpt-oss-120b["']/);
+    // Defined once, on a current non-deprecated, non-Meta model (gpt-oss-20b or
+    // 120b — both OpenAI open-weight; the deprecating Meta Llama is banned below).
+    expect(chat).toMatch(/const GROQ_MODEL\s*=\s*["']openai\/gpt-oss-(20|120)b["']/);
     // Router + main generation + cost + log all reference the constant, never a
     // literal. Expect at least the 4 known call sites to use `GROQ_MODEL`.
     const uses = chat.match(/\bGROQ_MODEL\b/g) ?? [];

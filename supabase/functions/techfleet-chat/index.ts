@@ -46,17 +46,21 @@ const MAX_MESSAGE_LENGTH = 20_000;
 // never drift onto different / deprecated models. `llama-3.3-70b-versatile` is
 // being DEPRECATED by Groq (scheduled shutoff 2026-08-16) — the same silent-
 // breakage pattern that killed retrieval when Google retired an embedding model.
-// `openai/gpt-oss-120b` is Groq's current top non-reasoning production model:
-// higher quality than llama-3.3-70b AND faster (~500 vs ~280 tok/s), 131k ctx.
+// `openai/gpt-oss-20b` is Groq's cheapest current high-quality NON-Meta model
+// ($0.075/$0.30 per 1M in/out — half the price of 120b) and its fastest
+// (~1000 tok/s), 131k ctx. Fleety answers from CLOSED RAG data, so retrieval —
+// not model size — dominates answer quality; a grounded 20B model matches 120B
+// here at half the cost. Bump to `openai/gpt-oss-120b` if quality testing ever
+// disagrees (one line). NOT Meta/Llama (deliberate) and NOT the deprecating one.
 // It is reasoning-capable, so we pin reasoning_effort="low": Groq streams any
 // reasoning on a SEPARATE `delta.reasoning` channel (never in `delta.content`,
 // so the client stream stays clean) and "low" protects the p95<3s latency SLO.
-const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_MODEL = "openai/gpt-oss-20b";
 const GROQ_REASONING_EFFORT = "low";
-// Groq list price for gpt-oss-120b ($/token). Used only for the soft cost meter
+// Groq list price for gpt-oss-20b ($/token). Used only for the soft cost meter
 // (fleety_record_cost) — tune if Groq re-prices; not a correctness dependency.
-const PRICE_IN_PER_TOKEN = 0.15 / 1_000_000;
-const PRICE_OUT_PER_TOKEN = 0.6 / 1_000_000;
+const PRICE_IN_PER_TOKEN = 0.075 / 1_000_000;
+const PRICE_OUT_PER_TOKEN = 0.3 / 1_000_000;
 
 /**
  * OWASP AI: Prompt injection detection patterns.
