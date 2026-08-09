@@ -146,7 +146,6 @@ const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
 const CohortFormPage = lazy(() => import("./pages/CohortFormPage"));
 const AdminClassesPage = lazy(() => import("./pages/AdminClassesPage"));
 const ConfirmTeacherPage = lazy(() => import("./pages/ConfirmTeacherPage"));
-const CurriculumAdminPage = lazy(() => import("./pages/admin/CurriculumAdminPage"));
 
 function RouteFallback() {
   return (
@@ -434,14 +433,6 @@ const App = () => (
                       element={
                         <AdminRoute>
                           <AdminIngestPage />
-                        </AdminRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/curriculum"
-                      element={
-                        <AdminRoute>
-                          <CurriculumAdminPage />
                         </AdminRoute>
                       }
                     />

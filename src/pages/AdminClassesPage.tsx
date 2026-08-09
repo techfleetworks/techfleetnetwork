@@ -211,7 +211,7 @@ export default function AdminClassesPage() {
     <div className="container-app py-8 sm:py-12 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Classes (Admin)</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">All Classes</h1>
           <p className="text-muted-foreground mt-1">
             Review submissions, approve, request changes, and manage published classes.
           </p>
