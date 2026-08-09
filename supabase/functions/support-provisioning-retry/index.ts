@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const { data: prof } = await admin
       .from("profiles")
       .select("id, email, first_name, last_name, freescout_user_id, freescout_customer_id")
-      .eq("id", row.user_id)
+      .eq("user_id", row.user_id)
       .maybeSingle();
     if (!prof?.email) {
       await admin.from("support_provisioning_log").insert({
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
           if (!u)
             u = await createUser(prof.email, prof.first_name ?? "Admin", prof.last_name ?? "User");
           id = String(u.id);
-          await admin.from("profiles").update({ freescout_user_id: id }).eq("id", row.user_id);
+          await admin.from("profiles").update({ freescout_user_id: id }).eq("user_id", row.user_id);
         }
         await admin.from("support_provisioning_log").insert({
           user_id: row.user_id,
@@ -76,7 +76,10 @@ Deno.serve(async (req) => {
               prof.last_name ?? undefined
             );
           id = String(c.id);
-          await admin.from("profiles").update({ freescout_customer_id: id }).eq("id", row.user_id);
+          await admin
+            .from("profiles")
+            .update({ freescout_customer_id: id })
+            .eq("user_id", row.user_id);
         }
         await admin.from("support_provisioning_log").insert({
           user_id: row.user_id,

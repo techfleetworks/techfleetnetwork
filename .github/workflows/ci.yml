@@ -324,6 +324,7 @@ jobs:
           - check-translator-volatile-regions.mjs
           - check-triage-actionable-parity.mjs
           - check-migration-version-uniqueness.mjs
+          - check-profiles-id-auth-uid.mjs
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

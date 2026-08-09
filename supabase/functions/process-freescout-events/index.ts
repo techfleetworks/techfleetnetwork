@@ -66,6 +66,7 @@ async function processOne(admin: ReturnType<typeof getAdminClient>, ev: Freescou
         await admin
           .from("profiles")
           .update({ freescout_customer_id: freescoutCustomerId })
+          // @profiles-id-ok — prof.id is the profiles PK here (fetched above), not an auth uid.
           .eq("id", prof.id);
       }
     }
@@ -167,7 +168,8 @@ async function processOne(admin: ReturnType<typeof getAdminClient>, ev: Freescou
         const { data: prof } = await admin
           .from("profiles")
           .select("first_name")
-          .eq("id", customerUserId)
+          // T-A: customerUserId is the AUTH uid (profiles.user_id), not the PK.
+          .eq("user_id", customerUserId)
           .maybeSingle();
 
         await admin.functions.invoke("send-transactional-email", {

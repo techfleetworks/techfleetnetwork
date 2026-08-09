@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const { data: prof } = await admin
     .from("profiles")
     .select("id, email, first_name, last_name, freescout_customer_id")
-    .eq("id", parsed.data.userId)
+    .eq("user_id", parsed.data.userId)
     .maybeSingle();
 
   if (!prof) return jsonResponse({ error: "Profile not found" }, 404);
@@ -49,27 +49,42 @@ Deno.serve(async (req) => {
 
   if (prof.freescout_customer_id) {
     return jsonResponse({
-      ok: true, freescoutCustomerId: prof.freescout_customer_id, alreadyProvisioned: true,
+      ok: true,
+      freescoutCustomerId: prof.freescout_customer_id,
+      alreadyProvisioned: true,
     });
   }
 
   try {
     let customer = await findCustomerByEmail(prof.email);
     if (!customer) {
-      customer = await createCustomer(prof.email, prof.first_name ?? undefined, prof.last_name ?? undefined);
+      customer = await createCustomer(
+        prof.email,
+        prof.first_name ?? undefined,
+        prof.last_name ?? undefined
+      );
     }
     const id = String(customer.id);
-    await admin.from("profiles").update({ freescout_customer_id: id }).eq("id", parsed.data.userId);
+    await admin
+      .from("profiles")
+      .update({ freescout_customer_id: id })
+      .eq("user_id", parsed.data.userId);
     await admin.from("support_provisioning_log").insert({
-      user_id: parsed.data.userId, kind: "customer", freescout_id: id,
-      status: "success", attempts: 1,
+      user_id: parsed.data.userId,
+      kind: "customer",
+      freescout_id: id,
+      status: "success",
+      attempts: 1,
     });
     return jsonResponse({ ok: true, freescoutCustomerId: id });
   } catch (e) {
     const msg = e instanceof FreescoutError ? e.message : "Provisioning failed";
     await admin.from("support_provisioning_log").insert({
-      user_id: parsed.data.userId, kind: "customer", status: "retry",
-      attempts: 1, last_error: msg,
+      user_id: parsed.data.userId,
+      kind: "customer",
+      status: "retry",
+      attempts: 1,
+      last_error: msg,
     });
     return jsonResponse({ error: msg }, 502);
   }
