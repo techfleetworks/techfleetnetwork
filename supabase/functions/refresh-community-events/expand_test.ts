@@ -7,7 +7,11 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 const src = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
 // Extract the expandOccurrences + parseIcsDate definitions for unit testing.
 // We compile a small module that re-exports them.
+// Drop handler-only relative imports (./auth.ts, ../_shared/...) — a data: URL
+// module can't resolve relative specifiers. The parser code we test only needs
+// the npm: fromZonedTime import, which is kept.
 const stub = src
+  .replace(/^import .*from "\.\.?\/.*";\s*$/gm, "")
   .replace(/Deno\.serve\([\s\S]*$/m, "")
   .concat("\nexport { expandOccurrences, parseIcsDate };\n");
 const mod = await import(
@@ -18,7 +22,7 @@ const { expandOccurrences } = mod as {
   expandOccurrences: (
     ev: any,
     windowStart: Date,
-    windowEnd: Date,
+    windowEnd: Date
   ) => Array<{ start: Date; end: Date }>;
 };
 
@@ -31,7 +35,11 @@ Deno.test("finite COUNT series from 2022 does not leak into 2026 window", () => 
     rrule: { FREQ: "WEEKLY", COUNT: "17", BYDAY: "MO,WE", WKST: "SU" },
     exdates: [],
   };
-  const occ = expandOccurrences(ev, new Date("2026-05-12T00:00:00Z"), new Date("2027-05-12T00:00:00Z"));
+  const occ = expandOccurrences(
+    ev,
+    new Date("2026-05-12T00:00:00Z"),
+    new Date("2027-05-12T00:00:00Z")
+  );
   assertEquals(occ.length, 0, "stale finite series must yield no future occurrences");
 });
 
@@ -43,7 +51,11 @@ Deno.test("finite COUNT=2 series from 2022 (Rewire Neuro Sprint Demo)", () => {
     rrule: { FREQ: "WEEKLY", COUNT: "2", BYDAY: "TU", WKST: "SU" },
     exdates: [],
   };
-  const occ = expandOccurrences(ev, new Date("2026-05-12T00:00:00Z"), new Date("2027-05-12T00:00:00Z"));
+  const occ = expandOccurrences(
+    ev,
+    new Date("2026-05-12T00:00:00Z"),
+    new Date("2027-05-12T00:00:00Z")
+  );
   assertEquals(occ.length, 0);
 });
 
@@ -55,7 +67,11 @@ Deno.test("UNTIL in the past prevents future occurrences", () => {
     rrule: { FREQ: "WEEKLY", UNTIL: "20230515T000000Z", BYDAY: "TU,WE,TH,FR", WKST: "SU" },
     exdates: [],
   };
-  const occ = expandOccurrences(ev, new Date("2026-05-12T00:00:00Z"), new Date("2027-05-12T00:00:00Z"));
+  const occ = expandOccurrences(
+    ev,
+    new Date("2026-05-12T00:00:00Z"),
+    new Date("2027-05-12T00:00:00Z")
+  );
   assertEquals(occ.length, 0);
 });
 
@@ -71,7 +87,7 @@ Deno.test("ongoing weekly series still yields current-week occurrences", () => {
   const occ = expandOccurrences(
     ev,
     new Date("2026-05-11T00:00:00Z"),
-    new Date("2026-05-25T00:00:00Z"),
+    new Date("2026-05-25T00:00:00Z")
   );
   // At least one Monday should fall in this 2-week window.
   if (occ.length === 0) throw new Error("expected at least one occurrence");

@@ -20,7 +20,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { fromZonedTime } from "npm:date-fns-tz@3.2.0";
-import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
+import { authorizeRefreshRequest } from "./auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -339,11 +339,12 @@ function expandOccurrences(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role only. Constant-time exact key match; NO unverified JWT decode.
-  const svcAuth = authorizeServiceRoleRequest(req);
-  if (!svcAuth.ok) {
+  // Trigger auth: dedicated EVENTS_REFRESH_SECRET (preferred) OR the service-role
+  // key (backward-compatible). Both are constant-time exact matches; no JWT decode.
+  const auth = authorizeRefreshRequest(req);
+  if (!auth.ok) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: svcAuth.status,
+      status: auth.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
