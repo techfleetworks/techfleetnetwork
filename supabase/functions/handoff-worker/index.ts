@@ -14,6 +14,7 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { resolveWriterModel } from "../_shared/llm/port.ts";
 import { runHandoff } from "../handoff-produce/pipeline.ts";
 import type { PipelineState } from "../handoff-produce/pipeline-steps.ts";
+import { killSwitchOn } from "../handoff-produce/ops.ts";
 import { bearerMatches, statusForCursor } from "./lib.ts";
 
 const log = createEdgeLogger("handoff-worker");
@@ -36,6 +37,16 @@ serve(async (req: Request) => {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+
+  // Kill switch (same flag the enqueue front door reads): HOLD — claim nothing this tick so queued
+  // runs sit safely until an operator re-enables, rather than draining into a degraded provider.
+  if (killSwitchOn(Deno.env.get("HANDOFF_PRODUCE_DISABLED"))) {
+    log.warn("hold", "HANDOFF_PRODUCE_DISABLED is set — holding all queued runs this tick");
+    return new Response(JSON.stringify({ held: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

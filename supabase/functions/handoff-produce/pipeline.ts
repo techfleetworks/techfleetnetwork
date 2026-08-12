@@ -6,7 +6,11 @@
 import { type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
-import { generateStructured, resolveMechanicalModel } from "../_shared/llm/port.ts";
+import {
+  generateStructured,
+  resolveMechanicalModel,
+  type UsageMeter,
+} from "../_shared/llm/port.ts";
 import { buildFactExtractionPrompt, buildWriterPrompt, type ComponentFactBase } from "./prompts.ts";
 import { chunkText, dedupeFacts, mergeFacts, stripTemplateItems } from "./extract.ts";
 import { formatSpfContext, loadSpfContext, toExtractionScope } from "./spf-context.ts";
@@ -33,6 +37,49 @@ import {
 
 const log = createEdgeLogger("handoff-produce");
 const MAX_LLM_CALLS = 400; // per-invocation runaway guard (chunked extraction + per-arc writers)
+
+// Soft cost meter: list $/token per model family (via OpenRouter). Used only to feed the shared
+// fleety_cost_counters (SRE traffic/cost signal) under tier="handoff" — tune if a provider re-prices;
+// never a correctness dependency. Unknown models price at 0 (metered as tokens, not dollars).
+const LLM_PRICES: Array<{ match: RegExp; in: number; out: number }> = [
+  { match: /opus/i, in: 5 / 1_000_000, out: 25 / 1_000_000 }, // Anthropic Claude Opus 4.8 (writer)
+  { match: /deepseek/i, in: 0.08 / 1_000_000, out: 0.252 / 1_000_000 }, // DeepSeek v4 Flash (US-hosted)
+];
+function priceFor(model: string): { in: number; out: number } {
+  return LLM_PRICES.find((p) => p.match.test(model)) ?? { in: 0, out: 0 };
+}
+
+/** Best-effort: fold one worker tick's accumulated LLM usage into the shared cost counters. Never
+ *  throws — a cost-meter failure must not fail a hand-off run (matches techfleet-chat's posture). */
+async function recordCost(
+  svc: SvcClient,
+  meter: Map<string, { tokensIn: number; tokensOut: number }>,
+  requestId: string
+): Promise<void> {
+  for (const [model, { tokensIn, tokensOut }] of meter) {
+    if (tokensIn === 0 && tokensOut === 0) continue;
+    const p = priceFor(model);
+    try {
+      await svc.rpc("fleety_record_cost", {
+        _model: model,
+        _tier: "handoff",
+        _tokens_in: tokensIn,
+        _tokens_out: tokensOut,
+        _est_usd: tokensIn * p.in + tokensOut * p.out,
+        _cache_hit: false,
+        _canned_hit: false,
+      });
+    } catch (e) {
+      log.warn(
+        "cost",
+        `record_cost failed [${requestId}]: ${e instanceof Error ? e.message : String(e)}`,
+        {
+          requestId,
+        }
+      );
+    }
+  }
+}
 // A writer arc (esp. a reasoning model) can legitimately run ~100s; give it room, but the port's
 // deadline still bounds a hang and terminal errors (4xx / truncation / refusal) fail fast.
 const WRITER_TIMEOUT_MS = 150_000;
@@ -194,7 +241,8 @@ function buildEffects(
   svc: SvcClient,
   ctx: RunContext,
   loaded: Awaited<ReturnType<typeof loadRunContext>>,
-  guardCall: () => void
+  guardCall: () => void,
+  onUsage: UsageMeter
 ): StepEffects {
   const { requestId, writerModel } = ctx;
   const mechModel = resolveMechanicalModel();
@@ -234,7 +282,7 @@ function buildEffects(
             reasoningEffort: "low",
             temperature: 0,
           },
-          { requestId }
+          { requestId, onUsage }
         );
         perChunk.push(
           Array.isArray(out.facts) ? (out.facts as string[]).map((f) => dlpScrub(String(f))) : []
@@ -289,7 +337,7 @@ function buildEffects(
           // losing an approved version). The extractor is already temp 0; the writer now matches.
           temperature: 0,
         },
-        { requestId, timeoutMs: WRITER_TIMEOUT_MS, deadlineMs: WRITER_DEADLINE_MS }
+        { requestId, onUsage, timeoutMs: WRITER_TIMEOUT_MS, deadlineMs: WRITER_DEADLINE_MS }
       );
       return Array.isArray(out.components)
         ? (out.components as WrittenComponent[]).map((c) => ({
@@ -369,10 +417,21 @@ export async function runHandoff(
   const guardCall = () => {
     if (++llmCalls > MAX_LLM_CALLS) throw new Error(`LLM call cap (${MAX_LLM_CALLS}) exceeded`);
   };
+  // Per-tick usage meter: accumulate tokens per model, then fold into the shared cost counters once
+  // at the end of the tick (fewer RPCs than per-call). A tick only bills the calls IT made — resumed
+  // ticks skip completed units, so there is no double counting across the run's ticks.
+  const meter = new Map<string, { tokensIn: number; tokensOut: number }>();
+  const onUsage: UsageMeter = (u) => {
+    const cur = meter.get(u.model) ?? { tokensIn: 0, tokensOut: 0 };
+    cur.tokensIn += u.tokensIn;
+    cur.tokensOut += u.tokensOut;
+    meter.set(u.model, cur);
+  };
   const loaded = await loadRunContext(svc, ctx.projectId, ctx.phase);
   const plan = buildRunPlan(loaded.components);
-  const eff = buildEffects(svc, ctx, loaded, guardCall);
+  const eff = buildEffects(svc, ctx, loaded, guardCall, onUsage);
   const result = await driveRun(initial ?? initialState(), plan, eff, hooks);
+  await recordCost(svc, meter, ctx.requestId); // best-effort; never fails the run
   // Degraded-arc count: only meaningful once the run is done, but cheap + pure to compute always.
   return { ...result, gaps: runGaps(plan, result.state) };
 }

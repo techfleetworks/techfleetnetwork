@@ -13,6 +13,7 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { resolveWriterModel } from "../_shared/llm/port.ts";
+import { killSwitchOn } from "./ops.ts";
 
 const log = createEdgeLogger("handoff-produce");
 const corsHeaders = {
@@ -41,6 +42,21 @@ serve(
     const blocked = await applyWaf(req, "handoff-produce");
     if (blocked) return blocked;
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+    // Ops kill switch (SRE runbook: LLM outage or cost runaway). Flip the HANDOFF_PRODUCE_DISABLED
+    // secret to halt NEW production without a deploy; the worker honors the same flag so already-
+    // queued runs HOLD rather than drain into a down provider. Read fresh per request.
+    if (killSwitchOn(Deno.env.get("HANDOFF_PRODUCE_DISABLED"))) {
+      return new Response(
+        JSON.stringify({
+          error: "Hand-off production is temporarily disabled. Please try again later.",
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "300" },
+        }
+      );
+    }
 
     const requestId = crypto.randomUUID().substring(0, 8);
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
