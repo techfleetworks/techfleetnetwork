@@ -5,6 +5,7 @@
 // clearly-delimited UNTRUSTED data, never as instructions (prompt-injection defense, ADR-0005).
 import type { LlmMessage } from "../_shared/llm/port.ts";
 import type { HandoffAudience, VersionOutline } from "./assemble.ts";
+import { AUDIENCE_EXEMPLAR } from "./exemplars.ts";
 
 // Tech Fleet terminology rules the writer must obey (decision 20 / brand guide).
 export const TERMINOLOGY_RULES = [
@@ -394,6 +395,12 @@ OPENINGS AND PHRASING (avoid these tics — they read as vague and AI-written)
 - Do NOT invent idioms, metaphors, or flourishes that are not grounded in the team's own words (for example "with your eyes open," "where the bodies are buried," "the heart of"). Plain, concrete language always beats a clever phrase. If a vivid image is not in the facts, cut it.
 - Prefer the specific over the general: name the actual thing the team did or decided, rather than describing the work in the abstract.
 
+HOLISTIC FRAMING (especially the Pre-amble and any recap, overview, or "what this phase produced" section)
+- Represent the FULL breadth of the phase's work. When the facts emphasize one deliverable, feature, or MVP heavily, do NOT let that one thing stand in for the whole project. A reader must never finish the opening believing the entire product IS a single feature.
+- The opening should situate this phase's focus within the product's larger purpose. When the PROJECT CONTEXT clearly identifies the product and what it is for, name it, then frame this phase's focus as a step toward it: "<Product> is <a platform/tool> that <purpose>. This phase focused on <X>, and produced <the range of work>." If the context is thin, mixed, or ambiguous about what the product is, describe the broader aim in plain terms WITHOUT forcing a specific product name — never guess a name.
+- The product is what THIS project builds for its own audience. Never name the organization, agency, team, or tooling that DID the work (or whose technology was used) as if it were the product. If the facts conflate the builder with the product, describe the work, not the builder's identity.
+- Draw on the breadth already present in this section's own facts. If the section lists many deliverables, reflect that range rather than collapsing to whichever single theme the surrounding facts stress most.
+
 BE CONCISE (the reader's time is the scarcest thing — cut anything that does not earn its place)
 - Do NOT list the skills, practices, or duties a piece of work "leaned on," "represented," or "was carried by." That is a skills inventory, not information the reader can act on. Cut it.
 - Every sentence must add a fact the reader can use. If a sentence only characterizes or describes the work without adding new information, cut it. Two tight paragraphs beat four loose ones.
@@ -410,7 +417,21 @@ FORMATTING (produce clean, ready-to-share markdown, no cleanup needed)
 - Keep it tidy and scannable so it is ready to share as-is.
 - Do NOT write the section headings yourself, and never begin your text with a heading. The component title and its story-arc heading are added for you. You may still use markdown lists and bold inside your prose.
 
-OUTPUT
+${
+  AUDIENCE_EXEMPLAR[audience]
+    ? `GOLD-STANDARD DOCUMENT (follow this PRECISELY — the owner-approved standard for structure, format, section order, tone, rhythm, and the way content is written and organized for this audience)
+- Below is the full approved ${audience} hand-off. It is the standard your writing must match precisely: the same plain-language voice, the same rhythm of a short lead followed by scannable bold-lead bullets or tight prose, the same "what this means for you" and "where to pick up / what to do next" moves, the same density and length per section.
+- You are writing only the specific components listed for THIS arc. Match the way the matching sections are written in the standard, component for component.
+- Headings, the top matter, and any "Awaiting content." lines are added by the system; you emit only each component's body through the tool. Match the WRITING inside the sections, never the scaffolding.
+- CRITICAL — form and approach ONLY, never content: this standard is from a DIFFERENT project. Every fact you write must come solely from THIS project's FACT BASE below. Never copy the standard's subjects, audiences, numbers, names, decisions, or specifics. If something is not in this project's facts, it does not appear, no matter what the standard shows.
+
+<gold_standard audience="${audience}">
+${AUDIENCE_EXEMPLAR[audience]}
+</gold_standard>
+
+`
+    : ""
+}OUTPUT
 - Return your result only by calling the emit_handoff_version tool, one entry per component identified by its slug. Never write anything outside the tool call.`;
 }
 
@@ -449,12 +470,25 @@ export function buildWriterPrompt(
     })
     .join("\n\n");
 
+  // PROJECT CONTEXT: the product's larger purpose + this phase's aims, drawn from the vision/scope and
+  // goals components, injected into EVERY arc's prompt. The writer works one arc at a time, so without
+  // this a section can only see its own arc's facts — and an opening/recap collapses to whatever
+  // deliverable those facts happen to stress (e.g. framing a whole political-awareness platform as "a
+  // newsletter"). This gives every section the whole-product anchor so it can frame its work within it.
+  const ctxFacts = [
+    ...(factBySlug.get("part-2-the-journey-2")?.facts ?? []).slice(0, 12), // strategy / vision / scope
+    ...(factBySlug.get("pre-amble")?.facts ?? []).slice(0, 8), // project goals
+  ];
+  const projectContext = ctxFacts.length
+    ? `PROJECT CONTEXT (the product's larger purpose and this phase's aims). Use this to frame every section within the whole product, so no section reads as if a single feature is the entire product. Where this context clearly says what the product is and what it is for, name it in the opening; where it is thin or mixed, describe the broader aim without forcing a name. Do not dump these as their own list or section, and do not treat the organization or tools that did the work as the product:\n${ctxFacts.map((f) => `  - ${f}`).join("\n")}\n\n`
+    : "";
+
   return {
     messages: [
       { role: "system", content: buildWriterSystem(audience, includeSpf, outline.title) },
       {
         role: "user",
-        content: `Produce "${outline.title}". Story arcs + components (with slugs) + FACT BASE:\n\n${outlineText}`,
+        content: `Produce "${outline.title}". ${projectContext}Story arcs + components (with slugs) + FACT BASE:\n\n${outlineText}`,
       },
     ],
     toolName: "emit_handoff_version",

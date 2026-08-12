@@ -283,6 +283,10 @@ function buildEffects(
           toolName: wp.toolName,
           schema: wp.schema,
           reasoningEffort: "low",
+          // temperature 0 = deterministic writing: same fact base -> same hand-off, every run. The
+          // writer previously inherited the port's 0.3 default, which made re-runs drift (and risked
+          // losing an approved version). The extractor is already temp 0; the writer now matches.
+          temperature: 0,
         },
         { requestId, timeoutMs: WRITER_TIMEOUT_MS, deadlineMs: WRITER_DEADLINE_MS }
       );
@@ -324,19 +328,17 @@ function buildEffects(
         .from("handoff-outputs")
         .upload(path, bytes, { contentType: ctype, upsert: true });
       if (up.error) throw up.error;
-      const row = await svc
-        .from("handoff_output_files")
-        .upsert(
-          {
-            production_id: ctx.runId,
-            audience: unit.audience,
-            format: fmt,
-            storage_path: path,
-            checksum: await sha256Hex(body),
-            bytes: bytes.length,
-          },
-          { onConflict: "production_id,audience,format" }
-        );
+      const row = await svc.from("handoff_output_files").upsert(
+        {
+          production_id: ctx.runId,
+          audience: unit.audience,
+          format: fmt,
+          storage_path: path,
+          checksum: await sha256Hex(body),
+          bytes: bytes.length,
+        },
+        { onConflict: "production_id,audience,format" }
+      );
       if (row.error) throw row.error;
     }
     log.info("write", `${unit.audience} md+html stored [${ctx.requestId}]`, {

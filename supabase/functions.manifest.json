@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-09T13:24:53.639Z",
+  "generated_at": "2026-08-12T06:09:12.578Z",
   "functions": [
     {
       "name": "admin-purge-auth-user",
@@ -357,6 +357,34 @@
       "kind": "public",
       "critical": false,
       "declared": true
+    },
+    {
+      "name": "handoff-download",
+      "verify_jwt": true,
+      "kind": "auth",
+      "critical": false,
+      "declared": false
+    },
+    {
+      "name": "handoff-produce",
+      "verify_jwt": true,
+      "kind": "auth",
+      "critical": false,
+      "declared": false
+    },
+    {
+      "name": "handoff-submit",
+      "verify_jwt": true,
+      "kind": "auth",
+      "critical": false,
+      "declared": false
+    },
+    {
+      "name": "handoff-worker",
+      "verify_jwt": true,
+      "kind": "auth",
+      "critical": false,
+      "declared": false
     },
     {
       "name": "ingest-csv-knowledge",
@@ -749,6 +777,13 @@
       "kind": "auth",
       "critical": true,
       "declared": true
+    },
+    {
+      "name": "spf-sync",
+      "verify_jwt": true,
+      "kind": "auth",
+      "critical": false,
+      "declared": false
     },
     {
       "name": "submit-dispute",
