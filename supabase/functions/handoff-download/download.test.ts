@@ -1,3 +1,4 @@
+// Unit tests for supabase/functions/handoff-download (signed, ownership-checked delivery).
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { parseDownloadBody, SIGNED_URL_TTL_SECONDS } from "./download.ts";
 

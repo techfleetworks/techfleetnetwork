@@ -1,3 +1,4 @@
+// Unit tests for supabase/functions/spf-sync (pure sync core).
 // Deno unit tests for the pure SPF-sync core (deno-check job, no network).
 import { assert, assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {

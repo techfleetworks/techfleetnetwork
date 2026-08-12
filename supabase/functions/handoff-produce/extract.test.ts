@@ -1,3 +1,4 @@
+// Unit tests for supabase/functions/handoff-produce (extraction + dedup helpers).
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
   approxTokens,

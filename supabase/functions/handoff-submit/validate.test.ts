@@ -1,3 +1,4 @@
+// Unit tests for supabase/functions/handoff-submit (intake validation).
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   checkSubmissionUrl,
