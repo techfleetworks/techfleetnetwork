@@ -22,4 +22,19 @@ not flip anything.
    jitter. No manual retry storm.
 4. When upstream recovers, confirm the next scheduled sync succeeds and freshness recovers.
 
+## Switching the framework read source (cutover / rollback)
+
+Never `UPDATE framework_source_config` directly. Use the guarded RPC (service-role only):
+
+- **Activate SPF (cutover):** `SELECT public.framework_set_source('spf', '<version>');` — this is
+  **refused** (SQLSTATE 23514) if the SPF snapshot is empty or looks like a partial sync (< 3 entity
+  types), so a mis-timed flip cannot blank Fleety/Journeys/search. Check readiness first with
+  `SELECT public.framework_spf_snapshot_ready();` (also the canary's pre-flip gate).
+- **Roll back to reference (always safe, instant):** `SELECT public.framework_set_source('reference');`
+  — never guarded, so this is the one-command recovery if a canary shows empty/degraded graph
+  results after a cutover. `active_source` defaults to `reference`, so a fresh/replayed DB is
+  always on the safe source.
+
+`updated_by` / `updated_at` on the singleton config row record who switched and when.
+
 _TODO (Phase A1): breaker thresholds, how to extend snapshot-staleness tolerance if needed._
