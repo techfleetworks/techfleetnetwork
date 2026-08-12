@@ -86,3 +86,24 @@ Feature: Hand-off production (enqueue + durable async pipeline)
   Scenario: Logs for a run are correlatable
     When any stage of a run logs
     Then the log carries the run's requestId as the queryable trace.id
+
+  # ── @cost — re-create budget (team-wide) ─────────────────────────────────────
+  @cost
+  Scenario: A team gets one production and one self-service retry per phase
+    Given my team has already produced and re-created the hand-offs for this phase
+    When anyone on the team requests another production
+    Then it is refused (budget_exceeded) with a message to contact an admin
+    # Covered by supabase/tests/handoff_run_budget_test.sql.
+
+  @cost
+  Scenario: The one retry is writer-only and can target chosen versions
+    Given a completed production whose fact base was stored
+    When the team re-creates only the Org Case Study
+    Then the run is writer_only and scoped to that version
+    And it reuses the stored fact base instead of re-extracting (cost control)
+
+  @cost
+  Scenario: A double-click cannot burn the retry
+    Given two "Produce" requests race for the same project and phase
+    Then exactly one run is created and the budget is charged once
+    # handoff_enqueue_production checks budget, inserts, and bumps the counter in one transaction.

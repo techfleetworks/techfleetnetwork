@@ -3,6 +3,7 @@ import {
   buildRunPlan,
   type Cursor,
   driveRun,
+  firstWriteCursor,
   initialState,
   type PipelineState,
   runGaps,
@@ -68,6 +69,26 @@ Deno.test("buildRunPlan derives ordered units purely from the components", () =>
   assertEquals(plan.finalize.length, 1); // only the teammate version has content
   assertEquals(plan.write[0].audience, "teammate");
   assertEquals(plan.write[0].arcIndex, 0);
+});
+
+Deno.test("buildRunPlan scopes a targeted re-create to the requested audiences", () => {
+  const all = buildRunPlan(COMPONENTS);
+  // Fixtures are teammate-only, so scoping to 'teammate' equals the full plan...
+  const teammateOnly = buildRunPlan(COMPONENTS, ["teammate"]);
+  assertEquals(
+    teammateOnly.finalize.map((f) => f.audience),
+    ["teammate"]
+  );
+  assertEquals(teammateOnly.write.length, all.write.length);
+  // ...and scoping to an audience with no included components yields an empty plan (nothing re-writes).
+  const clientOnly = buildRunPlan(COMPONENTS, ["client"]);
+  assertEquals(clientOnly.finalize.length, 0);
+  assertEquals(clientOnly.write.length, 0);
+});
+
+Deno.test("firstWriteCursor skips extraction (writer-only) or ends when nothing to write", () => {
+  assertEquals(firstWriteCursor(buildRunPlan(COMPONENTS)), { stage: "write", i: 0 });
+  assertEquals(firstWriteCursor(buildRunPlan(COMPONENTS, ["client"])), { stage: "done" });
 });
 
 Deno.test("driveRun runs a fresh run to completion in unit order", async () => {

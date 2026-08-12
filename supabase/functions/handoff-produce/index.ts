@@ -22,11 +22,15 @@ const corsHeaders = {
 };
 type SvcClient = SupabaseClient<any, "public", any>;
 
+const AUDIENCES = ["client", "teammate", "teammate_case_study", "org_case_study"] as const;
 const BodySchema = z.object({
   project_id: z.string().uuid(),
   phase: z.enum(["phase_1", "phase_2", "phase_3", "phase_4"]),
   format: z.enum(["md", "pdf"]).optional(),
   idempotency_key: z.string().max(200).optional(),
+  // Targeted re-create: which of the four versions to re-write. Ignored for the first production
+  // (which always writes all four); the server decides full-vs-retry from the team budget.
+  audiences: z.array(z.enum(AUDIENCES)).min(1).max(4).optional(),
 });
 
 function json(body: unknown, status = 200): Response {
@@ -116,35 +120,62 @@ serve(
       (cfg?.spf_active_version as string) || (anySpf?.spf_version as string) || "v1";
     const writerModel = resolveWriterModel();
 
-    // Create the run (one-run-per-project enforced by the DB partial unique index).
-    const { data: run, error: runErr } = await svc
-      .from("handoff_productions")
-      .insert({
-        project_id,
-        phase,
-        status: "queued",
-        triggered_by: user.id,
-        spf_version: spfVersion,
-        model: writerModel,
-        idempotency_key: idempotency_key ?? null,
-      })
-      .select("id")
-      .single();
-    if (runErr) {
-      if ((runErr as { code?: string }).code === "23505") {
+    // Atomic enqueue: enforces the team budget (1 production + 1 retry), creates the run, and
+    // decides full-vs-writer-only re-create in one transaction (see handoff_enqueue_production).
+    const { data: enq, error: enqErr } = await svc.rpc("handoff_enqueue_production", {
+      p_project_id: project_id,
+      p_phase: phase,
+      p_triggered_by: user.id,
+      p_spf_version: spfVersion,
+      p_model: writerModel,
+      p_idempotency_key: idempotency_key ?? null,
+      p_audiences: parsed.data.audiences ?? null,
+    });
+    if (enqErr) {
+      log.error("run", `enqueue failed [${requestId}]: ${enqErr.message}`, { requestId });
+      return json({ error: "Could not start hand-off production." }, 500);
+    }
+    const result = enq as {
+      status: string;
+      run_id?: string;
+      ordinal?: number;
+      writer_only?: boolean;
+    };
+    switch (result.status) {
+      case "budget_exceeded":
+        return json(
+          {
+            error:
+              "Your team has already used its hand-off re-create for this phase. Contact a Tech Fleet admin if you need another.",
+          },
+          409
+        );
+      case "in_progress":
         return json(
           { error: "A hand-off run is already in progress for this project and phase." },
           409
         );
+      case "duplicate":
+        return json({ error: "This request was already submitted." }, 409);
+      case "queued": {
+        const kind = result.writer_only ? "writer-only re-create" : "full production";
+        log.info(
+          "run",
+          `queued run=${result.run_id} (${kind}, run #${result.ordinal}) [${requestId}]`,
+          {
+            requestId,
+          }
+        );
+        return json(
+          { run_id: result.run_id, status: "queued", message: "Hand-off production queued." },
+          202
+        );
       }
-      log.error("run", `failed to create run [${requestId}]: ${runErr.message}`, { requestId });
-      return json({ error: "Could not start hand-off production." }, 500);
+      default:
+        log.error("run", `unexpected enqueue status ${result.status} [${requestId}]`, {
+          requestId,
+        });
+        return json({ error: "Could not start hand-off production." }, 500);
     }
-    const runId = (run as { id: string }).id;
-
-    // Enqueue only: the run sits in 'queued' until the durable handoff-worker (pg_cron, ~1 min)
-    // claims and drives it. No inline processing — nothing to strand if this invocation ends.
-    log.info("run", `queued run=${runId} [${requestId}]`, { requestId });
-    return json({ run_id: runId, status: "queued", message: "Hand-off production queued." }, 202);
   })
 );

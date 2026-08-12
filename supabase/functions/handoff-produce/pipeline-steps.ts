@@ -50,17 +50,34 @@ export type StepEffects = {
   finalize: (unit: FinalizeUnit, written: WrittenComponent[]) => Promise<void>;
 };
 
-/** PURE: the ordered unit plan for a run. Audiences with no included components are skipped. */
-export function buildRunPlan(components: HandoffComponent[]): RunPlan {
+/**
+ * PURE: the ordered unit plan for a run. Audiences with no included components are skipped.
+ * `only` scopes a targeted re-create to a subset of the four versions (writer-only retry); when
+ * omitted the plan covers all audiences (a full production). The extract stage is unaffected —
+ * extraction is per-component, shared across audiences.
+ */
+export function buildRunPlan(
+  components: HandoffComponent[],
+  only?: readonly HandoffAudience[]
+): RunPlan {
+  const wanted = only && only.length ? new Set(only) : null;
   const write: WriteUnit[] = [];
   const finalize: FinalizeUnit[] = [];
   for (const audience of HANDOFF_AUDIENCES as readonly HandoffAudience[]) {
+    if (wanted && !wanted.has(audience)) continue;
     const outline = buildVersionOutline(audience, components);
     if (!outline.sections.length) continue;
     finalize.push({ audience, outline });
     outline.sections.forEach((_, arcIndex) => write.push({ audience, outline, arcIndex }));
   }
   return { extract: components, write, finalize };
+}
+
+/** PURE: the cursor a writer-only run starts at — straight to writing, skipping extraction. */
+export function firstWriteCursor(plan: RunPlan): Cursor {
+  if (plan.write.length) return { stage: "write", i: 0 };
+  if (plan.finalize.length) return { stage: "finalize", i: 0 };
+  return { stage: "done" };
 }
 
 export function initialState(): PipelineState {

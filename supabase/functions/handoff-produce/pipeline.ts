@@ -17,6 +17,7 @@ import { formatSpfContext, loadSpfContext, toExtractionScope } from "./spf-conte
 import {
   buildVersionOutline,
   type DeliverableLink,
+  type HandoffAudience,
   type HandoffComponent,
   renderVersionMarkdown,
   type WrittenComponent,
@@ -28,6 +29,7 @@ import {
   type DriveStop,
   driveRun,
   type FinalizeUnit,
+  firstWriteCursor,
   initialState,
   type PipelineState,
   runGaps,
@@ -95,7 +97,48 @@ export type RunContext = {
   spfVersion: string;
   writerModel: string;
   requestId: string;
+  /** Targeted re-create: only (re)write these versions. Undefined/empty = all four. */
+  audiences?: string[];
+  /** Writer-only re-create: reuse the persisted fact base and skip extraction (cost control). */
+  writerOnly?: boolean;
 };
+
+/** Load the persisted fact base for a writer-only re-create (empty if none was stored). */
+async function loadFactBase(
+  svc: SvcClient,
+  projectId: string,
+  phase: string
+): Promise<ComponentFactBase[]> {
+  const { data } = await svc
+    .from("handoff_fact_base")
+    .select("facts")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .maybeSingle();
+  return Array.isArray(data?.facts) ? (data!.facts as ComponentFactBase[]) : [];
+}
+
+/** Persist the fact base after a full production so a later writer-only retry can reuse it. */
+async function saveFactBase(
+  svc: SvcClient,
+  ctx: RunContext,
+  facts: ComponentFactBase[]
+): Promise<void> {
+  const { error } = await svc.from("handoff_fact_base").upsert(
+    {
+      project_id: ctx.projectId,
+      phase: ctx.phase,
+      facts,
+      spf_version: ctx.spfVersion,
+      built_at: new Date().toISOString(),
+    },
+    { onConflict: "project_id,phase" }
+  );
+  if (error)
+    log.warn("factbase", `persist failed [${ctx.requestId}]: ${error.message}`, {
+      requestId: ctx.requestId,
+    });
+}
 
 export async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -428,10 +471,28 @@ export async function runHandoff(
     meter.set(u.model, cur);
   };
   const loaded = await loadRunContext(svc, ctx.projectId, ctx.phase);
-  const plan = buildRunPlan(loaded.components);
+  const plan = buildRunPlan(loaded.components, ctx.audiences as HandoffAudience[] | undefined);
   const eff = buildEffects(svc, ctx, loaded, guardCall, onUsage);
-  const result = await driveRun(initial ?? initialState(), plan, eff, hooks);
+
+  // Pick the starting state. A resumed run uses its persisted state. A fresh WRITER-ONLY re-create
+  // seeds the fact base from handoff_fact_base and jumps straight to writing (no extraction). A fresh
+  // full production starts at extraction.
+  let start = initial;
+  if (!start) {
+    if (ctx.writerOnly) {
+      const facts = await loadFactBase(svc, ctx.projectId, ctx.phase);
+      start = { cursor: firstWriteCursor(plan), factBase: facts, written: {} };
+    } else {
+      start = initialState();
+    }
+  }
+
+  const result = await driveRun(start, plan, eff, hooks);
   await recordCost(svc, meter, ctx.requestId); // best-effort; never fails the run
+  // On a completed FULL production, persist the fact base so the team's one retry stays writer-only.
+  if (!ctx.writerOnly && result.stopped === "done") {
+    await saveFactBase(svc, ctx, result.state.factBase);
+  }
   // Degraded-arc count: only meaningful once the run is done, but cheap + pure to compute always.
   return { ...result, gaps: runGaps(plan, result.state) };
 }

@@ -75,6 +75,8 @@ serve(async (req: Request) => {
       spfVersion: (run.spf_version as string) || "v1",
       writerModel: (run.model as string) || resolveWriterModel(),
       requestId: workerId.slice(0, 8),
+      audiences: (run.audiences as string[] | null) ?? undefined,
+      writerOnly: (run.writer_only as boolean) ?? false,
     };
     const initial = (run.pipeline_state as PipelineState | null) ?? undefined;
 
