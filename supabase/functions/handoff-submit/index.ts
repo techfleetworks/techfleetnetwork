@@ -30,7 +30,9 @@ function json(body: unknown, status = 200): Response {
 serve(
   withAuditWrapper("handoff-submit", async (req: Request) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-    const blocked = await applyWaf(req, "handoff-submit");
+    // Pass the upload cap so the WAF's 1 MB default doesn't 413 a legitimate file before the
+    // handler's own magic-byte + size validation runs.
+    const blocked = await applyWaf(req, "handoff-submit", { maxBodyBytes: MAX_BODY_BYTES });
     if (blocked) return blocked;
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 

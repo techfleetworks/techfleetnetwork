@@ -48,6 +48,18 @@ function refSlugs(v: unknown): string[] {
     .filter(Boolean);
 }
 const uniq = (a: string[]) => [...new Set(a.map((s) => s.trim()).filter(Boolean))];
+/** Some SPF fields are a comma-joined STRING, not a {slug,label}[] ref array — notably
+ *  "Project Milestones" (see _shared/spf/contract.ts). Accept either shape so the value is not
+ *  silently dropped to [] when it arrives as a string. */
+function labelsOrCsv(v: unknown): string[] {
+  if (Array.isArray(v)) return labels(v);
+  if (typeof v === "string")
+    return v
+      .split(/[,;]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  return [];
+}
 
 /** Load every hand-off component's SPF context: deliverables (+ skills/practices/duty/activities)
  *  AND the WORKSHOP STRUCTURE (step outputs + template-section prompts) for the workshops each
@@ -120,7 +132,7 @@ export async function loadSpfContext(svc: Svc): Promise<Map<string, ComponentCon
         skills: labels(dv["Required Skills for the Deliverable"]),
         practices: labels(dv["Required Practices for the Deliverable"]),
         duty: labels(dv["Duty Who Owns the Deliverable"]),
-        milestones: labels(dv["Project Milestones"] ?? dv["Milestones"]),
+        milestones: labelsOrCsv(dv["Project Milestones"] ?? dv["Milestones"]),
         activities: labels(dv["Required Activities"]),
       };
     });
