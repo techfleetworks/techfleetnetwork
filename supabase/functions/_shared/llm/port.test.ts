@@ -25,6 +25,24 @@ Deno.test("buildStructuredBody forces the structured-output tool call", () => {
   assertEquals(body.tool_choice.function.name, "emit_x");
   assertEquals(body.tools[0].function.name, "emit_x");
   assertEquals(body.tools[0].function.parameters.required, ["a"]);
+  // A non-DeepSeek model must NOT carry a provider pin (Anthropic/OpenAI are already US).
+  assertEquals(body.provider, undefined);
+});
+
+Deno.test("buildStructuredBody pins DeepSeek to US inference providers (data residency)", () => {
+  const body = buildStructuredBody({
+    model: "deepseek/deepseek-v4-flash-0731",
+    messages: [{ role: "user", content: "hi" }],
+    toolName: "emit_x",
+    schema: { type: "object" },
+  }) as Record<string, any>;
+  assert(
+    Array.isArray(body.provider?.only) && body.provider.only.length > 0,
+    "DeepSeek gets a US provider allow-list"
+  );
+  // No non-US provider may appear (keeps raw personal data out of China jurisdiction).
+  for (const p of body.provider.only)
+    assert(!/deepseek/i.test(p), "the pin never allows DeepSeek's own (China) endpoint");
 });
 
 Deno.test("parseStructuredArguments extracts the JSON args from a tool-call response", () => {

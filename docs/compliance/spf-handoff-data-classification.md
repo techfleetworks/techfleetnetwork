@@ -49,11 +49,13 @@ _executable_ — every store below is a place a DSAR deletion/export must reach.
 
 ## Vendors / subprocessors
 
-- **OpenRouter, Anthropic, and DeepSeek** are **new subprocessors** for Restricted data (prompts
-  contain personal data) → each requires a DPA + entry in the subprocessor register + a
-  data-residency/cross-border assessment. **DeepSeek processes in China** — that cross-border
-  transfer is high-impact and must be assessed (or the mechanical model swapped to a same-region
-  provider). Flagged for owner action.
+- **OpenRouter (US), Anthropic (US), and the US inference providers hosting the DeepSeek
+  mechanical model** are **new subprocessors** for Restricted data (prompts contain personal
+  data) → each requires a DPA + entry in the subprocessor register. **Cross-border to China is
+  resolved in code:** the DeepSeek model is pinned to US OpenRouter providers
+  (CoreWeave/Together/Fireworks/DeepInfra/BaseTen) in `supabase/functions/_shared/llm/port.ts`
+  (`US_INFERENCE_PROVIDERS`, `allow_fallbacks: true`), so DeepSeek's own China endpoint is never
+  used — verified served-provider = CoreWeave (US). DPAs remain an owner action.
 - **Supabase Storage** (existing) holds Restricted blobs → same-classification controls
   (private buckets, encryption at rest, signed-URL scoping).
 

@@ -1,7 +1,29 @@
 # ADR-0005: LLM provider/model behind a capability port
 
-- **Status:** Accepted (2026-08-10)
+- **Status:** Accepted (2026-08-10); **Amended (2026-08-12)** — see "Amendment" below
 - **Related:** [ADR-0004](0004-handoff-pipeline-async.md)
+
+## Amendment (2026-08-12) — adapter, models, and US data residency
+
+The port shape is unchanged; the default adapter and model IDs are updated to match what
+ships. The single adapter now targets **OpenRouter** (`https://openrouter.ai/api/v1`,
+OpenAI-compatible, same forced-tool-call contract), with two capability roles as **code
+defaults, env-overridable** (`supabase/functions/_shared/llm/port.ts`):
+
+- **Writer** (all four hand-off audiences): `anthropic/claude-opus-4.8` — chosen on output
+  quality after A/B against alternatives; runs at temperature 0 for reproducibility.
+- **Mechanical** (fact extraction, source mapping, stage-3.5 dedup): `deepseek/deepseek-v4-flash-0731`.
+
+**Data residency (the reason this amendment is architecturally significant):** the mechanical
+model reads raw uploaded deliverables, which contain personal data. DeepSeek is a China
+company, so to keep that processing under US jurisdiction the port **pins any `deepseek/*`
+model to US inference providers** via OpenRouter routing —
+`provider: { only: US_INFERENCE_PROVIDERS, allow_fallbacks: true }` where
+`US_INFERENCE_PROVIDERS = [together, fireworks, deepinfra, baseten, coreweave]`. The allow-list
+is a hardcoded const (no env read) so the residency guarantee cannot be silently widened by a
+misconfigured env var, and it never contains DeepSeek's own (China) endpoint. Verified: a live
+call served from **CoreWeave (US)**. Anthropic (writer) is already US. Non-DeepSeek models
+carry no provider pin. See `docs/compliance/spf-handoff-data-classification.md`.
 
 ## Context
 

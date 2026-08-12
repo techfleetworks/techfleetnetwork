@@ -23,6 +23,20 @@ export const FALLBACK_MODEL = "openai/gpt-oss-20b";
 // override per-environment. (LLM_API_KEY must be an OpenRouter key for these defaults to resolve.)
 export const DEFAULT_WRITER_MODEL = "anthropic/claude-opus-4.8";
 export const DEFAULT_MECHANICAL_MODEL = "deepseek/deepseek-v4-flash-0731";
+// DATA RESIDENCY: the mechanical model (DeepSeek) reads the RAW uploaded material, which can contain
+// personal data. DeepSeek is a Chinese company, but its open weights are also hosted by US providers.
+// We pin any DeepSeek call to these US-headquartered OpenRouter providers (verified serving our model
+// — a pinned call routed to CoreWeave/US) so no personal data is processed under China jurisdiction.
+// The Anthropic writer is already US. Hardcoded (not env-overridable) so the residency guarantee
+// cannot be silently widened by a misconfigured env var. Kept as a top-level const with NO env read,
+// so importing this module still needs no --allow-env (the pure builders/parser stay testable in CI).
+export const US_INFERENCE_PROVIDERS = [
+  "together",
+  "fireworks",
+  "deepinfra",
+  "baseten",
+  "coreweave",
+];
 export function resolveWriterModel(): string {
   return Deno.env.get("HANDOFF_WRITER_MODEL") || DEFAULT_WRITER_MODEL;
 }
@@ -113,6 +127,12 @@ export type StructuredRequest = {
 export function buildStructuredBody(req: StructuredRequest): Record<string, unknown> {
   const base = {
     model: req.model,
+    // Residency pin: DeepSeek calls route only to US OpenRouter providers (see US_INFERENCE_PROVIDERS).
+    // `provider` is an OpenRouter routing field; non-OpenRouter hosts ignore it. allow_fallbacks stays
+    // within the US allow-list, so a busy provider fails over to another US one, never to China.
+    ...(req.model.includes("deepseek")
+      ? { provider: { only: US_INFERENCE_PROVIDERS, allow_fallbacks: true } }
+      : {}),
     ...(req.reasoningEffort ? { reasoning_effort: req.reasoningEffort } : {}),
     temperature: req.temperature ?? 0.3,
     ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
