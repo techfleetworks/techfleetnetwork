@@ -12,7 +12,8 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { resolveWriterModel } from "../_shared/llm/port.ts";
 import { runHandoff } from "../handoff-produce/pipeline.ts";
-import type { Cursor, PipelineState } from "../handoff-produce/pipeline-steps.ts";
+import type { PipelineState } from "../handoff-produce/pipeline-steps.ts";
+import { bearerMatches, statusForCursor } from "./lib.ts";
 
 const log = createEdgeLogger("handoff-worker");
 type SvcClient = SupabaseClient<any, "public", any>;
@@ -20,26 +21,11 @@ type SvcClient = SupabaseClient<any, "public", any>;
 const LEASE_SECONDS = 120; // lease held per claim; a checkpoint extends it
 const TICK_BUDGET_MS = 110_000; // stop claiming/working before the invocation limit; resume next tick
 
-// Map the step-machine cursor to the run's coarse status, for observability while it progresses.
-function statusForCursor(c: Cursor): string {
-  switch (c.stage) {
-    case "extract":
-      return "extracting";
-    case "write":
-      return "writing";
-    default:
-      return "rendering";
-  }
-}
-
-// Constant-time-ish bearer check against the service-role key (this is a service-role-only worker).
+// Constant-time bearer check against the service-role key (this is a service-role-only worker).
 function isAuthorized(req: Request): boolean {
   const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const got = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (!expected || got.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0;
+  return bearerMatches(got, expected);
 }
 
 serve(async (req: Request) => {

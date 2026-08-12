@@ -35,6 +35,7 @@ CREATE OR REPLACE FUNCTION public.handoff_claim_run(
   id uuid, project_id uuid, phase public.project_phase,
   spf_version text, model text, pipeline_state jsonb, attempts integer
 ) LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+#variable_conflict use_column
 DECLARE
   v_id uuid;
   v_attempts integer;
