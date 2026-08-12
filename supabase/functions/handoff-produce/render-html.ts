@@ -145,8 +145,15 @@ export function renderVersionHtml(
     })
     .join("\n");
 
+  // The document is fully self-contained: inline styles, no scripts, no remote resources. A strict
+  // CSP is defense-in-depth on top of escapeHtml/safeHref — it forbids any script execution and any
+  // network fetch, so even if an escaping gap ever slipped through, injected markup could not run or
+  // exfiltrate. `style-src 'unsafe-inline'` is required only for the single inline <style> block.
+  const csp =
+    "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
   const doc = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(outline.title)}</title>
 <style>${BRAND_CSS}</style>

@@ -24,7 +24,7 @@ _executable_ — every store below is a place a DSAR deletion/export must reach.
 | 6   | `handoff_productions` (run metadata)                              | project, phase, triggered_by (user id), status, model, spf_version          | **Confidential**                                 | Operational                                                    | Same as outputs                            | DB row delete                                |
 | 7   | Audit log entries                                                 | who produced/downloaded/regenerated, SPF sync/replace, cross-project access | **Confidential** (contains user ids, no content) | Compliance obligation                                          | ≥ 1 year, **outlasts** the data it records | Not deleted on DSAR (legal record); ids only |
 | 8   | RAG vectors in `knowledge_base` derived from personal-data inputs | Embeddings of hand-off content, if ingested                                 | **Restricted**                                   | Same as source                                                 | Tied to source                             | Re-embed/delete on source deletion           |
-| 9   | Groq (subprocessor) request/response                              | Prompt + generated text in transit                                          | **Restricted**                                   | Processing for generation                                      | Not retained by us; per Groq DPA           | Covered by subprocessor DPA (§ vendors)      |
+| 9   | LLM sub-processors (OpenRouter → Anthropic, DeepSeek)             | Prompt + generated text in transit                                          | **Restricted**                                   | Processing for generation                                      | Not retained by us; per each DPA           | Covered by subprocessor DPAs (§ vendors)     |
 
 > Email content/logs (Restricted/Confidential) are **out of scope** for this build —
 > distribution is deferred until the email subsystem is fixed (see the plan). Add rows 10–11
@@ -43,11 +43,17 @@ _executable_ — every store below is a place a DSAR deletion/export must reach.
 - **DSAR export** must gather all personal data across derived stores (2–6, 8), not just the
   primary rows.
 
+> **Implementation status:** the retention/expiry job and DSAR erasure/export propagation to the
+> hand-off stores are PLANNED (Phase B3) and **NOT yet implemented in code**. The controls above are
+> the target design; do not treat them as active until the Phase B3 lifecycle work lands.
+
 ## Vendors / subprocessors
 
-- **Groq** is a **new subprocessor** for Restricted data (prompts contain personal data) →
-  requires a DPA + entry in the subprocessor register + a data-residency/cross-border
-  assessment (where Groq processes). Flagged for owner action.
+- **OpenRouter, Anthropic, and DeepSeek** are **new subprocessors** for Restricted data (prompts
+  contain personal data) → each requires a DPA + entry in the subprocessor register + a
+  data-residency/cross-border assessment. **DeepSeek processes in China** — that cross-border
+  transfer is high-impact and must be assessed (or the mechanical model swapped to a same-region
+  provider). Flagged for owner action.
 - **Supabase Storage** (existing) holds Restricted blobs → same-classification controls
   (private buckets, encryption at rest, signed-URL scoping).
 

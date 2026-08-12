@@ -9,7 +9,9 @@ processing of personal data by new technology (a multi-agent LLM pipeline)_. Com
 
 Active project teammates upload deliverables (files + ≤10k text) that can contain personal
 data — teammate names, client/constituent names, stakeholder feedback, meeting-recording
-links. A multi-agent LLM pipeline (Groq) parses this, extracts a fact base, and writes four
+links. A multi-agent LLM pipeline — served via **OpenRouter**, using **Anthropic Claude Opus 4.8**
+for the audience writers and **DeepSeek v4** for fact extraction and source mapping — parses this,
+extracts a fact base, and writes four
 audience narrative documents, stored in private Storage and readable in-app by active members
 of that project. **No automated distribution in this build** (email deferred).
 
@@ -26,28 +28,29 @@ of that project. **No automated distribution in this build** (email deferred).
   for onboarding/case-study/leadership purposes. Purpose is limited to that; the data is not
   repurposed.
 - **Minimization:** the thin-projection of SPF workshops/deliverables; ≤10k text cap per
-  component; only active-project members can read outputs; the Org Case Study version
-  pseudonymizes where identity isn't needed.
+  component; only active-project members can read outputs. (Org Case Study pseudonymization —
+  roles rather than names where identity isn't needed — is planned, not yet implemented.)
 - **Third-party data:** client/stakeholder personal data enters via teammate uploads. Mitigation:
   purpose limitation, access restricted to the project team, retention window, and the ability
   to delete on request.
 
 ## 3. Risks & mitigations
 
-| Risk                                                                           | Likelihood | Impact | Mitigation                                                                                                                      |
-| ------------------------------------------------------------------------------ | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Prompt injection in an uploaded file steers the LLM (LLM01)                    | Med        | High   | System vs untrusted-content separation; constrained tools (writers have **no** tools); output validation; no secrets in prompts |
-| Cross-project leak of a hand-off (IDOR)                                        | Low        | High   | Deny-by-default RLS; ownership re-check on every access; short-lived project-scoped signed URLs                                 |
-| Sensitive data incidentally in uploads reaches Groq                            | Med        | Med    | Data-minimization guidance in the UI; DPA with Groq; DLP scrub on model I/O; classification = Restricted                        |
-| Generated narrative fabricates/among-mixes personal facts (LLM08 overreliance) | Med        | Med    | Grounding in the fact base; **email/auto-distribution deferred** — a human reads outputs in-app before any external use         |
-| Stale/poisoned SPF grounding misdescribes the work                             | Low        | Med    | SPF schema validation + provenance + atomic swap ([ADR-0002](../adr/0002-spf-ingestion-sync-subsystem.md))                      |
-| Cross-border transfer of personal data to Groq                                 | Med        | Med    | Residency assessment + DPA; documented in the data classification                                                               |
-| Right-to-erasure not honored across derived stores                             | Med        | High   | Deletion propagation to blobs + all versions + fact base + vectors (data-classification doc)                                    |
+| Risk                                                                           | Likelihood | Impact | Mitigation                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prompt injection in an uploaded file steers the LLM (LLM01)                    | Med        | High   | System vs untrusted-content separation; constrained tools (writers have **no** tools); output validation; no secrets in prompts                                                                             |
+| Cross-project leak of a hand-off (IDOR)                                        | Low        | High   | Deny-by-default RLS; ownership re-check on every access; short-lived project-scoped signed URLs                                                                                                             |
+| Sensitive data incidentally in uploads reaches the LLM sub-processors          | Med        | Med    | Data-minimization guidance in the UI; DPA with the LLM sub-processors (OpenRouter, Anthropic, DeepSeek); DLP scrub of model OUTPUT (input-side scrub + name redaction planned); classification = Restricted |
+| Generated narrative fabricates/among-mixes personal facts (LLM08 overreliance) | Med        | Med    | Grounding in the fact base; **email/auto-distribution deferred** — a human reads outputs in-app before any external use                                                                                     |
+| Stale/poisoned SPF grounding misdescribes the work                             | Low        | Med    | SPF schema validation + provenance + atomic swap ([ADR-0002](../adr/0002-spf-ingestion-sync-subsystem.md))                                                                                                  |
+| Cross-border transfer of personal data (Anthropic US; **DeepSeek → China**)    | Med        | High   | Residency assessment REQUIRED for DeepSeek + OpenRouter + DPA; document in the data classification (owner action)                                                                                           |
+| Right-to-erasure not honored across derived stores                             | Med        | High   | Deletion propagation to blobs + versions + fact base + vectors is PLANNED (Phase B3); NOT yet implemented for the hand-off stores (tracked gap)                                                             |
 
 ## 4. Data-subject rights
 
-Access/export and erasure are **engineered**, not just promised — they traverse every
-Restricted store in `spf-handoff-data-classification.md`. Consent/withdrawal handling and
+Access/export and erasure are **specified** in `spf-handoff-data-classification.md` (they must
+traverse every Restricted store) but are **not yet engineered for the hand-off stores** — a tracked
+gap to close in Phase B3 before real personal data flows. Consent/withdrawal handling and
 audit entries for DSAR receipt + fulfilment are required (see the `@compliance` scenarios in
 the plan).
 

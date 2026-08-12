@@ -32,6 +32,10 @@ Deno.test("renderVersionHtml produces a self-contained branded print document", 
     { projectName: "Acme", phase: "phase_1", generatedLabel: "Generated from SPF v1." }
   );
   assertStringIncludes(html, "<!doctype html>");
+  // SECURITY: strict CSP is emitted as defense-in-depth on top of escapeHtml/safeHref — no scripts,
+  // no remote fetches, so injected markup could neither execute nor exfiltrate.
+  assertStringIncludes(html, `http-equiv="Content-Security-Policy"`);
+  assertStringIncludes(html, "default-src 'none'");
   assertStringIncludes(html, "<title>Client Hand-Off</title>");
   assertStringIncludes(html, "@media print"); // print-optimized
   assertStringIncludes(html, "#0056A7"); // Tech Fleet Blue brand token
