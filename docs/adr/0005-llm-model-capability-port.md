@@ -58,10 +58,32 @@ model output is validated/sanitized before use; no secrets are placed in prompts
 2. **A generic multi-provider abstraction layer now.** Over-engineered (YAGNI) for one real
    adapter; a single port with config-selectable model IDs meets the requirement. Rejected.
 
+## Resilience posture — why there is no auto-tripping circuit breaker (deliberate)
+
+The requirements survey lists a circuit breaker on the LLM among the resilience patterns. We
+deliberately do **not** implement a per-provider auto-tripping breaker, and record that here so
+the omission is a decision, not a gap:
+
+- **What the port DOES have:** an explicit timeout on every call; bounded retry with jittered
+  backoff that is capped by a total wall-clock **deadline** (a hung provider cannot be amplified);
+  and **fail-fast on terminal errors** (4xx / truncation / refusal are never retried). A per-arc
+  writer failure degrades to an honest "_Awaiting content._" placeholder and is now counted as a
+  run `gap_count` rather than silently shipped.
+- **The outage control is the kill switch, not a breaker.** `HANDOFF_PRODUCE_DISABLED` (see the
+  Groq/LLM-outage runbook) lets an operator "queue and hold" during a provider outage: the front
+  door stops new runs and the worker holds queued ones, so nothing hammers a down provider. This
+  is the manual equivalent of an open circuit, and it is auditable and reversible without a deploy.
+- **Why not the automatic version:** at ~5–10 hand-off runs/month the per-provider request rate is
+  far too low for a breaker's failure-window statistics to be meaningful, and an auto-open breaker
+  would add shared mutable state to otherwise-stateless edge invocations for no real protection
+  (YAGNI, matching this ADR's "no speculative framework" stance). Revisit if hand-off volume or a
+  shared always-on service (not per-invocation edge functions) changes that calculus.
+
 ## Consequences
 
 - **Easier:** provider/model is a config change; safety + cost controls are enforced in one
   place; stages depend on a stable JSON contract, not on Groq specifics.
 - **Harder / accepted:** the port must define a provider-neutral structured-output contract and
   map provider-specific tool-call shapes into it; `gpt-oss-120b` availability remains an open
-  config item (design is unaffected either way).
+  config item (design is unaffected either way). There is no automatic circuit breaker — the
+  manual kill switch covers the outage case (see "Resilience posture" above).
