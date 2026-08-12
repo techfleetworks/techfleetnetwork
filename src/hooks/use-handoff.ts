@@ -5,6 +5,7 @@ import {
   deleteSubmission,
   getCompleteness,
   getLatestProduction,
+  getRunBudget,
   type HandoffAudience,
   type HandoffLinkType,
   type HandoffProduction,
@@ -117,6 +118,15 @@ export function useProduceHandoffs(projectId: string, phase: string) {
     // audiences omitted = full production; a subset = a targeted re-create (server enforces the budget).
     mutationFn: (audiences?: HandoffAudience[]) => produceHandoffs(projectId, phase, audiences),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.production(projectId, phase) }),
+  });
+}
+
+export function useRunBudget(projectId: string, phase: string, enabled = true) {
+  return useQuery({
+    queryKey: ["handoff-budget", projectId, phase] as const,
+    queryFn: () => getRunBudget(projectId, phase),
+    enabled: enabled && !!projectId && !!phase,
+    staleTime: 15_000,
   });
 }
 

@@ -47,6 +47,10 @@ export interface HandoffProduction {
   status: string;
   is_latest: boolean;
   error: string | null;
+  gap_count: number;
+  audiences: HandoffAudience[] | null;
+  writer_only: boolean;
+  triggered_by: string;
   created_at: string;
   updated_at: string;
 }
@@ -165,7 +169,9 @@ export async function getLatestProduction(
 ): Promise<HandoffProduction | null> {
   const { data, error } = await supabase
     .from("handoff_productions")
-    .select("id, project_id, phase, status, is_latest, error, created_at, updated_at")
+    .select(
+      "id, project_id, phase, status, is_latest, error, gap_count, audiences, writer_only, triggered_by, created_at, updated_at"
+    )
     .eq("project_id", projectId)
     .eq("phase", phase)
     .order("created_at", { ascending: false })
@@ -240,4 +246,71 @@ export async function submitFeedback(
     { onConflict: "production_id,audience,created_by" }
   );
   if (error) throw error;
+}
+
+// ── Production stage mapping (for the async progress stepper) ────────────────
+export type HandoffStage = "extract" | "parse" | "organize" | "summarize" | "review";
+export const HANDOFF_STAGES: { key: HandoffStage; label: string }[] = [
+  { key: "extract", label: "Extract" },
+  { key: "parse", label: "Parse" },
+  { key: "organize", label: "Organize" },
+  { key: "summarize", label: "Summarize" },
+  { key: "review", label: "Review" },
+];
+
+/**
+ * The active stage index (0..4) for a run status, mapping the pipeline's coarse statuses onto the
+ * five-step Extract·Parse·Organize·Summarize·Review bar. `complete` lands on Review (ready for the
+ * human); a failed/canceled run returns -1 (error state, no stage active).
+ */
+export function activeStageIndex(status: string | null | undefined): number {
+  switch (status) {
+    case "queued":
+      return 0;
+    case "parsing":
+    case "extracting":
+      return 1;
+    case "writing":
+    case "rendering":
+      return 3;
+    case "complete":
+      return 4;
+    case "failed":
+    case "canceled":
+      return -1;
+    default:
+      return 0;
+  }
+}
+
+// ── Re-create budget (1 production + 1 team retry) ──────────────────────────
+export const HANDOFF_RUN_CAP = 2;
+export interface HandoffBudget {
+  runs_used: number;
+  can_produce: boolean; // nothing produced yet
+  can_retry: boolean; // produced, the one team retry is still available
+  retries_remaining: number;
+}
+
+/** PURE: derive the produce/retry affordances from the team's runs_used counter. */
+export function budgetState(runsUsed: number): HandoffBudget {
+  const used = Math.max(0, Math.trunc(runsUsed) || 0);
+  return {
+    runs_used: used,
+    can_produce: used === 0,
+    can_retry: used >= 1 && used < HANDOFF_RUN_CAP,
+    retries_remaining: used >= 1 ? Math.max(0, HANDOFF_RUN_CAP - used) : 0,
+  };
+}
+
+/** The team's re-create budget for a project+phase (RLS: active members can read). */
+export async function getRunBudget(projectId: string, phase: string): Promise<HandoffBudget> {
+  const { data, error } = await supabase
+    .from("handoff_run_budget")
+    .select("runs_used")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .maybeSingle();
+  if (error) throw error;
+  return budgetState((data?.runs_used as number) ?? 0);
 }
