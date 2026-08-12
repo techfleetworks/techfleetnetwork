@@ -1,3 +1,4 @@
+// @edge-auth required — verify_jwt=true; background/admin job invoked with the service-role bearer.
 // spf-sync — ingest the public SPF v1 API into the spf_* snapshot (ADR-0002).
 // Background/admin job (NOT a user path). Per dataset: SSRF-guarded fetch → validate against
 // the pinned v1 contract → checksum → atomic swap via spf_apply_dataset. FAILS CLOSED: a

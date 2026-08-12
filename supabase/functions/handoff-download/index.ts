@@ -1,3 +1,4 @@
+// @edge-auth required — JWT-gated; re-checks active_participant on the owning project (or admin).
 // handoff-download (Phase B3): issue a short-lived signed URL for a produced output file,
 // AFTER re-checking that the caller is an active teammate on the owning project (or admin).
 // The handoff-outputs bucket has NO blanket read policy — ownership is the control, not URL

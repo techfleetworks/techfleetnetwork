@@ -1,3 +1,4 @@
+// @edge-auth required — JWT-gated; produce-gate enforces active_participant on OWN project (or admin).
 // handoff-produce (Phase B2): the ENQUEUE front door.
 // Gate + auth are synchronous; the request only creates a 'queued' run row and returns immediately.
 // The durable, cron-driven handoff-worker (see ../handoff-worker) claims the run and drives it to

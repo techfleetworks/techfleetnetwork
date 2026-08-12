@@ -1,3 +1,4 @@
+// @edge-auth required — verify_jwt=true; invoked by pg_cron with the service-role bearer only.
 // handoff-worker (Phase B2): the durable, cron-driven queue drainer for hand-off production.
 //
 // A pg_cron job invokes this every minute with the service-role bearer. Each tick claims leased runs
@@ -67,7 +68,7 @@ serve(async (req: Request) => {
     const initial = (run.pipeline_state as PipelineState | null) ?? undefined;
 
     try {
-      const { state, stopped } = await runHandoff(
+      const { state, stopped, gaps } = await runHandoff(
         svc,
         ctx,
         {
@@ -87,11 +88,27 @@ serve(async (req: Request) => {
       );
 
       if (stopped === "done") {
-        await svc.rpc("handoff_complete_run", { p_run_id: ctx.runId, p_worker_id: workerId });
-        log.info("run", `completed run=${ctx.runId} [${ctx.requestId}]`, {
-          requestId: ctx.requestId,
+        await svc.rpc("handoff_complete_run", {
+          p_run_id: ctx.runId,
+          p_worker_id: workerId,
+          p_gap_count: gaps.total,
         });
-        processed.push({ run: ctx.runId, outcome: "complete" });
+        if (gaps.total > 0)
+          // Completed, but shipped "_Awaiting content._" placeholders: surface it (SLO signal + alert
+          // source) instead of the run looking clean. Not an error — the run still produced output.
+          log.warn(
+            "run",
+            `completed run=${ctx.runId} WITH ${gaps.total} gap(s) ${JSON.stringify(gaps.byAudience)} [${ctx.requestId}]`,
+            { requestId: ctx.requestId }
+          );
+        else
+          log.info("run", `completed run=${ctx.runId} [${ctx.requestId}]`, {
+            requestId: ctx.requestId,
+          });
+        processed.push({
+          run: ctx.runId,
+          outcome: gaps.total > 0 ? "complete-with-gaps" : "complete",
+        });
       } else if (stopped === "budget") {
         // Out of tick time: hand the run back for the next tick to resume, no crash penalty.
         await svc.rpc("handoff_release_run", {

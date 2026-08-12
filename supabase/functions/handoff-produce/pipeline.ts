@@ -26,6 +26,7 @@ import {
   type FinalizeUnit,
   initialState,
   type PipelineState,
+  runGaps,
   type StepEffects,
   type WriteUnit,
 } from "./pipeline-steps.ts";
@@ -359,7 +360,11 @@ export async function runHandoff(
   ctx: RunContext,
   hooks: { shouldContinue: () => boolean; checkpoint: (s: PipelineState) => Promise<boolean> },
   initial?: PipelineState
-): Promise<{ state: PipelineState; stopped: DriveStop }> {
+): Promise<{
+  state: PipelineState;
+  stopped: DriveStop;
+  gaps: { total: number; byAudience: Record<string, number> };
+}> {
   let llmCalls = 0;
   const guardCall = () => {
     if (++llmCalls > MAX_LLM_CALLS) throw new Error(`LLM call cap (${MAX_LLM_CALLS}) exceeded`);
@@ -367,7 +372,9 @@ export async function runHandoff(
   const loaded = await loadRunContext(svc, ctx.projectId, ctx.phase);
   const plan = buildRunPlan(loaded.components);
   const eff = buildEffects(svc, ctx, loaded, guardCall);
-  return driveRun(initial ?? initialState(), plan, eff, hooks);
+  const result = await driveRun(initial ?? initialState(), plan, eff, hooks);
+  // Degraded-arc count: only meaningful once the run is done, but cheap + pure to compute always.
+  return { ...result, gaps: runGaps(plan, result.state) };
 }
 
 /**
@@ -383,7 +390,7 @@ export async function processRun(svc: SvcClient, ctx: RunContext): Promise<void>
       .eq("id", runId);
   try {
     await setStatus("extracting");
-    const { stopped } = await runHandoff(svc, ctx, {
+    const { stopped, gaps } = await runHandoff(svc, ctx, {
       shouldContinue: () => true,
       checkpoint: () => Promise.resolve(true),
     });
@@ -394,8 +401,17 @@ export async function processRun(svc: SvcClient, ctx: RunContext): Promise<void>
       .eq("project_id", projectId)
       .eq("phase", phase)
       .neq("id", runId);
-    await setStatus("complete");
-    log.info("run", `hand-off complete [${requestId}] run=${runId}`, { requestId });
+    await svc
+      .from("handoff_productions")
+      .update({ status: "complete", gap_count: gaps.total, updated_at: new Date().toISOString() })
+      .eq("id", runId);
+    if (gaps.total > 0)
+      log.warn(
+        "run",
+        `hand-off complete WITH ${gaps.total} gap(s) ${JSON.stringify(gaps.byAudience)} [${requestId}] run=${runId}`,
+        { requestId }
+      );
+    else log.info("run", `hand-off complete [${requestId}] run=${runId}`, { requestId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log.error("run", `hand-off failed [${requestId}]: ${msg}`, { requestId });

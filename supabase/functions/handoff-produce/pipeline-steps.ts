@@ -127,6 +127,36 @@ export async function stepOnce(
   return state; // done
 }
 
+/**
+ * PURE: the story-arc components that shipped (or would ship) as "_Awaiting content._" — i.e. an
+ * outline component with no non-empty written prose. Mirrors the renderer's placeholder condition
+ * EXACTLY (assemble.ts renders a component with empty/absent markdown as the placeholder), so a
+ * finalized run's gap count equals the number of visible "Awaiting content" sections a reader sees.
+ * A run with total > 0 completed WITH gaps (a writer arc degraded) — it is not a clean hand-off.
+ */
+export function runGaps(
+  plan: RunPlan,
+  state: PipelineState
+): { total: number; byAudience: Record<string, number> } {
+  const byAudience: Record<string, number> = {};
+  let total = 0;
+  for (const unit of plan.finalize) {
+    const filled = new Set(
+      (state.written[unit.audience] ?? [])
+        .filter((w) => (w.markdown ?? "").trim().length > 0)
+        .map((w) => w.slug)
+    );
+    let missing = 0;
+    for (const sec of unit.outline.sections)
+      for (const comp of sec.components) if (!filled.has(comp.slug)) missing++;
+    if (missing > 0) {
+      byAudience[unit.audience] = missing;
+      total += missing;
+    }
+  }
+  return { total, byAudience };
+}
+
 export type DriveStop = "done" | "budget" | "lost-lease";
 
 /**

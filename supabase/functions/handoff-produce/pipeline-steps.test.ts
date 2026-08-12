@@ -5,6 +5,7 @@ import {
   driveRun,
   initialState,
   type PipelineState,
+  runGaps,
   type StepEffects,
 } from "./pipeline-steps.ts";
 import type { HandoffComponent } from "./assemble.ts";
@@ -157,6 +158,64 @@ Deno.test(
     });
     assertEquals(stopped, "lost-lease");
     assertEquals(sink.extracts.length, 1); // did one unit, checkpoint said "not yours", bailed
+  }
+);
+
+Deno.test("runGaps: a fully written run reports zero gaps", async () => {
+  const sink = {
+    extracts: [] as string[],
+    finals: [] as Array<{ audience: string; count: number }>,
+  };
+  const plan = buildRunPlan(COMPONENTS);
+  const { state } = await driveRun(initialState(), plan, fakeEffects(sink), always);
+  const gaps = runGaps(plan, state);
+  assertEquals(gaps.total, 0);
+  assertEquals(gaps.byAudience, {});
+});
+
+Deno.test(
+  "runGaps: a degraded arc (writer returned nothing) counts each placeholder component, per audience",
+  async () => {
+    const plan = buildRunPlan(COMPONENTS);
+    // Simulate the pipeline's own graceful degradation: the Part-1 arc fails and writeArc returns []
+    // (as it does on a terminal LLM error). Its one component ('problems') then ships as
+    // "_Awaiting content._" — exactly one visible gap in the teammate version.
+    const degrading: StepEffects = {
+      ...fakeEffects({ extracts: [], finals: [] }),
+      writeArc: (unit) =>
+        Promise.resolve(
+          unit.outline.sections[unit.arcIndex].arc === "Part 1: Empathy Building"
+            ? []
+            : unit.outline.sections[unit.arcIndex].components.map((cc) => ({
+                slug: cc.slug,
+                markdown: `w-${cc.slug}`,
+              }))
+        ),
+    };
+    const { state } = await driveRun(initialState(), plan, degrading, always);
+    const gaps = runGaps(plan, state);
+    assertEquals(gaps.total, 1);
+    assertEquals(gaps.byAudience, { teammate: 1 });
+  }
+);
+
+Deno.test(
+  "runGaps: empty-string prose is a gap too (mirrors the renderer's placeholder rule)",
+  () => {
+    const plan = buildRunPlan(COMPONENTS);
+    // All three components 'written' but one is blank -> the renderer would show a placeholder for it.
+    const state: PipelineState = {
+      cursor: { stage: "done" },
+      factBase: [],
+      written: {
+        teammate: [
+          { slug: "goals", markdown: "real" },
+          { slug: "client", markdown: "   " }, // whitespace only -> placeholder
+          { slug: "problems", markdown: "real" },
+        ],
+      },
+    };
+    assertEquals(runGaps(plan, state).total, 1);
   }
 );
 

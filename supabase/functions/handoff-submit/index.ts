@@ -1,3 +1,4 @@
+// @edge-auth required — JWT-gated; requires active_participant on the project (or admin).
 // handoff-submit (Phase B1): the single hardened intake endpoint. Every deliverable — text,
 // link, or file — is validated server-side before storage. Auth: active_participant on the
 // project (or admin). Files are typed by MAGIC BYTES (validate.ts), stored under a random name
