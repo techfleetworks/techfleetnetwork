@@ -1,3 +1,4 @@
+// Tests for src/services/handoff.service.ts — the client service for the Hand-Off Production System.
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Control the edge invoker + supabase client for this module under test.
