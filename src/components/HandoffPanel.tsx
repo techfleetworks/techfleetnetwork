@@ -231,7 +231,12 @@ export function HandoffPanel({ projectId, phase }: { projectId: string; phase: s
                 </p>
               )}
               {status === "failed" && (
-                <p className="text-sm text-destructive" role="status">
+                <p
+                  className="text-sm text-destructive"
+                  role="status"
+                  data-no-translate
+                  translate="no"
+                >
                   The last run failed{production.data?.error ? `: ${production.data.error}` : "."}{" "}
                   You can try again.
                 </p>
@@ -525,7 +530,7 @@ function OutputButton({
 function ProduceStepper({ status, writerOnly }: { status: string; writerOnly: boolean }) {
   const active = activeStageIndex(status);
   return (
-    <div className="space-y-3" role="status" aria-live="polite">
+    <div className="space-y-3" role="status" aria-live="polite" data-no-translate translate="no">
       <div className="flex items-center gap-2 text-sm">
         <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
         <span className="font-medium">
