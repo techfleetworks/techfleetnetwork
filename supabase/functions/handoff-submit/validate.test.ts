@@ -15,6 +15,7 @@ const pdf = bytes(0x25, 0x50, 0x44, 0x46, 0x2d);
 const png = bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
 const jpeg = bytes(0xff, 0xd8, 0xff, 0xe0);
 const zip = bytes(0x50, 0x4b, 0x03, 0x04);
+const ole = bytes(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1); // legacy .doc/.xls
 const csv = new TextEncoder().encode("name,role\nAda,UX\n");
 
 Deno.test("sniffCategory detects by magic bytes, text by content, null for binary garbage", () => {
@@ -22,13 +23,14 @@ Deno.test("sniffCategory detects by magic bytes, text by content, null for binar
   assertEquals(sniffCategory(png), "png");
   assertEquals(sniffCategory(jpeg), "jpeg");
   assertEquals(sniffCategory(zip), "zip-office");
+  assertEquals(sniffCategory(ole), "legacy-office");
   assertEquals(sniffCategory(csv), "text");
   assertEquals(sniffCategory(bytes(0x00, 0x01, 0x02, 0x03)), null);
   assertEquals(sniffCategory(bytes()), null);
 });
 
-Deno.test("checkUpload accepts pdf/png/jpeg/csv", () => {
-  for (const b of [pdf, png, jpeg, csv]) assert(checkUpload(b).ok, "should accept");
+Deno.test("checkUpload accepts pdf/png/jpeg/csv + docx/xlsx (OOXML)", () => {
+  for (const b of [pdf, png, jpeg, csv, zip]) assert(checkUpload(b).ok, "should accept");
 });
 
 Deno.test(
@@ -40,10 +42,10 @@ Deno.test(
   }
 );
 
-Deno.test("checkUpload refuses zip-office (xlsx/docx) for now, with a helpful message", () => {
-  const r = checkUpload(zip);
+Deno.test("checkUpload refuses legacy OLE (.doc/.xls) with a helpful message", () => {
+  const r = checkUpload(ole);
   assertEquals(r.ok, false);
-  if (!r.ok) assert(r.error.includes("Word/Excel"));
+  if (!r.ok) assert(r.error.includes("older Word or Excel"));
 });
 
 Deno.test("checkUpload rejects empty and oversize files (boundary)", () => {

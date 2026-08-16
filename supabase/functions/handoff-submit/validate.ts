@@ -1,19 +1,22 @@
 // PURE validators for hand-off submissions (Phase B1). No I/O -> unit-tested offline.
 // OWASP file-upload controls: type is decided by MAGIC BYTES (never the client extension/mime),
 // size is capped server-side, the stored name is random, links are scheme/host checked, text is
-// capped at 10k. ZIP-container office files (xlsx/docx) are DETECTED but REFUSED for now: they
-// carry decompression-bomb + XXE risk we don't yet guard (threat-model T4). We refuse the type
-// we can't secure yet rather than accept it unguarded; CSV covers spreadsheet data meanwhile.
+// capped at 10k. OOXML office files (.docx/.xlsx) are ACCEPTED here and parsed at INGEST, hardened
+// there (decompression-bomb caps, XXE-off, macros refused; see handoff-produce/file-parse.ts).
+// Legacy OLE (.doc/.xls) is DETECTED and REFUSED with a helpful message (weak/risky parsers).
 
 export const MAX_TEXT_LEN = 10_000;
 export const MAX_FILE_BYTES = 52_428_800; // 50 MB (matches the bucket limit)
 
-export type FileCategory = "pdf" | "png" | "jpeg" | "zip-office" | "text";
-/** Categories we currently accept (no decompression/XXE exposure). */
+export type FileCategory = "pdf" | "png" | "jpeg" | "zip-office" | "legacy-office" | "text";
+/** Accepted at upload. zip-office (.docx/.xlsx) is parsed at INGEST, hardened there (decompression-bomb
+ *  caps, XXE-off, macros refused) — see handoff-produce/file-parse.ts. Legacy OLE (.doc/.xls) stays
+ *  refused (below) with a helpful message; images are stored but not read for text yet. */
 export const ALLOWED_CATEGORIES: ReadonlySet<FileCategory> = new Set([
   "pdf",
   "png",
   "jpeg",
+  "zip-office",
   "text",
 ]);
 
@@ -21,9 +24,14 @@ export const CATEGORY_MIME: Record<FileCategory, string> = {
   pdf: "application/pdf",
   png: "image/png",
   jpeg: "image/jpeg",
+  // Generic OOXML container; the real type (docx vs xlsx) is decided by magic bytes at ingest.
   "zip-office": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "legacy-office": "application/x-ole-storage",
   text: "text/plain",
 };
+
+export const LEGACY_OFFICE_MESSAGE =
+  "This looks like an older Word or Excel file (.doc or .xls). Those aren't supported. Please save it as a PDF, or as a newer .docx, .xlsx, or .csv, then upload again.";
 
 function startsWith(bytes: Uint8Array, sig: number[], offset = 0): boolean {
   if (bytes.length < offset + sig.length) return false;
@@ -38,6 +46,7 @@ export function sniffCategory(bytes: Uint8Array): FileCategory | null {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "png";
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "jpeg";
   if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04])) return "zip-office"; // PK.. (xlsx/docx/zip)
+  if (startsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return "legacy-office"; // .doc/.xls (OLE)
   if (isProbablyUtf8Text(bytes)) return "text";
   return null;
 }
@@ -63,10 +72,15 @@ export function checkUpload(bytes: Uint8Array): UploadCheck {
   if (!category)
     return { ok: false, error: "unsupported or unrecognized file type (content check failed)" };
   if (!ALLOWED_CATEGORIES.has(category)) {
-    // xlsx/docx detected: refused until decompression + XXE hardening lands (T4).
+    // Legacy OLE (.doc/.xls) is the only detected-but-refused category now (docx/xlsx are accepted +
+    // parsed at ingest). Macro-enabled .docm/.xlsm look like normal OOXML at upload and are refused
+    // at ingest (vbaProject.bin detected) — fail-closed, they yield no material.
     return {
       ok: false,
-      error: "Word/Excel files aren't supported yet. Export to PDF or CSV, or paste as text.",
+      error:
+        category === "legacy-office"
+          ? LEGACY_OFFICE_MESSAGE
+          : "unsupported or unrecognized file type (content check failed)",
     };
   }
   return { ok: true, category, mime: CATEGORY_MIME[category] };
@@ -110,6 +124,13 @@ export function checkText(text: string): { ok: true } | { ok: false; error: stri
 /** Random, safe object name — never trust the client filename for the stored path. */
 export function safeObjectName(category: FileCategory, seed: string): string {
   const rand = seed.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16) || "file";
-  const ext = category === "jpeg" ? "jpg" : category === "text" ? "txt" : category;
+  const ext =
+    category === "jpeg"
+      ? "jpg"
+      : category === "text"
+        ? "txt"
+        : category === "zip-office"
+          ? "ooxml"
+          : category;
   return `${rand}.${ext}`;
 }
