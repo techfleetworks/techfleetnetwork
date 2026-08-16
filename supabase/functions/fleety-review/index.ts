@@ -91,12 +91,21 @@ async function loadExpectations(
   return { name: row.name, expectations: kb?.content ?? row.description ?? "" };
 }
 
-/** Minimal output hardening (this is Fleety's own text; strip any stray active markup). */
+/**
+ * Minimal output hardening (this is Fleety's own text; strip any stray active markup).
+ * Tag-specific regexes are bypassable (nested `<scr<script>ipt>` survives a single pass;
+ * `</script bar>` end-tags dodge a fixed close matcher), so we remove ALL angle-bracket tags
+ * and repeat until the string stops changing — the CodeQL-documented remedy for
+ * incomplete-multi-character sanitization. The client still renders this as text.
+ */
 function sanitize(text: string): string {
-  return text
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
-    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi, "")
-    .replace(/javascript\s*:/gi, "");
+  let out = text;
+  let prev = "";
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(/<[^>]*>/g, "");
+  }
+  return out.replace(/javascript\s*:/gi, "");
 }
 
 serve(
