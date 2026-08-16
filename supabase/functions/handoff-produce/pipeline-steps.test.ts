@@ -5,6 +5,7 @@ import {
   driveRun,
   firstCursor,
   firstWriteCursor,
+  type IngestSource,
   initialState,
   type PipelineState,
   runGaps,
@@ -36,7 +37,7 @@ function fakeEffects(sink: {
   finals: Array<{ audience: string; count: number }>;
 }): StepEffects {
   return {
-    ingestFigma: () => Promise.resolve(),
+    ingest: () => Promise.resolve(),
     extractFacts: (c) => {
       sink.extracts.push(c.slug);
       return Promise.resolve({
@@ -96,7 +97,7 @@ Deno.test("firstWriteCursor skips extraction (writer-only) or ends when nothing 
 Deno.test(
   "ingest units run FIRST, are checkpointed, and a writer-only re-create skips them",
   async () => {
-    const ingest = [{ fileKey: "ABC", nodeIds: ["1:1"] }];
+    const ingest: IngestSource[] = [{ kind: "figma", figma: { fileKey: "ABC", nodeIds: ["1:1"] } }];
     const plan = buildRunPlan(COMPONENTS, ingest);
     assertEquals(plan.ingest.length, 1);
     assertEquals(firstCursor(plan), { stage: "ingest", i: 0 }); // a fresh full run starts at ingest
@@ -108,8 +109,8 @@ Deno.test(
     };
     const eff: StepEffects = {
       ...fakeEffects(sink),
-      ingestFigma: (f) => {
-        seen.push(f.fileKey);
+      ingest: (s) => {
+        if (s.kind === "figma") seen.push(s.figma.fileKey);
         return Promise.resolve();
       },
     };

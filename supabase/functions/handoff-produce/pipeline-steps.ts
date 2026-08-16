@@ -18,10 +18,14 @@ import {
   type WrittenComponent,
 } from "./assemble.ts";
 
-/** One ingest unit: fetch ONE external source (a Figma file's nodes) and add its text as material.
- *  Ingest runs BEFORE extract as checkpointed units so no single tick does the whole external load —
- *  fetching many boards inline (pre-checkpoint) is what killed the worker on a ~30-board run. */
+/** One ingest unit: fetch/parse ONE external source and persist its text. Ingest runs BEFORE extract
+ *  as checkpointed units so no single tick does the whole external load — doing it inline
+ *  (pre-checkpoint) is what killed the worker on a many-source run. */
 export type FigmaFile = { fileKey: string; nodeIds: string[] };
+/** An ingest source: a Figma/FigJam file to fetch, or an uploaded file to download + parse. */
+export type IngestSource =
+  | { kind: "figma"; figma: FigmaFile }
+  | { kind: "file"; submissionId: string; filePath: string; submissionType: string };
 /** One writer unit: a single story arc of a single audience version (a small, bounded LLM call). */
 export type WriteUnit = { audience: HandoffAudience; outline: VersionOutline; arcIndex: number };
 /** One finalize unit: render + store the documents for a single audience version. */
@@ -29,7 +33,7 @@ export type FinalizeUnit = { audience: HandoffAudience; outline: VersionOutline 
 
 /** The ordered plan of every unit in a run, derived PURELY from the SPF components. */
 export type RunPlan = {
-  ingest: FigmaFile[]; // one unit per external Figma file (checkpointed source acquisition)
+  ingest: IngestSource[]; // one unit per external source (Figma file or uploaded file)
   extract: HandoffComponent[]; // one unit per component
   write: WriteUnit[]; // one unit per (audience, arc)
   finalize: FinalizeUnit[]; // one unit per audience
@@ -53,9 +57,9 @@ export type PipelineState = {
 
 /** Injected side effects. Each returns quickly for one unit; the machine owns ordering + resume. */
 export type StepEffects = {
-  // Fetch ONE Figma file's node text and persist it (extracted_text on each of its submissions) +
-  // make it visible to this run's extractor. Side-effecting; returns nothing (material is durable).
-  ingestFigma: (file: FigmaFile) => Promise<void>;
+  // Fetch/parse ONE ingest source (Figma file or uploaded file) and persist its text durably
+  // (extracted_text on its submission[s]). Side-effecting; returns nothing (material is durable).
+  ingest: (source: IngestSource) => Promise<void>;
   extractFacts: (component: HandoffComponent) => Promise<ComponentFactBase>;
   writeArc: (unit: WriteUnit, arcFacts: ComponentFactBase[]) => Promise<WrittenComponent[]>;
   finalize: (unit: FinalizeUnit, written: WrittenComponent[]) => Promise<void>;
@@ -69,7 +73,7 @@ export type StepEffects = {
  */
 export function buildRunPlan(
   components: HandoffComponent[],
-  ingest: FigmaFile[],
+  ingest: IngestSource[],
   only?: readonly HandoffAudience[]
 ): RunPlan {
   const wanted = only && only.length ? new Set(only) : null;
@@ -141,7 +145,7 @@ export async function stepOnce(
 ): Promise<PipelineState> {
   const c = state.cursor;
   if (c.stage === "ingest") {
-    await eff.ingestFigma(plan.ingest[c.i]); // persists extracted_text durably + feeds this extractor
+    await eff.ingest(plan.ingest[c.i]); // persists extracted_text durably + feeds this extractor
     return { ...state, cursor: afterIngest(plan, c.i) };
   }
   if (c.stage === "extract") {

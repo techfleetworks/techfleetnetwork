@@ -29,6 +29,7 @@ import {
 } from "./assemble.ts";
 import { renderVersionHtml } from "./render-html.ts";
 import { fetchNodesText, parseFigmaUrl } from "./figma.ts";
+import { parseFileToText } from "./file-parse.ts";
 import {
   buildRunPlan,
   type DriveStop,
@@ -37,6 +38,7 @@ import {
   type FinalizeUnit,
   firstCursor,
   firstWriteCursor,
+  type IngestSource,
   type PipelineState,
   runGaps,
   type StepEffects,
@@ -340,10 +342,28 @@ async function loadRunContext(svc: SvcClient, projectId: string, phase: string) 
       figmaSubsByFile.set(parsed.fileKey, list);
     }
   }
-  const figmaFiles: FigmaFile[] = [...figmaSubsByFile].map(([fileKey, entries]) => ({
-    fileKey,
-    nodeIds: [...new Set(entries.map((e) => e.nodeId))],
+  const figmaSources: IngestSource[] = [...figmaSubsByFile].map(([fileKey, entries]) => ({
+    kind: "figma",
+    figma: { fileKey, nodeIds: [...new Set(entries.map((e) => e.nodeId))] },
   }));
+  // Uploaded files not yet parsed -> one ingest unit each (download from storage + parse to text).
+  const { data: fileSubs } = await svc
+    .from("handoff_deliverable_submissions")
+    .select("id,submission_type,file_path")
+    .eq("project_id", projectId)
+    .eq("phase", phase)
+    .eq("submission_type", "file")
+    .is("extracted_text", null)
+    .not("file_path", "is", null);
+  const fileSources: IngestSource[] = (fileSubs ?? [])
+    .filter((s) => s.file_path)
+    .map((s) => ({
+      kind: "file",
+      submissionId: s.id as string,
+      filePath: s.file_path as string,
+      submissionType: s.submission_type as string,
+    }));
+  const ingest: IngestSource[] = [...figmaSources, ...fileSources];
 
   const { data: proj } = await svc
     .from("projects")
@@ -365,7 +385,7 @@ async function loadRunContext(svc: SvcClient, projectId: string, phase: string) 
     milestones,
     spfStrings,
     spfScope,
-    figmaFiles,
+    ingest,
     figmaSubsByFile,
     figmaToken,
   };
@@ -387,7 +407,7 @@ function buildEffects(
   // to extracted_text (durable + idempotent), and feed it to THIS run's extractor. Fail-closed: a
   // board that can't be fetched degrades to no material (its deep-link still renders), never fails the
   // run. Runs as a checkpointed step, so many boards never overrun one worker invocation.
-  const ingestFigma = async (file: FigmaFile): Promise<void> => {
+  const ingestFigmaFile = async (file: FigmaFile): Promise<void> => {
     if (!figmaToken) return;
     const entries = figmaSubsByFile.get(file.fileKey) ?? [];
     if (!entries.length) return;
@@ -421,6 +441,49 @@ function buildEffects(
       // No in-memory hand-off: extractFacts reads extracted_text fresh from the DB per component.
     }
   };
+
+  // Uploaded-file ingest: download the blob, parse to text (hardened, ADR-0006 §4), persist. ALWAYS
+  // marks the submission (real text, or empty on unsupported/failed parse) so it's never re-parsed —
+  // fail-closed, one file in RAM at a time (load-on-demand). A legacy/macro/unreadable file degrades
+  // to no material (its deep-link still renders), never fails the run.
+  const ingestUploadedFile = async (source: {
+    submissionId: string;
+    filePath: string;
+  }): Promise<void> => {
+    let text = "";
+    try {
+      const { data: blob, error } = await svc.storage
+        .from("handoff-deliverables")
+        .download(source.filePath);
+      if (error || !blob) throw error ?? new Error("download failed");
+      text = (await parseFileToText(new Uint8Array(await blob.arrayBuffer()))).text;
+    } catch (e) {
+      log.warn(
+        "ingest",
+        `file parse skipped for ${source.submissionId} [${requestId}]: ${e instanceof Error ? e.message : String(e)}`,
+        { requestId }
+      );
+    }
+    const { error: upErr } = await svc
+      .from("handoff_deliverable_submissions")
+      .update({
+        extracted_text: text.slice(0, MAX_EXTRACTED_CHARS),
+        extracted_at: new Date().toISOString(),
+      })
+      .eq("id", source.submissionId);
+    if (upErr)
+      log.warn(
+        "ingest",
+        `persist extracted_text failed for ${source.submissionId} [${requestId}]`,
+        {
+          requestId,
+        }
+      );
+  };
+
+  // The step machine's ingest unit: dispatch one source (Figma file or uploaded file).
+  const ingest = (source: IngestSource): Promise<void> =>
+    source.kind === "figma" ? ingestFigmaFile(source.figma) : ingestUploadedFile(source);
 
   const extractFacts = async (component: HandoffComponent): Promise<ComponentFactBase> => {
     const slug = component.slug;
@@ -606,7 +669,7 @@ function buildEffects(
     });
   };
 
-  return { ingestFigma, extractFacts, writeArc, finalize };
+  return { ingest, extractFacts, writeArc, finalize };
 }
 
 /**
@@ -641,7 +704,7 @@ export async function runHandoff(
   const loaded = await loadRunContext(svc, ctx.projectId, ctx.phase);
   const plan = buildRunPlan(
     loaded.components,
-    loaded.figmaFiles,
+    loaded.ingest,
     ctx.audiences as HandoffAudience[] | undefined
   );
   const eff = buildEffects(svc, ctx, loaded, guardCall, onUsage);
