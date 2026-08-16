@@ -1,3 +1,5 @@
+// Unit tests for the pure core of supabase/functions/guide-ingest (SSRF guard,
+// llms.txt parser, markdown-URL derivation). No network — runs in deno-check CI.
 import { assert, assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { assertGuideUrlAllowed, GUIDE_ORIGIN, markdownUrlFor, parseLlmsTxt } from "./lib.ts";
 
@@ -41,16 +43,20 @@ Deno.test("parseLlmsTxt extracts on-host pages, dedupes, drops off-host + index 
   ].join("\n");
 
   const pages = parseLlmsTxt(txt);
-  const urls = pages.map((p) => p.url);
+  // Use exact-URL membership (Set.has / ===), never URL substring checks — both
+  // because it's a stricter assertion and because substring URL checks trip
+  // CodeQL's js/incomplete-url-substring-sanitization heuristic.
+  const WELCOME = "https://guide.techfleet.org/get-started/welcome";
+  const urlSet = new Set(pages.map((p) => p.url));
 
-  assert(urls.includes("https://guide.techfleet.org/get-started/welcome"));
-  assert(urls.includes("https://guide.techfleet.org/about-our-org/mission")); // relative resolved
-  assert(urls.includes("https://guide.techfleet.org/resources/glossary")); // bare link
-  assert(!urls.includes("https://youtu.be/abc")); // off-host dropped
-  assert(!urls.some((u) => u.endsWith("/llms.txt"))); // index dropped
-  assert(!urls.some((u) => u.includes("/files/"))); // asset dropped
-  // Deduped: welcome appears once.
-  assertEquals(urls.filter((u) => u.endsWith("/get-started/welcome")).length, 1);
+  assert(urlSet.has(WELCOME));
+  assert(urlSet.has("https://guide.techfleet.org/about-our-org/mission")); // relative resolved
+  assert(urlSet.has("https://guide.techfleet.org/resources/glossary")); // bare link
+  assert(!urlSet.has("https://youtu.be/abc")); // off-host dropped
+  assert(!urlSet.has("https://guide.techfleet.org/llms.txt")); // index dropped
+  assert(!urlSet.has("https://guide.techfleet.org/files/Abc123")); // asset dropped
+  // Deduped: welcome appears exactly once.
+  assertEquals(pages.filter((p) => p.url === WELCOME).length, 1);
   // Title carried through.
-  assertEquals(pages.find((p) => p.url.endsWith("/get-started/welcome"))?.title, "Welcome");
+  assertEquals(pages.find((p) => p.url === WELCOME)?.title, "Welcome");
 });
