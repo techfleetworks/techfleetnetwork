@@ -11,7 +11,12 @@ import {
   resolveMechanicalModel,
   type UsageMeter,
 } from "../_shared/llm/port.ts";
-import { buildFactExtractionPrompt, buildWriterPrompt, type ComponentFactBase } from "./prompts.ts";
+import {
+  buildFactExtractionPrompt,
+  buildWriterPrompt,
+  type ComponentFactBase,
+  sourceTypeInfo,
+} from "./prompts.ts";
 import { chunkText, dedupeFacts, mergeFacts, stripTemplateItems } from "./extract.ts";
 import { formatSpfContext, loadSpfContext, toExtractionScope } from "./spf-context.ts";
 import {
@@ -443,49 +448,55 @@ function buildEffects(
       .filter((s) => !/^https?:\/\/\S+$/.test(s.content.trim()));
     let facts: string[] = [];
     if (material.length) {
-      // Read ALL of it: concatenate, drop unfilled-template noise, chunk to fit, extract per chunk,
-      // then merge + dedupe. No truncation.
-      const fullText = material.map((s) => s.content).join("\n\n");
-      // Drop unfilled-template ITEMS (keeps real terse stickies next to "Enter here" scaffolding),
-      // then chunk. No whole-chunk template filter, which used to discard real work with the noise.
-      const chunks = chunkText(stripTemplateItems(fullText));
+      // Extract PER SOURCE (ADR-0006 §3) so each is read with its true type + a reading hint — a
+      // board's discrete fragments vs a document's prose vs a spreadsheet's rows — instead of one
+      // flattened "material" blob. Drop unfilled-template ITEMS, chunk to fit, extract per chunk,
+      // then merge + dedupe across ALL sources. No truncation.
       const perChunk: string[][] = [];
-      for (const chunk of chunks) {
-        guardCall();
-        const p = buildFactExtractionPrompt(
-          name,
-          String((component as Record<string, unknown>).Description ?? ""),
-          [{ kind: "material", content: chunk }],
-          scope
-        );
-        try {
-          const out = await generateStructured(
-            // temperature 0 = deterministic extraction: same content -> same facts, every instance.
-            {
-              model: mechModel,
-              messages: p.messages,
-              toolName: p.toolName,
-              schema: p.schema,
-              reasoningEffort: "low",
-              temperature: 0,
-            },
-            { requestId, onUsage }
+      let totalChunks = 0;
+      for (const src of material) {
+        const { label, hint } = sourceTypeInfo(src.kind);
+        const chunks = chunkText(stripTemplateItems(src.content));
+        totalChunks += chunks.length;
+        for (const chunk of chunks) {
+          guardCall();
+          const p = buildFactExtractionPrompt(
+            name,
+            String((component as Record<string, unknown>).Description ?? ""),
+            [{ kind: label, content: chunk }],
+            scope,
+            hint
           );
-          perChunk.push(
-            Array.isArray(out.facts) ? (out.facts as string[]).map((f) => dlpScrub(String(f))) : []
-          );
-        } catch (e) {
-          // A chunk that fails extraction (terminal LLM error, oversize chunk, refusal) must NOT fail
-          // the whole run. Degrade to no facts for THIS chunk — the component may still get facts from
-          // its other chunks; if none succeed, its sections render the honest placeholder. Mirrors
-          // writeArc's degrade posture. (Without this, one heavy component killed the run at the
-          // recovery cap — extract unit i=3 dying 6x.)
-          log.warn(
-            "extract",
-            `${slug}: chunk extraction degraded [${requestId}]: ${e instanceof Error ? e.message : String(e)}`,
-            { requestId }
-          );
-          perChunk.push([]);
+          try {
+            const out = await generateStructured(
+              // temperature 0 = deterministic extraction: same content -> same facts, every instance.
+              {
+                model: mechModel,
+                messages: p.messages,
+                toolName: p.toolName,
+                schema: p.schema,
+                reasoningEffort: "low",
+                temperature: 0,
+              },
+              { requestId, onUsage }
+            );
+            perChunk.push(
+              Array.isArray(out.facts)
+                ? (out.facts as string[]).map((f) => dlpScrub(String(f)))
+                : []
+            );
+          } catch (e) {
+            // A chunk that fails extraction (terminal LLM error, oversize chunk, refusal) must NOT
+            // fail the whole run. Degrade to no facts for THIS chunk — the component may still get
+            // facts from its other chunks; if none succeed, its sections render the honest
+            // placeholder. Mirrors writeArc's degrade posture.
+            log.warn(
+              "extract",
+              `${slug}: chunk extraction degraded [${requestId}]: ${e instanceof Error ? e.message : String(e)}`,
+              { requestId }
+            );
+            perChunk.push([]);
+          }
         }
       }
       const merged = mergeFacts(perChunk);
@@ -497,7 +508,7 @@ function buildEffects(
       if (merged.dropped > 0)
         log.info(
           "extract",
-          `${slug}: ${chunks.length} chunks, +${merged.dropped} facts dropped [${requestId}]`,
+          `${slug}: ${totalChunks} chunks, +${merged.dropped} facts dropped [${requestId}]`,
           { requestId }
         );
       if (deduped.dropped > 0)

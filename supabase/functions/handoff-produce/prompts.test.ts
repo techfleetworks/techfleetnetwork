@@ -3,8 +3,41 @@ import {
   assertEquals,
   assertStringIncludes,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildFactExtractionPrompt, buildWriterPrompt, VOICE_LENS } from "./prompts.ts";
+import {
+  buildFactExtractionPrompt,
+  buildWriterPrompt,
+  sourceTypeInfo,
+  VOICE_LENS,
+} from "./prompts.ts";
 import { buildVersionOutline, type HandoffComponent } from "./assemble.ts";
+
+// Source-type-aware extraction (ADR-0006 §3): each source is read with its true type + a reading hint.
+Deno.test("sourceTypeInfo maps types to a label + reading hint; unknown falls back safely", () => {
+  assertStringIncludes(sourceTypeInfo("figjam").hint.toLowerCase(), "board");
+  assertEquals(sourceTypeInfo("figma").label, "Figma/FigJam board");
+  assertStringIncludes(sourceTypeInfo("csv").hint.toLowerCase(), "row");
+  assertEquals(sourceTypeInfo("pdf").label, "PDF document");
+  assertEquals(sourceTypeInfo("something-unknown").label, "uploaded file"); // safe fallback
+});
+
+Deno.test(
+  "buildFactExtractionPrompt weaves the trusted source hint into the instruction position",
+  () => {
+    const hint = sourceTypeInfo("figjam").hint;
+    const p = buildFactExtractionPrompt(
+      "Goals",
+      "desc",
+      [{ kind: "Figma/FigJam board", content: "x" }],
+      undefined,
+      hint
+    );
+    const user = p.messages.find((m) => m.role === "user")!.content;
+    assertStringIncludes(user, "HOW TO READ THIS SOURCE:");
+    assertStringIncludes(user, hint);
+    // The hint sits BEFORE the untrusted material block (trusted framing, never inside the data).
+    assert(user.indexOf("HOW TO READ THIS SOURCE:") < user.indexOf("UNTRUSTED MATERIAL"));
+  }
+);
 
 Deno.test(
   "fact-extraction places submissions as UNTRUSTED data and requires a grounded schema",
