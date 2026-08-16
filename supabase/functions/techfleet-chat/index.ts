@@ -60,11 +60,11 @@ const FLEETY_LLM_MODEL = Deno.env.get("FLEETY_LLM_MODEL") || "deepseek/deepseek-
 // still provide the strongest guarantee (they replay an identical stored answer).
 const FLEETY_LLM_TEMPERATURE = 0;
 const FLEETY_LLM_SEED = 1;
-// OpenRouter list price for the DeepSeek model ($/token). Used ONLY for the soft cost
-// meter (fleety_record_cost) — not a correctness dependency. TODO(owner): confirm the
-// exact deepseek-v4-flash-0731 rate on OpenRouter; these are conservative estimates.
-const PRICE_IN_PER_TOKEN = 0.14 / 1_000_000;
-const PRICE_OUT_PER_TOKEN = 0.28 / 1_000_000;
+// OpenRouter price for deepseek-v4-flash-0731 ($/token) — soft cost meter only
+// (fleety_record_cost), not a correctness dependency. Current effective rate
+// (incl. OpenRouter's ~33%-off promo, confirmed 2026-08-16); standard ≈ $0.09/$0.18 per 1M.
+const PRICE_IN_PER_TOKEN = 0.0603 / 1_000_000;
+const PRICE_OUT_PER_TOKEN = 0.1206 / 1_000_000;
 // OpenRouter routing: pin DeepSeek to US providers (residency); harmless on other hosts.
 const OPENROUTER_PROVIDER = FLEETY_LLM_MODEL.includes("deepseek")
   ? { only: US_INFERENCE_PROVIDERS, allow_fallbacks: true }
