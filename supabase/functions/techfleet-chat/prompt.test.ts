@@ -86,7 +86,7 @@ Deno.test("Tech Fleet brand voice rules are present (regression guard)", () => {
   );
   assert(/Sage/.test(base), "the Sage archetype framing");
   assert(/7th-to-9th-grade/.test(base), "brand reading level");
-  assert(base.includes('never "Tech Fleet"'), "Tech Fleet two-word terminology rule");
+  assert(/two words, never as one/i.test(base), "brand name two-word terminology rule");
   assert(/behavior, not the identity/i.test(base), "praise behavior, not identity");
   assert(/singular "they"/.test(base), "inclusive singular they");
 });
