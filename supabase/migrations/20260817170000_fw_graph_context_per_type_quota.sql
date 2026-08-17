@@ -55,7 +55,7 @@ AS $$
            GREATEST(
              similarity(coalesce(v.name,''), coalesce(p_query,'')),
              ts_rank(to_tsvector('english', coalesce(v.name,'') || ' ' || coalesce(v.description,'')),
-                     websearch_to_tsquery('english', coalesce(p_query,'')))
+                     websearch_to_tsquery('english', regexp_replace(trim(coalesce(p_query,'')), '\s+', ' or ', 'g')))
            ) AS score,
            ROW_NUMBER() OVER (
              -- quota per (anchor, NEIGHBOR TYPE) — direction already collapsed above. Deliverables,
@@ -64,7 +64,7 @@ AS $$
              ORDER BY GREATEST(
                similarity(coalesce(v.name,''), coalesce(p_query,'')),
                ts_rank(to_tsvector('english', coalesce(v.name,'') || ' ' || coalesce(v.description,'')),
-                       websearch_to_tsquery('english', coalesce(p_query,'')))
+                       websearch_to_tsquery('english', regexp_replace(trim(coalesce(p_query,'')), '\s+', ' or ', 'g')))
              ) DESC NULLS LAST, length(v.name) ASC, v.slug ASC
            ) AS rn
     FROM edges_dedup e

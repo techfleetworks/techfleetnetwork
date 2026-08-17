@@ -1040,9 +1040,11 @@ serve(
         // Anchors come from the PRECISE current question (best exact match); ranking uses the
         // recent CONVERSATION as the goal, so "what about interviews?" stays anchored to the
         // thread's intent (e.g. becoming a UX researcher), per owner spec.
-        // A2: expand both queries with SPF synonyms so lexically-different but central entities
-        // (e.g. "research-plan" for a "discovery" question) rank up and anchor recall broadens.
-        const searchQuery = expandQuery(lastUserMessage.slice(0, 500));
+        // A2: anchor search uses the RAW question (search_framework's tsquery ANDs terms, so an
+        // expanded query would match nothing; trigram already finds the anchors). The RANKING goal
+        // is expanded with SPF synonyms so lexically-different but central entities (e.g.
+        // "research-plan" for a "discovery" question) rank up — fw_graph_context OR-matches the terms.
+        const searchQuery = lastUserMessage.slice(0, 500);
         const goalQuery = expandQuery(
           (
             messages
