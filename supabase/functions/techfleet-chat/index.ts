@@ -1159,18 +1159,23 @@ serve(
             ];
             for (const n of entry.neighbors ?? []) {
               const arrow = n.dir === "in" ? "←" : "→";
-              const nd = n.description ? ` — ${n.description.slice(0, 160)}` : "";
+              const nd = n.description ? ` — ${n.description.slice(0, 200)}` : "";
+              const nNarr = narrative(n.data, 1);
               block.push(
-                `     ${arrow} ${phrase(n.rel, n.dir)}: ${n.name} [${nodeLabel(n.type)}]${nd}`
+                `     ${arrow} ${phrase(n.rel, n.dir)}: ${n.name} [${nodeLabel(n.type)}]${nd}` +
+                  (nNarr ? `\n         (${nNarr})` : "")
               );
-              // 2-hop: if this neighbor was expanded, nest a couple of its own strongest links.
+              // 2-hop: nest the strongest second-level links WITH their own descriptions, so Fleety
+              // can EXPLAIN the second level (build knowledge), not just name it.
               const sub = hop2Index.get(`${n.type}:${n.id}`);
               if (sub?.neighbors?.length) {
-                const subLinks = sub.neighbors
-                  .slice(0, 3)
-                  .map((s) => `${phrase(s.rel, s.dir)} ${s.name} [${nodeLabel(s.type)}]`)
-                  .join("; ");
-                block.push(`         ↳ how ${n.name} connects: ${subLinks}`);
+                block.push(`         ↳ how ${n.name} connects (relevant to the goal):`);
+                for (const s of sub.neighbors.slice(0, 3)) {
+                  const sd = s.description ? ` — ${s.description.slice(0, 160)}` : "";
+                  block.push(
+                    `             · ${phrase(s.rel, s.dir)} ${s.name} [${nodeLabel(s.type)}]${sd}`
+                  );
+                }
               }
             }
             const text = block.filter(Boolean).join("\n") + "\n";
