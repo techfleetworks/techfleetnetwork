@@ -1145,6 +1145,11 @@ serve(
             },
             precedes: { out: "comes before", in: "comes after" },
             related_to: { out: "relates to", in: "relates to" },
+            // RACI hats — teach cross-functional dynamics with the actual accountability
+            responsible: { out: "is Responsible for", in: "is Responsible (RACI) —" },
+            accountable: { out: "is Accountable for", in: "is Accountable (RACI) —" },
+            consulted: { out: "is Consulted on", in: "is Consulted (RACI) —" },
+            informed: { out: "is kept Informed on", in: "is Informed (RACI) —" },
           };
           const phrase = (rel?: string, dir?: string): string => {
             const p = REL_PHRASE[rel ?? ""];
