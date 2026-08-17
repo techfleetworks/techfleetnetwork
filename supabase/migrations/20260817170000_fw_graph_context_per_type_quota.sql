@@ -89,7 +89,38 @@ AS $$
                 ORDER BY r.score DESC NULLS LAST)
            ) AS payload
     FROM ranked r
-    WHERE r.rn <= GREATEST(1, LEAST(15, COALESCE(p_per_dir, 6)))
+    -- Full context awareness: a calibrated cap PER object type (completeness where it matters, less
+    -- noise where it doesn't). p_per_dir is a CEILING the caller sets — a high value for hop-1 (so the
+    -- per-type policy governs) and a small one for hop-2 (so second-level expansion stays bounded).
+    WHERE r.rn <= LEAST(
+      GREATEST(1, COALESCE(p_per_dir, 25)),
+      CASE r.n_type
+        -- ANSWER types: 100% coverage. These DEFINE the milestone/role; dropping any drops part of
+        -- the answer. 100 = effectively all (real per-anchor counts are ~14-38); headroom for growth.
+        WHEN 'deliverable'        THEN 100
+        WHEN 'activity'           THEN 100
+        WHEN 'workshop'           THEN 100
+        WHEN 'duty'               THEN 100  -- all duties + every RACI hat (R/A/C/I)
+        -- SUPPORTING types: ranked + capped (all 78 skills of a hub milestone would be noise; the fix
+        -- for "are these the right ones" is better RANKING, not a bigger dump).
+        WHEN 'skill'              THEN 15
+        WHEN 'project_milestone'  THEN 12
+        WHEN 'practice'           THEN 10
+        WHEN 'job_function'       THEN 10
+        WHEN 'specialization'     THEN 10
+        WHEN 'methodology'        THEN 10
+        WHEN 'tool'               THEN 10
+        WHEN 'career_transition'  THEN 10
+        WHEN 'practice_component' THEN 10
+        WHEN 'job_industry'       THEN 12  -- central for career questions (29 exist); ranking gates it
+        WHEN 'project_type'       THEN 8   -- only 5 exist -> shows all; orients to project kind
+        WHEN 'project_phase'      THEN 6   -- only 4 exist -> shows all
+        WHEN 'company_type'       THEN 6   -- only 4 exist -> shows all
+        WHEN 'stakeholder'        THEN 6   -- only 5 exist -> shows all
+        WHEN 'data_type'          THEN 6
+        ELSE 15                            -- generous default so a NEW type gets real coverage
+      END
+    )
     GROUP BY r.a_type, r.a_id
   ) grouped;
 $$;

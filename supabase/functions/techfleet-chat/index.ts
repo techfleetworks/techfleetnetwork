@@ -1009,10 +1009,15 @@ serve(
       // now reads SPF through framework_entity_v; ids match the neighbor graph (2026-08 fix).
       let frameworkContext = "";
       const A4_ANCHORS = 6; // top search hits to anchor on
-      const A4_PER_DIR = 8; // neighbors kept per (anchor, neighbor type) — dir collapsed, deduped
+      // hop-1 CEILING: the RPC applies a per-object-type cap map (full context awareness), with the
+      // "answer" types (deliverable/activity/workshop/duty) set to 100% coverage. This ceiling sits
+      // above every per-type cap so the RPC policy governs. hop-2 keeps a small ceiling (bounded).
+      const A4_PER_DIR = 100;
       const A4_HOP2_NODES = 3; // how many top-scored neighbors get a 2-hop expansion
       const A4_HOP2_PER_DIR = 4;
-      const MAX_FRAMEWORK_CONTEXT_BYTES = 16_000; // v4-pro has the room (was 8k)
+      // Full per-type context (answer types at 100% coverage) fits comfortably: a hub milestone is
+      // ~160 neighbors x ~300 bytes ~= 50 KB. 64 KB budget covers it; v4-pro's 131k context affords it.
+      const MAX_FRAMEWORK_CONTEXT_BYTES = 64_000;
 
       // A3 / Miss-2 fix: the "Where to learn more" links were ranked by raw KB-retrieval order, so a
       // tangential handbook chunk (e.g. the Requirements milestone) could top the list for a Discovery
