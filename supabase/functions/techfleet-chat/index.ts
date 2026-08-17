@@ -1009,6 +1009,17 @@ serve(
       const A4_HOP2_PER_DIR = 4;
       const MAX_FRAMEWORK_CONTEXT_BYTES = 16_000; // v4-pro has the room (was 8k)
 
+      // A3 / Miss-2 fix: the "Where to learn more" links were ranked by raw KB-retrieval order, so a
+      // tangential handbook chunk (e.g. the Requirements milestone) could top the list for a Discovery
+      // question. Collect the SPF entity-page URLs of the entities Fleety actually anchored on + the
+      // neighbors it was shown, and prioritize THOSE in X-Fleety-Sources ahead of KB prose links.
+      // Built from real entity (type, slug) — never invented (C1-safe).
+      const SPF_EXPLORE_BASE =
+        "https://techfleetworks.github.io/skills-and-practices-framework/explore";
+      const spfPageUrl = (type?: string, slug?: string): string | null =>
+        type && slug ? `${SPF_EXPLORE_BASE}/?e=${encodeURIComponent(type)}#item/${slug}` : null;
+      const graphSourceUrls: string[] = [];
+
       type FwNode = {
         type?: string;
         id?: string;
@@ -1151,6 +1162,9 @@ serve(
             if (!entry?.anchor) continue;
             const an = entry.anchor;
             const anchorNarr = narrative(an.data, 3);
+            const anchorUrls: string[] = []; // entity-page URLs for this anchor + its shown neighbors
+            const au = spfPageUrl(an.type, an.slug);
+            if (au) anchorUrls.push(au);
             const block: string[] = [
               `\n▸ ${an.name} [${nodeLabel(an.type)}]`,
               an.description ? `   ${an.description.slice(0, 300)}` : "",
@@ -1165,6 +1179,8 @@ serve(
                 `     ${arrow} ${phrase(n.rel, n.dir)}: ${n.name} [${nodeLabel(n.type)}]${nd}` +
                   (nNarr ? `\n         (${nNarr})` : "")
               );
+              const nu = spfPageUrl(n.type, n.slug);
+              if (nu) anchorUrls.push(nu);
               // 2-hop: nest the strongest second-level links WITH their own descriptions, so Fleety
               // can EXPLAIN the second level (build knowledge), not just name it.
               const sub = hop2Index.get(`${n.type}:${n.id}`);
@@ -1185,6 +1201,7 @@ serve(
             }
             sections.push(text);
             bytes += text.length;
+            graphSourceUrls.push(...anchorUrls); // only entities actually shown to the model
           }
           if (sections.length > 2) frameworkContext = sections.join("\n");
         }
@@ -1925,9 +1942,13 @@ serve(
           ? btoa(unescape(encodeURIComponent(JSON.stringify(actionChips))))
           : "";
 
-      // D-08: structural citations — navigable source URLs from the KB hits,
-      // guaranteed by code (not the LLM). http(s) only, deduped, capped.
-      const sourceUrls = extractSourceUrls(kbHits);
+      // D-08: structural citations — navigable source URLs, guaranteed by code (not the LLM).
+      // A3/Miss-2: prioritize the SPF entity pages Fleety actually anchored on (graphSourceUrls)
+      // ahead of KB prose links, so "Where to learn more" leads with the on-topic entity pages
+      // instead of a tangential handbook chunk. Deduped (order-preserving), http(s) only, capped at 8.
+      const sourceUrls = [...new Set([...graphSourceUrls, ...extractSourceUrls(kbHits, 8)])]
+        .filter((u) => /^https?:\/\//i.test(u))
+        .slice(0, 8);
 
       const exposeHeaders: Record<string, string> = {
         ...corsHeaders,

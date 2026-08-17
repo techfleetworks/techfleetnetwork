@@ -38,6 +38,15 @@ AS $$
     JOIN public.framework_edges fe
       ON fe.dst_type = a.a_type::public.framework_entity_type AND fe.dst_id = a.a_id
   ),
+  -- Collapse bidirectional edges: a neighbor reached BOTH ways (milestone→produces→deliverable AND
+  -- deliverable→part_of→milestone) is ONE neighbor, not two. Keep a single row per neighbor node,
+  -- preferring the outgoing direction for phrasing. This also doubles effective unique coverage
+  -- (the earlier per-direction scan was showing each neighbor twice, halving the quota).
+  edges_dedup AS (
+    SELECT DISTINCT ON (a_type, a_id, n_type, n_id) a_type, a_id, dir, rel, n_type, n_id
+    FROM edges1
+    ORDER BY a_type, a_id, n_type, n_id, (dir = 'out') DESC
+  ),
   ranked AS (
     SELECT e.a_type, e.a_id, e.dir, e.rel, e.n_type, v.id AS n_id, v.slug, v.name, v.description,
            (SELECT COALESCE(jsonb_object_agg(k, val), '{}'::jsonb)
@@ -49,16 +58,16 @@ AS $$
                      websearch_to_tsquery('english', coalesce(p_query,'')))
            ) AS score,
            ROW_NUMBER() OVER (
-             -- quota per (anchor, direction, NEIGHBOR TYPE) — the fix: deliverables/activities/
-             -- skills/workshops each get their own slots instead of sharing one per-direction cap.
-             PARTITION BY e.a_type, e.a_id, e.dir, e.n_type
+             -- quota per (anchor, NEIGHBOR TYPE) — direction already collapsed above. Deliverables,
+             -- activities, skills, workshops each get their own slots; none crowds out another.
+             PARTITION BY e.a_type, e.a_id, e.n_type
              ORDER BY GREATEST(
                similarity(coalesce(v.name,''), coalesce(p_query,'')),
                ts_rank(to_tsvector('english', coalesce(v.name,'') || ' ' || coalesce(v.description,'')),
                        websearch_to_tsquery('english', coalesce(p_query,'')))
              ) DESC NULLS LAST, length(v.name) ASC, v.slug ASC
            ) AS rn
-    FROM edges1 e
+    FROM edges_dedup e
     JOIN public.framework_entity_v v
       ON v.entity_type = e.n_type AND v.id = e.n_id AND v.is_active
   )
