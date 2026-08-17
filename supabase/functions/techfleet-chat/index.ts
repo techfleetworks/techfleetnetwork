@@ -7,7 +7,12 @@ import { applyWaf } from "../_shared/waf.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { geminiEmbedBody, geminiEmbedUrl, parseGeminiEmbedding } from "../_shared/gemini-embed.ts";
-import { buildSystemPrompt, extractSourceUrls, NO_KNOWLEDGE_DIRECTIVE } from "./prompt.ts";
+import {
+  buildSystemPrompt,
+  expandQuery,
+  extractSourceUrls,
+  NO_KNOWLEDGE_DIRECTIVE,
+} from "./prompt.ts";
 import { extractAllowedUrls, fetchMaterialText } from "../_shared/material-fetch.ts";
 // Residency pin for DeepSeek (ADR-0005): the SAME US-provider allow-list the hand-off LLM port
 // uses, imported (not duplicated) so the guarantee can never drift between the two call paths.
@@ -1004,7 +1009,7 @@ serve(
       // now reads SPF through framework_entity_v; ids match the neighbor graph (2026-08 fix).
       let frameworkContext = "";
       const A4_ANCHORS = 6; // top search hits to anchor on
-      const A4_PER_DIR = 6; // neighbors per direction per anchor (the "mentor, not firehose" cap)
+      const A4_PER_DIR = 8; // neighbors kept per (anchor, neighbor type) — dir collapsed, deduped
       const A4_HOP2_NODES = 3; // how many top-scored neighbors get a 2-hop expansion
       const A4_HOP2_PER_DIR = 4;
       const MAX_FRAMEWORK_CONTEXT_BYTES = 16_000; // v4-pro has the room (was 8k)
@@ -1035,15 +1040,19 @@ serve(
         // Anchors come from the PRECISE current question (best exact match); ranking uses the
         // recent CONVERSATION as the goal, so "what about interviews?" stays anchored to the
         // thread's intent (e.g. becoming a UX researcher), per owner spec.
-        const searchQuery = lastUserMessage.slice(0, 500);
-        const goalQuery = (
-          messages
-            .filter((m: { role: string; content?: string }) => m.role === "user")
-            .slice(-3)
-            .map((m: { content?: string }) => (m.content || "").trim())
-            .filter(Boolean)
-            .join("  ") || searchQuery
-        ).slice(0, 800);
+        // A2: expand both queries with SPF synonyms so lexically-different but central entities
+        // (e.g. "research-plan" for a "discovery" question) rank up and anchor recall broadens.
+        const searchQuery = expandQuery(lastUserMessage.slice(0, 500));
+        const goalQuery = expandQuery(
+          (
+            messages
+              .filter((m: { role: string; content?: string }) => m.role === "user")
+              .slice(-3)
+              .map((m: { content?: string }) => (m.content || "").trim())
+              .filter(Boolean)
+              .join("  ") || lastUserMessage
+          ).slice(0, 800)
+        );
 
         const { data: hits, error: searchErr } = await supabase.rpc("search_framework", {
           p_query: searchQuery,

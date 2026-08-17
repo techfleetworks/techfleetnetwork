@@ -113,6 +113,43 @@ export function extractSourceUrls(hits: Array<{ url?: string | null }>, limit = 
 }
 
 /**
+ * A2 query expansion. Retrieval + graph ranking score by lexical match (pg_trgm + FTS), so an entity
+ * named "research-plan" scores ~0 against a query that says "discovery" — even though it's central to
+ * discovery — and gets crowded out. This maps SPF concepts to their vocabulary so the ranker sees the
+ * connection. Pure + deterministic (owner determinism rule); extend the map as the framework grows.
+ * Applied to the anchor-search query AND the graph-ranking goal, never shown to the user.
+ */
+export const SPF_SYNONYMS: Record<string, string> = {
+  discovery:
+    "research user research interviews insights problem validation empathy personas synthesis analysis",
+  research: "interviews surveys usability synthesis analysis findings insights personas discovery",
+  "talking to users": "user research interviews usability discovery",
+  interviews: "user research discovery moderating usability qualitative",
+  requirements: "epics features user stories acceptance criteria backlog refinement",
+  scope: "prioritization moscow release backlog planning estimation",
+  vision: "strategy goals north star problem statement roadmap",
+  launch: "release go to market deployment rollout",
+  intake: "kickoff onboarding expectations client working agreements",
+  practices: "team practices mindset habits maturity psychological safety shared ownership",
+  career: "transition foundational skills first steps tools methodologies duties",
+  workshop: "template facilitation steps activities deliverable",
+};
+
+/**
+ * Expand a query with SPF synonyms so lexically-different but conceptually-central entities rank up.
+ * Appends the expansion terms for every trigger phrase the text contains. Deterministic; capped.
+ */
+export function expandQuery(text: string): string {
+  const lc = (text || "").toLowerCase();
+  const extra: string[] = [];
+  for (const [trigger, terms] of Object.entries(SPF_SYNONYMS)) {
+    if (lc.includes(trigger)) extra.push(terms);
+  }
+  if (extra.length === 0) return text;
+  return `${text} ${extra.join(" ")}`.slice(0, 1000);
+}
+
+/**
  * The dynamic content injected into the prompt for a single turn. Every field
  * is produced by index.ts from that turn's retrieval; the pure builder below
  * only concatenates them in the fixed order the handler used before.

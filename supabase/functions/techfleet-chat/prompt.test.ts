@@ -12,6 +12,7 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 import {
   ALIAS_MAP,
   buildSystemPrompt,
+  expandQuery,
   extractSourceUrls,
   NO_KNOWLEDGE_DIRECTIVE,
   PRACTICAL_CONTRACT,
@@ -211,6 +212,16 @@ Deno.test("extractSourceUrls respects the cap", () => {
 });
 
 // ── UC-04 honesty hard-gate ──────────────────────────────────────────────────
+
+Deno.test("expandQuery: SPF synonyms surface lexically-different central entities (A2)", () => {
+  const out = expandQuery("what does my team need to do to do discovery");
+  assert(
+    /research/i.test(out),
+    "'discovery' expands to include 'research' so research-plan ranks up"
+  );
+  assert(out.startsWith("what does my team"), "original query preserved as prefix");
+  assertEquals(expandQuery("xyzzy nothing matches"), "xyzzy nothing matches"); // no trigger → unchanged
+});
 
 Deno.test("NO_KNOWLEDGE_DIRECTIVE forbids fabrication and gives a real fallback", () => {
   assert(NO_KNOWLEDGE_DIRECTIVE.includes("NO KNOWLEDGE MATCH"));
