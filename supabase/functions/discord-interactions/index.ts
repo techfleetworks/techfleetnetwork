@@ -7,6 +7,7 @@ import { discordFetch } from "../_shared/discord-fetch.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { isFreshTimestamp } from "./freshness.ts";
 import { publicKbUrl, stripInternalLinks } from "./spf-links.ts";
+import { withQuestionEcho } from "./echo.ts";
 const log = createEdgeLogger("discord-interactions");
 
 /* ── Discord constants ─────────────────────────────────────────────── */
@@ -454,7 +455,8 @@ Deno.serve(
           try {
             const knowledgeCtx = await loadKnowledgeBase();
             const answer = await getAIResponse(question, knowledgeCtx);
-            await postFollowup(applicationId, interactionToken, answer);
+            // Echo the question so the public reply is self-contained (sanitized: no mention/markdown injection).
+            await postFollowup(applicationId, interactionToken, withQuestionEcho(question, answer));
             log.info("done", `Answered question from ${userName ?? "unknown"}`);
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
