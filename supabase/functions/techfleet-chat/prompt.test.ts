@@ -121,6 +121,12 @@ Deno.test("answer-depth + coaching-close contract is present (owner mentor rules
   // Where to learn more: top-3-then-rest, real links only (C1).
   assert(/Where to learn more/.test(PRACTICAL_CONTRACT), "where-to-learn-more section");
   assert(/TOP 3/.test(PRACTICAL_CONTRACT), "top-3 sources first");
+  // Always justify (grounded WHY) — Fleety explains its reasoning from the framework relationships.
+  assert(/ALWAYS JUSTIFY/.test(PRACTICAL_CONTRACT), "justify-every-claim rule");
+  assert(
+    /relationship MEANINGS/i.test(PRACTICAL_CONTRACT),
+    "why is grounded in relationship meanings"
+  );
 });
 
 Deno.test(
