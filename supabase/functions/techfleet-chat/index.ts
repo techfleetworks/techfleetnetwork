@@ -455,35 +455,72 @@ serve(
     log.info("handler", `Chat request received [${requestId}]`, { requestId });
 
     try {
-      // ── WSTG-ATHZ-01: JWT Authentication ──────────────────────────────
-      const authHeader = req.headers.get("authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Authentication required" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      // ── WSTG-ATHZ-01: auth — an end-user JWT OR a trusted internal caller ──
+      // Fleety 2.1: a server-to-server caller (the Discord /fleety adapter) reaches
+      // this SAME 2.0 brain with a shared secret (x-fleety-internal) instead of an
+      // end-user JWT. Internal turns still pass the global system rate-limit +
+      // cost-guard below; only the per-USER soft quota is skipped (there is no end
+      // user — the turn is billed to a synthetic system id, no personal context).
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_ANON_KEY =
-        Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-
-      const {
-        data: { user },
-        error: authError,
-      } = await authClient.auth.getUser();
-      if (authError || !user) {
-        log.warn("auth", `Authentication failed [${requestId}]`, { requestId });
-        return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const authHeader = req.headers.get("authorization");
+      const internalSecret = Deno.env.get("FLEETY_INTERNAL_SECRET");
+      const internalHeader = req.headers.get("x-fleety-internal");
+      // Constant-time compare so the secret can't be probed by response timing.
+      const ctEqual = (a: string, b: string): boolean => {
+        const ea = new TextEncoder().encode(a);
+        const eb = new TextEncoder().encode(b);
+        if (ea.length !== eb.length) return false;
+        let diff = 0;
+        for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+        return diff === 0;
+      };
+      // Fail closed: no secret configured, or a too-short (weak/misconfigured) secret, is treated as
+      // NOT internal — so a blank/short env can never become a brute-forceable auth bypass.
+      const internalConfigured = !!internalSecret && internalSecret.length >= 32;
+      if (internalHeader && !internalConfigured) {
+        log.warn(
+          "auth",
+          `x-fleety-internal presented but secret unset/too short — ignoring [${requestId}]`,
+          {
+            requestId,
+          }
+        );
       }
+      const isInternal =
+        internalConfigured && !!internalHeader && ctEqual(internalHeader, internalSecret!);
+      // Synthetic, non-personal id for internal turns (stable, never an auth.users row).
+      const INTERNAL_SYSTEM_USER_ID = "00000000-0000-4000-8000-0000000d15c0";
 
-      log.info("auth", `Authenticated user [${requestId}]`, { requestId, userId: user.id });
+      let user: { id: string; email?: string };
+      if (isInternal) {
+        user = { id: INTERNAL_SYSTEM_USER_ID };
+        log.info("auth", `Trusted internal caller [${requestId}]`, { requestId });
+      } else {
+        if (!authHeader?.startsWith("Bearer ")) {
+          return new Response(JSON.stringify({ error: "Authentication required" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const SUPABASE_ANON_KEY =
+          Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+        const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const {
+          data: { user: authedUser },
+          error: authError,
+        } = await authClient.auth.getUser();
+        if (authError || !authedUser) {
+          log.warn("auth", `Authentication failed [${requestId}]`, { requestId });
+          return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        user = authedUser;
+        log.info("auth", `Authenticated user [${requestId}]`, { requestId, userId: user.id });
+      }
 
       // ── Payload size check ────────────────────────────────────────────
       const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
