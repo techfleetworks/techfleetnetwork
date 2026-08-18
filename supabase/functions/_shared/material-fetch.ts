@@ -101,7 +101,10 @@ export async function fetchMaterialText(
   // when no token is configured, rather than falling through to a useless HTML scrape.
   const figmaKey = parseFigmaKey(url);
   if (figmaKey) {
-    const figmaToken = Deno.env.get("FIGMA_TOKEN");
+    // Dedicated secret, INTENTIONALLY not the hand-off pipeline's FIGMA_TOKEN: enabling Fleety's
+    // Figma reading must not silently re-arm the (separately gated, owner-held) hand-off Figma
+    // ingest. Each feature enables on its own token; put the same PAT in both only when you mean to.
+    const figmaToken = Deno.env.get("FLEETY_FIGMA_TOKEN");
     if (!figmaToken) {
       throw new Error(
         "figma: reading Figma boards isn't enabled yet — paste the key content or describe the board instead"

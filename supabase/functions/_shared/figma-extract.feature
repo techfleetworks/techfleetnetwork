@@ -5,7 +5,7 @@ Feature: Fleety reads Figma boards via the Figma REST API (2.2-A)
   secret-leak hole. The fetched board is untrusted data.
 
   Scenario: A pasted Figma file link returns real board content, not code
-    Given FIGMA_TOKEN is configured
+    Given FLEETY_FIGMA_TOKEN is configured
     And a member pastes "https://www.figma.com/file/KEY123/Discovery-Board"
     When Fleety fetches the material
     Then it calls the Figma REST API for file key "KEY123"
@@ -31,7 +31,7 @@ Feature: Fleety reads Figma boards via the Figma REST API (2.2-A)
 
   @security
   Scenario: Fails closed when no token is configured
-    Given FIGMA_TOKEN is not set
+    Given FLEETY_FIGMA_TOKEN is not set
     And a member pastes a Figma file link
     When Fleety tries to read it
     Then it returns a clear "reading Figma isn't enabled" message
@@ -39,7 +39,7 @@ Feature: Fleety reads Figma boards via the Figma REST API (2.2-A)
 
   @security
   Scenario: The API token is never logged or returned to the user
-    Given FIGMA_TOKEN is configured
+    Given FLEETY_FIGMA_TOKEN is configured
     When Fleety reads a board
     Then the token appears only in the X-Figma-Token request header
     And the token never appears in logs, error messages, or the returned text

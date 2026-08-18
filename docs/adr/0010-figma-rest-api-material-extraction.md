@@ -35,16 +35,23 @@ Add `_shared/figma-extract.ts`:
   a wall-clock timeout, and an output-char cap. Maps 403/404 to a "share the board with the
   integration" message; never leaks API internals or the token.
 
-`fetchMaterialText` routes any Figma file link to `fetchFigmaContent` when `FIGMA_TOKEN` is set, and
-**fails closed** with a clear "reading Figma isn't enabled — paste the content instead" message when
-it is not. It never falls back to scraping the page HTML. Both chat and `fleety-review` inherit this
-automatically because they share the one fetcher.
+`fetchMaterialText` routes any Figma file link to `fetchFigmaContent` when **`FLEETY_FIGMA_TOKEN`**
+is set, and **fails closed** with a clear "reading Figma isn't enabled — paste the content instead"
+message when it is not. It never falls back to scraping the page HTML. Both chat and `fleety-review`
+inherit this automatically because they share the one fetcher.
+
+**Deliberate secret separation:** Fleety uses `FLEETY_FIGMA_TOKEN`, NOT the hand-off pipeline's
+`FIGMA_TOKEN`. Hand-off's Figma ingest is gated by `if (Deno.env.get("FIGMA_TOKEN"))` and was
+owner-held ("keep off until it ships"). A shared secret would mean enabling Fleety's Figma reading
+silently re-arms hand-off's. Separate tokens keep the two features independently switchable; the same
+Figma personal-access-token value can live in both secrets when the operator intends both on.
 
 ## Consequences
 
 - Pasting a Figma board now yields real design text/structure, not code.
 - Egress stays fixed (only `api.figma.com`); the member URL is used solely to parse a key.
 - Bounded traversal/bytes/time/chars honor the ADR-0006/0007 no-unbounded-load lesson.
-- Requires the operator to set `FIGMA_TOKEN` on the owned project; until then Fleety says so plainly
-  rather than returning garbage. Rollback = unset the token (feature self-disables, fail-closed).
+- Requires the operator to set `FLEETY_FIGMA_TOKEN` on the owned project; until then Fleety says so
+  plainly rather than returning garbage. Rollback = unset the token (feature self-disables,
+  fail-closed). Hand-off's `FIGMA_TOKEN` is untouched and stays independently held.
 - The board is untrusted data; callers already frame fetched material as data, not instructions.
