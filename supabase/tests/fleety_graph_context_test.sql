@@ -9,7 +9,7 @@
 -- that revived graph injection); (4) the edge map covers career_transition (the coverage extension).
 
 BEGIN;
-SELECT plan(15);
+SELECT plan(19);
 
 -- ── Security ─────────────────────────────────────────────────────────────────
 SELECT is(
@@ -116,6 +116,28 @@ SELECT cmp_ok(
   (SELECT count(*)::int FROM public.spf_edge_map WHERE src_entity_type = 'career_transition'),
   '>', 0,
   'spf_edge_map covers career_transition (edge-map coverage extension)');
+
+-- ── Fleety 2.0 relational-intelligence guards (weights + RACI + precise relations) ──
+SELECT ok(
+  'responsible' = ANY (enum_range(NULL::public.framework_rel_type)::text[])
+  AND 'consulted' = ANY (enum_range(NULL::public.framework_rel_type)::text[]),
+  'RACI relation types (responsible/consulted) exist in framework_rel_type');
+
+SELECT ok(
+  'foundational_skill' = ANY (enum_range(NULL::public.framework_rel_type)::text[])
+  AND 'learns_tool' = ANY (enum_range(NULL::public.framework_rel_type)::text[])
+  AND 'delivered_in' = ANY (enum_range(NULL::public.framework_rel_type)::text[]),
+  'precise "true" relations (foundational_skill/learns_tool/delivered_in) exist');
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM information_schema.columns
+          WHERE table_schema='public' AND table_name='spf_edge_map' AND column_name='weight'),
+  'spf_edge_map has the foundational-importance weight column');
+
+SELECT cmp_ok(
+  (SELECT count(*)::int FROM public.spf_edge_map WHERE weight > 1),
+  '>', 0,
+  'importance weights are applied (foundational/required/UNIQUE/ownership/RACI fields > 1)');
 
 SELECT * FROM finish();
 ROLLBACK;
