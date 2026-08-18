@@ -1120,6 +1120,50 @@ serve(
             ctx2 = (ctx2data ?? {}) as Record<string, FwAnchorCtx>;
           }
 
+          // ── Authored relationship MEANINGS (data-types table) ──────────────
+          // The SPF's data_type rows carry a plain-English "Relationship to <X>" definition for every
+          // OTHER type — the framework author's own meaning of each type-pair. Inject the meaning for
+          // each (anchor type ↔ neighbor type) pair present, so Fleety mentors on WHAT the relationship
+          // means (grounded, covers the whole type matrix), not just which objects connect.
+          const ENTITY_DT: Record<string, { slug: string; col: string }> = {
+            skill: { slug: "skills", col: "Relationship to Skills" },
+            job_function: { slug: "job-function", col: "Relationship to Job Functions" },
+            specialization: {
+              slug: "job-specialization",
+              col: "Relationship to Job Specializations",
+            },
+            practice: { slug: "practices", col: "Relationship to Practices" },
+            duty: { slug: "duty", col: "Relationship to Duties" },
+            stakeholder: { slug: "stakeholder", col: "Relationship to Stakeholders" },
+            project_milestone: { slug: "milestone", col: "Relationship to Milestones" },
+            tool: { slug: "tool", col: "Relationship to Tools" },
+            activity: { slug: "activity", col: "Relationship to Activities" },
+            deliverable: { slug: "deliverable", col: "Relationship to Deliverables" },
+            project_type: { slug: "project", col: "Relationship to Projects" },
+            company_type: { slug: "company-type", col: "Relationship to Company Types" },
+            methodology: { slug: "methodology", col: "Relationship to Methodologies" },
+            job_industry: { slug: "job-industry", col: "Relationship to Job Industries" },
+            workshop: { slug: "workshop", col: "Relationship to Workshops" },
+          };
+          const dtData: Record<string, Record<string, unknown>> = {};
+          try {
+            const { data: dts } = await supabase
+              .from("spf_entity")
+              .select("slug, data")
+              .eq("entity_type", "data_type");
+            for (const row of (dts ?? []) as Array<{ slug: string; data: Record<string, unknown> }>)
+              dtData[row.slug] = row.data ?? {};
+          } catch (_e) {
+            /* meanings are additive; a fetch failure just omits them */
+          }
+          const relMeaning = (aType?: string, nType?: string): string => {
+            const a = ENTITY_DT[aType ?? ""];
+            const n = ENTITY_DT[nType ?? ""];
+            if (!a || !n) return "";
+            const v = dtData[a.slug]?.[n.col];
+            return typeof v === "string" ? v.trim() : "";
+          };
+
           // ── Render a mentor's map: rich, goal-ordered, with 2-hop nesting ──
           const REL_PHRASE: Record<string, { out: string; in: string }> = {
             produces: { out: "produces", in: "is produced by" },
@@ -1150,6 +1194,29 @@ serve(
             accountable: { out: "is Accountable for", in: "is Accountable (RACI) —" },
             consulted: { out: "is Consulted on", in: "is Consulted (RACI) —" },
             informed: { out: "is kept Informed on", in: "is Informed (RACI) —" },
+            // Precise ("true") relations — the SPF field's real meaning, not a generic verb
+            foundational_skill: {
+              out: "builds on the foundational skill",
+              in: "is a foundational skill for",
+            },
+            first_step_skill: { out: "starts by learning", in: "is a first step toward" },
+            transferable_skill: {
+              out: "transfers in the skill",
+              in: "is a transferable skill for",
+            },
+            develops_skill: { out: "develops the skill", in: "is developed in" },
+            prerequisite_skill: { out: "needs first the skill", in: "is a prerequisite for" },
+            teaches_practice: { out: "teaches the practice", in: "is taught by" },
+            requires_practice: { out: "requires the practice", in: "is required by" },
+            applies_practice: { out: "applies the practice", in: "is applied by" },
+            has_component: { out: "is built from the component", in: "is a component of" },
+            learns_tool: { out: "learns the tool", in: "is a tool learned in" },
+            learns_method: { out: "learns the methodology", in: "is a methodology learned in" },
+            learns_deliverable: { out: "learns to produce", in: "is learned in" },
+            target_duty: { out: "targets the role", in: "is the target role of" },
+            delivered_in: { out: "is delivered in", in: "delivers" },
+            performed_in: { out: "includes the activity", in: "is performed in" },
+            follows: { out: "comes after", in: "comes before" },
           };
           const phrase = (rel?: string, dir?: string): string => {
             const p = REL_PHRASE[rel ?? ""];
@@ -1214,6 +1281,23 @@ serve(
                   );
                 }
               }
+            }
+            // Authored meaning of each (anchor type ↔ neighbor type) relationship present — the
+            // framework's OWN definition, so Fleety teaches WHY they connect, not just that they do.
+            const seenPairTypes = new Set<string>();
+            const meaningLines: string[] = [];
+            for (const n of entry.neighbors ?? []) {
+              if (!n.type || seenPairTypes.has(n.type)) continue;
+              seenPairTypes.add(n.type);
+              const m = relMeaning(an.type, n.type);
+              if (m)
+                meaningLines.push(
+                  `     • ${nodeLabel(an.type)} ↔ ${nodeLabel(n.type)}: ${m.replace(/\s+/g, " ").slice(0, 420)}`
+                );
+            }
+            if (meaningLines.length) {
+              block.push("   What these relationships MEAN (framework definitions):");
+              block.push(...meaningLines);
             }
             const text = block.filter(Boolean).join("\n") + "\n";
             if (bytes + text.length > MAX_FRAMEWORK_CONTEXT_BYTES) {
