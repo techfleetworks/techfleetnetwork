@@ -106,9 +106,12 @@ export function extractSourceUrls(hits: Array<{ url?: string | null }>, limit = 
     const u = h?.url;
     if (typeof u !== "string") continue;
     if (!/^https?:\/\//i.test(u)) continue;
-    if (seen.has(u)) continue;
-    seen.add(u);
-    out.push(u);
+    // A1: chunked handbook pages are stored as url#p2, url#p3… — collapse them back to the page so
+    // the Sources list links the page once, not one link per chunk.
+    const pageU = u.replace(/#p\d+$/, "");
+    if (seen.has(pageU)) continue;
+    seen.add(pageU);
+    out.push(pageU);
     if (out.length >= limit) break;
   }
   return out;

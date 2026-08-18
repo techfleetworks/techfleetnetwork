@@ -212,6 +212,15 @@ Deno.test("extractSourceUrls: http(s) only, deduped, order-preserving", () => {
   assertEquals(extractSourceUrls(hits), ["https://guide.techfleet.org/a", "http://example.com/b"]);
 });
 
+Deno.test("extractSourceUrls: chunk urls (#pN) collapse back to the page (A1)", () => {
+  const hits = [
+    { url: "https://guide.techfleet.org/handbook" },
+    { url: "https://guide.techfleet.org/handbook#p2" }, // same page, different chunk → deduped
+    { url: "https://guide.techfleet.org/handbook#p3" },
+  ];
+  assertEquals(extractSourceUrls(hits), ["https://guide.techfleet.org/handbook"]);
+});
+
 Deno.test("extractSourceUrls respects the cap", () => {
   const hits = Array.from({ length: 20 }, (_, i) => ({ url: `https://x/${i}` }));
   assertEquals(extractSourceUrls(hits, 8).length, 8);
