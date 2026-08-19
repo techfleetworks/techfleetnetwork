@@ -30,6 +30,7 @@ import { toChatAttachment } from "@/lib/fleety/attachment";
 import { useFleetyAttachment } from "@/hooks/useFleetyAttachment";
 import { FleetyAttachButton, FleetyAttachmentChip } from "@/components/fleety/FleetyAttach";
 import { FleetyMessageFeedback } from "@/components/fleety/FleetyFeedback";
+import { FleetySources } from "@/components/fleety/FleetySources";
 
 type Msg = {
   role: "user" | "assistant";
@@ -164,16 +165,6 @@ function stripMarkdown(md: string): string {
     .replace(/\n{2,}/g, ". ")
     .replace(/\n/g, " ")
     .trim();
-}
-
-/** Readable label for a source link (host + path, no protocol/trailing slash). */
-function prettyUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    return (u.hostname + u.pathname).replace(/\/$/, "");
-  } catch {
-    return url;
-  }
 }
 
 export default function ChatPage() {
@@ -574,27 +565,9 @@ export default function ChatPage() {
                     <div className="fleety-prose">
                       <SafeMarkdown>{msg.content}</SafeMarkdown>
                     </div>
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-border/50">
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">
-                          📚 Sources
-                        </p>
-                        <ul className="space-y-0.5">
-                          {msg.sources.map((url) => (
-                            <li key={url}>
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline break-all"
-                              >
-                                {prettyUrl(url)}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    {/* Sources are collapsed + only shown once the answer has content, so the
+                        member always sees the ANSWER first — never a link block that hides it. */}
+                    {msg.content.length > 0 && <FleetySources urls={msg.sources} />}
                     {!isLoading && msg.content.length > 0 && (
                       <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-1">
                         <Button
