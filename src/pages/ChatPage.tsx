@@ -29,8 +29,14 @@ import { groupConversationsByDate } from "@/lib/fleety/history";
 import { toChatAttachment } from "@/lib/fleety/attachment";
 import { useFleetyAttachment } from "@/hooks/useFleetyAttachment";
 import { FleetyAttachButton, FleetyAttachmentChip } from "@/components/fleety/FleetyAttach";
+import { FleetyMessageFeedback } from "@/components/fleety/FleetyFeedback";
 
-type Msg = { role: "user" | "assistant"; content: string; sources?: string[] };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  sources?: string[];
+  turnId?: string | null;
+};
 type Conversation = { id: string; title: string; updated_at: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/techfleet-chat`;
@@ -41,6 +47,7 @@ async function streamChat({
   attachment,
   onDelta,
   onSources,
+  onTurnId,
   onDone,
 }: {
   messages: Msg[];
@@ -48,6 +55,7 @@ async function streamChat({
   attachment?: { filename: string; text: string };
   onDelta: (deltaText: string) => void;
   onSources?: (urls: string[]) => void;
+  onTurnId?: (id: string | null) => void;
   onDone: () => void;
 }) {
   const resp = await fetch(CHAT_URL, {
@@ -67,6 +75,9 @@ async function streamChat({
   // D-08: structural citations. The server GUARANTEES the source URLs (navigable
   // guide/SPF links from the retrieved KB entries) in the X-Fleety-Sources header,
   // independent of whatever the model wrote. Render these — never rely on the LLM.
+  // Turn id ties a member's 👍/👎 back to this exact answer (feeds the learning loop).
+  if (onTurnId) onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
+
   const srcHeader = resp.headers.get("X-Fleety-Sources");
   if (srcHeader && onSources) {
     try {
@@ -356,16 +367,32 @@ export default function ChatPage() {
 
     let assistantSoFar = "";
     let assistantSources: string[] = [];
+    let assistantTurnId: string | null = null;
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
           return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar, sources: assistantSources } : m
+            i === prev.length - 1
+              ? {
+                  ...m,
+                  content: assistantSoFar,
+                  sources: assistantSources,
+                  turnId: assistantTurnId,
+                }
+              : m
           );
         }
-        return [...prev, { role: "assistant", content: assistantSoFar, sources: assistantSources }];
+        return [
+          ...prev,
+          {
+            role: "assistant",
+            content: assistantSoFar,
+            sources: assistantSources,
+            turnId: assistantTurnId,
+          },
+        ];
       });
     };
 
@@ -377,6 +404,14 @@ export default function ChatPage() {
         onDelta: (chunk) => upsertAssistant(chunk),
         onSources: (urls) => {
           assistantSources = urls;
+        },
+        onTurnId: (id) => {
+          assistantTurnId = id;
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === prev.length - 1 && m.role === "assistant" ? { ...m, turnId: id } : m
+            )
+          );
         },
         onDone: async () => {
           setIsLoading(false);
@@ -600,6 +635,7 @@ export default function ChatPage() {
                             </>
                           )}
                         </Button>
+                        <FleetyMessageFeedback turnId={msg.turnId} />
                       </div>
                     )}
                   </div>

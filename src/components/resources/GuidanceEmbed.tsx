@@ -18,12 +18,14 @@ import { groupConversationsByDate } from "@/lib/fleety/history";
 import { toChatAttachment } from "@/lib/fleety/attachment";
 import { useFleetyAttachment } from "@/hooks/useFleetyAttachment";
 import { FleetyAttachButton, FleetyAttachmentChip } from "@/components/fleety/FleetyAttach";
+import { FleetyMessageFeedback } from "@/components/fleety/FleetyFeedback";
 
 type Msg = {
   role: "user" | "assistant";
   content: string;
   followups?: string[];
   sources?: string[];
+  turnId?: string | null;
 };
 
 type Conversation = { id: string; title: string; updated_at: string };
@@ -49,6 +51,7 @@ async function streamChat({
   onDelta,
   onFollowups,
   onSources,
+  onTurnId,
   onDone,
 }: {
   messages: Msg[];
@@ -57,6 +60,7 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onFollowups: (followups: string[]) => void;
   onSources: (urls: string[]) => void;
+  onTurnId: (id: string | null) => void;
   onDone: () => void;
 }) {
   // ASVS V13.2.1: Use session-bound JWT, not static publishable key
@@ -82,6 +86,9 @@ async function streamChat({
     const errData = await resp.json().catch(() => ({}));
     throw new Error(errData.error || `Request failed (${resp.status})`);
   }
+
+  // Turn id ties a member's 👍/👎 back to this exact answer (feeds the learning loop).
+  onTurnId(resp.headers.get("X-Fleety-Turn-Id"));
 
   // D-08: structural citations guaranteed by the server (navigable guide/SPF links from the
   // retrieved KB entries), independent of what the model wrote.
@@ -363,6 +370,15 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
             return [...prev, { role: "assistant", content: "", sources: urls }];
           });
         },
+        onTurnId: (id) => {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, turnId: id } : m));
+            }
+            return [...prev, { role: "assistant", content: "", turnId: id }];
+          });
+        },
         onDone: async () => {
           setIsLoading(false);
           if (convoId && assistantSoFar) {
@@ -562,7 +578,7 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
                     </div>
                   )}
                   {!isLoading && msg.content.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-border/50">
+                    <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -577,6 +593,7 @@ export default function GuidanceEmbed({ initialQuery }: GuidanceEmbedProps) {
                         )}
                         {speakingIdx === i ? "Stop reading" : "Read aloud"}
                       </Button>
+                      <FleetyMessageFeedback turnId={msg.turnId} />
                     </div>
                   )}
                   {msg.followups && msg.followups.length > 0 && (
