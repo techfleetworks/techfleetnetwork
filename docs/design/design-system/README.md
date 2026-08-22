@@ -1,9 +1,10 @@
 # TechFleet Design System (TFDS) — built on MUI Core
 
-> Status: **Proposed** (see [ADR 0015](../../adr/0015-mui-owned-design-system-layer.md)). This folder
-> is the spec + audit for migrating the app's UI from shadcn/ui to an **owned design-system layer
-> on Material UI Community (MUI Core, MIT)**. Nothing here is built yet — these are the plans we
-> execute against.
+> Status: **Phase 0 landed** (see [ADR 0015](../../adr/0015-mui-owned-design-system-layer.md)). This folder
+> is the spec + audit + build log for migrating the app's UI from shadcn/ui to an **owned design-system
+> layer on Material UI Community (MUI Core, MIT)**. The foundation (theme, provider, first atoms +
+> Card, import guard, showcase) is built and additive; shadcn/Tailwind remain untouched. See the
+> [Build log](#build-log--what-we-did) for exactly what exists today vs what's still planned.
 
 ## What this is (and isn't)
 
