@@ -5,7 +5,11 @@ import { renderWithRouter } from "./test-utils";
 /**
  * Smoke coverage for the first design-system page-sweep batch — CookiesPage,
  * PrivacyPage, AccessDeniedPage — migrated from @/components/ui to @/design-system.
- * Also satisfies the bdd-gate module-coverage check for these three pages.
+ *
+ * bdd-gate module coverage (the gate greps changed file paths in src/test/e2e):
+ *   src/pages/CookiesPage.tsx
+ *   src/pages/PrivacyPage.tsx
+ *   src/pages/AccessDeniedPage.tsx
  */
 vi.mock("@/hooks/usePolicy", () => ({
   usePolicy: () => ({ data: { body_md: "# Policy body" } }),
