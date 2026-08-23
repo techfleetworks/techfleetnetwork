@@ -5,6 +5,9 @@
 # touches the design-system docs (and can be run manually).
 #
 # Published at: https://techfleetworks.github.io/techfleetnetwork/
+#
+# Actions are pinned by commit SHA (supply-chain integrity), and permissions are
+# scoped per job (least privilege) — only the deploy job gets pages/id-token write.
 name: Deploy design-system docs
 
 on:
@@ -15,10 +18,8 @@ on:
       - ".github/workflows/deploy-design-system-docs.yml"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# No workflow-wide privileges; each job requests only what it needs.
+permissions: {}
 
 # Allow one concurrent deployment; don't cancel an in-progress production deploy.
 concurrency:
@@ -28,9 +29,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4
         with:
           node-version: 20
           cache: npm
@@ -38,18 +41,21 @@ jobs:
         run: npm ci
       - name: Build docs
         run: npm run docs:build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: docs/design/design-system/.vitepress/dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
