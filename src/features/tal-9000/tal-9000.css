@@ -9,7 +9,7 @@
  * selector is scoped under `.tal9k`, and every keyframe is `tal9k-`-prefixed, so this
  * cannot leak into or collide with the app's design system. Retro faces load from Google
  * Fonts with a monospace fallback (degrades gracefully if a CSP blocks the request). */
-@import url("https://fonts.googleapis.com/css2?family=VT323&family=Michroma&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Michroma&display=swap");
 
 .tal9k {
   --tal-room: #05070a;
@@ -161,34 +161,13 @@
   text-shadow: none;
 }
 
-.tal9k__powerbtn {
-  padding: 14px 22px;
-  border: none;
-  color: #100d26;
+.tal9k__off-hint {
+  color: var(--tal-phosphor-lo);
   font-family: var(--tal-font-label);
-  font-size: 13px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #29ff97 0%, var(--tal-key-on) 62%, #00e878 100%);
-  box-shadow:
-    inset 0 2px 0 rgb(255, 255, 255, 0.5),
-    0 6px 0 var(--tal-key-on-lip),
-    0 10px 12px rgb(0, 0, 0, 0.5),
-    0 0 22px rgb(1, 255, 133, 0.6);
-  cursor: pointer;
-}
-
-.tal9k__powerbtn:active {
-  transform: translateY(6px);
-  box-shadow:
-    inset 0 2px 0 rgb(255, 255, 255, 0.4),
-    0 1px 0 var(--tal-key-on-lip),
-    0 2px 6px rgb(0, 0, 0, 0.5);
-}
-
-.tal9k__powerbtn:focus-visible {
-  outline: 2px solid #eafff4;
-  outline-offset: 3px;
+  text-shadow: none;
 }
 
 .tal9k__ascii {

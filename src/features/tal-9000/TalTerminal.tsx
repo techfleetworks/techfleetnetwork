@@ -265,9 +265,7 @@ export default function TalTerminal() {
                   {power === "off" && (
                     <div className="tal9k__off">
                       <p className="tal9k__off-label">&#9673; SYSTEM OFF</p>
-                      <button type="button" className="tal9k__powerbtn" onClick={powerOn}>
-                        PRESS TO POWER ON
-                      </button>
+                      <p className="tal9k__off-hint">Press POWER to begin</p>
                     </div>
                   )}
                   {power === "booting" && (
