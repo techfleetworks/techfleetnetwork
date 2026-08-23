@@ -6,8 +6,10 @@
  * Accessibility (universal-accessibility-wcag):
  * - The message is linked to the control via `aria-describedby` (WCAG 1.3.1) so
  *   screen readers announce the hint/error with the field.
- * - Errors render in text with `role="alert"` (WCAG 3.3.1 / 4.1.3) — announced,
- *   never conveyed by color alone (1.4.1). Required is marked with text, not color.
+ * - Errors render in text with an assertive alert live region (WCAG 3.3.1 / 4.1.3)
+ *   — announced, never conveyed by color alone (1.4.1). Required is marked with
+ *   text, not color. The message carries data-no-translate/translate="no" so the
+ *   runtime DOM translator does not mutate the live region and race React.
  * See docs/design/design-system/components/molecules/Field.md
  */
 import { Children, cloneElement, isValidElement, useId, type ReactNode } from "react";
@@ -59,6 +61,8 @@ export function Field({ label, htmlFor, required, error, helperText, children }:
           id={msgId}
           brand="caption"
           role={error ? "alert" : undefined}
+          data-no-translate="true"
+          translate="no"
           sx={{ color: error ? "error.main" : "text.secondary" }}
         >
           {message}
