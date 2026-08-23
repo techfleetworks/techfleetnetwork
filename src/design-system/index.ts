@@ -33,6 +33,21 @@ export { Skeleton } from "./components/atoms/Skeleton";
 export type { SkeletonProps } from "./components/atoms/Skeleton";
 export { Separator } from "./components/atoms/Separator";
 export type { SeparatorProps } from "./components/atoms/Separator";
+export { Avatar, AvatarImage, AvatarFallback } from "./components/atoms/Avatar";
+export type { AvatarProps } from "./components/atoms/Avatar";
+export { Progress } from "./components/atoms/Progress";
+export type { ProgressProps } from "./components/atoms/Progress";
+export { Slider } from "./components/atoms/Slider";
+export type { SliderProps } from "./components/atoms/Slider";
+export { Toggle } from "./components/atoms/Toggle";
+export type { ToggleProps } from "./components/atoms/Toggle";
+export { ToggleGroup, ToggleGroupItem } from "./components/atoms/ToggleGroup";
+export type { ToggleGroupProps } from "./components/atoms/ToggleGroup";
+export { RadioGroup, RadioGroupItem } from "./components/atoms/RadioGroup";
+export type { RadioGroupProps } from "./components/atoms/RadioGroup";
+export { AspectRatio } from "./components/atoms/AspectRatio";
+export type { AspectRatioProps } from "./components/atoms/AspectRatio";
+export { ScrollArea, ScrollBar } from "./components/atoms/ScrollArea";
 
 // Molecules
 export {
@@ -50,6 +65,30 @@ export { Alert, AlertTitle, AlertDescription } from "./components/molecules/Aler
 export type { AlertProps, AlertVariant } from "./components/molecules/Alert";
 export { Tooltip } from "./components/molecules/Tooltip";
 export type { TooltipProps } from "./components/molecules/Tooltip";
+export {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+} from "./components/molecules/Breadcrumb";
+export type { BreadcrumbProps } from "./components/molecules/Breadcrumb";
+export {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "./components/molecules/Accordion";
+export type { AccordionProps } from "./components/molecules/Accordion";
+export {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./components/molecules/Collapsible";
+export { Pagination } from "./components/molecules/Pagination";
+export type { PaginationProps } from "./components/molecules/Pagination";
 
 // Molecules — react-hook-form field adapters
 export { RHFTextField } from "./components/molecules/form/RHFTextField";
@@ -71,3 +110,5 @@ export {
   DialogFooter,
 } from "./components/organisms/Dialog";
 export type { DialogProps } from "./components/organisms/Dialog";
+// AG Grid, re-exported unchanged (see DataTable.tsx). The DS table solution.
+export { DataTable, ThemedAgGrid } from "./components/organisms/DataTable";
