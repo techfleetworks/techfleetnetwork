@@ -542,3 +542,69 @@
     opacity: 0.35;
   }
 }
+
+/* ---------------- history browser (LOG) ---------------- */
+.tal9k__log {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 30px;
+  background: rgb(1, 24, 6, 0.97);
+  font-family: var(--tal-font-screen);
+}
+
+.tal9k__log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: var(--tal-phosphor-hi);
+  font-size: 20px;
+  text-shadow: 0 0 6px rgb(168, 255, 206, 0.6);
+}
+
+.tal9k__log-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tal-phosphor-lo) transparent;
+}
+
+.tal9k__log-group {
+  margin: 10px 0 4px;
+  color: var(--tal-phosphor-lo);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tal9k__log-row {
+  overflow: hidden;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--tal-phosphor);
+  font-family: var(--tal-font-screen);
+  font-size: 18px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgb(77, 222, 151, 0.5);
+  cursor: pointer;
+}
+
+.tal9k__log-row:hover,
+.tal9k__log-row:focus-visible {
+  background: rgb(77, 222, 151, 0.15);
+  color: var(--tal-phosphor-hi);
+  outline: none;
+}
+
+.tal9k__btn--sm {
+  padding: 6px 12px;
+}

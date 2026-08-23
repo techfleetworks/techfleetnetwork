@@ -6,6 +6,7 @@ import { useFleetyAttachment } from "@/hooks/useFleetyAttachment";
 import { toChatAttachment, ACCEPTED_FILE_TYPES } from "@/lib/fleety/attachment";
 import { submitRating, type FeedbackRating } from "@/lib/fleety/feedback";
 import { dedupeSources, formatSourceLabel } from "@/lib/fleety/sources";
+import { groupConversationsByDate } from "@/lib/fleety/history";
 import "./tal-9000.css";
 
 /**
@@ -27,7 +28,16 @@ export default function TalTerminal() {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const { messages, isLoading, error, sendMessage, reset } = useFleetyChat("chat");
+  const {
+    messages,
+    isLoading,
+    error,
+    conversations,
+    sendMessage,
+    loadConversations,
+    loadConversation,
+    reset,
+  } = useFleetyChat("chat");
   const {
     attachment,
     status: attachStatus,
@@ -37,6 +47,7 @@ export default function TalTerminal() {
 
   const [input, setInput] = useState("");
   const [ratings, setRatings] = useState<Record<string, FeedbackRating>>({});
+  const [showLog, setShowLog] = useState(false);
   const outRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -85,6 +96,26 @@ export default function TalTerminal() {
     if (window.history.length > 1) navigate(-1);
     else navigate("/dashboard");
   }, [navigate]);
+
+  const toggleLog = useCallback(() => {
+    setShowLog((v) => {
+      if (!v) void loadConversations();
+      return !v;
+    });
+  }, [loadConversations]);
+  const pickConversation = useCallback(
+    (id: string) => {
+      void loadConversation(id);
+      setShowLog(false);
+      inputRef.current?.focus();
+    },
+    [loadConversation]
+  );
+  const newChat = useCallback(() => {
+    reset();
+    setShowLog(false);
+    inputRef.current?.focus();
+  }, [reset]);
 
   return (
     <div className="tal9k">
@@ -138,6 +169,50 @@ export default function TalTerminal() {
                   disabled={isLoading}
                 />
               </form>
+
+              {showLog && (
+                <div
+                  className="tal9k__log"
+                  role="dialog"
+                  aria-label="Conversation log"
+                  data-no-translate
+                  translate="no"
+                >
+                  <div className="tal9k__log-head">
+                    <span>&mdash;&mdash; LOG &mdash;&mdash;</span>
+                    <button
+                      type="button"
+                      className="tal9k__btn tal9k__btn--sm"
+                      onClick={() => setShowLog(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="tal9k__log-list">
+                    <button type="button" className="tal9k__log-row" onClick={newChat}>
+                      + NEW CHAT
+                    </button>
+                    {conversations.length === 0 && (
+                      <p className="tal9k__line tal9k__line--sys">No saved conversations yet.</p>
+                    )}
+                    {groupConversationsByDate(conversations, new Date()).map((g) => (
+                      <div key={g.label}>
+                        <div className="tal9k__log-group">{g.label}</div>
+                        {g.items.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="tal9k__log-row"
+                            onClick={() => pickConversation(c.id)}
+                          >
+                            {c.title || "Untitled"}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="tal9k__scanlines" aria-hidden="true" />
               <div className="tal9k__vignette" aria-hidden="true" />
@@ -221,7 +296,10 @@ export default function TalTerminal() {
                 >
                   {attachStatus === "extracting" ? "Reading…" : "Attach"}
                 </button>
-                <button type="button" className="tal9k__btn" onClick={reset}>
+                <button type="button" className="tal9k__btn" onClick={toggleLog}>
+                  Log
+                </button>
+                <button type="button" className="tal9k__btn" onClick={newChat}>
                   New Chat
                 </button>
                 <button type="button" className="tal9k__btn" onClick={toClassic}>

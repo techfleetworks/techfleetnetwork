@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { streamChat, type ActionChip, type FleetyChatMsg } from "@/lib/fleety/stream-chat";
 import type { FleetyMode } from "@/lib/fleety/modes";
+import type { DatedConversation } from "@/lib/fleety/history";
 
 export type FleetyMessage = {
   role: "user" | "assistant";
@@ -26,6 +27,7 @@ export function useFleetyChat(mode: FleetyMode) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<DatedConversation[]>([]);
 
   const createConversation = useCallback(
     async (firstMessage: string): Promise<string | null> => {
@@ -51,7 +53,17 @@ export function useFleetyChat(mode: FleetyMode) {
       .eq("id", convoId);
   }, []);
 
-  /** Load an existing conversation's messages into the terminal (used by the future history browser). */
+  /** List the member's saved conversations (newest first) for the history browser. */
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("chat_conversations")
+      .select("id, title, updated_at")
+      .order("updated_at", { ascending: false });
+    if (data) setConversations(data as DatedConversation[]);
+  }, [user]);
+
+  /** Load an existing conversation's messages into the terminal (history browser). */
   const loadConversation = useCallback(async (convoId: string) => {
     setConversationId(convoId);
     const { data } = await supabase
@@ -137,7 +149,10 @@ export function useFleetyChat(mode: FleetyMode) {
           onSources: (sources) => upsertAssistant({ sources }),
           onDone: async () => {
             setIsLoading(false);
-            if (convoId && assistantSoFar) await saveMessage(convoId, "assistant", assistantSoFar);
+            if (convoId && assistantSoFar) {
+              await saveMessage(convoId, "assistant", assistantSoFar);
+              await loadConversations(); // keep the history browser fresh
+            }
           },
         });
       } catch (e) {
@@ -147,7 +162,16 @@ export function useFleetyChat(mode: FleetyMode) {
         );
       }
     },
-    [messages, conversationId, isLoading, user, mode, createConversation, saveMessage]
+    [
+      messages,
+      conversationId,
+      isLoading,
+      user,
+      mode,
+      createConversation,
+      saveMessage,
+      loadConversations,
+    ]
   );
 
   return {
@@ -155,7 +179,9 @@ export function useFleetyChat(mode: FleetyMode) {
     isLoading,
     error,
     conversationId,
+    conversations,
     sendMessage,
+    loadConversations,
     loadConversation,
     reset,
     setConversationId,
