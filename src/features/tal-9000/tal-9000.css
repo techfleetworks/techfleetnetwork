@@ -9,7 +9,7 @@
  * selector is scoped under `.tal9k`, and every keyframe is `tal9k-`-prefixed, so this
  * cannot leak into or collide with the app's design system. Retro faces load from Google
  * Fonts with a monospace fallback (degrades gracefully if a CSP blocks the request). */
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Michroma&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=VT323&family=Michroma&display=swap");
 
 .tal9k {
   --tal-room: #05070a;
@@ -17,8 +17,8 @@
   --tal-chassis-2: #0d100b;
   --tal-bezel-hi: #3a4132;
   --tal-screen: #013201;
-  --tal-phosphor: #4ade97;
-  --tal-phosphor-hi: #a8ffce;
+  --tal-phosphor: #56ffa1;
+  --tal-phosphor-hi: #c9ffe0;
   --tal-phosphor-lo: #2b8f5d;
   --tal-glow: #7dffb0;
   --tal-amber: #ffcf6a;
@@ -402,11 +402,11 @@
   border-radius: 50%;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(circle, rgb(125, 255, 176, 0.38) 0%, rgb(125, 255, 176, 0) 62%);
-  filter: blur(12px);
-  opacity: 0.28;
+  background: radial-gradient(circle, rgb(125, 255, 176, 0.22) 0%, rgb(125, 255, 176, 0) 64%);
+  filter: blur(13px);
+  opacity: 0.16;
   will-change: opacity, transform;
-  animation: tal9k-aura 5s ease-in-out infinite;
+  animation: tal9k-aura 6.5s ease-in-out infinite;
 }
 
 .tal9k__bloom {
@@ -423,9 +423,9 @@
     transparent 70%
   );
   filter: blur(14px);
-  opacity: 0.5;
+  opacity: 0.3;
   will-change: opacity, transform;
-  animation: tal9k-breathe 5s ease-in-out infinite;
+  animation: tal9k-breathe 6.5s ease-in-out infinite;
 }
 
 .tal9k__pupil {
@@ -687,26 +687,26 @@
 @keyframes tal9k-breathe {
   0%,
   100% {
-    opacity: 0.42;
+    opacity: 0.28;
     transform: scale(1);
   }
 
   50% {
-    opacity: 0.66;
-    transform: scale(1.04);
+    opacity: 0.42;
+    transform: scale(1.02);
   }
 }
 
 @keyframes tal9k-aura {
   0%,
   100% {
-    opacity: 0.3;
+    opacity: 0.14;
     transform: scale(1);
   }
 
   50% {
-    opacity: 0.4;
-    transform: scale(1.06);
+    opacity: 0.22;
+    transform: scale(1.03);
   }
 }
 
