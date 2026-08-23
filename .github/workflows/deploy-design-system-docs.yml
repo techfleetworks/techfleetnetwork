@@ -1,0 +1,55 @@
+# Builds the TechFleet Design System VitePress docs and deploys them to GitHub Pages.
+#
+# One-time repo setup (admin): Settings → Pages → Build and deployment → Source:
+# "GitHub Actions". After that this workflow publishes on every push to main that
+# touches the design-system docs (and can be run manually).
+#
+# Published at: https://techfleetworks.github.io/techfleetnetwork/
+name: Deploy design-system docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/design/design-system/**"
+      - ".github/workflows/deploy-design-system-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress production deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build docs
+        run: npm run docs:build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/design/design-system/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
