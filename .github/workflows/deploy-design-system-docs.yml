@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pages: write
-      id-token: write
+      id-token: write # owasp-allow: GitHub Pages OIDC deploy (actions/deploy-pages) requires id-token to mint the short-lived deployment token; scoped to this deploy job only.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
