@@ -98,6 +98,8 @@ export default function TalTerminal() {
                 ref={outRef}
                 role="log"
                 aria-live="polite"
+                data-no-translate
+                translate="no"
                 aria-label="TAL 9000 terminal output"
               >
                 {BOOT_LINES.map((l, i) => (

@@ -1,3 +1,8 @@
+/* stylelint-disable plugin/no-unsupported-browser-features --
+   TAL 9000 is an opt-in retro terminal; its gradients, custom scrollbar,
+   text-indent and cursor styles are cosmetic and degrade gracefully. This
+   mirrors the project's src/index.css exemption from the same rule. */
+
 /* TAL 9000 "Future Mode" — fully isolated retro-CRT styling.
  *
  * Sealed costume: every token lives on the `.tal9k` root class (never :root), every
@@ -47,8 +52,8 @@
   background: linear-gradient(180deg, #232a1f 0%, #12160f 62%, #0b0e08 100%);
   border: 1px solid #05070a;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 30px 60px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgb(255, 255, 255, 0.12),
+    0 30px 60px rgb(0, 0, 0, 0.55);
   padding: clamp(14px, 2.2vw, 28px);
   display: flex;
   flex-direction: column;
@@ -61,11 +66,13 @@
   flex-direction: column;
   gap: 18px;
 }
+
 .tal9k__console {
   display: grid;
   grid-template-columns: 1fr;
   gap: 18px;
 }
+
 /* XL: TAL eye and control panel side-by-side */
 @media (min-width: 1280px) {
   .tal9k__console {
@@ -80,10 +87,11 @@
   border-radius: 22px;
   padding: clamp(12px, 1.6vw, 20px);
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.15),
-    inset 0 -4px 12px rgba(0, 0, 0, 0.6),
-    0 6px 14px rgba(0, 0, 0, 0.4);
+    inset 0 2px 3px rgb(255, 255, 255, 0.15),
+    inset 0 -4px 12px rgb(0, 0, 0, 0.6),
+    0 6px 14px rgb(0, 0, 0, 0.4);
 }
+
 .tal9k__screen {
   position: relative;
   height: clamp(300px, 52vh, 520px);
@@ -96,12 +104,13 @@
     #011204 100%
   );
   box-shadow:
-    inset 0 0 70px rgba(0, 0, 0, 0.78),
-    inset 0 0 22px rgba(125, 255, 176, 0.14);
+    inset 0 0 70px rgb(0, 0, 0, 0.78),
+    inset 0 0 22px rgb(125, 255, 176, 0.14);
   display: flex;
   flex-direction: column;
   font-family: var(--tal-font-screen);
 }
+
 .tal9k__scanlines,
 .tal9k__vignette {
   position: absolute;
@@ -109,16 +118,18 @@
   pointer-events: none;
   z-index: 4;
 }
+
 .tal9k__scanlines {
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.26) 0 1px, transparent 1px 3px);
+  background: repeating-linear-gradient(to bottom, rgb(0, 0, 0, 0.26) 0 1px, transparent 1px 3px);
   opacity: 0.5;
   mix-blend-mode: multiply;
 }
+
 .tal9k__vignette {
   z-index: 5;
   background:
-    radial-gradient(125% 105% at 50% 48%, transparent 52%, rgba(0, 0, 0, 0.5) 100%),
-    radial-gradient(55% 38% at 30% 15%, rgba(190, 255, 215, 0.06), transparent 72%);
+    radial-gradient(125% 105% at 50% 48%, transparent 52%, rgb(0, 0, 0, 0.5) 100%),
+    radial-gradient(55% 38% at 30% 15%, rgb(190, 255, 215, 0.06), transparent 72%);
 }
 
 /* ---------------- terminal output ---------------- */
@@ -131,34 +142,41 @@
   font-size: 20px;
   line-height: 1.34;
   color: var(--tal-phosphor);
-  text-shadow: 0 0 5px rgba(77, 222, 151, 0.6);
+  text-shadow: 0 0 5px rgb(77, 222, 151, 0.6);
   letter-spacing: 0.4px;
-  word-break: break-word;
+  overflow-wrap: break-word;
   scrollbar-width: thin;
   scrollbar-color: var(--tal-phosphor-lo) transparent;
 }
+
 .tal9k__out::-webkit-scrollbar {
   width: 8px;
 }
+
 .tal9k__out::-webkit-scrollbar-thumb {
   background: var(--tal-phosphor-lo);
   border-radius: 4px;
 }
+
 .tal9k__line {
   white-space: pre-wrap;
   margin: 0 0 0.35em;
 }
+
 .tal9k__line--user {
   color: var(--tal-phosphor-hi);
 }
+
 .tal9k__line--sys {
   color: var(--tal-phosphor-lo);
   text-shadow: none;
 }
+
 .tal9k__line--fleety {
   padding-left: 8ch;
   text-indent: -8ch;
 }
+
 .tal9k__caret::after {
   content: "\2588";
   margin-left: 2px;
@@ -171,19 +189,23 @@
   padding-left: 8ch;
   font-size: 0.8em;
 }
+
 .tal9k__srcs {
   color: var(--tal-phosphor-lo);
 }
+
 .tal9k__srcs a {
   color: var(--tal-phosphor-hi);
   text-decoration: underline;
   word-break: break-all;
 }
+
 .tal9k__fb {
   display: inline-flex;
   gap: 10px;
   margin-top: 0.4em;
 }
+
 /* mini control-panel keycaps — grey when off, latch bright green when selected */
 .tal9k__fb button {
   font-family: var(--tal-font-label);
@@ -196,32 +218,35 @@
   padding: 5px 11px;
   background: linear-gradient(180deg, #474e40 0%, #363d30 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgb(255, 255, 255, 0.18),
     0 3px 0 #191e16,
-    0 5px 6px rgba(0, 0, 0, 0.5);
+    0 5px 6px rgb(0, 0, 0, 0.5);
   transition:
     transform 0.05s ease,
     box-shadow 0.05s ease,
     color 0.12s ease,
     background 0.12s ease;
 }
+
 .tal9k__fb button:active {
   transform: translateY(3px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgb(255, 255, 255, 0.12),
     0 1px 0 #191e16;
 }
+
 .tal9k__fb button:focus-visible {
   outline: 2px solid var(--tal-glow);
   outline-offset: 2px;
 }
+
 .tal9k__fb button[aria-pressed="true"] {
   color: #100d26;
   background: linear-gradient(180deg, #29ff97, var(--tal-key-on) 62%, #00e878);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgb(255, 255, 255, 0.4),
     0 3px 0 var(--tal-key-on-lip),
-    0 0 14px rgba(1, 255, 133, 0.5);
+    0 0 14px rgb(1, 255, 133, 0.5);
 }
 
 /* ---------------- input line ---------------- */
@@ -234,11 +259,13 @@
   padding: 8px 46px 34px;
   font-family: var(--tal-font-screen);
 }
+
 .tal9k__prompt {
   color: var(--tal-phosphor-hi);
   font-size: 21px;
-  text-shadow: 0 0 6px rgba(168, 255, 206, 0.7);
+  text-shadow: 0 0 6px rgb(168, 255, 206, 0.7);
 }
+
 .tal9k__input {
   flex: 1 1 auto;
   background: transparent;
@@ -249,7 +276,7 @@
   font-family: var(--tal-font-screen);
   font-size: 21px;
   letter-spacing: 0.4px;
-  text-shadow: 0 0 5px rgba(168, 255, 206, 0.6);
+  text-shadow: 0 0 5px rgb(168, 255, 206, 0.6);
 }
 
 /* ---------------- TAL eye ---------------- */
@@ -263,8 +290,9 @@
   padding: 16px 14px;
   box-shadow:
     inset 0 1px 0 var(--tal-bezel-hi),
-    inset 0 -6px 18px rgba(0, 0, 0, 0.7);
+    inset 0 -6px 18px rgb(0, 0, 0, 0.7);
 }
+
 .tal9k__eye {
   position: relative;
   width: clamp(120px, 15vw, 168px);
@@ -272,6 +300,7 @@
   display: grid;
   place-items: center;
 }
+
 .tal9k__eye svg {
   width: 100%;
   height: 100%;
@@ -279,6 +308,7 @@
   position: relative;
   z-index: 1;
 }
+
 .tal9k__aura {
   position: absolute;
   width: 140%;
@@ -286,12 +316,13 @@
   border-radius: 50%;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(125, 255, 176, 0.62) 0%, rgba(125, 255, 176, 0) 60%);
+  background: radial-gradient(circle, rgb(125, 255, 176, 0.62) 0%, rgb(125, 255, 176, 0) 60%);
   filter: blur(16px);
   opacity: 0.45;
   will-change: opacity, transform;
   animation: tal9k-aura 3.8s ease-in-out infinite;
 }
+
 .tal9k__bloom {
   position: absolute;
   width: 74%;
@@ -303,7 +334,7 @@
     circle,
     #c2ffdd 0%,
     var(--tal-glow) 32%,
-    rgba(125, 255, 176, 0.45) 55%,
+    rgb(125, 255, 176, 0.45) 55%,
     transparent 74%
   );
   filter: blur(16px);
@@ -311,6 +342,7 @@
   will-change: opacity, transform;
   animation: tal9k-breathe 3.8s ease-in-out infinite;
 }
+
 .tal9k__pupil {
   position: absolute;
   width: 9%;
@@ -318,17 +350,19 @@
   border-radius: 50%;
   z-index: 3;
   pointer-events: none;
-  background: radial-gradient(circle, #fff 0%, #ffff8a 45%, rgba(255, 255, 138, 0) 80%);
+  background: radial-gradient(circle, #fff 0%, #ffff8a 45%, rgb(255, 255, 138, 0) 80%);
   filter: blur(1px);
   animation: tal9k-shimmer 5.5s ease-in-out infinite;
 }
+
 .tal9k__eyelabel {
   font-family: var(--tal-font-label);
   font-size: 11px;
   letter-spacing: 0.2em;
   color: #cdd4c4;
-  text-shadow: 0 0 6px rgba(120, 255, 176, 0.25);
+  text-shadow: 0 0 6px rgb(120, 255, 176, 0.25);
 }
+
 .tal9k__status {
   font-family: "Share Tech Mono", monospace;
   font-size: 10px;
@@ -342,10 +376,11 @@
   border: 1px solid #05070a;
   padding: 15px 16px 17px;
   box-shadow:
-    0 5px 10px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -3px 9px rgba(0, 0, 0, 0.55);
+    0 5px 10px rgb(0, 0, 0, 0.55),
+    inset 0 1px 0 rgb(255, 255, 255, 0.15),
+    inset 0 -3px 9px rgb(0, 0, 0, 0.55);
 }
+
 .tal9k__panel-head {
   display: flex;
   justify-content: space-between;
@@ -357,14 +392,16 @@
   color: #aeb6a3;
   padding: 2px 2px 9px;
   border-bottom: 1px solid #000;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 0 rgb(255, 255, 255, 0.07);
   margin-bottom: 12px;
 }
+
 .tal9k__panel-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
+
 @media (max-width: 640px) {
   .tal9k__panel-grid {
     grid-template-columns: 1fr;
@@ -386,54 +423,60 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #8b937f;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 1px rgb(0, 0, 0, 0.5);
   background: linear-gradient(180deg, #474e40 0%, #363d30 100%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 2px 0 rgb(255, 255, 255, 0.18),
     0 7px 0 #191e16,
-    0 11px 13px rgba(0, 0, 0, 0.6);
+    0 11px 13px rgb(0, 0, 0, 0.6);
   transition:
     transform 0.05s ease,
     box-shadow 0.06s ease,
     color 0.12s ease,
     background 0.12s ease;
 }
+
 .tal9k__btn:active {
   transform: translateY(7px);
   color: #100d26;
   background: linear-gradient(180deg, #29ff97 0%, var(--tal-key-on) 62%, #00e878 100%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 2px 0 rgb(255, 255, 255, 0.4),
     0 1px 0 var(--tal-key-on-lip),
-    0 2px 6px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(1, 255, 133, 0.55);
+    0 2px 6px rgb(0, 0, 0, 0.5),
+    0 0 20px rgb(1, 255, 133, 0.55);
 }
+
 .tal9k__btn:focus-visible {
   outline: 2px solid var(--tal-glow);
   outline-offset: 3px;
 }
+
 .tal9k__btn--go {
   color: #100d26;
   background: linear-gradient(180deg, #29ff97 0%, var(--tal-key-on) 62%, #00e878 100%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 2px 0 rgb(255, 255, 255, 0.5),
     0 7px 0 var(--tal-key-on-lip),
-    0 11px 13px rgba(0, 0, 0, 0.5),
-    0 0 22px rgba(1, 255, 133, 0.6),
-    0 0 46px rgba(50, 156, 43, 0.42);
+    0 11px 13px rgb(0, 0, 0, 0.5),
+    0 0 22px rgb(1, 255, 133, 0.6),
+    0 0 46px rgb(50, 156, 43, 0.42);
 }
+
 .tal9k__btn--go:active {
   transform: translateY(7px);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 2px 0 rgb(255, 255, 255, 0.4),
     0 1px 0 var(--tal-key-on-lip),
-    0 2px 6px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(1, 255, 133, 0.55);
+    0 2px 6px rgb(0, 0, 0, 0.5),
+    0 0 20px rgb(1, 255, 133, 0.55);
 }
+
 .tal9k__btn[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .tal9k__file {
   display: none;
 }
@@ -444,33 +487,39 @@
     opacity: 0.5;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.15);
   }
 }
+
 @keyframes tal9k-aura {
   0%,
   100% {
     opacity: 0.3;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.72;
     transform: scale(1.18);
   }
 }
+
 @keyframes tal9k-shimmer {
   0%,
   100% {
     opacity: 0.8;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.25);
   }
 }
+
 @keyframes tal9k-blink {
   50% {
     opacity: 0;
@@ -484,9 +533,11 @@
   .tal9k__caret::after {
     animation: none !important;
   }
+
   .tal9k__bloom {
     opacity: 0.7;
   }
+
   .tal9k__aura {
     opacity: 0.35;
   }

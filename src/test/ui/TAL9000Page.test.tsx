@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
  * /tal-9000 opens Fleety in Classic chat by default; ?mode=future switches to the CRT terminal.
  * ChatPage and TalTerminal are mocked so this isolates the mode-routing decision (no Supabase /
  * streaming / heavy deps). A regression that flips the default or ignores the param fails CI.
+ * Module under test: src/pages/TAL9000Page.tsx
  */
 vi.mock("@/pages/ChatPage", () => ({
   default: () => <div data-testid="classic-chat">CLASSIC</div>,
