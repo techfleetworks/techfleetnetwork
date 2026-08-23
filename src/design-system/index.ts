@@ -7,6 +7,14 @@
 // Provider
 export { DesignSystemProvider } from "./provider/DesignSystemProvider";
 
+// Layout — 4px grid + 12-column responsive system
+export { Grid } from "./components/layout/Grid";
+export type { GridProps } from "./components/layout/Grid";
+export { Container } from "./components/layout/Container";
+export type { ContainerProps } from "./components/layout/Container";
+export { Stack } from "./components/layout/Stack";
+export type { StackProps } from "./components/layout/Stack";
+
 // Theme (for tooling / tests)
 export { createAppTheme } from "./theme/createAppTheme";
 export type { Mode } from "./theme/tokens";
