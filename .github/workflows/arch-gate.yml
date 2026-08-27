@@ -9,6 +9,10 @@ on:
   push:
     branches: [main]
 
+# Least-privilege: the gate only reads the checkout (enforced by the OWASP SAST gate).
+permissions:
+  contents: read
+
 jobs:
   arch-gate:
     runs-on: ubuntu-latest
