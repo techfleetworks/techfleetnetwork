@@ -10,7 +10,10 @@
  *
  * A guard `check-foo.mjs` counts as tested iff some committed test file — a
  * `*.test.ts` under `src/test/`, or a co-located `*.test.ts` under
- * `supabase/functions/` — references its filename (the test runs/asserts the guard).
+ * `supabase/functions/` — names its filename in NON-COMMENT code AND invokes a guard
+ * as a subprocess (execFileSync / execSync / spawnSync / spawn). A bare mention (a
+ * comment, a coverage-map note, an unrelated string) does NOT count — that would let a
+ * guard pass with a one-line comment and never actually be exercised (false green).
  *
  * RATCHET: ALLOWLIST holds guards that predate this rule and have no test yet (known
  * debt). It may only SHRINK: a guard that GAINS a test must be removed from it (the
@@ -120,7 +123,16 @@ for (const f of [...srcTests, ...denoTests]) {
   }
 }
 
-const references = (guard) => testBlobs.some((c) => c.includes(guard));
+// Strip block + line comments so a guard named only in a comment (or a bdd-gate
+// coverage-map note) is NOT miscounted as coverage. `[^:]` keeps `https://` intact.
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+// A real guard test runs the guard as a subprocess; these primitives mark that.
+const EXEC_RE = /\bexecFileSync\b|\bexecSync\b|\bspawnSync\b|\bspawn\s*\(/;
+const codeBlobs = testBlobs.map(stripComments);
+
+// Tested iff the guard filename appears in a test's NON-COMMENT code AND that same file
+// invokes a guard subprocess — so a bare comment/string mention can't fake coverage.
+const references = (guard) => codeBlobs.some((c) => c.includes(guard) && EXEC_RE.test(c));
 
 // --- Apply the ratchet --------------------------------------------------------------
 const untestedNew = []; // not tested, not allowlisted → must add a test
