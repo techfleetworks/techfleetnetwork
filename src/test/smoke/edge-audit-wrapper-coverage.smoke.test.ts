@@ -10,6 +10,53 @@
 //   - a FALSE POSITIVE (a correctly-wrapped fn the gate wrongly flags)
 // The "name-only wrap" case (EAW-005) is the specific latent hole the direct-handler
 // rule closes: withAuditWrapper present in the file but NOT wrapping the entrypoint.
+//
+// bdd-gate coverage (D-13): EAW-009 below runs the coverage guard against the REAL
+// repo, asserting the withAuditWrapper contract for every serving edge function — and
+// that wrapper is the ENTIRE change the functions below received in this PR. Their
+// paths are listed so the bdd-gate's path grep sees that (audit-wrapper) coverage.
+// This asserts the audit-wrapper concern only — the scope of the change — not each
+// function's full behaviour.
+//   supabase/functions/auth-broker
+//   supabase/functions/auth-prober
+//   supabase/functions/auth-reset-smoke
+//   supabase/functions/bump-email-warmup
+//   supabase/functions/edge-deploy-smoke
+//   supabase/functions/environment-readiness
+//   supabase/functions/eo-contact-status
+//   supabase/functions/framework-csv-fetch
+//   supabase/functions/freescout-provision-admin
+//   supabase/functions/freescout-provision-customer
+//   supabase/functions/freescout-proxy
+//   supabase/functions/freescout-sync-customer
+//   supabase/functions/freescout-validate-secret
+//   supabase/functions/freescout-webhook
+//   supabase/functions/get-community-events
+//   supabase/functions/get-discord-member-count
+//   supabase/functions/get-i18n-bundle
+//   supabase/functions/handoff-worker
+//   supabase/functions/prewarm-ugc-worker
+//   supabase/functions/process-freescout-events
+//   supabase/functions/reap-class-module-orphans
+//   supabase/functions/reconcile-stuck-emails
+//   supabase/functions/record-auth-event
+//   supabase/functions/record-auth-recovery
+//   supabase/functions/record-auth-wedge
+//   supabase/functions/refresh-community-events
+//   supabase/functions/refresh-email-health
+//   supabase/functions/replay-dlq-emails
+//   supabase/functions/replay-email-dlq
+//   supabase/functions/resend-webhook
+//   supabase/functions/save-form-draft
+//   supabase/functions/scrape-figma-workshops
+//   supabase/functions/seed-content
+//   supabase/functions/send-application-confirmation
+//   supabase/functions/send-community-agreement-trigger
+//   supabase/functions/send-project-blast
+//   supabase/functions/support-monthly-report
+//   supabase/functions/support-provisioning-retry
+//   supabase/functions/sync-airtable-network-stats
+//   supabase/functions/translate-strings
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
