@@ -152,7 +152,7 @@ if (staleAllow.length)
   problems.push([
     "guard now HAS a test but is still on the ALLOWLIST (the ratchet must shrink):",
     staleAllow,
-    "Remove these names from ALLOWLIST in scripts/ci/check-guard-has-test.mjs.",
+    "Remove these names from scripts/ci/guard-test-allowlist.json (the shrink-only allowlist).",
   ]);
 
 if (problems.length) {
