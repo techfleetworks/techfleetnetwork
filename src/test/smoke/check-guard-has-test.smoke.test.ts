@@ -1,23 +1,21 @@
 // Smoke coverage for scripts/ci/check-guard-has-test.mjs (decisions.md §6) — the
 // forcing function that requires every scripts/ci guard to have a committed test.
 //
-// This guard resolves its repo root from its OWN location (fileURLToPath), not cwd,
-// so a fixture can't steer it by changing cwd. Instead we COPY the guard (self-contained,
-// node built-ins only) into a throwaway scripts/ci/ next to fixture guards + a fixture
-// src/test/ + a fixture guard-test-allowlist.json, and run the copy: its root resolves
-// to the fixture, so it scans the fixture. That exercises the real guard logic against
-// controlled inputs.
+// We run the REAL guard (not a copy — so its TypeScript dependency resolves and we test the
+// shipped code) pointed at throwaway fixture repos via its GUARD_HAS_TEST_ROOT override.
+// Each fixture is a scripts/ci/ (stub guards + guard-test-allowlist.json) plus a src/test/
+// with scenario test files. The real guard itself is NOT among the fixture's guards, so no
+// fixture needs to self-credit it.
 //
-// Coverage rule under test: a guard counts as tested only when a test file names it in
-// NON-COMMENT code AND invokes a guard subprocess (execFileSync/...). So fixture "tests"
-// here use a real execFileSync line, and GHT-007/008 assert that a comment-only mention
-// or a mention-without-exec does NOT count (the false positive judge-arch caught).
+// Coverage rule under test: the guard PARSES each test with the TS compiler API and credits
+// a guard only when that guard's path is actually passed to a subprocess exec (directly or
+// via a resolved `const X = resolve(...)` binding). So a comment mention (GHT-007), a code
+// mention that never execs (GHT-008), and a file that execs guard A while only NAMING guard
+// B (GHT-010) all fail to credit — while an exec via a const binding does (GHT-011).
 //
-// IMPORTANT — no false positives: this meta-test must NEVER name a real guard filename
-// in its own source, or the real guard (GHT-009, scanning the real src/test) would count
-// that as coverage. Every fixture guard here is a FAKE name (check-alpha/beta/fixturedebt);
-// the only real guard filename in this file is check-guard-has-test.mjs itself — which
-// this file genuinely execs and tests.
+// No false positives: the only exec of a REAL guard path in this file is runGuard()'s
+// `execFileSync("node", [GUARD])`, which credits check-guard-has-test itself. Every fixture
+// guard is a FAKE name embedded in string content, never passed to a real exec here.
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
@@ -26,10 +24,9 @@ import { tmpdir } from "node:os";
 
 const REPO = process.cwd();
 const GUARD = resolve(REPO, "scripts/ci/check-guard-has-test.mjs");
-const GUARD_SRC = readFileSync(GUARD, "utf8");
 const read = (rel: string) => readFileSync(resolve(REPO, rel), "utf8");
 
-// A fixture "test" that genuinely execs a guard subprocess (satisfies the coverage rule).
+// A fixture "test" that genuinely execs a guard by a direct string-literal argument.
 const execTest = (guardFile: string) => `execFileSync("node", ["${guardFile}"]);\n`;
 
 const tmps: string[] = [];
@@ -43,10 +40,18 @@ afterAll(() => {
   }
 });
 
-/** Run a guard file with `node`; return its exit code (0 clean, 1 violation, 2 fail-closed). */
-function run(guardPath: string): number {
+/**
+ * Run the REAL guard; return its exit code (0 clean, 1 violation, 2 fail-closed).
+ * With `root`, point the guard at a fixture repo via GUARD_HAS_TEST_ROOT; without, it scans
+ * the real repo. GUARD is a module const, so the AST analyzer credits check-guard-has-test
+ * from this call — its only real-guard credit.
+ */
+function runGuard(root?: string): number {
   try {
-    execFileSync("node", [guardPath], { stdio: "pipe" });
+    execFileSync("node", [GUARD], {
+      stdio: "pipe",
+      env: root ? { ...process.env, GUARD_HAS_TEST_ROOT: root } : process.env,
+    });
     return 0;
   } catch (e) {
     return (e as { status?: number }).status ?? 1;
@@ -54,11 +59,9 @@ function run(guardPath: string): number {
 }
 
 /**
- * Build a fixture repo and return the path to the copied guard to run.
- *  - scripts/ci/ : a COPY of the real guard + the named stub guards + (unless
- *    withAllowlist=false) guard-test-allowlist.json holding `allowlist`.
- *  - src/test/   : (unless withSrcTest=false) a base test that EXECS the copied guard so
- *    it counts itself as tested, plus `extraTests`.
+ * Build a fixture repo and return its root.
+ *  - scripts/ci/ : the named stub guards + (unless withAllowlist=false) guard-test-allowlist.json.
+ *  - src/test/   : (unless withSrcTest=false) the `extraTests` files.
  */
 function fixture(opts: {
   stubGuards?: string[];
@@ -77,8 +80,6 @@ function fixture(opts: {
   const root = mkdtempSync(join(tmpdir(), "ght-guard-"));
   tmps.push(root);
   mkdirSync(join(root, "scripts/ci"), { recursive: true });
-  const copiedGuard = join(root, "scripts/ci/check-guard-has-test.mjs");
-  writeFileSync(copiedGuard, GUARD_SRC);
   if (withAllowlist) {
     writeFileSync(join(root, "scripts/ci/guard-test-allowlist.json"), JSON.stringify(allowlist));
   }
@@ -87,89 +88,109 @@ function fixture(opts: {
   }
   if (withSrcTest) {
     mkdirSync(join(root, "src/test"), { recursive: true });
-    // Base test execs the copied guard by its own filename so it counts itself tested.
-    writeFileSync(join(root, "src/test/_base.test.ts"), execTest("check-guard-has-test.mjs"));
     for (const [name, content] of Object.entries(extraTests)) {
       writeFileSync(join(root, "src/test", name), content);
     }
   }
-  return copiedGuard;
+  return root;
 }
 
 describe("check-guard-has-test guard (smoke)", () => {
   // ---- Happy path ---------------------------------------------------------
   it("GHT-001: passes a new guard exercised by a committed test that execs it", () => {
-    const g = fixture({
+    const r = fixture({
       stubGuards: ["check-alpha.mjs"],
       extraTests: { "alpha.test.ts": execTest("check-alpha.mjs") },
     });
-    expect(run(g)).toBe(0);
+    expect(runGuard(r)).toBe(0);
   });
 
   // ---- Non-happy: the core false-green prevention -------------------------
   it("GHT-002: flags a new guard with NO committed test", () => {
-    const g = fixture({ stubGuards: ["check-beta.mjs"] });
-    expect(run(g)).toBe(1);
+    const r = fixture({ stubGuards: ["check-beta.mjs"] });
+    expect(runGuard(r)).toBe(1);
   });
 
   // ---- Ratchet behaviour (fixture-controlled allowlist, fake names) -------
   it("GHT-003: flags a guard that is tested but STILL on the allowlist (must shrink)", () => {
-    const g = fixture({
+    const r = fixture({
       stubGuards: ["check-fixturedebt.mjs"],
       allowlist: ["check-fixturedebt.mjs"],
       extraTests: { "debt.test.ts": execTest("check-fixturedebt.mjs") },
     });
-    expect(run(g)).toBe(1);
+    expect(runGuard(r)).toBe(1);
   });
 
   it("GHT-004: allows an allowlisted guard that has no test yet (known, tracked debt)", () => {
-    const g = fixture({
+    const r = fixture({
       stubGuards: ["check-fixturedebt.mjs"],
       allowlist: ["check-fixturedebt.mjs"],
     });
-    expect(run(g)).toBe(0);
+    expect(runGuard(r)).toBe(0);
   });
 
   // ---- Guard integrity: fail closed on missing inputs ---------------------
   it("GHT-005: fails CLOSED (exit 2) when the src/test tree is missing", () => {
-    const g = fixture({ stubGuards: ["check-alpha.mjs"], withSrcTest: false });
-    expect(run(g)).toBe(2);
+    const r = fixture({ stubGuards: ["check-alpha.mjs"], withSrcTest: false });
+    expect(runGuard(r)).toBe(2);
   });
 
   it("GHT-006: fails CLOSED (exit 2) when the allowlist JSON is missing", () => {
-    const g = fixture({ stubGuards: ["check-alpha.mjs"], withAllowlist: false });
-    expect(run(g)).toBe(2);
+    const r = fixture({ stubGuards: ["check-alpha.mjs"], withAllowlist: false });
+    expect(runGuard(r)).toBe(2);
   });
 
-  // ---- No false positives: incidental mentions do NOT count as coverage ---
+  // ---- No false positives: only an ACTUAL exec of the guard counts ---------
   it("GHT-007: a guard named ONLY in a comment is NOT counted as tested", () => {
-    const g = fixture({
+    const r = fixture({
       stubGuards: ["check-alpha.mjs"],
-      // The file execs a guard, but check-alpha.mjs appears only in a comment.
       extraTests: {
-        "comment.test.ts": `// coverage note: check-alpha.mjs\n${execTest("check-guard-has-test.mjs")}`,
+        "comment.test.ts": `// coverage note: check-alpha.mjs\n${execTest("check-somethingelse.mjs")}`,
       },
     });
-    expect(run(g)).toBe(1);
+    expect(runGuard(r)).toBe(1);
   });
 
   it("GHT-008: a guard named in code but never EXEC'd is NOT counted as tested", () => {
-    const g = fixture({
+    const r = fixture({
       stubGuards: ["check-alpha.mjs"],
-      // Names check-alpha.mjs in code, but the file never execs anything.
       extraTests: {
         "noexec.test.ts": 'const path = "check-alpha.mjs";\nexpect(path).toBeTruthy();\n',
       },
     });
-    expect(run(g)).toBe(1);
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("GHT-010: a guard code-named in a file that execs a DIFFERENT guard is NOT credited", () => {
+    // The cross-credit hole: this test execs check-gamma but only NAMES check-beta in a const.
+    // The AST analysis must not credit check-beta.
+    const r = fixture({
+      stubGuards: ["check-beta.mjs"],
+      extraTests: {
+        "cross.test.ts": `const other = "check-beta.mjs";\n${execTest("check-gamma.mjs")}`,
+      },
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("GHT-011: a guard exec'd via a resolved const binding IS credited (no false negative)", () => {
+    // The real guard tests exec via `const GUARD = resolve(...)`, not a literal — this proves
+    // that pattern is followed, so the stricter check does not drop genuine coverage.
+    const r = fixture({
+      stubGuards: ["check-alpha.mjs"],
+      extraTests: {
+        "viaconst.test.ts": 'const GA = "check-alpha.mjs";\nexecFileSync("node", [GA]);\n',
+      },
+    });
+    expect(runGuard(r)).toBe(0);
   });
 
   // ---- The real repo + wiring ---------------------------------------------
   it("GHT-009: the real repo passes the guard (no new untested guards)", () => {
-    expect(run(GUARD)).toBe(0);
+    expect(runGuard()).toBe(0);
   });
 
-  it("GHT-010: the guard is wired into the BLOCKING lint-arch-critical CI matrix", () => {
+  it("GHT-012: the guard is wired into the BLOCKING lint-arch-critical CI matrix", () => {
     const ci = read(".github/workflows/ci.yml");
     const criticalBlock = ci.slice(
       ci.indexOf("lint-arch-critical:"),
