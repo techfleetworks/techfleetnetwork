@@ -1,5 +1,6 @@
+// bdd-gate coverage: src/services/feature-flags.service.ts
 import { describe, it, expect } from "vitest";
-import { hashBucket, isEnabledIn, type FeatureFlag } from "./feature-flags.service";
+import { hashBucket, isEnabledIn, type FeatureFlag } from "@/services/feature-flags.service";
 
 function snap(flag: { key: string } & Partial<FeatureFlag>): Map<string, FeatureFlag> {
   const f: FeatureFlag = { enabled: false, rollout_percent: 0, ...flag };
