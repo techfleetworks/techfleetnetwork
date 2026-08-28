@@ -8,12 +8,13 @@
  * check must fail closed and never pass falsely; this closes the remaining hole by
  * requiring each guard to be pinned by a committed, CI-run test.
  *
- * A guard `check-foo.mjs` counts as tested iff some committed test file — a
- * `*.test.ts` under `src/test/`, or a co-located `*.test.ts` under
- * `supabase/functions/` — names its filename in NON-COMMENT code AND invokes a guard
- * as a subprocess (execFileSync / execSync / spawnSync / spawn). A bare mention (a
- * comment, a coverage-map note, an unrelated string) does NOT count — that would let a
- * guard pass with a one-line comment and never actually be exercised (false green).
+ * A guard `check-foo.mjs` counts as tested iff some committed test file — a `*.test.ts`
+ * under `src/test/`, or a co-located `*.test.ts` under `supabase/functions/` — actually
+ * RUNS it: the guard's path is passed to a subprocess exec (execFileSync / execSync /
+ * spawnSync / spawn / fork), directly or via a resolved `const X = resolve(...)` binding.
+ * This is decided by PARSING each test with the TypeScript compiler API, not by string
+ * matching — so a comment, an unrelated string, or a mention of guard B inside a file that
+ * only execs guard A never counts (no false green, and no cross-credit).
  *
  * RATCHET: ALLOWLIST holds guards that predate this rule and have no test yet (known
  * debt). It may only SHRINK: a guard that GAINS a test must be removed from it (the
@@ -28,10 +29,18 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
-// Cross-platform repo root. `new URL(".", import.meta.url).pathname` returns "/C:/…"
-// on Windows, which resolve() doubles into "C:\\C:\\…" — use fileURLToPath (decisions.md §6).
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+// Cross-platform repo root = this guard's own location (cwd-independent).
+// `new URL(".", import.meta.url).pathname` returns "/C:/…" on Windows, which resolve()
+// doubles into "C:\\C:\\…" — use fileURLToPath (decisions.md §6).
+// GUARD_HAS_TEST_ROOT overrides the root ONLY for this guard's own smoke test, which points
+// it at throwaway fixture repos; it is never set in CI/production, so the shipped behavior is
+// always the fileURLToPath location. (Running the real guard against fixtures — rather than a
+// copy — keeps the TypeScript dependency resolvable and tests the actual shipped code.)
+const ROOT = process.env.GUARD_HAS_TEST_ROOT
+  ? resolve(process.env.GUARD_HAS_TEST_ROOT)
+  : resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const CI_DIR = join(ROOT, "scripts/ci");
 
 // Guards that predate this rule and have no committed test yet — the burn-down debt.
@@ -123,23 +132,113 @@ for (const f of [...srcTests, ...denoTests]) {
   }
 }
 
-// Strip block + line comments so a guard named only in a comment (or a bdd-gate
-// coverage-map note) is NOT miscounted as coverage. `[^:]` keeps `https://` intact.
-const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-// A real guard test runs the guard as a subprocess; these primitives mark that.
-const EXEC_RE = /\bexecFileSync\b|\bexecSync\b|\bspawnSync\b|\bspawn\s*\(/;
-const codeBlobs = testBlobs.map(stripComments);
+// Decide coverage PRECISELY: parse each candidate test file with the TypeScript compiler
+// API and collect the guard files it PASSES TO AN EXEC — resolving `const X = resolve(...)`
+// bindings so a variable-referenced guard path is followed. A guard is credited only if a
+// test actually runs it; a comment, an unrelated string literal, or a mention of guard B in
+// a file that only execs guard A is never counted (root-cause fix for the per-blob
+// cross-credit weakness judge-arch flagged on PR #310 — the meta-guard must guard itself).
+const EXEC_NAMES = new Set([
+  "execFileSync",
+  "execSync",
+  "spawnSync",
+  "spawn",
+  "exec",
+  "execFile",
+  "fork",
+]);
+const EXEC_HINT = /\b(execFileSync|execSync|spawnSync|spawn|exec|execFile|fork)\b/;
 
-// Tested iff the guard filename appears in a test's NON-COMMENT code AND that same file
-// invokes a guard subprocess — so a bare comment/string mention can't fake coverage.
-// Known, reviewed granularity: the two conditions are checked per-file, not tied to the
-// same exec call. A file that execs guard A while also code-naming guard B (without
-// running B) would credit B. We accept this because the real guard tests exec via a
-// `const GUARD = resolve(...)` variable, not the literal filename, so a stricter
-// "filename-inside-the-exec-call" check would false-NEGATIVE every real test. The honest
-// testedCount (printed on success) makes any accidental cross-credit visible in review;
-// it is 0 today (one guard per exec-ing test file).
-const references = (guard) => codeBlobs.some((c) => c.includes(guard) && EXEC_RE.test(c));
+// NOTE: ts.forEachChild STOPS at the first child whose callback returns a truthy value,
+// so these callbacks must return undefined (block body) to visit EVERY child.
+const stringsIn = (node, out) => {
+  // StringLiteral + NoSubstitutionTemplateLiteral are captured by isStringLiteralLike.
+  if (ts.isStringLiteralLike(node)) out.push(node.text);
+  // A template WITH substitutions (`${dir}/check-foo.mjs`) — capture its literal spans so a
+  // guard path assembled from a template is still seen (else a fail-safe false negative).
+  else if (ts.isTemplateExpression(node)) {
+    out.push(node.head.text);
+    for (const span of node.templateSpans) out.push(span.literal.text);
+  }
+  node.forEachChild((c) => {
+    stringsIn(c, out);
+  });
+  return out;
+};
+const identsIn = (node, out) => {
+  if (ts.isIdentifier(node)) out.push(node.text);
+  node.forEachChild((c) => {
+    identsIn(c, out);
+  });
+  return out;
+};
+// The exec function name. For a property access, accept only unambiguous child_process
+// method names — never `.exec`, which is also RegExp.prototype.exec and would falsely credit
+// a guard filename passed to a regex test. A bare imported `exec(...)` is still honored.
+const execName = (expr) => {
+  if (ts.isIdentifier(expr)) return expr.text;
+  if (ts.isPropertyAccessExpression(expr)) return expr.name.text === "exec" ? null : expr.name.text;
+  return null;
+};
+
+/** Guard-file path strings actually passed to a subprocess exec in `text` (const-resolved). */
+function guardStringsExecutedBy(text) {
+  let sf;
+  try {
+    sf = ts.createSourceFile("t.ts", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  } catch {
+    return []; // an unparseable test file cannot vouch for any guard — credit nothing
+  }
+  // Pass 1: bindings -> the string literals in their initializer (e.g.
+  // `const GUARD = resolve(REPO, "scripts/ci/check-foo.mjs")`). Track how many times each
+  // name is declared; an AMBIGUOUS name (declared 2+ times — e.g. a `const GUARD` in two
+  // separate blocks, one exec'd and one not) is never resolved, so a redefinition cannot
+  // cross-credit a guard that is never actually run.
+  const bindings = new Map();
+  const bindCount = new Map();
+  const pass1 = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text;
+      bindCount.set(name, (bindCount.get(name) || 0) + 1);
+      if (node.initializer) {
+        const strs = stringsIn(node.initializer, []);
+        if (strs.length) bindings.set(name, (bindings.get(name) || []).concat(strs));
+      }
+    }
+    node.forEachChild(pass1);
+  };
+  pass1(sf);
+  // Pass 2: exec call arguments -> strings (direct literals + via an UNAMBIGUOUS const ident).
+  const executed = [];
+  const pass2 = (node) => {
+    if (ts.isCallExpression(node) && EXEC_NAMES.has(execName(node.expression))) {
+      for (const arg of node.arguments) {
+        executed.push(...stringsIn(arg, []));
+        for (const id of identsIn(arg, [])) {
+          if (bindCount.get(id) !== 1) continue; // ambiguous name -> don't resolve (fail-safe)
+          const bound = bindings.get(id);
+          if (bound) executed.push(...bound);
+        }
+      }
+    }
+    node.forEachChild(pass2);
+  };
+  pass2(sf);
+  return executed;
+}
+
+const testedSet = new Set();
+for (const text of testBlobs) {
+  if (!EXEC_HINT.test(text)) continue; // no subprocess exec -> cannot exercise any guard
+  const executed = guardStringsExecutedBy(text);
+  if (executed.length === 0) continue;
+  for (const g of guards) {
+    // A path like "scripts/ci/check-foo.mjs" (or a bare "check-foo.mjs") that reaches an
+    // exec. The trailing ".mjs" anchors the match, so no guard is a prefix of another.
+    if (executed.some((s) => s.includes(g))) testedSet.add(g);
+  }
+}
+const references = (guard) => testedSet.has(guard);
 
 // --- Apply the ratchet --------------------------------------------------------------
 const untestedNew = []; // not tested, not allowlisted → must add a test
@@ -165,7 +264,7 @@ if (untestedNew.length)
   problems.push([
     "guard has NO committed test (a guard proven only ephemerally can rot to a false green):",
     untestedNew,
-    "Add a committed test that references the guard filename — model it on src/test/smoke/check-guard-has-test.smoke.test.ts (run the guard against throwaway fixtures, assert its exit codes).",
+    "Add a committed test that runs the guard — model it on src/test/smoke/check-guard-has-test.smoke.test.ts (execFileSync the guard against throwaway fixtures, assert its exit codes).",
   ]);
 if (staleAllow.length)
   problems.push([
