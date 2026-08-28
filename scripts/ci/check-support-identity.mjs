@@ -32,8 +32,10 @@ function* walk(dir) {
   let entries;
   try {
     entries = readdirSync(dir);
-  } catch {
-    return;
+  } catch (e) {
+    // Fail closed: a scan root we cannot read is a moved/renamed path, not "clean".
+    console.error(`check-support-identity: cannot read directory ${dir}: ${e.message}`);
+    process.exit(2);
   }
   for (const name of entries) {
     if (SKIP_DIRS.has(name)) continue;
@@ -51,6 +53,7 @@ const IS_PK_REF = /^(prof|profile|p|row)\??\.id$/;
 
 const lineOf = (src, idx) => src.slice(0, idx).split("\n").length;
 const violations = [];
+let scanned = 0;
 
 for (const root of ROOTS) {
   for (const file of walk(root)) {
@@ -58,6 +61,7 @@ for (const root of ROOTS) {
       continue;
     if (file.replace(/\\/g, "/").endsWith("scripts/ci/check-support-identity.mjs")) continue;
     const src = readFileSync(file, "utf8");
+    scanned++;
 
     // (a) .from("profiles") … .eq("id", <auth-uid-like>)  — window after each match.
     const fromRe = /\.from\(\s*["']profiles["']\s*\)/g;
@@ -99,6 +103,12 @@ for (const root of ROOTS) {
   }
 }
 
+// Fail closed: a zero-scan means the roots moved/renamed — never a silent pass.
+if (scanned === 0) {
+  console.error(`check-support-identity: scanned 0 files under ${ROOTS.join(", ")} — path moved?`);
+  process.exit(1);
+}
+
 if (violations.length) {
   console.error(
     "❌ SUPPORT-IDENTITY-001 violations: the support subsystem must key on the auth uid (profiles.user_id), not profiles.id:"
@@ -110,4 +120,6 @@ if (violations.length) {
   process.exit(1);
 }
 
-console.log("✓ SUPPORT-IDENTITY-001: support subsystem keys on the auth uid, not profiles.id");
+console.log(
+  `✓ SUPPORT-IDENTITY-001: OK — ${scanned} files scanned under ${ROOTS.join(", ")}, 0 violations (support subsystem keys on the auth uid, not profiles.id)`
+);

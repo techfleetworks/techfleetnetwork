@@ -18,7 +18,15 @@ const DIR = join(ROOT, "supabase", "functions");
 
 function walk(dir) {
   const out = [];
-  for (const name of readdirSync(dir)) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch (e) {
+    // Fail closed: a scan root we cannot read is a moved/renamed path, not "clean".
+    console.error(`check-no-raw-email-enqueue: cannot read directory ${dir}: ${e.message}`);
+    process.exit(2);
+  }
+  for (const name of entries) {
     const p = join(dir, name);
     const s = statSync(p);
     if (s.isDirectory()) out.push(...walk(p));
@@ -30,8 +38,18 @@ function walk(dir) {
 // Matches an actual RPC call to the raw function, not enqueue_email_v2 and not comments.
 const RAW_RPC = /\brpc\(\s*["']enqueue_email["']/;
 
+const files = walk(DIR);
+
+// Fail closed: no edge-function files found means the tree moved — never a silent pass.
+if (files.length === 0) {
+  console.error(
+    `check-no-raw-email-enqueue: scanned 0 files under ${relative(ROOT, DIR).replace(/\\/g, "/")} — path moved?`
+  );
+  process.exit(1);
+}
+
 let violations = 0;
-for (const f of walk(DIR)) {
+for (const f of files) {
   const src = readFileSync(f, "utf8");
   if (RAW_RPC.test(src)) {
     console.error(
@@ -48,5 +66,5 @@ if (violations > 0) {
   process.exit(1);
 }
 console.log(
-  "✓ check-no-raw-email-enqueue: no edge function calls the retired raw enqueue_email RPC."
+  `✓ check-no-raw-email-enqueue: OK — ${files.length} edge-function files scanned under ${relative(ROOT, DIR).replace(/\\/g, "/")}, 0 violations (no retired raw enqueue_email RPC).`
 );

@@ -18,7 +18,12 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const TABLES = ["journey_progress", "course_completions", "badges_awarded", "journey_phase_definitions"];
+const TABLES = [
+  "journey_progress",
+  "course_completions",
+  "badges_awarded",
+  "journey_phase_definitions",
+];
 const ROOTS = ["src"];
 const EXTS = new Set([".ts", ".tsx"]);
 const SKIP_DIRS = new Set(["node_modules", "dist", "build", ".next", "coverage"]);
@@ -37,11 +42,19 @@ const FORBIDDEN_USER_ID_ARG = /\.eq\(\s*["']user_id["']\s*,\s*([^)]+?)\s*\)/g;
 const FROM_TABLE = (t) => new RegExp(`from\\(\\s*["']${t}["']\\s*\\)`);
 
 const violations = [];
+let scanned = 0;
 
 for (const root of ROOTS) {
   for (const file of walk(root)) {
     // skip tests + the guard itself
-    if (file.includes("__tests__") || file.endsWith(".test.ts") || file.endsWith(".test.tsx") || file.includes("/test/")) continue;
+    if (
+      file.includes("__tests__") ||
+      file.endsWith(".test.ts") ||
+      file.endsWith(".test.tsx") ||
+      file.includes("/test/")
+    )
+      continue;
+    scanned++;
     const src = readFileSync(file, "utf8");
     const touchesTable = TABLES.some((t) => FROM_TABLE(t).test(src));
     if (!touchesTable) continue;
@@ -54,7 +67,7 @@ for (const root of ROOTS) {
       // `profile.user_id` and `profile?.user_id` are OK (FK column).
       const isForbidden =
         /^(currentProfile|profile|p)\??\.id$/.test(arg) ||
-        /\b(currentProfile|profile)\??\.id\b/.test(arg) && !/user_id/.test(arg);
+        (/\b(currentProfile|profile)\??\.id\b/.test(arg) && !/user_id/.test(arg));
       if (isForbidden) {
         const before = src.slice(0, m.index).split("\n");
         violations.push({ file, line: before.length, arg });
@@ -63,11 +76,22 @@ for (const root of ROOTS) {
   }
 }
 
+if (scanned === 0) {
+  console.error(
+    `check-progress-read-identity: scanned 0 files under ${ROOTS.join(", ")} — path moved?`
+  );
+  process.exit(1);
+}
+
 if (violations.length) {
-  console.error("❌ JOURNEY-IDENTITY-003 violations: client reads against journey/course tables MUST filter by session user.id, not profile.id");
+  console.error(
+    "❌ JOURNEY-IDENTITY-003 violations: client reads against journey/course tables MUST filter by session user.id, not profile.id"
+  );
   for (const v of violations) console.error(`  ${v.file}:${v.line}  .eq("user_id", ${v.arg})`);
   console.error("\nFix: replace `profile.id` with `user.id` (from useAuth) or `session.user.id`.");
   process.exit(1);
 }
 
-console.log("✓ JOURNEY-IDENTITY-003: all journey/course reads filter by session user.id");
+console.log(
+  `✓ JOURNEY-IDENTITY-003: OK — ${scanned} files scanned, 0 violations (all journey/course reads filter by session user.id)`
+);

@@ -35,9 +35,27 @@ const TRUSTS_ROLE =
   /\.role\s*[!=]==?\s*["']service_role["']|["']service_role["']\s*[!=]==?\s*[\w.?]*role/;
 const ANON_INCLUDES = /\.includes\(\s*[^)]*ANON[^)]*\)/i;
 
+// Fail closed: if the edge-functions root cannot be read, this security guard
+// must NOT pass — an empty/errored scan is treated as a hard failure, never a
+// silent green.
+let files;
+try {
+  files = walk(DIR);
+} catch (e) {
+  console.error(
+    `✖ check-no-unsigned-jwt-auth: cannot scan ${relative(ROOT, DIR).replace(/\\/g, "/")} — ${e.message}`
+  );
+  console.error(
+    "  Failing closed: the security guard must never pass without inspecting the edge functions."
+  );
+  process.exit(2);
+}
+
+let scanned = 0;
 let violations = 0;
-for (const f of walk(DIR)) {
+for (const f of files) {
   const src = readFileSync(f, "utf8");
+  scanned++;
   if (/\/\/\s*@safe-service-auth/.test(src)) continue;
   const rel = relative(ROOT, f).replace(/\\/g, "/");
 
@@ -61,6 +79,16 @@ if (violations > 0) {
   );
   process.exit(1);
 }
+
+// Zero-scan is a failure, not a pass: it means the scan root moved.
+if (scanned === 0) {
+  console.error(
+    `check-no-unsigned-jwt-auth: scanned 0 files under ${relative(ROOT, DIR).replace(/\\/g, "/")} — path moved?`
+  );
+  process.exit(1);
+}
+
 console.log(
-  "✓ check-no-unsigned-jwt-auth: no unsigned-JWT or anon-key authorization patterns found."
+  `✓ check-no-unsigned-jwt-auth: OK — ${scanned} files scanned, 0 violations ` +
+    "(no unsigned-JWT or anon-key authorization patterns)."
 );

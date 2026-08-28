@@ -21,14 +21,19 @@ function layerOf(rel) {
 }
 
 const offenders = [];
+let scanned = 0;
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     const st = statSync(full);
-    if (st.isDirectory()) { walk(full); continue; }
+    if (st.isDirectory()) {
+      walk(full);
+      continue;
+    }
     if (!/\.(ts|tsx)$/.test(name)) continue;
     if (name.endsWith(".test.ts") || name.endsWith(".test.tsx")) continue;
+    scanned++;
     const rel = relative(ROOT, full).replace(/\\/g, "/");
     const fromLayer = layerOf(rel);
     if (!fromLayer || !(fromLayer in RANK)) continue;
@@ -53,9 +58,19 @@ function walk(dir) {
 
 walk(join(ROOT, BASE));
 
-if (offenders.length > 0) {
-  console.error("✗ auth layer graph violation — imports must flow downward (ui → state → flows → services → domain)");
-  for (const o of offenders) console.error(`  ${o.rel}  (${o.fromLayer} → ${o.importedLayer})  ${o.spec}`);
+if (scanned === 0) {
+  console.error(`check-auth-layer-graph: scanned 0 files under ${BASE} — path moved?`);
   process.exit(1);
 }
-console.log("✓ auth layer graph: all imports flow downward");
+
+if (offenders.length > 0) {
+  console.error(
+    "✗ auth layer graph violation — imports must flow downward (ui → state → flows → services → domain)"
+  );
+  for (const o of offenders)
+    console.error(`  ${o.rel}  (${o.fromLayer} → ${o.importedLayer})  ${o.spec}`);
+  process.exit(1);
+}
+console.log(
+  `✓ auth layer graph: OK — ${scanned} files scanned, 0 violations (all imports flow downward)`
+);

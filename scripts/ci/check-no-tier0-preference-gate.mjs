@@ -44,6 +44,7 @@ function tsFiles(dir) {
 }
 
 let violations = 0;
+let scanned = 0;
 for (const name of readdirSync(DIR)) {
   if (name === "_shared") continue;
   const fnDir = join(DIR, name);
@@ -51,6 +52,7 @@ for (const name of readdirSync(DIR)) {
   if (ALLOW.has(name)) continue;
   for (const f of tsFiles(fnDir)) {
     if (f.endsWith(".test.ts")) continue;
+    scanned++;
     const code = stripComments(readFileSync(f, "utf8"));
     if (PREF.test(code)) {
       console.error(
@@ -64,8 +66,17 @@ for (const name of readdirSync(DIR)) {
   }
 }
 
+if (scanned === 0) {
+  console.error(
+    `check-no-tier0-preference-gate: scanned 0 files under ${relative(ROOT, DIR).replace(/\\/g, "/")} — path moved?`
+  );
+  process.exit(1);
+}
+
 if (violations > 0) {
   console.error(`\n${violations} Tier-0 preference-gate violation(s) found.`);
   process.exit(1);
 }
-console.log("✓ check-no-tier0-preference-gate: no critical sender gates on a member preference.");
+console.log(
+  `✓ check-no-tier0-preference-gate: OK — ${scanned} sender file(s) scanned, 0 violations (no critical sender gates on a member preference).`
+);

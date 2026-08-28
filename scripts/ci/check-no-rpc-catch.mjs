@@ -22,8 +22,13 @@ const PATTERN = /(\.rpc\s*\([^)]*\)|\bsafeRpc\s*\([^)]*\))\s*\.catch\s*\(/g;
 
 async function walk(dir, out) {
   let entries;
-  try { entries = await fs.readdir(dir, { withFileTypes: true }); }
-  catch { return; }
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch (e) {
+    // Fail closed: a scan root we cannot read is a moved/renamed path, not "clean".
+    console.error(`no-rpc-catch: cannot read directory ${dir}: ${e.message}`);
+    process.exit(2);
+  }
   for (const e of entries) {
     if (e.name === "node_modules" || e.name === "dist") continue;
     const p = path.join(dir, e.name);
@@ -34,6 +39,12 @@ async function walk(dir, out) {
 
 const files = [];
 for (const r of ROOTS) await walk(r, files);
+
+// Fail closed: a zero-scan means the roots moved/renamed — never a silent pass.
+if (files.length === 0) {
+  console.error(`no-rpc-catch: scanned 0 files under ${ROOTS.join(", ")} — path moved?`);
+  process.exit(1);
+}
 
 const offenders = [];
 for (const f of files) {
@@ -50,7 +61,9 @@ for (const f of files) {
 
 if (offenders.length) {
   console.error("\n❌ no-rpc-catch CI guard failed.\n");
-  console.error("`.rpc(...).catch(...)` throws at runtime — wrap in `try { await ... } catch {}` or check `{ error }`.\n");
+  console.error(
+    "`.rpc(...).catch(...)` throws at runtime — wrap in `try { await ... } catch {}` or check `{ error }`.\n"
+  );
   for (const o of offenders) console.error("  " + o);
   console.error("");
   process.exit(1);

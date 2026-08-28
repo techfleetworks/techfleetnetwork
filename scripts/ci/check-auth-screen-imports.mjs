@@ -46,7 +46,8 @@ function walk(dir, out = []) {
 }
 
 const failures = [];
-for (const file of walk(SCREEN_DIR)) {
+const files = walk(SCREEN_DIR);
+for (const file of files) {
   const text = readFileSync(file, "utf8");
   for (const { needle, reason } of FORBIDDEN) {
     if (text.includes(needle)) {
@@ -55,11 +56,22 @@ for (const file of walk(SCREEN_DIR)) {
   }
 }
 
+if (files.length === 0) {
+  console.error(
+    `[check-auth-screen-imports]: scanned 0 files under ${relative(REPO_ROOT, SCREEN_DIR).replace(/\\/g, "/")} — path moved?`
+  );
+  process.exit(1);
+}
+
 if (failures.length) {
-  console.error("\n[check-auth-screen-imports] FAILED — auth screens must only depend on their engine.\n");
+  console.error(
+    "\n[check-auth-screen-imports] FAILED — auth screens must only depend on their engine.\n"
+  );
   for (const f of failures) console.error("  - " + f);
   console.error("\nFix: move the call into the screen's engine (src/features/auth/engine/*).\n");
   process.exit(1);
 }
 
-console.log("[check-auth-screen-imports] OK — auth screens depend only on their engine.");
+console.log(
+  `[check-auth-screen-imports] OK — ${files.length} screen file(s) scanned, 0 violations (auth screens depend only on their engine).`
+);

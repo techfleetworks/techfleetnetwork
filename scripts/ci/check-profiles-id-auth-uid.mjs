@@ -30,8 +30,10 @@ function walk(dir, exts) {
   let entries;
   try {
     entries = readdirSync(dir);
-  } catch {
-    return out;
+  } catch (e) {
+    // Fail closed: a scan root we cannot read is a moved/renamed path, not "clean".
+    console.error(`check-profiles-id-auth-uid: cannot read directory ${dir}: ${e.message}`);
+    process.exit(2);
   }
   for (const name of entries) {
     const p = join(dir, name);
@@ -51,9 +53,13 @@ const EQ_ID_RE = /\.eq\(\s*["']id["']\s*,\s*([^,)]+?)\s*\)/;
 const PK_PROP_RE = /\.id$/; // arg is `<expr>.id` — a resolved-row PK reference
 const USER_ID_PROP_RE = /^(user|data\.user|\{?\s*user)\b.*\.id$/; // getUser().data.user.id / user.id
 
+let scanned = 0;
+
 // 1. Edge functions — `.from("profiles")` then `.eq("id", …)` in the same query.
-for (const file of walk(join(ROOT, "supabase", "functions"), [".ts"])) {
+const edgeFiles = walk(join(ROOT, "supabase", "functions"), [".ts"]);
+for (const file of edgeFiles) {
   if (file.endsWith(".test.ts")) continue;
+  scanned++;
   const lines = readFileSync(file, "utf8").split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     if (!/\.from\(\s*["']profiles["']\s*\)/.test(lines[i])) continue;
@@ -80,7 +86,9 @@ for (const file of walk(join(ROOT, "supabase", "functions"), [".ts"])) {
 }
 
 // 2. Post-cutoff migrations — a public.profiles statement with `id = auth.uid()`.
-for (const file of walk(join(ROOT, "supabase", "migrations"), [".sql"])) {
+const migrationFiles = walk(join(ROOT, "supabase", "migrations"), [".sql"]);
+for (const file of migrationFiles) {
+  scanned++;
   if (basename(file).slice(0, 14) <= BASELINE_CUTOFF) continue;
   const sql = readFileSync(file, "utf8");
   if (HATCH.test(sql)) continue;
@@ -94,8 +102,18 @@ for (const file of walk(join(ROOT, "supabase", "migrations"), [".sql"])) {
   }
 }
 
+// Fail closed: a zero-scan means the scan roots moved/renamed — never a silent pass.
+if (scanned === 0) {
+  console.error(
+    "check-profiles-id-auth-uid: scanned 0 files under supabase/functions, supabase/migrations — path moved?"
+  );
+  process.exit(1);
+}
+
 if (violations > 0) {
   console.error(`\n${violations} profiles.id vs auth.uid() confusion(s) found (audit T-A).`);
   process.exit(1);
 }
-console.log("✓ check-profiles-id-auth-uid: no profiles.id vs auth.uid() confusion found.");
+console.log(
+  `✓ check-profiles-id-auth-uid: OK — ${scanned} files scanned (${edgeFiles.length} edge fns, ${migrationFiles.length} migrations), 0 violations`
+);

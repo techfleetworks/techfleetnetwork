@@ -20,7 +20,7 @@ const SRC = join(ROOT, "src");
 // data-no-translate on these is safe today — but we still want NEW additions to
 // add the belt+suspenders attr. Regenerate intentionally by editing the JSON.
 const SNAPSHOT = JSON.parse(
-  readFileSync(join(ROOT, "scripts/ci/translator-volatile-regions.snapshot.json"), "utf8"),
+  readFileSync(join(ROOT, "scripts/ci/translator-volatile-regions.snapshot.json"), "utf8")
 );
 const ALLOW_FILES = new Set([
   ...SNAPSHOT.allow_files,
@@ -28,7 +28,8 @@ const ALLOW_FILES = new Set([
   "src/components/ui/AutosaveStatus.tsx",
 ]);
 
-const VOLATILE_RE = /\b(aria-live\s*=\s*["'](polite|assertive)["']|role\s*=\s*["'](status|alert|log|timer)["'])/;
+const VOLATILE_RE =
+  /\b(aria-live\s*=\s*["'](polite|assertive)["']|role\s*=\s*["'](status|alert|log|timer)["'])/;
 const SAFE_RE = /(data-no-translate|translate\s*=\s*["']no["'])/;
 const LEGACY_N_RE = /<[A-Za-z][^>]*\s+n(\s|=|>|\/)/g;
 
@@ -44,8 +45,10 @@ function* walk(dir) {
 
 const offenders = [];
 const legacyN = [];
+let scanned = 0;
 
 for (const file of walk(SRC)) {
+  scanned++;
   const rel = relative(ROOT, file);
   if (ALLOW_FILES.has(rel)) continue;
   const src = readFileSync(file, "utf8");
@@ -68,15 +71,26 @@ for (const file of walk(SRC)) {
 }
 
 if (legacyN.length) {
-  console.warn(`[check-translator-volatile-regions] ${legacyN.length} legacy \`n\` attribute(s); prefer data-no-translate:`);
+  console.warn(
+    `[check-translator-volatile-regions] ${legacyN.length} legacy \`n\` attribute(s); prefer data-no-translate:`
+  );
   for (const m of legacyN) console.warn("  " + m);
 }
 
-if (offenders.length) {
-  console.error(`\n[check-translator-volatile-regions] FAIL — ${offenders.length} volatile region(s) missing data-no-translate / translate="no":`);
-  for (const o of offenders) console.error("  " + o);
-  console.error(`\nFix: add data-no-translate (and translate="no") on the element carrying aria-live/role=status — the runtime DOM translator mutates text nodes inside these regions and races React's reconciler (NotFoundError: removeChild). See mem://constraints/translator-volatile-regions.`);
+if (scanned === 0) {
+  console.error(`[check-translator-volatile-regions]: scanned 0 files under src — path moved?`);
   process.exit(1);
 }
 
-console.log("[check-translator-volatile-regions] OK");
+if (offenders.length) {
+  console.error(
+    `\n[check-translator-volatile-regions] FAIL — ${offenders.length} volatile region(s) missing data-no-translate / translate="no":`
+  );
+  for (const o of offenders) console.error("  " + o);
+  console.error(
+    `\nFix: add data-no-translate (and translate="no") on the element carrying aria-live/role=status — the runtime DOM translator mutates text nodes inside these regions and races React's reconciler (NotFoundError: removeChild). See mem://constraints/translator-volatile-regions.`
+  );
+  process.exit(1);
+}
+
+console.log(`[check-translator-volatile-regions] OK — ${scanned} files scanned, 0 violations`);

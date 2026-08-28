@@ -37,8 +37,19 @@ try {
   process.exit(1);
 }
 
-if (offenders > 0) {
-  console.error("\nFix: import AuthResult/AuthOk/AuthErr from src/features/auth/domain/auth-result.ts and return one.");
+if (checked === 0) {
+  console.error(
+    `check-auth-result-contract: scanned 0 *.flow.ts files under src/features/auth/flows — path moved or flows renamed?`
+  );
   process.exit(1);
 }
-console.log(`✓ auth result contract: ${checked} flow(s) use Result discriminated union`);
+
+if (offenders > 0) {
+  console.error(
+    "\nFix: import AuthResult/AuthOk/AuthErr from src/features/auth/domain/auth-result.ts and return one."
+  );
+  process.exit(1);
+}
+console.log(
+  `✓ auth result contract: OK — ${checked} flow(s) scanned, 0 violations (all use Result discriminated union)`
+);

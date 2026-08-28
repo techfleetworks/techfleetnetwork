@@ -39,6 +39,7 @@ const SKIP_FILE_SUFFIXES = [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"];
 
 /** @type {{file: string; needle: string; line: number}[]} */
 const offenders = [];
+let scanned = 0;
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -69,6 +70,7 @@ function walk(dir) {
     ]);
     if (LEGACY_ALLOWED.has(rel)) continue;
     const body = readFileSync(full, "utf8");
+    scanned++;
     body.split("\n").forEach((line, idx) => {
       for (const needle of FORBIDDEN) {
         if (line.includes(needle)) offenders.push({ file: rel, needle, line: idx + 1 });
@@ -77,11 +79,14 @@ function walk(dir) {
   }
 }
 
+// Fail closed: a missing scan root is a hard error, not a silent pass.
 for (const d of SCAN_DIRS) {
   try {
     walk(join(ROOT, d));
-  } catch {
-    /* dir missing */
+  } catch (e) {
+    console.error(`✗ auth counter coverage: cannot scan ${d} — ${e.message}`);
+    console.error("  Failing closed: the guard must not pass without inspecting its scan roots.");
+    process.exit(2);
   }
 }
 
@@ -92,4 +97,15 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-console.log("✓ auth counter coverage: every counter call lives in AuthFailurePolicy");
+// Zero-scan is a failure, not a pass: it means the scan roots moved.
+if (scanned === 0) {
+  console.error(
+    `check-auth-counter-coverage: scanned 0 files under ${SCAN_DIRS.join(", ")} — path moved?`
+  );
+  process.exit(1);
+}
+
+console.log(
+  `✓ auth counter coverage: OK — ${scanned} files scanned, 0 violations ` +
+    "(every counter call lives in AuthFailurePolicy)."
+);

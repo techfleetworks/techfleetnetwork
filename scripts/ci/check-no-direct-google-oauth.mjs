@@ -29,34 +29,64 @@ const RE_SUPABASE_GOOGLE = /signInWithOAuth\s*\(\s*\{[^}]*provider\s*:\s*["']goo
 const RE_LOVABLE_GOOGLE = /lovable\.auth\.signInWithOAuth\s*\(\s*["']google["']/;
 
 const offenders = [];
+let scanned = 0;
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     let st;
-    try { st = statSync(full); } catch { continue; }
-    if (st.isDirectory()) { walk(full); continue; }
+    try {
+      st = statSync(full);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) {
+      walk(full);
+      continue;
+    }
     if (!/\.(ts|tsx|mjs|js)$/.test(name)) continue;
     if (name.endsWith(".test.ts") || name.endsWith(".test.tsx")) continue;
     const rel = relative(ROOT, full).replace(/\\/g, "/");
     if (ALLOWED.has(rel)) continue;
     const body = readFileSync(full, "utf8");
+    scanned++;
     if (RE_LOVABLE_GOOGLE.test(body) || RE_SUPABASE_GOOGLE.test(body)) {
       offenders.push(rel);
     }
   }
 }
 
+// Fail closed: a missing scan root is a hard error, not a silent pass.
 for (const d of SCAN_DIRS) {
-  try { walk(join(ROOT, d)); } catch { /* dir missing — fine */ }
+  try {
+    walk(join(ROOT, d));
+  } catch (e) {
+    console.error(`✗ Google OAuth guard: cannot scan ${d} — ${e.message}`);
+    console.error("  Failing closed: the guard must not pass without inspecting its scan roots.");
+    process.exit(2);
+  }
 }
 
-if (offenders.length > 0) {
-  console.error("✗ Google OAuth must have exactly one entrypoint (GoogleSignInButton + lovable.auth).");
-  console.error("  Offenders:");
-  for (const o of offenders) console.error(`   - ${o}`);
-  console.error("\nFix: route Google sign-in through `<GoogleSignInButton/>`. Do NOT add a second path.");
+// Zero-scan is a failure, not a pass: it means the scan roots moved.
+if (scanned === 0) {
+  console.error(
+    `check-no-direct-google-oauth: scanned 0 files under ${SCAN_DIRS.join(", ")} — path moved?`
+  );
   process.exit(1);
 }
 
-console.log("✓ Google OAuth single-entrypoint guard passed.");
+if (offenders.length > 0) {
+  console.error(
+    "✗ Google OAuth must have exactly one entrypoint (GoogleSignInButton + lovable.auth)."
+  );
+  console.error("  Offenders:");
+  for (const o of offenders) console.error(`   - ${o}`);
+  console.error(
+    "\nFix: route Google sign-in through `<GoogleSignInButton/>`. Do NOT add a second path."
+  );
+  process.exit(1);
+}
+
+console.log(
+  `✓ Google OAuth single-entrypoint guard passed — ${scanned} files scanned, 0 violations.`
+);
