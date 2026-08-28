@@ -117,6 +117,21 @@ console.log(`OK — ${files.length} files scanned`)                     // evide
 Every CI guard (`scripts/ci/*`) must (a) **emit a substantial evidence line** on success (what it
 inspected + a count/paths), (b) **fail closed** — a missing input, internal error, or zero-scan
 exits non-zero, never a silent `exit 0`, (c) never pass vacuously on a diff-based no-op.
+
+And every guard must be **pinned by a committed test** — a guard proven only by an ephemeral
+fixture (or never proven) can rot to a false green when its own logic regresses, and nothing
+catches it.
+
+```
+❌ never — ship a guard whose only proof was a throwaway fixture you deleted
+scripts/ci/check-foo.mjs        // no test references it; a broken regex ships green
+✅ always — a committed test runs the guard against fixtures and asserts its exit codes
+src/test/smoke/check-foo.smoke.test.ts   // clean → 0, violation → 1, missing input → 2
+```
+
+Enforced by `scripts/ci/check-guard-has-test.mjs` — a ratchet: every `scripts/ci/check-*.mjs`
+(and `arch-gate.mjs`) must be referenced by a committed `*.test.ts`; guards predating the rule sit
+on a burn-down `ALLOWLIST` that may **only shrink**.
 `check-owasp-coverage` / `check-triage-actionable-parity` are the models. The meta-guard
 `check-ci-guard-integrity.mjs` (wired into the required gate) enforces the worst case — no
 `exit(0)` inside a `catch`; a deliberate fail-open opts out with a `// ci-guard-integrity-ok: <reason>`
