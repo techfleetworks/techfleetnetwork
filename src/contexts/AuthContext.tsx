@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { sessionPort } from "@/features/auth/ports/session.port";
 import { ProfileService, type Profile } from "@/services/profile.service";
 import { resetMfaCachesForSignOut } from "@/services/mfa.service";
+import { resetMfaQuietWindowForSignOut } from "@/features/auth/services/auth-mfa.service";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
   clearOAuthUiMarker,
@@ -84,6 +85,14 @@ interface AuthContextType {
 }
 
 const QUERY_PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** Clear ALL per-tab MFA client state on sign-out (factor cache + post-verify
+ *  quiet window) so nothing carries into the next user on a shared tab
+ *  (audit P35 + review follow-ups). Called from every sign-out path. */
+function clearAllMfaClientState() {
+  resetMfaCachesForSignOut();
+  resetMfaQuietWindowForSignOut();
+}
 
 function restorePersistedQueryCacheForActiveUser() {
   const persister = getQueryPersister();
@@ -254,9 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Wipe persisted React Query snapshot so the next user on this device
         // never sees a previous user's dashboard data (DASHBOARD-HYDRATE-003).
         appQueryClient.clear();
-        // Clear the per-tab MFA factor cache too, so the next user can't read
-        // the previous user's enrolled factors within its 60s TTL (audit P35).
-        resetMfaCachesForSignOut();
+        // Clear ALL per-tab MFA client state so the next user on this device
+        // can't inherit the previous user's factors / quiet window (audit P35).
+        clearAllMfaClientState();
         void purgePersistedCache().finally(() => setActiveQueryPersisterUser(null));
       }
 
@@ -507,6 +516,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await sessionPort.signOut();
     appQueryClient.clear();
+    clearAllMfaClientState();
     await purgePersistedCache();
     setActiveQueryPersisterUser(null);
     setUser(null);
@@ -518,6 +528,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOutAllDevices = useCallback(async () => {
     await sessionPort.signOutAllDevices();
     appQueryClient.clear();
+    clearAllMfaClientState();
     await purgePersistedCache();
     setActiveQueryPersisterUser(null);
     setUser(null);
