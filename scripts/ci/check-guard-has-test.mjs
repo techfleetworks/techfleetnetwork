@@ -132,6 +132,13 @@ const codeBlobs = testBlobs.map(stripComments);
 
 // Tested iff the guard filename appears in a test's NON-COMMENT code AND that same file
 // invokes a guard subprocess — so a bare comment/string mention can't fake coverage.
+// Known, reviewed granularity: the two conditions are checked per-file, not tied to the
+// same exec call. A file that execs guard A while also code-naming guard B (without
+// running B) would credit B. We accept this because the real guard tests exec via a
+// `const GUARD = resolve(...)` variable, not the literal filename, so a stricter
+// "filename-inside-the-exec-call" check would false-NEGATIVE every real test. The honest
+// testedCount (printed on success) makes any accidental cross-credit visible in review;
+// it is 0 today (one guard per exec-ing test file).
 const references = (guard) => codeBlobs.some((c) => c.includes(guard) && EXEC_RE.test(c));
 
 // --- Apply the ratchet --------------------------------------------------------------
