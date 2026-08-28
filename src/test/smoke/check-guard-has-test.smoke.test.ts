@@ -185,6 +185,41 @@ describe("check-guard-has-test guard (smoke)", () => {
     expect(runGuard(r)).toBe(0);
   });
 
+  it("GHT-013: a guard filename passed to regex.exec is NOT counted (not a subprocess)", () => {
+    // `.exec` is also RegExp.prototype.exec — it must not be treated as a subprocess exec.
+    const r = fixture({
+      stubGuards: ["check-alpha.mjs"],
+      extraTests: {
+        "regex.test.ts": `const rx = /x/;\nrx.exec("check-alpha.mjs");\n${execTest("check-gamma.mjs")}`,
+      },
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("GHT-014: an ambiguous same-name const (declared in two blocks) does NOT cross-credit", () => {
+    // DUP is bound twice; the exec of DUP in block a must credit NEITHER guard (ambiguous).
+    const r = fixture({
+      stubGuards: ["check-alpha.mjs", "check-beta.mjs"],
+      extraTests: {
+        "dup.test.ts":
+          'describe("a", () => {\n  const DUP = "check-alpha.mjs";\n  execFileSync("node", [DUP]);\n});\n' +
+          'describe("b", () => {\n  const DUP = "check-beta.mjs";\n});\n',
+      },
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("GHT-015: a guard exec'd via a template-literal path IS credited (no false negative)", () => {
+    const r = fixture({
+      stubGuards: ["check-alpha.mjs"],
+      extraTests: {
+        "template.test.ts":
+          'const dir = "scripts/ci";\nexecFileSync("node", [`${dir}/check-alpha.mjs`]);\n',
+      },
+    });
+    expect(runGuard(r)).toBe(0);
+  });
+
   // ---- The real repo + wiring ---------------------------------------------
   it("GHT-009: the real repo passes the guard (no new untested guards)", () => {
     expect(runGuard()).toBe(0);

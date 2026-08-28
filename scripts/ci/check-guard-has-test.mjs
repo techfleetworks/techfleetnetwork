@@ -152,7 +152,14 @@ const EXEC_HINT = /\b(execFileSync|execSync|spawnSync|spawn|exec|execFile|fork)\
 // NOTE: ts.forEachChild STOPS at the first child whose callback returns a truthy value,
 // so these callbacks must return undefined (block body) to visit EVERY child.
 const stringsIn = (node, out) => {
+  // StringLiteral + NoSubstitutionTemplateLiteral are captured by isStringLiteralLike.
   if (ts.isStringLiteralLike(node)) out.push(node.text);
+  // A template WITH substitutions (`${dir}/check-foo.mjs`) — capture its literal spans so a
+  // guard path assembled from a template is still seen (else a fail-safe false negative).
+  else if (ts.isTemplateExpression(node)) {
+    out.push(node.head.text);
+    for (const span of node.templateSpans) out.push(span.literal.text);
+  }
   node.forEachChild((c) => {
     stringsIn(c, out);
   });
@@ -165,8 +172,14 @@ const identsIn = (node, out) => {
   });
   return out;
 };
-const calleeName = (expr) =>
-  ts.isIdentifier(expr) ? expr.text : ts.isPropertyAccessExpression(expr) ? expr.name.text : null;
+// The exec function name. For a property access, accept only unambiguous child_process
+// method names — never `.exec`, which is also RegExp.prototype.exec and would falsely credit
+// a guard filename passed to a regex test. A bare imported `exec(...)` is still honored.
+const execName = (expr) => {
+  if (ts.isIdentifier(expr)) return expr.text;
+  if (ts.isPropertyAccessExpression(expr)) return expr.name.text === "exec" ? null : expr.name.text;
+  return null;
+};
 
 /** Guard-file path strings actually passed to a subprocess exec in `text` (const-resolved). */
 function guardStringsExecutedBy(text) {
@@ -176,26 +189,33 @@ function guardStringsExecutedBy(text) {
   } catch {
     return []; // an unparseable test file cannot vouch for any guard — credit nothing
   }
-  // Pass 1: const bindings -> the string literals in their initializer (e.g.
-  // `const GUARD = resolve(REPO, "scripts/ci/check-foo.mjs")`).
+  // Pass 1: bindings -> the string literals in their initializer (e.g.
+  // `const GUARD = resolve(REPO, "scripts/ci/check-foo.mjs")`). Track how many times each
+  // name is declared; an AMBIGUOUS name (declared 2+ times — e.g. a `const GUARD` in two
+  // separate blocks, one exec'd and one not) is never resolved, so a redefinition cannot
+  // cross-credit a guard that is never actually run.
   const bindings = new Map();
+  const bindCount = new Map();
   const pass1 = (node) => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-      const strs = stringsIn(node.initializer, []);
-      if (strs.length) {
-        bindings.set(node.name.text, (bindings.get(node.name.text) || []).concat(strs));
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text;
+      bindCount.set(name, (bindCount.get(name) || 0) + 1);
+      if (node.initializer) {
+        const strs = stringsIn(node.initializer, []);
+        if (strs.length) bindings.set(name, (bindings.get(name) || []).concat(strs));
       }
     }
     node.forEachChild(pass1);
   };
   pass1(sf);
-  // Pass 2: exec call arguments -> strings (direct literals + via a resolved const ident).
+  // Pass 2: exec call arguments -> strings (direct literals + via an UNAMBIGUOUS const ident).
   const executed = [];
   const pass2 = (node) => {
-    if (ts.isCallExpression(node) && EXEC_NAMES.has(calleeName(node.expression))) {
+    if (ts.isCallExpression(node) && EXEC_NAMES.has(execName(node.expression))) {
       for (const arg of node.arguments) {
         executed.push(...stringsIn(arg, []));
         for (const id of identsIn(arg, [])) {
+          if (bindCount.get(id) !== 1) continue; // ambiguous name -> don't resolve (fail-safe)
           const bound = bindings.get(id);
           if (bound) executed.push(...bound);
         }
