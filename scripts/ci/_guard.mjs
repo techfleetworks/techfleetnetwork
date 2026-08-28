@@ -24,6 +24,9 @@ import { join, relative } from "node:path";
  * @param {string[]} opts.roots    Repo-relative dirs to scan (all must exist).
  * @param {RegExp}   [opts.include] Filename filter (default: /\.(ts|tsx)$/).
  * @param {RegExp}   [opts.exclude] Filename skip (default: /\.test\.(ts|tsx)$/).
+ * @param {RegExp}   [opts.excludeDir] Directory NAME skip during the walk (e.g.
+ *        /^(node_modules|dist|__tests__|_shared)$/). Centralizes dir-exclusion so
+ *        guards don't hand-roll it (default: /^(node_modules|dist|\.next|coverage)$/).
  * @param {(src: string, relPath: string) => Array<string | {line?: number, text: string}>} opts.rule
  *        Returns violations for one file ([] = clean). A string is used verbatim;
  *        an object is rendered as `relPath:line  text`.
@@ -38,6 +41,7 @@ export function runScanGuard(opts) {
     roots,
     include = /\.(ts|tsx)$/,
     exclude = /\.test\.(ts|tsx)$/,
+    excludeDir = /^(node_modules|dist|\.next|coverage)$/,
     rule,
     allowZero = false,
     summary,
@@ -55,7 +59,7 @@ export function runScanGuard(opts) {
     const abs = join(process.cwd(), root);
     let collected;
     try {
-      collected = walk(abs, include, exclude);
+      collected = walk(abs, include, exclude, excludeDir);
     } catch (e) {
       console.error(
         `✖ ${name}: cannot scan ${root} — ${e.message}. Failing closed (a guard must never pass without inspecting its target).`
@@ -100,18 +104,28 @@ export function runScanGuard(opts) {
   console.log(`✓ ${name}: OK — ${files.length} files scanned, 0 violations${extra}.`);
 }
 
-/** Recursively collect files under `dir` matching `include` and not `exclude`. */
-function walk(dir, include, exclude) {
+/**
+ * Recursively collect files under `dir`. `include`/`exclude` may be a RegExp
+ * (tested against the file BASENAME — the common case) or a function of the
+ * repo-relative forward-slash path (for path-aware selection, e.g. "all files
+ * under e2e/"). `excludeDir` skips directory names during descent.
+ */
+function walk(dir, include, exclude, excludeDir) {
   const out = [];
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     const s = statSync(full);
     if (s.isDirectory()) {
-      out.push(...walk(full, include, exclude));
+      if (excludeDir && excludeDir.test(name)) continue;
+      out.push(...walk(full, include, exclude, excludeDir));
       continue;
     }
-    if (exclude && exclude.test(name)) continue;
-    if (include && !include.test(name)) continue;
+    const rel = relative(process.cwd(), full).replace(/\\/g, "/");
+    const excluded =
+      typeof exclude === "function" ? exclude(rel) : !!(exclude && exclude.test(name));
+    if (excluded) continue;
+    const included = typeof include === "function" ? include(rel) : !include || include.test(name);
+    if (!included) continue;
     out.push(full);
   }
   return out;
