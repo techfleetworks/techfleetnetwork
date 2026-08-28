@@ -43,9 +43,15 @@ export interface EnrollTotpResult {
 const FACTOR_CACHE_TTL_MS = 60_000;
 let factorCache: { at: number; value: TotpFactor[] } | null = null;
 let factorCacheInflight: Promise<TotpFactor[]> | null = null;
+// Bumped on every invalidation. An in-flight listFactors() captures the gen at
+// request time and only seeds the cache if it still matches on resolution — so a
+// fetch already awaiting when SIGNED_OUT (or enroll/unenroll/verify) fired can't
+// re-seed the previous user's factors after the reset (audit P35 race).
+let factorCacheGen = 0;
 function invalidateFactorCache() {
   factorCache = null;
   factorCacheInflight = null;
+  factorCacheGen++;
 }
 function decodeAalFromToken(token: string | undefined | null): string | null {
   if (!token) return null;
@@ -84,6 +90,7 @@ export const MfaService = {
       return factorCache.value;
     }
     if (!opts?.force && factorCacheInflight) return factorCacheInflight;
+    const gen = factorCacheGen;
     const fetchOnce = (async () => {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) {
@@ -91,7 +98,11 @@ export const MfaService = {
         throw new Error("Could not load MFA factors");
       }
       const value = (data?.all ?? []) as TotpFactor[];
-      factorCache = { at: Date.now(), value };
+      // Only seed if no invalidation (e.g. SIGNED_OUT) happened while in flight,
+      // so we never re-cache a signed-out user's factors (audit P35 race).
+      if (gen === factorCacheGen) {
+        factorCache = { at: Date.now(), value };
+      }
       return value;
     })();
     factorCacheInflight = fetchOnce;
