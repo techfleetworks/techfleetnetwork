@@ -1,5 +1,4 @@
 [
-  "arch-gate.mjs",
   "check-adr-number-collision.mjs",
   "check-audit-sink-coverage.mjs",
   "check-auth-counter-coverage.mjs",
@@ -9,7 +8,6 @@
   "check-auth-result-contract.mjs",
   "check-auth-screen-imports.mjs",
   "check-auth-warn-snapshot.mjs",
-  "check-ci-guard-integrity.mjs",
   "check-edge-function-coverage.mjs",
   "check-email-architecture.mjs",
   "check-email-tier-registry.mjs",
