@@ -13,14 +13,19 @@ import { join, relative } from "node:path";
 
 const ROOT = join(process.cwd(), "src/features/auth/engine");
 const offenders = [];
+let filesScanned = 0;
 
 function walk(dir) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     const s = statSync(full);
-    if (s.isDirectory()) { walk(full); continue; }
+    if (s.isDirectory()) {
+      walk(full);
+      continue;
+    }
     if (!/\.(ts|tsx)$/.test(name)) continue;
     if (/\.test\.(ts|tsx)$/.test(name)) continue;
+    filesScanned++;
     const src = readFileSync(full, "utf8");
     // Find every catch (...) { ... } body and require telemetry inside it.
     const re = /catch\s*\([^)]*\)\s*\{/g;
@@ -44,16 +49,35 @@ function walk(dir) {
   }
 }
 
-try { walk(ROOT); } catch (e) {
-  console.error(`[check-auth-engine-swallow] unable to scan ${ROOT}: ${e.message}`);
-  process.exit(0);
+try {
+  walk(ROOT);
+} catch (e) {
+  console.error(
+    `[check-auth-engine-swallow] FAIL — unable to scan ${ROOT}: ${e.message} (failing closed)`
+  );
+  process.exit(2);
+}
+
+// Fail closed: a zero-file scan means the auth-engine path moved/renamed. Passing
+// here would be a false green — the guard would "verify" nothing forever.
+if (filesScanned === 0) {
+  console.error(
+    `[check-auth-engine-swallow] FAIL — scanned 0 files under ${ROOT}; the auth-engine path moved. Failing closed rather than passing vacuously.`
+  );
+  process.exit(2);
 }
 
 if (offenders.length) {
-  console.error("[check-auth-engine-swallow] catch blocks without telemetryPort.record(...) — AUTH-ARCH-CUTOVER-011:");
+  console.error(
+    "[check-auth-engine-swallow] catch blocks without telemetryPort.record(...) — AUTH-ARCH-CUTOVER-011:"
+  );
   for (const o of offenders) console.error("  - " + o);
-  console.error("\nAdd a telemetryPort.record(\"auth_engine.*_failed\" | \"auth_engine.*_email_delivery_unverified\", {...}) call.");
+  console.error(
+    '\nAdd a telemetryPort.record("auth_engine.*_failed" | "auth_engine.*_email_delivery_unverified", {...}) call.'
+  );
   process.exit(1);
 }
 
-console.log(`[check-auth-engine-swallow] OK — all auth-engine catch blocks emit telemetry.`);
+console.log(
+  `[check-auth-engine-swallow] OK — ${filesScanned} auth-engine file(s) scanned, all catch blocks emit telemetryPort.record/captcha.`
+);
