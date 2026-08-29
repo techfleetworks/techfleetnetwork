@@ -38,12 +38,26 @@ const RX = new RegExp(`from ["'](?:${escaped.join("|")})["']`);
 
 const EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 
+// Test trees are not production importers: a guard's own smoke-test FIXTURES contain
+// legacy-import STRINGS as data (to exercise other guards), and a real test may import a
+// legacy module deliberately to test it. Scanning them produces false positives, so skip
+// test dirs and *.test.* / *.spec.* files. The guard's intent is production code only.
+const isTestFile = (name) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(name);
+const isTestDir = (name) => name === "test" || name === "tests" || name === "__tests__";
+
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     const s = statSync(full);
-    if (s.isDirectory()) walk(full, out);
-    else if (EXTS.has(full.slice(full.lastIndexOf("."))) && !full.endsWith(".d.ts")) out.push(full);
+    if (s.isDirectory()) {
+      if (!isTestDir(entry)) walk(full, out);
+    } else if (
+      EXTS.has(full.slice(full.lastIndexOf("."))) &&
+      !full.endsWith(".d.ts") &&
+      !isTestFile(entry)
+    ) {
+      out.push(full);
+    }
   }
   return out;
 }
@@ -56,7 +70,6 @@ function scan() {
   }
   return hits.sort();
 }
-
 
 const current = scan();
 
