@@ -1,16 +1,1 @@
-[
-  "check-adr-number-collision.mjs",
-  "check-audit-sink-coverage.mjs",
-  "check-auth-warn-snapshot.mjs",
-  "check-edge-function-coverage.mjs",
-  "check-email-tier-registry.mjs",
-  "check-legacy-auth-importers.mjs",
-  "check-migrations-applied.mjs",
-  "check-migration-version-collision.mjs",
-  "check-no-legacy-auth-service.mjs",
-  "check-no-opaque-script-error.mjs",
-  "check-no-stray-lockfiles.mjs",
-  "check-owasp-coverage.mjs",
-  "check-progress-identity-sql-smoke.mjs",
-  "check-triage-actionable-parity.mjs"
-]
+[]

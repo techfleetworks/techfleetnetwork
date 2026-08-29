@@ -38,16 +38,21 @@
  *
  * Run locally:  SUPABASE_ACCESS_TOKEN=… SUPABASE_PROJECT_REF=… node scripts/ci/check-migrations-applied.mjs
  */
-import { readdirSync, appendFileSync } from "node:fs";
+import { readdirSync, appendFileSync, readFileSync } from "node:fs";
 
 const DIR = "supabase/migrations";
 const CODE = "MIGRATION-APPLIED-001";
 const ENFORCE =
-  process.argv.includes("--enforce") ||
-  /^(1|true|yes)$/i.test(process.env.ENFORCE ?? "");
+  process.argv.includes("--enforce") || /^(1|true|yes)$/i.test(process.env.ENFORCE ?? "");
 
 const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
 const ref = process.env.SUPABASE_PROJECT_REF?.trim();
+
+// Test-only seam (mirrors the GUARD_*_ROOT seams): when set, read prod's
+// applied-migration ledger from this JSON fixture ([{ "version": "…" }, …])
+// instead of the Management API, so the repo↔prod drift-detection logic is
+// exercisable in CI without a live project. NEVER set in prod/CI.
+const APPLIED_FIXTURE = process.env.MIGRATIONS_APPLIED_FIXTURE?.trim();
 
 /** Append a line to the GitHub Actions job summary, if running in CI. */
 function summary(md) {
@@ -107,18 +112,17 @@ try {
 const repoSet = new Set(repoVersions);
 
 // 2. Guard — activate only when the Management-API token is present ----------
-if (!token) {
+if (!APPLIED_FIXTURE && !token) {
   skip(
     "SUPABASE_ACCESS_TOKEN not set on this project yet. Set it to activate the migration-applied gate (read-only Management-API query)."
   );
 }
-if (!ref) {
+if (!APPLIED_FIXTURE && !ref) {
   skip("SUPABASE_PROJECT_REF not set — cannot target a project.");
 }
 
 // 3. Applied versions from prod (read-only Management-API SQL query) ---------
-const QUERY =
-  "select version from supabase_migrations.schema_migrations order by version;";
+const QUERY = "select version from supabase_migrations.schema_migrations order by version;";
 const ENDPOINT = `https://api.supabase.com/v1/projects/${ref}/database/query`;
 
 /**
@@ -158,7 +162,9 @@ async function fetchApplied() {
   unreachable(last); // exits 0 — control never returns here
 }
 
-const rows = await fetchApplied();
+const rows = APPLIED_FIXTURE
+  ? JSON.parse(readFileSync(APPLIED_FIXTURE, "utf8"))
+  : await fetchApplied();
 const appliedSet = new Set(rows.map((r) => String(r.version)));
 
 // 4. Compare ----------------------------------------------------------------
@@ -166,9 +172,7 @@ const unapplied = [...repoSet].filter((v) => !appliedSet.has(v)).sort();
 const extra = [...appliedSet].filter((v) => !repoSet.has(v)).sort();
 
 if (unapplied.length === 0 && extra.length === 0) {
-  console.log(
-    `✓ ${CODE}: all ${repoSet.size} committed migrations are applied to prod (${ref}).`
-  );
+  console.log(`✓ ${CODE}: all ${repoSet.size} committed migrations are applied to prod (${ref}).`);
   summary(
     `### ${CODE}: in sync ✅\nAll **${repoSet.size}** committed migrations are applied to prod (\`${ref}\`).`
   );
