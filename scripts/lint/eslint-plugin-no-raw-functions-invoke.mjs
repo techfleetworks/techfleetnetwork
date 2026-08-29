@@ -63,6 +63,10 @@ export default {
     const filename = context.getFilename().replace(/\\/g, "/");
     if (ALLOWED_FILES.some((f) => filename.endsWith(f))) return {};
     const rel = repoRel(filename);
+    // Client code only. `invokeEdge` is a browser wrapper (@/lib/edge/invokeEdge); Deno edge
+    // functions (supabase/functions/**), Node scripts, and e2e legitimately call the raw client and
+    // cannot import it — the rule (and the src-keyed budget) govern src/** exclusively.
+    if (!rel.startsWith("src/")) return {};
     const budget = Number.isInteger(BUDGET[rel]) ? BUDGET[rel] : 0;
     const nodes = [];
     const patternKeys = (id) =>
