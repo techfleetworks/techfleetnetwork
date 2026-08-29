@@ -49,8 +49,8 @@ as trustworthy as _its own_ detection, so:
   execs it. (See ADR-0022.)
 - **Every guard's test must DISCRIMINATE — no vacuous tests.** A test that execs the guard but
   asserts nothing meaningful (only happy-path `→ 0`) would let a _broken_ guard ship green. This is
-  now mechanical: `scripts/ci/verify-guard-test-discrimination.mjs` (blocking) replaces every guard
-  with a no-op and requires each guard's test to **fail**. A test that still passes against a no-op
+  now mechanical: `scripts/ci/verify-guard-test-discrimination.mjs` (blocking) replaces every _tested_
+  guard with a no-op and requires each guard's test to **fail**. A test that still passes against a no-op
   guard is vacuous and CI blocks it. (See ADR-0023.)
 
   Prove it yourself in one line: break a guard's detection (e.g. change a regex to match nothing)

@@ -1,7 +1,7 @@
 # ADR 0023 — Guard tests must discriminate (a mutation gate), and the quality discipline is written down
 
 - Status: Accepted
-- Date: 2026-08-29
+- Date: 2026-08-28
 - Deciders: TechFleet (owner)
 - Related: ADR-0022 (every guard must be tested); `decisions.md §6` (gate integrity); the enforcing job `scripts/ci/verify-guard-test-discrimination.mjs`; the coverage guard `scripts/ci/check-guard-has-test.mjs`; the meta-guard `scripts/ci/check-ci-guard-integrity.mjs`; the new `AGENTS.md`; the `judge-arch` skill.
 
