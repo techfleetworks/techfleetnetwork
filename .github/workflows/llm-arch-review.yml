@@ -1,0 +1,45 @@
+# llm-arch-review — runs the judge-arch adversarial rubric on every PR diff via an LLM and posts
+# the findings as a single upserted PR comment. Closes the "judge-arch is agent-run convention, not
+# CI" gap named in AGENTS.md / ADR-0023 so HUMAN-opened PRs get the adversarial review too.
+#
+# INFORMATIONAL by design (ADR-0025, "observe then block"): the job never fails the build unless
+# ENFORCE=1 is set, and even then only when the model reports findings — never on a skip/API error.
+#
+# Uses the standard `pull_request` event (NOT pull_request_target): on a fork PR, secrets are
+# withheld and the script self-heals to a skip. Same-repo PRs get the review.
+name: llm-arch-review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: llm-arch-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0 # need the merge base for `git diff --merge-base`
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - name: Run architecture review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          LLM_REVIEW_PR: ${{ github.event.pull_request.number }}
+          BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+          # ENFORCE: "1"   # ← uncomment to promote from advisory to blocking (ADR-0025)
+        run: node scripts/ci/llm-arch-review.mjs
