@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 /**
  * Content Gaps tab — surfaces every reference_* row whose description is
@@ -42,7 +43,7 @@ const TABLES = [
   "reference_tech_job_categories",
 ] as const;
 
-type TableName = typeof TABLES[number];
+type TableName = (typeof TABLES)[number];
 
 const PRETTY: Record<TableName, string> = {
   reference_workshops: "Workshop",
@@ -68,7 +69,6 @@ const PRETTY: Record<TableName, string> = {
 
 // Figma workshop URLs are auto-discovered server-side by scraping the
 // Tech Fleet Figma profile pages — no hardcoded list to drift out of sync.
-
 
 interface Gap {
   table: TableName;
@@ -101,7 +101,10 @@ export function ContentGapsTab() {
           .or("is_placeholder.eq.true,description.is.null,description.eq.")
           .order("name", { ascending: true });
         if (error) return [];
-        return ((data ?? []) as unknown as Array<Omit<Gap, "table">>).map((r) => ({ ...r, table: t }));
+        return ((data ?? []) as unknown as Array<Omit<Gap, "table">>).map((r) => ({
+          ...r,
+          table: t,
+        }));
       })
     );
     for (const r of results) all.push(...r);
@@ -136,7 +139,8 @@ export function ContentGapsTab() {
     if (!text || /placeholder/i.test(text)) {
       toast({
         title: "Still a placeholder",
-        description: "Description must be real prose — not blank, and not contain the word \"placeholder\".",
+        description:
+          'Description must be real prose — not blank, and not contain the word "placeholder".',
         variant: "destructive",
       });
       return;
@@ -168,13 +172,20 @@ export function ContentGapsTab() {
 
   const autofill = async () => {
     if (gaps.length === 0) return;
-    if (!confirm(`Auto-fill ${gaps.length} missing description${gaps.length === 1 ? "" : "s"} with AI?\n\nResults are tagged "ai_generated" so you can review and edit them later. CSV re-imports with real values will override AI text; your manual edits are always preserved.`)) return;
+    if (
+      !confirm(
+        `Auto-fill ${gaps.length} missing description${gaps.length === 1 ? "" : "s"} with AI?\n\nResults are tagged "ai_generated" so you can review and edit them later. CSV re-imports with real values will override AI text; your manual edits are always preserved.`
+      )
+    )
+      return;
     setAutofilling(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fill-content-gaps", { body: {} });
-      if (error) throw error;
+      const data = await invokeEdge("fill-content-gaps", { body: {} });
       const filled = (data as { total_filled?: number })?.total_filled ?? 0;
-      toast({ title: "Auto-fill complete", description: `Wrote ${filled} description${filled === 1 ? "" : "s"}.` });
+      toast({
+        title: "Auto-fill complete",
+        description: `Wrote ${filled} description${filled === 1 ? "" : "s"}.`,
+      });
       await load();
     } catch (e) {
       toast({
@@ -188,17 +199,25 @@ export function ContentGapsTab() {
   };
 
   const scrapeFigma = async () => {
-    if (!confirm("Auto-discover and crawl every Tech Fleet Figma Community workshop template, then overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically.")) return;
+    if (
+      !confirm(
+        "Auto-discover and crawl every Tech Fleet Figma Community workshop template, then overwrite their descriptions with the public Figma copy?\n\nAdmin-edited rows are skipped automatically."
+      )
+    )
+      return;
     setScrapingFigma(true);
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-figma-workshops", {
+      const data = await invokeEdge("scrape-figma-workshops", {
         body: { autoDiscover: true, profile: "techfleet", maxUrls: 300 },
       });
-      if (error) throw error;
-      const updated = (data as { updated?: number; total?: number; discovered?: number })?.updated ?? 0;
+      const updated =
+        (data as { updated?: number; total?: number; discovered?: number })?.updated ?? 0;
       const total = (data as { updated?: number; total?: number; discovered?: number })?.total ?? 0;
       const discovered = (data as { discovered?: number })?.discovered ?? total;
-      toast({ title: "Figma scrape complete", description: `Discovered ${discovered}, updated ${updated} of ${total} workshop descriptions.` });
+      toast({
+        title: "Figma scrape complete",
+        description: `Discovered ${discovered}, updated ${updated} of ${total} workshop descriptions.`,
+      });
       await load();
     } catch (e) {
       toast({
@@ -217,8 +236,8 @@ export function ContentGapsTab() {
         <div>
           <CardTitle>Content gaps</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Reference rows with missing or placeholder descriptions. Real edits
-            made here are protected from CSV re-ingest.
+            Reference rows with missing or placeholder descriptions. Real edits made here are
+            protected from CSV re-ingest.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -303,7 +322,8 @@ export function ContentGapsTab() {
           <SheetHeader>
             <SheetTitle>{editing?.name}</SheetTitle>
             <p className="text-sm text-muted-foreground">
-              {editing && PRETTY[editing.table]} · <span className="font-mono">{editing?.slug}</span>
+              {editing && PRETTY[editing.table]} ·{" "}
+              <span className="font-mono">{editing?.slug}</span>
             </p>
           </SheetHeader>
           <div className="flex-1 py-4">
@@ -315,8 +335,8 @@ export function ContentGapsTab() {
               aria-label="Description"
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              {draft.length} characters · saving will re-embed Fleety's knowledge
-              base for this slug.
+              {draft.length} characters · saving will re-embed Fleety's knowledge base for this
+              slug.
             </p>
           </div>
           <SheetFooter>

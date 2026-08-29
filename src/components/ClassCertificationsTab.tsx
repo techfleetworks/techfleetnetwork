@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { generateCertificatePdf } from "@/lib/generate-certificate-pdf";
 import { extractClassTitleFallback } from "@/lib/cert-title-utils";
 import { useNavigate } from "react-router-dom";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 /** Fetch the user's profile name */
 function useProfileName(userId: string | undefined) {
@@ -142,8 +143,7 @@ export function ClassCertificationsTab() {
     if (!user) return;
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-class-certifications");
-      if (error) throw error;
+      const data = await invokeEdge("fetch-class-certifications");
       if (data?.success) {
         setHasSearched(true);
         if (data.total_found === 0) {

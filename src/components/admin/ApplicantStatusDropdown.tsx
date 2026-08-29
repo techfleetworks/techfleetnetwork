@@ -15,6 +15,7 @@ import { ProfileService } from "@/services/profile.service";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { createLogger } from "@/services/logger.service";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 const log = createLogger("ApplicantStatusDropdown");
 
@@ -98,7 +99,8 @@ function buildDisplayName(profile: Record<string, unknown> | null): string {
   if (!profile) return "a Tech Fleet Project Coordinator";
   const dn = profile.display_name as string;
   if (dn) return dn;
-  const full = `${(profile.first_name as string) ?? ""} ${(profile.last_name as string) ?? ""}`.trim();
+  const full =
+    `${(profile.first_name as string) ?? ""} ${(profile.last_name as string) ?? ""}`.trim();
   return full || "a Tech Fleet Project Coordinator";
 }
 
@@ -135,7 +137,8 @@ export function ApplicantStatusDropdown({
 
         if (newStatus === "invited_to_interview") {
           const adminProfile = await ProfileService.fetch(user.id);
-          schedulingUrl = (adminProfile as unknown as Record<string, unknown>)?.scheduling_url as string | undefined;
+          schedulingUrl = (adminProfile as unknown as Record<string, unknown>)?.scheduling_url as
+            string | undefined;
 
           if (!schedulingUrl) {
             toast.error("You need to set your scheduling link first", {
@@ -153,15 +156,18 @@ export function ApplicantStatusDropdown({
             return;
           }
 
-          const fallbackName = buildDisplayName(adminProfile as unknown as Record<string, unknown> | null);
+          const fallbackName = buildDisplayName(
+            adminProfile as unknown as Record<string, unknown> | null
+          );
           coordinatorName = await resolveCoordinatorName(projectId, fallbackName);
         }
 
         /* -- Pre-flight: "active_participant" requires Discord role on project & Discord on applicant -- */
         if (newStatus === "active_participant") {
           // discord_role_id was revoked from authenticated for security; fetch via RPC.
-          const { data: linkRows } = await supabase
-            .rpc("get_project_internal_links", { p_project_id: projectId });
+          const { data: linkRows } = await supabase.rpc("get_project_internal_links", {
+            p_project_id: projectId,
+          });
           const projectData = linkRows?.[0] ?? null;
 
           if (!projectData?.discord_role_id) {
@@ -199,7 +205,7 @@ export function ApplicantStatusDropdown({
         }
 
         /* -- Invoke edge function -- */
-        const { data, error } = await supabase.functions.invoke("notify-applicant-status", {
+        const data = await invokeEdge("notify-applicant-status", {
           body: {
             applicationId,
             applicantUserId,
@@ -210,10 +216,11 @@ export function ApplicantStatusDropdown({
             schedulingUrl,
             projectId,
           },
+          // noRetry: notify-applicant-status sends an applicant email + creates a
+          // notification and is not idempotent — a retry after a dropped response could
+          // double-notify.
+          noRetry: true,
         });
-
-        if (error) throw error;
-
         /* -- Success toast -- */
         const result = data as {
           notificationCreated?: boolean;
@@ -252,11 +259,16 @@ export function ApplicantStatusDropdown({
 
         /* -- Invalidate queries -- */
         await Promise.all(
-          invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: key })),
+          invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: key }))
         );
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        log.error("handleStatusChange", `Failed to change status: ${message}`, { applicationId }, err);
+        log.error(
+          "handleStatusChange",
+          `Failed to change status: ${message}`,
+          { applicationId },
+          err
+        );
         toast.error("We couldn't update the status. Please try again.", {
           description: message,
           duration: 5000,
@@ -266,50 +278,75 @@ export function ApplicantStatusDropdown({
         setChanging(false);
       }
     },
-    [applicationId, applicantUserId, applicantFirstName, applicantEmail, projectId, currentStatus, user, invalidateKeys, queryClient],
+    [
+      applicationId,
+      applicantUserId,
+      applicantFirstName,
+      applicantEmail,
+      projectId,
+      currentStatus,
+      user,
+      invalidateKeys,
+      queryClient,
+    ]
   );
 
   if (changing) {
-    return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Updating status…" />;
+    return (
+      <Loader2
+        className="h-4 w-4 animate-spin text-muted-foreground"
+        aria-label="Updating status…"
+      />
+    );
   }
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         {triggerLabel ? (
-          <Button variant="outline" size="sm" className="gap-1.5" aria-label="Change applicant status">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            aria-label="Change applicant status"
+          >
             <MoreHorizontal className="h-4 w-4" />
             {triggerLabel}
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" aria-label="Change applicant status">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            aria-label="Change applicant status"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Change Status</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          Change Status
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {SELECTABLE_STATUSES
-          .filter((status) =>
-            requiresInterview || !INTERVIEW_ONLY_STATUSES.has(status.value),
-          )
-          .map((status) => {
-            const Icon = STATUS_ICONS[status.value] ?? UserCheck;
-            const isActive = currentStatus === status.value;
-            return (
-              <DropdownMenuItem
-                key={status.value}
-                onClick={() => handleStatusChange(status.value)}
-                disabled={isActive}
-                className={isActive ? "opacity-50" : ""}
-              >
-                <Icon className="h-4 w-4 mr-2" />
-                {status.label}
-                {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
-              </DropdownMenuItem>
-            );
-          })}
+        {SELECTABLE_STATUSES.filter(
+          (status) => requiresInterview || !INTERVIEW_ONLY_STATUSES.has(status.value)
+        ).map((status) => {
+          const Icon = STATUS_ICONS[status.value] ?? UserCheck;
+          const isActive = currentStatus === status.value;
+          return (
+            <DropdownMenuItem
+              key={status.value}
+              onClick={() => handleStatusChange(status.value)}
+              disabled={isActive}
+              className={isActive ? "opacity-50" : ""}
+            >
+              <Icon className="h-4 w-4 mr-2" />
+              {status.label}
+              {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

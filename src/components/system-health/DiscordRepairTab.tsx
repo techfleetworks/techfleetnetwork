@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Icon } from "@/components/ui/icon";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 type BackfillResult = {
   scanned: number;
@@ -27,11 +28,7 @@ export function DiscordRepairTab() {
   const runRepair = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke<BackfillResult>(
-        "backfill-discord-usernames",
-        { body: {} },
-      );
-      if (error) throw error;
+      const data = await invokeEdge<BackfillResult>("backfill-discord-usernames", { body: {} });
       setResult(data ?? null);
       toast({
         title: "Discord usernames repaired",
@@ -61,8 +58,8 @@ export function DiscordRepairTab() {
         </CardTitle>
         <CardDescription>
           Normalizes legacy member labels that render as <code>@.</code> or <code>@</code> by
-          fetching the canonical handle from Discord. Only the displayed username changes —
-          member links and verified status stay intact.
+          fetching the canonical handle from Discord. Only the displayed username changes — member
+          links and verified status stay intact.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -76,9 +73,7 @@ export function DiscordRepairTab() {
             <Badge variant="secondary">Scanned: {result.scanned}</Badge>
             <Badge variant="default">Repaired: {result.repaired}</Badge>
             <Badge variant="outline">Unchanged: {result.skipped_unchanged}</Badge>
-            <Badge variant="outline">
-              Legit dot-leading: {result.skipped_discord_dot_legit}
-            </Badge>
+            <Badge variant="outline">Legit dot-leading: {result.skipped_discord_dot_legit}</Badge>
             {result.errors.length > 0 && (
               <Badge variant="destructive">Errors: {result.errors.length}</Badge>
             )}
