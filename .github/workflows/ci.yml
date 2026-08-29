@@ -179,6 +179,12 @@ jobs:
       - name: Guard — CI guards fail closed (no swallowed exit 0)
         run: node scripts/ci/check-ci-guard-integrity.mjs
 
+      # Mutation gate: no-op every tested guard and require each guard's test to FAIL. A test that
+      # still passes is vacuous and would let a broken guard ship a false green (ADR-0023). Runs the
+      # guard smoke suite once with each guard stubbed; restores every guard in a finally.
+      - name: Guard - every guard test discriminates (mutation gate)
+        run: node scripts/ci/verify-guard-test-discrimination.mjs
+
       - name: Type-check
         run: npx tsc --noEmit
       - name: Lint (ESLint)
