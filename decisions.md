@@ -132,6 +132,20 @@ src/test/smoke/check-foo.smoke.test.ts   // clean → 0, violation → 1, missin
 Enforced by `scripts/ci/check-guard-has-test.mjs` — a ratchet: every `scripts/ci/check-*.mjs`
 (and `arch-gate.mjs`) must be referenced by a committed `*.test.ts`; guards predating the rule sit
 on a burn-down `ALLOWLIST` that may **only shrink**.
+
+And that test must **discriminate** — it must FAIL when the guard is a no-op. A test that execs
+the guard but only asserts the happy path proves nothing; a _broken_ guard would still pass it.
+
+```
+❌ never — a vacuous guard test (passes even if the guard detects nothing)
+it("runs", () => { runGuard(fixture); expect(true).toBe(true); })   // no assertion tied to detection
+✅ always — assert a real violation is FLAGGED, so it reddens when detection breaks
+it("flags X", () => expect(runGuard(violatingFixture)).toBe(1))     // fails if the guard stops detecting
+```
+
+Enforced by `scripts/ci/verify-guard-test-discrimination.mjs` — it no-ops every tested guard, runs
+the smoke suite, and fails if any guard's test still passes. Prove it by hand: break a guard's regex
+and its committed test must go red. See ADR-0022, ADR-0023; the transferable playbook is `AGENTS.md`.
 `check-owasp-coverage` / `check-triage-actionable-parity` are the models. The meta-guard
 `check-ci-guard-integrity.mjs` (wired into the required gate) enforces the worst case — no
 `exit(0)` inside a `catch`; a deliberate fail-open opts out with a `// ci-guard-integrity-ok: <reason>`
