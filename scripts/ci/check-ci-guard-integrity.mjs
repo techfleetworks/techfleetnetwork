@@ -34,6 +34,7 @@ const BESPOKE_DIR_READERS = new Set([
   "check-migration-version-collision.mjs", // filename collision detector
   "check-edge-function-coverage.mjs", // manifest generator
   "check-guard-has-test.mjs", // enumerates guards + cross-references the test tree (not a content scan)
+  "check-guards-wired.mjs", // meta-check: enumerates guards + workflow files (not a per-file content scan)
   "check-legacy-auth-importers.mjs", // snapshot-diff guard with an --update mode + shrink notice (not a per-file rule)
   "check-owasp-coverage.mjs", // reads the OWASP map + SAST config
   "check-triage-actionable-parity.mjs", // reads one TS file + newest matching migration

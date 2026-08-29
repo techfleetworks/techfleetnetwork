@@ -179,6 +179,11 @@ jobs:
       - name: Guard — CI guards fail closed (no swallowed exit 0)
         run: node scripts/ci/check-ci-guard-integrity.mjs
 
+      # Every guard must actually RUN in CI — a committed-but-unwired guard verifies nothing
+      # (the ADR-0024 gap, now mechanized). Fails if any check-*.mjs is referenced by no workflow.
+      - name: Guard — every guard is wired into CI (no unwired guards)
+        run: node scripts/ci/check-guards-wired.mjs
+
       # Mutation gate: no-op every tested guard and require each guard's test to FAIL. A test that
       # still passes is vacuous and would let a broken guard ship a false green (ADR-0023). Runs the
       # guard smoke suite once with each guard stubbed; restores every guard in a finally.
@@ -389,6 +394,7 @@ jobs:
           - check-no-tier0-preference-gate.mjs
           - check-no-unsigned-jwt-auth.mjs
           - check-edge-audit-wrapper-coverage.mjs
+          - check-no-raw-functions-error-shape.mjs
           - check-guard-has-test.mjs
     steps:
       - name: Checkout
@@ -429,6 +435,7 @@ jobs:
           - check-translator-volatile-regions.mjs
           - check-triage-actionable-parity.mjs
           - check-profiles-id-auth-uid.mjs
+          - check-progress-identity-sql-smoke.mjs
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
