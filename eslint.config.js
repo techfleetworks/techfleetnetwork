@@ -138,7 +138,9 @@ export default tseslint.config(
       "css-portability/no-vh-units": "warn",
       "discord-connect/no-raw-discord-input": "warn",
       "triage-permanent/no-direct-error-reporter": "warn",
-      "triage-permanent/no-raw-functions-invoke": "warn",
+      // error + shrink-only per-file grandfather budget (scripts/lint/raw-invoke-grandfather.json):
+      // new raw invokes are impossible without visibly raising a budget; ADR-0028 / Phase 1.
+      "triage-permanent/no-raw-functions-invoke": "error",
       "triage-permanent/no-supabase-single": "warn",
       "triage-permanent/no-rpc-then-catch": "error",
       // Warn-only initially — promote to error after services baseline is at

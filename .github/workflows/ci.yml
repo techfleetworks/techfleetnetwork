@@ -134,6 +134,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0 # check-raw-invoke-budget-shrinks needs origin/main to diff the budget
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -183,6 +185,11 @@ jobs:
       # (the ADR-0024 gap, now mechanized). Fails if any check-*.mjs is referenced by no workflow.
       - name: Guard — every guard is wired into CI (no unwired guards)
         run: node scripts/ci/check-guards-wired.mjs
+
+      # The raw-invoke grandfather budget (scripts/lint/raw-invoke-grandfather.json) may only shrink,
+      # so a dev cannot raise a number to sneak past the no-raw-functions-invoke lint (ADR-0028).
+      - name: Guard — raw-invoke budget only shrinks
+        run: node scripts/ci/check-raw-invoke-budget-shrinks.mjs
 
       # Mutation gate: no-op every tested guard and require each guard's test to FAIL. A test that
       # still passes is vacuous and would let a broken guard ship a false green (ADR-0023). Runs the
