@@ -7,14 +7,8 @@
     "src/features/auth/ports/captcha-state.port.ts",
     "src/features/auth/ports/lockout.port.ts",
     "src/features/auth/ports/telemetry.port.ts",
-    "src/lib/__tests__/auth-captcha-lifecycle.test.ts",
-    "src/lib/__tests__/auth-vichea-regression.test.ts",
     "src/lib/client-request-throttle.ts",
     "src/lib/turnstile-verification.ts",
-    "src/main.tsx",
-    "src/test/lib/auth-captcha.test.ts",
-    "src/test/lib/auth-lockout.test.ts",
-    "src/test/regression/incidents/captcha-transient-error-no-lockout-2026-08.test.tsx",
-    "src/test/ui/TurnstileChallenge.register-captcha-gate.test.tsx"
+    "src/main.tsx"
   ]
 }
