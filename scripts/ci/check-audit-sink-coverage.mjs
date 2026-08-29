@@ -15,6 +15,7 @@
  */
 
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 function hasPsql() {
   try {
@@ -31,33 +32,53 @@ function q(sql) {
   }).trim();
 }
 
-if (!hasPsql() || !process.env.PGHOST) {
-  // Env-gated skip — transparent, NOT a false green. This guard needs a Postgres
-  // connection (psql + PGHOST). It runs today only in the INFORMATIONAL lint-arch
-  // job, which provides no DB, so it does not currently verify in CI — a known
-  // coverage gap tracked in review-followups.md (give it a DB, or move it to a
-  // DB-backed job). The ::notice:: makes the non-execution visible; it never
-  // claims a pass. (Do NOT flip this to a hard fail while it lives in lint-arch:
-  // that only produces a permanent misleading red, not real verification.)
-  console.log(
-    "::notice::[audit-sink-coverage] SKIPPED — psql/PGHOST not available, so audit-sink " +
-      "coverage was NOT verified in this run. Provide a Postgres env to activate this guard."
+// Test-only seam (mirrors the GUARD_*_ROOT seams): when set, read the two
+// inputs — the public-table list and the registered table_names — from this
+// JSON fixture ({ "tables": [...], "registered": [...] }) instead of psql, so
+// the coverage-diff detection is exercisable in CI without a live DB. NEVER set
+// in prod/CI.
+const FIXTURE = process.env.AUDIT_SINK_FIXTURE?.trim();
+
+let publicTables;
+let registered;
+
+if (FIXTURE) {
+  const f = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  publicTables = (Array.isArray(f.tables) ? f.tables : []).filter(Boolean);
+  registered = new Set((Array.isArray(f.registered) ? f.registered : []).filter(Boolean));
+} else {
+  if (!hasPsql() || !process.env.PGHOST) {
+    // Env-gated skip — transparent, NOT a false green. This guard needs a Postgres
+    // connection (psql + PGHOST). It runs today only in the INFORMATIONAL lint-arch
+    // job, which provides no DB, so it does not currently verify in CI — a known
+    // coverage gap tracked in review-followups.md (give it a DB, or move it to a
+    // DB-backed job). The ::notice:: makes the non-execution visible; it never
+    // claims a pass. (Do NOT flip this to a hard fail while it lives in lint-arch:
+    // that only produces a permanent misleading red, not real verification.)
+    console.log(
+      "::notice::[audit-sink-coverage] SKIPPED — psql/PGHOST not available, so audit-sink " +
+        "coverage was NOT verified in this run. Provide a Postgres env to activate this guard."
+    );
+    process.exit(0);
+  }
+
+  publicTables = q(`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname='public'
+      AND tablename NOT LIKE 'pg_%'
+      AND tablename NOT LIKE '_realtime%'
+    ORDER BY 1
+  `)
+    .split("\n")
+    .filter(Boolean);
+
+  registered = new Set(
+    q(`SELECT table_name FROM public.audit_sink_registry`).split("\n").filter(Boolean)
   );
-  process.exit(0);
 }
 
-const publicTables = q(`
-  SELECT tablename FROM pg_tables
-  WHERE schemaname='public'
-    AND tablename NOT LIKE 'pg_%'
-    AND tablename NOT LIKE '_realtime%'
-  ORDER BY 1
-`)
-  .split("\n")
-  .filter(Boolean);
-
 // Fail closed: an empty discovery set means a broken connection or wrong
-// search_path, NOT a clean schema — never let that read as a pass.
+// search_path (or an empty fixture), NOT a clean schema — never let that read as a pass.
 if (publicTables.length === 0) {
   console.error(
     "[audit-sink-coverage] FAIL — discovery query returned 0 public tables. " +
@@ -65,10 +86,6 @@ if (publicTables.length === 0) {
   );
   process.exit(1);
 }
-
-const registered = new Set(
-  q(`SELECT table_name FROM public.audit_sink_registry`).split("\n").filter(Boolean)
-);
 
 const missing = publicTables.filter((t) => !registered.has(t));
 
