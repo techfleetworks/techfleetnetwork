@@ -81,12 +81,19 @@ code example in the file where the code lives, wired into the mechanical gate, p
 That is how a lesson survives the session it was learned in. This file, `decisions.md`, and the
 guards are the accumulated result.
 
-## Open gap (help wanted)
+## Adversarial review in CI (the former "open gap")
 
-judge-arch (the adversarial LLM review) is currently **agent-run convention**, not a CI gate — a
-human-opened PR gets the mechanical gates but not the adversarial review. Closing it means an
-**LLM-review GitHub Action** that runs judge-arch's rubric on every diff and blocks/comments.
-That is the last convention-only step; until it exists, this file is what makes the review happen.
+judge-arch (the adversarial four-questions review) began as **agent-run convention** — a
+human-opened PR got the mechanical gates but not the adversarial review. That gap is now closed by
+the **`llm-arch-review` Action** (`.github/workflows/llm-arch-review.yml` →
+`scripts/ci/llm-arch-review.mjs`): it runs the same rubric on every PR diff and posts an advisory
+comment, so a review happens whether or not an agent opened the PR (see ADR-0025).
+
+It is **advisory** today (informational; never fails the build) following the repo's "observe, then
+block" ratchet — promote it to blocking by setting `ENFORCE: "1"` in the workflow once the team
+trusts its signal. It is not a substitute for an agent running `judge-arch` locally before "done":
+the Action reviews the diff after the fact, the agent's review shapes the change as it is written.
+Fork PRs (no secret access) self-skip; the local `judge-arch` convention still covers those.
 
 ## Environment notes for agents
 
