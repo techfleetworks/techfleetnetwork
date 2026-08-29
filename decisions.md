@@ -154,6 +154,28 @@ tracked in `docs/architecture/audit-2026-08/review-followups.md`.
 
 ---
 
+## 7 · Schema changes are expand/contract
+
+Migrations are hand-applied (`supabase db push`) and forward-only, and one can be live on prod **while
+the old code still runs** (a `db push` is not atomic with a deploy). So a migration must be safe to apply
+before the code that needs it ships, and safe to leave applied if that code rolls back.
+
+```sql
+-- ❌ never — breaks still-running old code the instant it applies
+ALTER TABLE profiles RENAME COLUMN full_name TO display_name;
+ALTER TABLE orders  ADD COLUMN owner_id uuid NOT NULL;
+-- ✅ always — EXPAND now (additive + backfill), CONTRACT in a later migration once no code uses the old shape
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + backfill + dual-write in code
+-- … later, separate migration: ALTER TABLE profiles DROP COLUMN IF EXISTS full_name;  -- contract
+```
+
+Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
+in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
+half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
+(builds on ADR-0020's applied-verification gate, ADR-0024's prove-at-the-owning-layer/pgTAP).
+
+---
+
 ## Decision log (ADRs)
 
 Bigger or reversible decisions (which email pipeline is canonical, who owns `freescout_customer_id`,
