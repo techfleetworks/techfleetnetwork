@@ -22,15 +22,28 @@ describe("support polish (smoke)", () => {
     expect(helper).toMatch(/const dupId = await recentDuplicateTicketId\(prof\.user_id, subject\)/);
     expect(helper).toMatch(/return \{ status: "ok", conversationId: dupId \}/);
     // Web create path dedupes on the same subject+owner window before creating.
+    // Scope the checks to the `create` case and assert the real idempotency
+    // shape rather than a char-distance window: a pointer lookup keyed on the
+    // owner (customer_user_id) + subject, bounded to a recent created_at window,
+    // that short-circuits with `deduped: true`. (A char-distance regex here broke
+    // when prettier reflowed the query chain onto more lines — same behavior,
+    // wider span — so match the semantics instead.)
     expect(proxy).toMatch(/case "create":/);
-    expect(proxy).toMatch(/from\("support_ticket_pointers"\)[\s\S]{0,400}deduped: true/);
+    const createCase = proxy.slice(proxy.indexOf('case "create":'), proxy.indexOf('case "reply":'));
+    expect(createCase).toMatch(/from\("support_ticket_pointers"\)/);
+    expect(createCase).toMatch(/\.eq\("customer_user_id", auth\.userId\)/);
+    expect(createCase).toMatch(/\.eq\("subject", input\.subject\)/);
+    expect(createCase).toMatch(/\.gte\("created_at",/);
+    expect(createCase).toMatch(/deduped: true/);
   });
 
   it("MEM-SCALE-001: the drift sweep is scoped to membership-relevant profiles (10k-scale)", () => {
     expect(reprojectMig).toBeTruthy();
     expect(reprojectMig).toMatch(/create or replace function public\.reproject_membership_drift/i);
     // Loop 2 now skips provably-starter, no-sales profiles.
-    expect(reprojectMig).toMatch(/membership_tier <> 'starter'\s*\n\s*OR EXISTS \(SELECT 1 FROM public\.gumroad_sales/i);
+    expect(reprojectMig).toMatch(
+      /membership_tier <> 'starter'\s*\n\s*OR EXISTS \(SELECT 1 FROM public\.gumroad_sales/i
+    );
     // Tripwire (loop 1) + severity tag preserved.
     expect(reprojectMig).toMatch(/membership_invariant_violation/);
     expect(reprojectMig).toMatch(/'severity:error'/);
