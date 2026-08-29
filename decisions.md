@@ -150,7 +150,9 @@ and its committed test must go red. See ADR-0022, ADR-0023; the transferable pla
 `check-ci-guard-integrity.mjs` (wired into the required gate) enforces the worst case — no
 `exit(0)` inside a `catch`; a deliberate fail-open opts out with a `// ci-guard-integrity-ok: <reason>`
 marker. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining guards) is
-tracked in `docs/architecture/audit-2026-08/review-followups.md`.
+tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
+`check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
+verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.
 
 ---
 
@@ -173,6 +175,33 @@ Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
 (builds on ADR-0020's applied-verification gate, ADR-0024's prove-at-the-owning-layer/pgTAP).
+
+---
+
+## 8 · The raw edge-error shape has one owner
+
+`invokeEdge` normalizes edge failures into a typed `EdgeInvokeError`. Only the error
+normalization/classification layer may touch the raw supabase error shape; every other consumer uses
+the normalized form.
+
+```ts
+// ❌ never (outside src/lib/errors, transient-*, error-reporter, invokeEdge)
+const status = (error as { context?: { status?: number } }).context?.status;
+if (err instanceof FunctionsHttpError) {
+  /* … */
+}
+// ✅ always — route through invokeEdge and read the typed field
+const data = await invokeEdge<T>("fn", { body }); // throws EdgeInvokeError
+// in catch: const status = err instanceof EdgeInvokeError ? err.status : undefined;
+```
+
+Enforced by `scripts/ci/check-no-raw-functions-error-shape.mjs` (blocking) — defense-in-depth that
+blocks the **common, direct** couplings (`.context.status`, `["context"]`, `instanceof`/`.name ===`
+`Functions*Error`). It is a regex guard, so it is **not** complete: intermediate-variable / aliased /
+destructured access slips past it. The **by-construction** guarantee comes from Phase 1's no-raw-invoke
+ban — once `no-raw-functions-invoke` is `error` and every call goes through `invokeEdge`, consumers never
+receive a raw error to couple to. Residual coupled consumers at un-migrated raw-invoke sites are tracked
+for Phase 1. Rationale: **ADR-0028**.
 
 ---
 

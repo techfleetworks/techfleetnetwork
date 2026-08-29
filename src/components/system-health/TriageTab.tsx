@@ -12,14 +12,28 @@
  */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
+import { EdgeInvokeError } from "@/lib/errors/AppError";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, ExternalLink, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import {
+  Sparkles,
+  RefreshCw,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { KnownIssuePanel } from "./KnownIssuePanel";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -64,7 +78,9 @@ const statusVariant: Record<FixStatus, "default" | "secondary" | "destructive" |
 };
 
 function buildLovablePrompt(row: FixQueueRow): string {
-  const filesList = row.proposed_fix_files.map((f) => `- ${f.path}: ${f.change_summary}`).join("\n");
+  const filesList = row.proposed_fix_files
+    .map((f) => `- ${f.path}: ${f.change_summary}`)
+    .join("\n");
   return [
     `Apply the following triaged fix from the System Health queue.`,
     ``,
@@ -128,7 +144,9 @@ export function TriageTab() {
     }
   }, []);
 
-  useEffect(() => { void fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    void fetchAll();
+  }, [fetchAll]);
 
   const openDetails = useCallback(async (row: FixQueueRow) => {
     setDetailRow(row);
@@ -154,23 +172,34 @@ export function TriageTab() {
   const runTriage = async (row: FixQueueRow) => {
     setBusyId(row.id);
     try {
-      const { data, error } = await supabase.functions.invoke("triage-error", {
-        body: { fix_queue_id: row.id },
-      });
-      if (error) {
-        const status = (error as { context?: { status?: number } }).context?.status;
+      let data: {
+        auto_silenced?: boolean;
+        reason?: string;
+        pattern?: string;
+        cost_estimate_usd?: number;
+      };
+      try {
+        // noRetry: triage-error consumes a 20/day AI cap and is not idempotent — a retry after a
+        // network blip could double-spend the cap. (The old raw invoke never retried.)
+        data = await invokeEdge("triage-error", { body: { fix_queue_id: row.id }, noRetry: true });
+      } catch (err) {
+        // Read the normalized status off EdgeInvokeError — never the raw supabase error shape.
+        const status = err instanceof EdgeInvokeError ? err.status : undefined;
         if (status === 429) {
           toast.error("Daily AI triage cap reached (20/day).");
         } else {
-          toast.error("Triage failed", { description: error.message });
+          toast.error("Triage failed", {
+            description: err instanceof Error ? err.message : String(err),
+          });
         }
         return;
       }
       if (data?.auto_silenced) {
         toast.success("Auto-silenced", {
-          description: data.reason === "opaque_script_error"
-            ? "Opaque cross-origin script error (permanent backstop)."
-            : `Known issue match: ${String(data.pattern ?? "").slice(0, 80)}`,
+          description:
+            data.reason === "opaque_script_error"
+              ? "Opaque cross-origin script error (permanent backstop)."
+              : `Known issue match: ${String(data.pattern ?? "").slice(0, 80)}`,
         });
       } else {
         toast.success("Triage complete", {
@@ -205,7 +234,10 @@ export function TriageTab() {
   const snooze = async (row: FixQueueRow, days = 7) => {
     setBusyId(row.id);
     try {
-      const { error } = await supabase.rpc("snooze_fix_queue_entry", { p_id: row.id, p_days: days });
+      const { error } = await supabase.rpc("snooze_fix_queue_entry", {
+        p_id: row.id,
+        p_days: days,
+      });
       if (error) throw error;
       toast.success(`Snoozed ${days}d`);
       setDetailRow(null);
@@ -261,13 +293,12 @@ export function TriageTab() {
           <div>
             <CardTitle className="text-lg">Error Triage Queue</CardTitle>
             <CardDescription>
-              Deduplicated error fingerprints from the audit log. Run AI triage to get a root-cause hypothesis and proposed fix.
+              Deduplicated error fingerprints from the audit log. Run AI triage to get a root-cause
+              hypothesis and proposed fix.
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline">
-              AI budget: {budgetUsed ?? 0} / 20 today
-            </Badge>
+            <Badge variant="outline">AI budget: {budgetUsed ?? 0} / 20 today</Badge>
             <Button size="sm" variant="outline" onClick={fetchAll} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
@@ -306,23 +337,18 @@ export function TriageTab() {
                         <Badge variant={statusVariant[row.status]}>{row.status}</Badge>
                         <Badge variant="outline">{row.event_type}</Badge>
                         <Badge variant="secondary">×{row.occurrence_count}</Badge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {row.source}
-                        </span>
+                        <span className="text-xs text-muted-foreground truncate">{row.source}</span>
                       </div>
                       <p className="text-sm text-foreground truncate font-mono">
                         {row.error_message}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Last seen {formatDistanceToNow(new Date(row.last_seen_at), { addSuffix: true })}
+                        Last seen{" "}
+                        {formatDistanceToNow(new Date(row.last_seen_at), { addSuffix: true })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openDetails(row)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => openDetails(row)}>
                         Details
                       </Button>
                       {row.status === "pending" && (
@@ -352,7 +378,8 @@ export function TriageTab() {
           {detailRow && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">{detailRow.event_type}
+                <DialogTitle className="flex items-center gap-2">
+                  {detailRow.event_type}
                 </DialogTitle>
                 <DialogDescription className="font-mono text-xs">
                   {detailRow.source}
@@ -401,9 +428,12 @@ export function TriageTab() {
                       {auditRows.map((a) => (
                         <li key={a.id} className="text-xs border-l-2 border-primary/40 pl-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="font-mono">{a.rule_name}</Badge>
+                            <Badge variant="outline" className="font-mono">
+                              {a.rule_name}
+                            </Badge>
                             <span className="text-muted-foreground">
-                              {a.from_status ?? "—"} → <span className="text-foreground font-medium">{a.to_status}</span>
+                              {a.from_status ?? "—"} →{" "}
+                              <span className="text-foreground font-medium">{a.to_status}</span>
                             </span>
                             <span className="text-muted-foreground">
                               {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
@@ -467,9 +497,19 @@ export function TriageTab() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: "default" | "danger" }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "default" | "danger";
+}) {
   return (
-    <div className={`rounded-md border p-3 ${tone === "danger" && value > 0 ? "border-destructive/40 bg-destructive/5" : ""}`}>
+    <div
+      className={`rounded-md border p-3 ${tone === "danger" && value > 0 ? "border-destructive/40 bg-destructive/5" : ""}`}
+    >
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-2xl font-bold text-foreground">{value}</p>
     </div>
