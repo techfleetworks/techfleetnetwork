@@ -45,7 +45,7 @@
   "src/services/announcement.service.ts": 1,
   "src/services/class-emails.ts": 1,
   "src/services/discord-notify.service.ts": 5,
-  "src/services/explore.service.ts": 2,
+  "src/services/explore.service.ts": 1,
   "src/services/general-application.service.ts": 1,
   "src/test/features/auth/session-and-reset.service.test.ts": 15,
   "src/test/lib/email-domain-validation.test.ts": 4
