@@ -717,6 +717,15 @@ function isOpaqueScriptError(_event: ErrorEvent, msg: string): boolean {
 // regressions (e.g. a new browser extension flooding noise) in System Health.
 const suppressedCounts = new Map<string, number>();
 const dedupCounts = new Map<string, number>();
+// ADR-0031: classifier drops (classify().report === false in report.ts) are
+// recorded here so report() never has a silent-return black hole. Keyed by
+// `${reason}::${source}`, flushed on the SAME 60s timer as suppression/dedup and
+// emitted as aggregate client_error_suppressed rows tagged `classified:<reason>`
+// (reusing an existing non-actionable event type — no new type, no DB migration,
+// so check-triage-actionable-parity stays green). A rising count for a
+// reason/source is the fingerprint of a persistent failure masquerading as
+// transient. NOT per-occurrence — ADR-0021's no-Triage-flood guarantee stands.
+const classifiedDropCounts = new Map<string, number>();
 let suppressionFlushTimer: ReturnType<typeof setTimeout> | null = null;
 const SUPPRESSION_FLUSH_MS = 60_000;
 
@@ -726,8 +735,10 @@ function scheduleSuppressionFlush() {
     suppressionFlushTimer = null;
     const supEntries = [...suppressedCounts.entries()];
     const dedupEntries = [...dedupCounts.entries()];
+    const classifiedEntries = [...classifiedDropCounts.entries()];
     suppressedCounts.clear();
     dedupCounts.clear();
+    classifiedDropCounts.clear();
     for (const [pattern, count] of supEntries) {
       if (count <= 0) continue;
       void writeAudit({
@@ -758,6 +769,28 @@ function scheduleSuppressionFlush() {
         userId: undefined,
       });
     }
+    // ADR-0031: classifier drops, aggregated by (reason, source). Emitted under
+    // the existing non-actionable `client_error_suppressed` type, tagged
+    // `classified:<reason>` so admins can distinguish a transient/infra spike
+    // from extension noise in System Health — without any per-occurrence row.
+    for (const [key, count] of classifiedEntries) {
+      if (count <= 0) continue;
+      const sep = key.indexOf("::");
+      const reason = sep >= 0 ? key.slice(0, sep) : key;
+      const src = sep >= 0 ? key.slice(sep + 2) : "classifier";
+      void writeAudit({
+        eventType: "client_error_suppressed",
+        message: `${count} error(s) dropped by structural classifier (${reason})`,
+        source: (src || "classifier").slice(0, 200),
+        severity: "warn",
+        traceId: undefined,
+        extraFields: [
+          `classified:${(reason || "unknown").replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 60)}`,
+          `count:${count}`,
+        ],
+        userId: undefined,
+      });
+    }
   }, SUPPRESSION_FLUSH_MS);
 }
 
@@ -768,6 +801,22 @@ function recordSuppression(pattern: string) {
 
 function recordDedup(fp: string) {
   dedupCounts.set(fp, (dedupCounts.get(fp) ?? 0) + 1);
+  scheduleSuppressionFlush();
+}
+
+/**
+ * ADR-0031: record a structural-classifier drop (classify().report === false)
+ * so `report()` in report.ts never silently returns. Aggregated by
+ * (reason, source) and flushed once/min as a non-actionable
+ * `client_error_suppressed` row tagged `classified:<reason>` — a rising count is
+ * a persistent failure masquerading as transient. Never per-occurrence, so the
+ * admin Triage queue stays clean (ADR-0021). This is the single sanctioned entry
+ * point for the classifier-drop tier; report.ts calls it and the guard
+ * check-report-has-no-silent-drop asserts that it does.
+ */
+export function recordClassifiedDrop(reason: string, source: string): void {
+  const key = `${reason || "unknown"}::${source || "unknown"}`;
+  classifiedDropCounts.set(key, (classifiedDropCounts.get(key) ?? 0) + 1);
   scheduleSuppressionFlush();
 }
 

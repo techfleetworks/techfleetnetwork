@@ -18,6 +18,7 @@ import {
   reportActivity as internalReportActivity,
   reportRecovery as internalReportRecovery,
   reportValidationRejection as internalReportValidationRejection,
+  recordClassifiedDrop,
   type ReportSeverity,
   type ReportEventType,
 } from "@/services/error-reporter.service";
@@ -42,6 +43,14 @@ export interface ReportContext {
 export function report(error: unknown, ctx: ReportContext): void {
   const classified = classify(error);
   if (!classified.report) {
+    // ADR-0031: a classified drop is NEVER a black hole. Feed it into the same
+    // per-minute aggregate the reporter already uses for suppression/dedup,
+    // keyed by (reason, source), so a spike in e.g. infra_transient for a given
+    // source surfaces in System Health — with zero per-occurrence audit spam
+    // (ADR-0021 preserved). The guard check-report-has-no-silent-drop enforces
+    // that this branch records before it returns; do not replace this with a
+    // bare `return`.
+    recordClassifiedDrop(classified.reason ?? "unknown", ctx.source);
     // Optional dev breadcrumb so a developer can still see what was dropped.
     if (typeof window !== "undefined" && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
       // eslint-disable-next-line no-console
