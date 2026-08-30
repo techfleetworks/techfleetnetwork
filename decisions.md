@@ -72,6 +72,22 @@ try { await auditedInvoke('promote-teacher') } catch (e) { report(e); toast.erro
 `invokeEdge`/`auditedInvoke` report + retry; a bare `console.error` is not reporting (the logger
 only writes to the browser console). Prefer flipping `no-raw-functions-invoke` to `error`.
 
+The reporter is symmetric: an error the structural classifier _drops_ (`classify().report === false`)
+is **still tracked** — in aggregate, never a silent `return` (ADR-0031).
+
+```
+❌ never — a classifier drop that vanishes: a persistently-broken backend seen as "transient"
+           (every 500/timeout is) leaves ZERO durable signal, so the outage is invisible
+if (!classify(err).report) return;
+✅ always — record the drop into the per-minute aggregate; a spike surfaces in System Health
+if (!classify(err).report) { recordClassifiedDrop(reason, source); return; }
+```
+
+Enforced by `scripts/ci/check-report-has-no-silent-drop.mjs` (AST: report()'s `!classified.report`
+branch must call `recordClassifiedDrop` before it returns; fails closed if that branch is gone).
+Per ADR-0021 this stays **aggregate** (one `client_error_suppressed` row per reason/source per
+minute, tagged `classified:<reason>`), never a per-occurrence audit row.
+
 ## 5 · Edge functions compose `_shared`
 
 ```

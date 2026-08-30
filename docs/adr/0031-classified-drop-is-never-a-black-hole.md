@@ -1,0 +1,46 @@
+# ADR 0031 — A classified error is never a black hole: every drop is tracked in aggregate
+
+- Status: Accepted
+- Date: 2026-08-30
+- Deciders: TechFleet (owner)
+- Related: ADR-0021 (structural classifier — stops per-occurrence transient spam; this ADR closes the gap it left open); `decisions.md §4` (Every failure reports — this extends §4 to the classifier-drop path); `src/lib/observability/report.ts`, `src/lib/observability/classify.ts`, `src/services/error-reporter.service.ts`; guard `scripts/ci/check-report-has-no-silent-drop.mjs`.
+
+## Context
+
+ADR-0021 gave us a **structural classifier** (`classify()`): errors that are provably not Tech Fleet bugs — browser-extension frames, offline state, hidden-tab fetch aborts, `AbortError`, cross-origin-frame access, and transient PG/PostgREST/HTTP infra failures (`isTransientError`) — are marked `report: false` so they never flood the admin Triage queue. This was correct and load-bearing: `AbortError` alone was once 133 events in 19 minutes.
+
+But `report()` (report.ts) implements `report: false` as a **bare `return`** — the only surviving trace is a `console.debug` gated on `import.meta.env.DEV`, i.e. **nothing in production**. So a "transient" classification produces _zero durable signal_. And "transient" is broad: `isTransientError` matches **every** `500/502/503/504` and anything matching `/timeout/i`. A backend that fails _persistently_ — an edge function that throws 500 on every call, or a downstream that is genuinely down so every call times out — is classified transient and dropped completely. The very thing that distinguishes a real bug from a blip — **persistence** (it happens every time, to everyone) — is the signal we were throwing away.
+
+The owner's concern, verbatim: _"what if the things that are not tracked actually are sneaky bugs? … track them the same way you track failures."_ The instinct is right; the naïve implementation (a per-occurrence `audit_log` row per transient) is wrong — it recreates exactly the flood ADR-0021 exists to stop, and buries the real signal in noise.
+
+Crucially, **the codebase already solved this for its other drops.** `error-reporter.service.ts` records pattern-suppressed and deduped drops via `recordSuppression()` / `recordDedup()`, which feed a once-per-minute **aggregate rollup** (`client_error_suppressed` / `client_error_deduped`) — the code comment states the principle outright: _"We never want suppression / dedup to be a black hole."_ The classifier-drop path in `report()` simply **bypasses** that mechanism (verified: `recordSuppression` / `recordDedup` are called only inside `error-reporter.service.ts`, never from `report.ts`). This is an inconsistency, not a designed exemption.
+
+## Decision
+
+**`report()` has no code path that produces zero durable signal.** The classifier stops deciding _whether_ to record and only decides _which tier_:
+
+1. **Delete the silent `return`.** When `classify(error).report === false`, `report()` calls a new exported `recordClassifiedDrop(reason, source)` in `error-reporter.service.ts` _before_ returning. That recorder feeds the **same** per-minute aggregate the service already uses for suppression/dedup — a `classifiedDropCounts` map keyed by `(reason, source)`, flushed on the existing `scheduleSuppressionFlush` 60s timer.
+2. **Reuse the existing non-actionable event type — no new type, no migration.** The rollup is emitted as a `client_error_suppressed` row (already in `NON_ACTIONABLE_EVENT_TYPES` and in the DB `is_actionable_event_type` allowlist), distinguished by a `classified:<reason>` field and the offending `source`. Introducing a _new_ event type was rejected precisely because `check-triage-actionable-parity` requires every TS non-actionable type to also exist in a DB migration of `public.is_actionable_event_type` — migrations are hand-applied (not in CI), so a new type would red the parity gate until a migration shipped. Reusing `client_error_suppressed` keeps the parity gate green with zero schema change. A rising `classified:infra_transient` count for a given source now surfaces in System Health — the fingerprint of a bug wearing a transient costume — with **zero** per-occurrence audit spam.
+3. **A guard makes it un-reintroducible.** `scripts/ci/check-report-has-no-silent-drop.mjs` (blocking, `lint-arch-critical`) parses `report.ts` with the TypeScript compiler API, locates the `report` function's `!classified.report` branch, and asserts that branch contains a `recordClassifiedDrop(...)` call — failing **closed** (exit 2) if the function or branch can't be found (structure changed) so it can never pass vacuously. Its committed smoke test runs the guard against fixtures (silent-return → exit 1; recorder-then-return → exit 0; the real `report.ts` → exit 0) and it discriminates under the mutation gate (ADR-0023), per decisions.md §6.
+
+## Considered options
+
+- **(chosen) No silent drop — every classified drop feeds the existing per-minute aggregate (reusing `client_error_suppressed`), keyed by reason+source; guard-enforced.** Reuses the mechanism already in the service ("never a black hole"), matches the surrounding code, gives spike-visibility with no per-occurrence flood, needs no schema change, and is structurally enforced.
+- **New dedicated event type `client_error_classified_drop`.** Rejected — cleaner label, but it would fail `check-triage-actionable-parity` until a hand-applied DB migration added it to `is_actionable_event_type`, blocking CI. The `classified:<reason>` field on a `client_error_suppressed` row gives the same admin-visible distinction with no migration.
+- **Per-occurrence `audit_log` row per transient ("track them the same way = one row each").** Rejected — this _is_ the flood ADR-0021 removed (thousands of rows from flaky networks); it buries the sneaky bug in noise and costs rows/budget. Alert fatigue is a failure mode, not a safety margin.
+- **Route transients through the existing `infra_transient` per-occurrence path (severity `info`, rate-limited + deduped).** Rejected as the default — still per-occurrence (bounded, but noisier than needed) and asymmetric with how suppression/dedup drops are already aggregated. That path remains available for a caller that deliberately wants per-occurrence infra visibility.
+- **Auto-escalate a spike to an actionable Triage row above a threshold.** Deferred, not rejected — see Consequences. The aggregate makes the spike _visible_; automatic escalation is a threshold-tuning layer that can be added later without changing this structure.
+- **Leave it as a silent drop (status quo).** Rejected — it is the one true black hole in the reporter and it hides persistent backend failures, the highest-value class to catch.
+
+## Consequences
+
+- **Positive:** no error path produces zero durable signal — the "never a black hole" invariant is now uniform across suppression, dedup, _and_ classifier drops; a persistent failure misclassified as transient becomes visible as a rising aggregate count instead of vanishing; ADR-0021's no-per-occurrence-spam guarantee is fully preserved (this adds an aggregate tier, it does not re-enable per-occurrence transient rows); the drop path cannot be re-hollowed to a bare `return` without CI going red.
+- **Negative / trade-offs (honest scope of the guarantee):**
+  - **What is structural:** `report()` cannot silently drop, and a developer cannot re-introduce a black-hole `return` — the guard fails closed. Guard- and test-enforced for every developer.
+  - **What is _not_ structural (tuning, stated plainly):** whether a spike _auto-escalates_ to an actionable row is a **threshold**, a tuning parameter — kept conservative and testable, not a structural promise. Detecting a spike still means someone (or a future scheduled check) reading the aggregate; visibility is guaranteed, escalation is policy.
+  - **Per-tab, per-minute flush.** The aggregate is buffered in the tab and flushed on a 60s timer, so an abrupt tab close can lose up to one minute of counts for that tab. Bounded and client-side; acceptable for a rate signal (a real spike spans many tabs and minutes). Same posture as the existing suppression/dedup flush; not made worse by this change.
+  - **Cross-user aggregation is query-time.** A spike across many users is visible by querying the `client_error_suppressed` rows (filter `classified:*`) in System Health; there is no push alert. Same posture as the existing aggregate rows.
+
+## Confirmation
+
+`src/test/smoke/check-report-has-no-silent-drop.smoke.test.ts` proves the guard (silent-return fixture → exit 1; recorder-then-return fixture → exit 0; the real `report.ts` → exit 0) and it discriminates under the mutation gate. `src/test/observability/report.test.ts` proves the behavior: a transient / offline / aborted error routed through `report()` calls `recordClassifiedDrop` (≠ 0 durable signal) and does **not** write a per-occurrence `audit_log` row (ADR-0021 preserved); a genuine error still routes to `reportError`. `tsc --noEmit` clean. `check-triage-actionable-parity` stays green (no new event type). The guard is wired into the blocking `lint-arch-critical` matrix, has a committed test (`check-guard-has-test`), and is non-vacuous (`verify-guard-test-discrimination`).

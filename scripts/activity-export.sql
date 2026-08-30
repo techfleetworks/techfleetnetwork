@@ -75,6 +75,10 @@ order by 1, 2;
 
 -- B2. *** Error-storm proxy *** — the aggregate meta-events. Spikes here reveal
 --     error storms the log otherwise refuses to record. Most important chart.
+--     ADR-0031: `client_error_suppressed` now ALSO carries structural-classifier
+--     drops — a persistently-broken backend seen as "transient" spikes HERE
+--     instead of vanishing. To attribute the sub-type, drill into the
+--     `classified:<reason>` tag in changed_fields (e.g. classified:infra_transient).
 select date_trunc('day', created_at) as d, event_type, count(*) as n
 from public.audit_log
 where event_type in (
