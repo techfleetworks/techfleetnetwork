@@ -14,6 +14,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { createLogger } from "@/services/logger.service";
 import { reportError } from "@/services/error-reporter.service";
 import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
@@ -99,55 +100,60 @@ export function validateQuery(raw: string): { valid: boolean; sanitized: string;
 // ─── Popular & Recent Queries ───────────────────────────────────────
 
 export async function loadPopularAndRecent(): Promise<PopularQueryData> {
-  return log.track("loadPopularAndRecent", "Loading popular and recent queries", undefined, async () => {
-    const { data, error } = await supabase
-      .from("exploration_queries")
-      .select("query_text, created_at, user_id")
-      .order("created_at", { ascending: false })
-      .limit(POPULAR_QUERY_LIMIT);
+  return log.track(
+    "loadPopularAndRecent",
+    "Loading popular and recent queries",
+    undefined,
+    async () => {
+      const { data, error } = await supabase
+        .from("exploration_queries")
+        .select("query_text, created_at, user_id")
+        .order("created_at", { ascending: false })
+        .limit(POPULAR_QUERY_LIMIT);
 
-    if (error) {
-      log.warn("loadPopularAndRecent", `Query failed: ${error.message}`, {}, error);
-      return { top5: [], all: [], recents: [] };
-    }
-
-    if (!data || data.length === 0) {
-      return { top5: [], all: [], recents: [] };
-    }
-
-    // Count total explorations per normalized query (fuzzy grouping)
-    // so repeated clicks and similar searches both increase the tally.
-    const queryCounts = new Map<string, { count: number; displayText: string }>();
-    for (const row of data) {
-      const key = normalizeQueryKey(row.query_text);
-      if (!key) continue;
-      if (!queryCounts.has(key)) {
-        queryCounts.set(key, { count: 0, displayText: row.query_text.trim() });
+      if (error) {
+        log.warn("loadPopularAndRecent", `Query failed: ${error.message}`, {}, error);
+        return { top5: [], all: [], recents: [] };
       }
-      queryCounts.get(key)!.count += 1;
-    }
 
-    const sorted = Array.from(queryCounts.entries())
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([, entry]) => ({ query_text: entry.displayText, count: entry.count }));
-
-    // Deduplicated recent queries
-    const seenKeys = new Set<string>();
-    const recents: string[] = [];
-    for (const row of data) {
-      const key = normalizeQueryKey(row.query_text);
-      if (key && !seenKeys.has(key) && recents.length < 5) {
-        seenKeys.add(key);
-        recents.push(row.query_text.trim());
+      if (!data || data.length === 0) {
+        return { top5: [], all: [], recents: [] };
       }
-    }
 
-    return {
-      top5: sorted.slice(0, 5),
-      all: sorted,
-      recents,
-    };
-  });
+      // Count total explorations per normalized query (fuzzy grouping)
+      // so repeated clicks and similar searches both increase the tally.
+      const queryCounts = new Map<string, { count: number; displayText: string }>();
+      for (const row of data) {
+        const key = normalizeQueryKey(row.query_text);
+        if (!key) continue;
+        if (!queryCounts.has(key)) {
+          queryCounts.set(key, { count: 0, displayText: row.query_text.trim() });
+        }
+        queryCounts.get(key)!.count += 1;
+      }
+
+      const sorted = Array.from(queryCounts.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([, entry]) => ({ query_text: entry.displayText, count: entry.count }));
+
+      // Deduplicated recent queries
+      const seenKeys = new Set<string>();
+      const recents: string[] = [];
+      for (const row of data) {
+        const key = normalizeQueryKey(row.query_text);
+        if (key && !seenKeys.has(key) && recents.length < 5) {
+          seenKeys.add(key);
+          recents.push(row.query_text.trim());
+        }
+      }
+
+      return {
+        top5: sorted.slice(0, 5),
+        all: sorted,
+        recents,
+      };
+    }
+  );
 }
 
 // ─── Query Persistence ──────────────────────────────────────────────
@@ -191,12 +197,14 @@ export async function checkCache(normalizedKey: string): Promise<string | null> 
  */
 export async function writeCache(normalizedKey: string, markdown: string): Promise<void> {
   try {
-    const { error } = await supabase.functions.invoke("write-exploration-cache", {
+    await invokeEdge("write-exploration-cache", {
       body: { query_normalized: normalizedKey, response_markdown: markdown },
     });
-    if (error) throw error;
     log.debug("writeCache", "Cache written via edge function", { normalizedKey });
   } catch (err) {
+    // invokeEdge has already reported a real (non-transient) failure to the observability
+    // sink (classifier-gated) before throwing; we catch here only so this best-effort cache
+    // write can never break the caller. The failure is tracked, not silently dropped.
     log.warn("writeCache", "Failed to write cache (non-blocking)", {}, err);
   }
 }
@@ -206,10 +214,11 @@ export async function writeCache(normalizedKey: string, markdown: string): Promi
 export async function fetchWebResults(query: string): Promise<WebSearchResult[]> {
   try {
     const { data } = await edgeFunctionBreaker.executeWithFallback(
-      () => supabase.functions.invoke("firecrawl-search", {
-        body: { query, limit: WEB_SEARCH_LIMIT },
-      }),
-      { data: { success: false, results: [] }, error: null },
+      () =>
+        supabase.functions.invoke("firecrawl-search", {
+          body: { query, limit: WEB_SEARCH_LIMIT },
+        }),
+      { data: { success: false, results: [] }, error: null }
     );
 
     if (data?.success && Array.isArray(data.results)) {
@@ -280,7 +289,11 @@ export interface StreamOptions {
  * Stream AI recommendations via SSE. Protected by circuit breaker.
  * Returns the complete response text.
  */
-export async function streamRecommendations({ query, onChunk, signal }: StreamOptions): Promise<string> {
+export async function streamRecommendations({
+  query,
+  onChunk,
+  signal,
+}: StreamOptions): Promise<string> {
   return edgeFunctionBreaker.execute(async () => {
     // Use the authenticated user's session token (techfleet-chat requires a real user JWT).
     // Fall back to the anon key only when no session is present (public/landing usage).
@@ -316,8 +329,10 @@ export async function streamRecommendations({ query, onChunk, signal }: StreamOp
       // Consume body to avoid resource leak
       await resp.text().catch(() => {});
 
-      if (status === 429) throw new ExploreError("Too many requests. Please wait a moment.", "rate_limited");
-      if (status === 402) throw new ExploreError("AI usage limit reached. Please try again later.", "quota_exceeded");
+      if (status === 429)
+        throw new ExploreError("Too many requests. Please wait a moment.", "rate_limited");
+      if (status === 402)
+        throw new ExploreError("AI usage limit reached. Please try again later.", "quota_exceeded");
       throw new ExploreError(`AI service returned status ${status}`, "api_error");
     }
 
@@ -365,7 +380,13 @@ export async function streamRecommendations({ query, onChunk, signal }: StreamOp
 
 // ─── Custom Error ───────────────────────────────────────────────────
 
-export type ExploreErrorCode = "rate_limited" | "quota_exceeded" | "api_error" | "empty_response" | "validation" | "circuit_open";
+export type ExploreErrorCode =
+  | "rate_limited"
+  | "quota_exceeded"
+  | "api_error"
+  | "empty_response"
+  | "validation"
+  | "circuit_open";
 
 export class ExploreError extends Error {
   code: ExploreErrorCode;
@@ -408,7 +429,9 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
 
   // 2. Persist query (fire-and-forget)
   if (userId) {
-    persistQuery(userId, sanitizedQuery).catch((e) => reportError(e, "explore.persistQuery", { severity: "warn" }));
+    persistQuery(userId, sanitizedQuery).catch((e) =>
+      reportError(e, "explore.persistQuery", { severity: "warn" })
+    );
   }
 
   // 3. Check cache
@@ -416,12 +439,16 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
   if (cached) {
     onChunk(cached);
     // Still fire web search for supplemental results
-    fetchWebResults(sanitizedQuery).then(onWebResults).catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
+    fetchWebResults(sanitizedQuery)
+      .then(onWebResults)
+      .catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
     return { markdown: cached, fromCache: true };
   }
 
   // 4. Fire web search in parallel
-  fetchWebResults(sanitizedQuery).then(onWebResults).catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
+  fetchWebResults(sanitizedQuery)
+    .then(onWebResults)
+    .catch((e) => reportError(e, "explore.fetchWebResults", { severity: "warn" }));
 
   // 5. Stream AI response
   const markdown = await streamRecommendations({
@@ -432,7 +459,9 @@ export async function explore(options: ExploreOptions): Promise<ExploreResult> {
 
   // 6. Cache result (fire-and-forget)
   if (markdown.trim()) {
-    writeCache(normalizedKey, markdown).catch((e) => reportError(e, "explore.writeCache", { severity: "warn" }));
+    writeCache(normalizedKey, markdown).catch((e) =>
+      reportError(e, "explore.writeCache", { severity: "warn" })
+    );
   }
 
   return { markdown, fromCache: false };

@@ -1,5 +1,11 @@
+// bdd-gate coverage: src/services/explore.service.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { validateQuery } from "@/services/explore.service";
+import { validateQuery, writeCache } from "@/services/explore.service";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
+
+// writeCache routes through invokeEdge (Phase 1 migration); mock it so both the
+// happy path and the best-effort error-swallow can be exercised.
+vi.mock("@/lib/edge/invokeEdge", () => ({ invokeEdge: vi.fn() }));
 
 // Mock supabase to prevent import errors
 vi.mock("@/integrations/supabase/client", () => ({
@@ -52,6 +58,32 @@ describe("ExploreService", () => {
       const result = validateQuery(huge);
       expect(result.valid).toBe(false);
       expect(result.error).toContain("too long");
+    });
+  });
+
+  describe("writeCache (invokeEdge migration)", () => {
+    beforeEach(() => vi.mocked(invokeEdge).mockReset());
+
+    it("routes the cache write through invokeEdge with the expected body", async () => {
+      vi.mocked(invokeEdge).mockResolvedValue(undefined as never);
+      await writeCache("norm-key", "# markdown");
+      expect(invokeEdge).toHaveBeenCalledWith("write-exploration-cache", {
+        body: { query_normalized: "norm-key", response_markdown: "# markdown" },
+      });
+    });
+
+    it("is best-effort — swallows an edge failure and never throws", async () => {
+      vi.mocked(invokeEdge).mockImplementationOnce(async () => {
+        throw new Error("edge down");
+      });
+      let threw = false;
+      try {
+        await writeCache("k", "md");
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(false);
+      expect(invokeEdge).toHaveBeenCalledTimes(1);
     });
   });
 });
