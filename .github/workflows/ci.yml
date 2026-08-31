@@ -409,6 +409,7 @@ jobs:
           - check-edge-audit-wrapper-coverage.mjs
           - check-no-raw-functions-error-shape.mjs
           - check-report-has-no-silent-drop.mjs
+          - check-suppressforward-has-report.mjs
           - check-guard-has-test.mjs
     steps:
       - name: Checkout

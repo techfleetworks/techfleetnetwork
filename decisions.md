@@ -106,6 +106,20 @@ blocked. The grandfathered sites burn to zero. (Conservative gaps, by design, no
 a retry wrapper — `await withAuthLockRetry(() => supabase…)` — a non-standard client name, an
 intermediate variable, or `(await …).data`. Fail-safe — they burn down with review, they never false-pass.)
 
+And the `suppressForward` logger opt-out may be used **only** where the error is also reported (ADR-0033):
+
+```
+❌ never — silences the reporter bridge with nothing else reporting → silent drop once ramped
+log.error("save", msg, {}, err, { suppressForward: true });   // and no report/reportError in this fn
+✅ always — suppressForward pairs with a real report of the same error
+log.error("save", msg, {}, err, { suppressForward: true });
+reportError(err, "svc.save");   // (or handleServiceError, which reports itself)
+```
+
+Enforced by `scripts/ci/check-suppressforward-has-report.mjs` (AST: every `suppressForward: true`
+must have a `report`/`reportError`/`reportValidationRejection`/`handleServiceError` in its enclosing
+function; fails closed).
+
 ## 5 · Edge functions compose `_shared`
 
 ```
