@@ -11,6 +11,7 @@ import cssPortability from "./scripts/lint/eslint-plugin-css-portability.mjs";
 import noRawDiscordInput from "./scripts/lint/eslint-plugin-no-raw-discord-input.mjs";
 import noDirectErrorReporter from "./scripts/lint/eslint-plugin-no-direct-error-reporter.mjs";
 import noRawFunctionsInvoke from "./scripts/lint/eslint-plugin-no-raw-functions-invoke.mjs";
+import noDroppedSupabaseError from "./scripts/lint/eslint-plugin-no-dropped-supabase-error.mjs";
 import noSupabaseSingle from "./scripts/lint/eslint-plugin-no-supabase-single.mjs";
 import authInvariants from "./scripts/lint/eslint-plugin-auth-invariants.mjs";
 import lazyRequiresRetry from "./scripts/lint/eslint-plugin-lazy-requires-retry.mjs";
@@ -49,6 +50,7 @@ export default tseslint.config(
         rules: {
           "no-direct-error-reporter": noDirectErrorReporter,
           "no-raw-functions-invoke": noRawFunctionsInvoke,
+          "no-dropped-supabase-error": noDroppedSupabaseError,
           "no-supabase-single": noSupabaseSingle,
           // 2026-06-08 — guards against `supabase.rpc(...).catch(...)` which
           // throws "catch is not a function" at runtime (root cause of 18
@@ -141,6 +143,11 @@ export default tseslint.config(
       // error + shrink-only per-file grandfather budget (scripts/lint/raw-invoke-grandfather.json):
       // new raw invokes are impossible without visibly raising a budget; ADR-0028 / Phase 1.
       "triage-permanent/no-raw-functions-invoke": "error",
+      // ADR-0032: destructuring `data` from a supabase call without `error` drops the
+      // failure silently (the audit's #1 error-handling root cause). Error + shrink-only
+      // grandfather budget (scripts/lint/dropped-supabase-error-grandfather.json), scoped
+      // to src/services, src/hooks, and edge fns; burns to zero over Phase 1/3.
+      "triage-permanent/no-dropped-supabase-error": "error",
       "triage-permanent/no-supabase-single": "warn",
       "triage-permanent/no-rpc-then-catch": "error",
       // Warn-only initially — promote to error after services baseline is at

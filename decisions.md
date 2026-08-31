@@ -88,6 +88,24 @@ branch must call `recordClassifiedDrop` before it returns; fails closed if that 
 Per ADR-0021 this stays **aggregate** (one `client_error_suppressed` row per reason/source per
 minute, tagged `classified:<reason>`), never a per-occurrence audit row.
 
+And a supabase read must never **drop** its `error` — take `{ data, error }`, not `{ data }` (ADR-0032):
+
+```
+❌ never — a failed query is invisible: data is null and nothing knows why (blank data / infinite skeleton)
+const { data } = await supabase.from('projects').select()
+✅ always — take error and handle it (throw / report / branch)
+const { data, error } = await supabase.from('projects').select()
+if (error) throw error
+```
+
+Enforced by the `no-dropped-supabase-error` ESLint rule (`error`) + a shrink-only per-file budget
+(`scripts/lint/dropped-supabase-error-grandfather.json`) + `scripts/ci/check-dropped-supabase-error-budget-shrinks.mjs`,
+across `src/services`/`src/hooks`/edge (UI reads move into hooks in Phase 3). A new **directly-awaited**
+supabase read that drops `error` fails ESLint; raising the budget errors in the shrink guard — both
+blocked. The grandfathered sites burn to zero. (Conservative gaps, by design, not caught: a drop behind
+a retry wrapper — `await withAuthLockRetry(() => supabase…)` — a non-standard client name, an
+intermediate variable, or `(await …).data`. Fail-safe — they burn down with review, they never false-pass.)
+
 ## 5 · Edge functions compose `_shared`
 
 ```
