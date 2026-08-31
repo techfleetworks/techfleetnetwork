@@ -46,7 +46,12 @@ const feedbackSchema = z.object({
 });
 
 export const FeedbackService = {
-  async submit(userId: string, email: string, systemArea: string, message: string): Promise<boolean> {
+  async submit(
+    userId: string,
+    email: string,
+    systemArea: string,
+    message: string
+  ): Promise<boolean> {
     try {
       const parsed = feedbackSchema.safeParse({ email, systemArea, message });
       if (!parsed.success) {
@@ -66,14 +71,12 @@ export const FeedbackService = {
         return false;
       }
       const { error } = await retryTransientWrite(async () => {
-        const res = await supabase
-          .from("feedback")
-          .insert({
-            user_id: userId,
-            user_email: parsed.data.email,
-            system_area: parsed.data.systemArea,
-            message: parsed.data.message,
-          });
+        const res = await supabase.from("feedback").insert({
+          user_id: userId,
+          user_email: parsed.data.email,
+          system_area: parsed.data.systemArea,
+          message: parsed.data.message,
+        });
         return res;
       });
 
@@ -83,6 +86,7 @@ export const FeedbackService = {
           `Failed to submit feedback: ${error.message} (code: ${error.code})`,
           { userId, systemArea },
           error,
+          { suppressForward: true } // reportError below is the single report (ADR-0021 ramp)
         );
         // Forward to triage queue — RLS denials, network failures, etc.
         reportError(error, "feedback.submit.insert", {
@@ -103,6 +107,7 @@ export const FeedbackService = {
         `Unexpected error submitting feedback: ${err instanceof Error ? err.message : String(err)}`,
         { userId, systemArea },
         err,
+        { suppressForward: true } // reportError below is the single report (ADR-0021 ramp)
       );
       reportError(err, "feedback.submit", {
         userId,
@@ -122,7 +127,9 @@ export const FeedbackService = {
     );
 
     if (error) {
-      log.error("listAll", `Failed to list feedback: ${error.message}`, {}, error);
+      log.error("listAll", `Failed to list feedback: ${error.message}`, {}, error, {
+        suppressForward: true, // reportError below is the single report (ADR-0021 ramp)
+      });
       reportError(error, "feedback.listAll", { severity: "error" });
       return [];
     }
