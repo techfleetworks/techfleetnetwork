@@ -4,7 +4,16 @@ import { reportError } from "@/services/error-reporter.service";
 
 type ServiceLogLevel = "warn" | "error";
 
-type ServiceLogger = Record<ServiceLogLevel, (action: string, message: string, metadata?: Record<string, unknown>, error?: unknown) => void>;
+type ServiceLogger = Record<
+  ServiceLogLevel,
+  (
+    action: string,
+    message: string,
+    metadata?: Record<string, unknown>,
+    error?: unknown,
+    opts?: { suppressForward?: boolean }
+  ) => void
+>;
 
 export interface ServiceErrorLike {
   message: string;
@@ -39,7 +48,10 @@ function isAbortError(error: ServiceErrorLike): boolean {
   return /\bAbortError\b|\boperation was aborted\b|\bsignal is aborted\b/i.test(msg);
 }
 
-export function handleServiceError(error: ServiceErrorLike | null | undefined, options: HandleServiceErrorOptions): boolean {
+export function handleServiceError(
+  error: ServiceErrorLike | null | undefined,
+  options: HandleServiceErrorOptions
+): boolean {
   if (!error) return false;
 
   // Silently swallow request cancellations. They are not actionable failures
@@ -52,11 +64,17 @@ export function handleServiceError(error: ServiceErrorLike | null | undefined, o
   }
 
   const level = options.level ?? "error";
+  // suppressForward: this helper reports the error itself (below), so its own log
+  // entry must NOT be forwarded again by the logger_error_reporting bridge once
+  // that flag is ramped — otherwise every handled service error would produce two
+  // audit rows. Console output is unaffected; only the redundant second report is
+  // suppressed. (ADR-0021 ramp prerequisite.)
   options.logger[level](
     options.action,
     options.message,
     { ...(options.metadata ?? {}), ...serviceErrorMetadata(error) },
     error,
+    { suppressForward: true }
   );
 
   // Mirror to audit_log so admins see service-layer failures in /admin/activity-log.
@@ -69,7 +87,9 @@ export function handleServiceError(error: ServiceErrorLike | null | undefined, o
     try {
       const structured = error as unknown;
       reportError(structured, options.action, { severity: level });
-    } catch { /* never throw from telemetry */ }
+    } catch {
+      /* never throw from telemetry */
+    }
   })();
 
   if (options.throwMessage) throw new Error(options.throwMessage);

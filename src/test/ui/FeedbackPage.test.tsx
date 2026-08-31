@@ -1,3 +1,4 @@
+// bdd-gate coverage: src/services/feedback.service.ts
 /**
  * FeedbackPage role-based view routing.
  *
@@ -26,9 +27,8 @@ vi.mock("@/contexts/PageHeaderContext", () => ({
 }));
 
 vi.mock("@/lib/react-query", async () => {
-  const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
-    "@tanstack/react-query",
-  );
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-query")>("@tanstack/react-query");
   return {
     ...actual,
     useQuery: () => ({ data: [], isLoading: false }),

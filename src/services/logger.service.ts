@@ -34,6 +34,11 @@ interface LogEntry {
   // the real error to the reporter's classifier (transient PG codes, TypeError,
   // AbortError). Never logged to the console.
   rawError?: unknown;
+  // ADR-0021 ramp safety: when a caller has ALREADY reported this error itself
+  // (e.g. handleServiceError, which calls reportError directly), it sets this so
+  // the error-forwarder does NOT report it a second time once the
+  // logger_error_reporting bridge is live. Console output is unaffected.
+  suppressForward?: boolean;
 }
 
 const LOG_LEVELS: Record<LogLevel, number> = {
@@ -159,7 +164,7 @@ function emit(entry: LogEntry) {
   // installed (gated by the logger_error_reporting flag inside the forwarder).
   // Guarded against re-entrancy and never allowed to throw — logging must not
   // break the caller, and the forwarder must not be able to recurse into emit().
-  if (entry.level === "error" && errorForwarder && !forwarding) {
+  if (entry.level === "error" && errorForwarder && !forwarding && !entry.suppressForward) {
     forwarding = true;
     try {
       errorForwarder({
@@ -192,7 +197,8 @@ export function createLogger(service: string) {
     action: string,
     message: string,
     metadata?: Record<string, unknown>,
-    err?: unknown
+    err?: unknown,
+    suppressForward = false
   ): LogEntry => ({
     level,
     service,
@@ -202,6 +208,7 @@ export function createLogger(service: string) {
     metadata: metadata ? (redactValue(metadata) as Record<string, unknown>) : undefined,
     error: formatError(err),
     rawError: err,
+    suppressForward,
   });
 
   return {
@@ -211,11 +218,23 @@ export function createLogger(service: string) {
     info(action: string, message: string, metadata?: Record<string, unknown>) {
       emit(makeEntry("info", action, message, metadata));
     },
-    warn(action: string, message: string, metadata?: Record<string, unknown>, err?: unknown) {
-      emit(makeEntry("warn", action, message, metadata, err));
+    warn(
+      action: string,
+      message: string,
+      metadata?: Record<string, unknown>,
+      err?: unknown,
+      opts?: { suppressForward?: boolean }
+    ) {
+      emit(makeEntry("warn", action, message, metadata, err, opts?.suppressForward));
     },
-    error(action: string, message: string, metadata?: Record<string, unknown>, err?: unknown) {
-      emit(makeEntry("error", action, message, metadata, err));
+    error(
+      action: string,
+      message: string,
+      metadata?: Record<string, unknown>,
+      err?: unknown,
+      opts?: { suppressForward?: boolean }
+    ) {
+      emit(makeEntry("error", action, message, metadata, err, opts?.suppressForward));
     },
 
     /** Wrap an async operation with automatic start/success/error logging */
