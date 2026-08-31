@@ -191,6 +191,12 @@ jobs:
       - name: Guard — raw-invoke budget only shrinks
         run: node scripts/ci/check-raw-invoke-budget-shrinks.mjs
 
+      # The dropped-supabase-error grandfather budget (scripts/lint/dropped-supabase-error-grandfather.json)
+      # may only shrink, so a dev cannot destructure `data` without `error` and raise the number past
+      # the no-dropped-supabase-error lint rule (the audit's #1 error-handling class; ADR-0032).
+      - name: Guard — dropped-supabase-error budget only shrinks
+        run: node scripts/ci/check-dropped-supabase-error-budget-shrinks.mjs
+
       # Mutation gate: no-op every tested guard and require each guard's test to FAIL. A test that
       # still passes is vacuous and would let a broken guard ship a false green (ADR-0023). Runs the
       # guard smoke suite once with each guard stubbed; restores every guard in a finally.
