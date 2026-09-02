@@ -253,6 +253,35 @@ for Phase 1. Rationale: **ADR-0028**.
 
 ---
 
+## 9 · Fleety never denies a capability it has (truthful capability, one source)
+
+Fleety's ONLY model of what it can do is the system-prompt prose in `techfleet-chat/prompt.ts` —
+reading a shared board is a server-side pre-fetch (ADR-0010), never declared to the model as a
+tool, so a false or missing capability line becomes a confabulated denial. Fleety read a member's
+Figma board, then on a follow-up that re-shared no link it lost the board and told the member
+"I can't access external links or peek into Figma files" — a capability it had just used (ADR-0034).
+
+```
+❌ never — a blanket "no I/O" claim in the prompt, or material harvested from the latest message only
+"You generate conversational text only — no tools, files, or API calls."   // false — it DOES read Figma
+const materialUrls = extractAllowedUrls(lastUserMessage, 2);                // board evaporates next turn
+✅ always — an unconditional truthful capability line, and material carried across the thread
+"You CAN read the text of a viewable Figma/doc link… NEVER tell a member you cannot open links…"
+const materialUrls = extractRecentAllowedUrls(sanitizedMessages, 2);        // re-reads a board shared earlier
+```
+
+Enforced by `techfleet-chat/prompt.test.ts` (the base prompt must NOT contain the "conversational
+text only / no tools" claim and MUST carry the "WHAT YOU CAN READ" + anti-denial block; the pure,
+first-person `detectsCapabilityDenial` flags the incident strings, passes the honest scoped "that
+one link wasn't viewable" reply, and passes a review that merely quotes the member) +
+`_shared/material-fetch.test.ts` (a board shared earlier is still returned on a follow-up with no
+link). On a turn that HAD readable material the handler generates the answer non-streamed and
+replaces a detected first-person capability-denial with an honest fallback **before any of it
+reaches the member** (a denial can't even flicker on screen); an empty/error gateway response is
+reported separately, never as a capability-denial. Rationale: **ADR-0034**.
+
+---
+
 ## Decision log (ADRs)
 
 Bigger or reversible decisions (which email pipeline is canonical, who owns `freescout_customer_id`,
