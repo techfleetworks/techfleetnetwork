@@ -98,6 +98,35 @@ export function extractAllowedUrls(text: string, max = 2): string[] {
 }
 
 /**
+ * Thread-aware variant of {@link extractAllowedUrls}: the allow-listed URLs from the MOST RECENT
+ * user message (within a small lookback window) that shared any. This is the fix for the
+ * capability-denial incident — a board is shared once, then a follow-up ("now evaluate the
+ * columns") carries NO link, so a last-message-only scan finds nothing, the board falls out of the
+ * model's context, and the model wrongly claims it can't read Figma. Carrying the most-recent
+ * shared board forward keeps that material in front of the model on the follow-up.
+ *
+ * Latest wins: the newest user message with a link is used; otherwise we look back up to
+ * `lookbackUserTurns` user messages for the last one that had a link. Bounded, so a board shared
+ * many turns ago (a since-dropped topic) is not dragged into an unrelated later question. Pure.
+ */
+export function extractRecentAllowedUrls(
+  messages: Array<{ role?: string; content?: unknown }>,
+  max = 2,
+  lookbackUserTurns = 4
+): string[] {
+  if (!Array.isArray(messages)) return [];
+  let userTurns = 0;
+  for (let i = messages.length - 1; i >= 0 && userTurns < lookbackUserTurns; i--) {
+    const m = messages[i];
+    if (!m || m.role !== "user" || typeof m.content !== "string") continue;
+    userTurns++;
+    const urls = extractAllowedUrls(m.content, max);
+    if (urls.length > 0) return urls;
+  }
+  return [];
+}
+
+/**
  * SSRF-guarded, bounded, no-redirect fetch of a member material URL → plain text.
  * Strips markup so an LLM reviews the content, not the HTML. Throws on violation/failure.
  */

@@ -10,11 +10,12 @@ import { isTrustedInternal } from "../_shared/internal-auth.ts";
 import { geminiEmbedBody, geminiEmbedUrl, parseGeminiEmbedding } from "../_shared/gemini-embed.ts";
 import {
   buildSystemPrompt,
+  detectsCapabilityDenial,
   expandQuery,
   extractSourceUrls,
   NO_KNOWLEDGE_DIRECTIVE,
 } from "./prompt.ts";
-import { extractAllowedUrls, fetchMaterialText } from "../_shared/material-fetch.ts";
+import { extractRecentAllowedUrls, fetchMaterialText } from "../_shared/material-fetch.ts";
 import { frameMaterialContext } from "./material-frame.ts";
 // Residency pin for DeepSeek (ADR-0005): the SAME US-provider allow-list the hand-off LLM port
 // uses, imported (not duplicated) so the guarantee can never drift between the two call paths.
@@ -271,7 +272,10 @@ async function sha256Hex(input: string): Promise<string> {
  * Cuts each response into ~24-char chunks with tiny inter-chunk delays so
  * the user sees the typing cadence rather than a single instant flush.
  */
-function buildCacheSSEStream(markdown: string): ReadableStream<Uint8Array> {
+function buildCacheSSEStream(
+  markdown: string,
+  followups: string[] = []
+): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
   const CHUNK = 24;
   const chunks: string[] = [];
@@ -279,9 +283,18 @@ function buildCacheSSEStream(markdown: string): ReadableStream<Uint8Array> {
     chunks.push(markdown.slice(i, i + CHUNK));
   }
   let idx = 0;
+  let followupsSent = false;
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
       if (idx >= chunks.length) {
+        // Emit the follow-up suggestions frame (if any) before closing — the SAME frame the live
+        // stream uses — so a buffered answer (the strict material path) keeps its suggestion chips.
+        if (!followupsSent && followups.length > 0) {
+          followupsSent = true;
+          controller.enqueue(
+            enc.encode("data: " + JSON.stringify({ fleety: { followups } }) + "\n\n")
+          );
+        }
         controller.enqueue(enc.encode("data: [DONE]\n\n"));
         controller.close();
         return;
@@ -296,6 +309,50 @@ function buildCacheSSEStream(markdown: string): ReadableStream<Uint8Array> {
     },
   });
 }
+
+/** Follow-up sentinel the model appends; parsed out server-side, never shown to the member. */
+const FOLLOWUP_SENTINEL = "<<FLEETY_FOLLOWUPS>>";
+
+/**
+ * Parse the model's follow-up suggestion array (the text AFTER the sentinel). Same rules the live
+ * stream applies: strings only, sanitized, ≤120 chars, no links/markup, capped at 3. Pure.
+ */
+function parseFollowupArray(after: string): string[] {
+  try {
+    const trimmed = (after || "").trim();
+    const match = trimmed.match(/^\[[\s\S]*?\]/);
+    const arr = JSON.parse(match ? match[0] : trimmed);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((x: unknown): x is string => typeof x === "string")
+      .map((s) => sanitizeAIOutput(s).trim())
+      .filter((s) => s.length > 0 && s.length <= 120 && !/https?:\/\//i.test(s) && !/[<>]/.test(s))
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
+/** Split a COMPLETE model answer into visible text + parsed follow-ups (buffered/non-streamed path). */
+function splitFollowups(full: string): { visible: string; followups: string[] } {
+  const idx = full.indexOf(FOLLOWUP_SENTINEL);
+  if (idx === -1) return { visible: full, followups: [] };
+  return {
+    visible: full.slice(0, idx).replace(/\s*\n?\s*$/, ""),
+    followups: parseFollowupArray(full.slice(idx + FOLLOWUP_SENTINEL.length)),
+  };
+}
+
+/**
+ * Shown ONLY if the model — on a turn where it genuinely had the member's material in hand — still
+ * tried to deny it could read it (the capability-denial incident, ADR-0034). After the truthful-
+ * prompt + thread-material fixes this should never occur; the strict material path replaces such an
+ * answer with this before ANY of it reaches the member. Honest (we DO have the material), non-denying.
+ */
+const CAPABILITY_DENIAL_FALLBACK =
+  "I've got your shared material open on my end — let me focus. Which part would you like me to dig " +
+  "into first: a specific frame, section, column, or row? Point me at it and I'll walk through it " +
+  "against the Tech Fleet Skills & Practices Framework.";
 
 /**
  * Cheap intent classifier — regex-first to keep latency / cost at zero
@@ -766,7 +823,10 @@ serve(
       // it against the SPF, right here in the chat. Presence of material BYPASSES the L2/L3/
       // canned caches (the answer depends on live, member-specific content) and counts as
       // grounding (so a "review my Figma" turn is never refused as off-topic).
-      const materialUrls = extractAllowedUrls(lastUserMessage, 2);
+      // Thread-aware (capability-denial fix): scan recent user turns, not just the latest, so a
+      // board shared earlier in THIS conversation is re-read on a follow-up ("now evaluate the
+      // columns") instead of vanishing — the evaporation that made the model wrongly deny Figma.
+      const materialUrls = extractRecentAllowedUrls(sanitizedMessages, 2);
       // 2.2-F: an uploaded file's extracted text (from fleety-extract) is material too — it makes
       // the turn a review of the member's own work, exactly like a shared link.
       const attachmentText =
@@ -780,6 +840,9 @@ serve(
           : "uploaded file";
       const hasMaterial = materialUrls.length > 0 || hasAttachment;
       let materialContext = "";
+      // Did any shared item yield REAL readable text this turn? Gates the capability-denial
+      // backstop below (a turn with material in hand must never tell the member it can't read it).
+      let materialWasReadable = false;
       if (hasMaterial) {
         const parts: string[] = [];
         // Track whether ANY shared item yielded REAL readable text. If nothing did, we must NOT
@@ -819,6 +882,7 @@ serve(
         }
 
         materialContext = frameMaterialContext(parts, gotAnyText);
+        materialWasReadable = gotAnyText;
         if (!gotAnyText) {
           log.warn("material", `no readable material — anti-fabrication guard [${requestId}]`, {
             requestId,
@@ -1948,7 +2012,9 @@ serve(
           seed: FLEETY_LLM_SEED,
           ...(OPENROUTER_PROVIDER ? { provider: OPENROUTER_PROVIDER } : {}), // DeepSeek → US providers
           messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
-          stream: true,
+          // Material/review turns are generated NON-streamed so the whole answer can be validated
+          // before release (strict capability-denial block, ADR-0034); all other turns stream live.
+          stream: !materialWasReadable,
           max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
         }),
       });
@@ -1989,6 +2055,79 @@ serve(
         });
       }
 
+      // Shared response headers (sources/chips/intent) — identical for the streamed and the
+      // buffered (strict material) paths; sources are code-guaranteed (D-08), independent of the model.
+      const buildSSEHeaders = (): Record<string, string> => {
+        const chipsB64 =
+          actionChips.length > 0
+            ? btoa(unescape(encodeURIComponent(JSON.stringify(actionChips))))
+            : "";
+        const srcUrls = [...new Set([...graphSourceUrls, ...extractSourceUrls(kbHits, 8)])]
+          .filter((u) => /^https?:\/\//i.test(u))
+          .slice(0, 8);
+        const h: Record<string, string> = {
+          ...corsHeaders,
+          "Access-Control-Expose-Headers":
+            "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Mode, X-Fleety-Retrieval, X-Fleety-Cache, X-Fleety-Guard, X-Fleety-Sources",
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "X-Fleety-Intent": intent,
+          "X-Fleety-Practical": practical ? "1" : "0",
+          "X-Fleety-Mode": chatMode,
+          "X-Fleety-Retrieval": kbRetrievalMode,
+          "X-Fleety-Cache": "miss",
+          "X-Fleety-Guard": costGuardStep,
+        };
+        if (signalTurnId) h["X-Fleety-Turn-Id"] = signalTurnId;
+        if (chipsB64) h["X-Fleety-Chips"] = chipsB64;
+        if (srcUrls.length) h["X-Fleety-Sources"] = JSON.stringify(srcUrls);
+        return h;
+      };
+
+      // ── STRICT capability-denial block (material/review turns) ─────────────────────────
+      // On a turn holding the member's material, we must NEVER stream a reply that denies being
+      // able to read it (ADR-0034). Streaming can't retract bytes already sent, so these turns are
+      // generated non-streamed: validate the WHOLE answer, then release it — a denial is swapped for
+      // an honest fallback before any of it reaches the member.
+      if (materialWasReadable) {
+        const data = (await response.json().catch(() => null)) as {
+          choices?: Array<{ message?: { content?: unknown } }>;
+        } | null;
+        const rawContent =
+          typeof data?.choices?.[0]?.message?.content === "string"
+            ? data.choices[0].message.content
+            : "";
+        const { visible: parsedVisible, followups } = splitFollowups(rawContent);
+        let visible = sanitizeAIOutput(parsedVisible).replace(/\s+$/, "");
+        let outFollowups = followups;
+        if (!visible) {
+          // NOT a capability denial — the gateway returned a 200 with no usable content (empty
+          // completion, a content filter, or an {error} envelope with no choices). Report it as a
+          // GATEWAY issue with its own label so a provider degradation on review turns is never
+          // misattributed to an ADR-0034 capability-denial regression during incident response.
+          log.error("ai", `gateway returned no usable content on a material turn [${requestId}]`, {
+            requestId,
+            turnId: signalTurnId,
+          });
+          visible = CAPABILITY_DENIAL_FALLBACK;
+          outFollowups = [];
+        } else if (detectsCapabilityDenial(visible)) {
+          log.error(
+            "guard",
+            `capability-denial blocked before it reached the member (material turn) [${requestId}]`,
+            { requestId, turnId: signalTurnId }
+          );
+          visible = CAPABILITY_DENIAL_FALLBACK;
+          outFollowups = [];
+        }
+        // Material answers are board-specific and are never cache-read (reads bypass material
+        // turns), so there is no cache write here.
+        return new Response(buildCacheSSEStream(visible, outFollowups), {
+          headers: buildSSEHeaders(),
+        });
+      }
+
       log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
 
       // OWASP AI: Create a transform stream to sanitize AI output content
@@ -2013,7 +2152,6 @@ serve(
       // Follow-up sentinel detection. Once we see "<<FLEETY_FOLLOWUPS>>"
       // anywhere in streamed text, we stop forwarding content to the client
       // and capture everything after it for JSON parsing on flush.
-      const FOLLOWUP_SENTINEL = "<<FLEETY_FOLLOWUPS>>";
       let visibleStream = "";
       let sentinelHit = false;
       let postSentinelBuf = "";
@@ -2084,24 +2222,7 @@ serve(
 
           // Parse follow-ups and emit a custom SSE frame for the client.
           if (sentinelHit) {
-            let followups: string[] = [];
-            try {
-              const trimmed = postSentinelBuf.trim();
-              const match = trimmed.match(/^\[[\s\S]*?\]/);
-              const arr = JSON.parse(match ? match[0] : trimmed);
-              if (Array.isArray(arr)) {
-                followups = arr
-                  .filter((x): x is string => typeof x === "string")
-                  .map((s) => sanitizeAIOutput(s).trim())
-                  .filter(
-                    (s) =>
-                      s.length > 0 && s.length <= 120 && !/https?:\/\//i.test(s) && !/[<>]/.test(s)
-                  )
-                  .slice(0, 3);
-              }
-            } catch {
-              /* malformed — drop silently */
-            }
+            const followups = parseFollowupArray(postSentinelBuf);
 
             if (followups.length > 0) {
               const frame = { fleety: { followups } };
@@ -2142,39 +2263,7 @@ serve(
 
       const sanitizedBody = response.body!.pipeThrough(sanitizeStream);
 
-      // Encode chips as base64 to keep header safe across HTTP intermediaries
-      const chipsB64 =
-        actionChips.length > 0
-          ? btoa(unescape(encodeURIComponent(JSON.stringify(actionChips))))
-          : "";
-
-      // D-08: structural citations — navigable source URLs, guaranteed by code (not the LLM).
-      // A3/Miss-2: prioritize the SPF entity pages Fleety actually anchored on (graphSourceUrls)
-      // ahead of KB prose links, so "Where to learn more" leads with the on-topic entity pages
-      // instead of a tangential handbook chunk. Deduped (order-preserving), http(s) only, capped at 8.
-      const sourceUrls = [...new Set([...graphSourceUrls, ...extractSourceUrls(kbHits, 8)])]
-        .filter((u) => /^https?:\/\//i.test(u))
-        .slice(0, 8);
-
-      const exposeHeaders: Record<string, string> = {
-        ...corsHeaders,
-        "Access-Control-Expose-Headers":
-          "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Mode, X-Fleety-Retrieval, X-Fleety-Cache, X-Fleety-Guard, X-Fleety-Sources",
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-        "X-Fleety-Intent": intent,
-        "X-Fleety-Practical": practical ? "1" : "0",
-        "X-Fleety-Mode": chatMode,
-        "X-Fleety-Retrieval": kbRetrievalMode,
-        "X-Fleety-Cache": "miss",
-        "X-Fleety-Guard": costGuardStep,
-      };
-      if (signalTurnId) exposeHeaders["X-Fleety-Turn-Id"] = signalTurnId;
-      if (chipsB64) exposeHeaders["X-Fleety-Chips"] = chipsB64;
-      if (sourceUrls.length) exposeHeaders["X-Fleety-Sources"] = JSON.stringify(sourceUrls);
-
-      return new Response(sanitizedBody, { headers: exposeHeaders });
+      return new Response(sanitizedBody, { headers: buildSSEHeaders() });
     } catch (err) {
       log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
       // OWASP A09: Generic error message, no internal details

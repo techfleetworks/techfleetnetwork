@@ -794,6 +794,7 @@ jobs:
           }
           deno_retry deno test --no-lock --allow-import --allow-env --allow-read \
             supabase/functions/techfleet-chat/prompt.test.ts \
+            supabase/functions/_shared/material-fetch.test.ts \
             supabase/functions/_shared/freescout.test.ts \
             supabase/functions/_shared/gemini-embed.test.ts \
             supabase/functions/_shared/idempotency.test.ts \

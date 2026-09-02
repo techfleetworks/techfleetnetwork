@@ -12,6 +12,7 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 import {
   ALIAS_MAP,
   buildSystemPrompt,
+  detectsCapabilityDenial,
   expandQuery,
   extractSourceUrls,
   MISCONCEPTION_REFRAME,
@@ -41,7 +42,12 @@ import {
 // Bumped 3200 -> 3350 (2026-08-18): the 2.2-E MISCONCEPTION_REFRAME directive (gently reframe a
 // wrong premise BEFORE answering, never silently adopt it) is a core mentor move, always injected
 // across chat/review/plan modes. ~60 tokens; the ceiling still bounds unbounded creep.
-const TOKEN_CEILING = 3350;
+// Bumped 3350 -> 3550 (2026-09-02): the "WHAT YOU CAN READ" block — Fleety must state accurately
+// that it CAN read a shared, viewable Figma/doc link and must NEVER deny it or claim to be
+// "text-only". Fixes the capability-denial incident: Fleety read a board, then on a follow-up with
+// no re-pasted link confabulated "I can't access external links or peek into Figma files". The
+// truthful-capability + anti-denial text is required behavior, not optional; ~150 tokens.
+const TOKEN_CEILING = 3550;
 
 function emptyCtx(overrides: Partial<PromptContext> = {}): PromptContext {
   return {
@@ -287,3 +293,88 @@ Deno.test("NO_KNOWLEDGE_DIRECTIVE forbids fabrication and gives a real fallback"
   assert(/do not invent/i.test(NO_KNOWLEDGE_DIRECTIVE));
   assert(NO_KNOWLEDGE_DIRECTIVE.includes("guide.techfleet.org"));
 });
+
+// ── capability-denial fix + backstop (the Figma "I can't read links" incident) ──────────
+
+Deno.test(
+  "base prompt tells the truth about reading shared material (capability-denial fix)",
+  () => {
+    const base = SYSTEM_PROMPT_BASE;
+    // The old FALSE blanket claim that seeded the confabulation must be gone…
+    assert(
+      !/conversational text only\s*—\s*no tools, files, or API calls/i.test(base),
+      "the false 'conversational text only — no tools/files/API calls' claim must be removed"
+    );
+    // …and Fleety must be told, unconditionally, that it CAN read a shared viewable board/doc and
+    // must never deny it — so a follow-up with no re-pasted link can't trigger the false denial.
+    assert(/WHAT YOU CAN READ/.test(base), "capability section present");
+    assert(
+      /NEVER tell a member you cannot open links/i.test(base),
+      "explicit anti-denial instruction present"
+    );
+    assert(/already read/i.test(base), "a board shared earlier is treated as already read");
+  }
+);
+
+Deno.test("detectsCapabilityDenial: flags the exact confabulated denials from the incident", () => {
+  for (const denial of [
+    "I'd love to, but I can't peek directly into the Figma board.",
+    "I can't access external links or peek into Figma files.",
+    "No need — I still can't open Figma links or peek into boards, so sending it again won't help.",
+    "When I answered, I couldn't actually open your Figma link or read the board.",
+  ]) {
+    assert(detectsCapabilityDenial(denial), `should flag: ${denial}`);
+  }
+});
+
+Deno.test("detectsCapabilityDenial: flags blanket 'text-only' claims", () => {
+  assert(detectsCapabilityDenial("Sorry, I'm text-only, so I can't do that."));
+  assert(detectsCapabilityDenial("I can only generate conversational text."));
+  assert(detectsCapabilityDenial("I have no ability to open links."));
+});
+
+Deno.test(
+  "detectsCapabilityDenial: does NOT flag the honest scoped 'that one link wasn't viewable' reply",
+  () => {
+    // The CORRECT response when a single shared link genuinely wasn't readable
+    // (material-frame.ts !gotAnyText branch) must pass through untouched.
+    const honest =
+      'I couldn\'t open that link this time. In Figma, open Share and set "Anyone with the link" to "can view", then resend it and I\'ll read it.';
+    assertEquals(detectsCapabilityDenial(honest), false);
+  }
+);
+
+Deno.test("detectsCapabilityDenial: does NOT flag a normal grounded answer or empty text", () => {
+  const normal =
+    "Great question! A deliverable is produced by a handful of skills — the framework links them directly. Your recommended next step is to map yours.";
+  assertEquals(detectsCapabilityDenial(normal), false);
+  assertEquals(detectsCapabilityDenial(""), false);
+});
+
+Deno.test(
+  "detectsCapabilityDenial: does NOT flag a grounded review that quotes the member (precision)",
+  () => {
+    // The strict block REPLACES a matching answer, so a legit review must never trip the detector.
+    // Third-person quote of the member's own board — not a self-denial.
+    assertEquals(
+      detectsCapabilityDenial(
+        "Strong start. One gap: your note says external stakeholders can't access the board without an invite — capture that as an explicit constraint."
+      ),
+      false
+    );
+    // First person but an ambiguous "see" verb about the CONTENT, not a capability refusal.
+    assertEquals(
+      detectsCapabilityDenial(
+        "I can't see a clear problem statement on the board yet — add one at the top so the assumptions ladder up to it."
+      ),
+      false
+    );
+    // Advice to the member (second person) about their sharing settings — not Fleety denying itself.
+    assertEquals(
+      detectsCapabilityDenial(
+        'Heads up: reviewers can\'t open the file unless you set it to "anyone with the link" can view.'
+      ),
+      false
+    );
+  }
+);
