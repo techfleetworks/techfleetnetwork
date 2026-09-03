@@ -407,6 +407,7 @@ jobs:
           - check-no-tier0-preference-gate.mjs
           - check-no-unsigned-jwt-auth.mjs
           - check-edge-audit-wrapper-coverage.mjs
+          - check-edge-cors-trace.mjs
           - check-no-raw-functions-error-shape.mjs
           - check-report-has-no-silent-drop.mjs
           - check-suppressforward-has-report.mjs

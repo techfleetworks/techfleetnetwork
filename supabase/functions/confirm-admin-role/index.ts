@@ -9,12 +9,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { evaluateConfirmation, type PromotionRow, TOKEN_RE } from "../_shared/confirm-role.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 // CSRF defense-in-depth (the bearer-JWT ownership check is the primary gate).
 const ALLOWED_ORIGINS = new Set([

@@ -14,10 +14,10 @@ const BodySchema = z.object({
   dry_run: z.boolean().optional(),
 }).passthrough();
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 const TABLES: { table: string; entity: string }[] = [
   { table: "reference_workshops", entity: "workshop" },
