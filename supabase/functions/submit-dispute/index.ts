@@ -6,7 +6,8 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  * active session). Email is required and validated.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, json, clientIp } from "../_shared/compliance.ts";
+import { corsHeaders } from "../_shared/http.ts";
+import { json, clientIp } from "../_shared/compliance.ts";
 import { enforceEdgeRateLimit } from "../_shared/edge-rate-limit.ts";
 
 interface Body {

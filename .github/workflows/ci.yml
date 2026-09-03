@@ -407,6 +407,7 @@ jobs:
           - check-no-tier0-preference-gate.mjs
           - check-no-unsigned-jwt-auth.mjs
           - check-edge-audit-wrapper-coverage.mjs
+          - check-edge-cors-trace.mjs
           - check-no-raw-functions-error-shape.mjs
           - check-report-has-no-silent-drop.mjs
           - check-suppressforward-has-report.mjs
@@ -726,29 +727,11 @@ jobs:
       - name: Type-check edge functions
         run: |
           set -u
-          # deno_retry: retry ONLY transient remote-fetch failures (esm.sh /
-          # deno.land CDN blips — e.g. HTTP 522 Cloudflare origin timeout), up to
-          # 3x with exponential backoff. A genuine type error fails immediately
-          # (no retry, no masking). Output is captured, printed, then classified.
-          deno_retry() {
-            local n=0 max=3 delay=5 out rc
-            while :; do
-              out="$("$@" 2>&1)"; rc=$?
-              printf '%s\n' "$out"
-              [ "$rc" -eq 0 ] && return 0
-              if printf '%s' "$out" | grep -qiE 'failed: [0-9]{3}|<unknown status code>|error sending request|connection (closed|reset|refused)|(connection|operation) timed out|tcp connect error|dns error|502 bad gateway|503 service|504 gateway|429 too many'; then
-                n=$((n + 1))
-                if [ "$n" -ge "$max" ]; then
-                  echo "::warning::transient remote-fetch failure persisted after ${max} attempts"
-                  return "$rc"
-                fi
-                echo "::warning::transient remote-fetch failure (attempt ${n}/${max}); retrying in ${delay}s"
-                sleep "$delay"; delay=$((delay * 2))
-                continue
-              fi
-              return "$rc"
-            done
-          }
+          # Retry transient remote-resolution failures (fetch blips AND npm-registry metadata
+          # inconsistencies — a version that exists but a stale CDN edge omits), purging deno's
+          # npm cache between attempts so the retry re-queries fresh. Single owner, also sourced
+          # by the edge unit gates below. See scripts/ci/deno-retry.sh.
+          source scripts/ci/deno-retry.sh
           fails=0; checked=0
           for d in supabase/functions/*/; do
             name="$(basename "$d")"
@@ -771,27 +754,9 @@ jobs:
       - name: Edge unit gates (prompt + Freescout + embedding contract)
         run: |
           set -u
-          # Same transient-fetch resilience as the type-check step: retry CDN
-          # blips, fail fast on a real test failure.
-          deno_retry() {
-            local n=0 max=3 delay=5 out rc
-            while :; do
-              out="$("$@" 2>&1)"; rc=$?
-              printf '%s\n' "$out"
-              [ "$rc" -eq 0 ] && return 0
-              if printf '%s' "$out" | grep -qiE 'failed: [0-9]{3}|<unknown status code>|error sending request|connection (closed|reset|refused)|(connection|operation) timed out|tcp connect error|dns error|502 bad gateway|503 service|504 gateway|429 too many'; then
-                n=$((n + 1))
-                if [ "$n" -ge "$max" ]; then
-                  echo "::warning::transient remote-fetch failure persisted after ${max} attempts"
-                  return "$rc"
-                fi
-                echo "::warning::transient remote-fetch failure (attempt ${n}/${max}); retrying in ${delay}s"
-                sleep "$delay"; delay=$((delay * 2))
-                continue
-              fi
-              return "$rc"
-            done
-          }
+          # Same resilience as the type-check step, from the one shared helper
+          # (retries fetch blips + npm-registry metadata inconsistencies). See scripts/ci/deno-retry.sh.
+          source scripts/ci/deno-retry.sh
           deno_retry deno test --no-lock --allow-import --allow-env --allow-read \
             supabase/functions/techfleet-chat/prompt.test.ts \
             supabase/functions/_shared/material-fetch.test.ts \

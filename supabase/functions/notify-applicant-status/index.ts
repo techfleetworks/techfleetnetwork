@@ -40,11 +40,10 @@ type ApplicantStatus =
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-} as const;
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders as CORS_HEADERS } from "../_shared/http.ts";
 
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" } as const;
 

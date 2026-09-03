@@ -5,7 +5,8 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  * consent for future use of a recording. Notifies info@techfleet.network.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, json } from "../_shared/compliance.ts";
+import { corsHeaders } from "../_shared/http.ts";
+import { json } from "../_shared/compliance.ts";
 
 interface Body { session_ref?: string; reason?: string }
 
