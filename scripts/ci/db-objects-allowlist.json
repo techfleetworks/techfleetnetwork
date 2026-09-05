@@ -1,0 +1,5 @@
+{
+  "_comment": "ADR-0034. Objects the migration-derivation over-declares (renamed away, replaced by a view, or dropped out of band) so they are legitimately absent from prod. Reviewed; keep it shrinking. Seeded empty — the first real prod run against SUPABASE_PROJECT_REF will surface both genuine drift (apply the migration) and false positives (add them here with a reason).",
+  "tables": [],
+  "functions": []
+}

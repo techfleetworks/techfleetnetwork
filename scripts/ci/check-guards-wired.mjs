@@ -24,6 +24,7 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readJson } from "./_json.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const CI_DIR = join(ROOT, "scripts/ci");
@@ -40,7 +41,7 @@ if (!existsSync(WF_DIR)) die(`.github/workflows not found at ${WF_DIR}. Failing 
 
 let allow;
 try {
-  allow = new Set(JSON.parse(readFileSync(ALLOWLIST, "utf8")));
+  allow = new Set(readJson(ALLOWLIST));
 } catch (e) {
   die(`allowlist not found or invalid JSON at ${ALLOWLIST} (${e.message}).`);
 }

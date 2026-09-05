@@ -38,7 +38,7 @@ const BESPOKE_DIR_READERS = new Set([
   "check-legacy-auth-importers.mjs", // snapshot-diff guard with an --update mode + shrink notice (not a per-file rule)
   "check-owasp-coverage.mjs", // reads the OWASP map + SAST config
   "check-triage-actionable-parity.mjs", // reads one TS file + newest matching migration
-  "check-migrations-applied.mjs", // Management-API guard; reads migration filenames
+  "check-db-objects-present.mjs", // ADR-0034 object-existence gate: readdirSync over migrations to derive declared objects, then queries prod via the Management API (not a recursive content scan)
   "arch-gate.mjs", // the flagship architecture engine — its own dependency-free scanner, already fail-closed + evidence-bearing
 ]);
 

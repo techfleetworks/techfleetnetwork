@@ -1,9 +1,11 @@
 # ADR 0020 — Migration-applied verification (committed migrations must be live on prod)
 
-- Status: Accepted
+- Status: **Superseded by [ADR-0034](0034-db-objects-present-verification.md)** (was: Accepted, 2026-08-27)
 - Date: 2026-08-27
 - Deciders: TechFleet (owner)
 - Related: `.github/workflows/migration-applied.yml`, `scripts/ci/check-migrations-applied.mjs`, `migration-smoke` + `check-migration-version-collision.mjs` (sibling migration guards), `config-preflight.yml` (same Management-API skip pattern), ADR-0012 (the frontend equivalent — "did the merged commit actually reach prod?"), the Discord-linking PGRST202 outage. First item of the Phase 0 hardening plan (`docs/architecture/audit-2026-08/`).
+
+> **Superseded (2026-09-05) by [ADR-0034](0034-db-objects-present-verification.md).** The decision below was sound in intent but rested on a false premise: it queried `supabase_migrations.schema_migrations` as prod's applied-migration ledger. **That table does not exist in TFN's production database** — the migration off Lovable onto native Supabase never bootstrapped it. So the guard's query returned a "relation does not exist" error, which the reachability path (correctly, for a genuine outage) treated as "can't verify → warn + exit 0." The result was a gate that could _never_ go red: it verified nothing while looking green. That is exactly how migration `20260827120000_feature_flags` was committed yet never applied, undiscovered until a flag ramp hit a missing table. ADR-0034 replaces the _ledger_ question ("is this version recorded as applied?") with the _reality_ question ("does the object this migration declares actually EXIST in prod?"), which needs no ledger and fails **closed**. `check-migrations-applied.mjs` and `migration-applied.yml` are deleted by that ADR. The Context/Decision below are retained unedited as the historical record.
 
 ## Context
 
@@ -33,8 +35,9 @@ Mirrors ADR-0019's "ratchet + observe, then block":
 - **Drift, enforcing → `::error::` + red**, at which point the existing "Main failure alert" workflow pages Discord. Enforce is toggled by a repo **Actions variable** `MIGRATION_APPLIED_ENFORCE` (`"1"` to enforce) — like ADR-0012's `PROD_URL`, no code edit needed. Flip it once the current backlog of unapplied migrations is cleared and the EXTRA set is reconciled.
 
 Two guardrails keep enforce mode from re-creating alert fatigue:
-- **`push`-to-`main` runs are always observe-only.** A migration is applied by a human *after* merge, so the just-merged version is always momentarily "unapplied"; hard-failing on it would turn every migration merge red by design. Only the daily schedule / manual dispatch honor the enforce variable — they carry the real "you forgot to `db push`" signal the next morning.
-- **Reachability failures never hard-fail.** An API 5xx/429/timeout/bad-token is not drift and `db push` cannot fix it, so the script retries transient failures then, if still unverifiable, emits a warning and exits 0 even in enforce mode. Only a *successful* query that shows unapplied migrations can fail the build.
+
+- **`push`-to-`main` runs are always observe-only.** A migration is applied by a human _after_ merge, so the just-merged version is always momentarily "unapplied"; hard-failing on it would turn every migration merge red by design. Only the daily schedule / manual dispatch honor the enforce variable — they carry the real "you forgot to `db push`" signal the next morning.
+- **Reachability failures never hard-fail.** An API 5xx/429/timeout/bad-token is not drift and `db push` cannot fix it, so the script retries transient failures then, if still unverifiable, emits a warning and exits 0 even in enforce mode. Only a _successful_ query that shows unapplied migrations can fail the build.
 
 ## Consequences
 
@@ -42,4 +45,4 @@ Two guardrails keep enforce mode from re-creating alert fatigue:
 - **Zero prod risk to adopt:** read-only, and a no-op until the token exists. No new secret is required to merge.
 - The **EXTRA** (prod-ahead-of-repo) signal doubles as the reconciliation checklist that must be clean before Stage 2 auto-apply is safe.
 - Operator actions: (one-time) confirm `SUPABASE_ACCESS_TOKEN` is set for this project; (per cycle, during the observe window) clear reported UNAPPLIED migrations with `supabase db push`; then flip `ENFORCE` to `"1"`.
-- Trade-off: the check reads prod migration state through the Management API on a schedule; it does not detect *within-migration* partial application (a migration row present but its statements half-run) — that remains migration-smoke's and pgTAP's domain.
+- Trade-off: the check reads prod migration state through the Management API on a schedule; it does not detect _within-migration_ partial application (a migration row present but its statements half-run) — that remains migration-smoke's and pgTAP's domain.

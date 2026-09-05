@@ -161,6 +161,14 @@ jobs:
       - name: Guard — no stray non-npm lockfiles
         run: node scripts/ci/check-no-stray-lockfiles.mjs
 
+      # BOM guard — a UTF-8 BOM (bytes EF BB BF) at the start of a text file is invisible in
+      # most editors yet makes JSON.parse throw ("Unexpected token"), so a budget/allowlist
+      # that acquires one crashes the guard that reads it instead of verifying. PowerShell's
+      # `Set-Content -Encoding utf8` and `>` both prepend one on Windows — this forbids it at the
+      # source so it can never enter the repo. See ADR-0034 and decisions.md §6.
+      - name: Guard — no UTF-8 BOM in tracked text files
+        run: node scripts/ci/check-no-bom.mjs
+
       # Migration-version guard — two migrations sharing a version prefix collide
       # on schema_migrations_pkey and break the blocking migration-smoke gate.
       # Parallel date-stamped PRs kept doing this; catch it at PR time, clearly.
