@@ -1,4 +1,4 @@
-// Smoke coverage for scripts/ci/check-db-objects-present.mjs — DB-OBJECTS-PRESENT-001 (ADR-0034).
+// Smoke coverage for scripts/ci/check-db-objects-present.mjs — DB-OBJECTS-PRESENT-001 (ADR-0035).
 // The gate derives the tables/functions the committed migrations DECLARE and asserts each exists in
 // prod (via the Management API). It replaces the ledger-based check-migrations-applied, which was
 // blind because TechFleet's post-Lovable prod has no supabase_migrations.schema_migrations ledger.

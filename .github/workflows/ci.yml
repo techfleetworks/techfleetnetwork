@@ -165,7 +165,7 @@ jobs:
       # most editors yet makes JSON.parse throw ("Unexpected token"), so a budget/allowlist
       # that acquires one crashes the guard that reads it instead of verifying. PowerShell's
       # `Set-Content -Encoding utf8` and `>` both prepend one on Windows — this forbids it at the
-      # source so it can never enter the repo. See ADR-0034 and decisions.md §6.
+      # source so it can never enter the repo. See ADR-0035 and decisions.md §6.
       - name: Guard — no UTF-8 BOM in tracked text files
         run: node scripts/ci/check-no-bom.mjs
 
@@ -421,7 +421,7 @@ jobs:
           - check-guard-has-test.mjs
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -716,7 +716,7 @@ jobs:
       DENO_DIR: ${{ github.workspace }}/.deno-cache
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Deno
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
@@ -802,6 +802,7 @@ jobs:
           }
           deno_retry deno test --no-lock --allow-import --allow-env --allow-read \
             supabase/functions/techfleet-chat/prompt.test.ts \
+            supabase/functions/_shared/material-fetch.test.ts \
             supabase/functions/_shared/freescout.test.ts \
             supabase/functions/_shared/gemini-embed.test.ts \
             supabase/functions/_shared/idempotency.test.ts \

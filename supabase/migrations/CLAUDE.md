@@ -2,7 +2,7 @@
 
 Migrations here are **hand-applied** (`supabase db push`) and **forward-only**, and a migration can be
 live on prod **while the old app code is still running** (a `db push` is not atomic with a frontend/edge
-deploy — see ADR-0034, the db-objects-present gate that supersedes ADR-0020). So every migration must be safe to apply _before_
+deploy — see ADR-0035, the db-objects-present gate that supersedes ADR-0020). So every migration must be safe to apply _before_
 the code that uses it ships, and safe to leave applied if that code later rolls back. That forces
 **expand/contract** (ADR-0026). One concern per migration; each migration independently applicable.
 

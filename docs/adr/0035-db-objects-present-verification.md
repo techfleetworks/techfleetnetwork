@@ -1,4 +1,4 @@
-# ADR 0034 — Verify DB objects EXIST in prod, not that a ledger records them (supersedes ADR-0020)
+# ADR 0035 — Verify DB objects EXIST in prod, not that a ledger records them (supersedes ADR-0020)
 
 - Status: Accepted
 - Date: 2026-09-05

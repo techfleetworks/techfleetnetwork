@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * DB-OBJECTS-PRESENT-001 (ADR-0034) — every table/function a committed migration
+ * DB-OBJECTS-PRESENT-001 (ADR-0035) — every table/function a committed migration
  * DECLARES must actually EXIST in prod. Verifies reality, not a ledger.
  *
  * WHY THIS EXISTS
@@ -12,7 +12,7 @@
  * and passed GREEN. It was structurally blind — the precise "a guard that verifies
  * nothing" failure the gate-integrity effort exists to kill. That is how
  * `feature_flags` (migration 20260827120000) was committed yet never applied, and
- * nobody knew until the ramp hit a missing table. This gate supersedes it (ADR-0034).
+ * nobody knew until the ramp hit a missing table. This gate supersedes it (ADR-0035).
  *
  * A ledger can be missing, stale, or hand-forged. The OBJECTS cannot: either
  * `public.feature_flags` exists in prod or it does not. So this gate derives the
@@ -28,7 +28,7 @@
  * ROLLOUT: ships DEFERRED (on guards-wired-allowlist, not yet in CI) until
  * SUPABASE_ACCESS_TOKEN is set as a repo secret and the existing drift is
  * reconciled; then wired into the blocking gate. Blocking + fail-closed is the end
- * state — see ADR-0034.
+ * state — see ADR-0035.
  *
  * Run it (from any clone, HTTPS only — no CLI, no Postgres):
  *   SUPABASE_ACCESS_TOKEN=… SUPABASE_PROJECT_REF=pzvqxdgoztbfikfuifix node scripts/ci/check-db-objects-present.mjs
@@ -192,7 +192,7 @@ async function main() {
   for (const fn of missingFns) console.error(`  - function public.${fn}()`);
   console.error(
     `\nApply the missing migration(s) to prod (Supabase Dashboard → SQL Editor), or — if an object was ` +
-      `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason. See ADR-0034.`
+      `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason. See ADR-0035.`
   );
   process.exitCode = 1;
 }
