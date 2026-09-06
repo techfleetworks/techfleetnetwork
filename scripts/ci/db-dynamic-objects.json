@@ -1,0 +1,28 @@
+{
+  "_comment": "ADR-0036. Reviewed record of objects declared DYNAMICALLY via EXECUTE format('... %I ...') fan-out loops, which static extraction cannot read. Keyed by 'kind::migration-filename'. Names are AS-CREATED by that file; later renames/drops (e.g. reference_team_functions -> reference_job_functions, DROP reference_roles, both in 20260503180621) are applied by the gate's event stream, so list what the loop literally creates. A %I fan-out with no entry here fails the gate closed (see check-db-schema-present.mjs).",
+  "objects": {
+    "table::20260502180318_fec583fa-d798-4d04-a97b-6d0c68a508bc.sql": [
+      "reference_skills",
+      "reference_practices",
+      "reference_activities",
+      "reference_duties",
+      "reference_deliverables",
+      "reference_workshops",
+      "reference_agile_methods",
+      "reference_project_milestones",
+      "reference_team_functions",
+      "reference_tools",
+      "reference_tech_job_categories",
+      "reference_job_industries",
+      "reference_job_specializations",
+      "reference_company_types"
+    ],
+    "table::20260502184658_eefb3bbe-1e17-4b20-aaed-a3c5da3df357.sql": [
+      "reference_projects",
+      "reference_stakeholders",
+      "reference_job_titles",
+      "reference_resources",
+      "reference_roles"
+    ]
+  }
+}
