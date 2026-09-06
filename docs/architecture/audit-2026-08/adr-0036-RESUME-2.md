@@ -55,4 +55,26 @@ search_path=public,extensions;` for functions.
 6. **smoke test** + BESPOKE registration (check-db-schema-present uses readdirSync; _sql-scan is a `_`
    harness, exempt) + **ADR-0036** + **retire check-db-objects-present** + **CI wiring** + judge-arch + PR.
 
+## Session 2b update — 7 categories + prod/diff wired + generator
+
+- **Prod query + diff WIRED** and verified end-to-end via fixtures: all-present -> exit 0,
+  missing -> exit 1 (drift list), no-token/malformed -> exit 2 (fail closed). Seams:
+  `DB_SCHEMA_PROD_FIXTURE` (rows [{kind,identifier}]), `DB_SCHEMA_DUMP=1` (emit declared as fixture).
+- **7 categories live**: table 204, extension 7, type 27, view 19, cron_job 48, constraint 20,
+  rls_enabled 212. The gate is RUNNABLE against prod now (`SUPABASE_ACCESS_TOKEN` + REF).
+- **Sidecar generator**: `scripts/ci/gen-db-dynamic-objects.mjs` (run to regenerate db-dynamic-objects.json).
+- **indexes DEFERRED** — the tripwire found FOUR dynamic-index `%I` sources (not just the 2 creators):
+  1. `20260502180318` + `20260502184658` reference creators → `<t>_{search,name_trgm,data,category}_idx`
+  2. `20260503223414` → `<t>_is_placeholder_idx` (ALSO adds dynamic COLUMN `is_placeholder`)
+  3. `20260511104727` → 19 tables (incl reference_relationships) × `<t>_description_source…` (name suffix
+     unconfirmed — read line 22-24; ALSO adds dynamic COLUMN `description_source`)
+     Finish indexes by adding these to the generator (index:: keys) + a columns:: note for #2/#3.
+     The category code (regexes+prodSelect) is commented in check-db-schema-present.mjs, ready to re-enable.
+
+## REMAINING now: indexes (4 sidecars), triggers, policies (case-preserving!), functions (signature),
+
+## columns (table-body parse + dynamic ref cols), then manual-review bucket, allowlist seed
+
+## (tickets/ticket_events), smoke test, BESPOKE reg, ADR-0036, retire check-db-objects-present, CI wiring, judge-arch, PR.
+
 ## Test: `$env:DB_SCHEMA_EXTRACT_ONLY="1"; node scripts/ci/check-db-schema-present.mjs` (+ `DB_SCHEMA_PROBE=a,b`)
