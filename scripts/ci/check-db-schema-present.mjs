@@ -399,6 +399,18 @@ CATEGORIES.push({
     "and n.nspname not in ('pg_catalog','information_schema','pg_toast')",
 });
 
+// --- indexes (bare index name) — DEFERRED to next session ------------------
+// The dynamic-index tripwire (correctly) found FOUR %I fan-out sources with differing table subsets
+// and suffixes: the two reference creators (…_search_idx/_name_trgm_idx/_data_idx/_category_idx),
+// 20260503223414 (<t>_is_placeholder_idx), and 20260511104727 (19 tables incl reference_relationships,
+// <t>_description_source…). Enumerating all exactly (unvalidatable vs prod this session) risks false
+// positives, so `indexes` is deferred — the extraction regex + prodSelect below are ready; finishing
+// needs the four sidecars enumerated. See adr-0036-RESUME-2.md.
+//   create: /create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?\s+on\b/gi  (filter RESERVED)
+//   drop:   /drop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi
+//   dynamicRe: /create\s+(?:unique\s+)?index[^;]{0,60}%[a-z]/i
+//   prodSelect: select 'index', c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('i','I')
+
 // ---------------------------------------------------------------------------
 // Dynamic sidecar: names for files that declare objects via `%I` fan-outs. Every file flagged by
 // a category's dynamicRe MUST appear here (keyed by "kind::filename"), else fail closed.
