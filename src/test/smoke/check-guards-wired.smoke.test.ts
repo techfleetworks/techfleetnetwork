@@ -16,6 +16,9 @@ import { guardFixture, cleanupGuardFixtures } from "./support/guard-fixture";
 const REPO = process.cwd();
 const GUARD = resolve(REPO, "scripts/ci/check-guards-wired.mjs");
 const GUARD_SRC = readFileSync(GUARD, "utf8");
+// The guard imports ./_json.mjs (shared BOM-tolerant reader); the copy must include it so the
+// relative import resolves in the throwaway fixture.
+const JSON_HELPER_SRC = readFileSync(resolve(REPO, "scripts/ci/_json.mjs"), "utf8");
 
 afterAll(cleanupGuardFixtures);
 
@@ -32,6 +35,7 @@ function runCopy(root: string): number {
 // Every fixture allowlists the copied meta-guard itself so only the TEST guard drives the result.
 const BASE = {
   "scripts/ci/check-guards-wired.mjs": GUARD_SRC,
+  "scripts/ci/_json.mjs": JSON_HELPER_SRC, // ./_json.mjs dependency of the copied guard
   "scripts/ci/check-foo.mjs": "// a guard\n",
 };
 

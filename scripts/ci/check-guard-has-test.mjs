@@ -30,6 +30,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { readJson } from "./_json.mjs";
 
 // Cross-platform repo root = this guard's own location (cwd-independent).
 // `new URL(".", import.meta.url).pathname` returns "/C:/…" on Windows, which resolve()
@@ -51,7 +52,7 @@ const CI_DIR = join(ROOT, "scripts/ci");
 const ALLOWLIST_FILE = join(CI_DIR, "guard-test-allowlist.json");
 let ALLOWLIST;
 try {
-  const parsed = JSON.parse(readFileSync(ALLOWLIST_FILE, "utf8"));
+  const parsed = readJson(ALLOWLIST_FILE);
   if (!Array.isArray(parsed) || !parsed.every((x) => typeof x === "string")) {
     throw new Error("expected a JSON array of guard filenames");
   }

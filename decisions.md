@@ -202,6 +202,40 @@ tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard mu
 `check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
 verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.
 
+**Verify reality, not a ledger.** A gate must assert the thing that matters, not a claim that stands in
+for it. The migration-applied gate (ADR-0020) queried prod's `schema_migrations` ledger — a table that
+does **not** exist in our post-Lovable prod — so the query errored, the error read as "unreachable → skip
+green," and the gate could never go red. It checked a claim (a missing one) instead of the schema itself,
+and a migration (`feature_flags`) shipped unapplied undetected until it broke live traffic.
+
+```
+❌ never — verify a proxy/ledger that can be missing, stale, or forged (and skip-green when it's absent)
+const applied = await q(`select version from supabase_migrations.schema_migrations`) // relation absent → warn → exit 0
+✅ always — verify the reality the migration must produce, and fail closed when you can't check
+const present = await q(`select tablename from pg_tables where schemaname='public'`)  // the object is there, or it isn't
+if (!token) { console.error('cannot verify prod — no token'); process.exit(2) }        // can't check ⇒ red, never green
+```
+
+Enforced by `scripts/ci/check-db-objects-present.mjs` (**ADR-0035**, superseding ADR-0020): every table/
+function the committed migrations declare must EXIST in prod (queried over HTTPS via the Management API) or
+the gate is red; no token / unreachable / unexpected response fails **closed**.
+
+**No UTF-8 BOM in tracked text.** A BOM (bytes `EF BB BF`) at the start of a file is invisible in most
+editors but makes `JSON.parse` throw — so a budget/allowlist file that silently gains one crashes the guard
+that reads it (a self-inflicted false-red; on Windows an easy one — PowerShell's `Set-Content -Encoding
+utf8` and `>` both prepend a BOM).
+
+```
+❌ never — write a repo JSON/text file in a way that can prepend a BOM
+"…" | Set-Content -Encoding utf8 budget.json      # PowerShell adds EF BB BF → JSON.parse throws downstream
+✅ always — write UTF-8 without a BOM (allowlist-reading guards also use the shared tolerant reader)
+[System.IO.File]::WriteAllText($path, $text)       # no BOM; or an editor set to "UTF-8 (no BOM)"
+import { readJson } from './_json.mjs'   // scripts/ci/_json.mjs: JSON.parse that strips a leading BOM
+```
+
+Enforced by `scripts/ci/check-no-bom.mjs` (blocking, in the gate job): any tracked text file beginning with
+a BOM fails CI, so the class cannot enter the repo (**ADR-0035**).
+
 ---
 
 ## 7 · Schema changes are expand/contract
@@ -222,7 +256,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + b
 Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
-(builds on ADR-0020's applied-verification gate, ADR-0024's prove-at-the-owning-layer/pgTAP).
+(builds on ADR-0035's db-objects-present gate that supersedes ADR-0020, ADR-0024's prove-at-the-owning-layer/pgTAP).
 
 ---
 
