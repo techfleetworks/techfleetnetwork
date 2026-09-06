@@ -1,5 +1,5 @@
 {
-  "_comment": "ADR-0036. Reviewed record of objects declared DYNAMICALLY via EXECUTE format('... %I ...') fan-out loops, which static extraction cannot read. Keyed by 'kind::migration-filename'. Names are AS-CREATED by that file; later renames/drops (e.g. reference_team_functions -> reference_job_functions, DROP reference_roles, both in 20260503180621) are applied by the gate's event stream, so list what the loop literally creates. A %I fan-out with no entry here fails the gate closed (see check-db-schema-present.mjs).",
+  "_comment": "ADR-0036. Reviewed record of objects declared DYNAMICALLY via EXECUTE format('... %I ...') fan-out loops, which static extraction cannot read. Keyed 'kind::migration-filename'. table:: names are AS-CREATED (the gate's stream applies the later reference_team_functions->reference_job_functions rename and the reference_roles drop, both in 20260503180621). Other kinds (rls_enabled, index, trigger, policy, column) list FINAL names (post rename/drop) since those categories don't model the reference renames. A %I fan-out file with no entry for its kind fails the gate closed.",
   "objects": {
     "table::20260502180318_fec583fa-d798-4d04-a97b-6d0c68a508bc.sql": [
       "reference_skills",
@@ -23,6 +23,28 @@
       "reference_job_titles",
       "reference_resources",
       "reference_roles"
+    ],
+    "rls_enabled::20260502180318_fec583fa-d798-4d04-a97b-6d0c68a508bc.sql": [
+      "public.reference_skills",
+      "public.reference_practices",
+      "public.reference_activities",
+      "public.reference_duties",
+      "public.reference_deliverables",
+      "public.reference_workshops",
+      "public.reference_agile_methods",
+      "public.reference_project_milestones",
+      "public.reference_job_functions",
+      "public.reference_tools",
+      "public.reference_tech_job_categories",
+      "public.reference_job_industries",
+      "public.reference_job_specializations",
+      "public.reference_company_types"
+    ],
+    "rls_enabled::20260502184658_eefb3bbe-1e17-4b20-aaed-a3c5da3df357.sql": [
+      "public.reference_projects",
+      "public.reference_stakeholders",
+      "public.reference_job_titles",
+      "public.reference_resources"
     ]
   }
 }
