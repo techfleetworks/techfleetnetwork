@@ -44,6 +44,7 @@ function precededByDo(code, i) {
  */
 export function codeView(sql, opts = {}) {
   const keepDo = !!opts.keepDoBodies;
+  const keepStrings = !!opts.keepStrings; // keep single-quoted string literals (e.g. cron job names)
   const n = sql.length;
   const out = sql.split("");
   const blank = (a, b) => {
@@ -91,7 +92,7 @@ export function codeView(sql, opts = {}) {
         j++;
       }
       j = Math.min(j, n);
-      blank(i, j);
+      if (!keepStrings) blank(i, j);
       i = j;
       continue;
     }

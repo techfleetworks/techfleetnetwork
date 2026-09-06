@@ -204,6 +204,170 @@ CATEGORIES.push({
     "where n.nspname = 'public' and c.relkind in ('r','p')",
 });
 
+// --- extensions (verifier: solid) -----------------------------------------
+CATEGORIES.push({
+  kind: "extension",
+  floor: 5,
+  derive: (migs) =>
+    deriveNet(migs, "extension", {
+      create: {
+        re: /\bcreate\s+extension\s+(?:if\s+not\s+exists\s+)?(?:"([^"]+)"|([a-z_][a-z0-9_$]*))/gi,
+        key: (x) => (x[1] || x[2] || "").toLowerCase() || null,
+      },
+      drop: {
+        re: /\bdrop\s+extension\s+(?:if\s+exists\s+)?(?:"([^"]+)"|([a-z_][a-z0-9_$]*))/gi,
+        key: (x) => (x[1] || x[2] || "").toLowerCase() || null,
+      },
+    }),
+  // NOT schema-filtered: extensions are DB-global (pg_net/vector live outside public).
+  prodSelect:
+    "select 'extension' as kind, lower(e.extname) as identifier from pg_catalog.pg_extension e",
+});
+
+// --- types (enum / range / standalone composite) --------------------------
+CATEGORIES.push({
+  kind: "type",
+  floor: 20,
+  derive: (migs) =>
+    deriveNet(migs, "type", {
+      create: {
+        re: /create\s+type\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi,
+        key: (x) => {
+          const n = clean(x[1]);
+          return n && n !== "public" ? n : null;
+        },
+      },
+      drop: {
+        re: /drop\s+type\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi,
+        key: (x) => clean(x[1]),
+      },
+      rename: {
+        re: /alter\s+type\s+(?:public\.)?"?([a-z0-9_]+)"?\s+rename\s+to\s+(?:public\.)?"?([a-z0-9_]+)"?/gi,
+        from: (x) => clean(x[1]),
+        to: (x) => clean(x[2]),
+      },
+      filter: (id) => !id.endsWith("_old"), // *_old are the transient swap types (renamed then dropped)
+    }),
+  prodSelect:
+    "select 'type' as kind, t.typname as identifier from pg_type t " +
+    "join pg_namespace n on n.oid = t.typnamespace where n.nspname='public' " +
+    "and t.typname not like '\\_%' and (t.typtype in ('e','r') or " +
+    "(t.typtype='c' and exists (select 1 from pg_class c where c.oid=t.typrelid and c.relkind='c')))",
+});
+
+// --- views + materialized views -------------------------------------------
+CATEGORIES.push({
+  kind: "view",
+  floor: 12,
+  derive: (migs) =>
+    deriveNet(migs, "view", {
+      create: {
+        re: /\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?(?:recursive\s+)?view\s+(?:if\s+not\s+exists\s+)?(?:("(?:[^"]|"")+"|[a-z_][\w$]*)\s*\.\s*)?("(?:[^"]|"")+"|[a-z_][\w$]*)/gi,
+        key: (x) => {
+          const sch = clean(x[1]) || "public";
+          const nm = clean(x[2]);
+          return nm && nm !== "public" ? `${sch}.${nm}` : null;
+        },
+      },
+      drop: {
+        re: /\bdrop\s+(?:materialized\s+)?view\s+(?:if\s+exists\s+)?(?:("(?:[^"]|"")+"|[a-z_][\w$]*)\s*\.\s*)?("(?:[^"]|"")+"|[a-z_][\w$]*)/gi,
+        key: (x) => `${clean(x[1]) || "public"}.${clean(x[2])}`,
+      },
+    }),
+  prodSelect:
+    "select 'view' as kind, 'public.'||v.viewname as identifier from pg_catalog.pg_views v where v.schemaname='public' " +
+    "union all select 'view' as kind, 'public.'||m.matviewname as identifier from pg_catalog.pg_matviews m where m.schemaname='public'",
+});
+
+// --- cron jobs (pg_cron; identifiers are string literals — VERBATIM, case-sensitive) ------
+// Custom derive: cron names live inside string literals (which the tokenizer masks), so scan a
+// keep-strings view; a count-parity tripwire makes a non-literal/auto-named job impossible to miss.
+function deriveCron(migs) {
+  const isCronExpr = (s) => /^[\d*/,\-\s]+$/.test(s) || /^\d+\s+seconds?$/i.test(s);
+  const live = new Set();
+  for (const m of migs) {
+    const view = codeView(m.raw, { keepStrings: true, keepDoBodies: true });
+    const events = [];
+    let x,
+      named = 0;
+    const RE_SCHED = /cron\.schedule\s*\(\s*'([^']+)'/gi;
+    while ((x = RE_SCHED.exec(view))) {
+      if (isCronExpr(x[1])) continue; // 2-arg cron.schedule(schedule, command): 1st arg is not a name
+      events.push({ i: x.index, op: "add", id: x[1] });
+      named++;
+    }
+    const calls = (view.match(/cron\.schedule\s*\(/gi) || []).length;
+    if (calls !== named)
+      fail(
+        `${m.name}: ${calls} cron.schedule( call(s) but ${named} literal job name(s) extracted — ` +
+          `a non-literal/auto-named job would be silently missed. Failing closed.`
+      );
+    const RE_UN = /cron\.unschedule\s*\(\s*'([^']+)'/gi;
+    while ((x = RE_UN.exec(view))) events.push({ i: x.index, op: "del", id: x[1] });
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) e.op === "add" ? live.add(e.id) : live.delete(e.id);
+  }
+  return live;
+}
+CATEGORIES.push({
+  kind: "cron_job",
+  floor: 20,
+  derive: deriveCron,
+  // FAIL CLOSED if pg_cron isn't installed: `cron.job` won't exist → the query errors → non-2xx →
+  // the fetch path fails closed (never "0 jobs, all good"). That absence was the original outage.
+  prodSelect:
+    "select 'cron_job' as kind, jobname as identifier from cron.job where jobname is not null",
+});
+
+// --- constraints (named ADD CONSTRAINT; identifier = table.constraint) ------
+// Custom derive: ADD CONSTRAINT names don't include the table, so pair each with the governing
+// ALTER TABLE (nearest preceding, no ';' between). Statement terminators come from the code view
+// (';' inside strings/comments is masked), so orphan/prose constraints can't attach a table.
+function deriveConstraints(migs) {
+  const live = new Set();
+  for (const m of migs) {
+    const code = m.codeDo;
+    const alters = [];
+    let x;
+    const RE_ALTER =
+      /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?[a-z_][a-z0-9_$]*"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi;
+    while ((x = RE_ALTER.exec(code))) alters.push({ i: x.index, table: clean(x[1]) });
+    const govTable = (idx) => {
+      let best = null;
+      for (const a of alters)
+        if (a.i < idx && code.slice(a.i, idx).indexOf(";") === -1 && (!best || a.i > best.i))
+          best = a;
+      return best ? best.table : null;
+    };
+    const events = [];
+    const RE_ADD = /\badd\s+constraint\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+    while ((x = RE_ADD.exec(code))) {
+      const t = govTable(x.index),
+        n = clean(x[1]);
+      if (t && n && t !== "public") events.push({ i: x.index, op: "add", id: `${t}.${n}` });
+    }
+    const RE_DROP = /\bdrop\s+constraint\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+    while ((x = RE_DROP.exec(code))) {
+      const t = govTable(x.index),
+        n = clean(x[1]);
+      if (t && n) events.push({ i: x.index, op: "del", id: `${t}.${n}` });
+    }
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) e.op === "add" ? live.add(e.id) : live.delete(e.id);
+  }
+  return live;
+}
+CATEGORIES.push({
+  kind: "constraint",
+  floor: 15,
+  derive: deriveConstraints,
+  // Prod returns ALL table constraints (inline + ADD); declared (ADD-only) ⊆ prod, so extras are harmless.
+  prodSelect:
+    "select 'constraint' as kind, lower(rel.relname||'.'||con.conname) as identifier from pg_constraint con " +
+    "join pg_class rel on rel.oid = con.conrelid join pg_namespace nsp on nsp.oid = rel.relnamespace " +
+    "where nsp.nspname='public' and con.conrelid <> 0 and con.contype in ('c','f','u','p','x')",
+});
+
 // ---------------------------------------------------------------------------
 // Dynamic sidecar: names for files that declare objects via `%I` fan-outs. Every file flagged by
 // a category's dynamicRe MUST appear here (keyed by "kind::filename"), else fail closed.
@@ -268,8 +432,7 @@ async function main() {
   // 3. Subtract allowlist.
   const allow = loadAllowlist();
   for (const cat of CATEGORIES) {
-    for (const nm of allow[cat.kind] ?? [])
-      declaredByKind.get(cat.kind).delete(String(nm).toLowerCase());
+    for (const nm of allow[cat.kind] ?? []) declaredByKind.get(cat.kind).delete(String(nm));
   }
 
   if (EXTRACT_ONLY) {
