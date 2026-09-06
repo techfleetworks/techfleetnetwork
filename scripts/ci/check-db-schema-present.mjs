@@ -435,6 +435,15 @@ async function main() {
     for (const nm of allow[cat.kind] ?? []) declaredByKind.get(cat.kind).delete(String(nm));
   }
 
+  // Test helper: emit all declared objects as prod-fixture rows (JSON) so the diff path is testable.
+  if (/^(1|true|yes)$/i.test(process.env.DB_SCHEMA_DUMP ?? "")) {
+    const out = [];
+    for (const cat of CATEGORIES)
+      for (const id of declaredByKind.get(cat.kind)) out.push({ kind: cat.kind, identifier: id });
+    console.log(JSON.stringify(out));
+    return;
+  }
+
   if (EXTRACT_ONLY) {
     console.log(`✓ ${CODE} extract-only: ${migs.length} migrations scanned.`);
     for (const cat of CATEGORIES)
@@ -457,11 +466,86 @@ async function main() {
     return;
   }
 
-  // 4. Query prod reality (Management API, HTTPS) — one composed query. (Wired next increment.)
-  fail(
-    "prod-query path not yet wired in this increment — use DB_SCHEMA_EXTRACT_ONLY=1 to self-check extraction.",
-    2
+  // 4. Query prod reality (Management API, HTTPS) — one composed query, or a test fixture.
+  //    search_path is set so extension-schema types render predictably for the functions category.
+  const query =
+    "set search_path = public, extensions; " +
+    CATEGORIES.map((c) => c.prodSelect).join("\nunion all\n") +
+    ";";
+  const rows = await fetchProd(query);
+
+  const prodByKind = new Map();
+  for (const cat of CATEGORIES) prodByKind.set(cat.kind, new Set());
+  for (const r of rows) {
+    const set = prodByKind.get(r.kind);
+    if (set) set.add(String(r.identifier)); // case per category: cron verbatim, others already lowercase
+  }
+
+  // 5. Diff: every declared object must exist in prod.
+  const missing = [];
+  for (const cat of CATEGORIES) {
+    const prod = prodByKind.get(cat.kind);
+    for (const id of [...declaredByKind.get(cat.kind)].sort())
+      if (!prod.has(id)) missing.push(`${cat.kind.padEnd(11)} ${id}`);
+  }
+
+  if (missing.length === 0) {
+    const total = CATEGORIES.reduce((n, c) => n + declaredByKind.get(c.kind).size, 0);
+    console.log(
+      `✓ ${CODE}: OK — all ${total} declared objects across ${CATEGORIES.length} categories exist in prod ` +
+        `(${process.env.SUPABASE_PROJECT_REF ?? "fixture"}).`
+    );
+    return;
+  }
+  console.error(
+    `✖ ${CODE}: ${missing.length} declared object(s) are MISSING from prod — a migration was committed ` +
+      `but never applied (the outage class):`
   );
+  for (const line of missing) console.error(`  - ${line}`);
+  console.error(
+    `\nApply the missing migration(s) to prod (Supabase Dashboard → SQL Editor), or — if an object was ` +
+      `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason. See ADR-0036.`
+  );
+  process.exitCode = 1;
+}
+
+// Read prod objects: from DB_SCHEMA_PROD_FIXTURE (test) or the Supabase Management API (HTTPS).
+// Fail closed on anything that isn't a clean array of rows. NEVER call process.exit() after fetch
+// (killing the process with the socket still closing triggers a libuv assert on Windows — ADR-0035).
+async function fetchProd(query) {
+  const fixture = process.env.DB_SCHEMA_PROD_FIXTURE?.trim();
+  if (fixture) {
+    const rows = readJson(fixture);
+    if (!Array.isArray(rows))
+      fail("DB_SCHEMA_PROD_FIXTURE is not a JSON array of rows. Failing closed.");
+    return rows;
+  }
+  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
+  const ref = process.env.SUPABASE_PROJECT_REF?.trim();
+  if (!token)
+    fail(
+      "SUPABASE_ACCESS_TOKEN not set — cannot verify prod. Failing closed (a guard that cannot check must fail, " +
+        "not skip). Generate a Management-API token at https://supabase.com/dashboard/account/tokens (starts with sbp_)."
+    );
+  if (!ref) fail("SUPABASE_PROJECT_REF not set — cannot target a project. Failing closed.");
+  let res;
+  try {
+    res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+  } catch (e) {
+    fail(`Management API request failed: ${e.message}. Failing closed.`);
+  }
+  if (!res.ok) {
+    const body = (await res.text().catch(() => "")).slice(0, 200);
+    fail(`Management API returned HTTP ${res.status}${body ? ` — ${body}` : ""}. Failing closed.`);
+  }
+  const json = await res.json().catch(() => null);
+  if (!Array.isArray(json))
+    fail("Management API response was not the expected array of rows. Failing closed.");
+  return json;
 }
 
 main().catch((e) => {
