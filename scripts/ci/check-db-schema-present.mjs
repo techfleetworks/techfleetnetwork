@@ -368,6 +368,37 @@ CATEGORIES.push({
     "where nsp.nspname='public' and con.conrelid <> 0 and con.contype in ('c','f','u','p','x')",
 });
 
+// --- rls_enabled (tables with RLS turned ON; identifier = schema.table) -----
+// Verifier "broken" fix applied: NO drop-table subtraction (that miscounted ALTER PUBLICATION DROP
+// TABLE and dropped live tables like profiles). Only real ENABLE (add) / DISABLE (del) are events.
+CATEGORIES.push({
+  kind: "rls_enabled",
+  floor: 150,
+  derive: (migs) =>
+    deriveNet(migs, "rls_enabled", {
+      create: {
+        re: /alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?([a-z_][a-z0-9_]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_%]*)"?\s+enable\s+row\s+level\s+security/gi,
+        key: (x) => {
+          const t = clean(x[2]);
+          return t && !t.includes("%") && t !== "public" ? `${clean(x[1]) || "public"}.${t}` : null;
+        },
+      },
+      drop: {
+        re: /alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?([a-z_][a-z0-9_]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_%]*)"?\s+disable\s+row\s+level\s+security/gi,
+        key: (x) => {
+          const t = clean(x[2]);
+          return t && !t.includes("%") ? `${clean(x[1]) || "public"}.${t}` : null;
+        },
+      },
+      // the reference_* loop does `ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY` → needs sidecar
+      dynamicRe: /\.\s*%i\s+enable\s+row\s+level\s+security/i,
+    }),
+  prodSelect:
+    "select 'rls_enabled' as kind, lower(n.nspname)||'.'||lower(c.relname) as identifier from pg_class c " +
+    "join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r','p') and c.relrowsecurity = true " +
+    "and n.nspname not in ('pg_catalog','information_schema','pg_toast')",
+});
+
 // ---------------------------------------------------------------------------
 // Dynamic sidecar: names for files that declare objects via `%I` fan-outs. Every file flagged by
 // a category's dynamicRe MUST appear here (keyed by "kind::filename"), else fail closed.
