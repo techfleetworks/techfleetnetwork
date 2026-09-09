@@ -78,3 +78,50 @@ search_path=public,extensions;` for functions.
 ## (tickets/ticket_events), smoke test, BESPOKE reg, ADR-0036, retire check-db-objects-present, CI wiring, judge-arch, PR.
 
 ## Test: `$env:DB_SCHEMA_EXTRACT_ONLY="1"; node scripts/ci/check-db-schema-present.mjs` (+ `DB_SCHEMA_PROBE=a,b`)
+
+# Session 3 — adversarial correctness audit + 9 fixes (commit e213b81)
+
+Prod reconciliation reached the final 5 gate findings; classification (verified, not guessed):
+
+- `interview_invites_application_id_fkey` — GATE BUG (phantom): the FK is added only inside an
+  `IF EXISTS(...)` DO-guard and NO migration CREATEs `interview_invites` (a Lovable-era table absent
+  from prod). Fixed earlier (commit 0630de2) by the cross-category filter (constraint asserted only on
+  a migration-created table). Confirmed absent in prod via `to_regclass`.
+- `support_ticket_pointers_customer_user_id_fkey` + `class_module_attachments_item_position_key` —
+  NOT drift: both constraints VERIFIED PRESENT in prod (truth-table `to_regclass`+`pg_constraint`).
+- `framework_overview_mv` + `framework_overview_v` — **STILL OPEN, user decision pending**: genuine
+  drift (created 20260502192050/192120, never dropped by any migration, absent from prod) but ZERO
+  runtime code usage (only in generated types.ts; likely superseded by `framework_entity_v`).
+  Recommended RETIRE via `DROP … IF EXISTS` migration (no-op in prod, repo matches reality, gate nets
+  them out) vs recreate. Not yet actioned.
+
+Then an **adversarial correctness audit** (Workflow run wf_1c3380d6-cf0: 8 lenses → adversarial
+verify vs the 711-migration corpus → completeness critic) found the gate was NOT yet "structurally
+impossible to fail". **9 confirmed defects FIXED in commit e213b81** (all verified; smoke tests added):
+
+FAIL-OPEN (a green gate while drift exists):
+
+1. Test seams (fixture/dump/extract/root/probe) short-circuited to exit 0 with no prod check → now
+   FAIL CLOSED in CI unless `DB_SCHEMA_ALLOW_SEAMS=1` (smoke test sets it; blocking gate never does).
+2. Allowlist was fail-OPEN (subtract-before-diff, no proof-of-absence) → now fails closed if an
+   allowlisted object is PRESENT in prod, and rejects a waiver key naming an inactive category.
+3. Empty `%I` sidecar array satisfied the tripwire while injecting nothing → now fails closed.
+4. Loose floors (~25% below actual) → pinned `BASELINES` (table 202, extension 7, type 25, view 19,
+   constraint 19, rls_enabled 202) ±2, real-corpus-only (skipped for DB_SCHEMA_ROOT); + always-on
+   zero-derived tripwire. **BUMP `BASELINES` in the same PR whenever a migration changes the schema.**
+
+CORRECTNESS / HONESTY: 5. Tokenizer: backslash escapes a quote only in `E'...'` (standard_conforming_strings ON) — a plain
+`'…\'` no longer over-consumes and mask following DDL (`_sql-scan.mjs`). 6. `rls_enabled` restricted to `public` schema (drops the `realtime.messages` system-table phantom). 7. Comma-list `DROP TABLE/VIEW/TYPE a, b` now subtracts every target (was: only the first).
+8/9. Header docstring + run output no longer overclaim; they name ACTIVE categories and state cron +
+the 5 unimplemented categories are NOT verified.
+
+Tests: `src/test/smoke/check-db-schema-present.smoke.test.ts` (12 scenarios, every fail-closed path)
+
+- `src/test/smoke/sql-scan.smoke.test.ts` (7). Gate registered in check-ci-guard-integrity
+  BESPOKE_DIR_READERS. Green: check-guard-has-test (44/44), check-ci-guard-integrity, arch-gate.
+
+STILL REMAINING (unchanged from session 2 + new): the 2 framework views decision (user); functions /
+columns / indexes / triggers / policies categories; manual-review bucket; ADR-0036 doc; retire
+check-db-objects-present; CI wiring (advisory→blocking); prod re-run to confirm 0 findings (needs the
+`sbp_` token); then judge-arch on the whole gate + PR. Full audit output:
+`~/…/7920c951-…/tasks/wrfrgmxtu.output` (28 findings; 9 confirmed) + wf_1c3380d6-cf0 journal.

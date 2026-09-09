@@ -23,7 +23,9 @@
  *    sidecar (db-dynamic-objects.json) or the gate FAILS CLOSED — an unbounded silent miss becomes
  *    an explicit reviewed obligation.
  *  - FAIL CLOSED always: no token / unreachable / bad response / unreadable or zero migrations /
- *    zero derived (per category floor) / unterminated dollar-quote / unregistered dynamic file /
+ *    zero derived or a per-category count off its pinned BASELINE / an active category with no
+ *    BASELINE / unterminated dollar-quote / unregistered or empty dynamic file / a stale allowlist
+ *    waiver (allowlisted object actually present in prod) / a test seam set in CI without opt-in /
  *    any declared object absent from prod. A gate that cannot verify must never pass.
  *  - The honest boundary: effects with no structural signature (data backfills, DROP-only,
  *    in-place ALTERs, privilege state) are NOT faked — a later phase surfaces them in a
@@ -31,7 +33,8 @@
  *
  * Run (HTTPS only): SUPABASE_ACCESS_TOKEN=… SUPABASE_PROJECT_REF=pzvqxdgoztbfikfuifix node scripts/ci/check-db-schema-present.mjs
  * Extraction self-check (no prod): DB_SCHEMA_EXTRACT_ONLY=1 node scripts/ci/check-db-schema-present.mjs
- * Test seams (never set in CI/prod): DB_SCHEMA_ROOT, DB_SCHEMA_PROD_FIXTURE.
+ * Test seams (refused in CI unless DB_SCHEMA_ALLOW_SEAMS=1, which only the smoke test sets):
+ *   DB_SCHEMA_ROOT, DB_SCHEMA_PROD_FIXTURE, DB_SCHEMA_DUMP, DB_SCHEMA_EXTRACT_ONLY, DB_SCHEMA_PROBE.
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
@@ -642,7 +645,12 @@ async function main() {
   if (!process.env.DB_SCHEMA_ROOT) {
     for (const cat of CATEGORIES) {
       const expect = BASELINES[cat.kind];
-      if (expect == null) continue;
+      if (expect == null)
+        fail(
+          `active category '${cat.kind}' has no BASELINES entry — a new category must not ship without ` +
+            `a pinned count tripwire (that is how a partial-capture regression is caught). Add ` +
+            `BASELINES.${cat.kind} = <current derived count from DB_SCHEMA_EXTRACT_ONLY>. Failing closed.`
+        );
       const size = declaredByKind.get(cat.kind).size;
       if (Math.abs(size - expect) > BASELINE_TOL)
         fail(
