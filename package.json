@@ -181,6 +181,7 @@
     "vitest": "4.1.11"
   },
   "overrides": {
+    "esbuild": "^0.25.0",
     "flatted": "3.4.2",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
