@@ -485,6 +485,20 @@ async function main() {
   for (const cat of CATEGORIES) declaredByKind.set(cat.kind, cat.derive(migs));
   checkDynamicRegistered();
 
+  // 1b. Cross-category integrity — a constraint can only be asserted on a table a migration
+  // actually creates. An ADD CONSTRAINT guarded by IF EXISTS on a Lovable-era table the
+  // migrations don't own (interview_invites, added conditionally in 20260530194518) is NOT an
+  // unconditional declaration: the gate cannot evaluate the guard, so it must not expect the
+  // constraint in prod. Filtering on the derived table set also drops constraints on a table
+  // later netted away by DROP TABLE. Verified via DB_SCHEMA_DUMP: this removes exactly the one
+  // phantom (1 of 20), no real constraint. Identity is `table.constraint` — table is before the dot.
+  {
+    const tables = declaredByKind.get("table");
+    const cons = declaredByKind.get("constraint");
+    if (tables && cons)
+      for (const id of [...cons]) if (!tables.has(id.slice(0, id.indexOf(".")))) cons.delete(id);
+  }
+
   // 2. Floors + zero-scan tripwires (a partial-capture regression must fail, not pass small).
   for (const cat of CATEGORIES) {
     const size = declaredByKind.get(cat.kind).size;
