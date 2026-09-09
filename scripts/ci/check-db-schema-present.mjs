@@ -663,13 +663,13 @@ async function main() {
     }
   }
 
-  // 4. Query prod reality (Management API, HTTPS) — one composed query, or a test fixture.
-  //    search_path is set so extension-schema types render predictably for the functions category.
-  const query =
-    "set search_path = public, extensions; " +
-    CATEGORIES.map((c) => c.prodSelect).join("\nunion all\n") +
-    ";";
-  const rows = await fetchProd(query);
+  // 4. Query prod reality (Management API, HTTPS) — ONE REQUEST PER CATEGORY (not a single UNION-ALL).
+  //    A combined union exceeded the Management-API response cap (~960 rows) and silently dropped rows,
+  //    making PRESENT objects look MISSING; offset-paging that union then SKIPPED rows at the page
+  //    boundary because its (kind,identifier) order had ties (duplicate rows). Per category the result
+  //    is small (well under the cap) and needs neither paging nor ordering. fetchProd fails closed if
+  //    any single category nears the cap. search_path is set so extension-schema types render predictably.
+  const rows = await fetchProd(CATEGORIES);
 
   const prodByKind = new Map();
   for (const cat of CATEGORIES) prodByKind.set(cat.kind, new Set());
@@ -719,23 +719,30 @@ async function main() {
   );
   for (const line of missing) console.error(`  - ${line}`);
   console.error(
+    `\nprod snapshot fetched: ${rows.length} row(s) — ${CATEGORIES.map((c) => `${c.kind}=${prodByKind.get(c.kind).size}`).join(", ")}.`
+  );
+  console.error(
     `\nApply the missing migration(s) to prod (Supabase Dashboard → SQL Editor), or — if an object was ` +
-      `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason. See ADR-0036.`
+      `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason (the gate ` +
+      `fails closed if a waiver names an object that is actually present). See ADR-0036.`
   );
   console.error(NOT_VERIFIED_NOTE);
   process.exitCode = 1;
 }
 
 // Read prod objects: from DB_SCHEMA_PROD_FIXTURE (test) or the Supabase Management API (HTTPS).
-// Fail closed on anything that isn't a clean array of rows. NEVER call process.exit() after fetch
-// (killing the process with the socket still closing triggers a libuv assert on Windows — ADR-0035).
-async function fetchProd(query) {
+// The API path PAGES the (ordered) query with LIMIT/OFFSET so a per-response row cap can't silently
+// truncate the snapshot — a truncated snapshot makes present objects look MISSING (a false positive)
+// AND, worse, could hide a real object; paging removes the whole class. Fail closed on anything that
+// isn't a clean array of rows. NEVER call process.exit() after fetch (killing the process with the
+// socket still closing triggers a libuv assert on Windows — ADR-0035).
+async function fetchProd(categories) {
   const fixture = process.env.DB_SCHEMA_PROD_FIXTURE?.trim();
   if (fixture) {
     const rows = readJson(fixture);
     if (!Array.isArray(rows))
       fail("DB_SCHEMA_PROD_FIXTURE is not a JSON array of rows. Failing closed.");
-    return rows;
+    return rows; // a fixture is one complete array of all-category rows
   }
   const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
   const ref = process.env.SUPABASE_PROJECT_REF?.trim();
@@ -745,6 +752,31 @@ async function fetchProd(query) {
         "not skip). Generate a Management-API token at https://supabase.com/dashboard/account/tokens (starts with sbp_)."
     );
   if (!ref) fail("SUPABASE_PROJECT_REF not set — cannot target a project. Failing closed.");
+  // One request per category: each result is well under the Management-API response cap, so no single
+  // response is truncated and there is no cross-category paging to skip rows over ties. If a category
+  // ever approaches the cap, FAIL CLOSED (add keyset paging for it) rather than trust a possibly-cut
+  // response — never silently under-verify.
+  const CAP_WARN = 800;
+  const all = [];
+  for (const cat of categories) {
+    const rows = await postProdQuery(
+      ref,
+      token,
+      `set search_path = public, extensions; ${cat.prodSelect};`
+    );
+    if (rows.length >= CAP_WARN)
+      fail(
+        `prod category '${cat.kind}' returned ${rows.length} rows — near the Management-API response cap; ` +
+          `a single response may be truncated. Add keyset paging for '${cat.kind}' before trusting it. Failing closed.`
+      );
+    for (const r of rows) all.push(r);
+  }
+  return all;
+}
+
+// One Management-API POST returning a clean array of rows, or fail closed. Split out so fetchProd can
+// page. NEVER process.exit() here (see ADR-0035 libuv note above).
+async function postProdQuery(ref, token, query) {
   let res;
   try {
     res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
