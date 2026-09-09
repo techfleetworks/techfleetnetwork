@@ -310,6 +310,11 @@ function deriveCron(migs) {
         `${m.name}: ${calls} cron.schedule( call(s) but ${named} literal job name(s) extracted — ` +
           `a non-literal/auto-named job would be silently missed. Failing closed.`
       );
+    // del: literal unschedule('name') only. (Window-netting of jobid/IN-list unschedules was tried
+    // and REVERTED — this repo reschedules via VARIABLES (cron.schedule(r.jobname,…)) in normalize
+    // loops, so netting removals we can't see re-added causes false negatives, e.g. it dropped the
+    // live refresh-community-events. cron is therefore NOT a reliable static presence gate here and
+    // is DEFERRED as a category — see the disabled push below and adr-0036-RESUME-2.md.)
     const RE_UN = /cron\.unschedule\s*\(\s*'([^']+)'/gi;
     while ((x = RE_UN.exec(view))) events.push({ i: x.index, op: "del", id: x[1] });
     events.sort((a, b) => a.i - b.i);
@@ -317,15 +322,16 @@ function deriveCron(migs) {
   }
   return live;
 }
-CATEGORIES.push({
-  kind: "cron_job",
-  floor: 20,
-  derive: deriveCron,
-  // FAIL CLOSED if pg_cron isn't installed: `cron.job` won't exist → the query errors → non-2xx →
-  // the fetch path fails closed (never "0 jobs, all good"). That absence was the original outage.
-  prodSelect:
-    "select 'cron_job' as kind, jobname as identifier from cron.job where jobname is not null",
-});
+// cron_job category DEFERRED (not registered): the first prod run proved cron is not statically
+// reconcilable in this repo. Jobs are renamed + rescheduled constantly, and the 20260531042114
+// "normalize schedules" migration reschedules via VARIABLES (cron.schedule(r.jobname,…)) inside a
+// loop — invisible to literal extraction. Literal-only over-declares ~25 superseded jobs (false
+// positives); netting removals we can't see re-added causes FALSE NEGATIVES (it dropped the live
+// refresh-community-events). A presence gate that can't avoid false negatives must not gate. Cron
+// drift is better reconciled by periodically diffing prod `SELECT jobname FROM cron.job` against the
+// current intended set. deriveCron is kept (literal-only, the safe over-declaring direction) for
+// that advisory use. See adr-0036-RESUME-2.md.
+void deriveCron;
 
 // --- constraints (named ADD CONSTRAINT; identifier = table.constraint) ------
 // Custom derive: ADD CONSTRAINT names don't include the table, so pair each with the governing
