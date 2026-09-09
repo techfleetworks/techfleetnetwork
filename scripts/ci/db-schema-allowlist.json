@@ -1,0 +1,12 @@
+{
+  "_comment": "ADR-0036. Objects committed migrations DECLARE that are legitimately absent from prod (superseded / renamed / dropped out of band). Reviewed, with reasons; keep it shrinking. Format: { \"<kind>\": [\"identifier\", ...] } where identifier matches the gate's normalized form (tables/types bare-lowercase; rls_enabled `schema.table`; cron_job verbatim).",
+  "table": ["tickets", "ticket_events"],
+  "type": ["ticket_inbox_type", "ticket_status"],
+  "rls_enabled": ["public.tickets", "public.ticket_events"],
+  "cron_job": ["triage-digest-daily", "drain-notification-outbox"],
+  "_reasons": {
+    "tickets/ticket_events (+ ticket_inbox_type/ticket_status/rls)": "The May 2026 chatwoot ticket design (migration 20260509160635), superseded by support_ticket_events (June redesign); 0 references in the app; never applied to prod.",
+    "triage-digest-daily": "Decommissioned by 20260822160000_remove_triage_digest.sql.",
+    "drain-notification-outbox": "Decommissioned/superseded by drain-notification-fanout-jobs (unscheduled 20260427041239)."
+  }
+}

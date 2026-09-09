@@ -119,6 +119,14 @@ function deriveNet(migs, kind, spec) {
         if (id != null) events.push({ i: x.index, op: "del", id });
       }
     }
+    // Second drop source (e.g. a table-scoped object also disappears when its TABLE is dropped).
+    if (spec.drop2) {
+      spec.drop2.re.lastIndex = 0;
+      while ((x = spec.drop2.re.exec(code))) {
+        const id = spec.drop2.key(x);
+        if (id != null) events.push({ i: x.index, op: "del", id });
+      }
+    }
     if (spec.rename) {
       spec.rename.re.lastIndex = 0;
       while ((x = spec.rename.re.exec(code))) {
@@ -388,6 +396,15 @@ CATEGORIES.push({
         key: (x) => {
           const t = clean(x[2]);
           return t && !t.includes("%") ? `${clean(x[1]) || "public"}.${t}` : null;
+        },
+      },
+      // A table's RLS-enabled state disappears when the TABLE is dropped (career_plans, passkey_* were
+      // created-with-RLS then DROP TABLE'd). Anchored so ALTER PUBLICATION ... DROP TABLE is ignored.
+      drop2: {
+        re: /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?("?)([a-z_][a-z0-9_$]*)\1/gi,
+        key: (x) => {
+          const t = clean(x[2]);
+          return t ? `public.${t}` : null;
         },
       },
       // the reference_* loop does `ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY` → needs sidecar
