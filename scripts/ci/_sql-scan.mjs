@@ -37,6 +37,21 @@ function precededByDo(code, i) {
 }
 
 /**
+ * True if the single-quote at `sql[i]` opens an `E'...'` escape string — the ONLY string kind where
+ * a backslash escapes the closing quote. Postgres runs with standard_conforming_strings ON by
+ * default, so a plain `'...'` treats `\` as a literal char and `\'` CLOSES the string; only `''`
+ * escapes a quote. Honoring `\'` in a plain string would over-consume past the real close and mask
+ * whatever DDL follows (a silent miss). The `E`/`e` prefix must be standalone (not an identifier tail).
+ */
+function isEStringPrefix(sql, i) {
+  if (i < 1) return false;
+  const p = sql[i - 1];
+  if (p !== "E" && p !== "e") return false;
+  const before = i >= 2 ? sql[i - 2] : "";
+  return !/[A-Za-z0-9_$]/.test(before);
+}
+
+/**
  * Return a "code only" view of `sql`: comments, single-quoted strings, and dollar-quoted bodies
  * replaced by equal-length spaces (newlines kept). Offsets are preserved 1:1 with the input.
  * @param {string} sql
@@ -73,11 +88,12 @@ export function codeView(sql, opts = {}) {
       i = j;
       continue;
     }
-    // single-quoted string  '...'  with '' and \' escapes
+    // single-quoted string  '...'  ('' always escapes; backslash escapes ONLY in E'...' — see isEStringPrefix)
     if (c === "'") {
+      const estr = isEStringPrefix(sql, i);
       let j = i + 1;
       while (j < n) {
-        if (sql[j] === "\\") {
+        if (estr && sql[j] === "\\") {
           j += 2;
           continue;
         }
@@ -144,9 +160,10 @@ export function unterminatedDollarTag(sql) {
       continue;
     }
     if (c === "'") {
+      const estr = isEStringPrefix(sql, i);
       i++;
       while (i < n) {
-        if (sql[i] === "\\") {
+        if (estr && sql[i] === "\\") {
           i += 2;
           continue;
         }

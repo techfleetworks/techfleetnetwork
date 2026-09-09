@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * DB-SCHEMA-PRESENT-001 (ADR-0036) — the comprehensive schema-reconciliation gate.
+ * DB-SCHEMA-PRESENT-001 (ADR-0036) — the schema-reconciliation gate.
  *
- * Supersedes check-db-objects-present (ADR-0035), which verified only tables + functions. This
- * verifies EVERY schema object a committed migration DECLARES actually EXISTS in prod, across many
- * categories (tables, columns, indexes, policies, triggers, functions, types, constraints,
- * rls-enabled, cron jobs, views, extensions — more added over time), because prod has NO
- * supabase_migrations ledger: we verify REALITY, not a claim.
+ * Supersedes check-db-objects-present (ADR-0035), which verified only tables + functions. Because
+ * prod has NO supabase_migrations ledger, this verifies REALITY (not a claim): every schema object a
+ * committed migration DECLARES must EXIST in prod. Coverage is INCREMENTAL — each category is added
+ * and extraction-tested against the real corpus before it gates. ACTIVE now: tables, extensions,
+ * types, views, constraints, rls-enabled. NOT YET verified: columns, indexes, triggers, policies,
+ * functions (unimplemented) and cron jobs (DEFERRED — not statically reconcilable here; reconcile by
+ * diffing prod `cron.job` manually). A green result reconciles the ACTIVE categories, NOT the whole
+ * schema — every run prints exactly what it does and does not cover.
  *
  * DESIGN (from the 26-agent reconciliation-design workflow; see ADR-0036):
  *  - One shared, sound SQL tokenizer (_sql-scan.mjs) gives a "code only" view so comments, string
@@ -115,8 +118,10 @@ function deriveNet(migs, kind, spec) {
     if (spec.drop) {
       spec.drop.re.lastIndex = 0;
       while ((x = spec.drop.re.exec(code))) {
+        // key() may return one id or an array (comma-list DROP a, b): emit one del per id.
         const id = spec.drop.key(x);
-        if (id != null) events.push({ i: x.index, op: "del", id });
+        for (const one of Array.isArray(id) ? id : [id])
+          if (one != null) events.push({ i: x.index, op: "del", id: one });
       }
     }
     // Second drop source (e.g. a table-scoped object also disappears when its TABLE is dropped).
@@ -124,7 +129,8 @@ function deriveNet(migs, kind, spec) {
       spec.drop2.re.lastIndex = 0;
       while ((x = spec.drop2.re.exec(code))) {
         const id = spec.drop2.key(x);
-        if (id != null) events.push({ i: x.index, op: "del", id });
+        for (const one of Array.isArray(id) ? id : [id])
+          if (one != null) events.push({ i: x.index, op: "del", id: one });
       }
     }
     if (spec.rename) {
@@ -172,6 +178,21 @@ const RESERVED = new Set([
 ]);
 const clean = (s) => (s == null ? null : s.replace(/^"|"$/g, "").toLowerCase());
 
+// Split a DROP target list ("a, public.b cascade") into {schema, name} parts (schema null if bare).
+// A comma-list `DROP TABLE a, b` / `DROP VIEW a, b` must subtract EVERY target, not just the first —
+// each category's drop `key` maps these to its identifier form. Takes the first whitespace token of
+// each comma segment (dropping CASCADE/RESTRICT and any trailing statement text), then splits schema.
+function splitDropTargets(list) {
+  return list
+    .split(",")
+    .map((s) => s.trim().split(/\s+/)[0] || "")
+    .map((tok) => {
+      const m = /^(?:"?([a-z_][a-z0-9_$]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?$/i.exec(tok);
+      return m ? { schema: m[1] ? m[1].toLowerCase() : null, name: m[2].toLowerCase() } : null;
+    })
+    .filter(Boolean);
+}
+
 // ===========================================================================
 // CATEGORY REGISTRY. Each: { kind, floor, derive(migs)->Set, prodSelect }
 // prodSelect returns rows (kind, identifier); identifier normalized to match derive() output.
@@ -182,7 +203,6 @@ const CATEGORIES = [];
 // --- tables ---------------------------------------------------------------
 CATEGORIES.push({
   kind: "table",
-  floor: 150,
   derive: (migs) =>
     deriveNet(migs, "table", {
       create: {
@@ -194,9 +214,10 @@ CATEGORIES.push({
       },
       drop: {
         // anchored to statement start so `ALTER PUBLICATION ... DROP TABLE x` is NOT a table drop
-        // (the exact bug in the shipped ADR-0035 gate that silently subtracted live tables).
-        re: /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?("?)([A-Za-z_][A-Za-z0-9_$]*)\1/gi,
-        key: (x) => clean(x[2]),
+        // (the exact bug in the shipped ADR-0035 gate that silently subtracted live tables). Captures
+        // the whole target list so a comma-list `DROP TABLE a, b` subtracts both, not just `a`.
+        re: /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?([^;]+)/gi,
+        key: (x) => splitDropTargets(x[1]).map((t) => t.name),
       },
       rename: {
         re: /alter\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z0-9_]+)"?\s+rename\s+to\s+"?([a-z0-9_]+)"?/gi,
@@ -215,7 +236,6 @@ CATEGORIES.push({
 // --- extensions (verifier: solid) -----------------------------------------
 CATEGORIES.push({
   kind: "extension",
-  floor: 5,
   derive: (migs) =>
     deriveNet(migs, "extension", {
       create: {
@@ -235,7 +255,6 @@ CATEGORIES.push({
 // --- types (enum / range / standalone composite) --------------------------
 CATEGORIES.push({
   kind: "type",
-  floor: 20,
   derive: (migs) =>
     deriveNet(migs, "type", {
       create: {
@@ -246,8 +265,8 @@ CATEGORIES.push({
         },
       },
       drop: {
-        re: /drop\s+type\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi,
-        key: (x) => clean(x[1]),
+        re: /drop\s+type\s+(?:if\s+exists\s+)?([^;]+)/gi,
+        key: (x) => splitDropTargets(x[1]).map((t) => t.name),
       },
       rename: {
         re: /alter\s+type\s+(?:public\.)?"?([a-z0-9_]+)"?\s+rename\s+to\s+(?:public\.)?"?([a-z0-9_]+)"?/gi,
@@ -266,7 +285,6 @@ CATEGORIES.push({
 // --- views + materialized views -------------------------------------------
 CATEGORIES.push({
   kind: "view",
-  floor: 12,
   derive: (migs) =>
     deriveNet(migs, "view", {
       create: {
@@ -278,8 +296,8 @@ CATEGORIES.push({
         },
       },
       drop: {
-        re: /\bdrop\s+(?:materialized\s+)?view\s+(?:if\s+exists\s+)?(?:("(?:[^"]|"")+"|[a-z_][\w$]*)\s*\.\s*)?("(?:[^"]|"")+"|[a-z_][\w$]*)/gi,
-        key: (x) => `${clean(x[1]) || "public"}.${clean(x[2])}`,
+        re: /\bdrop\s+(?:materialized\s+)?view\s+(?:if\s+exists\s+)?([^;]+)/gi,
+        key: (x) => splitDropTargets(x[1]).map((t) => `${t.schema || "public"}.${t.name}`),
       },
     }),
   prodSelect:
@@ -373,7 +391,6 @@ function deriveConstraints(migs) {
 }
 CATEGORIES.push({
   kind: "constraint",
-  floor: 15,
   derive: deriveConstraints,
   // Prod returns ALL table constraints (inline + ADD); declared (ADD-only) ⊆ prod, so extras are harmless.
   prodSelect:
@@ -387,39 +404,42 @@ CATEGORIES.push({
 // TABLE and dropped live tables like profiles). Only real ENABLE (add) / DISABLE (del) are events.
 CATEGORIES.push({
   kind: "rls_enabled",
-  floor: 150,
   derive: (migs) =>
     deriveNet(migs, "rls_enabled", {
       create: {
         re: /alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?([a-z_][a-z0-9_]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_%]*)"?\s+enable\s+row\s+level\s+security/gi,
         key: (x) => {
+          // public-only, matching every other category. A non-public ENABLE (e.g. the unconditional
+          // `ALTER TABLE realtime.messages ENABLE RLS` in 20260513020848) targets a Supabase-managed
+          // system table the migrations don't own — asserting its RLS state risks a false positive on
+          // a state that can reset out of band (realtime upgrade / partition rotation) with no ordinary
+          // migration to reconcile it. The constraint category's owner-filter covers the same class.
+          const sch = clean(x[1]) || "public";
           const t = clean(x[2]);
-          return t && !t.includes("%") && t !== "public" ? `${clean(x[1]) || "public"}.${t}` : null;
+          return sch === "public" && t && !t.includes("%") && t !== "public" ? `public.${t}` : null;
         },
       },
       drop: {
         re: /alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?([a-z_][a-z0-9_]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_%]*)"?\s+disable\s+row\s+level\s+security/gi,
         key: (x) => {
+          const sch = clean(x[1]) || "public";
           const t = clean(x[2]);
-          return t && !t.includes("%") ? `${clean(x[1]) || "public"}.${t}` : null;
+          return sch === "public" && t && !t.includes("%") ? `public.${t}` : null;
         },
       },
       // A table's RLS-enabled state disappears when the TABLE is dropped (career_plans, passkey_* were
       // created-with-RLS then DROP TABLE'd). Anchored so ALTER PUBLICATION ... DROP TABLE is ignored.
       drop2: {
-        re: /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?("?)([a-z_][a-z0-9_$]*)\1/gi,
-        key: (x) => {
-          const t = clean(x[2]);
-          return t ? `public.${t}` : null;
-        },
+        re: /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?([^;]+)/gi,
+        key: (x) => splitDropTargets(x[1]).map((t) => `public.${t.name}`),
       },
       // the reference_* loop does `ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY` → needs sidecar
       dynamicRe: /\.\s*%i\s+enable\s+row\s+level\s+security/i,
     }),
   prodSelect:
-    "select 'rls_enabled' as kind, lower(n.nspname)||'.'||lower(c.relname) as identifier from pg_class c " +
+    "select 'rls_enabled' as kind, 'public.'||lower(c.relname) as identifier from pg_class c " +
     "join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r','p') and c.relrowsecurity = true " +
-    "and n.nspname not in ('pg_catalog','information_schema','pg_toast')",
+    "and n.nspname = 'public'",
 });
 
 // --- indexes (bare index name) — DEFERRED to next session ------------------
@@ -452,7 +472,8 @@ function loadSidecar() {
 // Every file flagged by a category's dynamicRe (a `%I` fan-out) MUST be registered in the sidecar,
 // else we'd silently verify nothing for its objects. Fail closed on any unregistered hit.
 function checkDynamicRegistered() {
-  const registered = new Set(Object.keys(SIDECAR.objects ?? {}));
+  const objs = SIDECAR.objects ?? {};
+  const registered = new Set(Object.keys(objs));
   const unregistered = [...dynamicHits].filter((h) => !registered.has(h));
   if (unregistered.length)
     fail(
@@ -460,6 +481,19 @@ function checkDynamicRegistered() {
         `cannot verify statically, refusing to skip:\n` +
         unregistered.map((h) => `  - ${h}`).join("\n") +
         `\nList the concrete names each produces under "objects"["${unregistered[0]}"] = [ ... ]. See ADR-0036.`
+    );
+  // A registered %I file must contribute >=1 concrete name. An empty/blank list satisfies the key
+  // check above while injecting ZERO objects — the fan-out's objects would be verified against
+  // nothing (a silent miss). Fail closed on an empty registration.
+  const empty = [...dynamicHits].filter((h) => {
+    const v = objs[h];
+    return !Array.isArray(v) || v.length === 0 || v.every((s) => String(s).trim() === "");
+  });
+  if (empty.length)
+    fail(
+      `dynamic (%I fan-out) file(s) registered in ${DYNAMIC_PATH} with an EMPTY name list — they ` +
+        `would inject zero objects and silently verify nothing:\n` +
+        empty.map((h) => `  - ${h}`).join("\n")
     );
 }
 
@@ -476,7 +510,53 @@ function loadAllowlist() {
   }
 }
 
+// Committed per-category derived-count baselines (POST-allowlist), pinned to the real corpus. The
+// gate fails when a category's count strays more than BASELINE_TOL from its baseline: a DROP is a
+// partial-capture regression (silent under-verification — the old loose floors sat ~25% below actual
+// and let ~50 objects vanish undetected); an unreviewed RISE means the schema grew and the baseline
+// must be bumped in the same PR. Only enforced against the real corpus (skipped for a DB_SCHEMA_ROOT
+// test fixture, whose counts are intentionally tiny). Bump these when a migration changes the schema.
+const BASELINES = {
+  table: 202,
+  extension: 7,
+  type: 25,
+  view: 19,
+  constraint: 19,
+  rls_enabled: 202,
+};
+const BASELINE_TOL = 2;
+
+// What a green run does NOT cover — printed on every real-prod run so a pass is never mistaken for
+// "the whole schema is reconciled". Keep in sync with the header docstring's coverage list.
+const NOT_VERIFIED_NOTE =
+  "Coverage note: NOT verified — columns, indexes, triggers, policies, functions (categories not yet " +
+  "implemented) and cron jobs (deferred; reconcile manually by diffing prod `SELECT jobname FROM " +
+  "cron.job` against the intended set). A green result reconciles the ACTIVE categories only.";
+
 async function main() {
+  // Fail closed on a test seam left set in CI. The seams (fixture/dump/extract/root/probe) bypass or
+  // short-circuit real prod verification — invaluable locally and in the smoke test, catastrophic if
+  // one leaks into the blocking CI job (a green gate that verified nothing). In CI they are refused
+  // unless a run EXPLICITLY opts in via DB_SCHEMA_ALLOW_SEAMS (the smoke test sets it; the blocking
+  // gate never does). Locally (no CI env) the seams work freely.
+  const inCI = /^(1|true|yes)$/i.test(process.env.CI ?? "");
+  const allowSeams = /^(1|true|yes)$/i.test(process.env.DB_SCHEMA_ALLOW_SEAMS ?? "");
+  if (inCI && !allowSeams) {
+    const leaked = [
+      "DB_SCHEMA_PROD_FIXTURE",
+      "DB_SCHEMA_DUMP",
+      "DB_SCHEMA_EXTRACT_ONLY",
+      "DB_SCHEMA_ROOT",
+      "DB_SCHEMA_PROBE",
+    ].filter((k) => (process.env[k] ?? "").trim() !== "");
+    if (leaked.length)
+      fail(
+        `refusing to honor test seam(s) [${leaked.join(", ")}] in CI — they bypass prod verification, ` +
+          `so the blocking gate would pass without checking prod. Unset them (or set ` +
+          `DB_SCHEMA_ALLOW_SEAMS=1 only in the guard's own smoke test). Failing closed.`
+      );
+  }
+
   const migs = loadMigrations();
   SIDECAR = loadSidecar();
 
@@ -499,21 +579,29 @@ async function main() {
       for (const id of [...cons]) if (!tables.has(id.slice(0, id.indexOf(".")))) cons.delete(id);
   }
 
-  // 2. Floors + zero-scan tripwires (a partial-capture regression must fail, not pass small).
-  for (const cat of CATEGORIES) {
-    const size = declaredByKind.get(cat.kind).size;
-    if (size < cat.floor)
-      fail(
-        `only ${size} '${cat.kind}' objects derived from ${migs.length} migrations (floor ${cat.floor}). ` +
-          `Extraction regression? Failing closed rather than under-verifying.`
-      );
-  }
-
-  // 3. Subtract allowlist.
+  // 2. Subtract allowlist — first fail closed on a waiver naming an INACTIVE category (a dead key,
+  //    e.g. a deferred category's leftover entries, would silently exempt objects if that category
+  //    is ever re-activated).
   const allow = loadAllowlist();
-  for (const cat of CATEGORIES) {
+  for (const k of Object.keys(allow))
+    if (!k.startsWith("_") && !CATEGORIES.some((c) => c.kind === k))
+      fail(
+        `allowlist key '${k}' names no active category (deferred/removed?). A dead waiver silently ` +
+          `exempts objects — remove it from ${ALLOWLIST_PATH}.`
+      );
+  for (const cat of CATEGORIES)
     for (const nm of allow[cat.kind] ?? []) declaredByKind.get(cat.kind).delete(String(nm));
-  }
+
+  // 3. Zero-derived tripwire (always on, incl. test roots): if NOTHING is derived across all active
+  //    categories, derivation is broken or everything was allowlisted away — a green "all 0 declared
+  //    exist" would be the exact vacuous false-pass this gate exists to replace. Fail closed. (The
+  //    real-corpus per-category baseline runs later, after the extract/dump early-exits — step 3b.)
+  const totalDeclared = CATEGORIES.reduce((n, c) => n + declaredByKind.get(c.kind).size, 0);
+  if (totalDeclared === 0)
+    fail(
+      `0 objects derived across all ${CATEGORIES.length} categories — derivation regressed or every ` +
+        `object was allowlisted. Failing closed.`
+    );
 
   // Test helper: emit all declared objects as prod-fixture rows (JSON) so the diff path is testable.
   if (/^(1|true|yes)$/i.test(process.env.DB_SCHEMA_DUMP ?? "")) {
@@ -546,6 +634,27 @@ async function main() {
     return;
   }
 
+  // 3b. Baseline tripwire (real corpus only; skipped for a DB_SCHEMA_ROOT test fixture, whose counts
+  //     are intentionally tiny). Each active category is pinned to its committed derived count ± a
+  //     small tolerance, so a partial-capture regression that silently drops more than a couple of
+  //     objects FAILS rather than passing under a loose floor. Legit schema growth/shrink is a
+  //     reviewed one-line bump of BASELINES in the same PR.
+  if (!process.env.DB_SCHEMA_ROOT) {
+    for (const cat of CATEGORIES) {
+      const expect = BASELINES[cat.kind];
+      if (expect == null) continue;
+      const size = declaredByKind.get(cat.kind).size;
+      if (Math.abs(size - expect) > BASELINE_TOL)
+        fail(
+          `derived ${size} '${cat.kind}' objects; committed baseline is ${expect} (±${BASELINE_TOL}). ` +
+            (size < expect
+              ? `A drop of ${expect - size} is a partial-capture regression — objects would go unverified (silent drift). `
+              : `An unreviewed increase of ${size - expect}: confirm the new objects are intended, then bump BASELINES.${cat.kind} to ${size}. `) +
+            `Failing closed.`
+        );
+    }
+  }
+
   // 4. Query prod reality (Management API, HTTPS) — one composed query, or a test fixture.
   //    search_path is set so extension-schema types render predictably for the functions category.
   const query =
@@ -561,6 +670,23 @@ async function main() {
     if (set) set.add(String(r.identifier)); // case per category: cron verbatim, others already lowercase
   }
 
+  // 4b. Allowlist integrity (fail-closed): a waiver may ONLY cover an object genuinely ABSENT from
+  //     prod. If an allowlisted object is PRESENT, the waiver is stale/over-broad and is silently
+  //     removing a REAL object from verification — the one fail-OPEN path in an otherwise fail-closed
+  //     gate. Close it: an allowlisted-but-present object fails the gate.
+  const staleAllow = [];
+  for (const cat of CATEGORIES) {
+    const prod = prodByKind.get(cat.kind);
+    for (const nm of allow[cat.kind] ?? [])
+      if (prod && prod.has(String(nm))) staleAllow.push(`${cat.kind.padEnd(11)} ${nm}`);
+  }
+  if (staleAllow.length)
+    fail(
+      `allowlist entr(y/ies) are PRESENT in prod — a waiver must only cover an ABSENT object; these ` +
+        `are masking a real object from verification. Remove from ${ALLOWLIST_PATH}:\n` +
+        staleAllow.map((s) => `  - ${s}`).join("\n")
+    );
+
   // 5. Diff: every declared object must exist in prod.
   const missing = [];
   for (const cat of CATEGORIES) {
@@ -572,9 +698,11 @@ async function main() {
   if (missing.length === 0) {
     const total = CATEGORIES.reduce((n, c) => n + declaredByKind.get(c.kind).size, 0);
     console.log(
-      `✓ ${CODE}: OK — all ${total} declared objects across ${CATEGORIES.length} categories exist in prod ` +
+      `✓ ${CODE}: OK — all ${total} declared objects across ${CATEGORIES.length} ACTIVE categories ` +
+        `(${CATEGORIES.map((c) => c.kind).join(", ")}) exist in prod ` +
         `(${process.env.SUPABASE_PROJECT_REF ?? "fixture"}).`
     );
+    console.log(NOT_VERIFIED_NOTE);
     return;
   }
   console.error(
@@ -586,6 +714,7 @@ async function main() {
     `\nApply the missing migration(s) to prod (Supabase Dashboard → SQL Editor), or — if an object was ` +
       `intentionally renamed/dropped out of band — add it to ${ALLOWLIST_PATH} with a reason. See ADR-0036.`
   );
+  console.error(NOT_VERIFIED_NOTE);
   process.exitCode = 1;
 }
 

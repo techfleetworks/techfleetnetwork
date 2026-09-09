@@ -41,6 +41,7 @@ const BESPOKE_DIR_READERS = new Set([
   "check-triage-actionable-parity.mjs", // reads one TS file + newest matching migration
   "check-db-objects-present.mjs", // ADR-0035 object-existence gate: readdirSync over migrations to derive declared objects, then queries prod via the Management API (not a recursive content scan)
   "check-erasure-completeness.mjs", // ADR-0039 right-to-erasure guard: reads migration filenames + the winning handle_user_deletion body (not a recursive content scan)
+  "check-db-schema-present.mjs", // ADR-0036 schema-reconciliation gate: readdirSync over migrations to derive declared objects across categories, then queries prod via the Management API (not a recursive content scan)
   "arch-gate.mjs", // the flagship architecture engine — its own dependency-free scanner, already fail-closed + evidence-bearing
 ]);
 
