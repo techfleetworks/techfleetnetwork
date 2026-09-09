@@ -34,10 +34,6 @@ const MAX_PAGES = 100;
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
-function escapeLike(s: string): string {
-  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 interface GumroadSale {
   id: string; email: string; seller_id?: string; product_id?: string;
   product_permalink?: string; permalink?: string; subscription_id?: string;
@@ -159,8 +155,10 @@ Deno.serve(
         else if (life.state === "active") { cancelledAt = life.cancelledAt; }
         else grant = false;
       }
-      const { data: prof } = await admin.from("profiles").select("user_id").ilike("email", escapeLike(email)).maybeSingle();
-      const resolvedUserId = grant ? (prof?.user_id ?? null) : null;
+      // Resolve through the single identity owner (ADR-0038) so a backfill re-ingest
+      // recognizes buyers via their verified alias emails, not just the profile primary.
+      const { data: resolved } = await admin.rpc("resolve_gumroad_user", { p_email: email });
+      const resolvedUserId = grant ? ((resolved as string | null) ?? null) : null;
 
       const { error, count } = await admin.from("gumroad_sales").upsert({
         sale_id: s.id, seller_id: s.seller_id ?? GUMROAD_SELLER_ID,
