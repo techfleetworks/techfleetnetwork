@@ -46,12 +46,6 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Neutralize LIKE/ILIKE wildcards (`%` `_` `\`) so an email with those legal
- *  characters can't widen the match to other users' rows (IDOR). */
-function escapeLike(s: string): string {
-  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -193,12 +187,18 @@ Deno.serve(
 
     let resolvedUserId: string | null = null;
     if (normalizedEmail) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .ilike("email", escapeLike(normalizedEmail))
-        .maybeSingle();
-      resolvedUserId = profile?.user_id ?? null;
+      // Identity resolution has ONE owner (ADR-0038): resolve_gumroad_user() checks
+      // the profile primary email AND the verified alias set, so a buyer who used any
+      // of their known emails is linked immediately instead of left pending_user.
+      const { data: resolved, error: resolveErr } = await supabase.rpc("resolve_gumroad_user", {
+        p_email: normalizedEmail,
+      });
+      if (resolveErr) {
+        // Report, don't hide: fall through to pending_user (the resolve-on-signup and
+        // alias triggers still bind it later), but surface the failure to the sink.
+        void emitWebhookPersistFailure("resolve", resolveErr.message);
+      }
+      resolvedUserId = (resolved as string | null) ?? null;
     }
 
     const priceCents = p.price ? parseInt(p.price, 10) || 0 : 0;
