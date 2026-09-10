@@ -523,7 +523,7 @@ const BASELINES = {
   table: 202,
   extension: 7,
   type: 25,
-  view: 19,
+  view: 17,
   constraint: 19,
   rls_enabled: 202,
 };
