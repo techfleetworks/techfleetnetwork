@@ -47,7 +47,9 @@ describe("gumroad-backfill-all + membership observability (smoke)", () => {
     // Unknown/unverifiable lifecycle → grant=false → resolved_user_id null (pending),
     // so a lapsed member cannot self-restore via a resync.
     expect(backfillAll).toMatch(/else grant = false/);
-    expect(backfillAll).toMatch(/resolvedUserId = grant \? \(prof\?\.user_id \?\? null\) : null/);
+    // Fail-closed gate: resolvedUserId is null whenever grant is false, regardless of
+    // how the user is resolved (resolve_gumroad_user rpc, ADR-0038).
+    expect(backfillAll).toMatch(/resolvedUserId = grant \? .* : null/);
   });
 
   it("MEM-OBS-003: backfill-all never writes a tier — it projects via reproject_membership_drift", () => {

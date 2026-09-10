@@ -63,14 +63,15 @@ SET search_path = ''
 AS $$
 DECLARE
   v_email text := lower(NULLIF(p_email, ''));
-  v_user  uuid;
-  v_count integer;
+  v_users uuid[];
 BEGIN
   IF v_email IS NULL THEN
     RETURN NULL;
   END IF;
-  SELECT count(*), min(user_id)
-    INTO v_count, v_user
+  -- Collect the distinct owners of this email (primary + verified aliases). Postgres
+  -- has no min(uuid) aggregate, so gather into an array and require exactly one.
+  SELECT array_agg(DISTINCT user_id)
+    INTO v_users
     FROM (
       SELECT p.user_id
         FROM public.profiles p
@@ -80,10 +81,10 @@ BEGIN
         FROM public.profile_email_aliases a
        WHERE a.email = v_email AND a.verified_at IS NOT NULL
     ) m;
-  IF v_count = 1 THEN
-    RETURN v_user;
+  IF v_users IS NOT NULL AND array_length(v_users, 1) = 1 THEN
+    RETURN v_users[1];
   END IF;
-  RETURN NULL;  -- 0 = unknown; >1 = ambiguous → never guess
+  RETURN NULL;  -- NULL/0 = unknown; >1 = ambiguous → never guess
 END
 $$;
 
