@@ -7,11 +7,10 @@ import { withAuditWrapper } from "../_shared/audit.ts";
 
 const log = createEdgeLogger("backfill-discord-usernames");
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 function isUsable(value: string | null | undefined): boolean {
   if (typeof value !== "string") return false;

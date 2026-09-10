@@ -3,11 +3,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { extractProjectDisplayTitle } from "../_shared/cert-title-utils.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 const TABLE_NAME = "Project Trainee and Volunteer Roster";
 const PROJECT_EMAIL_FIELD = "{Contributor Email Address (from Project Teammate)}";

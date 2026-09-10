@@ -18,11 +18,10 @@ import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("check-account-identity");
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 // captchaToken is OPTIONAL — when called immediately after a failed password
 // attempt the Turnstile token is already consumed and a fresh one is not yet

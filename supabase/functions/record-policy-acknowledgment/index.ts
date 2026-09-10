@@ -9,7 +9,8 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  * acceptance after sign-in via the version-gate.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, json, clientIp } from "../_shared/compliance.ts";
+import { corsHeaders } from "../_shared/http.ts";
+import { json, clientIp } from "../_shared/compliance.ts";
 
 interface Body {
   policy_keys?: string[];

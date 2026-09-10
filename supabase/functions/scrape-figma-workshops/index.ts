@@ -17,10 +17,10 @@ const BodySchema = z
   })
   .passthrough();
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 const FIGMA_HOST_RE = /^https:\/\/www\.figma\.com\/community\/file\/\d+\/[a-z0-9-]+$/i;
 

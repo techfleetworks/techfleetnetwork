@@ -1,9 +1,8 @@
 // Shared helpers for compliance edge functions.
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// CORS is owned by http.ts (it includes the x-trace-id/x-request-id preflight headers).
+// Imported here only for the local json() helper below; consumers import corsHeaders
+// from http.ts directly, so there is exactly one CORS source. See supabase/functions/CLAUDE.md.
+import { corsHeaders } from "./http.ts";
 
 export function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

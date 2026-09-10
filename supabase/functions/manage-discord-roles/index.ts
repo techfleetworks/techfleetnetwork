@@ -11,11 +11,10 @@ const BodySchema = z.object({ action: z.string().optional() }).passthrough();
 import { withAuditWrapper } from "../_shared/audit.ts";
 const log = createEdgeLogger("manage-discord-roles");
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
+// frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
+// (see supabase/functions/CLAUDE.md).
+import { corsHeaders } from "../_shared/http.ts";
 
 const MAX_BODY_BYTES = 4 * 1024;
 const MAX_ROLE_NAME_LENGTH = 100;

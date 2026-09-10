@@ -8,13 +8,8 @@ import { withAuditWrapper } from "../_shared/audit.ts";
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@4.3.6";
-import {
-  corsHeaders,
-  json,
-  clientIp,
-  isEmbargoed,
-  SANCTIONS_LIST_VERSION,
-} from "../_shared/compliance.ts";
+import { corsHeaders } from "../_shared/http.ts";
+import { json, clientIp, isEmbargoed, SANCTIONS_LIST_VERSION } from "../_shared/compliance.ts";
 
 interface Body {
   email?: string;
