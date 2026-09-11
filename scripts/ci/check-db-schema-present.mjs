@@ -637,38 +637,86 @@ CATEGORIES.push({
     "from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname='public' and p.prokind='f'",
 });
 
-// --- indexes (bare index name) ---------------------------------------------
-// EXPLICIT `CREATE INDEX` only. Implicit indexes (PRIMARY KEY / UNIQUE-constraint backing indexes) are
-// covered transitively by the constraint category, and prod having extra indexes is harmless
-// (declared ⊆ prod). The reference-table `%I` index fan-outs (4 sources: the 2 creators +
-// 20260503223414 is_placeholder + 20260511104727 desc_source) come from the reviewed sidecar; static
-// `ALTER INDEX ... RENAME TO` (the team->job rename) is modeled so the identity follows.
+// --- indexes (identity = <table>.<index>) ----------------------------------
+// EXPLICIT CREATE INDEX only (implicit pkey / unique-constraint backing indexes are covered by the
+// constraint category; prod extras are harmless, declared ⊆ prod). The identity carries the TABLE so
+// the diff-time filter (5a) drops indexes on a dropped/unapplied table. Custom derive: DROP INDEX
+// names carry no table (delete by index-name suffix); DROP/RENAME TABLE and ALTER INDEX RENAME cascade.
+// The reference `%I` index fan-outs (4 sources) come from the sidecar (FINAL <table>.<index> names).
+function deriveIndexes(migs) {
+  const live = new Set(); // <table>.<index>
+  const RE_C =
+    /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?\s+on\s+(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_D = /\bdrop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?([^;]+)/gi;
+  const RE_R =
+    /\balter\s+index\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+to\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_DT = /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?([^;]+)/gi;
+  const RE_RT =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s+rename\s+to\s+"?([a-z_][a-z0-9_]*)"?/gi;
+  for (const m of migs) {
+    const code = m.codeDo;
+    const events = [];
+    let x;
+    for (const nm of SIDECAR.objects?.[`index::${m.name}`] ?? [])
+      events.push({ i: -1, op: "add", id: String(nm).toLowerCase() });
+    RE_C.lastIndex = 0;
+    while ((x = RE_C.exec(code))) {
+      const nm = clean(x[1]),
+        tbl = clean(x[2]);
+      if (nm && tbl && !nm.includes("%") && !tbl.includes("%"))
+        events.push({ i: x.index, op: "add", id: `${tbl}.${nm}` });
+    }
+    RE_D.lastIndex = 0;
+    while ((x = RE_D.exec(code)))
+      for (const t of splitDropTargets(x[1]))
+        events.push({ i: x.index, op: "delname", name: t.name });
+    RE_R.lastIndex = 0;
+    while ((x = RE_R.exec(code)))
+      events.push({ i: x.index, op: "renname", from: clean(x[1]), to: clean(x[2]) });
+    RE_DT.lastIndex = 0;
+    while ((x = RE_DT.exec(code)))
+      for (const t of splitDropTargets(x[1]))
+        events.push({ i: x.index, op: "deltable", pfx: `${t.name}.` });
+    RE_RT.lastIndex = 0;
+    while ((x = RE_RT.exec(code)))
+      events.push({ i: x.index, op: "rentable", from: `${clean(x[1])}.`, to: `${clean(x[2])}.` });
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) {
+      if (e.op === "add") live.add(e.id);
+      else if (e.op === "delname") {
+        for (const id of [...live]) if (id.endsWith(`.${e.name}`)) live.delete(id);
+      } else if (e.op === "renname") {
+        for (const id of [...live])
+          if (id.endsWith(`.${e.from}`)) {
+            live.delete(id);
+            live.add(id.slice(0, id.length - e.from.length) + e.to);
+          }
+      } else if (e.op === "deltable") {
+        for (const id of [...live]) if (id.startsWith(e.pfx)) live.delete(id);
+      } else if (e.op === "rentable") {
+        for (const id of [...live])
+          if (id.startsWith(e.from)) {
+            live.delete(id);
+            live.add(e.to + id.slice(e.from.length));
+          }
+      }
+    }
+    if (
+      /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?%[a-z]/i.test(
+        m.raw
+      )
+    )
+      dynamicHits.add(`index::${m.name}`);
+  }
+  return live;
+}
 CATEGORIES.push({
   kind: "index",
-  derive: (migs) =>
-    deriveNet(migs, "index", {
-      create: {
-        re: /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+on\b/gi,
-        key: (x) => {
-          const n = clean(x[1]);
-          return n && !n.includes("%") ? n : null;
-        },
-      },
-      drop: {
-        re: /\bdrop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?([^;]+)/gi,
-        key: (x) => splitDropTargets(x[1]).map((t) => t.name),
-      },
-      rename: {
-        re: /\balter\s+index\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+to\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi,
-        from: (x) => clean(x[1]),
-        to: (x) => clean(x[2]),
-      },
-      dynamicRe:
-        /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?%[a-z]/i,
-    }),
+  derive: deriveIndexes,
   prodSelect:
-    "select 'index' as kind, lower(c.relname) as identifier from pg_class c " +
-    "join pg_namespace n on n.oid = c.relnamespace where n.nspname='public' and c.relkind in ('i','I')",
+    "select 'index' as kind, lower(t.relname||'.'||i.relname) as identifier from pg_index x " +
+    "join pg_class i on i.oid = x.indexrelid join pg_class t on t.oid = x.indrelid " +
+    "join pg_namespace n on n.oid = i.relnamespace where n.nspname='public'",
 });
 
 // --- triggers (identity = public.<table>.<trigger>) ------------------------
@@ -737,8 +785,13 @@ function derivePolicies(migs) {
     }
     events.sort((a, b) => a.i - b.i);
     for (const e of events) e.op === "add" ? live.add(e.id) : live.delete(e.id);
-    // dynamic tripwire: `CREATE POLICY "...%I..." ON` fan-out → needs a reviewed sidecar entry
-    if (/\bcreate\s+policy\s+(?:if\s+not\s+exists\s+)?"[^"]*%[a-z]/i.test(m.raw))
+    // dynamic tripwire: a `CREATE POLICY` fan-out has `%I` in the quoted NAME ("...%I...") OR in the
+    // TABLE (ON public.%I) — flag either (the fw_* fan-outs use a bare name + %I table).
+    if (
+      /\bcreate\s+policy\s+(?:if\s+not\s+exists\s+)?(?:"[^"]*%[a-z]|[^;]*?\bon\s+(?:"?public"?\s*\.\s*)?%[a-z])/i.test(
+        m.raw
+      )
+    )
       dynamicHits.add(`policy::${m.name}`);
   }
   return live;
@@ -771,10 +824,14 @@ function deriveColumns(migs) {
   const live = new Set();
   const RE_TABLE =
     /\bcreate\s+(?:global\s+|local\s+|temp(?:orary)?\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s*\(/gi;
-  const RE_ADD =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
-  const RE_DROPC =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+drop\s+column\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  // ALTER TABLE can carry MULTIPLE comma-separated ADD/DROP COLUMN clauses under ONE `ALTER TABLE t`
+  // prefix (`ALTER TABLE t ADD COLUMN a, ADD COLUMN b`). Match each statement (to its `;`), capture the
+  // table, then scan the whole statement for EVERY clause — matching only the first would silently drop
+  // the 2nd+ columns: a false negative letting an unapplied multi-ADD column pass the gate green.
+  const RE_ALTER_STMT =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\b[\s\S]*?;/gi;
+  const RE_ADDC = /\badd\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_DROPC = /\bdrop\s+column\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
   const RE_RENC =
     /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+column\s+"?([a-z_][a-z0-9_$]*)"?\s+to\s+"?([a-z_][a-z0-9_$]*)"?/gi;
   const RE_DROPT = /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?([^;]+)/gi;
@@ -794,18 +851,23 @@ function deriveColumns(migs) {
       if (body == null) continue;
       for (const id of tableColumns(t, body)) events.push({ i: x.index, op: "add", id });
     }
-    RE_ADD.lastIndex = 0;
-    while ((x = RE_ADD.exec(code))) {
-      const t = clean(x[1]),
-        c = clean(x[2]);
-      if (t && c && !t.includes("%") && !c.includes("%"))
-        events.push({ i: x.index, op: "add", id: `public.${t}.${c}` });
-    }
-    RE_DROPC.lastIndex = 0;
-    while ((x = RE_DROPC.exec(code))) {
-      const t = clean(x[1]),
-        c = clean(x[2]);
-      if (t && c) events.push({ i: x.index, op: "del", id: `public.${t}.${c}` });
+    RE_ALTER_STMT.lastIndex = 0;
+    while ((x = RE_ALTER_STMT.exec(code))) {
+      const t = clean(x[1]);
+      if (!t || t.includes("%")) continue;
+      const stmt = x[0]; // whole `ALTER TABLE t ... ;` — clause offsets are relative to its start
+      let y;
+      RE_ADDC.lastIndex = 0;
+      while ((y = RE_ADDC.exec(stmt))) {
+        const c = clean(y[1]);
+        if (c && !c.includes("%"))
+          events.push({ i: x.index + y.index, op: "add", id: `public.${t}.${c}` });
+      }
+      RE_DROPC.lastIndex = 0;
+      while ((y = RE_DROPC.exec(stmt))) {
+        const c = clean(y[1]);
+        if (c) events.push({ i: x.index + y.index, op: "del", id: `public.${t}.${c}` });
+      }
     }
     RE_RENC.lastIndex = 0;
     while ((x = RE_RENC.exec(code))) {
@@ -898,7 +960,15 @@ function checkDynamicRegistered() {
   // A registered %I file must contribute >=1 concrete name. An empty/blank list satisfies the key
   // check above while injecting ZERO objects — the fan-out's objects would be verified against
   // nothing (a silent miss). Fail closed on an empty registration.
+  // Files whose %I fan-out is ALL superseded by a later migration legitimately have an empty entry —
+  // the surviving objects are declared under the replacing file. Reviewed exceptions; a FORGOTTEN file
+  // is UNREGISTERED (caught above), never empty.
+  const SUPERSEDED_EMPTY_OK = new Set([
+    "policy::20260502180318_fec583fa-d798-4d04-a97b-6d0c68a508bc.sql", // creator policies → fw_* (192050/193704)
+    "policy::20260502184658_eefb3bbe-1e17-4b20-aaed-a3c5da3df357.sql",
+  ]);
   const empty = [...dynamicHits].filter((h) => {
+    if (SUPERSEDED_EMPTY_OK.has(h)) return false;
     const v = objs[h];
     return !Array.isArray(v) || v.length === 0 || v.every((s) => String(s).trim() === "");
   });
@@ -937,16 +1007,17 @@ const BASELINES = {
   constraint: 20,
   rls_enabled: 202,
   function: 419,
-  index: 403,
+  index: 394,
   trigger: 198,
-  policy: 456,
-  column: 1959,
+  policy: 492,
+  column: 2056,
 };
 const BASELINE_TOL = 2;
 
 // Table-scoped object identity → its table name, for the diff-time cross-category integrity filter (5a).
 const TABLE_OF = {
   constraint: (id) => id.slice(0, id.indexOf(".")), // table.constraint
+  index: (id) => id.slice(0, id.indexOf(".")), // table.index
   trigger: (id) => id.split(".")[1], // public.table.trigger
   column: (id) => id.split(".")[1], // public.table.column
   policy: (id) => id.slice("public.".length, id.indexOf(" :: ")), // public.table :: name

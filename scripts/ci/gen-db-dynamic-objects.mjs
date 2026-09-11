@@ -30,6 +30,12 @@ const file1 = "20260502180318_fec583fa-d798-4d04-a97b-6d0c68a508bc.sql";
 const file2 = "20260502184658_eefb3bbe-1e17-4b20-aaed-a3c5da3df357.sql";
 const filePlaceholder = "20260503223414_fb4b92fe-c7eb-43fa-9e57-de02a7165926.sql";
 const fileDescSource = "20260511104727_4320855b-5b7b-4c0c-b519-340c65b4ea3d.sql";
+// The reference POLICY fan-outs REPLACE the creators' policies: 20260502192050 creates fw_read_active
+// (+ fw_no_client_writes, later dropped); 20260502193704 creates fw_no_client_insert/update/delete.
+// So the creators' policy entries are superseded ([] below, exempt in the gate's empty-check), and the
+// final reference policies are the 4 fw_* per content table.
+const filePolicyRead = "20260502192050_822c220a-34b6-4786-a89c-62ebc85e2716.sql";
+const filePolicyWrite = "20260502193704_44e4ad8b-4d78-4727-9574-b055b242a0da.sql";
 // Non-reference dynamic TRIGGER fan-outs (found by the %I tripwire):
 const fileAuditTrig = "20260426220658_02cf4817-e5e0-4bdb-a5dc-6b0a0fa50afb.sql"; // trg_audit_<t>_change
 const auditWatchedTables = [
@@ -135,17 +141,17 @@ const CREATOR_COLUMNS = [
   "created_at",
   "updated_at",
 ];
+// index identity carries the table (public.<table> prod join → <table>.<index>) so the diff-time
+// filter can drop indexes on dropped tables.
 const creatorIndexes = (t) => [
-  `${t}_search_idx`,
-  `${t}_name_trgm_idx`,
-  `${t}_data_idx`,
-  `${t}_category_idx`,
+  `${t}.${t}_search_idx`,
+  `${t}.${t}_name_trgm_idx`,
+  `${t}.${t}_data_idx`,
+  `${t}.${t}_category_idx`,
 ];
 const creatorTriggers = (t) => [`public.${t}.trg_${t}_updated_at`, `public.${t}.trg_${t}_search`];
-const creatorPolicies = (t) => [
-  `public.${t} :: Authenticated users can read active ${t}`,
-  `public.${t} :: Admins can manage ${t}`,
-];
+// NOTE: the creators' 2 policies per table are SUPERSEDED by the reference fw_* fan-outs (filePolicyRead/
+// filePolicyWrite below), so `policy::${file1|file2}` is [] — there is no creatorPolicies() helper.
 const creatorColumns = (t) => CREATOR_COLUMNS.map((c) => `public.${t}.${c}`);
 
 const objects = {
@@ -157,14 +163,21 @@ const objects = {
   [`rls_enabled::${file2}`]: f2final.map((t) => `public.${t}`),
   [`index::${file1}`]: f1final.flatMap(creatorIndexes),
   [`index::${file2}`]: f2final.flatMap(creatorIndexes),
-  [`index::${filePlaceholder}`]: contentRefTables.map((t) => `${t}_is_placeholder_idx`),
-  [`index::${fileDescSource}`]: descSourceTables.map((t) => `${t}_desc_source_idx`),
+  [`index::${filePlaceholder}`]: contentRefTables.map((t) => `${t}.${t}_is_placeholder_idx`),
+  [`index::${fileDescSource}`]: descSourceTables.map((t) => `${t}.${t}_desc_source_idx`),
   [`trigger::${file1}`]: f1final.flatMap(creatorTriggers),
   [`trigger::${file2}`]: f2final.flatMap(creatorTriggers),
   [`trigger::${fileAuditTrig}`]: auditWatchedTables.map((t) => `public.${t}.trg_audit_${t}_change`),
   [`trigger::${fileUgcTrig}`]: ugcTables.map((t) => `public.${t}.trg_ugc_translate_${t}`),
-  [`policy::${file1}`]: f1final.flatMap(creatorPolicies),
-  [`policy::${file2}`]: f2final.flatMap(creatorPolicies),
+  // Creator policies are superseded by the fw_* fan-outs → [] (exempt in the gate's empty-check).
+  [`policy::${file1}`]: [],
+  [`policy::${file2}`]: [],
+  [`policy::${filePolicyRead}`]: contentRefTables.map((t) => `public.${t} :: fw_read_active`),
+  [`policy::${filePolicyWrite}`]: contentRefTables.flatMap((t) => [
+    `public.${t} :: fw_no_client_insert`,
+    `public.${t} :: fw_no_client_update`,
+    `public.${t} :: fw_no_client_delete`,
+  ]),
   [`column::${file1}`]: f1final.flatMap(creatorColumns),
   [`column::${file2}`]: f2final.flatMap(creatorColumns),
   [`column::${filePlaceholder}`]: contentRefTables.map((t) => `public.${t}.is_placeholder`),
