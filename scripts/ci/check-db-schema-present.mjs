@@ -1199,24 +1199,22 @@ async function fetchProd(categories) {
         "not skip). Generate a Management-API token at https://supabase.com/dashboard/account/tokens (starts with sbp_)."
     );
   if (!ref) fail("SUPABASE_PROJECT_REF not set — cannot target a project. Failing closed.");
-  // One request per category: each result is well under the Management-API response cap, so no single
-  // response is truncated and there is no cross-category paging to skip rows over ties. If a category
-  // ever approaches the cap, FAIL CLOSED (add keyset paging for it) rather than trust a possibly-cut
-  // response — never silently under-verify.
-  const CAP_WARN = 800;
+  // One category per request, each PAGED by identifier. A single UNION-ALL of all categories, or a
+  // single unpaged category (columns is ~2000 rows), exceeds the Management-API response cap (~960) and
+  // silently truncates. Paging cross-category was unsafe (its order had ties), but WITHIN a category
+  // identities are unique (public.table.col, bare index name, …), so `order by identifier` is a total
+  // order and LIMIT/OFFSET can't skip or duplicate. PAGE stays well under the cap.
+  const PAGE = 500;
   const all = [];
   for (const cat of categories) {
-    const rows = await postProdQuery(
-      ref,
-      token,
-      `set search_path = public, extensions; ${cat.prodSelect};`
-    );
-    if (rows.length >= CAP_WARN)
-      fail(
-        `prod category '${cat.kind}' returned ${rows.length} rows — near the Management-API response cap; ` +
-          `a single response may be truncated. Add keyset paging for '${cat.kind}' before trusting it. Failing closed.`
-      );
-    for (const r of rows) all.push(r);
+    const base = `set search_path = public, extensions; select kind, identifier from (${cat.prodSelect}) q order by identifier`;
+    for (let offset = 0; ; offset += PAGE) {
+      const page = await postProdQuery(ref, token, `${base} limit ${PAGE} offset ${offset};`);
+      for (const r of page) all.push(r);
+      if (page.length < PAGE) break;
+      if (offset > 200000)
+        fail(`prod paging for '${cat.kind}' exceeded 200k rows — runaway; failing closed.`);
+    }
   }
   return all;
 }
