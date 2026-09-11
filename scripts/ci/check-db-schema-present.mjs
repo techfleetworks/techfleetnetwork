@@ -5,11 +5,12 @@
  * Supersedes check-db-objects-present (ADR-0035), which verified only tables + functions. Because
  * prod has NO supabase_migrations ledger, this verifies REALITY (not a claim): every schema object a
  * committed migration DECLARES must EXIST in prod. Coverage is INCREMENTAL — each category is added
- * and extraction-tested against the real corpus before it gates. ACTIVE now: tables, extensions,
- * types, views, constraints, rls-enabled. NOT YET verified: columns, indexes, triggers, policies,
- * functions (unimplemented) and cron jobs (DEFERRED — not statically reconcilable here; reconcile by
- * diffing prod `cron.job` manually). A green result reconciles the ACTIVE categories, NOT the whole
- * schema — every run prints exactly what it does and does not cover.
+ * and extraction-tested against the real corpus before it gates. ACTIVE: tables, extensions, types,
+ * views, constraints, rls-enabled, functions, indexes, triggers, policies, columns. NOT verified:
+ * cron jobs (DEFERRED — not statically reconcilable here: jobs are renamed/rescheduled via variables
+ * inside loops, so any static list produces false negatives; reconcile by periodically diffing prod
+ * `SELECT jobname FROM cron.job` against the intended set). A green result reconciles every ACTIVE
+ * category, NOT cron — every run prints exactly what it does and does not cover.
  *
  * DESIGN (from the 26-agent reconciliation-design workflow; see ADR-0036):
  *  - One shared, sound SQL tokenizer (_sql-scan.mjs) gives a "code only" view so comments, string
@@ -499,11 +500,53 @@ const FUNC_TYPE_ALIASES = new Map([
 ]);
 // Words that START a (possibly multi-word) TYPE, so a no-name arg isn't misread as name+type.
 const TYPE_FIRST_WORDS = new Set([
-  "integer", "int", "int4", "int8", "int2", "bigint", "smallint", "boolean", "bool", "text", "uuid",
-  "jsonb", "json", "numeric", "decimal", "real", "double", "character", "varchar", "char", "timestamp",
-  "timestamptz", "date", "time", "timetz", "bytea", "interval", "money", "inet", "cidr", "macaddr",
-  "xml", "tsvector", "tsquery", "bit", "citext", "hstore", "vector", "void", "record", "trigger",
-  "anyelement", "anyarray", "jsonpath", "oid", "name", "regclass",
+  "integer",
+  "int",
+  "int4",
+  "int8",
+  "int2",
+  "bigint",
+  "smallint",
+  "boolean",
+  "bool",
+  "text",
+  "uuid",
+  "jsonb",
+  "json",
+  "numeric",
+  "decimal",
+  "real",
+  "double",
+  "character",
+  "varchar",
+  "char",
+  "timestamp",
+  "timestamptz",
+  "date",
+  "time",
+  "timetz",
+  "bytea",
+  "interval",
+  "money",
+  "inet",
+  "cidr",
+  "macaddr",
+  "xml",
+  "tsvector",
+  "tsquery",
+  "bit",
+  "citext",
+  "hstore",
+  "vector",
+  "void",
+  "record",
+  "trigger",
+  "anyelement",
+  "anyarray",
+  "jsonpath",
+  "oid",
+  "name",
+  "regclass",
 ]);
 // Normalize ONE arg's declared form to its identity type. Returns null for OUT args (excluded from
 // the identity). Keeps a leading VARIADIC (pg emits it), strips mode/name/DEFAULT/typmod, keeps [].
@@ -512,7 +555,10 @@ function normFuncType(seg) {
   // Drop a DEFAULT clause. `\bdefault\b.*$` (not `default\s+.*`) so it still strips when the default
   // VALUE was a string literal masked to spaces by the tokenizer — leaving a bare trailing `default`
   // (e.g. `p_x text DEFAULT '{}'` → `p_x text default`). Same for `= expr` defaults.
-  s = s.replace(/\s+default\b.*$/i, "").replace(/\s*=\s*.*$/, "").trim();
+  s = s
+    .replace(/\s+default\b.*$/i, "")
+    .replace(/\s*=\s*.*$/, "")
+    .trim();
   const mm = /^(in|out|inout|variadic)\s+/i.exec(s);
   const mode = mm ? mm[1].toLowerCase() : null;
   if (mode) s = s.slice(mm[0].length);
@@ -520,11 +566,18 @@ function normFuncType(seg) {
   // VARIADIC keyword already stripped by the mode regex above; prod (format_type of proargtypes)
   // emits the plain array type (e.g. text[]), no VARIADIC keyword, so we don't re-add it.
   const toks = s.split(" ");
-  if (toks.length > 1 && /^[a-z_][a-z0-9_]*$/i.test(toks[0]) && !TYPE_FIRST_WORDS.has(toks[0].toLowerCase()))
+  if (
+    toks.length > 1 &&
+    /^[a-z_][a-z0-9_]*$/i.test(toks[0]) &&
+    !TYPE_FIRST_WORDS.has(toks[0].toLowerCase())
+  )
     s = toks.slice(1).join(" "); // first token was the arg NAME
   s = s.toLowerCase().replace(/^(?:public|extensions|pg_catalog)\s*\.\s*/, "");
   const arr = /\[\s*\]/.test(s) ? "[]" : "";
-  s = s.replace(/\[\s*\]/g, "").replace(/\(\s*\d+\s*(?:,\s*\d+\s*)?\)/g, "").trim(); // strip [] + typmod
+  s = s
+    .replace(/\[\s*\]/g, "")
+    .replace(/\(\s*\d+\s*(?:,\s*\d+\s*)?\)/g, "")
+    .trim(); // strip [] + typmod
   if (FUNC_TYPE_ALIASES.has(s)) s = FUNC_TYPE_ALIASES.get(s);
   return s + arr;
 }
@@ -584,17 +637,235 @@ CATEGORIES.push({
     "from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname='public' and p.prokind='f'",
 });
 
-// --- indexes (bare index name) — DEFERRED to next session ------------------
-// The dynamic-index tripwire (correctly) found FOUR %I fan-out sources with differing table subsets
-// and suffixes: the two reference creators (…_search_idx/_name_trgm_idx/_data_idx/_category_idx),
-// 20260503223414 (<t>_is_placeholder_idx), and 20260511104727 (19 tables incl reference_relationships,
-// <t>_description_source…). Enumerating all exactly (unvalidatable vs prod this session) risks false
-// positives, so `indexes` is deferred — the extraction regex + prodSelect below are ready; finishing
-// needs the four sidecars enumerated. See adr-0036-RESUME-2.md.
-//   create: /create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?\s+on\b/gi  (filter RESERVED)
-//   drop:   /drop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi
-//   dynamicRe: /create\s+(?:unique\s+)?index[^;]{0,60}%[a-z]/i
-//   prodSelect: select 'index', c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('i','I')
+// --- indexes (bare index name) ---------------------------------------------
+// EXPLICIT `CREATE INDEX` only. Implicit indexes (PRIMARY KEY / UNIQUE-constraint backing indexes) are
+// covered transitively by the constraint category, and prod having extra indexes is harmless
+// (declared ⊆ prod). The reference-table `%I` index fan-outs (4 sources: the 2 creators +
+// 20260503223414 is_placeholder + 20260511104727 desc_source) come from the reviewed sidecar; static
+// `ALTER INDEX ... RENAME TO` (the team->job rename) is modeled so the identity follows.
+CATEGORIES.push({
+  kind: "index",
+  derive: (migs) =>
+    deriveNet(migs, "index", {
+      create: {
+        re: /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+on\b/gi,
+        key: (x) => {
+          const n = clean(x[1]);
+          return n && !n.includes("%") ? n : null;
+        },
+      },
+      drop: {
+        re: /\bdrop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?([^;]+)/gi,
+        key: (x) => splitDropTargets(x[1]).map((t) => t.name),
+      },
+      rename: {
+        re: /\balter\s+index\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+to\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi,
+        from: (x) => clean(x[1]),
+        to: (x) => clean(x[2]),
+      },
+      dynamicRe:
+        /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?%[a-z]/i,
+    }),
+  prodSelect:
+    "select 'index' as kind, lower(c.relname) as identifier from pg_class c " +
+    "join pg_namespace n on n.oid = c.relnamespace where n.nspname='public' and c.relkind in ('i','I')",
+});
+
+// --- triggers (identity = public.<table>.<trigger>) ------------------------
+// A trigger name is unique only per-table, so the identity carries the table. Static CREATE/DROP
+// TRIGGER + the reference `%I` trigger fan-out (sidecar, FINAL names). Prod excludes internal/FK
+// triggers (tgisinternal) so we compare user triggers to user triggers.
+CATEGORIES.push({
+  kind: "trigger",
+  derive: (migs) =>
+    deriveNet(migs, "trigger", {
+      create: {
+        re: /\bcreate\s+(?:constraint\s+)?trigger\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?\s+(?:before|after|instead\s+of)\b[^;]*?\bon\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi,
+        key: (x) => {
+          const trg = clean(x[1]),
+            tbl = clean(x[2]);
+          return trg && tbl && !trg.includes("%") && !tbl.includes("%")
+            ? `public.${tbl}.${trg}`
+            : null;
+        },
+      },
+      drop: {
+        re: /\bdrop\s+trigger\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?\s+on\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi,
+        key: (x) => {
+          const trg = clean(x[1]),
+            tbl = clean(x[2]);
+          return trg && tbl ? `public.${tbl}.${trg}` : null;
+        },
+      },
+      dynamicRe: /\bcreate\s+(?:constraint\s+)?trigger\s+[a-z_]*%[a-z]/i,
+    }),
+  prodSelect:
+    "select 'trigger' as kind, lower('public.'||c.relname||'.'||t.tgname) as identifier from pg_trigger t " +
+    "join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace " +
+    "where n.nspname='public' and not t.tgisinternal",
+});
+
+// --- policies (identity = public.<table> :: <policyname>) — CASE-PRESERVED --
+// Policy names are case-sensitive (mixed case + spaces), so this is a CUSTOM derive that does NOT
+// lowercase the policy name (only the table part). Static CREATE/DROP POLICY + the reference `%I`
+// policy fan-out (sidecar, FINAL names, injected verbatim). deriveNet can't be used — it lowercases.
+function derivePolicies(migs) {
+  const live = new Set();
+  const RE_CREATE =
+    /\bcreate\s+policy\s+(?:if\s+not\s+exists\s+)?("(?:[^"]|"")*"|[a-z_][a-z0-9_$]*)\s+on\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_DROP =
+    /\bdrop\s+policy\s+(?:if\s+exists\s+)?("(?:[^"]|"")*"|[a-z_][a-z0-9_$]*)\s+on\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const nameOf = (raw) => (raw.startsWith('"') ? raw.slice(1, -1).replace(/""/g, '"') : raw);
+  for (const m of migs) {
+    const code = m.codeDo;
+    const events = [];
+    for (const nm of SIDECAR.objects?.[`policy::${m.name}`] ?? [])
+      events.push({ i: -1, op: "add", id: String(nm) }); // verbatim — case preserved
+    let x;
+    RE_CREATE.lastIndex = 0;
+    while ((x = RE_CREATE.exec(code))) {
+      const pol = nameOf(x[1]),
+        tbl = clean(x[2]);
+      if (pol && tbl && !pol.includes("%") && !tbl.includes("%"))
+        events.push({ i: x.index, op: "add", id: `public.${tbl} :: ${pol}` });
+    }
+    RE_DROP.lastIndex = 0;
+    while ((x = RE_DROP.exec(code))) {
+      const pol = nameOf(x[1]),
+        tbl = clean(x[2]);
+      if (pol && tbl) events.push({ i: x.index, op: "del", id: `public.${tbl} :: ${pol}` });
+    }
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) e.op === "add" ? live.add(e.id) : live.delete(e.id);
+    // dynamic tripwire: `CREATE POLICY "...%I..." ON` fan-out → needs a reviewed sidecar entry
+    if (/\bcreate\s+policy\s+(?:if\s+not\s+exists\s+)?"[^"]*%[a-z]/i.test(m.raw))
+      dynamicHits.add(`policy::${m.name}`);
+  }
+  return live;
+}
+CATEGORIES.push({
+  kind: "policy",
+  derive: derivePolicies,
+  prodSelect:
+    "select 'policy' as kind, 'public.'||lower(c.relname)||' :: '||p.polname as identifier from pg_policy p " +
+    "join pg_class c on c.oid = p.polrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname='public'",
+});
+
+// --- columns (identity = public.<table>.<column>) --------------------------
+// CREATE TABLE body column defs (balanced-paren body parse, skipping table-level constraint clauses)
+// + ALTER TABLE ADD/DROP/RENAME COLUMN + the reference `%I` column fan-outs (sidecar: 12 creator cols
+// per table + is_placeholder + description_source/_generated_at). A DROP/RENAME TABLE cascades to its
+// columns. Custom derive (the CREATE TABLE body can't be parsed by a single regex).
+const COL_CONSTRAINT_KW = /^(?:constraint|primary|foreign|unique|check|exclude|like)\b/i;
+function tableColumns(t, body) {
+  const cols = [];
+  for (const seg of splitTopLevel(body)) {
+    const s = seg.trim();
+    if (!s || COL_CONSTRAINT_KW.test(s)) continue; // table-level constraint, not a column
+    const mm = /^"?([a-z_][a-z0-9_$]*)"?/.exec(s);
+    if (mm) cols.push(`public.${t}.${clean(mm[1])}`);
+  }
+  return cols;
+}
+function deriveColumns(migs) {
+  const live = new Set();
+  const RE_TABLE =
+    /\bcreate\s+(?:global\s+|local\s+|temp(?:orary)?\s+|unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s*\(/gi;
+  const RE_ADD =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_DROPC =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+drop\s+column\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_RENC =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+column\s+"?([a-z_][a-z0-9_$]*)"?\s+to\s+"?([a-z_][a-z0-9_$]*)"?/gi;
+  const RE_DROPT = /(?:^|;)\s*drop\s+table\s+(?:if\s+exists\s+)?([^;]+)/gi;
+  const RE_RENT =
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s+rename\s+to\s+"?([a-z_][a-z0-9_]*)"?/gi;
+  for (const m of migs) {
+    const code = m.codeDo;
+    const events = [];
+    let x;
+    for (const nm of SIDECAR.objects?.[`column::${m.name}`] ?? [])
+      events.push({ i: -1, op: "add", id: String(nm).toLowerCase() });
+    RE_TABLE.lastIndex = 0;
+    while ((x = RE_TABLE.exec(code))) {
+      const t = clean(x[1]);
+      if (!t || t.includes("%") || RESERVED.has(t)) continue;
+      const body = balancedSlice(code, RE_TABLE.lastIndex - 1);
+      if (body == null) continue;
+      for (const id of tableColumns(t, body)) events.push({ i: x.index, op: "add", id });
+    }
+    RE_ADD.lastIndex = 0;
+    while ((x = RE_ADD.exec(code))) {
+      const t = clean(x[1]),
+        c = clean(x[2]);
+      if (t && c && !t.includes("%") && !c.includes("%"))
+        events.push({ i: x.index, op: "add", id: `public.${t}.${c}` });
+    }
+    RE_DROPC.lastIndex = 0;
+    while ((x = RE_DROPC.exec(code))) {
+      const t = clean(x[1]),
+        c = clean(x[2]);
+      if (t && c) events.push({ i: x.index, op: "del", id: `public.${t}.${c}` });
+    }
+    RE_RENC.lastIndex = 0;
+    while ((x = RE_RENC.exec(code))) {
+      const t = clean(x[1]);
+      if (t)
+        events.push({
+          i: x.index,
+          op: "ren",
+          from: `public.${t}.${clean(x[2])}`,
+          to: `public.${t}.${clean(x[3])}`,
+        });
+    }
+    RE_DROPT.lastIndex = 0;
+    while ((x = RE_DROPT.exec(code)))
+      for (const tt of splitDropTargets(x[1]))
+        events.push({ i: x.index, op: "deltable", pfx: `public.${tt.name}.` });
+    RE_RENT.lastIndex = 0;
+    while ((x = RE_RENT.exec(code)))
+      events.push({
+        i: x.index,
+        op: "rentable",
+        from: `public.${clean(x[1])}.`,
+        to: `public.${clean(x[2])}.`,
+      });
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) {
+      if (e.op === "add") live.add(e.id);
+      else if (e.op === "del") live.delete(e.id);
+      else if (e.op === "ren") {
+        live.delete(e.from);
+        live.add(e.to);
+      } else if (e.op === "deltable") {
+        for (const id of [...live]) if (id.startsWith(e.pfx)) live.delete(id);
+      } else if (e.op === "rentable") {
+        for (const id of [...live])
+          if (id.startsWith(e.from)) {
+            live.delete(id);
+            live.add(e.to + id.slice(e.from.length));
+          }
+      }
+    }
+    // dynamic tripwire: a `%I` CREATE TABLE or `%I ... ADD COLUMN` fan-out → needs a reviewed sidecar.
+    if (
+      /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?%[a-z]/i.test(m.raw) ||
+      /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?%[a-z][\s\S]{0,120}?\badd\s+column/i.test(
+        m.raw
+      )
+    )
+      dynamicHits.add(`column::${m.name}`);
+  }
+  return live;
+}
+CATEGORIES.push({
+  kind: "column",
+  derive: deriveColumns,
+  prodSelect:
+    "select 'column' as kind, lower('public.'||c.relname||'.'||a.attname) as identifier from pg_attribute a " +
+    "join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace " +
+    "where n.nspname='public' and c.relkind in ('r','p') and a.attnum > 0 and not a.attisdropped",
+});
 
 // ---------------------------------------------------------------------------
 // Dynamic sidecar: names for files that declare objects via `%I` fan-outs. Every file flagged by
@@ -663,18 +934,31 @@ const BASELINES = {
   extension: 7,
   type: 25,
   view: 17,
-  constraint: 19,
+  constraint: 20,
   rls_enabled: 202,
   function: 419,
+  index: 403,
+  trigger: 198,
+  policy: 456,
+  column: 1959,
 };
 const BASELINE_TOL = 2;
+
+// Table-scoped object identity → its table name, for the diff-time cross-category integrity filter (5a).
+const TABLE_OF = {
+  constraint: (id) => id.slice(0, id.indexOf(".")), // table.constraint
+  trigger: (id) => id.split(".")[1], // public.table.trigger
+  column: (id) => id.split(".")[1], // public.table.column
+  policy: (id) => id.slice("public.".length, id.indexOf(" :: ")), // public.table :: name
+};
 
 // What a green run does NOT cover — printed on every real-prod run so a pass is never mistaken for
 // "the whole schema is reconciled". Keep in sync with the header docstring's coverage list.
 const NOT_VERIFIED_NOTE =
-  "Coverage note: NOT verified — columns, indexes, triggers, policies, functions (categories not yet " +
-  "implemented) and cron jobs (deferred; reconcile manually by diffing prod `SELECT jobname FROM " +
-  "cron.job` against the intended set). A green result reconciles the ACTIVE categories only.";
+  "Coverage note: cron jobs are NOT verified (deferred — not statically reconcilable; reconcile by " +
+  "diffing prod `SELECT jobname FROM cron.job` against the intended set). Every other object category " +
+  "(tables, extensions, types, views, constraints, rls-enabled, functions, indexes, triggers, policies, " +
+  "columns) IS verified against prod.";
 
 async function main() {
   // Fail closed on a test seam left set in CI. The seams (fixture/dump/extract/root/probe) bypass or
@@ -709,19 +993,10 @@ async function main() {
   for (const cat of CATEGORIES) declaredByKind.set(cat.kind, cat.derive(migs));
   checkDynamicRegistered();
 
-  // 1b. Cross-category integrity — a constraint can only be asserted on a table a migration
-  // actually creates. An ADD CONSTRAINT guarded by IF EXISTS on a Lovable-era table the
-  // migrations don't own (interview_invites, added conditionally in 20260530194518) is NOT an
-  // unconditional declaration: the gate cannot evaluate the guard, so it must not expect the
-  // constraint in prod. Filtering on the derived table set also drops constraints on a table
-  // later netted away by DROP TABLE. Verified via DB_SCHEMA_DUMP: this removes exactly the one
-  // phantom (1 of 20), no real constraint. Identity is `table.constraint` — table is before the dot.
-  {
-    const tables = declaredByKind.get("table");
-    const cons = declaredByKind.get("constraint");
-    if (tables && cons)
-      for (const id of [...cons]) if (!tables.has(id.slice(0, id.indexOf(".")))) cons.delete(id);
-  }
+  // 1b. Cross-category integrity is applied at DIFF time (step 5a), keyed on PROD's table set — not the
+  //     derived set. Keying on the derived set would silently drop a table-scoped object whose table
+  //     exists in prod but was created outside the migrations (Lovable-era), and that false negative
+  //     would be invisible (declared ⊆ prod hides it). See TABLE_OF + step 5a below.
 
   // 2. Subtract allowlist — first fail closed on a waiver naming an INACTIVE category (a dead key,
   //    e.g. a deferred category's leftover entries, would silently exempt objects if that category
@@ -818,7 +1093,9 @@ async function main() {
   const prodDumpPath = process.env.DB_SCHEMA_PROD_DUMP?.trim();
   if (prodDumpPath) {
     writeFileSync(prodDumpPath, JSON.stringify(rows));
-    console.log(`✓ ${CODE}: wrote ${rows.length} prod rows to ${prodDumpPath} (DB_SCHEMA_PROD_DUMP).`);
+    console.log(
+      `✓ ${CODE}: wrote ${rows.length} prod rows to ${prodDumpPath} (DB_SCHEMA_PROD_DUMP).`
+    );
     return;
   }
 
@@ -827,6 +1104,25 @@ async function main() {
   for (const r of rows) {
     const set = prodByKind.get(r.kind);
     if (set) set.add(String(r.identifier)); // case per category: cron verbatim, others already lowercase
+  }
+
+  // 5a. Cross-category integrity (the 1b filter, applied here keyed on PROD's tables): drop any
+  //     table-scoped declared object whose table is ABSENT from prod. Its table can't hold it, and the
+  //     missing TABLE is already flagged by the table category — so this removes redundant noise on
+  //     dropped/unapplied tables and the interview_invites-style phantom WITHOUT hiding a false negative
+  //     (an object on a prod table that migrations didn't create stays verified). index identity has no
+  //     table, so it is not filtered.
+  {
+    const prodTables = prodByKind.get("table");
+    if (prodTables)
+      for (const [kind, tOf] of Object.entries(TABLE_OF)) {
+        const set = declaredByKind.get(kind);
+        if (!set) continue;
+        for (const id of [...set]) {
+          const t = tOf(id);
+          if (t && !prodTables.has(t)) set.delete(id);
+        }
+      }
   }
 
   // 4b. Allowlist integrity (fail-closed): a waiver may ONLY cover an object genuinely ABSENT from

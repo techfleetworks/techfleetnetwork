@@ -61,7 +61,11 @@ function run(
 const MIG_ORDERS = {
   "supabase/migrations/20260101000000_x.sql": "create table if not exists public.orders (id uuid);",
 };
-const PROD_ORDERS: ProdRow[] = [{ kind: "table", identifier: "orders" }];
+// A declared `create table orders (id uuid)` now derives a table AND its column, so prod fixtures list both.
+const PROD_ORDERS: ProdRow[] = [
+  { kind: "table", identifier: "orders" },
+  { kind: "column", identifier: "public.orders.id" },
+];
 
 describe("check-db-schema-present guard (smoke)", () => {
   it("DSP-001: passes when the declared table exists in prod", () => {
@@ -133,7 +137,12 @@ describe("check-db-schema-present guard (smoke)", () => {
         "create table if not exists public.a (id uuid); create table if not exists public.b (id uuid); create table if not exists public.c (id uuid);",
       "supabase/migrations/20260102000000_drop.sql": "drop table if exists public.a, public.b;",
     };
-    expect(run(mig, [{ kind: "table", identifier: "c" }])).toBe(0);
+    expect(
+      run(mig, [
+        { kind: "table", identifier: "c" },
+        { kind: "column", identifier: "public.c.id" },
+      ])
+    ).toBe(0);
   });
 
   it("DSP-011: rls_enabled is public-only — an ENABLE RLS on a non-public system table is NOT asserted", () => {
@@ -145,6 +154,7 @@ describe("check-db-schema-present guard (smoke)", () => {
     };
     const prod: ProdRow[] = [
       { kind: "table", identifier: "orders" },
+      { kind: "column", identifier: "public.orders.id" },
       { kind: "rls_enabled", identifier: "public.orders" },
     ];
     expect(run(mig, prod)).toBe(0);
