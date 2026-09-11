@@ -166,4 +166,26 @@ describe("check-db-schema-present guard (smoke)", () => {
     expect(run(MIG_ORDERS, PROD_ORDERS, { env: { CI: "true" }, allowSeams: false })).toBe(2);
     expect(run(MIG_ORDERS, PROD_ORDERS, { env: { CI: "true" }, allowSeams: true })).toBe(0);
   });
+
+  it("DSP-013: a multi-clause `ALTER TABLE t ADD COLUMN a, ADD COLUMN b` derives BOTH columns, not just the first", () => {
+    // Regression pin for the multi-ADD capture bug: the table name appears once; the comma-separated
+    // continuation clauses carry no `ALTER TABLE` prefix. Capturing only the first clause left `b`
+    // underived — so a committed-but-never-applied `b` would pass GREEN (the silent-drift/outage class
+    // this gate exists to stop). Prod here has `a` but NOT `b`, so the gate must FLAG `b` as MISSING
+    // (exit 1). Under the bug `b` was never declared → the diff was vacuously clean (exit 0).
+    const mig = {
+      "supabase/migrations/20260101000000_x.sql":
+        "create table if not exists public.orders (id uuid);",
+      "supabase/migrations/20260102000000_add.sql":
+        "alter table public.orders add column if not exists a int, add column if not exists b int;",
+    };
+    const withoutB: ProdRow[] = [
+      { kind: "table", identifier: "orders" },
+      { kind: "column", identifier: "public.orders.id" },
+      { kind: "column", identifier: "public.orders.a" },
+    ];
+    expect(run(mig, withoutB)).toBe(1); // b is derived and absent from prod → flagged
+    // And when BOTH land in prod, the same declaration passes — no phantom column from the multi-clause parse.
+    expect(run(mig, [...withoutB, { kind: "column", identifier: "public.orders.b" }])).toBe(0);
+  });
 });
