@@ -1007,10 +1007,10 @@ const BASELINES = {
   constraint: 20,
   rls_enabled: 202,
   function: 419,
-  index: 394,
-  trigger: 198,
-  policy: 492,
-  column: 2056,
+  index: 392,
+  trigger: 196,
+  policy: 491,
+  column: 2051,
 };
 const BASELINE_TOL = 2;
 
@@ -1181,8 +1181,8 @@ async function main() {
   //     table-scoped declared object whose table is ABSENT from prod. Its table can't hold it, and the
   //     missing TABLE is already flagged by the table category — so this removes redundant noise on
   //     dropped/unapplied tables and the interview_invites-style phantom WITHOUT hiding a false negative
-  //     (an object on a prod table that migrations didn't create stays verified). index identity has no
-  //     table, so it is not filtered.
+  //     (an object on a prod table that migrations didn't create stays verified). Every table-scoped kind
+  //     — constraint, index (table.index), trigger, column, policy — is filtered via TABLE_OF.
   {
     const prodTables = prodByKind.get("table");
     if (prodTables)

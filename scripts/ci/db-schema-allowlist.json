@@ -1,9 +1,29 @@
 {
-  "_comment": "ADR-0036. Objects committed migrations DECLARE that are legitimately absent from prod (superseded / renamed / dropped out of band). Every entry is verified fail-closed at run time: the gate FAILS if an allowlisted object is actually PRESENT in prod (a stale waiver must not mask a real object), and FAILS if a key names no active category. Reviewed, with reasons; keep it shrinking. Format: { \"<kind>\": [\"identifier\", ...] } where identifier matches the gate's normalized form (tables/types bare-lowercase; rls_enabled `schema.table`).",
+  "_comment": "ADR-0036. Objects committed migrations DECLARE that are legitimately absent from prod. Shrink-only. Every entry is verified fail-closed at run time: the gate FAILS if an allowlisted object is actually PRESENT in prod (a stale waiver must not mask a real object), and FAILS if a key names no active category. Two kinds of entry, both documented in _reasons: (1) INTENTIONAL design drift (superseded / renamed / dropped out of band; may be permanent); (2) KNOWN pre-existing PROD DRIFT pending reconciliation — a committed migration whose object is not yet in prod. Burn (2) to zero by applying the fix in prod (Supabase Dashboard -> SQL Editor); once the object exists, the stale-waiver tripwire FORCES the entry's removal. NEVER add here to silence NEW drift. Format: { \"<kind>\": [\"identifier\", ...] } where identifier matches the gate's derived form: tables/types bare-lowercase; rls_enabled/trigger/column `public.…`; index `table.index`; policy `public.table :: Name` (policy name case-preserved).",
   "table": ["tickets", "ticket_events"],
   "type": ["ticket_inbox_type", "ticket_status"],
   "rls_enabled": ["public.tickets", "public.ticket_events"],
+  "index": [
+    "fleety_synonyms.fleety_synonyms_status_idx",
+    "fleety_user_memory.fleety_user_memory_user_active_idx"
+  ],
+  "trigger": [
+    "public.fleety_synonyms.fleety_synonyms_updated_at",
+    "public.fleety_user_memory.fleety_user_memory_updated_at"
+  ],
+  "column": [
+    "public.fleety_examples.promoted_from_turn_id",
+    "public.fleety_examples.promoted_at",
+    "public.stats_drift_log.delta",
+    "public.stats_drift_log.auto_recomputed",
+    "public.request_idempotency.status"
+  ],
+  "policy": ["public.project_roster :: Members can view own roster entries"],
   "_reasons": {
-    "tickets/ticket_events (+ ticket_inbox_type/ticket_status/rls)": "The May 2026 chatwoot ticket design (migration 20260509160635), superseded by support_ticket_events (June redesign); 0 references in the app; never applied to prod."
+    "tickets/ticket_events (+ ticket_inbox_type/ticket_status/rls)": "INTENTIONAL. The May 2026 chatwoot ticket design (migration 20260509160635), superseded by support_ticket_events (June redesign); 0 references in the app; never applied to prod.",
+    "DRIFT-A 20260625120000_fleety_rearchitecture (2 index + 2 trigger + 2 column)": "PENDING RECONCILE. This migration only partially reached prod: its tables/columns/pkeys/policies/RLS exist, but fleety_synonyms_status_idx, fleety_user_memory_user_active_idx, the two *_updated_at triggers, and fleety_examples.promoted_from_turn_id/promoted_at do NOT. Effect of the gap: updated_at is not auto-maintained on fleety_synonyms/fleety_user_memory, two secondary indexes are missing, and nugget-promotion provenance columns are missing. The migration is marked idempotent and safe to re-run. REMEDIATION: re-run 20260625120000_fleety_rearchitecture.sql in prod (Dashboard SQL Editor), then delete these 6 entries.",
+    "DRIFT-B public.stats_drift_log.delta / .auto_recomputed": "PENDING DECISION. Migration 20260520035733 CREATEs stats_drift_log with delta (GENERATED ALWAYS AS (actual - expected) STORED) + auto_recomputed; prod's table lacks both (created earlier/differently, so CREATE IF NOT EXISTS no-op'd). REMEDIATION: ALTER TABLE public.stats_drift_log ADD these two columns in prod, OR (if prod's 6-column shape is canonical) forward-fix the migration; then remove.",
+    "DRIFT-C public.request_idempotency.status": "PENDING DECISION — likely a MIGRATION MISTAKE. Migration 20260603000800 re-CREATEs request_idempotency (IF NOT EXISTS) with a `status` text column, but the earlier 20260602230329 already created it with `status_code`, so the redefinition silently no-op'd; prod has status_code. Decide the canonical name: if status_code (recommended — matches prod and the first migration), the `status` declaration is the bug and this waiver stays / the migration is forward-fixed; else ALTER prod to add status. ALSO verify the complete_idempotency() function body in prod writes the column prod actually has.",
+    "DRIFT-D public.project_roster :: Members can view own roster entries": "PENDING DECISION — access-changing. Migration 20260415024855 adds a SELECT policy letting members read their OWN roster rows; prod has only 'Admins can manage roster'. May have been intentionally withheld. REMEDIATION: if members should see their own entries, apply the policy in prod; else keep waived (or remove the statement forward). Then remove."
   }
 }
