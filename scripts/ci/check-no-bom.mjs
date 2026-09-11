@@ -15,7 +15,7 @@
  * Paired with the shared BOM-tolerant reader `scripts/ci/_json.mjs` this closes the class
  * both ways: a BOM can't ENTER the repo (this guard), and the guard-integrity checks that read
  * the hand-edited ratchet/allowlist JSON (check-guards-wired, check-guard-has-test,
- * check-db-objects-present) go through readJson — so a locally-BOM'd allowlist degrades to a
+ * check-db-schema-present) go through readJson — so a locally-BOM'd allowlist degrades to a
  * correct read instead of crashing before this guard flags it in CI.
  *
  * Bespoke reader: enumerates `git ls-files` and reads each file's first bytes — not

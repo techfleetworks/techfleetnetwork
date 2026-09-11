@@ -216,9 +216,11 @@ const present = await q(`select tablename from pg_tables where schemaname='publi
 if (!token) { console.error('cannot verify prod — no token'); process.exit(2) }        // can't check ⇒ red, never green
 ```
 
-Enforced by `scripts/ci/check-db-objects-present.mjs` (**ADR-0035**, superseding ADR-0020): every table/
-function the committed migrations declare must EXIST in prod (queried over HTTPS via the Management API) or
-the gate is red; no token / unreachable / unexpected response fails **closed**.
+Enforced by `scripts/ci/check-db-schema-present.mjs` (**ADR-0036**, superseding ADR-0035/ADR-0020): every
+schema object the committed migrations declare — 11 categories (table, extension, type, view, constraint,
+rls_enabled, function, index, trigger, policy, column; cron deferred) — must EXIST in prod (queried over
+HTTPS via the Management API) or the gate is red; no token / unreachable / unexpected response / a per-
+category count off its pinned baseline fails **closed**. Blocking on migration-touching PRs (`db-schema-gate`).
 
 **No UTF-8 BOM in tracked text.** A BOM (bytes `EF BB BF`) at the start of a file is invisible in most
 editors but makes `JSON.parse` throw — so a budget/allowlist file that silently gains one crashes the guard
@@ -256,7 +258,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + b
 Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
-(builds on ADR-0035's db-objects-present gate that supersedes ADR-0020, ADR-0024's prove-at-the-owning-layer/pgTAP).
+(builds on ADR-0036's schema-reconciliation gate that supersedes ADR-0035/ADR-0020, ADR-0024's prove-at-the-owning-layer/pgTAP).
 
 ---
 
