@@ -124,13 +124,23 @@ Deno.serve(
       // Record who attested + when (server-verified admin identity; the client cannot set these).
       // A test send does not re-stamp attestation (it is a delivery probe, not the broadcast).
       if (!testMode) {
-        await adminClient
+        const { error: stampError } = await adminClient
           .from("announcements")
           .update({
             marketing_attested_at: new Date().toISOString(),
             marketing_attested_by: user.id,
           })
           .eq("id", announcement_id);
+        // The attestation record is the sole persisted evidence of who confirmed
+        // "not marketing" (ADR-0017). Make it a hard precondition of the broadcast
+        // rather than swallowing the failure and emailing 1,400+ members anyway.
+        if (stampError) {
+          console.error("attestation stamp failed", { announcement_id, error: stampError });
+          return new Response(JSON.stringify({ error: "Failed to record attestation" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Render once — the body is identical for every recipient, so the fan-out is
@@ -194,9 +204,12 @@ Deno.serve(
       }
 
       // --- Cross-post to Discord #platform-updates channel (real broadcast only) ---
+      // Gated on `enqueued > 0`: an idempotent re-run (e.g. the recovery re-send)
+      // enqueues 0 new rows, and must NOT re-post — otherwise it fires a duplicate
+      // mass @role ping to #platform-updates while sending no new email.
       let discordPosted = false;
       const platformWebhook = Deno.env.get("DISCORD_PLATFORM_UPDATES_WEBHOOK");
-      if (!testMode && platformWebhook) {
+      if (!testMode && enqueued > 0 && platformWebhook) {
         try {
           const announcementUrl = `https://techfleet.network/updates?highlight=${announcement_id}`;
           // Strip HTML tags and decode entities for Discord plain-text
@@ -250,7 +263,7 @@ Deno.serve(
         } catch (discordErr) {
           console.warn("Discord cross-post failed (non-critical):", discordErr);
         }
-      } else if (!testMode) {
+      } else if (!testMode && enqueued > 0 && !platformWebhook) {
         console.warn(
           "DISCORD_PLATFORM_UPDATES_WEBHOOK not configured; skipping Discord cross-post"
         );
