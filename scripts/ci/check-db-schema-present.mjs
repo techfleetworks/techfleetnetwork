@@ -36,7 +36,7 @@
  * Test seams (refused in CI unless DB_SCHEMA_ALLOW_SEAMS=1, which only the smoke test sets):
  *   DB_SCHEMA_ROOT, DB_SCHEMA_PROD_FIXTURE, DB_SCHEMA_DUMP, DB_SCHEMA_EXTRACT_ONLY, DB_SCHEMA_PROBE.
  */
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { codeView, unterminatedDollarTag } from "./_sql-scan.mjs";
@@ -445,6 +445,145 @@ CATEGORIES.push({
     "and n.nspname = 'public'",
 });
 
+// --- functions (identity = public.name(identity-arg types), matching pg_get_function_identity_arguments) ---
+// A function's identity is its name + the types of its IN/INOUT/VARIADIC args (OUT args, arg names, arg
+// DEFAULTs and typmods are NOT part of it), with canonical type names — exactly what Postgres'
+// pg_get_function_identity_arguments emits. We parse each CREATE [OR REPLACE] FUNCTION signature and
+// normalize its arg types the SAME way so the declared identity string equals prod's. This is the exact
+// class behind the Discord PGRST202 outage: an RPC committed but never applied. Custom derive (the arg
+// list needs balanced-paren scanning + per-arg normalization that a single regex can't do).
+
+// Text between the "(" at index `open` in `s` and its matching ")" (depth-counted). null if unbalanced.
+function balancedSlice(s, open) {
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    const c = s[i];
+    if (c === "(") depth++;
+    else if (c === ")") {
+      depth--;
+      if (depth === 0) return s.slice(open + 1, i);
+    }
+  }
+  return null;
+}
+// Split a top-level comma list, respecting () and [] nesting (numeric(10,2) / arrays stay whole).
+function splitTopLevel(s) {
+  const out = [];
+  let depth = 0,
+    start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(s.slice(start));
+  return out.map((t) => t.trim()).filter((t) => t.length);
+}
+const FUNC_TYPE_ALIASES = new Map([
+  ["int", "integer"],
+  ["int4", "integer"],
+  ["int8", "bigint"],
+  ["int2", "smallint"],
+  ["bool", "boolean"],
+  ["float4", "real"],
+  ["float8", "double precision"],
+  ["varchar", "character varying"],
+  ["char", "character"],
+  ["decimal", "numeric"],
+  ["timestamptz", "timestamp with time zone"],
+  ["timetz", "time with time zone"],
+]);
+// Words that START a (possibly multi-word) TYPE, so a no-name arg isn't misread as name+type.
+const TYPE_FIRST_WORDS = new Set([
+  "integer", "int", "int4", "int8", "int2", "bigint", "smallint", "boolean", "bool", "text", "uuid",
+  "jsonb", "json", "numeric", "decimal", "real", "double", "character", "varchar", "char", "timestamp",
+  "timestamptz", "date", "time", "timetz", "bytea", "interval", "money", "inet", "cidr", "macaddr",
+  "xml", "tsvector", "tsquery", "bit", "citext", "hstore", "vector", "void", "record", "trigger",
+  "anyelement", "anyarray", "jsonpath", "oid", "name", "regclass",
+]);
+// Normalize ONE arg's declared form to its identity type. Returns null for OUT args (excluded from
+// the identity). Keeps a leading VARIADIC (pg emits it), strips mode/name/DEFAULT/typmod, keeps [].
+function normFuncType(seg) {
+  let s = seg.trim().replace(/\s+/g, " ");
+  // Drop a DEFAULT clause. `\bdefault\b.*$` (not `default\s+.*`) so it still strips when the default
+  // VALUE was a string literal masked to spaces by the tokenizer — leaving a bare trailing `default`
+  // (e.g. `p_x text DEFAULT '{}'` → `p_x text default`). Same for `= expr` defaults.
+  s = s.replace(/\s+default\b.*$/i, "").replace(/\s*=\s*.*$/, "").trim();
+  const mm = /^(in|out|inout|variadic)\s+/i.exec(s);
+  const mode = mm ? mm[1].toLowerCase() : null;
+  if (mode) s = s.slice(mm[0].length);
+  if (mode === "out") return null; // OUT args are not part of the identity
+  // VARIADIC keyword already stripped by the mode regex above; prod (format_type of proargtypes)
+  // emits the plain array type (e.g. text[]), no VARIADIC keyword, so we don't re-add it.
+  const toks = s.split(" ");
+  if (toks.length > 1 && /^[a-z_][a-z0-9_]*$/i.test(toks[0]) && !TYPE_FIRST_WORDS.has(toks[0].toLowerCase()))
+    s = toks.slice(1).join(" "); // first token was the arg NAME
+  s = s.toLowerCase().replace(/^(?:public|extensions|pg_catalog)\s*\.\s*/, "");
+  const arr = /\[\s*\]/.test(s) ? "[]" : "";
+  s = s.replace(/\[\s*\]/g, "").replace(/\(\s*\d+\s*(?:,\s*\d+\s*)?\)/g, "").trim(); // strip [] + typmod
+  if (FUNC_TYPE_ALIASES.has(s)) s = FUNC_TYPE_ALIASES.get(s);
+  return s + arr;
+}
+function funcIdentity(name, argsText) {
+  const parts = splitTopLevel(argsText)
+    .map(normFuncType)
+    .filter((t) => t != null);
+  return `public.${name}(${parts.join(", ")})`;
+}
+function deriveFunctions(migs) {
+  const live = new Set();
+  for (const m of migs) {
+    const code = m.code; // signature lives before the (masked) dollar-quoted body
+    const events = [];
+    let x;
+    const RE_CREATE =
+      /\bcreate\s+(?:or\s+replace\s+)?function\s+(?:"?(?:public|extensions)"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s*\(/gi;
+    while ((x = RE_CREATE.exec(code))) {
+      const args = balancedSlice(code, RE_CREATE.lastIndex - 1);
+      if (args == null) continue;
+      events.push({ i: x.index, op: "add", id: funcIdentity(clean(x[1]), args) });
+    }
+    const RE_DROP =
+      /\bdrop\s+function\s+(?:if\s+exists\s+)?(?:"?(?:public|extensions)"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s*(\()?/gi;
+    while ((x = RE_DROP.exec(code))) {
+      const name = clean(x[1]);
+      if (x[2]) {
+        const args = balancedSlice(code, RE_DROP.lastIndex - 1);
+        events.push({ i: x.index, op: "del", id: funcIdentity(name, args ?? "") });
+      } else {
+        events.push({ i: x.index, op: "delname", id: name }); // DROP FUNCTION name (all overloads)
+      }
+    }
+    events.sort((a, b) => a.i - b.i);
+    for (const e of events) {
+      if (e.op === "add") live.add(e.id);
+      else if (e.op === "del") live.delete(e.id);
+      else if (e.op === "delname")
+        for (const id of [...live]) if (id.startsWith(`public.${e.id}(`)) live.delete(id);
+    }
+  }
+  return live;
+}
+CATEGORIES.push({
+  kind: "function",
+  derive: deriveFunctions,
+  // Identity = the IN-arg TYPES only (no names/defaults), canonical, matching normFuncType. We build
+  // it from p.proargtypes via format_type rather than pg_get_function_identity_arguments, because the
+  // latter emits ARG NAMES in this Postgres (e.g. `p_token text`), which are cosmetic and not part of
+  // the identity. proargtypes is exactly the IN/INOUT/VARIADIC arg type oids (OUT excluded); format_type
+  // with search_path=public,extensions yields unqualified canonical names (integer, character varying,
+  // text[], app_role, …). prokind='f' = plain functions (not aggregate/procedure/window).
+  prodSelect:
+    "select 'function' as kind, 'public.'||p.proname||'('||" +
+    "coalesce((select string_agg(format_type(u.t, null), ', ' order by u.ord) " +
+    "from unnest(p.proargtypes) with ordinality as u(t, ord)), '')||')' as identifier " +
+    "from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname='public' and p.prokind='f'",
+});
+
 // --- indexes (bare index name) — DEFERRED to next session ------------------
 // The dynamic-index tripwire (correctly) found FOUR %I fan-out sources with differing table subsets
 // and suffixes: the two reference creators (…_search_idx/_name_trgm_idx/_data_idx/_category_idx),
@@ -526,6 +665,7 @@ const BASELINES = {
   view: 17,
   constraint: 19,
   rls_enabled: 202,
+  function: 419,
 };
 const BASELINE_TOL = 2;
 
@@ -548,6 +688,7 @@ async function main() {
     const leaked = [
       "DB_SCHEMA_PROD_FIXTURE",
       "DB_SCHEMA_DUMP",
+      "DB_SCHEMA_PROD_DUMP",
       "DB_SCHEMA_EXTRACT_ONLY",
       "DB_SCHEMA_ROOT",
       "DB_SCHEMA_PROBE",
@@ -670,6 +811,16 @@ async function main() {
   //    is small (well under the cap) and needs neither paging nor ordering. fetchProd fails closed if
   //    any single category nears the cap. search_path is set so extension-schema types render predictably.
   const rows = await fetchProd(CATEGORIES);
+
+  // Dev seam (never in CI — refused by the seam guard above): write the raw prod snapshot to a file so
+  // a new category's extraction can be iterated OFFLINE against real prod (as DB_SCHEMA_PROD_FIXTURE)
+  // without repeated token'd runs. Requires a token (it fetches prod first), then exits without diffing.
+  const prodDumpPath = process.env.DB_SCHEMA_PROD_DUMP?.trim();
+  if (prodDumpPath) {
+    writeFileSync(prodDumpPath, JSON.stringify(rows));
+    console.log(`✓ ${CODE}: wrote ${rows.length} prod rows to ${prodDumpPath} (DB_SCHEMA_PROD_DUMP).`);
+    return;
+  }
 
   const prodByKind = new Map();
   for (const cat of CATEGORIES) prodByKind.set(cat.kind, new Set());
