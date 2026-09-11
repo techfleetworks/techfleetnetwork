@@ -25,6 +25,10 @@ INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-4000-8000-00000000a006', 'pgtap-ann-suppressed@example.com'),
   ('00000000-0000-4000-8000-00000000a007', 'pgtap-ann-d@example.com');
 
+-- auth.users INSERT already fired on_auth_user_created -> handle_new_user(), which
+-- pre-creates a profiles row (user_id is the PK). Upsert onto it (matches the
+-- sibling scope_aware_unsubscribe_test.sql pattern) instead of a plain INSERT,
+-- which would violate profiles_pkey and abort the whole file.
 INSERT INTO public.profiles (user_id, email, notify_opportunities) VALUES
   ('00000000-0000-4000-8000-00000000a001', 'pgtap-ann-a@example.com', true),
   ('00000000-0000-4000-8000-00000000a002', 'PGTAP-ANN-B@example.com',  true),  -- mixed case → normalized
@@ -32,7 +36,9 @@ INSERT INTO public.profiles (user_id, email, notify_opportunities) VALUES
   ('00000000-0000-4000-8000-00000000a004', 'pgtap-ann-optout@example.com', false), -- opted out
   ('00000000-0000-4000-8000-00000000a005', '', true),                              -- empty email
   ('00000000-0000-4000-8000-00000000a006', 'pgtap-ann-suppressed@example.com', true), -- opted in BUT suppressed
-  ('00000000-0000-4000-8000-00000000a007', 'pgtap-ann-d@example.com', true);       -- pre-seeded 'sent' below
+  ('00000000-0000-4000-8000-00000000a007', 'pgtap-ann-d@example.com', true)        -- pre-seeded 'sent' below
+ON CONFLICT (user_id) DO UPDATE
+  SET email = EXCLUDED.email, notify_opportunities = EXCLUDED.notify_opportunities;
 
 INSERT INTO public.suppressed_emails (email, reason) VALUES
   ('pgtap-ann-suppressed@example.com', 'bounce') ON CONFLICT DO NOTHING;

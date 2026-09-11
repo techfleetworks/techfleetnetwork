@@ -20,11 +20,13 @@
 -- hard-bounced / complained / unsubscribed address, spiking the bulk lane's
 -- bounce/complaint rate and risking provider throttling.
 --
--- Email normalization matches the prior JS path EXACTLY (email.trim().toLowerCase())
--- so the deterministic key byte-matches rows already enqueued by the timed-out
--- send. btrim() strips only ASCII spaces; regexp_replace('^\s+|\s+$') strips the
--- same whitespace class JS .trim() does, so ON CONFLICT recognizes the ~198
--- already-present rows and the recovery run does not double-send them.
+-- Email normalization mirrors the prior JS path (email.trim().toLowerCase()) so the
+-- deterministic key byte-matches rows already enqueued by the timed-out send for
+-- every real email address. btrim() (the first cut) stripped only ASCII spaces;
+-- regexp_replace('^\s+|\s+$') strips the ASCII whitespace JS .trim() removes, so
+-- ON CONFLICT recognizes the ~198 already-present rows and the recovery run does not
+-- double-send them. (PG POSIX \s is ASCII-only vs JS's Unicode .trim(); they can
+-- differ only for non-ASCII edge whitespace, which is not a valid email value.)
 --
 -- expires_at: broadcasts get a 24h claim window (NOT email_policy_config's 60-min
 -- transactional `pending_expiry_minutes`). A 1,579-row burst can take a few hours
@@ -81,7 +83,8 @@ BEGIN
       AND regexp_replace(coalesce(pr.email, ''), '^\s+|\s+$', '', 'g') <> ''
       AND NOT EXISTS (
         SELECT 1 FROM public.suppressed_emails s
-        WHERE lower(s.email) = lower(regexp_replace(pr.email, '^\s+|\s+$', '', 'g'))
+        WHERE lower(regexp_replace(s.email, '^\s+|\s+$', '', 'g'))
+            = lower(regexp_replace(pr.email, '^\s+|\s+$', '', 'g'))
       )
     UNION
     -- Delivery probe: exactly the addresses passed (a known QA inbox). Suppression
