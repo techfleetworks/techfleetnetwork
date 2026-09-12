@@ -41,3 +41,4 @@ docs/design/design-system/.vitepress/cache
 *.njsproj
 *.sln
 *.sw?
+deno.lock
