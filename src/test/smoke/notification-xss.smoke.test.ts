@@ -13,7 +13,7 @@ const promoteAdmin = read("supabase/functions/promote-to-admin/index.ts");
 const promoteTeacher = read("supabase/functions/promote-to-teacher/index.ts");
 const notifyClassPublished = read("supabase/functions/notify-class-published/index.ts");
 const notifyApplicant = read("supabase/functions/notify-applicant-status/index.ts");
-const announcementEmail = read("supabase/functions/send-announcement-email/index.ts");
+const announcementRender = read("supabase/functions/_shared/email/announcement-render.ts");
 const replayDlq = read("supabase/functions/replay-dlq-emails/index.ts");
 
 describe("notification stored-XSS escaping (smoke)", () => {
@@ -52,8 +52,10 @@ describe("notification stored-XSS escaping (smoke)", () => {
   });
 
   it("T-D-007: announcement emails escape the title in the <h2> sink", () => {
-    expect(announcementEmail).toMatch(/<h2[^>]*>\$\{escHtml\(announcement\.title\)\}<\/h2>/);
-    expect(announcementEmail).not.toMatch(/<h2[^>]*>\$\{announcement\.title\}<\/h2>/);
+    // Announcement rendering moved to the shared renderer (announcement-render.ts);
+    // the title still lands HTML-escaped in the <h2> sink there.
+    expect(announcementRender).toMatch(/<h2[^>]*>\$\{escHtml\(title\)\}<\/h2>/);
+    expect(announcementRender).not.toMatch(/<h2[^>]*>\$\{title\}<\/h2>/);
     expect(replayDlq).toMatch(/<h2[^>]*>\$\{escHtml\(title\)\}<\/h2>/);
     expect(replayDlq).not.toMatch(/<h2[^>]*>\$\{title\}<\/h2>/);
   });
