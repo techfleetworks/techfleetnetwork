@@ -4,15 +4,11 @@ import { z } from "npm:zod@4.3.6";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { escapeHtml } from "../_shared/escape-html.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 // M-01: Lenient shape guard. Existing UUID regex below stays authoritative.
 const BodySchema = z.object({ user_id: z.string().optional() }).passthrough();
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 // Confirmation link points at the SPA page (sign-in + POST to confirm), not the
 // edge function GET — T-G fix so an email prefetch can't auto-confirm.
 const ALLOWED_APP_ORIGINS = new Set([

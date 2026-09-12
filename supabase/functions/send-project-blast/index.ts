@@ -16,6 +16,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders as CORS_HEADERS } from "../_shared/http.ts";
 
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 const MAX_RECIPIENTS = 5000;
@@ -24,11 +26,6 @@ const SUBJECT_MAX = 150;
 const BODY_MAX = 50_000;
 const BATCH_SIZE = 25;
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-} as const;
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" } as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

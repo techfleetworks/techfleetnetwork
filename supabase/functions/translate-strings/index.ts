@@ -10,6 +10,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "npm:zod@4.3.6";
 import { guardTranslationRequest } from "../_shared/translation-guard.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 // M-01: Lenient shape guard. Existing field-by-field checks below remain authoritative;
 // this only rejects requests whose top-level body is not a JSON object.
@@ -20,12 +22,6 @@ const BodySchema = z
     strings: z.array(z.unknown()).optional(),
   })
   .passthrough();
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 const LOCALE_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const MAX_STRINGS = 200;
