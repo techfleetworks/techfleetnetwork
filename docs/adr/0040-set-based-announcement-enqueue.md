@@ -1,4 +1,4 @@
-# ADR-0019: Set-based announcement enqueue (fix silent partial reach)
+# ADR-0040: Set-based announcement enqueue (fix silent partial reach)
 
 - **Status:** Accepted (2026-09-11)
 - **Related:** [ADR-0016](0016-email-tiering-and-notify-announcements-retirement.md) (tiers /
