@@ -17,11 +17,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+// CORS from the shared owner (adds x-trace-id, which invokeEdge attaches) while preserving this
+// function's own x-internal-secret allow-header for its server-to-server caller.
+import { corsHeaders as sharedCors } from "../_shared/http.ts";
 
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-internal-secret",
+  ...sharedCors,
+  "Access-Control-Allow-Headers": `${sharedCors["Access-Control-Allow-Headers"]}, x-internal-secret`,
 } as const;
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" } as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

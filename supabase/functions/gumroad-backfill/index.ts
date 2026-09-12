@@ -19,12 +19,8 @@
 import { withAuditWrapper, auditEdgeEvent, type AuditSeverity } from "../_shared/audit.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -122,7 +118,12 @@ function json(body: unknown, status: number): Response {
 async function audit(event: string, fields: string[], msg: string) {
   const severity: AuditSeverity = /truncated/.test(event) ? "warn" : "error";
   await auditEdgeEvent(getAdminClient(), {
-    fn: "gumroad-backfill", event, table: "gumroad_sales", severity, fields, errorMessage: msg,
+    fn: "gumroad-backfill",
+    event,
+    table: "gumroad_sales",
+    severity,
+    fields,
+    errorMessage: msg,
   });
 }
 
@@ -191,11 +192,7 @@ Deno.serve(
         pageCount += 1;
       } while (pageKey && pageCount < MAX_PAGES);
     } catch {
-      await audit(
-        "gumroad_api_error",
-        ["status:fetch_failed"],
-        "gumroad-backfill: fetch threw"
-      );
+      await audit("gumroad_api_error", ["status:fetch_failed"], "gumroad-backfill: fetch threw");
       return json({ error: "Fetch failed" }, 502);
     }
     if (pageKey) {

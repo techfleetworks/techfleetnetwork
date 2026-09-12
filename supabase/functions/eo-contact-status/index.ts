@@ -12,11 +12,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { eoConfigFromEnv, fetchContactStatus } from "../_shared/email-octopus/client.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { resolveMarketingStatus } from "./status-core.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
