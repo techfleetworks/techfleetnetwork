@@ -256,6 +256,68 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + b
 Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
+
+---
+
+## 8 · Untrusted content: one owner for stripping, redirecting, and error responses
+
+Sanitizing HTML, validating a redirect, and shaping an error response are security invariants. Each has
+**one owner**; hand-rolling a copy is how the same bypass ships six times (it did — see **ADR-0041**).
+
+**HTML → text goes through the shared owner.** A single-pass tag regex is bypassable by nested
+reconstruction and mishandles entities (CodeQL `js/incomplete-multi-character-sanitization`,
+`js/bad-tag-filter`, `js/double-escaping`).
+
+```ts
+// ❌ never — a hand-rolled, single-pass stripper (defeated by <scr<script>ipt>; &amp;lt; → <)
+const text = html
+  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+  .replace(/<[^>]*>/g, "")
+  .replace(/&amp;/g, "&");
+// ✅ always — the shared owner: fixpoint strip + tempered match + &amp;-last decode
+import { htmlToPlainText, stripActiveContent } from "../_shared/html-to-text.ts";
+const text = htmlToPlainText(html); // full strip to text (previews, email/Discord plain, embeddings)
+const kept = stripActiveContent(markdown); // remove active vectors, keep benign markup
+```
+
+Enforced by `arch-gate` rule _"Edge functions must not hand-roll HTML stripping/sanitization"_ (forbids
+`<[^>]` tag regexes outside `_shared`) + CodeQL (required). Client HTML that is _rendered_ still uses the
+DOMPurify allow-list (`src/lib/security.ts#sanitizeHtml`).
+
+**A user-controlled redirect target is validated before use** (CodeQL `js/client-side-unvalidated-url-redirection`,
+`js/xss`). A host check uses the parsed hostname, never `.includes()`.
+
+```ts
+// ❌ never — an unvalidated ?redirect= reaches navigation (open redirect + javascript: XSS)
+window.location.assign(searchParams.get("redirect") || "/dashboard");
+if (value.includes("airtableusercontent.com")) {
+  /* matches evil-airtableusercontent.com.attacker.test */
+}
+// ✅ always — reduce to a safe same-origin path; match hostnames by suffix
+import { toSafeRedirectPath } from "@/lib/security";
+window.location.assign(toSafeRedirectPath(searchParams.get("redirect")));
+import { urlHostnameEndsWith } from "../_shared/url-host.ts";
+if (urlHostnameEndsWith(value, "airtableusercontent.com")) {
+  /* … */
+}
+```
+
+**An edge error response never carries the error.** `error.message` / `error.stack` / `String(error)` in a
+response body leaks internals (CodeQL `js/stack-trace-exposure`). Log the real error; return a static message.
+
+```ts
+// ❌ never — the caught error's text reaches the client
+catch (e) { return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 502); }
+// ✅ always — log it, return a static message via the shared owner
+catch (e) { log.error("provision failed", e); return errorResponse(e, "Support provisioning failed", 502); }
+```
+
+**A user id is not stored in the clear in web storage** (CodeQL `js/clear-text-storage-of-sensitive-data`).
+When a marker only needs "same user vs different", store `fingerprintUserId(id)`, not the id.
+
+**Dependency advisories are a blocking gate, not a report.** `npm audit` findings fail CI unless covered by an
+unexpired entry in `security-advisories.waivers.json` (dated + reasoned + expiring — the only bypass, for
+no-upstream-fix cases like quill). Enforced by `scripts/ci/check-dependency-advisories.mjs`. Rationale: **ADR-0041**
 (builds on ADR-0035's db-objects-present gate that supersedes ADR-0020, ADR-0024's prove-at-the-owning-layer/pgTAP).
 
 ---

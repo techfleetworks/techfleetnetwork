@@ -16,6 +16,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { htmlToPlainText } from "../_shared/html-to-text.ts";
 
 const MAX_PAYLOAD_BYTES = 64 * 1024;
 const MAX_RECIPIENTS = 5000;
@@ -38,14 +39,8 @@ function json(data: Record<string, unknown>, status = 200, extra: Record<string,
 }
 
 function htmlToText(html: string): string {
-  return html
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
-    .replace(/<script\b[^>]*\/?>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Shared owner: fixpoint strip + tempered tag match + `&amp;`-last decode.
+  return htmlToPlainText(html);
 }
 
 interface BlastPayload {

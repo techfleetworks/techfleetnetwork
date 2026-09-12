@@ -8,6 +8,7 @@ import { announcementMessageId } from "./message-id.ts";
 import { fetchWithTimeout } from "../_shared/fetch-timeout.ts";
 import { enqueueLegacyPayloadV2 } from "../_shared/email/enqueue-legacy-compat.ts";
 import { requireMarketingAttestation } from "./attestation.ts";
+import { htmlToPlainText } from "../_shared/html-to-text.ts";
 
 const BodySchema = z.object({ announcement_id: z.string().optional() }).passthrough();
 const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"'()]+[^\s<>"'(),.;:!?])/gi;
@@ -395,24 +396,11 @@ Deno.serve(
       if (platformWebhook) {
         try {
           const announcementUrl = `https://techfleet.network/updates?highlight=${announcement_id}`;
-          // Strip HTML tags and decode entities for Discord plain-text
-          const plainBody = announcement.body_html
-            .replace(/<br\s*\/?>/gi, "\n")
-            .replace(/<\/p>/gi, "\n\n")
-            .replace(/<\/li>/gi, "\n")
-            .replace(/<li[^>]*>/gi, "• ")
-            .replace(/<\/h[1-6]>/gi, "\n\n")
-            .replace(/<[^>]+>/g, "")
-            .replace(/&nbsp;/gi, " ")
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&#(\d+);/g, (_m: string, code: string) => String.fromCharCode(Number(code)))
-            .replace(/[ \t]+/g, " ")
-            .replace(/\n{3,}/g, "\n\n")
-            .trim();
+          // Strip HTML tags and decode entities for Discord plain-text via the
+          // shared owner. It decodes `&amp;` LAST (so `&amp;lt;` stays the
+          // literal `&lt;`, not `<`) — the previous inline chain decoded
+          // `&amp;` before `&lt;` and double-unescaped (CodeQL js/double-escaping).
+          const plainBody = htmlToPlainText(announcement.body_html, { preserveLineBreaks: true });
 
           const discordContent = [
             `<@&1083439364975112293>`,

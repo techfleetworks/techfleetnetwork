@@ -7,6 +7,7 @@ import { getAdminClient } from "../_shared/admin-client.ts";
 import { handleCors, jsonResponse } from "../_shared/http.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { htmlToPlainText } from "../_shared/html-to-text.ts";
 
 const BATCH = 25;
 const VT_SECONDS = 60;
@@ -151,14 +152,9 @@ async function processOne(admin: ReturnType<typeof getAdminClient>, ev: Freescou
         const rawBody = String(
           (thread as { body?: unknown })?.body ?? (thread as { text?: unknown })?.text ?? ""
         );
-        // Strip HTML for the preview snippet (remove script/style blocks first, then all tags).
-        const previewText = rawBody
-          .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
-          .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")
-          .replace(/<[^>]*>/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 280);
+        // Strip HTML for the preview snippet via the shared owner (fixpoint +
+        // tempered tag match — robust against the bypasses CodeQL flagged).
+        const previewText = htmlToPlainText(rawBody).slice(0, 280);
         const subject = (conv as { subject?: string })?.subject ?? "your support ticket";
         // Members see staff generically as "Support Agent" — admins ARE the
         // support agents; this is member-facing language only, and it avoids

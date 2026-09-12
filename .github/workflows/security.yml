@@ -1,11 +1,14 @@
 name: Security
 
-# Consolidated security scan: npm audit + secret detection.
+# Consolidated security scan: dependency-advisory gate + secret detection.
 # Runs on PRs and weekly to catch new advisories in unchanged code.
 # Dependency-review (supply-chain diff) lives in ci.yml (PR-only).
 #
-# Neither job fails the build automatically — advisories → PR review.
-# Secret scan is the exception: a committed secret IS a fail.
+# BOTH jobs are hard gates:
+#  - dependency-advisories fails on any npm-audit advisory not covered by an
+#    unexpired entry in security-advisories.waivers.json.
+#  - secret-scan fails on any committed secret.
+# CodeQL (SAST) is a separate required workflow (.github/workflows/codeql.yml).
 
 on:
   push:
@@ -20,10 +23,12 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # npm-audit — report high+critical advisories. Report-only (no auto-fail)
-  # because patch bumps need review to avoid surprise breakage.
+  # dependency-advisories — BLOCKING. Fails on ANY advisory (npm audit) that is
+  # not covered by an unexpired entry in security-advisories.waivers.json. The
+  # waiver file is the only bypass (dated + expiring), so a no-upstream-fix
+  # advisory like quill's cannot silently un-gate the whole check.
   # ---------------------------------------------------------------------------
-  npm-audit:
+  dependency-advisories:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,13 +40,12 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Run npm audit (high+critical, report-only)
-        run: |
-          set +e
-          npm audit --audit-level=high --json > npm-audit.json
-          echo "npm audit exit code: $?"
-          npm audit --audit-level=high || true
-          exit 0
+      - name: Enforce dependency-advisory gate (waiver-aware, hard fail)
+        run: npm run check:dependency-advisories
+
+      - name: Capture full audit report
+        if: always()
+        run: npm audit --json > npm-audit.json 2>/dev/null || true
 
       - name: Upload audit report
         if: always()

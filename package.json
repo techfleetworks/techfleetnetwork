@@ -31,6 +31,7 @@
     "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev",
     "audit:signatures": "npm audit signatures",
     "scan:secrets": "node scripts/secret-scan.mjs",
+    "check:dependency-advisories": "node scripts/ci/check-dependency-advisories.mjs",
     "check:audit-triggers": "bash scripts/ci/check-audit-triggers.sh",
     "check:auth-direct-signin": "node scripts/ci/check-auth-direct-signin.mjs",
     "check:legacy-auth-importers": "node scripts/ci/check-legacy-auth-importers.mjs",
@@ -197,6 +198,9 @@
     "@tootallnate/once": "3.0.1",
     "eslint-plugin-jsx-a11y": {
       "minimatch": "^3.1.2"
+    },
+    "vitepress": {
+      "vite": "^6.4.3"
     }
   },
   "browserslist": [

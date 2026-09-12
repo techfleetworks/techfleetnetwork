@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
+import { stripActiveContent } from "../_shared/html-to-text.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { isTrustedInternal } from "../_shared/internal-auth.ts";
@@ -172,20 +173,16 @@ const PII_PATTERNS = [
 ];
 
 function sanitizeAIOutput(text: string): string {
-  let sanitized = text
-    // LLM07: Strip system prompt markers / canary
-    .replace(/\<\|im_start\|[^]*?\<\|im_end\|>/g, "")
-    .replace(/\[SYSTEM\][^]*/gi, "")
-    .replace(new RegExp(CANARY_PHRASE, "g"), "[REDACTED]")
-    // LLM05: Strip dangerous HTML/JS from output
-    // Use \b + tolerant closing tag so <script/>, <script >, </script > etc. are all caught.
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
-    .replace(/<script\b[^>]*\/?>/gi, "")
-    .replace(/javascript\s*:/gi, "")
-    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi, "")
-    .replace(/<iframe\b[^>]*\/?>/gi, "")
-    // Also strip unquoted event handlers: onclick=alert(1) as well as onclick="..."
-    .replace(/on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  let sanitized = stripActiveContent(
+    text
+      // LLM07: Strip system prompt markers / canary
+      .replace(/\<\|im_start\|[^]*?\<\|im_end\|>/g, "")
+      .replace(/\[SYSTEM\][^]*/gi, "")
+      .replace(new RegExp(CANARY_PHRASE, "g"), "[REDACTED]")
+  );
+  // LLM05: dangerous HTML/JS (script/iframe/on*=/javascript:) is removed by the
+  // shared stripActiveContent owner above — fixpoint + tempered match, robust
+  // against the nested/attribute bypasses CodeQL flagged in the old inline chain.
 
   // LLM02: Redact PII patterns from AI output
   for (const pattern of PII_PATTERNS) {

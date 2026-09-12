@@ -1,0 +1,14 @@
+{
+  "_comment": "Expiring, auditable allow-list for dependency advisories that have NO safe upgrade path yet. scripts/ci/check-dependency-advisories.mjs HARD-FAILS CI on ANY advisory not listed here (or listed but expired). This is the ONLY bypass — the same model as arch-gate.waivers.json. Shrink this list; never let an entry lapse silently. Each entry needs: ghsa, package, reason (incl. the in-app mitigation), added, expires, owner.",
+  "waivers": [
+    {
+      "ghsa": "GHSA-v3m3-f69x-jf25",
+      "package": "quill",
+      "severity": "low",
+      "reason": "Quill 2.0.3 XSS via the HTML-export feature has NO upstream patch (react-quill-new -> quill@2.0.3). Mitigated in-app, defense-in-depth: ALL rich-text is passed through the DOMPurify strict allow-list (src/lib/security.ts#sanitizeHtml) on render AND re-sanitized by the sanitize_user_html DB trigger on write, so Quill's exported HTML is never rendered untrusted. Remove this waiver when react-quill-new ships a patched quill.",
+      "added": "2026-09-12",
+      "expires": "2026-12-31",
+      "owner": "mdenner@techfleet.org"
+    }
+  ]
+}

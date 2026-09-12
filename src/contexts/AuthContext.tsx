@@ -28,6 +28,7 @@ import {
   purgeLocalAuthState,
 } from "@/lib/auth/session-health";
 import i18n, { ensureLocale } from "@/i18n";
+import { fingerprintUserId } from "@/lib/security";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { appQueryClient } from "@/lib/react-query";
@@ -58,15 +59,18 @@ function maybeShowGoogleLinkToast(currentUser: User) {
     const providers = new Set(identities.map((i) => (i.provider ?? "").toLowerCase()));
     if (!providers.has("google") || !providers.has("email")) return;
 
+    // Dedup per user by a one-way fingerprint — never store the raw user id in
+    // localStorage (CodeQL js/clear-text-storage-of-sensitive-data).
+    const uidFp = fingerprintUserId(currentUser.id);
     const raw = localStorage.getItem(OAUTH_LINK_TOAST_KEY);
     const shown: string[] = raw ? JSON.parse(raw) : [];
-    if (shown.includes(currentUser.id)) return;
+    if (shown.includes(uidFp)) return;
 
     toast.success(
       "Linked Google to your existing account. You can now sign in with either your password or Google.",
       { duration: 30000, position: "top-center" }
     );
-    shown.push(currentUser.id);
+    shown.push(uidFp);
     localStorage.setItem(OAUTH_LINK_TOAST_KEY, JSON.stringify(shown.slice(-50)));
   } catch {
     /* non-critical */

@@ -74,7 +74,19 @@ export async function parseJsonBody(req: Request, maxBytes = 16 * 1024): Promise
   }
 }
 
-export function errorResponse(error: unknown, fallback = "Internal server error"): Response {
+/**
+ * The ONE safe way to turn a caught error into a response. The client only ever
+ * sees the static `fallback` string — never `error.message`, `error.stack`, or
+ * `String(error)`, which leak internal details (CodeQL js/stack-trace-exposure).
+ * Log the real error separately (it never reaches the response body).
+ * A `Response` thrown as a control-flow signal is passed through unchanged.
+ */
+export function errorResponse(
+  error: unknown,
+  fallback = "Internal server error",
+  status = 500
+): Response {
   if (error instanceof Response) return error;
-  return jsonResponse({ error: fallback }, 500);
+  const safeStatus = status >= 400 && status <= 599 ? status : 500;
+  return jsonResponse({ error: fallback }, safeStatus);
 }

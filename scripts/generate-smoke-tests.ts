@@ -11,7 +11,7 @@
  * row presence) — never an unconditional pass.
  */
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -53,7 +53,10 @@ function fetchUnlinked(): Scenario[] {
       ORDER BY feature_area, scenario_id
     ) TO STDOUT WITH (FORMAT text, DELIMITER E'\\t', NULL '')
   `;
-  const out = execSync(`psql -At -c "${sql.replace(/"/g, '\\"').replace(/\n/g, " ")}"`, {
+  // Pass the SQL as a discrete argv entry via execFileSync — NO shell, so there
+  // is no quoting/escaping to get wrong (was `execSync` with string
+  // interpolation, CodeQL js/incomplete-sanitization).
+  const out = execFileSync("psql", ["-At", "-c", sql], {
     encoding: "utf8",
     maxBuffer: 100 * 1024 * 1024,
   });
@@ -88,19 +91,25 @@ function buildAssertion(scenario: Scenario): string {
 
   // 2) Service-shaped scenarios → reference src/services index.
   if (/\b(service|client|fetch|api)\b/.test(text)) {
-    return `expect(servicesIndex.length).toBeGreaterThan(0);\n    ` +
-      `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
+    return (
+      `expect(servicesIndex.length).toBeGreaterThan(0);\n    ` +
+      `expect(scenarioIds).toContain(${JSON.stringify(id)});`
+    );
   }
 
   // 3) Edge-function-shaped scenarios → assert the supabase/functions dir is present.
   if (/\b(edge function|webhook|cron|notify|email|push)\b/.test(text)) {
-    return `expect(edgeFunctionDirs.length).toBeGreaterThan(0);\n    ` +
-      `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
+    return (
+      `expect(edgeFunctionDirs.length).toBeGreaterThan(0);\n    ` +
+      `expect(scenarioIds).toContain(${JSON.stringify(id)});`
+    );
   }
 
   // 4) Default: prove the App.tsx file is non-trivial AND the scenario id is wired.
-  return `expect(appSrc.length).toBeGreaterThan(1000);\n    ` +
-    `expect(scenarioIds).toContain(${JSON.stringify(id)});`;
+  return (
+    `expect(appSrc.length).toBeGreaterThan(1000);\n    ` +
+    `expect(scenarioIds).toContain(${JSON.stringify(id)});`
+  );
 }
 
 function emitSpec(featureArea: string, scenarios: Scenario[]): string {

@@ -214,6 +214,57 @@ export function normalizeSafeRedirectTarget(value: string, fallback = "/dashboar
   return parsed.href;
 }
 
+/**
+ * Reduce an untrusted `?redirect=` value to a safe SAME-ORIGIN relative PATH.
+ *
+ * Unlike normalizeSafeRedirectTarget (which may return an absolute href for an
+ * allow-listed external domain), this ALWAYS returns a path beginning with a
+ * single "/", so the result is safe both to hand to `window.location.assign`
+ * and to concatenate onto an origin. Absolute URLs, protocol-relative `//host`,
+ * backslash tricks (`/\\`), and non-path schemes (`javascript:`, `data:`) all
+ * collapse to `fallback`. Use this for any navigation target derived from user
+ * input (open-redirect + XSS guard:
+ * CodeQL js/client-side-unvalidated-url-redirection, js/xss).
+ *
+ * ❌ never — window.location.assign(searchParams.get("redirect") || "/dashboard")
+ * ✅ always — window.location.assign(toSafeRedirectPath(searchParams.get("redirect")))
+ */
+export function toSafeRedirectPath(
+  value: string | null | undefined,
+  fallback = "/dashboard"
+): string {
+  if (!value) return fallback;
+  // Must be a plain relative path — reject absolute/scheme/protocol-relative up front.
+  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return fallback;
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.origin !== window.location.origin) return fallback;
+    const path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return path.startsWith("/") && !path.startsWith("//") ? path : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Non-reversible, synchronous fingerprint (FNV-1a → hex) of an identifier.
+ *
+ * Used so client-side markers (session-start marker, one-time toast dedup) can
+ * tell "same user vs different user" WITHOUT persisting the raw user id in
+ * web storage — a user id is not a credential, but it is identifying data and
+ * should not sit in localStorage/sessionStorage in the clear
+ * (CodeQL js/clear-text-storage-of-sensitive-data). Equality of fingerprints is
+ * all these call sites need; the value is one-way and not sensitive.
+ */
+export function fingerprintUserId(id: string): string {
+  let hash = 0x811c9dc5; // FNV-1a 32-bit offset basis
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193); // FNV prime
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
 export function isSecureTlsUrl(value: string, allowedHosts?: readonly string[]): boolean {
   try {
     const parsed = new URL(value);
@@ -334,12 +385,7 @@ export type SecurityEventOutcome = "success" | "failure" | "denied" | "error";
 
 export interface SecurityLogEntry {
   "event.category":
-    | "authentication"
-    | "authorization"
-    | "data_access"
-    | "validation"
-    | "system"
-    | "ai_tool";
+    "authentication" | "authorization" | "data_access" | "validation" | "system" | "ai_tool";
   "event.action": string;
   "event.outcome": SecurityEventOutcome;
   "user.id"?: string;
