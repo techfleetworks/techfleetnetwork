@@ -3,11 +3,18 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SEO } from "@/components/SEO";
 import { toast } from "sonner";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 const TYPES = [
   { value: "access", label: "Access — get a copy of my data" },
@@ -35,7 +42,10 @@ export default function DsarSubmitPage() {
         <h1 className="text-xl font-bold">Privacy request</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Please sign in to submit a verified privacy request, or email
-          <a className="underline ml-1" href="mailto:info@techfleet.network">info@techfleet.network</a>.
+          <a className="underline ml-1" href="mailto:info@techfleet.network">
+            info@techfleet.network
+          </a>
+          .
         </p>
       </div>
     );
@@ -45,11 +55,12 @@ export default function DsarSubmitPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("dsar-submit", {
+      const data = await invokeEdge("dsar-submit", {
         body: { type, payload: { details } },
       });
-      if (error) throw error;
-      toast.success(`Request received. We will respond within 30 days. Reference: ${(data as { id?: string })?.id?.slice(0, 8) ?? ""}`);
+      toast.success(
+        `Request received. We will respond within 30 days. Reference: ${(data as { id?: string })?.id?.slice(0, 8) ?? ""}`
+      );
       nav("/privacy");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit request");
@@ -73,17 +84,32 @@ export default function DsarSubmitPage() {
         <div className="field-group">
           <Label htmlFor="dsar-type">Request type</Label>
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger id="dsar-type"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="dsar-type">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              {TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="field-group">
           <Label htmlFor="dsar-details">Details (optional)</Label>
-          <Textarea id="dsar-details" rows={6} maxLength={5000} value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Tell us anything that helps us identify the data you're asking about." />
+          <Textarea
+            id="dsar-details"
+            rows={6}
+            maxLength={5000}
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+            placeholder="Tell us anything that helps us identify the data you're asking about."
+          />
         </div>
-        <Button type="submit" disabled={busy}>{busy ? "Submitting..." : "Submit request"}</Button>
+        <Button type="submit" disabled={busy}>
+          {busy ? "Submitting..." : "Submit request"}
+        </Button>
       </form>
     </div>
   );

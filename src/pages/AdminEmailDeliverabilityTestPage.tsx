@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { PageTitle } from "@/components/ui/typography";
 import { CheckCircle2, Loader2, AlertTriangle, Send } from "lucide-react";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 /**
  * Admin-only deliverability smoke harness. Enqueues a representative send for
@@ -104,7 +105,7 @@ export default function AdminEmailDeliverabilityTestPage() {
     for (let i = 0; i < TEMPLATES.length; i++) {
       const t = TEMPLATES[i];
       try {
-        const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        const data = await invokeEdge("send-transactional-email", {
           body: {
             templateName: t.name,
             recipientEmail: email,
@@ -112,7 +113,6 @@ export default function AdminEmailDeliverabilityTestPage() {
             templateData: t.sample ?? {},
           },
         });
-        if (error) throw error;
         setResults((prev) =>
           prev.map((r, idx) =>
             idx === i ? { ...r, status: "ok", messageId: (data as any)?.messageId } : r
