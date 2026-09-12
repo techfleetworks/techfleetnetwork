@@ -58,6 +58,12 @@ export const EMAIL_TIERS: Record<string, EmailTypeSpec> = {
   "general-application-submitted": { tier: 0, lane: "transactional", bucket: "none" },
   "project-application-submitted": { tier: 0, lane: "transactional", bucket: "none" },
   "support-ticket-reply": { tier: 0, lane: "transactional", bucket: "none" },
+  "founding-purchase": {
+    tier: 0,
+    lane: "transactional",
+    bucket: "none",
+    note: "UC2 (ADR-0041): membership-purchase confirmation to an existing user. DB-trigger (gumroad_sales) inline HTML; Tier 0 — never preference-gated.",
+  },
   "class-status-change": {
     tier: 0,
     lane: "transactional",
