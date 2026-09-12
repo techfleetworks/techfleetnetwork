@@ -158,11 +158,10 @@ export const AnnouncementService = {
     try {
       // silentReport: handleServiceError below owns reporting (logger + reportError→audit_log);
       // letting invokeEdge also report would double-count every failure in Triage.
-      // timeoutMs 150s + noRetry: send-announcement-email runs a synchronous per-recipient loop
-      // over every opted-in member (~1200+) and legitimately takes far longer than invokeEdge's
-      // 8s default — the raw invoke it replaces had NO client timeout. An 8s abort would log a
-      // false "failed" on every successful send; a retry would re-run the whole loop. Wait for
-      // the real result instead. (See the enqueue-loop timeout incident + set-based RPC rework.)
+      // timeoutMs 150s + noRetry: send-announcement-email enqueues the whole audience (~1200+,
+      // set-based since #346) and can still exceed invokeEdge's 8s default on a large send — the
+      // raw invoke it replaces had NO client timeout. An 8s abort would log a false "failed" on a
+      // succeeding enqueue; a retry could re-enqueue. Wait for the real result instead.
       await invokeEdge("send-announcement-email", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { announcement_id: announcementId, marketing_attested: marketingAttested },
