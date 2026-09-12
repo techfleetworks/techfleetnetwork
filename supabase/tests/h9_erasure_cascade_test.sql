@@ -41,8 +41,8 @@ SELECT is(
 SELECT is(
   (SELECT count(*)::int FROM public.gumroad_sales
      WHERE sale_id = 'erase-sale-1'
-       AND email = 'redacted@deleted.invalid' AND resolved_user_id IS NULL),
-  1, 'gumroad_sales row is de-identified (email redacted, resolved_user_id null)');
+       AND email = 'erased@gdpr.invalid' AND resolved_user_id IS NULL),
+  1, 'gumroad_sales row is de-identified (email redacted to the canonical value, resolved_user_id null)');
 -- 3. Consent record retained as proof, but user link nulled.
 SELECT is(
   (SELECT count(*)::int FROM public.cookie_consents
