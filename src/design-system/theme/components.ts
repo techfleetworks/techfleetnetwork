@@ -55,7 +55,13 @@ export function components(mode: Mode, t: ModeTokens): Components<Theme> {
           letterSpacing: "1px",
           fontSize: "1rem",
           lineHeight: 1,
-          transition: "all 200ms",
+          // Animate hover properties ONLY — never `outline`. `transition: all` used to
+          // fade the keyboard focus ring (outline 0→2px over 200ms), so a focus indicator
+          // was briefly absent on focus. That fails WCAG 2.4.7 (the ring must be present,
+          // not fade in) and made the a11y keyboard-walk e2e flake on outline/secondary
+          // variants (whose ONLY ring is the outline — filled variants also have a shadow).
+          transition:
+            "background-color 200ms, color 200ms, border-color 200ms, box-shadow 200ms, transform 200ms",
           "& svg": { width: 16, height: 16, flexShrink: 0 },
         },
       },
