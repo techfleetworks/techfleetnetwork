@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toSafeRedirectPath, fingerprintUserId } from "@/lib/security";
+import { toSafeRedirectPath, fingerprintUserId, stripTagsFixpoint } from "@/lib/security";
 
 // Security regression for the open-redirect + XSS closed in the auth register
 // flow (CodeQL js/client-side-unvalidated-url-redirection, js/xss). Mirrors the
@@ -30,6 +30,18 @@ describe("toSafeRedirectPath", () => {
     expect(toSafeRedirectPath(null, "")).toBe("");
     expect(toSafeRedirectPath("", "/profile-setup")).toBe("/profile-setup");
     expect(toSafeRedirectPath("https://evil.example", "")).toBe("");
+  });
+});
+
+describe("stripTagsFixpoint (no-DOM fallback owner)", () => {
+  it("strips tags to plain text", () => {
+    expect(stripTagsFixpoint("<p>hi <b>there</b></p>")).toBe("hi there");
+  });
+  it("defeats nested reconstruction (fixpoint, not single-pass)", () => {
+    expect(/<script/i.test(stripTagsFixpoint("<scr<script>ipt>x</scr</script>ipt>"))).toBe(false);
+  });
+  it("honors a separator for word spacing", () => {
+    expect(stripTagsFixpoint("a<br>b", " ")).toBe("a b");
   });
 });
 

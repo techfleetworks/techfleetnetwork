@@ -55,12 +55,30 @@ export function sanitizeText(input: string): string {
 }
 
 /**
+ * No-DOM fallback tag stripper — the single owner for the SSR/no-DOM branch of
+ * every frontend stripHtml. Re-applies the tag removal until the string stops
+ * changing (FIXPOINT), so nested reconstruction like `<scr<script>ipt>` cannot
+ * survive a single pass — the CodeQL-documented remedy for
+ * js/incomplete-multi-character-sanitization. Output is plain text and is never
+ * used as an HTML sink (the DOM path via DOMParser is preferred in browsers/tests).
+ */
+export function stripTagsFixpoint(input: string, sep = ""): string {
+  let out = input;
+  let prev = "";
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(/<[^>]*>/g, sep);
+  }
+  return out;
+}
+
+/**
  * Strip all HTML tags from input, returning plain text.
  *
  * Uses the DOM parser so obfuscated / nested tags (e.g. `<scr<script>ipt>`)
  * that defeat a single-pass regex are removed correctly — a regex blocklist
  * here was flagged by CodeQL (js/incomplete-multi-character-sanitization).
- * Falls back to a best-effort regex only when no DOM is available (non-browser
+ * Falls back to the fixpoint stripper only when no DOM is available (non-browser
  * SSR), where the result is used as plain text and never as an HTML sink.
  */
 export function stripHtml(input: string): string {
@@ -68,9 +86,7 @@ export function stripHtml(input: string): string {
   if (typeof DOMParser !== "undefined") {
     return new DOMParser().parseFromString(input, "text/html").body.textContent ?? "";
   }
-  // codeql[js/incomplete-multi-character-sanitization] - SSR fallback only;
-  // result is plain text (textContent), never used as an HTML sink.
-  return input.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "").replace(/<[^>]*>/g, "");
+  return stripTagsFixpoint(input);
 }
 
 export function safeHref(value: unknown): string | undefined {

@@ -291,7 +291,10 @@ Deno.test("expandQuery: SPF synonyms surface lexically-different central entitie
 Deno.test("NO_KNOWLEDGE_DIRECTIVE forbids fabrication and gives a real fallback", () => {
   assert(NO_KNOWLEDGE_DIRECTIVE.includes("NO KNOWLEDGE MATCH"));
   assert(/do not invent/i.test(NO_KNOWLEDGE_DIRECTIVE));
-  assert(NO_KNOWLEDGE_DIRECTIVE.includes("guide.techfleet.org"));
+  // Content assertion (does the prompt mention the guide URL), not URL
+  // validation — use a regex so it isn't read as a substring host check
+  // (CodeQL js/incomplete-url-substring-sanitization).
+  assert(/guide\.techfleet\.org/.test(NO_KNOWLEDGE_DIRECTIVE));
 });
 
 // ── capability-denial fix + backstop (the Figma "I can't read links" incident) ──────────
