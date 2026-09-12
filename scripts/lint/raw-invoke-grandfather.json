@@ -40,7 +40,6 @@
   "src/pages/ProjectFormPage.tsx": 1,
   "src/pages/UnsubscribePage.tsx": 1,
   "src/pages/UserAdminPage.tsx": 5,
-  "src/services/announcement.service.ts": 1,
   "src/services/class-emails.ts": 1,
   "src/services/discord-notify.service.ts": 5,
   "src/services/explore.service.ts": 1,
