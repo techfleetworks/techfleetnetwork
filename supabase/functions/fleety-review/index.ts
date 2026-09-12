@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { fetchMaterialText } from "../_shared/material-fetch.ts";
+import { htmlToPlainText } from "../_shared/html-to-text.ts";
 import { US_INFERENCE_PROVIDERS } from "../_shared/llm/port.ts";
 import {
   buildSpfKbRow,
@@ -69,20 +70,12 @@ async function loadExpectations(
 }
 
 /**
- * Minimal output hardening (this is Fleety's own text; strip any stray active markup).
- * Tag-specific regexes are bypassable (nested `<scr<script>ipt>` survives a single pass;
- * `</script bar>` end-tags dodge a fixed close matcher), so we remove ALL angle-bracket tags
- * and repeat until the string stops changing — the CodeQL-documented remedy for
- * incomplete-multi-character sanitization. The client still renders this as text.
+ * Minimal output hardening (this is Fleety's own text; strip any stray active
+ * markup). Delegates to the shared HTML→text owner (fixpoint strip, robust vs
+ * nested `<scr<script>ipt>` and odd end-tags). The client renders this as text.
  */
 function sanitize(text: string): string {
-  let out = text;
-  let prev = "";
-  while (out !== prev) {
-    prev = out;
-    out = out.replace(/<[^>]*>/g, "");
-  }
-  return out.replace(/javascript\s*:/gi, "");
+  return htmlToPlainText(text, { preserveLineBreaks: true }).replace(/javascript\s*:/gi, "");
 }
 
 serve(

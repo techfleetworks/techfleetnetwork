@@ -65,7 +65,7 @@ Dashboard: Project Settings → Edge Functions → **Secrets** → add
 Or CLI:
 
 ```bash
-supabase secrets set RESEND_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxxxxxxxxxxxxx" \
+supabase secrets set RESEND_WEBHOOK_SECRET="<paste the whsec_… value from Resend>" \
   --project-ref pzvqxdgoztbfikfuifix
 ```
 

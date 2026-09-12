@@ -18,7 +18,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { logAccountActivity } from "@/lib/account-activity";
-import { getSessionPolicyFailureReason } from "@/lib/security";
+import { getSessionPolicyFailureReason, fingerprintUserId } from "@/lib/security";
 import {
   clearOAuthUiMarker,
   isRootOAuthCallback,
@@ -32,14 +32,19 @@ const log = createLogger("SessionService");
 const MAX_SESSION_AGE_MS = Number.POSITIVE_INFINITY;
 const IDLE_SESSION_AGE_MS = 60 * 60 * 1000; // 1 hour
 const SESSION_STARTED_AT_KEY = "session_started_at";
-const SESSION_MARKER_VERSION = 1;
+// v2: store a one-way fingerprint of the user id (uidFp), never the raw id
+// (CodeQL js/clear-text-storage-of-sensitive-data). A v1 marker fails the
+// version check below and is treated as a mismatch (a benign idle-clock reset).
+const SESSION_MARKER_VERSION = 2;
 const AUTH_STORAGE_KEY_PATTERN = /^sb-.*-auth-token$/;
 
-type AuthSession = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>;
+type AuthSession = NonNullable<
+  Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]
+>;
 
 interface SessionMarker {
   version: number;
-  userId: string;
+  uidFp: string;
   startedAtMs: number;
   lastActivityAtMs?: number;
 }
@@ -47,7 +52,11 @@ interface SessionMarker {
 function writeSessionMarker(session: Pick<AuthSession, "user">, startedAtMs = Date.now()) {
   sessionStorage.setItem(
     SESSION_STARTED_AT_KEY,
-    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs } satisfies SessionMarker),
+    JSON.stringify({
+      version: SESSION_MARKER_VERSION,
+      uidFp: fingerprintUserId(session.user.id),
+      startedAtMs,
+    } satisfies SessionMarker)
   );
 }
 
@@ -55,26 +64,47 @@ function touchSessionMarker(session: Pick<AuthSession, "user">, marker: { starte
   const lastActivityAtMs = Math.max(Date.now(), getLastActivityAt());
   sessionStorage.setItem(
     SESSION_STARTED_AT_KEY,
-    JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs: marker.startedAtMs, lastActivityAtMs } satisfies SessionMarker),
+    JSON.stringify({
+      version: SESSION_MARKER_VERSION,
+      uidFp: fingerprintUserId(session.user.id),
+      startedAtMs: marker.startedAtMs,
+      lastActivityAtMs,
+    } satisfies SessionMarker)
   );
 }
 
-function readSessionMarker(session: Pick<AuthSession, "user">): { startedAtMs: number; lastActivityAtMs: number; resetReason: string | null } {
+function readSessionMarker(session: Pick<AuthSession, "user">): {
+  startedAtMs: number;
+  lastActivityAtMs: number;
+  resetReason: string | null;
+} {
   const liveActivity = getLastActivityAt();
   const freshDefault = liveActivity > 0 ? liveActivity : Date.now();
   const raw = sessionStorage.getItem(SESSION_STARTED_AT_KEY);
-  if (!raw) return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "missing" };
+  if (!raw)
+    return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "missing" };
 
   const legacyStartedAt = Number(raw);
-  if (Number.isFinite(legacyStartedAt)) return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "legacy" };
+  if (Number.isFinite(legacyStartedAt))
+    return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "legacy" };
 
   try {
     const marker = JSON.parse(raw) as Partial<SessionMarker>;
-    if (marker.version !== SESSION_MARKER_VERSION || marker.userId !== session.user.id || !Number.isFinite(marker.startedAtMs)) {
+    if (
+      marker.version !== SESSION_MARKER_VERSION ||
+      marker.uidFp !== fingerprintUserId(session.user.id) ||
+      !Number.isFinite(marker.startedAtMs)
+    ) {
       return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "mismatch" };
     }
-    const storedLast = Number.isFinite(marker.lastActivityAtMs) ? marker.lastActivityAtMs! : marker.startedAtMs!;
-    return { startedAtMs: marker.startedAtMs!, lastActivityAtMs: Math.max(storedLast, liveActivity), resetReason: null };
+    const storedLast = Number.isFinite(marker.lastActivityAtMs)
+      ? marker.lastActivityAtMs!
+      : marker.startedAtMs!;
+    return {
+      startedAtMs: marker.startedAtMs!,
+      lastActivityAtMs: Math.max(storedLast, liveActivity),
+      resetReason: null,
+    };
   } catch {
     return { startedAtMs: Date.now(), lastActivityAtMs: freshDefault, resetReason: "malformed" };
   }
@@ -107,10 +137,14 @@ function hasStoredAuthSession() {
   return false;
 }
 
-
 async function recoverFromInvalidRefreshToken(error: unknown, source: string) {
   const maybeError = error as { message?: string; status?: number } | null | undefined;
-  log.warn(source, "Stored refresh token is no longer valid — clearing local auth state", undefined, error);
+  log.warn(
+    source,
+    "Stored refresh token is no longer valid — clearing local auth state",
+    undefined,
+    error
+  );
   void logAccountActivity("invalid_refresh_token_cleared", {
     errorMessage: maybeError?.message ?? String(error ?? "Invalid refresh token"),
     errorCode: maybeError?.status,
@@ -132,10 +166,20 @@ export const sessionService = {
       return;
     }
 
-    log.warn("signOut", `Global sign-out failed, falling back to local: ${error.message}`, undefined, error);
+    log.warn(
+      "signOut",
+      `Global sign-out failed, falling back to local: ${error.message}`,
+      undefined,
+      error
+    );
     const { error: localError } = await supabase.auth.signOut({ scope: "local" });
     if (localError) {
-      log.error("signOut", `Local sign-out also failed: ${localError.message}`, undefined, localError);
+      log.error(
+        "signOut",
+        `Local sign-out also failed: ${localError.message}`,
+        undefined,
+        localError
+      );
       throw new Error("Sign out failed. Please try again.");
     }
     log.info("signOut", "User signed out successfully (local fallback)");
@@ -146,37 +190,55 @@ export const sessionService = {
     clearLocalAuthArtifacts();
   },
 
-  async signOutAllDevices(opts?: { keepCurrent?: boolean; reason?: string }): Promise<{ revocationRecorded: boolean; gotrueSignedOut: boolean }> {
+  async signOutAllDevices(opts?: {
+    keepCurrent?: boolean;
+    reason?: string;
+  }): Promise<{ revocationRecorded: boolean; gotrueSignedOut: boolean }> {
     const keepCurrent = opts?.keepCurrent === true;
     const reason = opts?.reason ?? "self_requested";
-    return log.track("signOutAllDevices", "Revoking all user sessions", { keepCurrent, reason }, async () => {
-      let revocationRecorded = false;
-      let gotrueSignedOut = false;
-      try {
-        const { data, error } = await supabase.functions.invoke("sign-out-all-devices", {
-          body: { keep_current: keepCurrent, reason },
-        });
-        if (error) {
-          log.warn("signOutAllDevices", `Edge revoke returned error: ${error.message}`, undefined, error);
-          void logAccountActivity("signout_local", { errorMessage: error.message });
-        } else {
-          revocationRecorded = Boolean((data as any)?.revocation_recorded);
-          gotrueSignedOut = Boolean((data as any)?.gotrue_signed_out);
-          void logAccountActivity("signout_all_devices", { details: { reason, keepCurrent } });
+    return log.track(
+      "signOutAllDevices",
+      "Revoking all user sessions",
+      { keepCurrent, reason },
+      async () => {
+        let revocationRecorded = false;
+        let gotrueSignedOut = false;
+        try {
+          const { data, error } = await supabase.functions.invoke("sign-out-all-devices", {
+            body: { keep_current: keepCurrent, reason },
+          });
+          if (error) {
+            log.warn(
+              "signOutAllDevices",
+              `Edge revoke returned error: ${error.message}`,
+              undefined,
+              error
+            );
+            void logAccountActivity("signout_local", { errorMessage: error.message });
+          } else {
+            revocationRecorded = Boolean((data as any)?.revocation_recorded);
+            gotrueSignedOut = Boolean((data as any)?.gotrue_signed_out);
+            void logAccountActivity("signout_all_devices", { details: { reason, keepCurrent } });
+          }
+        } catch (err) {
+          log.warn(
+            "signOutAllDevices",
+            `Edge revoke threw (non-fatal): ${(err as Error)?.message}`,
+            undefined,
+            err instanceof Error ? err : undefined
+          );
         }
-      } catch (err) {
-        log.warn("signOutAllDevices", `Edge revoke threw (non-fatal): ${(err as Error)?.message}`, undefined, err instanceof Error ? err : undefined);
-      }
 
-      if (!keepCurrent) {
-        sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
-        await supabase.auth.signOut();
-        log.info("signOutAllDevices", "Local session cleared");
-      } else {
-        log.info("signOutAllDevices", "Current device session preserved");
+        if (!keepCurrent) {
+          sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
+          await supabase.auth.signOut();
+          log.info("signOutAllDevices", "Local session cleared");
+        } else {
+          log.info("signOutAllDevices", "Current device session preserved");
+        }
+        return { revocationRecorded, gotrueSignedOut };
       }
-      return { revocationRecorded, gotrueSignedOut };
-    });
+    );
   },
 
   async getSession() {
@@ -195,7 +257,6 @@ export const sessionService = {
       log.debug("getSession", "No stored auth session — skipping backend session check");
       return null;
     }
-
 
     let authResult: Awaited<ReturnType<typeof supabase.auth.getSession>>;
     try {
@@ -220,7 +281,11 @@ export const sessionService = {
 
     if (data.session) {
       try {
-        const issuedAt = new Date((data.session as { user: { created_at?: string } }).user.created_at ?? data.session.user.last_sign_in_at ?? new Date().toISOString());
+        const issuedAt = new Date(
+          (data.session as { user: { created_at?: string } }).user.created_at ??
+            data.session.user.last_sign_in_at ??
+            new Date().toISOString()
+        );
         const tokenIssuedAt = data.session.expires_at
           ? new Date((data.session.expires_at - (data.session.expires_in ?? 600)) * 1000)
           : issuedAt;
@@ -229,14 +294,20 @@ export const sessionService = {
           _issued_at: tokenIssuedAt.toISOString(),
         });
         if (revoked === true) {
-          log.warn("getSession", `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`);
+          log.warn(
+            "getSession",
+            `Session revoked server-side for user ${data.session.user.id} — forcing sign-out`
+          );
           void logAccountActivity("session_revoked_serverside", { userId: data.session.user.id });
           await supabase.auth.signOut();
           sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
           return null;
         }
       } catch (e) {
-        log.warn("getSession", `Revocation check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`);
+        log.warn(
+          "getSession",
+          `Revocation check failed (non-blocking): ${e instanceof Error ? e.message : String(e)}`
+        );
       }
 
       const marker = readSessionMarker(data.session);
@@ -258,16 +329,25 @@ export const sessionService = {
         absoluteTimeoutMs: MAX_SESSION_AGE_MS,
       });
       if (sessionPolicyFailure) {
-        log.warn("getSession", `Session failed policy (${sessionPolicyFailure}) — forcing sign-out`, {
-          reason: sessionPolicyFailure,
-          elapsedMs: now - marker.startedAtMs,
-          idleMs: now - marker.lastActivityAtMs,
-          maxMs: MAX_SESSION_AGE_MS,
-        });
-        void logAccountActivity(sessionPolicyFailure === "idle_timeout" ? "session_idle_timeout" : "session_expired_clientside", {
-          userId: data.session.user.id,
-          details: { reason: sessionPolicyFailure, elapsedMs: now - marker.startedAtMs },
-        });
+        log.warn(
+          "getSession",
+          `Session failed policy (${sessionPolicyFailure}) — forcing sign-out`,
+          {
+            reason: sessionPolicyFailure,
+            elapsedMs: now - marker.startedAtMs,
+            idleMs: now - marker.lastActivityAtMs,
+            maxMs: MAX_SESSION_AGE_MS,
+          }
+        );
+        void logAccountActivity(
+          sessionPolicyFailure === "idle_timeout"
+            ? "session_idle_timeout"
+            : "session_expired_clientside",
+          {
+            userId: data.session.user.id,
+            details: { reason: sessionPolicyFailure, elapsedMs: now - marker.startedAtMs },
+          }
+        );
         await supabase.auth.signOut();
         sessionStorage.removeItem(SESSION_STARTED_AT_KEY);
         return null;

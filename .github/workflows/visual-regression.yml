@@ -60,9 +60,14 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Cache node_modules + npm tarballs
+      # RESTORE-ONLY (no save). This job holds `contents: write` and runs against
+      # the PR head; a read-write cache here could poison an entry that a trusted
+      # (default-branch) run later restores (CodeQL actions/cache-poisoning/direct-cache).
+      # `cache/restore` never writes the cache, closing that cross-trust vector.
+      # Deps are populated by the read-only `Security`/`ci` caches instead.
+      - name: Restore node_modules + npm tarballs (read-only)
         id: cache-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             node_modules

@@ -32,7 +32,10 @@ test.describe("apex → www edge 301", () => {
       // SPA never boots on the apex.
       expect([301, 302], `apex must 301/302; got ${res.status()}`).toContain(res.status());
       const loc = res.headers()["location"] ?? "";
-      expect(loc.startsWith("https://www.techfleet.network"), `bad location: ${loc}`).toBe(true);
+      // Compare the parsed origin, not a startsWith substring (which CodeQL flags
+      // as js/incomplete-url-substring-sanitization and which a crafted host could
+      // dodge). The exact-URL assertion below is the authoritative check.
+      expect(new URL(loc).origin, `bad location: ${loc}`).toBe("https://www.techfleet.network");
       // Path/query MUST be preserved verbatim — the OAuth callback relies
       // on it for `?code=` and `#access_token=…` fragments.
       expect(loc).toBe(`https://www.techfleet.network${path}`);

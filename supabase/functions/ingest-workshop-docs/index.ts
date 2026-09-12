@@ -5,6 +5,7 @@ import { z } from "npm:zod@3.23.8";
 import { createEdgeLogger } from "../_shared/logger.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { stripActiveContent } from "../_shared/html-to-text.ts";
 const log = createEdgeLogger("ingest-workshop-docs");
 
 const BodySchema = z.object({ docs: z.array(z.any()).optional() }).passthrough();
@@ -45,20 +46,14 @@ function slugify(input: string): string {
  * system prompt later.
  */
 function sanitizeMarkdown(md: string): string {
-  return (
-    md
-      .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
-      .replace(/<script\b[^>]*\/?>/gi, "")
-      .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi, "")
-      .replace(/<iframe\b[^>]*\/?>/gi, "")
-      .replace(/javascript\s*:/gi, "")
-      .replace(/on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-      // Strip attempts to fake a new system message
-      .replace(/\<\|im_start\|/gi, "")
-      .replace(/\<\|im_end\|/gi, "")
-      .replace(/\[SYSTEM\]/gi, "[system]")
-      .trim()
-  );
+  // Active HTML (script/iframe/on*=/javascript:) is removed by the shared owner
+  // (fixpoint + tempered match — robust against the bypasses CodeQL flagged);
+  // the prompt-injection-marker stripping below is specific to this ingestion path.
+  return stripActiveContent(md)
+    .replace(/\<\|im_start\|/gi, "")
+    .replace(/\<\|im_end\|/gi, "")
+    .replace(/\[SYSTEM\]/gi, "[system]")
+    .trim();
 }
 
 /**

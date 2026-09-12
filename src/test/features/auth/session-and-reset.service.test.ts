@@ -9,6 +9,7 @@ const authPort = {
 } as any;
 import { supabase } from "@/integrations/supabase/client";
 import { logAccountActivity } from "@/lib/account-activity";
+import { fingerprintUserId } from "@/lib/security";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -264,8 +265,8 @@ describe("authPort session max-age marker", () => {
     sessionStorage.setItem(
       "session_started_at",
       JSON.stringify({
-        version: 1,
-        userId: "different-user",
+        version: 2,
+        uidFp: fingerprintUserId("different-user"),
         startedAtMs: Date.now() - 5 * 60 * 60 * 1000,
       })
     );
@@ -274,7 +275,7 @@ describe("authPort session max-age marker", () => {
     await expect(authPort.getSession()).resolves.toEqual(session);
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
     expect(JSON.parse(sessionStorage.getItem("session_started_at") ?? "{}")).toMatchObject({
-      userId: "current-user",
+      uidFp: fingerprintUserId("current-user"),
     });
   });
 
@@ -290,7 +291,7 @@ describe("authPort session max-age marker", () => {
     await expect(authPort.getSession()).resolves.toEqual(session);
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
     expect(JSON.parse(sessionStorage.getItem("session_started_at") ?? "{}")).toMatchObject({
-      userId: "legacy-user",
+      uidFp: fingerprintUserId("legacy-user"),
     });
   });
 
@@ -303,8 +304,8 @@ describe("authPort session max-age marker", () => {
     sessionStorage.setItem(
       "session_started_at",
       JSON.stringify({
-        version: 1,
-        userId: "expired-user",
+        version: 2,
+        uidFp: fingerprintUserId("expired-user"),
         startedAtMs: Date.now() - 5 * 60 * 60 * 1000,
       })
     );
@@ -323,8 +324,8 @@ describe("authPort session max-age marker", () => {
     sessionStorage.setItem(
       "session_started_at",
       JSON.stringify({
-        version: 1,
-        userId: "idle-user",
+        version: 2,
+        uidFp: fingerprintUserId("idle-user"),
         startedAtMs: Date.now() - 3 * 60 * 60 * 1000,
         lastActivityAtMs: Date.now() - 2 * 60 * 60 * 1000,
       })
@@ -351,8 +352,8 @@ describe("authPort session max-age marker", () => {
     sessionStorage.setItem(
       "session_started_at",
       JSON.stringify({
-        version: 1,
-        userId: "active-user",
+        version: 2,
+        uidFp: fingerprintUserId("active-user"),
         startedAtMs: Date.now() - 3 * 60 * 60 * 1000,
         lastActivityAtMs: Date.now() - 2 * 60 * 60 * 1000,
       })

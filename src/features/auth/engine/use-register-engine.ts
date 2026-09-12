@@ -12,7 +12,10 @@ import { sessionPort } from "@/features/auth/ports/session.port";
 import { RateLimitService } from "@/services/rate-limit.service";
 import { registerSchema, ageInYears, GUARDIAN_MIN_AGE } from "@/lib/validators/auth";
 import { logAccountActivity } from "@/lib/account-activity";
-import { getLoginCaptchaState, refreshLoginCaptcha } from "@/features/auth/ports/captcha-state.port";
+import {
+  getLoginCaptchaState,
+  refreshLoginCaptcha,
+} from "@/features/auth/ports/captcha-state.port";
 import {
   clearAuthLockout,
   formatAuthLockoutMessage,
@@ -21,10 +24,14 @@ import {
   resetAuthLockoutForEmailChange,
 } from "@/features/auth/ports/lockout.port";
 import { telemetryPort } from "@/features/auth/ports/telemetry.port";
-import { applyInvalidAttempt, applyServerRateLimitFailure } from "@/features/auth/engine/failure-policy";
+import {
+  applyInvalidAttempt,
+  applyServerRateLimitFailure,
+} from "@/features/auth/engine/failure-policy";
 import { isAuthThrottleCaptchaError } from "@/lib/auth-throttle-captcha";
 import { validateEmailDomainExists } from "@/lib/email-domain-validation";
 import { getCanonicalAppOrigin } from "@/lib/canonical-origin";
+import { toSafeRedirectPath } from "@/lib/security";
 import { recordPolicyAcknowledgment } from "@/lib/policies";
 import { loadConsent } from "@/lib/consent/manager";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
@@ -32,22 +39,33 @@ import { reportValidationRejection } from "@/lib/observability/report";
 
 export interface RegisterEngine {
   // form
-  firstName: string; setFirstName: (v: string) => void;
-  lastName: string; setLastName: (v: string) => void;
-  email: string; setEmail: (v: string) => void;
-  password: string; setPassword: (v: string) => void;
-  confirmPassword: string; setConfirmPassword: (v: string) => void;
-  dob: string; setDob: (v: string) => void;
-  guardianEmail: string; setGuardianEmail: (v: string) => void;
-  agreedToTerms: boolean; setAgreedToTerms: (v: boolean) => void;
-  electronicCommsConsent: boolean; setElectronicCommsConsent: (v: boolean) => void;
+  firstName: string;
+  setFirstName: (v: string) => void;
+  lastName: string;
+  setLastName: (v: string) => void;
+  email: string;
+  setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (v: string) => void;
+  dob: string;
+  setDob: (v: string) => void;
+  guardianEmail: string;
+  setGuardianEmail: (v: string) => void;
+  agreedToTerms: boolean;
+  setAgreedToTerms: (v: boolean) => void;
+  electronicCommsConsent: boolean;
+  setElectronicCommsConsent: (v: boolean) => void;
   errors: Record<string, string>;
   touched: Record<string, boolean>;
   markTouched: (field: string) => void;
   // captcha / lockout
-  captchaToken: string; setCaptchaToken: (t: string) => void;
+  captchaToken: string;
+  setCaptchaToken: (t: string) => void;
   captchaFailureCount: number;
-  resendCaptchaToken: string; setResendCaptchaToken: (t: string) => void;
+  resendCaptchaToken: string;
+  setResendCaptchaToken: (t: string) => void;
   resendCaptchaFailureCount: number;
   lockoutState: ReturnType<typeof getAuthLockoutState>;
   formatLockoutMessage: (s: number) => string;
@@ -73,7 +91,12 @@ export interface RegisterEngine {
 export function useRegisterEngine(): RegisterEngine {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const redirectParam = searchParams.get("redirect");
+  // Sanitize the untrusted ?redirect= once, at the source, to a safe same-origin
+  // relative path ("" when absent/unsafe). Every downstream use (emailRedirectTo
+  // concatenation, and the post-recovery window.location.assign below) then
+  // operates on a validated path — closing the open-redirect + XSS
+  // (CodeQL js/client-side-unvalidated-url-redirection, js/xss).
+  const redirectParam = toSafeRedirectPath(searchParams.get("redirect"), "");
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -101,8 +124,14 @@ export function useRegisterEngine(): RegisterEngine {
   const [resendStatus, setResendStatus] = useState<"idle" | "success" | "error">("idle");
   const [resendMessage, setResendMessage] = useState("");
 
-  const markTouched = useCallback((field: string) => setTouched((p) => ({ ...p, [field]: true })), []);
-  const clearExistingAccount = useCallback(() => { setExistingAccountEmail(null); setEmail(""); }, []);
+  const markTouched = useCallback(
+    (field: string) => setTouched((p) => ({ ...p, [field]: true })),
+    []
+  );
+  const clearExistingAccount = useCallback(() => {
+    setExistingAccountEmail(null);
+    setEmail("");
+  }, []);
 
   const dobParts = (() => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
@@ -114,18 +143,26 @@ export function useRegisterEngine(): RegisterEngine {
   useEffect(() => {
     if (Object.keys(touched).length === 0) return;
     const payload = {
-      firstName, lastName, email, password, confirmPassword,
+      firstName,
+      lastName,
+      email,
+      password,
+      confirmPassword,
       birthYear: dobParts?.birthYear ?? 1900,
       birthMonth: dobParts?.birthMonth ?? 1,
       birthDay: dobParts?.birthDay ?? 1,
-      countryCode, guardianEmail, electronicCommsConsent, agreedToTerms,
+      countryCode,
+      guardianEmail,
+      electronicCommsConsent,
+      agreedToTerms,
     };
     const result = registerSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
         const field = err.path[0] as string;
-        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
+        const key =
+          field === "birthYear" || field === "birthMonth" || field === "birthDay" ? "dob" : field;
         if (!fieldErrors[key]) fieldErrors[key] = err.message;
       });
       const touchedErrors: Record<string, string> = {};
@@ -134,7 +171,20 @@ export function useRegisterEngine(): RegisterEngine {
     } else {
       setErrors({});
     }
-  }, [firstName, lastName, email, password, confirmPassword, dob, agreedToTerms, electronicCommsConsent, guardianEmail, touched, countryCode, dobParts]);
+  }, [
+    firstName,
+    lastName,
+    email,
+    password,
+    confirmPassword,
+    dob,
+    agreedToTerms,
+    electronicCommsConsent,
+    guardianEmail,
+    touched,
+    countryCode,
+    dobParts,
+  ]);
 
   useEffect(() => {
     maybeAutoHealAuthLockout();
@@ -157,156 +207,231 @@ export function useRegisterEngine(): RegisterEngine {
     return () => window.clearInterval(t);
   }, [lockoutState.locked]);
 
-  const handleSubmit = useCallback(async (e: FormEvent) => {
-    e.preventDefault();
-    const currentLockout = getAuthLockoutState();
-    setLockoutState(currentLockout);
-    if (currentLockout.locked) { setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds)); return; }
-    setTouched({
-      firstName: true, lastName: true, email: true,
-      password: true, confirmPassword: true, dob: true,
-      agreedToTerms: true, electronicCommsConsent: true, guardianEmail: true,
-    });
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      const currentLockout = getAuthLockoutState();
+      setLockoutState(currentLockout);
+      if (currentLockout.locked) {
+        setAuthError(formatAuthLockoutMessage(currentLockout.remainingSeconds));
+        return;
+      }
+      setTouched({
+        firstName: true,
+        lastName: true,
+        email: true,
+        password: true,
+        confirmPassword: true,
+        dob: true,
+        agreedToTerms: true,
+        electronicCommsConsent: true,
+        guardianEmail: true,
+      });
 
-    const payload = {
-      firstName, lastName, email, password, confirmPassword,
-      birthYear: dobParts?.birthYear ?? 1900,
-      birthMonth: dobParts?.birthMonth ?? 1,
-      birthDay: dobParts?.birthDay ?? 1,
-      countryCode, guardianEmail, electronicCommsConsent, agreedToTerms,
-    };
-    const result = registerSchema.safeParse(payload);
-    if (!result.success) {
-      reportValidationRejection("registerSchema", result.error.issues, "RegisterScreen.handleSubmit");
-      const fieldErrors: Record<string, string> = {};
-      result.error.issues.forEach((err) => {
-        const field = err.path[0] as string;
-        const key = (field === "birthYear" || field === "birthMonth" || field === "birthDay") ? "dob" : field;
-        if (!fieldErrors[key]) fieldErrors[key] = err.message;
-      });
-      setErrors(fieldErrors);
-      void logAccountActivity("signup_validation_failed", {
-        email: email || null,
-        details: { failedFields: Object.keys(fieldErrors).join(",") },
-      });
-      showFormErrors(fieldErrors, {
-        firstName: "First name", lastName: "Last name", email: "Email",
-        password: "Password", confirmPassword: "Confirm password",
-        dob: "Date of birth", agreedToTerms: "Terms agreement",
-        electronicCommsConsent: "Electronic communications consent",
-        guardianEmail: "Parent or guardian email",
-      });
-      scrollToFirstError();
-      return;
-    }
-
-    if (countryCode) {
-      try {
-        const { data: sanctionsResult } = await sessionPort.invokeEdge<{ decision?: string }>("screen-sanctions", {
-          body: { email: result.data.email, country_code: countryCode },
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        password,
+        confirmPassword,
+        birthYear: dobParts?.birthYear ?? 1900,
+        birthMonth: dobParts?.birthMonth ?? 1,
+        birthDay: dobParts?.birthDay ?? 1,
+        countryCode,
+        guardianEmail,
+        electronicCommsConsent,
+        agreedToTerms,
+      };
+      const result = registerSchema.safeParse(payload);
+      if (!result.success) {
+        reportValidationRejection(
+          "registerSchema",
+          result.error.issues,
+          "RegisterScreen.handleSubmit"
+        );
+        const fieldErrors: Record<string, string> = {};
+        result.error.issues.forEach((err) => {
+          const field = err.path[0] as string;
+          const key =
+            field === "birthYear" || field === "birthMonth" || field === "birthDay" ? "dob" : field;
+          if (!fieldErrors[key]) fieldErrors[key] = err.message;
         });
-        if (sanctionsResult?.decision === "deny") {
-          setAuthError("We're sorry — Tech Fleet cannot create accounts for members in this country due to U.S. export-control and sanctions laws.");
-          return;
-        }
-      } catch { /* fail-open */ }
-    }
-
-    const domainCheck = await validateEmailDomainExists(result.data.email);
-    if (!domainCheck.valid) {
-      const fieldErrors = { email: domainCheck.message ?? "Use an email address with a real domain." };
-      setErrors(fieldErrors);
-      showFormErrors(fieldErrors, { email: "Email" });
-      scrollToFirstError();
-      return;
-    }
-
-    if (!captchaToken.trim()) {
-      telemetryPort.captcha("auth_captcha_failed", { surface: "register", failedAttempts: captchaState.failedAttempts + 1 });
-      setCaptchaState(refreshLoginCaptcha());
-      setCaptchaToken("");
-      setCaptchaFailureCount((c) => c + 1);
-      const nextLockout = applyInvalidAttempt();
-      setLockoutState(nextLockout);
-      setAuthError(nextLockout.locked ? formatAuthLockoutMessage(nextLockout.remainingSeconds) : "Complete the human verification before trying again.");
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-    setAuthError("");
-    telemetryPort.record("auth_engine.sign_up_started", { email: result.data.email });
-
-
-    try {
-      const rateCheck = await RateLimitService.peek(result.data.email, "signup_attempt");
-      if (!rateCheck.allowed) {
-        const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
-        void logAccountActivity("signup_rate_limited", { email: result.data.email, details: { retryAfterSec: rateCheck.retry_after } });
-        setAuthError(`Too many signup attempts for this email. Try again in ${minutes} minute${minutes > 1 ? "s" : ""}, or sign in if you already have an account.`);
-        setLoading(false);
+        setErrors(fieldErrors);
+        void logAccountActivity("signup_validation_failed", {
+          email: email || null,
+          details: { failedFields: Object.keys(fieldErrors).join(",") },
+        });
+        showFormErrors(fieldErrors, {
+          firstName: "First name",
+          lastName: "Last name",
+          email: "Email",
+          password: "Password",
+          confirmPassword: "Confirm password",
+          dob: "Date of birth",
+          agreedToTerms: "Terms agreement",
+          electronicCommsConsent: "Electronic communications consent",
+          guardianEmail: "Parent or guardian email",
+        });
+        scrollToFirstError();
         return;
       }
 
-      await sessionPort.signUp(
-        result.data.email,
-        result.data.password,
-        result.data.firstName,
-        result.data.lastName,
-        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
-        captchaToken,
-        result.data.birthYear,
-      );
-      await recordPolicyAcknowledgment("registration", { electronicCommsConsent: true });
-      clearAuthLockout();
-      telemetryPort.record("auth_engine.sign_up_succeeded", { email: result.data.email });
-      setSubmitted(true);
-    } catch (err) {
-      const e = err as { code?: string; message?: string };
-      telemetryPort.record("auth_engine.sign_up_failed", { email: result.data.email, code: e?.code ?? "unknown" });
-      if (isAuthThrottleCaptchaError(err)) {
-        telemetryPort.captcha("auth_captcha_fetch_blocked", { surface: "register", reason: "client_auth_throttle_429" });
+      if (countryCode) {
+        try {
+          const { data: sanctionsResult } = await sessionPort.invokeEdge<{ decision?: string }>(
+            "screen-sanctions",
+            {
+              body: { email: result.data.email, country_code: countryCode },
+            }
+          );
+          if (sanctionsResult?.decision === "deny") {
+            setAuthError(
+              "We're sorry — Tech Fleet cannot create accounts for members in this country due to U.S. export-control and sanctions laws."
+            );
+            return;
+          }
+        } catch {
+          /* fail-open */
+        }
+      }
+
+      const domainCheck = await validateEmailDomainExists(result.data.email);
+      if (!domainCheck.valid) {
+        const fieldErrors = {
+          email: domainCheck.message ?? "Use an email address with a real domain.",
+        };
+        setErrors(fieldErrors);
+        showFormErrors(fieldErrors, { email: "Email" });
+        scrollToFirstError();
+        return;
+      }
+
+      if (!captchaToken.trim()) {
+        telemetryPort.captcha("auth_captcha_failed", {
+          surface: "register",
+          failedAttempts: captchaState.failedAttempts + 1,
+        });
         setCaptchaState(refreshLoginCaptcha());
         setCaptchaToken("");
         setCaptchaFailureCount((c) => c + 1);
-        setAuthError(e.message ?? "Sign-up is briefly throttled. Try again shortly.");
-        setLoading(false);
+        const nextLockout = applyInvalidAttempt();
+        setLockoutState(nextLockout);
+        setAuthError(
+          nextLockout.locked
+            ? formatAuthLockoutMessage(nextLockout.remainingSeconds)
+            : "Complete the human verification before trying again."
+        );
         return;
       }
-      if (e?.code === "ACCOUNT_EXISTS") {
-        setAuthError("");
-        setExistingAccountEmail(result.data.email);
-        setLoading(false);
-        return;
-      }
-      if (e?.code === "EMAIL_UNCONFIRMED") {
-        // Indeterminate-resolve probe found the row exists but is awaiting
-        // verification — same "Check your email" success surface as a normal
-        // signup. Don't punish the user for a server hiccup.
+
+      setErrors({});
+      setLoading(true);
+      setAuthError("");
+      telemetryPort.record("auth_engine.sign_up_started", { email: result.data.email });
+
+      try {
+        const rateCheck = await RateLimitService.peek(result.data.email, "signup_attempt");
+        if (!rateCheck.allowed) {
+          const minutes = Math.max(1, Math.ceil(rateCheck.retry_after / 60));
+          void logAccountActivity("signup_rate_limited", {
+            email: result.data.email,
+            details: { retryAfterSec: rateCheck.retry_after },
+          });
+          setAuthError(
+            `Too many signup attempts for this email. Try again in ${minutes} minute${minutes > 1 ? "s" : ""}, or sign in if you already have an account.`
+          );
+          setLoading(false);
+          return;
+        }
+
+        await sessionPort.signUp(
+          result.data.email,
+          result.data.password,
+          result.data.firstName,
+          result.data.lastName,
+          getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
+          captchaToken,
+          result.data.birthYear
+        );
+        await recordPolicyAcknowledgment("registration", { electronicCommsConsent: true });
         clearAuthLockout();
-        telemetryPort.record("auth_engine.sign_up_indeterminate_resolved", { email: result.data.email, outcome: "email_unconfirmed" });
+        telemetryPort.record("auth_engine.sign_up_succeeded", { email: result.data.email });
         setSubmitted(true);
+      } catch (err) {
+        const e = err as { code?: string; message?: string };
+        telemetryPort.record("auth_engine.sign_up_failed", {
+          email: result.data.email,
+          code: e?.code ?? "unknown",
+        });
+        if (isAuthThrottleCaptchaError(err)) {
+          telemetryPort.captcha("auth_captcha_fetch_blocked", {
+            surface: "register",
+            reason: "client_auth_throttle_429",
+          });
+          setCaptchaState(refreshLoginCaptcha());
+          setCaptchaToken("");
+          setCaptchaFailureCount((c) => c + 1);
+          setAuthError(e.message ?? "Sign-up is briefly throttled. Try again shortly.");
+          setLoading(false);
+          return;
+        }
+        if (e?.code === "ACCOUNT_EXISTS") {
+          setAuthError("");
+          setExistingAccountEmail(result.data.email);
+          setLoading(false);
+          return;
+        }
+        if (e?.code === "EMAIL_UNCONFIRMED") {
+          // Indeterminate-resolve probe found the row exists but is awaiting
+          // verification — same "Check your email" success surface as a normal
+          // signup. Don't punish the user for a server hiccup.
+          clearAuthLockout();
+          telemetryPort.record("auth_engine.sign_up_indeterminate_resolved", {
+            email: result.data.email,
+            outcome: "email_unconfirmed",
+          });
+          setSubmitted(true);
+          setLoading(false);
+          return;
+        }
+        if (e?.code === "ACCOUNT_RECOVERED_SIGNED_IN") {
+          // Probe signed the user in — the AuthContext listener will pick the
+          // session up. Redirect to their intended destination immediately.
+          clearAuthLockout();
+          telemetryPort.record("auth_engine.sign_up_indeterminate_resolved", {
+            email: result.data.email,
+            outcome: "signed_in",
+          });
+          window.location.assign(redirectParam || "/dashboard");
+          return;
+        }
+        applyServerRateLimitFailure(result.data.email, "signup_attempt");
+        setAuthError(e.message ?? "We couldn't create your account. Try again in a moment.");
+        const nextLockout = applyInvalidAttempt();
+        setLockoutState(nextLockout);
+        lastFailedEmailRef.current = result.data.email.trim().toLowerCase();
+        if (nextLockout.locked)
+          setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
+      } finally {
         setLoading(false);
-        return;
       }
-      if (e?.code === "ACCOUNT_RECOVERED_SIGNED_IN") {
-        // Probe signed the user in — the AuthContext listener will pick the
-        // session up. Redirect to their intended destination immediately.
-        clearAuthLockout();
-        telemetryPort.record("auth_engine.sign_up_indeterminate_resolved", { email: result.data.email, outcome: "signed_in" });
-        window.location.assign(redirectParam || "/dashboard");
-        return;
-      }
-      applyServerRateLimitFailure(result.data.email, "signup_attempt");
-      setAuthError(e.message ?? "We couldn't create your account. Try again in a moment.");
-      const nextLockout = applyInvalidAttempt();
-      setLockoutState(nextLockout);
-      lastFailedEmailRef.current = result.data.email.trim().toLowerCase();
-      if (nextLockout.locked) setAuthError(formatAuthLockoutMessage(nextLockout.remainingSeconds));
-    } finally {
-      setLoading(false);
-    }
-  }, [agreedToTerms, captchaState.failedAttempts, captchaToken, confirmPassword, countryCode, dobParts, electronicCommsConsent, email, firstName, guardianEmail, lastName, password, redirectParam]);
+    },
+    [
+      agreedToTerms,
+      captchaState.failedAttempts,
+      captchaToken,
+      confirmPassword,
+      countryCode,
+      dobParts,
+      electronicCommsConsent,
+      email,
+      firstName,
+      guardianEmail,
+      lastName,
+      password,
+      redirectParam,
+    ]
+  );
 
   const handleResendConfirmation = useCallback(async () => {
     setResending(true);
@@ -314,27 +439,36 @@ export function useRegisterEngine(): RegisterEngine {
     setResendMessage("");
     try {
       if (!resendCaptchaToken.trim()) {
-        telemetryPort.captcha("auth_captcha_failed", { surface: "signup_confirmation_resend", failedAttempts: captchaState.failedAttempts + 1 });
+        telemetryPort.captcha("auth_captcha_failed", {
+          surface: "signup_confirmation_resend",
+          failedAttempts: captchaState.failedAttempts + 1,
+        });
         setResendCaptchaToken("");
         setResendCaptchaFailureCount((c) => c + 1);
         setResendStatus("error");
-        setResendMessage("Complete the human verification before requesting another verification email.");
+        setResendMessage(
+          "Complete the human verification before requesting another verification email."
+        );
         return;
       }
       const rateCheck = await RateLimitService.check(email, "signup_resend");
       if (!rateCheck.allowed) {
         const minutes = Math.ceil(rateCheck.retry_after / 60);
         setResendStatus("error");
-        setResendMessage(`Please wait ${minutes} minute${minutes > 1 ? "s" : ""} before requesting another verification email.`);
+        setResendMessage(
+          `Please wait ${minutes} minute${minutes > 1 ? "s" : ""} before requesting another verification email.`
+        );
         return;
       }
       await sessionPort.resendSignupConfirmation(
         email,
         getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
-        resendCaptchaToken,
+        resendCaptchaToken
       );
       setResendStatus("success");
-      setResendMessage("If this email is still waiting for verification, a fresh link has been sent. Check your inbox and spam folder.");
+      setResendMessage(
+        "If this email is still waiting for verification, a fresh link has been sent. Check your inbox and spam folder."
+      );
     } catch (err) {
       const e = err as { message?: string; status?: number; code?: string };
       // AUTH-ARCH-CUTOVER-011: never swallow — record the delivery-unverified
@@ -345,25 +479,57 @@ export function useRegisterEngine(): RegisterEngine {
         status: e?.status ?? null,
       });
       setResendStatus("error");
-      setResendMessage(e?.message ?? "We could not resend the verification email right now. Please try again in a minute.");
+      setResendMessage(
+        e?.message ??
+          "We could not resend the verification email right now. Please try again in a minute."
+      );
     } finally {
       setResending(false);
     }
   }, [captchaState.failedAttempts, email, redirectParam, resendCaptchaToken]);
 
   return {
-    firstName, setFirstName, lastName, setLastName,
-    email, setEmail, password, setPassword, confirmPassword, setConfirmPassword,
-    dob, setDob, guardianEmail, setGuardianEmail,
-    agreedToTerms, setAgreedToTerms, electronicCommsConsent, setElectronicCommsConsent,
-    errors, touched, markTouched,
-    captchaToken, setCaptchaToken, captchaFailureCount,
-    resendCaptchaToken, setResendCaptchaToken, resendCaptchaFailureCount,
-    lockoutState, formatLockoutMessage: formatAuthLockoutMessage,
-    loading, authError, submitted,
-    existingAccountEmail, clearExistingAccount,
-    resending, resendStatus, resendMessage, handleResendConfirmation,
-    dobParts, countryCode, redirectParam,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    dob,
+    setDob,
+    guardianEmail,
+    setGuardianEmail,
+    agreedToTerms,
+    setAgreedToTerms,
+    electronicCommsConsent,
+    setElectronicCommsConsent,
+    errors,
+    touched,
+    markTouched,
+    captchaToken,
+    setCaptchaToken,
+    captchaFailureCount,
+    resendCaptchaToken,
+    setResendCaptchaToken,
+    resendCaptchaFailureCount,
+    lockoutState,
+    formatLockoutMessage: formatAuthLockoutMessage,
+    loading,
+    authError,
+    submitted,
+    existingAccountEmail,
+    clearExistingAccount,
+    resending,
+    resendStatus,
+    resendMessage,
+    handleResendConfirmation,
+    dobParts,
+    countryCode,
+    redirectParam,
     handleSubmit,
   };
 }

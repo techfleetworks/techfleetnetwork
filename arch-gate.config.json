@@ -9,20 +9,36 @@
       "name": "UI must not access the database directly",
       "include": ["src/components/**", "src/pages/**", "src/app/**", "src/routes/**"],
       "exclude": ["src/components/ui/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
-      "forbid": ["supabase\\.(from|rpc|storage|functions)\\b", "from ['\"]@/integrations/supabase/client['\"]"],
+      "forbid": [
+        "supabase\\.(from|rpc|storage|functions)\\b",
+        "from ['\"]@/integrations/supabase/client['\"]"
+      ],
       "message": "Data access inside a component/page. Route it through the hook/service that OWNS this data, so there is one read path and schema/RLS changes touch one file, not dozens."
     },
     {
       "name": "Services must not import UI or touch web globals",
       "include": ["src/services/**", "src/domain/**"],
       "exclude": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
-      "forbid": ["from ['\"]react['\"]", "from ['\"]react-router", "\\bwindow\\.", "\\bdocument\\.", "\\blocalStorage\\b", "\\bsessionStorage\\b"],
+      "forbid": [
+        "from ['\"]react['\"]",
+        "from ['\"]react-router",
+        "\\bwindow\\.",
+        "\\bdocument\\.",
+        "\\blocalStorage\\b",
+        "\\bsessionStorage\\b"
+      ],
       "message": "Service/domain code leaks a web/UI concern and can no longer be tested or reused without a browser. Keep React/DOM at the boundary; pass plain data into the service. (src/lib holds legitimate web adapters and is not policed by this rule.)"
     },
     {
       "name": "Exactly one Supabase client in the frontend",
       "include": ["src/**/*.{ts,tsx}"],
-      "exclude": ["src/integrations/supabase/client.ts", "src/integrations/supabase/types.ts", "src/lib/supabase/**", "**/*.test.{ts,tsx}", "src/test/**"],
+      "exclude": [
+        "src/integrations/supabase/client.ts",
+        "src/integrations/supabase/types.ts",
+        "src/lib/supabase/**",
+        "**/*.test.{ts,tsx}",
+        "src/test/**"
+      ],
       "forbid": ["createClient\\s*(<[^>]*>)?\\s*\\("],
       "message": "A second Supabase client. There must be exactly one configured client (auth/session/storage config lives with it). Import the canonical client; never construct another."
     },
@@ -39,6 +55,13 @@
       "exclude": ["supabase/functions/_shared/**"],
       "forbid": ["Access-Control-Allow-Origin", "new Response\\(\\s*JSON\\.stringify"],
       "message": "Inline CORS/response shaping duplicated per function drifts (missing preflight headers silently fail requests). Use the shared cors/json helpers in supabase/functions/_shared."
+    },
+    {
+      "name": "Edge functions must not hand-roll HTML stripping/sanitization",
+      "include": ["supabase/functions/**/*.ts"],
+      "exclude": ["supabase/functions/_shared/**", "**/*.test.ts"],
+      "forbid": ["<\\[\\^>\\]"],
+      "message": "A hand-rolled tag-stripping regex (`<[^>]*>` / `<[^>]+>`). Single-pass strippers are bypassable by nested reconstruction and mis-handle entities (CodeQL js/incomplete-multi-character-sanitization, js/bad-tag-filter, js/double-escaping). Use the shared owner supabase/functions/_shared/html-to-text.ts (htmlToPlainText / stripActiveContent) — fixpoint + tempered match + `&amp;`-last decode."
     }
   ]
 }

@@ -5,7 +5,7 @@ import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { requireAdminRequest } from "../_shared/request-auth.ts";
-import { handleCors, jsonResponse, parseJsonBody } from "../_shared/http.ts";
+import { handleCors, jsonResponse, parseJsonBody, errorResponse } from "../_shared/http.ts";
 import { findUserByEmail, createUser, FreescoutError } from "../_shared/freescout.ts";
 
 const Body = z.object({
@@ -117,7 +117,8 @@ Deno.serve(
         attempts: 1,
         last_error: msg,
       });
-      return jsonResponse({ error: msg }, 502);
+      // Keep the real error in the DB log above; never send it to the client.
+      return errorResponse(e, "Support provisioning failed", 502);
     }
   })
 );

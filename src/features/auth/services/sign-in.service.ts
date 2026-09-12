@@ -17,12 +17,15 @@ import { logAccountActivity } from "@/lib/account-activity";
 import { emailInputSchema, loginPasswordSchema } from "@/lib/validators/auth";
 import { createLogger } from "@/services/logger.service";
 import { supabase } from "@/integrations/supabase/client";
+import { fingerprintUserId } from "@/lib/security";
 
 const log = createLogger("sign-in.service");
 const blockedAuthInputError = new Error("Enter a valid email address.");
 
 const SESSION_STARTED_AT_KEY = "session_started_at";
-const SESSION_MARKER_VERSION = 1;
+// v2: store a one-way fingerprint of the user id, never the raw id (must match
+// session.service.ts's marker format — CodeQL js/clear-text-storage-of-sensitive-data).
+const SESSION_MARKER_VERSION = 2;
 
 interface AuthSessionShape {
   user: { id: string };
@@ -32,22 +35,37 @@ function writeSessionMarker(session: AuthSessionShape, startedAtMs = Date.now())
   try {
     sessionStorage.setItem(
       SESSION_STARTED_AT_KEY,
-      JSON.stringify({ version: SESSION_MARKER_VERSION, userId: session.user.id, startedAtMs }),
+      JSON.stringify({
+        version: SESSION_MARKER_VERSION,
+        uidFp: fingerprintUserId(session.user.id),
+        startedAtMs,
+      })
     );
   } catch {
     /* storage blocked — idle policy will reset on next getSession */
   }
 }
 
-async function readFunctionError(error: unknown): Promise<{ status?: number; message: string; code?: string }> {
-  const fallback = error instanceof Error ? error.message : String((error as { message?: string } | null | undefined)?.message ?? "Unknown error");
+async function readFunctionError(
+  error: unknown
+): Promise<{ status?: number; message: string; code?: string }> {
+  const fallback =
+    error instanceof Error
+      ? error.message
+      : String((error as { message?: string } | null | undefined)?.message ?? "Unknown error");
   const directStatus = (error as { status?: unknown } | null | undefined)?.status;
   const directCode = (error as { code?: unknown } | null | undefined)?.code;
-  const response = (error as { context?: { response?: Response } } | null | undefined)?.context?.response;
+  const response = (error as { context?: { response?: Response } } | null | undefined)?.context
+    ?.response;
   let message = fallback;
   let code: string | undefined;
   try {
-    const body = response ? await response.clone().json().catch(() => null) as { error?: string; message?: string; code?: string } | null : null;
+    const body = response
+      ? ((await response
+          .clone()
+          .json()
+          .catch(() => null)) as { error?: string; message?: string; code?: string } | null)
+      : null;
     message = body?.error || body?.message || fallback;
     code = body?.code;
   } catch {
@@ -88,10 +106,16 @@ async function logAdminLoginIfElevated(userId?: string | null) {
 
 export interface SignInResult {
   session: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>;
-  user: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>["user"];
+  user: NonNullable<
+    Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]
+  >["user"];
 }
 
-export async function signInWithPasswordService(email: string, password: string, captchaToken?: string): Promise<SignInResult> {
+export async function signInWithPasswordService(
+  email: string,
+  password: string,
+  captchaToken?: string
+): Promise<SignInResult> {
   const parsedEmail = emailInputSchema.safeParse(email);
   if (!parsedEmail.success || !loginPasswordSchema.safeParse(password).success) {
     throw blockedAuthInputError;
@@ -112,37 +136,68 @@ export async function signInWithPasswordService(email: string, password: string,
   if (error) {
     if (error instanceof ClientSessionWriteError) throw error;
     const fnError = await readFunctionError(error);
-    log.error("signInWithPassword", `Authentication failed for ${safeEmail}: ${fnError.message}`, { email: safeEmail, errorCode: fnError.status ?? fnError.code }, error);
-    void logAccountActivity("login_failed", { email: safeEmail, errorMessage: fnError.message, errorCode: fnError.status ?? fnError.code });
-    if (fnError.status === 429 || fnError.code === "rate_limited" || fnError.message.toLowerCase().includes("too many rapid auth attempts")) {
+    log.error(
+      "signInWithPassword",
+      `Authentication failed for ${safeEmail}: ${fnError.message}`,
+      { email: safeEmail, errorCode: fnError.status ?? fnError.code },
+      error
+    );
+    void logAccountActivity("login_failed", {
+      email: safeEmail,
+      errorMessage: fnError.message,
+      errorCode: fnError.status ?? fnError.code,
+    });
+    if (
+      fnError.status === 429 ||
+      fnError.code === "rate_limited" ||
+      fnError.message.toLowerCase().includes("too many rapid auth attempts")
+    ) {
       throw createAuthThrottleCaptchaError();
     }
     if (typeof fnError.status === "number" && fnError.status >= 500) {
-      const serviceError = new Error("The sign-in service hit a snag. Please try again in a moment.") as Error & { status?: number; code?: string };
+      const serviceError = new Error(
+        "The sign-in service hit a snag. Please try again in a moment."
+      ) as Error & { status?: number; code?: string };
       serviceError.status = fnError.status;
       serviceError.code = "service_unavailable";
       throw serviceError;
     }
-    if (fnError.code === "CAPTCHA_REQUIRED" || fnError.message.toLowerCase().includes("human verification")) {
-      const captchaError = new Error("Complete the human verification below before signing in.") as Error & { status?: number; code?: string };
+    if (
+      fnError.code === "CAPTCHA_REQUIRED" ||
+      fnError.message.toLowerCase().includes("human verification")
+    ) {
+      const captchaError = new Error(
+        "Complete the human verification below before signing in."
+      ) as Error & { status?: number; code?: string };
       captchaError.status = fnError.status;
       captchaError.code = "captcha_required";
       throw captchaError;
     }
-    if (fnError.code?.toLowerCase() === "captcha_failed" || fnError.message.toLowerCase().includes("captcha")) {
-      const captchaError = new Error("Complete the human verification below before signing in.") as Error & { status?: number; code?: string };
+    if (
+      fnError.code?.toLowerCase() === "captcha_failed" ||
+      fnError.message.toLowerCase().includes("captcha")
+    ) {
+      const captchaError = new Error(
+        "Complete the human verification below before signing in."
+      ) as Error & { status?: number; code?: string };
       captchaError.status = fnError.status;
       captchaError.code = "captcha_failed";
       throw captchaError;
     }
-    const credentialError = new Error("Invalid email or password. Please try again.") as Error & { status?: number; code?: string };
+    const credentialError = new Error("Invalid email or password. Please try again.") as Error & {
+      status?: number;
+      code?: string;
+    };
     credentialError.status = fnError.status ?? 401;
     credentialError.code = "invalid_credentials";
     throw credentialError;
   }
 
   if (!data?.session?.access_token) {
-    throw new ClientSessionWriteError("set_session_rejected", "Sign-in didn't complete — please try again.");
+    throw new ClientSessionWriteError(
+      "set_session_rejected",
+      "Sign-in didn't complete — please try again."
+    );
   }
 
   // Post-success getUser is best-effort; the SDK already validated the
@@ -154,14 +209,26 @@ export async function signInWithPasswordService(email: string, password: string,
       ({ data: userCheck, error: userErr } = await supabase.auth.getUser());
     }
     if (userErr || !userCheck?.user) {
-      log.warn("signInWithPassword", "Post-sign-in getUser() did not confirm a user; continuing (session was set successfully).", { email: safeEmail }, userErr ?? undefined);
+      log.warn(
+        "signInWithPassword",
+        "Post-sign-in getUser() did not confirm a user; continuing (session was set successfully).",
+        { email: safeEmail },
+        userErr ?? undefined
+      );
     }
   } catch (validationErr) {
-    log.warn("signInWithPassword", "Post-sign-in validation threw; continuing without forcing sign-out.", { email: safeEmail }, validationErr);
+    log.warn(
+      "signInWithPassword",
+      "Post-sign-in validation threw; continuing without forcing sign-out.",
+      { email: safeEmail },
+      validationErr
+    );
   }
 
   writeSessionMarker(data.session);
-  log.info("signInWithPassword", `User ${safeEmail} authenticated successfully`, { userId: data.user?.id });
+  log.info("signInWithPassword", `User ${safeEmail} authenticated successfully`, {
+    userId: data.user?.id,
+  });
   void logAccountActivity("login_succeeded", { email: safeEmail, userId: data.user?.id });
   void logAdminLoginIfElevated(data.user?.id);
   return { session: data.session, user: data.user };

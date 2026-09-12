@@ -1,3 +1,5 @@
+import { stripTagsFixpoint } from "@/lib/security";
+
 /**
  * Safely strip HTML tags and return plain text.
  * Uses a shared DOMParser to avoid creating throwaway DOM elements.
@@ -7,14 +9,11 @@ const parser = typeof DOMParser !== "undefined" ? new DOMParser() : null;
 export function stripHtml(html: string): string {
   if (!html) return "";
   const normalized = normalizeRichTextHtml(html);
-  // No-DOM fallback (non-browser SSR): drop script/style bodies first, then
-  // remaining tags. The DOM path below is preferred and used in browsers/tests.
+  // No-DOM fallback (non-browser SSR): the shared fixpoint stripper (robust vs
+  // nested reconstruction). The DOM path below is preferred and used in
+  // browsers/tests. Output is plain text, never used as an HTML sink.
   if (!parser) {
-    // codeql[js/incomplete-multi-character-sanitization] - SSR fallback only;
-    // result is plain text (textContent), never used as an HTML sink.
-    return normalized
-      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "")
-      .replace(/<[^>]*>/g, "");
+    return stripTagsFixpoint(normalized);
   }
   const doc = parser.parseFromString(normalized, "text/html");
   return doc.body.textContent || "";
