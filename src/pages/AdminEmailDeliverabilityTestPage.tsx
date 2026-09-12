@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import { PageTitle } from "@/components/ui/typography";
 import { CheckCircle2, Loader2, AlertTriangle, Send } from "lucide-react";
