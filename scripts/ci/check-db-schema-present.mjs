@@ -1297,27 +1297,59 @@ async function fetchProd(categories) {
   return all;
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Exponential backoff with jitter: ~0.5s, 1s, 2s (+ up to 250ms). Bounded.
+const backoffMs = (attempt) =>
+  Math.min(4000, 500 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 250);
+
 // One Management-API POST returning a clean array of rows, or fail closed. Split out so fetchProd can
-// page. NEVER process.exit() here (see ADR-0035 libuv note above).
+// page. RETRIES transient failures (a network throw, or a 429/5xx) with backoff before failing closed:
+// this gate is BLOCKING on every migration PR, so a single transient blip must not paint a false red
+// (the flaky-gate failure mode). A non-2xx that isn't 429/5xx (e.g. 401 bad token, 400 bad SQL) is a
+// real error and fails closed immediately — no point retrying. Network errors surface `e.cause` so a
+// genuine connectivity problem is diagnosable, not just "fetch failed". NEVER process.exit() here
+// (see ADR-0035 libuv note above).
 async function postProdQuery(ref, token, query) {
-  let res;
-  try {
-    res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-  } catch (e) {
-    fail(`Management API request failed: ${e.message}. Failing closed.`);
+  const url = `https://api.supabase.com/v1/projects/${ref}/database/query`;
+  const MAX = 4;
+  for (let attempt = 1; ; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+    } catch (e) {
+      // Network-level failure (DNS / reset / timeout) — transient; retry, then fail closed with cause.
+      const cause = e?.cause?.code || e?.cause?.message || e?.message || "unknown";
+      if (attempt < MAX) {
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+      fail(`Management API request failed after ${MAX} attempts (${cause}). Failing closed.`);
+    }
+    if (res.status === 429 || res.status >= 500) {
+      const body = (await res.text().catch(() => "")).slice(0, 200);
+      if (attempt < MAX) {
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+      fail(
+        `Management API returned HTTP ${res.status}${body ? ` — ${body}` : ""} after ${MAX} attempts. Failing closed.`
+      );
+    }
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).slice(0, 200);
+      fail(
+        `Management API returned HTTP ${res.status}${body ? ` — ${body}` : ""}. Failing closed.`
+      );
+    }
+    const json = await res.json().catch(() => null);
+    if (!Array.isArray(json))
+      fail("Management API response was not the expected array of rows. Failing closed.");
+    return json;
   }
-  if (!res.ok) {
-    const body = (await res.text().catch(() => "")).slice(0, 200);
-    fail(`Management API returned HTTP ${res.status}${body ? ` — ${body}` : ""}. Failing closed.`);
-  }
-  const json = await res.json().catch(() => null);
-  if (!Array.isArray(json))
-    fail("Management API response was not the expected array of rows. Failing closed.");
-  return json;
 }
 
 main().catch((e) => {
