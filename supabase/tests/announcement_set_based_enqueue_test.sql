@@ -29,14 +29,16 @@ INSERT INTO auth.users (id, email) VALUES
 -- pre-creates a profiles row (user_id is the PK). Upsert onto it (matches the
 -- sibling scope_aware_unsubscribe_test.sql pattern) instead of a plain INSERT,
 -- which would violate profiles_pkey and abort the whole file.
-INSERT INTO public.profiles (user_id, email, notify_opportunities) VALUES
-  ('00000000-0000-4000-8000-00000000a001', 'pgtap-ann-a@example.com', true),
-  ('00000000-0000-4000-8000-00000000a002', 'PGTAP-ANN-B@example.com',  true),  -- mixed case → normalized
-  ('00000000-0000-4000-8000-00000000a003', 'pgtap-ann-c@example.com', true),   -- pre-seeded 'expired' below
-  ('00000000-0000-4000-8000-00000000a004', 'pgtap-ann-optout@example.com', false), -- opted out
-  ('00000000-0000-4000-8000-00000000a005', '', true),                              -- empty email
-  ('00000000-0000-4000-8000-00000000a006', 'pgtap-ann-suppressed@example.com', true), -- opted in BUT suppressed
-  ('00000000-0000-4000-8000-00000000a007', 'pgtap-ann-d@example.com', true)        -- pre-seeded 'sent' below
+-- display_name is NOT NULL with no default on profiles, so the upsert must supply it
+-- (matches membership_ledger_test's (user_id, display_name, email) seed).
+INSERT INTO public.profiles (user_id, email, notify_opportunities, display_name) VALUES
+  ('00000000-0000-4000-8000-00000000a001', 'pgtap-ann-a@example.com', true, 'PGTAP A'),
+  ('00000000-0000-4000-8000-00000000a002', 'PGTAP-ANN-B@example.com',  true, 'PGTAP B'),  -- mixed case → normalized
+  ('00000000-0000-4000-8000-00000000a003', 'pgtap-ann-c@example.com', true, 'PGTAP C'),   -- pre-seeded 'expired' below
+  ('00000000-0000-4000-8000-00000000a004', 'pgtap-ann-optout@example.com', false, 'PGTAP D'), -- opted out
+  ('00000000-0000-4000-8000-00000000a005', '', true, 'PGTAP E'),                              -- empty email
+  ('00000000-0000-4000-8000-00000000a006', 'pgtap-ann-suppressed@example.com', true, 'PGTAP F'), -- opted in BUT suppressed
+  ('00000000-0000-4000-8000-00000000a007', 'pgtap-ann-d@example.com', true, 'PGTAP G')        -- pre-seeded 'sent' below
 ON CONFLICT (user_id) DO UPDATE
   SET email = EXCLUDED.email, notify_opportunities = EXCLUDED.notify_opportunities;
 
