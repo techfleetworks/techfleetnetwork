@@ -43,6 +43,7 @@ jobs:
       migrations: ${{ steps.filter.outputs.migrations }}
       e2e: ${{ steps.filter.outputs.e2e }}
       functions: ${{ steps.filter.outputs.functions }}
+      db_schema: ${{ steps.filter.outputs.db_schema }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -74,6 +75,13 @@ jobs:
             echo "functions=true" >> "$GITHUB_OUTPUT"
           else
             echo "functions=false" >> "$GITHUB_OUTPUT"
+          fi
+          # db-schema gate (ADR-0036): runs on migration changes OR changes to the gate's own inputs
+          # (the guard, its allowlist, its dynamic-object sidecar, the shared tokenizer).
+          if echo "$CHANGED" | grep -qE '^supabase/migrations/|^scripts/ci/(check-db-schema-present\.mjs|db-schema-allowlist\.json|db-dynamic-objects\.json|_sql-scan\.mjs)$'; then
+            echo "db_schema=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "db_schema=false" >> "$GITHUB_OUTPUT"
           fi
 
   # ---------------------------------------------------------------------------
@@ -347,6 +355,7 @@ jobs:
         security-owasp,
         arch-gate,
         migration-smoke,
+        db-schema-gate,
         deno-check,
       ]
     if: always()
@@ -362,8 +371,9 @@ jobs:
           owasp='${{ needs.security-owasp.result }}'
           agate='${{ needs.arch-gate.result }}'
           migr='${{ needs.migration-smoke.result }}'
+          schema='${{ needs.db-schema-gate.result }}'
           dchk='${{ needs.deno-check.result }}'
-          echo "gate-verify=$verify  gate-test=$test  gate-build=$build  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  deno-check=$dchk"
+          echo "gate-verify=$verify  gate-test=$test  gate-build=$build  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
           fail=0
           [ "$verify" = "success" ] || fail=1
           [ "$test" = "success" ] || fail=1
@@ -375,11 +385,15 @@ jobs:
           [ "$agate" = "success" ] || fail=1
           # migration-smoke is conditional: skipped (no migration changes) passes.
           if [ "$migr" != "success" ] && [ "$migr" != "skipped" ]; then fail=1; fi
+          # db-schema-gate is conditional on migration/gate-input changes: skipped (no such changes)
+          # passes, otherwise it MUST succeed — this is what blocks a migration that declares an object
+          # absent from prod (the committed-but-never-applied outage class) from merging.
+          if [ "$schema" != "success" ] && [ "$schema" != "skipped" ]; then fail=1; fi
           # deno-check is conditional on function changes: skipped (no function changes) passes,
           # otherwise it must succeed — this is what makes the edge-function unit tests block merge.
           if [ "$dchk" != "success" ] && [ "$dchk" != "skipped" ]; then fail=1; fi
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Gate failed (verify=$verify test=$test build=$build arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr deno-check=$dchk)."
+            echo "::error::Gate failed (verify=$verify test=$test build=$build arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
             exit 1
           fi
           echo "All gate jobs passed."
@@ -421,6 +435,7 @@ jobs:
           - check-suppressforward-has-report.mjs
           - check-guard-has-test.mjs
           - check-erasure-completeness.mjs
+          - check-db-schema-allowlist-shrinks.mjs
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -543,6 +558,44 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
+
+  # ---------------------------------------------------------------------------
+  # db-schema-gate — ADR-0036 schema-reconciliation gate. TFN prod has no
+  # supabase_migrations ledger (post-Lovable cutover), so "was this migration
+  # applied?" is unanswerable; instead the gate verifies REALITY — every schema
+  # object the committed migrations DECLARE (11 categories: table/extension/type/
+  # view/constraint/rls_enabled/function/index/trigger/policy/column; cron is
+  # deferred) must EXIST in prod, queried via the Management API over HTTPS. This
+  # is the exact class that caused the Discord PGRST202 outage (a migration
+  # committed but never applied).
+  #
+  # BLOCKING (required by the `gate` aggregator, skipped-as-pass on non-schema
+  # PRs — like migration-smoke). Runs only when migrations or the gate's own
+  # inputs change (detect-changes.db_schema); out-of-band prod drift is swept
+  # daily by config-preflight.yml. FAILS CLOSED: no token / unreachable / bad
+  # response / any declared object absent → non-zero. Uses only Node built-ins +
+  # global fetch, so it needs no node_modules artifact.
+  # ---------------------------------------------------------------------------
+  db-schema-gate:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.db_schema == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SUPABASE_PROJECT_REF: pzvqxdgoztbfikfuifix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - name: check-db-schema-present.mjs (declared schema exists in prod — ADR-0036)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/ci/check-db-schema-present.mjs
 
   # ---------------------------------------------------------------------------
   # db-test — run the pgTAP suites in supabase/tests/ against a fresh local DB.

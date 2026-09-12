@@ -1,8 +1,9 @@
 # ADR 0035 — Verify DB objects EXIST in prod, not that a ledger records them (supersedes ADR-0020)
 
-- Status: Accepted
+- Status: **Superseded by [ADR-0036](0036-comprehensive-schema-reconciliation-gate.md)** (was: Accepted, 2026-09-05). ADR-0036 keeps this ADR's reality-based, fail-closed foundation and widens the derive from tables + functions to all 11 statically-reconcilable categories; `check-db-objects-present.mjs`, its smoke test, and `db-objects-allowlist.json` are deleted there.
 - Date: 2026-09-05
 - Deciders: TechFleet (owner)
+- Superseded-by: [ADR-0036](0036-comprehensive-schema-reconciliation-gate.md) (comprehensive schema reconciliation — all 11 categories, blocking CI)
 - Supersedes: [ADR-0020](0020-migrations-applied-verification.md) (migration-applied verification via the `schema_migrations` ledger)
 - Related: `scripts/ci/check-db-objects-present.mjs`, `scripts/ci/db-objects-allowlist.json`, `src/test/smoke/check-db-objects-present.smoke.test.ts`, `migration-smoke` + `check-migration-version-collision.mjs` (sibling migration guards), ADR-0026 (expand/contract — why a migration can be live while old code runs), ADR-0022/0023/0029 (a guard must be tested, discriminate, and be wired), decisions.md §6 (the companion no-BOM hygiene guard added in the same change). The `feature_flags` incident (migration `20260827120000` committed but never applied to prod).
 
