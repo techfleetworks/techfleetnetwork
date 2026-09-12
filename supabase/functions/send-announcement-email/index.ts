@@ -6,6 +6,9 @@ import { withAuditWrapper } from "../_shared/audit.ts";
 import { fetchWithTimeout } from "../_shared/fetch-timeout.ts";
 import { requireMarketingAttestation } from "./attestation.ts";
 import { renderAnnouncementEmail } from "../_shared/email/announcement-render.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it);
+// an inline block that omits it makes the browser block the POST. See supabase/functions/CLAUDE.md.
+import { corsHeaders } from "../_shared/http.ts";
 
 // test_recipients: admin-only delivery test. When present, the announcement is
 // enqueued to exactly those addresses (bypassing the member audience) and the
@@ -17,12 +20,6 @@ const BodySchema = z
     test_recipients: z.array(z.string()).max(50).optional(),
   })
   .passthrough();
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 Deno.serve(
   withAuditWrapper("send-announcement-email", async (req) => {

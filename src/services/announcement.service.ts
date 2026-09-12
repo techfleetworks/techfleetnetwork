@@ -5,7 +5,8 @@ import {
   safeRequiredTextSchema,
   safeUrlSchema,
 } from "@/lib/validators/shared-input";
-import { handleServiceError } from "@/lib/service-result";
+import { handleServiceError, type ServiceErrorLike } from "@/lib/service-result";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { linkifyHtml } from "@/lib/linkify";
 import { normalizeRichTextHtml } from "@/lib/html";
 import { isTransientError } from "@/lib/transient-error";
@@ -154,16 +155,28 @@ export const AnnouncementService = {
     if (!session) throw new Error("Not authenticated");
     // marketing_attested is the admin's per-send "this is not marketing" confirmation; the edge
     // function refuses to send without it (PR 7, ADR-0017).
-    const { error } = await supabase.functions.invoke("send-announcement-email", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: { announcement_id: announcementId, marketing_attested: marketingAttested },
-    });
-    handleServiceError(error, {
-      logger: log,
-      action: "sendNotifications",
-      message: `Email notification failed: ${error?.message ?? "Unknown error"}`,
-      level: "warn",
-    });
+    try {
+      // silentReport: handleServiceError below owns reporting (logger + reportError→audit_log);
+      // letting invokeEdge also report would double-count every failure in Triage.
+      // timeoutMs 150s + noRetry: send-announcement-email enqueues the whole audience (~1200+,
+      // set-based since #346) and can still exceed invokeEdge's 8s default on a large send — the
+      // raw invoke it replaces had NO client timeout. An 8s abort would log a false "failed" on a
+      // succeeding enqueue; a retry could re-enqueue. Wait for the real result instead.
+      await invokeEdge("send-announcement-email", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { announcement_id: announcementId, marketing_attested: marketingAttested },
+        silentReport: true,
+        timeoutMs: 150_000,
+        noRetry: true,
+      });
+    } catch (error) {
+      handleServiceError(error as ServiceErrorLike, {
+        logger: log,
+        action: "sendNotifications",
+        message: `Email notification failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        level: "warn",
+      });
+    }
   },
 
   async getReadIds(userId: string): Promise<Set<string>> {

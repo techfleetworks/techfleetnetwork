@@ -26,10 +26,15 @@ describe("AnnouncementService.sendNotifications marketing attestation", () => {
 
   it("passes marketing_attested: true when the admin attested", async () => {
     await AnnouncementService.sendNotifications("ann-1", true);
-    expect(invokeMock).toHaveBeenCalledWith("send-announcement-email", {
-      headers: { Authorization: "Bearer tok" },
-      body: { announcement_id: "ann-1", marketing_attested: true },
-    });
+    // Routed through invokeEdge now (ADR-0028), which adds an x-trace-id header — assert the
+    // meaningful contract (Authorization + attestation body), tolerant of that added header.
+    expect(invokeMock).toHaveBeenCalledWith(
+      "send-announcement-email",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer tok" }),
+        body: { announcement_id: "ann-1", marketing_attested: true },
+      })
+    );
   });
 
   it("forwards a false attestation verbatim (the edge function rejects it)", async () => {
@@ -40,5 +45,13 @@ describe("AnnouncementService.sendNotifications marketing attestation", () => {
         body: { announcement_id: "ann-2", marketing_attested: false },
       })
     );
+  });
+
+  it("swallows a warn-level edge failure without rejecting (handleServiceError owns it)", async () => {
+    // invokeEdge throws on failure; sendNotifications logs at warn with no throwMessage, so the
+    // caller must not see a rejection. Regression guard for the raw-invoke→invokeEdge conversion.
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ error: { message: "boom" } });
+    await expect(AnnouncementService.sendNotifications("ann-3", true)).resolves.toBeUndefined();
   });
 });
