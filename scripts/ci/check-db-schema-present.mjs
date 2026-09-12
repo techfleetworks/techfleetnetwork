@@ -828,9 +828,14 @@ function deriveColumns(migs) {
   // prefix (`ALTER TABLE t ADD COLUMN a, ADD COLUMN b`). Match each statement (to its `;`), capture the
   // table, then scan the whole statement for EVERY clause — matching only the first would silently drop
   // the 2nd+ columns: a false negative letting an unapplied multi-ADD column pass the gate green.
+  // `(?:;|$)` so the LAST statement in a file with no trailing semicolon is still captured.
   const RE_ALTER_STMT =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\b[\s\S]*?;/gi;
-  const RE_ADDC = /\badd\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
+    /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\b[\s\S]*?(?:;|$)/gi;
+  // COLUMN is OPTIONAL in Postgres (`ALTER TABLE t ADD foo int`). Group 1 records whether COLUMN was
+  // present; when it wasn't, `ADD <kw>` collides with ADD CONSTRAINT/PRIMARY/UNIQUE/CHECK/FOREIGN/
+  // EXCLUDE/LIKE, so the loop rejects a constraint keyword in that case. DROP stays COLUMN-required:
+  // a lenient DROP would mis-read `DROP CONSTRAINT x` as dropping column x — a dangerous false negative.
+  const RE_ADDC = /\badd\s+(column\s+)?(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
   const RE_DROPC = /\bdrop\s+column\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_$]*)"?/gi;
   const RE_RENC =
     /\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_$]*)"?\s+rename\s+column\s+"?([a-z_][a-z0-9_$]*)"?\s+to\s+"?([a-z_][a-z0-9_$]*)"?/gi;
@@ -859,8 +864,10 @@ function deriveColumns(migs) {
       let y;
       RE_ADDC.lastIndex = 0;
       while ((y = RE_ADDC.exec(stmt))) {
-        const c = clean(y[1]);
-        if (c && !c.includes("%"))
+        const c = clean(y[2]);
+        // y[1] = the COLUMN keyword (present → unambiguous). Without it, skip a table-level constraint
+        // keyword (ADD CONSTRAINT/PRIMARY/UNIQUE/CHECK/FOREIGN/EXCLUDE/LIKE) — that is not a column.
+        if (c && !c.includes("%") && (y[1] || !COL_CONSTRAINT_KW.test(c)))
           events.push({ i: x.index + y.index, op: "add", id: `public.${t}.${c}` });
       }
       RE_DROPC.lastIndex = 0;

@@ -435,6 +435,7 @@ jobs:
           - check-suppressforward-has-report.mjs
           - check-guard-has-test.mjs
           - check-erasure-completeness.mjs
+          - check-db-schema-allowlist-shrinks.mjs
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
