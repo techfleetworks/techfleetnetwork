@@ -188,4 +188,33 @@ describe("check-db-schema-present guard (smoke)", () => {
     // And when BOTH land in prod, the same declaration passes — no phantom column from the multi-clause parse.
     expect(run(mig, [...withoutB, { kind: "column", identifier: "public.orders.b" }])).toBe(0);
   });
+
+  it("DSP-014: keyword-less `ALTER TABLE t ADD col type` (no COLUMN, no trailing ;) is derived; ADD CONSTRAINT is not", () => {
+    // Postgres accepts ADD without the COLUMN keyword and a final statement with no ';'. A never-applied
+    // such column must still be caught (a false negative here = the outage class). And `ADD CONSTRAINT c …`
+    // must NOT be mis-read as a column named `c`/`constraint`.
+    const mig = {
+      "supabase/migrations/20260101000000_x.sql":
+        "create table if not exists public.orders (id uuid);",
+      "supabase/migrations/20260102000000_add.sql":
+        "alter table public.orders add constraint orders_id_present check (id is not null);\n" +
+        "alter table public.orders add note text", // keyword-less ADD, no trailing semicolon (EOF)
+    };
+    const prod: ProdRow[] = [
+      { kind: "table", identifier: "orders" },
+      { kind: "column", identifier: "public.orders.id" },
+      { kind: "constraint", identifier: "orders.orders_id_present" },
+      { kind: "column", identifier: "public.orders.note" },
+    ];
+    // Exit 0 requires ALL declared present: proves `note` (keyword-less) IS derived AND that the
+    // constraint was NOT mis-derived as a phantom column (there is no such column row in prod).
+    expect(run(mig, prod)).toBe(0);
+    // Drop `note` → the keyword-less column is flagged, proving its derivation is real, not vacuous.
+    expect(
+      run(
+        mig,
+        prod.filter((r) => r.identifier !== "public.orders.note")
+      )
+    ).toBe(1);
+  });
 });

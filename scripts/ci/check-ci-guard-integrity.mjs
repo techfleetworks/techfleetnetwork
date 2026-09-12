@@ -42,6 +42,7 @@ const BESPOKE_DIR_READERS = new Set([
   "check-erasure-completeness.mjs", // ADR-0039 right-to-erasure guard: reads migration filenames + the winning handle_user_deletion body (not a recursive content scan)
   "check-no-inline-cors.mjs", // ADR-0043 edge-CORS guard: readdirSync over supabase/functions to find inline-CORS offenders + a shrink-only grandfather allowlist (not a per-file rule/content scan)
   "check-db-schema-present.mjs", // ADR-0036 schema-reconciliation gate: readdirSync over migrations to derive declared objects across categories, then queries prod via the Management API (not a recursive content scan)
+  "check-db-schema-allowlist-shrinks.mjs", // ADR-0036 drift-allowlist shrink ratchet: reads one JSON (db-schema-allowlist.json) and compares per-category counts to committed caps (not a recursive content scan)
   "arch-gate.mjs", // the flagship architecture engine — its own dependency-free scanner, already fail-closed + evidence-bearing
 ]);
 

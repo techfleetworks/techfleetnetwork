@@ -6,10 +6,13 @@ schema against prod. They are waived in `scripts/ci/db-schema-allowlist.json` as
 shrink-only **known-drift** so the blocking gate can ship and catch every NEW drift immediately.
 
 This is the burndown list. Each fix is applied in the **Supabase Dashboard → SQL Editor** (prod
-has no migrations ledger and can't be reached from CI/dev). **After applying a fix, remove that
-object's line(s) from `db-schema-allowlist.json`** — the gate fails closed if a waived object turns
-out to be present, so a stale waiver can't linger silently. Nothing here blocks CI; the waivers keep
-the gate green while you work down the list.
+has no migrations ledger and can't be reached from CI/dev). **After applying a fix: (1) remove that
+object's line(s) from `db-schema-allowlist.json`, and (2) lower the matching `CAPS.<category>` in
+`scripts/ci/check-db-schema-allowlist-shrinks.mjs` by the same count** — that shrink guard enforces
+`count === cap`, so the two move together (this is the ratchet that makes adding a waiver require a
+reviewed cap bump). The gate also fails closed if a waived object turns out to be present, so a stale
+waiver can't linger silently. Nothing here blocks CI; the waivers keep the gate green while you work
+down the list.
 
 Priority order: A (real feature gap) → D (access decision) → B (observability columns) → C (leave as-is).
 
