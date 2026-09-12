@@ -20,17 +20,6 @@
 // that will be rendered AS HTML must be sanitized on the client with the
 // DOMPurify allow-list (src/lib/security.ts#sanitizeHtml).
 
-/** Re-apply `fn` until the string stops changing — defeats nested reconstruction. */
-function fixpoint(input: string, fn: (s: string) => string, maxPasses = 24): string {
-  let out = input;
-  for (let i = 0; i < maxPasses; i++) {
-    const next = fn(out);
-    if (next === out) return out;
-    out = next;
-  }
-  return out;
-}
-
 // Tempered pattern for a paired element: matches `<tag ...> ... </tag>` even when
 // `>` appears inside a quoted attribute, and regardless of spacing before the
 // close. Robust against js/bad-tag-filter (unlike `<tag[^>]*>[\s\S]*?</tag>`).
@@ -39,22 +28,19 @@ function elementPattern(tag: string): RegExp {
 }
 
 const NON_TEXT_ELEMENTS = ["script", "style", "template", "noscript"] as const;
-const ACTIVE_ELEMENTS = [
-  "script",
-  "style",
-  "iframe",
-  "object",
-  "embed",
-  "template",
-  "noscript",
-] as const;
 
+// Remove script/style-type element BODIES so their contents don't leak as text.
+// Inline loop-until-stable (NOT an abstracted helper) so CodeQL recognizes the
+// sanitization as complete — the documented remedy for
+// js/incomplete-multi-character-sanitization.
 function removeElements(html: string, tags: readonly string[]): string {
-  return fixpoint(html, (s) => {
-    let out = s;
+  let out = html;
+  let prev = "";
+  while (out !== prev) {
+    prev = out;
     for (const tag of tags) out = out.replace(elementPattern(tag), " ");
-    return out;
-  });
+  }
+  return out;
 }
 
 // Convert block-level structure to line breaks BEFORE stripping, for callers that
@@ -68,9 +54,17 @@ function structuralBreaks(html: string): string {
     .replace(/<\/li\s*>/gi, "\n");
 }
 
-// Strip every remaining tag. Fixpoint defeats `<scr<script>ipt>`-style nesting.
+// Strip every remaining tag. Inline loop-until-stable defeats
+// `<scr<script>ipt>`-style nesting AND is recognized by CodeQL as complete
+// sanitization (an abstracted loop helper is not).
 function stripTags(input: string): string {
-  return fixpoint(input, (s) => s.replace(/<[^>]*>/g, ""));
+  let out = input;
+  let prev = "";
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(/<[^>]*>/g, "");
+  }
+  return out;
 }
 
 const NAMED_ENTITIES: Record<string, string> = {
@@ -135,28 +129,34 @@ export function htmlToPlainText(
 }
 
 /**
- * Remove active/executable HTML (script, style, iframe, object, embed, event
- * handlers, `javascript:` URLs) while PRESERVING other content — for text that
- * keeps its markdown/formatting and is never an HTML sink (AI chat output
- * rendered by react-markdown; admin markdown re-embedded into a prompt). This is
- * defense-in-depth, not the primary XSS control. When you only need the text,
- * prefer htmlToPlainText.
+ * Remove ALL HTML while PRESERVING surrounding markdown/text — for content that
+ * keeps its markdown formatting and is never an HTML sink (AI chat output
+ * rendered by react-markdown; admin markdown re-embedded into a prompt).
+ *
+ * Design note: it strips every tag (so `<script>`, event handlers, and any
+ * `on*=`/`javascript:` inside a tag go with it) rather than trying to surgically
+ * remove only the "active" bits while keeping other HTML — a partial HTML
+ * sanitizer is exactly what CodeQL (rightly) distrusts, and neither caller needs
+ * raw HTML preserved (markdown syntax like `#`/`**` is not HTML and survives).
+ * Dangerous URL schemes that can appear as bare text are then neutralized.
+ * This is defense-in-depth; react-markdown (no raw-HTML rendering) is the primary
+ * XSS control. When you also want entities decoded / whitespace collapsed, use
+ * htmlToPlainText instead.
  */
 export function stripActiveContent(input: string | null | undefined): string {
   if (!input) return "";
-  let out = removeElements(input, ACTIVE_ELEMENTS);
-  // Drop dangling openers of active elements that had no matching close.
-  out = fixpoint(out, (s) =>
-    s.replace(/<(?:script|style|iframe|object|embed|template|noscript)\b[^<]*?>/gi, " ")
-  );
-  // Neutralize inline event handlers and dangerous URL schemes (fixpoint so
-  // split reconstruction like `javasjavascript:cript:` cannot survive).
-  out = fixpoint(out, (s) =>
-    s
-      .replace(/on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+  // Drop script/style BODIES first so their contents don't remain as text, then
+  // strip every tag (both are inline loop-until-stable → CodeQL-complete).
+  let out = stripTags(removeElements(input, NON_TEXT_ELEMENTS));
+  // Neutralize dangerous URL schemes that can survive as bare text. Inline loop
+  // so split reconstruction like `javasjavascript:cript:` cannot survive.
+  let prev = "";
+  while (out !== prev) {
+    prev = out;
+    out = out
       .replace(/javascript\s*:/gi, "")
       .replace(/vbscript\s*:/gi, "")
-      .replace(/data\s*:\s*text\/html/gi, "")
-  );
+      .replace(/data\s*:\s*text\/html/gi, "");
+  }
   return out;
 }
