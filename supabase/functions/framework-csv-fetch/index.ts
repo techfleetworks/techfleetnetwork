@@ -7,11 +7,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 import { withAuditWrapper } from "../_shared/audit.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const BodySchema = z.object({
   filename: z
