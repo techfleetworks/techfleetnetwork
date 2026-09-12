@@ -41,7 +41,8 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Enforce dependency-advisory gate (waiver-aware, hard fail)
-        run: npm run check:dependency-advisories
+        # Call the guard by path so check-guards-wired sees it referenced (ADR-0024).
+        run: node scripts/ci/check-dependency-advisories.mjs
 
       - name: Capture full audit report
         if: always()
