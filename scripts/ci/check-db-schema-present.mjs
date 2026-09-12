@@ -1006,18 +1006,23 @@ function loadAllowlist() {
 // and let ~50 objects vanish undetected); an unreviewed RISE means the schema grew and the baseline
 // must be bumped in the same PR. Only enforced against the real corpus (skipped for a DB_SCHEMA_ROOT
 // test fixture, whose counts are intentionally tiny). Bump these when a migration changes the schema.
+// Synced to the derived corpus after rebasing onto current main (DB_SCHEMA_EXTRACT_ONLY=1). The
+// rises are all intended, merged objects: #343 gumroad (profile_email_aliases table + 5 cols + rls +
+// index + 2 policies + resolve_gumroad_user + trg_email_alias_resolve_pending), #346 announcement
+// set-based enqueue (enqueue_announcement_emails), #347 erasure. Every category set to its exact
+// derived count so the ±2 tripwire measures future drift from an accurate baseline.
 const BASELINES = {
-  table: 202,
+  table: 203,
   extension: 7,
   type: 25,
   view: 17,
   constraint: 20,
-  rls_enabled: 202,
-  function: 419,
-  index: 392,
-  trigger: 196,
-  policy: 491,
-  column: 2051,
+  rls_enabled: 203,
+  function: 422,
+  index: 393,
+  trigger: 197,
+  policy: 493,
+  column: 2056,
 };
 const BASELINE_TOL = 2;
 
