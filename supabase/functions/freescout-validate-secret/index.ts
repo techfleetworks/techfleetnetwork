@@ -51,10 +51,13 @@ Deno.serve(
         });
       } catch (e) {
         clearTimeout(timer);
+        // Log the real cause; never return it to the client (CodeQL
+        // js/stack-trace-exposure). The `reason` conveys the category.
+        console.error("freescout-validate-secret: upstream unreachable", e);
         return jsonResponse({
           ok: false,
           reason: "upstream_unreachable",
-          detail: e instanceof Error ? e.message : String(e),
+          detail: "The FreeScout API could not be reached (timeout or network error).",
         });
       }
       clearTimeout(timer);
