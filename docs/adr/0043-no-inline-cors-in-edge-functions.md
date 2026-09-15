@@ -46,5 +46,5 @@
 
 ## Confirmation
 
-- `src/test/smoke/check-no-inline-cors.smoke.test.ts` (8 scenarios): all-shared→0, grandfathered→0, new-offender→1, grew-vs-base→1, stale-entry→1, shared-extend→0, missing-root→2, real-repo→0. Discriminates under the mutation gate.
+- `src/test/smoke/check-no-inline-cors.smoke.test.ts` (11 scenarios): all-shared→0, grandfathered→0, new-offender→1, grew-vs-base(seam)→1, stale-entry→1, shared-extend→0, missing-root→2, real-repo→0, imports-owner-but-hard-codes-a-literal→1 (blind-spot), grew-vs-REAL-git-base→1, unborn-base→2 (fail-closed). The last two `git init` a fixture so `baseAllowlist()`'s real git path + its fail-close are exercised, not just the env seam. Discriminates under the mutation gate.
 - `check-guard-has-test` + `check-guards-wired` + `check-ci-guard-integrity` all green with the new guard (registered as a bespoke dir-reader).

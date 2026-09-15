@@ -48,6 +48,20 @@ const MERGE =
   "export default cors;\n";
 const AL = (fns: string[]) => JSON.stringify({ functions: fns });
 
+function git(root: string, ...args: string[]): void {
+  execFileSync("git", args, { cwd: root, stdio: "pipe" });
+}
+
+/** Run the copied guard WITHOUT the base seam, so it resolves the base via real git. */
+function runCopyGit(root: string): number {
+  try {
+    execFileSync("node", [resolve(root, "scripts/ci/check-no-inline-cors.mjs")], { stdio: "pipe" });
+    return 0;
+  } catch (e) {
+    return (e as { status?: number }).status ?? 1;
+  }
+}
+
 describe("check-no-inline-cors guard (smoke)", () => {
   it("NIC-001: passes when every function sources CORS from the shared owner", () => {
     const r = guardFixture({
@@ -125,6 +139,35 @@ describe("check-no-inline-cors guard (smoke)", () => {
         "export default { cors, jsonResponse };\n",
     });
     expect(runCopy(r, [])).toBe(1);
+  });
+
+  it("NIC-010: FLAGS (exit 1) allowlist growth via the REAL git base (no env seam)", () => {
+    // Exercises baseAllowlist()'s git path: refExists('main') + `git show main:…` + the grown set-diff.
+    const r = guardFixture({
+      ...GUARD_FILE,
+      "scripts/ci/no-inline-cors-grandfather.json": AL(["foo"]),
+      "supabase/functions/foo/index.ts": INLINE,
+      "supabase/functions/bar/index.ts": INLINE,
+    });
+    git(r, "init", "-b", "main");
+    git(r, "config", "user.email", "t@t.test");
+    git(r, "config", "user.name", "t");
+    git(r, "add", "-A");
+    git(r, "commit", "-m", "baseline", "--no-gpg-sign");
+    // Grow the on-disk allowlist to cover bar; base (main) still lists only foo → grown=[bar].
+    writeFileSync(resolve(r, "scripts/ci/no-inline-cors-grandfather.json"), AL(["foo", "bar"]));
+    expect(runCopyGit(r)).toBe(1);
+  });
+
+  it("NIC-011: fails CLOSED (exit 2) when no base ref is resolvable (unborn main, no env seam)", () => {
+    // git repo with NO commits → `git rev-parse main`/`origin/main` fail → base=null → die(exit 2).
+    const r = guardFixture({
+      ...GUARD_FILE,
+      "scripts/ci/no-inline-cors-grandfather.json": AL([]),
+      "supabase/functions/foo/index.ts": IMPORTS_OWNER,
+    });
+    git(r, "init", "-b", "main"); // no commit → main is unborn
+    expect(runCopyGit(r)).toBe(2);
   });
 
   it("NIC-008: the real repo passes the guard (invariant + no stale entries)", () => {

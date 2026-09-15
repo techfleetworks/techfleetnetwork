@@ -5,8 +5,14 @@ import { BodyTooLargeError, readBoundedText } from "./bounded-body.ts";
 // frontend wrappers attach (e.g. freescoutInvoke sets `x-trace-id`). Without
 // this, browser preflight rejects the POST and the function is never invoked —
 // surfacing as `*_invoke_error` in agent_fix_queue with zero edge-side logs.
+// The x-supabase-client-* family is emitted by supabase-js itself (and its
+// mobile/Capacitor variants) on some versions — it MUST be a superset of every
+// header any client may send, so migrating a function to this owner never
+// NARROWS its allow-list below what the browser preflights. (ADR-0043.)
 const ALLOWED_REQUEST_HEADERS =
-  "authorization, x-client-info, apikey, content-type, x-trace-id, x-request-id";
+  "authorization, x-client-info, apikey, content-type, x-trace-id, x-request-id, " +
+  "x-supabase-client-platform, x-supabase-client-platform-version, " +
+  "x-supabase-client-runtime, x-supabase-client-runtime-version";
 
 export const corsHeaders = {
   ...sdkCorsHeaders,

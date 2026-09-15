@@ -54,14 +54,29 @@ const FUNCS_DIR = process.env.NO_INLINE_CORS_ROOT
 const REL_ALLOWLIST = "scripts/ci/no-inline-cors-grandfather.json";
 const ALLOWLIST_PATH = join(ROOT, REL_ALLOWLIST);
 
-const ALLOW_HEADER_RE = /Access-Control-Allow-Headers/i;
-const IMPORTS_HTTP_OWNER = /from\s+["'][^"']*_shared\/http\.ts["']/;
-// A PLAIN-STRING-LITERAL allow-list, e.g. "Access-Control-Allow-Headers": "authorization, ...".
-// This is an offender EVEN IF the function imports the owner (it hand-rolled the header anyway) —
-// closing the blind spot where a function imports jsonResponse yet still hard-codes the allow-list.
-// A backtick/template value (extending the shared set — send-community-agreement-trigger) is NOT a
-// plain literal, so it stays compliant.
-const LITERAL_ALLOW_RE = /["']Access-Control-Allow-Headers["']\s*:\s*["'][^"'`]*["']/;
+// Compliance is by the VALUE, not by whether the owner is imported for some other symbol. Every
+// `"Access-Control-Allow-Headers": <value>` occurrence must have <value> reference a symbol imported
+// from the shared owner (`${corsHeaders[...]}` / `...corsHeaders`). A plain literal, a hand-rolled
+// const/identifier, or a static backtick list — none reference the owner — is an offender, even if
+// the function imports the owner for `jsonResponse`. This closes the const/variable/backtick evasion.
+const ALLOW_VALUE_RE = /["']Access-Control-Allow-Headers["']\s*:\s*([^\n,}]+)/gi;
+const OWNER_IMPORT_RE = /import\s*\{([^}]*)\}\s*from\s*["'][^"']*_shared\/http\.ts["']/g;
+
+/** Local names imported from ../_shared/http.ts, e.g. {corsHeaders, jsonResponse} or {corsHeaders as s}. */
+function ownerSymbols(code) {
+  const names = new Set();
+  let m;
+  OWNER_IMPORT_RE.lastIndex = 0;
+  while ((m = OWNER_IMPORT_RE.exec(code))) {
+    for (const part of m[1].split(",")) {
+      const t = part.trim();
+      if (!t) continue;
+      const asMatch = t.match(/\bas\s+([A-Za-z_$][\w$]*)/);
+      names.add(asMatch ? asMatch[1] : t);
+    }
+  }
+  return names;
+}
 
 const die = (msg, code = 2) => {
   console.error(`✖ check-no-inline-cors: ${msg}`);
@@ -88,10 +103,20 @@ function findInlineCorsFns(dir) {
     if (!existsSync(indexPath)) continue;
     scanned++;
     const code = stripComments(readFileSync(indexPath, "utf8"));
-    // Offender if it hard-codes a plain-literal allow-list (even alongside an owner import), OR it
-    // references the allow-header at all without importing the shared owner (variable-based hand-roll).
-    const handRolls =
-      LITERAL_ALLOW_RE.test(code) || (ALLOW_HEADER_RE.test(code) && !IMPORTS_HTTP_OWNER.test(code));
+    const syms = ownerSymbols(code);
+    // Offender if ANY Access-Control-Allow-Headers value does not derive from an owner-imported symbol.
+    let handRolls = false;
+    let m;
+    ALLOW_VALUE_RE.lastIndex = 0;
+    while ((m = ALLOW_VALUE_RE.exec(code))) {
+      const value = m[1];
+      const derivesFromOwner =
+        syms.size > 0 && [...syms].some((s) => new RegExp(`\\b${s}\\b`).test(value));
+      if (!derivesFromOwner) {
+        handRolls = true;
+        break;
+      }
+    }
     if (handRolls) offenders.add(name.name);
   }
   return { offenders, scanned };
@@ -112,9 +137,13 @@ try {
 } catch (e) {
   die(`grandfather allowlist is not valid JSON (${e.message}).`);
 }
-const allowSet = new Set(Array.isArray(allow) ? allow : allow.functions);
-if (!allowSet || !(allowSet instanceof Set))
+// Validate the SHAPE before building the Set — `new Set(undefined)` is a valid empty Set, so a
+// malformed allowlist (an object with no `functions` array) would otherwise degrade to "empty"
+// and silently mislead rather than failing closed.
+const allowArr = Array.isArray(allow) ? allow : allow && allow.functions;
+if (!Array.isArray(allowArr))
   die(`grandfather allowlist must be a JSON array of function names (or { "functions": [...] }).`);
+const allowSet = new Set(allowArr);
 
 // --- 1) New / unallowlisted inline-CORS functions --------------------------------------------
 const newOffenders = [...offenders].filter((fn) => !allowSet.has(fn)).sort();
