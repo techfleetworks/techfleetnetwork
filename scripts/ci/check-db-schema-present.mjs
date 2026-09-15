@@ -1007,10 +1007,9 @@ function loadAllowlist() {
 // must be bumped in the same PR. Only enforced against the real corpus (skipped for a DB_SCHEMA_ROOT
 // test fixture, whose counts are intentionally tiny). Bump these when a migration changes the schema.
 // Synced to the derived corpus after rebasing onto current main (DB_SCHEMA_EXTRACT_ONLY=1). The
-// rises are all intended, merged objects: #343 gumroad (profile_email_aliases table + 5 cols + rls +
-// index + 2 policies + resolve_gumroad_user + trg_email_alias_resolve_pending), #346 announcement
-// set-based enqueue (enqueue_announcement_emails), #347 erasure. Every category set to its exact
-// derived count so the ±2 tripwire measures future drift from an accurate baseline.
+// rises are all intended, merged objects: #343 gumroad, #346 announcement set-based enqueue,
+// #347 erasure, #349 membership-purchase side-effects (+1 function, +1 trigger). Every category
+// set to its exact derived count so the ±2 tripwire measures future drift from an accurate baseline.
 const BASELINES = {
   table: 203,
   extension: 7,
@@ -1018,9 +1017,9 @@ const BASELINES = {
   view: 17,
   constraint: 20,
   rls_enabled: 203,
-  function: 422,
+  function: 423,
   index: 393,
-  trigger: 197,
+  trigger: 198,
   policy: 493,
   column: 2056,
 };
