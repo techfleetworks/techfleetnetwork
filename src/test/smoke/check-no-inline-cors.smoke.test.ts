@@ -127,9 +127,20 @@ describe("check-no-inline-cors guard (smoke)", () => {
     expect(runCopy(r, [])).toBe(1);
   });
 
-  it("NIC-008: the real repo passes the guard", () => {
+  it("NIC-008: the real repo passes the guard (invariant + no stale entries)", () => {
+    // Pin the shrink baseline to the repo's OWN grandfather (self-compare → no growth) so this runs
+    // in any checkout depth. The guard's real CI home is gate-verify (fetch-depth: 0), where the
+    // vs-main git path runs; the vitest job that runs this smoke test does a shallow checkout, so we
+    // exercise the invariant + stale-entry checks against the real supabase/functions here, not git.
     try {
-      execFileSync("node", [GUARD], { cwd: REPO, stdio: "pipe" });
+      execFileSync("node", [GUARD], {
+        cwd: REPO,
+        stdio: "pipe",
+        env: {
+          ...process.env,
+          NO_INLINE_CORS_BASE: resolve(REPO, "scripts/ci/no-inline-cors-grandfather.json"),
+        },
+      });
       expect(true).toBe(true);
     } catch (e) {
       throw new Error(
