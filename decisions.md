@@ -135,7 +135,7 @@ import { handleCors, jsonResponse } from '../_shared/http.ts'        // includes
 A hand-rolled `Access-Control-Allow-Headers` list is the recruiting-center outage class: `invokeEdge`
 attaches `x-trace-id` to every browser call, so a function whose inline allow-list omits it fails
 preflight (`FunctionsFetchError`, zero edge logs) the moment its client migrates. **`check-no-inline-cors.mjs`
-(gate-verify, ADR-0042) forbids it mechanically** — any function setting `Access-Control-Allow-Headers`
+(gate-verify, ADR-0043) forbids it mechanically** — any function setting `Access-Control-Allow-Headers`
 must import CORS from `../_shared/http.ts`; a shrink-only grandfather (`no-inline-cors-grandfather.json`)
 tracks the pre-existing backlog to zero. Extending the shared set is fine (import it, then spread):
 

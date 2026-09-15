@@ -113,6 +113,20 @@ describe("check-no-inline-cors guard (smoke)", () => {
     expect(runCopy(r, [])).toBe(2);
   });
 
+  it("NIC-009: FLAGS (exit 1) a function that imports the owner but still hard-codes a literal allow-list", () => {
+    // Blind-spot closure: importing jsonResponse/errorResponse from the owner must NOT excuse a
+    // hand-rolled plain-literal Access-Control-Allow-Headers.
+    const r = guardFixture({
+      ...GUARD_FILE,
+      "scripts/ci/no-inline-cors-grandfather.json": AL([]),
+      "supabase/functions/foo/index.ts":
+        'import { jsonResponse } from "../_shared/http.ts";\n' +
+        'const cors = { "Access-Control-Allow-Headers": "authorization, content-type" };\n' +
+        "export default { cors, jsonResponse };\n",
+    });
+    expect(runCopy(r, [])).toBe(1);
+  });
+
   it("NIC-008: the real repo passes the guard", () => {
     try {
       execFileSync("node", [GUARD], { cwd: REPO, stdio: "pipe" });

@@ -1,4 +1,4 @@
-// Regression coverage for the CORS-first wave (ADR-0042): the edge functions migrated off
+// Regression coverage for the CORS-first wave (ADR-0043): the edge functions migrated off
 // hand-rolled CORS must keep sourcing it from the shared owner (../_shared/http.ts), which lists
 // x-trace-id. If any regresses to an inline block, invokeEdge callers hit a preflight FunctionsFetch
 // error with zero edge logs — so this test pins each one. (check-no-inline-cors.mjs enforces the

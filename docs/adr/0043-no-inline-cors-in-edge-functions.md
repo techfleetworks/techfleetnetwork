@@ -1,4 +1,4 @@
-# ADR 0042 — Edge functions may not hand-roll CORS; a guard forbids inline CORS
+# ADR 0043 — Edge functions may not hand-roll CORS; a guard forbids inline CORS
 
 - Status: Accepted
 - Date: 2026-09-15

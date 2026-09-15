@@ -37,7 +37,7 @@
  * check-ci-guard-integrity.mjs's BESPOKE_DIR_READERS. Fails CLOSED: a missing functions root, an
  * unreadable grandfather file, a zero-function scan, or (for the shrink check) an unfetched base
  * ref all exit non-zero rather than passing vacuously. Pinned by
- * src/test/smoke/check-no-inline-cors.smoke.test.ts. See ADR-0042 and decisions.md §5.
+ * src/test/smoke/check-no-inline-cors.smoke.test.ts. See ADR-0043 and decisions.md §5.
  *
  * Test-only seams (never set in CI/prod): NO_INLINE_CORS_ROOT points the scan at a fixture tree;
  * NO_INLINE_CORS_BASE points the shrink check at a fixture baseline instead of `git show main:`.
@@ -56,6 +56,12 @@ const ALLOWLIST_PATH = join(ROOT, REL_ALLOWLIST);
 
 const ALLOW_HEADER_RE = /Access-Control-Allow-Headers/i;
 const IMPORTS_HTTP_OWNER = /from\s+["'][^"']*_shared\/http\.ts["']/;
+// A PLAIN-STRING-LITERAL allow-list, e.g. "Access-Control-Allow-Headers": "authorization, ...".
+// This is an offender EVEN IF the function imports the owner (it hand-rolled the header anyway) —
+// closing the blind spot where a function imports jsonResponse yet still hard-codes the allow-list.
+// A backtick/template value (extending the shared set — send-community-agreement-trigger) is NOT a
+// plain literal, so it stays compliant.
+const LITERAL_ALLOW_RE = /["']Access-Control-Allow-Headers["']\s*:\s*["'][^"'`]*["']/;
 
 const die = (msg, code = 2) => {
   console.error(`✖ check-no-inline-cors: ${msg}`);
@@ -82,7 +88,11 @@ function findInlineCorsFns(dir) {
     if (!existsSync(indexPath)) continue;
     scanned++;
     const code = stripComments(readFileSync(indexPath, "utf8"));
-    if (ALLOW_HEADER_RE.test(code) && !IMPORTS_HTTP_OWNER.test(code)) offenders.add(name.name);
+    // Offender if it hard-codes a plain-literal allow-list (even alongside an owner import), OR it
+    // references the allow-header at all without importing the shared owner (variable-based hand-roll).
+    const handRolls =
+      LITERAL_ALLOW_RE.test(code) || (ALLOW_HEADER_RE.test(code) && !IMPORTS_HTTP_OWNER.test(code));
+    if (handRolls) offenders.add(name.name);
   }
   return { offenders, scanned };
 }
