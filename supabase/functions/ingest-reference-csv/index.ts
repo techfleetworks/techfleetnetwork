@@ -21,6 +21,8 @@ import { z } from "npm:zod@3.23.8";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { isAirtableAttachmentUrl } from "../_shared/url-host.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const BodySchema = z
   .object({
@@ -28,12 +30,6 @@ const BodySchema = z
     dataset_name: z.string().optional(),
   })
   .passthrough();
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 // Map dataset_name (matches AdminIngestPage labels) -> reference table +
 // category default + entity_type used by the framework graph.
 const DATASET_TO_TABLE: Record<string, { table: string; entity: string; category?: string }> = {

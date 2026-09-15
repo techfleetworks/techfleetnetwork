@@ -6,15 +6,11 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { stripActiveContent } from "../_shared/html-to-text.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 const log = createEdgeLogger("ingest-workshop-docs");
 
 const BodySchema = z.object({ docs: z.array(z.any()).optional() }).passthrough();
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 /** Hard caps to prevent oversize uploads from bloating KB */
 const MAX_TITLE_LENGTH = 200;

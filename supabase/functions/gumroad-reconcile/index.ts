@@ -17,12 +17,8 @@
 import { withAuditWrapper, auditEdgeEvent } from "../_shared/audit.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -73,8 +69,12 @@ Deno.serve(
       .is("resolved_user_id", null);
     if (bindErr) {
       void auditEdgeEvent(getAdminClient(), {
-        fn: "gumroad-reconcile", event: "gumroad_reconcile_failed", table: "gumroad_sales",
-        severity: "error", fields: [`user:${userId}`], errorMessage: bindErr.message,
+        fn: "gumroad-reconcile",
+        event: "gumroad_reconcile_failed",
+        table: "gumroad_sales",
+        severity: "error",
+        fields: [`user:${userId}`],
+        errorMessage: bindErr.message,
       });
       return json({ error: "Reconcile failed" }, 500);
     }
@@ -85,8 +85,12 @@ Deno.serve(
     });
     if (projErr) {
       void auditEdgeEvent(getAdminClient(), {
-        fn: "gumroad-reconcile", event: "membership_projection_failed", table: "gumroad_sales",
-        severity: "error", fields: [`user:${userId}`], errorMessage: projErr.message,
+        fn: "gumroad-reconcile",
+        event: "membership_projection_failed",
+        table: "gumroad_sales",
+        severity: "error",
+        fields: [`user:${userId}`],
+        errorMessage: projErr.message,
       });
       return json({ error: "Projection failed" }, 500);
     }

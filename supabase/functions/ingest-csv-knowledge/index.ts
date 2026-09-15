@@ -6,6 +6,8 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { isAirtableAttachmentUrl } from "../_shared/url-host.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 const log = createEdgeLogger("ingest-csv-knowledge");
 
 const BodySchema = z
@@ -14,12 +16,6 @@ const BodySchema = z
     dataset_name: z.string().optional(),
   })
   .passthrough();
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 function parseCsvToMarkdown(
   csvText: string,

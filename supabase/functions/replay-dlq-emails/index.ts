@@ -45,12 +45,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 import { enqueueLegacyPayloadV2 } from "../_shared/email/enqueue-legacy-compat.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders as CORS_HEADERS } from "../_shared/http.ts";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" };
 
 const BodySchema = z.object({
