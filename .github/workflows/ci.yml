@@ -199,6 +199,12 @@ jobs:
       - name: Guard — raw-invoke budget only shrinks
         run: node scripts/ci/check-raw-invoke-budget-shrinks.mjs
 
+      # Edge functions must source CORS from _shared/http.ts (never hand-roll Access-Control-Allow-
+      # Headers). The grandfather allowlist may only shrink — a new inline-CORS function cannot be
+      # added, nor allowlisted past the guard (needs origin/main; hence fetch-depth: 0). ADR-0042.
+      - name: Guard — no inline CORS in edge functions (shrink-only)
+        run: node scripts/ci/check-no-inline-cors.mjs
+
       # The dropped-supabase-error grandfather budget (scripts/lint/dropped-supabase-error-grandfather.json)
       # may only shrink, so a dev cannot destructure `data` without `error` and raise the number past
       # the no-dropped-supabase-error lint rule (the audit's #1 error-handling class; ADR-0032).

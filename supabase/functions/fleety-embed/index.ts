@@ -25,14 +25,10 @@ import {
   parseGeminiEmbedding,
 } from "../_shared/gemini-embed.ts";
 import { buildSpfKbRow, groupSteps, SPF_EMBED_TYPES, type SpfRow } from "./spf-kb.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const BodySchema = z.object({}).passthrough();
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

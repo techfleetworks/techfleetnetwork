@@ -7,6 +7,8 @@ import { discordFetch } from "../_shared/discord-fetch.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { classifyResolveResult } from "./result-classifier.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 const log = createEdgeLogger("resolve-discord-id");
 
 const BodySchema = z
@@ -15,12 +17,6 @@ const BodySchema = z
     confirm_user_id: z.string().optional(),
   })
   .passthrough();
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 /** Max request body size (4 KB) */
 const MAX_BODY_BYTES = 4 * 1024;

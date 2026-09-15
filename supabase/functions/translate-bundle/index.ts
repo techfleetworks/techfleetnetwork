@@ -14,10 +14,8 @@ const BodySchema = z
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { guardTranslationRequest } from "../_shared/translation-guard.ts";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders } from "../_shared/http.ts";
 
 const SUPPORTED = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 

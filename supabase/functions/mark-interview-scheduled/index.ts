@@ -11,15 +11,11 @@ import { withAuditWrapper } from "../_shared/audit.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@4.3.6";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
+// CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
+import { corsHeaders as CORS_HEADERS } from "../_shared/http.ts";
 
 // M-01: Lenient shape guard. Existing UUID_RE check below stays authoritative.
 const BodySchema = z.object({ application_id: z.string().optional() }).passthrough();
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-} as const;
 
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" } as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
