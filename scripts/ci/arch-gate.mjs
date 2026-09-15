@@ -170,14 +170,17 @@ const builtins = Object.assign(
   config.builtins || {}
 );
 const BUILTIN_CHECKS = [
-  // Linear-time empty-catch matcher. The body is a single alternation of
-  // {one whitespace char | line comment | block comment}, so there is exactly
-  // one way to consume any run of whitespace/comments — no overlapping `\s*`
-  // and thus no catastrophic backtracking (was CodeQL js/redos).
+  // Whitespace-only empty-catch matcher — a single `\s*` inside the braces, so
+  // it is strictly linear (no nested/alternating quantifiers that can backtrack;
+  // an earlier comment-aware version was CodeQL js/redos on ambiguous `/* */`
+  // pairings). This deliberately does NOT match comment-only bodies
+  // (`catch { /* ignore */ }`); `builtins.emptyCatch` is disabled in this repo's
+  // arch-gate.config.json (error-handling judgment is left to judge-arch), so the
+  // narrower match is sufficient and safe.
   [
     "emptyCatch",
     "catch block does nothing (recover, retry, or report — pick one)",
-    /catch\s*(?:\([^)]*\))?\s*\{(?:\s|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*\}/g,
+    /catch\s*(?:\([^)]*\))?\s*\{\s*\}/g,
   ],
   [
     "swallowReturn",
