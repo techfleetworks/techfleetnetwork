@@ -132,6 +132,21 @@ import { requireAdminRequest }   from '../_shared/request-auth.ts'   // has_role
 import { handleCors, jsonResponse } from '../_shared/http.ts'        // includes the x-trace-id preflight headers
 ```
 
+A hand-rolled `Access-Control-Allow-Headers` list is the recruiting-center outage class: `invokeEdge`
+attaches `x-trace-id` to every browser call, so a function whose inline allow-list omits it fails
+preflight (`FunctionsFetchError`, zero edge logs) the moment its client migrates. **`check-no-inline-cors.mjs`
+(gate-verify, ADR-0042) forbids it mechanically** — any function setting `Access-Control-Allow-Headers`
+must import CORS from `../_shared/http.ts`; a shrink-only grandfather (`no-inline-cors-grandfather.json`)
+tracks the pre-existing backlog to zero. Extending the shared set is fine (import it, then spread):
+
+```
+❌ never — a hand-rolled allow-list drifts from the shared set and omits x-trace-id
+const cors = { 'Access-Control-Allow-Headers': 'authorization, content-type' }
+✅ always — extend the shared owner when a bespoke header is genuinely needed
+import { corsHeaders } from '../_shared/http.ts'
+const cors = { ...corsHeaders, 'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-internal-secret` }
+```
+
 The entrypoint composes the audit wrapper too — the ONE place an uncaught throw becomes an
 `edge_function_error` audit row (§4) and an `x-trace-id` is guaranteed on the request/response:
 
