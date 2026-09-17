@@ -6,7 +6,7 @@ import { createEdgeLogger } from "../_shared/logger.ts";
 import { applyWaf } from "../_shared/waf.ts";
 import { stripActiveContent } from "../_shared/html-to-text.ts";
 import { scrub as dlpScrub } from "../_shared/dlp.ts";
-import { withAuditWrapper } from "../_shared/audit.ts";
+import { auditEdgeEvent, withAuditWrapper } from "../_shared/audit.ts";
 import { isTrustedInternal } from "../_shared/internal-auth.ts";
 import { geminiEmbedBody, geminiEmbedUrl, parseGeminiEmbedding } from "../_shared/gemini-embed.ts";
 import {
@@ -18,9 +18,16 @@ import {
 } from "./prompt.ts";
 import { extractRecentAllowedUrls, fetchMaterialText } from "../_shared/material-fetch.ts";
 import { frameMaterialContext } from "./material-frame.ts";
+import { buildDegradeMarkdown } from "./degrade.ts";
 // Residency pin for DeepSeek (ADR-0005): the SAME US-provider allow-list the hand-off LLM port
 // uses, imported (not duplicated) so the guarantee can never drift between the two call paths.
-import { US_INFERENCE_PROVIDERS } from "../_shared/llm/port.ts";
+import {
+  LlmRateLimitError,
+  LlmTerminalError,
+  throwForLlmStatus,
+  US_INFERENCE_PROVIDERS,
+  withRetries,
+} from "../_shared/llm/port.ts";
 
 const ChatBodySchema = z
   .object({
@@ -75,6 +82,20 @@ const MAX_MESSAGE_LENGTH = 20_000;
 // as the hand-off tool. Model id is config (FLEETY_LLM_MODEL) so it can move without
 // a code change. DeepSeek has NO `reasoning_effort` param (that was Groq-specific).
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// Bounded retry budgets for the chat gateway call (shared withRetries policy), split by the call's
+// TWO latency profiles — because `fetch` resolves at RESPONSE HEADERS, and when those headers arrive
+// differs by whether we stream:
+//  • STREAMING turns (stream:true): headers arrive at first token, so a per-attempt timeout bounds
+//    only time-to-first-byte; the token stream runs AFTER withRetries returns, unaffected.
+//  • BUFFERED material/review turns (stream:false, ADR-0034): OpenRouter withholds headers until the
+//    WHOLE validated answer is generated, so "time to headers" IS the generation time — writer-scale.
+// The *_OVERALL_MS budget bounds the ENTIRE primary→fallback sequence (ONE shared wall-clock, drawn
+// down across models — NOT a fresh deadline per model), kept safely under the edge function wall-clock
+// limit so the graceful degrade (ADR-0044) always runs instead of the platform killing us mid-flight.
+const CHAT_GATEWAY_STREAM_ATTEMPT_MS = 25_000; // per attempt: time to first token (streaming)
+const CHAT_GATEWAY_STREAM_OVERALL_MS = 45_000; // whole primary+fallback sequence (streaming)
+const CHAT_GATEWAY_BUFFERED_ATTEMPT_MS = 90_000; // per attempt: full generation (non-streamed)
+const CHAT_GATEWAY_BUFFERED_OVERALL_MS = 110_000; // whole primary+fallback sequence (non-streamed)
 // TWO stages, two tiers (owner decision 2026-08-16):
 //  • ANSWER (stage-2, member-facing prose): DeepSeek V4 Pro — narrative nuance + faithful grounding
 //    (flash was altering retrieved facts, e.g. step time-boxes). Where quality matters.
@@ -84,6 +105,12 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const FLEETY_LLM_MODEL = Deno.env.get("FLEETY_LLM_MODEL") || "deepseek/deepseek-v4-pro";
 const FLEETY_ROUTER_MODEL =
   Deno.env.get("FLEETY_ROUTER_MODEL") || "deepseek/deepseek-v4-flash-0731";
+// Resilience (ADR-0044): if the primary answerer is throttled/erroring even after retries, fall back
+// to a SECOND model before degrading — flatter prose, but Fleety keeps answering. The same US
+// residency pin applies automatically (the id includes "deepseek"). Set FLEETY_LLM_FALLBACK_MODEL=""
+// to disable the model fallback (retry + graceful degrade still apply).
+const FLEETY_LLM_FALLBACK_MODEL =
+  Deno.env.get("FLEETY_LLM_FALLBACK_MODEL") ?? "deepseek/deepseek-v4-flash-0731";
 // Determinism (owner goal: the same question must not vary over time). temperature 0
 // + a fixed seed remove first-generation drift; the L2/L3 caches + canned answers
 // still provide the strongest guarantee (they replay an identical stored answer).
@@ -1997,64 +2024,86 @@ serve(
       const maxTokensCap =
         costGuardStep === "medium" ? 2048 : costGuardStep === "hard" ? 3072 : 4096;
 
-      const response = await fetch(OPENROUTER_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LLM_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: FLEETY_LLM_MODEL,
-          temperature: FLEETY_LLM_TEMPERATURE, // determinism: no drift for the same question
-          seed: FLEETY_LLM_SEED,
-          ...(OPENROUTER_PROVIDER ? { provider: OPENROUTER_PROVIDER } : {}), // DeepSeek → US providers
-          messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
-          // Material/review turns are generated NON-streamed so the whole answer can be validated
-          // before release (strict capability-denial block, ADR-0034); all other turns stream live.
-          stream: !materialWasReadable,
-          max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
-        }),
-      });
+      // ── Generation with layered resilience (ADR-0044) ──────────────────────────────────────────
+      // Never let a transient provider failure become a dead error. Two layers guard the live call:
+      //   1) each model call goes through the shared bounded-retry policy (withRetries + Retry-After);
+      //   2) if the PRIMARY answerer still fails, we try a FALLBACK model before giving up.
+      // Budgets split by latency profile: streaming turns bound time-to-first-token; buffered
+      // material/review turns (stream:false) bound full-answer generation (headers == whole answer).
+      // Per-attempt timeout (time to a usable response) and the OVERALL shared budget for the whole
+      // primary→fallback sequence.
+      const perAttemptMs = materialWasReadable
+        ? CHAT_GATEWAY_BUFFERED_ATTEMPT_MS
+        : CHAT_GATEWAY_STREAM_ATTEMPT_MS;
+      const overallDeadlineMs = materialWasReadable
+        ? CHAT_GATEWAY_BUFFERED_OVERALL_MS
+        : CHAT_GATEWAY_STREAM_OVERALL_MS;
+      const callGateway = (model: string, deadlineMs: number): Promise<Response> =>
+        withRetries(
+          `fleety-chat-gateway:${model}`,
+          async (signal) => {
+            const res = await fetch(OPENROUTER_URL, {
+              method: "POST",
+              signal,
+              headers: {
+                Authorization: `Bearer ${LLM_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model,
+                temperature: FLEETY_LLM_TEMPERATURE, // determinism: no drift for the same question
+                seed: FLEETY_LLM_SEED,
+                // DeepSeek → US providers (data residency), via the one residency-pin owner.
+                ...(model.includes("deepseek") ? { provider: OPENROUTER_PROVIDER } : {}),
+                messages: [{ role: "system", content: fullSystemPrompt }, ...sanitizedMessages],
+                // Material/review turns are generated NON-streamed so the whole answer can be validated
+                // before release (strict capability-denial block, ADR-0034); all other turns stream live.
+                stream: !materialWasReadable,
+                max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
+              }),
+            });
+            await throwForLlmStatus(res); // 429 → wait+retry, 5xx → backoff+retry, 4xx → fail fast
+            return res;
+          },
+          { timeoutMs: perAttemptMs, deadlineMs }
+        );
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          log.warn("ai", `AI gateway rate limit exceeded [${requestId}]`, {
+      // Primary answerer, then the fallback model (skipped if unset or identical to the primary). Each
+      // model draws from ONE shared wall-clock budget; when it is spent we stop and degrade (below)
+      // rather than let a second full deadline stack up and trip the edge function wall-clock limit.
+      const gatewayModels = [FLEETY_LLM_MODEL, FLEETY_LLM_FALLBACK_MODEL].filter(
+        (m, i, a) => !!m && a.indexOf(m) === i
+      );
+      const gatewayStart = Date.now();
+      let response: Response | null = null;
+      let usedFallbackModel = false;
+      let lastGatewayFailure: unknown = null;
+      for (const model of gatewayModels) {
+        const remainingMs = overallDeadlineMs - (Date.now() - gatewayStart);
+        if (remainingMs <= 0) break; // shared budget spent → degrade, don't blow the wall-clock
+        try {
+          response = await callGateway(model, remainingMs);
+          usedFallbackModel = model !== FLEETY_LLM_MODEL;
+          if (usedFallbackModel)
+            log.warn("ai", `primary model failed — answered via fallback model [${requestId}]`, {
+              requestId,
+              model,
+            });
+          break;
+        } catch (e) {
+          lastGatewayFailure = e;
+          const cause = e instanceof Error && e.cause !== undefined ? e.cause : e;
+          log.warn("ai", `gateway attempt failed [${requestId}]`, {
             requestId,
-            httpStatus: 429,
+            model,
+            err: cause instanceof Error ? cause.message : String(cause),
           });
-          return new Response(
-            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-            {
-              status: 429,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
         }
-        if (response.status === 402) {
-          log.warn("ai", `AI usage limit reached [${requestId}]`, { requestId, httpStatus: 402 });
-          return new Response(
-            JSON.stringify({ error: "AI usage limit reached. Please try again later." }),
-            {
-              status: 402,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-        const t = await response.text();
-        log.error("ai", `AI gateway error [${requestId}]: HTTP ${response.status}`, {
-          requestId,
-          httpStatus: response.status,
-        });
-        // OWASP A09: Don't leak error details to client
-        return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
       // Shared response headers (sources/chips/intent) — identical for the streamed and the
       // buffered (strict material) paths; sources are code-guaranteed (D-08), independent of the model.
-      const buildSSEHeaders = (): Record<string, string> => {
+      const buildSSEHeaders = (opts?: { degraded?: boolean }): Record<string, string> => {
         const chipsB64 =
           actionChips.length > 0
             ? btoa(unescape(encodeURIComponent(JSON.stringify(actionChips))))
@@ -2065,7 +2114,7 @@ serve(
         const h: Record<string, string> = {
           ...corsHeaders,
           "Access-Control-Expose-Headers":
-            "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Mode, X-Fleety-Retrieval, X-Fleety-Cache, X-Fleety-Guard, X-Fleety-Sources",
+            "X-Fleety-Turn-Id, X-Fleety-Intent, X-Fleety-Chips, X-Fleety-Practical, X-Fleety-Mode, X-Fleety-Retrieval, X-Fleety-Cache, X-Fleety-Guard, X-Fleety-Sources, X-Fleety-Degraded",
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
@@ -2073,14 +2122,58 @@ serve(
           "X-Fleety-Practical": practical ? "1" : "0",
           "X-Fleety-Mode": chatMode,
           "X-Fleety-Retrieval": kbRetrievalMode,
-          "X-Fleety-Cache": "miss",
+          "X-Fleety-Cache": opts?.degraded ? "degraded" : "miss",
           "X-Fleety-Guard": costGuardStep,
         };
+        if (opts?.degraded) h["X-Fleety-Degraded"] = "1";
         if (signalTurnId) h["X-Fleety-Turn-Id"] = signalTurnId;
         if (chipsB64) h["X-Fleety-Chips"] = chipsB64;
         if (srcUrls.length) h["X-Fleety-Sources"] = JSON.stringify(srcUrls);
         return h;
       };
+
+      // Every model failed after retries. NEVER a dead error (ADR-0044): degrade to a useful,
+      // ACCURATE answer built only from the sources already retrieved for this question, and report
+      // LOUDLY so an outage stays visible to admins even though the trainee is not blocked (edge
+      // rule: a failure the caller can't see must reach the observability sink).
+      if (!response) {
+        const cause =
+          lastGatewayFailure instanceof Error && lastGatewayFailure.cause !== undefined
+            ? lastGatewayFailure.cause
+            : lastGatewayFailure;
+        // Precise reason for admin alerting: out-of-credits (top up) vs a sustained throttle vs other.
+        const reason =
+          cause instanceof LlmTerminalError && /HTTP 402\b/.test(cause.message)
+            ? "out_of_credits"
+            : cause instanceof LlmRateLimitError
+              ? "rate_limited"
+              : "gateway_error";
+        log.error("ai", `all gateway models failed — serving graceful degrade [${requestId}]`, {
+          requestId,
+          models: gatewayModels.join(","),
+          reason,
+          err: cause instanceof Error ? cause.message : String(cause),
+        });
+        // Durable record so a masked outage is queryable by admins, not only in ephemeral edge logs
+        // (edge rule: a failure the caller can't see must reach the audit sink). Compose the shared
+        // owner (correct RPC params + per-event cap/dedup so a sustained outage can't flood audit_log);
+        // it is best-effort internally, so an audit failure can never break the degraded answer.
+        void auditEdgeEvent(supabase, {
+          fn: "techfleet-chat",
+          event: "fleety_chat_degraded",
+          recordId: requestId,
+          userId: user.id,
+          severity: "error",
+          fields: [`reason:${reason}`],
+          errorMessage: cause instanceof Error ? cause.message : String(cause),
+        });
+        const degradeSources = [...new Set([...graphSourceUrls, ...extractSourceUrls(kbHits, 8)])]
+          .filter((u) => /^https?:\/\//i.test(u))
+          .slice(0, 5);
+        return new Response(buildCacheSSEStream(buildDegradeMarkdown(degradeSources)), {
+          headers: buildSSEHeaders({ degraded: true }),
+        });
+      }
 
       // ── STRICT capability-denial block (material/review turns) ─────────────────────────
       // On a turn holding the member's material, we must NEVER stream a reply that denies being
@@ -2141,7 +2234,10 @@ serve(
         haveEmbeddings &&
         !cannedAnswerId &&
         webResult.sources.length === 0 &&
-        lastUserMessage.length <= 800;
+        lastUserMessage.length <= 800 &&
+        // Never cache a fallback-model answer: the L2/L3 store is permanent per kb_version, so a
+        // flatter fallback reply would be replayed even after the primary model recovers (ADR-0044).
+        !usedFallbackModel;
       const queryHash = isCacheable
         ? await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`)
         : "";
