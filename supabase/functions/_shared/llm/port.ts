@@ -272,7 +272,38 @@ export async function withRetries<T>(
       clearTimeout(timer);
     }
   }
-  throw new Error(`${label}: failed within ${opts.deadlineMs}ms budget: ${String(lastErr)}`);
+  // Preserve the LAST underlying failure as `cause` so a caller can classify the exhaustion
+  // (e.g. a persistent 429 vs a 5xx) after the budget runs out — the message stays unchanged.
+  throw new Error(`${label}: failed within ${opts.deadlineMs}ms budget: ${String(lastErr)}`, {
+    cause: lastErr,
+  });
+}
+
+/**
+ * Map an OpenAI-compatible gateway response onto the retry taxonomy `withRetries` understands, so
+ * EVERY gateway caller — the structured hand-off path AND the streaming techfleet-chat path —
+ * classifies a 429 / 5xx / 4xx identically (compose _shared, don't hand-roll a second policy).
+ * Returns (no throw) when the response is OK and the caller should consume its body.
+ *   - 429           -> LlmRateLimitError, waiting the Retry-After / x-ratelimit-reset window (capped)
+ *   - >= 500        -> transient Error (retry with backoff)
+ *   - other !res.ok -> LlmTerminalError (4xx: fail fast, never retried)
+ */
+export async function throwForLlmStatus(res: Response): Promise<void> {
+  if (res.ok) return; // OK: the caller consumes the body
+  // Drain-and-discard the error body before a RETRYABLE throw, so a retried attempt never leaves an
+  // undrained response holding its connection open — this now runs on the interactive chat hot path,
+  // where many concurrent retries during an upstream 429/5xx window could otherwise accumulate.
+  if (res.status === 429) {
+    const waitMs = Math.min(rateLimitWaitMs(res.headers) ?? 1000, MAX_RATE_WAIT_MS);
+    await res.body?.cancel().catch(() => {});
+    throw new LlmRateLimitError(waitMs);
+  }
+  if (res.status >= 500) {
+    await res.body?.cancel().catch(() => {});
+    throw new Error(`transient HTTP ${res.status}`); // retry
+  }
+  // 4xx: fail fast; reading the body both drains it and yields an actionable message snippet.
+  throw new LlmTerminalError(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
 }
 
 /**
@@ -313,13 +344,7 @@ export async function generateStructured(
         },
         body: JSON.stringify(body),
       });
-      if (res.status === 429)
-        throw new LlmRateLimitError(
-          Math.min(rateLimitWaitMs(res.headers) ?? 1000, MAX_RATE_WAIT_MS)
-        );
-      if (res.status >= 500) throw new Error(`transient HTTP ${res.status}`); // retry
-      if (!res.ok)
-        throw new LlmTerminalError(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`); // 4xx: fail fast
+      await throwForLlmStatus(res); // 429 -> wait+retry, 5xx -> backoff+retry, 4xx -> fail fast
       const json = await res.json();
       const usage = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } })
         .usage;
