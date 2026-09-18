@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-ARCH-CUTOVER-023 — Ratchet guard for warn-level auth-invariants rules.
  *

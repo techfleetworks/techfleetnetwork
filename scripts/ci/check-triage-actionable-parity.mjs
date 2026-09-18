@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 // ci-guard-integrity: bespoke-dir-reader — reads one TS file + newest matching migration
 // CI guard: TS NON_ACTIONABLE_EVENT_TYPES must be a subset of the DB
 // public.is_actionable_event_type() non-actionable array. This is the

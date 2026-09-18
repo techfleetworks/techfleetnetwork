@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * CI guard: every flow under src/features/auth/flows/ MUST return a
  * Result<AuthOk, AuthErr> (discriminated union with `kind`). Bare throws or

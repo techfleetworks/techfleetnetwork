@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 /**
  * JOURNEY-IDENTITY-001 SQL smoke.
  *
