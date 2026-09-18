@@ -16,28 +16,23 @@ is behind — you would mark unapplied migrations as "applied" and freeze the dr
 
 ## Step 2 — Bootstrap the ledger (mark every current migration as applied)
 
-Run once, locally, from the repo root, with the Supabase CLI (v2.30.4) authenticated
-(`SUPABASE_ACCESS_TOKEN`) and the prod DB password to hand:
+**Preferred — one click, no local setup** (uses the `SUPABASE_DB_PASSWORD` secret from Step 3, so do
+Step 3 first, and merge this PR so the workflow is on `main` and thus dispatchable):
+
+> GitHub → Actions → **Deploy migrations** → **Run workflow** → set **mode = `bootstrap-ledger`** → Run.
+
+That job marks every migration in the repo as applied and then runs `supabase db push --dry-run`,
+which must end with **no pending migrations**. Only run it after Step 1 (prod == main) — otherwise it
+would mark unapplied migrations "applied" and freeze the drift in.
+
+**Alternative — locally**, from the repo root, with the CLI (v2.30.4) authenticated
+(`SUPABASE_ACCESS_TOKEN`) and the prod DB password:
 
 ```bash
 supabase link --project-ref pzvqxdgoztbfikfuifix   # prompts for the DB password
-
-# Mark every migration in the repo as already-applied (prod == main from Step 1),
-# so db push treats them as done and only applies NEW ones from here on.
-for v in $(ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//'); do
-  supabase migration repair --status applied "$v"
-done
+supabase migration repair --status applied $(ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//')
+supabase db push --dry-run   # must report: no pending migrations
 ```
-
-Then verify the baseline is clean — this must report **no pending migrations**:
-
-```bash
-supabase db push --dry-run
-```
-
-(If `migration repair` is unavailable in your CLI, the equivalent is inserting each `version` into
-`supabase_migrations.schema_migrations` with `ON CONFLICT DO NOTHING`; prefer the CLI, which owns that
-table's exact shape.)
 
 ## Step 3 — Add the repo secret
 
