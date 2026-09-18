@@ -190,6 +190,22 @@ Deno.serve(
       fn: "gumroad-backfill-all", event: "gumroad_backfill_all_completed", traceId: ctx.traceId, severity: "info",
       fields: [`sales:${sales.length}`, `ingested:${ingested}`, `pending:${pending}`, `skipped:${skipped}`],
     });
-    return json({ ok: true, sales: sales.length, ingested, pending, skipped }, 200);
+
+    // Webhook-gap alarm (ADR-0044). The upsert above uses ignoreDuplicates, so any row
+    // this backfill NEWLY created (ingested + pending) is a sale the real-time webhook
+    // MISSED. Emit it at ERROR so a dark / mis-wired webhook surfaces in the Activity Log
+    // within the hour, instead of going unnoticed for weeks (the Aug-2026 Ping mismatch).
+    const webhookMissed = ingested + pending;
+    if (webhookMissed > 0) {
+      void auditEdgeEvent(auditClient, {
+        fn: "gumroad-backfill-all", event: "gumroad_webhook_gap_detected", traceId: ctx.traceId,
+        severity: "error",
+        fields: [`missed:${webhookMissed}`, `ingested:${ingested}`, `pending:${pending}`],
+        errorMessage:
+          `Backfill ingested ${webhookMissed} sale(s) the real-time webhook missed — ` +
+          `verify the Gumroad Ping URL + secret (GUMROAD_PING_SECRET) and seller id.`,
+      });
+    }
+    return json({ ok: true, sales: sales.length, ingested, pending, skipped, webhookMissed }, 200);
   }),
 );
