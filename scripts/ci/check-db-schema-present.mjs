@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * DB-SCHEMA-PRESENT-001 (ADR-0036) — the schema-reconciliation gate.
  *
@@ -36,6 +37,8 @@
  * Extraction self-check (no prod): DB_SCHEMA_EXTRACT_ONLY=1 node scripts/ci/check-db-schema-present.mjs
  * Test seams (refused in CI unless DB_SCHEMA_ALLOW_SEAMS=1, which only the smoke test sets):
  *   DB_SCHEMA_ROOT, DB_SCHEMA_PROD_FIXTURE, DB_SCHEMA_DUMP, DB_SCHEMA_EXTRACT_ONLY, DB_SCHEMA_PROBE.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — ADR-0036 schema-reconciliation gate: readdirSync over migrations to derive declared objects, then queries prod via the Management API (not a recursive content scan)
  */
 import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";

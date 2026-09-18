@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * DB-SCHEMA-ALLOWLIST-SHRINK-001 — the ADR-0036 drift allowlist may only SHRINK, mechanically.
  *
@@ -26,6 +27,8 @@
  * reader (one JSON, not a recursive scan) — listed in check-ci-guard-integrity's BESPOKE_DIR_READERS;
  * owns its own fail-closed + evidence. Pinned by
  * src/test/smoke/check-db-schema-allowlist-shrinks.smoke.test.ts.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — ADR-0036 drift-allowlist shrink ratchet: reads one JSON and compares per-category counts to committed caps (not a recursive content scan)
  */
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";

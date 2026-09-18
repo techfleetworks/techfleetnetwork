@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * GATE-INTEGRITY companion — every guard in scripts/ci/ must have a COMMITTED test.
  *
@@ -25,6 +26,8 @@
  * cross-references the test tree — not a single-root content scan), so it is a named
  * exception in check-ci-guard-integrity.mjs's BESPOKE_DIR_READERS. It is pinned by
  * src/test/smoke/check-guard-has-test.smoke.test.ts (it obeys its own rule).
+ *
+ * ci-guard-integrity: bespoke-dir-reader — enumerates guards + cross-references the test tree (not a content scan)
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";

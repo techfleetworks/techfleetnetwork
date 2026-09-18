@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 /**
  * SUPPORT-IDENTITY-001 guard (audit T-A): the support/Freescout subsystem must
  * key on the AUTH uid (profiles.user_id = auth.uid()), NEVER the random

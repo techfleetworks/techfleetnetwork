@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * MIGRATION-VERSION-001 guard: no two files in supabase/migrations/ may share a
  * version prefix (the `<version>` in `<version>_<name>.sql`, i.e. the numeric part
@@ -18,6 +19,8 @@
  *
  * Fix when it fires: renumber one file to a unique version greater than the current
  * max — take `max(all existing versions) + an increment`, never reuse a date.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — filename collision detector
  */
 import { readdirSync } from "node:fs";
 

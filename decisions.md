@@ -233,10 +233,38 @@ and its committed test must go red. See ADR-0022, ADR-0023; the transferable pla
 `check-owasp-coverage` / `check-triage-actionable-parity` are the models. The meta-guard
 `check-ci-guard-integrity.mjs` (wired into the required gate) enforces the worst case — no
 `exit(0)` inside a `catch`; a deliberate fail-open opts out with a `// ci-guard-integrity-ok: <reason>`
-marker. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining guards) is
-tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
-`check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
-verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.
+marker. It also forbids a **hand-rolled directory walk** — a guard that reads the tree without the
+shared `_guard.mjs` harness (which owns fail-closed / zero-scan / evidence). A genuinely bespoke reader
+(a collision detector, a manifest generator, a DB/API query) opts out by **self-declaring in its own
+file** — never by editing a central list, which made every guard PR conflict on one hunk (ADR-0046):
+
+```
+❌ never — a central Set every guard PR must edit (a conflict magnet), or a raw walk with no opt-out
+const BESPOKE_DIR_READERS = new Set(["check-foo.mjs", …])   // two guard PRs always collide on this line
+readdirSync(dir)   // a guard with no harness AND no marker → flagged as a hand-rolled walk
+// see the ci-guard-integrity: bespoke-dir-reader marker docs   ← mid-sentence mention → does NOT exempt
+✅ always — the marker is the LEADING content of a comment line, in the guard's OWN file, with a reason
+// ci-guard-integrity: bespoke-dir-reader — reads migration filenames, not a recursive content scan
+```
+
+The marker must be the **leading content of a comment line and carry a `— <reason>`** (matched by an
+anchored regex), so a mention embedded elsewhere — in a string literal, a help message, or mid-sentence
+in prose (a "do NOT …" example, or a docblock documenting the format) — can't silently self-exempt; only
+a deliberate, reviewed declaration does. That is the false-green this guard exists to catch. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining
+guards) is tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
+every `check-*.mjs` self-declares a **CI lane** (ADR-0047) and `check-guards-wired.mjs` fails if any guard
+declares none. critical/standard guards ride the lint-arch matrices DERIVED from those markers
+(`emit-guard-matrix.mjs`) so a new guard never edits `ci.yml`; a `bespoke` guard (special setup —
+fetch-depth:0, prod creds, an own job) must have its own live workflow step (ADR-0024, mechanized in
+**ADR-0029/0047**); deliberate deferrals go on a shrink-only allowlist.
+
+```
+❌ never — append your new guard to a hand-maintained matrix list in ci.yml (every guard PR collides here)
+# .github/workflows/ci.yml
+matrix: { check: [check-a.mjs, …, check-your-new-one.mjs] }   ← central list = per-merge conflict magnet
+✅ always — the guard self-declares its lane; the matrix is DERIVED (emit-guard-matrix.mjs → fromJSON)
+// ci-lane: standard   ← in the guard's OWN file (critical = blocking, standard = informational, bespoke = own step)
+```
 
 **Verify reality, not a ledger.** A gate must assert the thing that matters, not a claim that stands in
 for it. The migration-applied gate (ADR-0020) queried prod's `schema_migrations` ledger — a table that

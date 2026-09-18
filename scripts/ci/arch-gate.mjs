@@ -16,6 +16,8 @@
  * Design: on CI, run with --changed so the gate blocks NEW drift without demanding an upfront
  * cleanup of the whole legacy tree. Known pre-existing hotspots go in the waivers file (with a
  * reason + expiry) so the ratchet only tightens.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — the flagship architecture engine — its own dependency-free scanner, already fail-closed + evidence-bearing
  */
 import fs from "node:fs";
 import path from "node:path";

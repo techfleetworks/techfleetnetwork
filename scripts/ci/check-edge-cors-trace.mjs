@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * EDGE-CORS-TRACE-001 — every edge function invoked from the browser must allow the
  * `x-trace-id` CORS preflight header.
@@ -29,6 +30,8 @@
  * supabase/functions/ root, an unreadable or x-trace-id-less _shared/http.ts owner, or zero
  * discovered call sites exits non-zero rather than passing vacuously. Pinned by
  * src/test/smoke/check-edge-cors-trace.smoke.test.ts.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — cross-references src/ invokeEdge call sites with supabase/functions CORS (not a per-file content scan)
  */
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";

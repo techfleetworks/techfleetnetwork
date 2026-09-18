@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-ARCH-CUTOVER-015 — lock the deletion of `src/services/auth.service.ts`.
  *

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * ADR-NUMBER-001 guard: no two files in docs/adr/ may share a `NNNN` number
  * (the numeric prefix in `<NNNN>-<slug>.md`).
@@ -24,6 +25,8 @@
  * (renumbering merged, cross-referenced ADRs would break existing links). The
  * guard blocks only NEW collisions — a fresh number, or a THIRD file on a
  * grandfathered number. As these are cleaned up, remove them from the set below.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — filename collision detector
  */
 import { readdirSync } from "node:fs";
 

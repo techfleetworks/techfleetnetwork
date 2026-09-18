@@ -193,15 +193,11 @@ describe("edge-function audit-wrapper coverage guard (smoke)", () => {
     expect(runGuard(REPO)).toBe(0);
   });
 
-  it("EAW-010: the guard is wired into the BLOCKING lint-arch-critical CI matrix", () => {
-    const ci = read(".github/workflows/ci.yml");
-    // Must appear in lint-arch-critical (blocking), not the informational lint-arch job.
-    const criticalBlock = ci.slice(
-      ci.indexOf("lint-arch-critical:"),
-      ci.indexOf("lint-arch:") > ci.indexOf("lint-arch-critical:")
-        ? ci.indexOf("lint-arch:")
-        : ci.length
+  it("EAW-010: the guard declares the BLOCKING critical CI lane (ADR-0047)", () => {
+    // The lint-arch-critical matrix is DERIVED from each guard's `// ci-lane` marker (ADR-0047), not a
+    // hardcoded ci.yml list. `critical` is the blocking lane (not the informational `standard` one).
+    expect(read("scripts/ci/check-edge-audit-wrapper-coverage.mjs")).toMatch(
+      /^\/\/ ci-lane: critical\b/m
     );
-    expect(criticalBlock).toContain("check-edge-audit-wrapper-coverage.mjs");
   });
 });

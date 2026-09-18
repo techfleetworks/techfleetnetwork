@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 // Audit T-A guard: `profiles.id` is a random PK; the auth identity column is
 // `user_id` (== auth.uid()). Confusing them silently no-ops identity
 // lookups/updates. Flags the two recurring shapes:

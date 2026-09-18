@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 /**
  * CI guard for Part 1 §1.1 — Audit-log tri-partite sink architecture.
  *

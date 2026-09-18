@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * Phase 1 chokepoint — every HTTP-serving edge function must wrap its top-level
  * handler in `withAuditWrapper` (supabase/functions/_shared/audit.ts). The wrapper

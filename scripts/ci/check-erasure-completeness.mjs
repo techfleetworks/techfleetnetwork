@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * ERASURE-COMPLETENESS-001 — the WINNING handle_user_deletion() must erase/de-identify EVERY
  * registered PII table.
@@ -21,6 +22,8 @@
  * reader (reads migration filenames + the one winning function body — not a recursive content scan);
  * listed in check-ci-guard-integrity's BESPOKE_DIR_READERS. Pinned by
  * src/test/smoke/check-erasure-completeness.smoke.test.ts. See ADR-0039.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — ADR-0039 right-to-erasure guard: reads migration filenames + the winning handle_user_deletion body (not a recursive content scan)
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";

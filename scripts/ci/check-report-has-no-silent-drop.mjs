@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * REPORT-NO-SILENT-DROP-001 (ADR-0031) — report() must never silently drop.
  *
