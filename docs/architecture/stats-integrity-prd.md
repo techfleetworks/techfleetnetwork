@@ -1,7 +1,7 @@
 # PRD — Stats integrity: make every displayed number impossible to be wrong or stale
 
 **Status:** proposed · **Owner:** mdenner · **Author:** engineering (this branch: `fix/course-completion-counts`)
-**Companion ADR:** [ADR-0046 — live-derived stats, single source of truth](../adr/0046-live-derived-stats-single-source.md)
+**Companion ADR:** [ADR-0048 — live-derived stats, single source of truth](../adr/0048-live-derived-stats-single-source.md)
 **Date:** 2026-09-18
 
 ---

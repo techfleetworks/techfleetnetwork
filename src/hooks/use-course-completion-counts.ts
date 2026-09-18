@@ -16,7 +16,7 @@ export interface CourseCompletionSpec {
  * Aggregate count of members who have completed each course (includes the viewer
  * if they have). Powered by the SECURITY DEFINER RPC `get_course_completion_counts`,
  * which counts the live source-of-truth rows (journey_progress) — excluding test
- * accounts — and returns counts only, never per-user rows (ADR-0046).
+ * accounts — and returns counts only, never per-user rows (ADR-0048).
  *
  * Cached for 5 minutes — vanity stat, no need for tight freshness.
  */

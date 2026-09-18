@@ -51,7 +51,7 @@ describe("NetworkActivity", () => {
     expect(screen.getAllByText("Core Course Completions")).toHaveLength(2);
     expect(screen.getAllByText("Platform Signups")).toHaveLength(2);
     // "Core Course Completions" reads the core-tier figure (all-time + prev-week),
-    // not the all-tier course_completions_total — ADR-0046 fixed that mislabel.
+    // not the all-tier course_completions_total — ADR-0048 fixed that mislabel.
     expect(screen.getAllByText("49")).toHaveLength(2);
     expect(screen.getAllByText("122")).toHaveLength(2);
     expect(screen.getByText("120")).toBeInTheDocument();

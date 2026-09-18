@@ -1,4 +1,4 @@
-// ADR-0046 guard — the read path for displayed stats must be LIVE-derived and must never
+// ADR-0048 guard — the read path for displayed stats must be LIVE-derived and must never
 // revert to a stored/denormalized counter table. If someone reintroduces a snapshot read in
 // the display RPCs, this fails. Pairs with the pgTAP proof
 // (supabase/tests/stats_live_derivation_test.sql) and the arch-gate rule that keeps the
@@ -28,7 +28,7 @@ function latestDefinitionBody(fnName: string): { file: string; body: string } {
   throw new Error(`No CREATE OR REPLACE FUNCTION for ${fnName} found in migrations`);
 }
 
-describe("Displayed stats are live-derived, not read from a stored counter (ADR-0046)", () => {
+describe("Displayed stats are live-derived, not read from a stored counter (ADR-0048)", () => {
   it("STATS-016: get_network_stats does NOT read network_stats_snapshots", () => {
     const { body } = latestDefinitionBody("get_network_stats");
     expect(body).not.toMatch(/network_stats_snapshots/);

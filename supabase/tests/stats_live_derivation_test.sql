@@ -1,4 +1,4 @@
--- pgTAP — proves the displayed-stats RPCs are LIVE reads of the source of truth (ADR-0046),
+-- pgTAP — proves the displayed-stats RPCs are LIVE reads of the source of truth (ADR-0048),
 -- not stored counters. A stored/denormalized counter cannot pass these: the count must move
 -- the instant a row changes, within this same rolled-back transaction (no recompute, no cron).
 -- Run: `supabase db test` (or pg_prove) against a DB with the migrations applied.

@@ -49,7 +49,7 @@ Mirrors of Discord / Freescout / Airtable / Gumroad get a single sync path; `dis
 **Displayed stats are live-derived, never read from a stored counter.** A number shown to a human
 is a live count of its owning rows, computed in the read path — not a denormalized total that a
 cron/trigger refreshes. Stored counters freeze when their job stops and drift when a fact has two
-writers (ADR-0046: Platform Signups sat at **768** for months because its snapshot's cron was not
+writers (ADR-0048: Platform Signups sat at **768** for months because its snapshot's cron was not
 running; course-card counts drifted via a `+1` trigger over an only-grows ledger).
 
 ```
