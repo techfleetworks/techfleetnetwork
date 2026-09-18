@@ -1,0 +1,317 @@
+[
+  {
+    "cat": "constraints",
+    "soundness": "has-gaps",
+    "prodSQL": "select \u0027constraint\u0027 as kind,\n       lower(rel.relname || \u0027.\u0027 || con.conname) as identifier\nfrom pg_constraint con\njoin pg_class rel on rel.oid = con.conrelid\njoin pg_namespace nsp on nsp.oid = rel.relnamespace\nwhere nsp.nspname = \u0027public\u0027\n  and con.conrelid \u003c\u003e 0            -- exclude domain/other constraints (table constraints only)\n  and con.contype in (\u0027c\u0027,\u0027f\u0027,\u0027u\u0027,\u0027p\u0027,\u0027x\u0027)  -- check, foreign key, unique, primary key, exclusion\norder by identifier;",
+    "norm": "Lowercased `table.constraint_name`. Extraction: table = the bare last segment captured by RE_ALTER (optional `public.`/other schema qualifier and double-quotes stripped), constraint = the identifier after ADD CONSTRAINT (quotes stripped); joined `table + \u0027.\u0027 + name`, lowercased. Prod: lower(pg_class.relname || \u0027.\u0027 || pg_constraint.conname) for public-schema table constraints. Postgres constraint names are unique per table (a table cannot hold two constraints of the same name), so (table, conname) is an exact, collision-free key regardless of constraint type â€” the type is intentionally NOT part of the identifier. All real identifiers in the repo are unquoted lowercase, so lowercasing both sides is loss-free here.",
+    "regexes": [
+      "STRIP FIRST (order matters): block comments /\\/\\*[\\s\\S]*?\\*\\//g then line comments /--[^\\n]*/g",
+      "RE_ALTER (table, with offsets via matchAll; g+i): /\\balter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?(?:\"?[a-zA-Z_][a-zA-Z0-9_$]*\"?\\s*\\.\\s*)?\"?([a-zA-Z_][a-zA-Z0-9_$]*)\"?/gi",
+      "RE_ADD (constraint name; g+i): /\\badd\\s+constraint\\s+(?:if\\s+not\\s+exists\\s+)?\"?([a-zA-Z_][a-zA-Z0-9_$]*)\"?/gi",
+      "RE_DROP (constraint name, for net-state subtraction; g+i): /\\bdrop\\s+constraint\\s+(?:if\\s+exists\\s+)?\"?([a-zA-Z_][a-zA-Z0-9_$]*)\"?/gi",
+      "PAIRING (not a regex): for each RE_ADD/RE_DROP match at index i, governing table = table of the ALTER match with the greatest index \u003c i AND sql.slice(alterIndex, i).indexOf(\u0027;\u0027) === -1; else orphan -\u003e discard. Emit `${table.toLowerCase()}.${name.toLowerCase()}`."
+    ],
+    "fpFilters": [
+      "Comments stripped before scanning (-- line and /* */ block), so commented-out DDL is never counted.",
+      "Orphan ADD/DROP CONSTRAINT (no governing ALTER TABLE in the same statement â€” none preceding, or a \u0027;\u0027 between) is discarded. This structurally drops phantoms from Gherkin/prose and dynamic-SQL text living inside $$...$$ bodies, since such text lacks a real `ALTER TABLE \u003cident\u003e ... ADD CONSTRAINT` with no intervening \u0027;\u0027.",
+      "Drop any identifier whose TABLE part === \u0027public\u0027 â€” the classic phantom where a schema name is mis-captured as a table (mirrors the fake `public` table the tables gate guards against).",
+      "Drop identifiers whose table or name is a bare SQL keyword accidentally captured from prose (e.g. table/constraint/exists/not/if) â€” belt-and-suspenders.",
+      "Reviewed allowlist file scripts/ci/db-constraints-allowlist.json (shape {\"constraints\": [\"table.name\", ...]}) for constraints intentionally dropped/renamed out of band, or confirmed phantoms from a future function body / dynamic SQL. Keep it shrinking; a false positive is cheap (allowlist it) but a false negative is not.",
+      "Zero-scan tripwire: an empty final set fails closed rather than passing vacuously."
+    ],
+    "fixes": [
+      "Close the predicate-drift gap for the redefined constraints: have the prod SQL also return pg_get_constraintdef(con.oid) as condef, capture the net-final constraint BODY from the migration text (everything after the name up to the statement terminator), normalize both (collapse whitespace, lowercase keywords, canonicalize IN(...) vs = ANY(ARRAY[...])), and diff. At minimum gate the CHECK (contype=\u0027c\u0027) and FK (contype=\u0027f\u0027) bodies for names that are DROP+re-ADD\u0027d more than once - that is the exact set (email_send_log_status_check, agent_fix_queue_status_check, classes checks) where a stale predicate is known to be the risk.",
+      "Before computing offsets and the semicolon-between scan, mask (replace with equal-length spaces) single-quoted string literals, dollar-quoted spans ($$...$$, $tag$...$tag$, $g$...$g$, $cron$...$cron$), in addition to the comments already stripped. This keeps a \u0027;\u0027 inside a CHECK body or Gherkin/DO text from corrupting statement boundaries, and hardens the primary orphan/phantom defense against future compound multi-ADD statements. Keep the ADD/DROP CONSTRAINT keyword matching on the masked text but recover the actual name from the original offsets.",
+      "Strengthen the tripwire from `size===0` to a floor: assert the final declared count is \u003e= a committed baseline (today ~20) or fail closed, so a partial capture regression is caught, not just total wipeout. Store the baseline next to the allowlist and require it to move deliberately.",
+      "Explicitly confirm (in the spec and in CI) that inline CREATE TABLE / column-level constraints are owned by a separate present-check category and that class_module_progress_pkey, class_module_sections title/summary CHECKs, etc. are actually verified there; otherwise this category\u0027s scope-out becomes an unowned blind spot for the never-applied-inline case."
+    ]
+  },
+  {
+    "cat": "columns",
+    "soundness": "has-gaps",
+    "prodSQL": "select \u0027column\u0027 as kind,\n       c.relname || \u0027.\u0027 || a.attname as identifier\nfrom pg_catalog.pg_attribute a\njoin pg_catalog.pg_class      c on c.oid = a.attrelid\njoin pg_catalog.pg_namespace  n on n.oid = c.relnamespace\nwhere n.nspname = \u0027public\u0027\n  and c.relkind in (\u0027r\u0027,\u0027p\u0027)      -- ordinary + partitioned base tables (declared columns live on tables)\n  and a.attnum \u003e 0                -- exclude system columns (ctid, oid, ...)\n  and not a.attisdropped          -- exclude columns dropped in prod (a dropped col is genuine drift vs a declaration)\norder by 1,2;\n-- Returns lowercase relname.attname for unquoted identifiers, matching the extractor\u0027s normalization exactly.\n-- Restricted to relkind r/p (not views/matviews) on purpose: a view column must never mask a missing table\n-- column (that would hide drift = false negative). This makes the gate stricter, i.e. fail-closed.\n-- (If the fetch harness expects the column alias \u0027name\u0027 as in check-db-objects-present.mjs, alias identifier AS name.)",
+    "norm": "Lowercased \"table.column\": strip any leading schema qualifier (public.) and surrounding double-quotes from BOTH the table and the column, join with a single dot, lowercase the whole string. Examples: `ALTER TABLE public.profiles ADD COLUMN portfolio_url ...` -\u003e `profiles.portfolio_url`; inside `CREATE TABLE public.email_send_log ( ... recipient_email TEXT ... )` -\u003e `email_send_log.recipient_email`. Prod side produces the identical form via `relname || \u0027.\u0027 || attname` (already lowercase for unquoted identifiers). Assumes all identifiers are unquoted/lowercase (true across the corpus); a mixed-case quoted identifier would need case-preserving comparison and is listed as a known gap.",
+    "regexes": [
+      "SANITIZE line comments: /--[^\\n]*/g  -\u003e  \u0027 \u0027  (apply only within the single-pass lexer, not standalone)",
+      "SANITIZE block comments: /\\/\\*[\\s\\S]*?\\*\\//g  -\u003e  \u0027 \u0027",
+      "SANITIZE single-quoted strings incl. E\u0027\u0027 and doubled \u0027\u0027: /(?:[eE])?\u0027(?:\\\\.|\u0027\u0027|[^\u0027])*\u0027/g  -\u003e  \"\u0027\u0027\"",
+      "DOLLAR-QUOTE tag finder (then match identical tag; KEEP span iff preceding token matches /\\bDO\\s*$/i, else STRIP): /\\$([A-Za-z_][A-Za-z0-9_]*)?\\$/g",
+      "ALTER TABLE header (track as currentAlterTable): /\\balter\\s+table\\s+(?:only\\s+|if\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?\"?([a-z_][a-z0-9_$]*)\"?/gi",
+      "ADD COLUMN (col = currentAlterTable.$1): /\\badd\\s+column\\s+(?:if\\s+not\\s+exists\\s+)?\"?([a-z_][a-z0-9_$]*)\"?/gi",
+      "DROP COLUMN (subtract currentAlterTable.$1): /\\bdrop\\s+column\\s+(?:if\\s+exists\\s+)?\"?([a-z_][a-z0-9_$]*)\"?/gi",
+      "RENAME COLUMN (subtract currentAlterTable.$1, add currentAlterTable.$2): /\\brename\\s+column\\s+\"?([a-z_][a-z0-9_$]*)\"?\\s+to\\s+\"?([a-z_][a-z0-9_$]*)\"?/gi",
+      "CREATE TABLE header locator (capture table, then paren-match the body starting at the \u0027(\u0027; note the required \u0027(\u0027 and identifier make public.%I unmatchable): /\\bcreate\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?\"?([a-z_][a-z0-9_$]*)\"?\\s*\\(/gi",
+      "CREATE TABLE body: split on depth-1 commas via a paren-depth counter (NOT regex), then per item skip-if-constraint: /^\\s*(?:constraint|primary|foreign|unique|check|exclude|like|references|key)\\b/i",
+      "CREATE TABLE body: first-column-identifier extractor per surviving item: /^\\s*\"?([a-z_][a-z0-9_$]*)\"?/i"
+    ],
+    "fpFilters": [
+      "Any identifier whose table part OR column part contains a character outside [a-z0-9_$] after unquoting -- primarily the \u0027%\u0027 from dynamic `format(\u0027CREATE TABLE public.%I ...\u0027)` / `format(\u0027... ALTER TABLE %I ADD COLUMN ...\u0027)` in reference_* loops (20260502180318, 20260502184658, and the ~25 %I files). Belt-and-suspenders: the CREATE/ALTER regexes already fail to match %I, so these mostly never enter the set.",
+      "The bare schema token `public` as a table name (the classic \u0027fake table named public\u0027 phantom): the CREATE TABLE regex captures the identifier AFTER an optional public. prefix and never `public` itself, so `public.\u003ct\u003e` yields `\u003ct\u003e`; reject any emitted table literally equal to `public`.",
+      "Constraint keywords mis-read as column names in a CREATE TABLE body (constraint|primary|foreign|unique|check|exclude|like|references|key) -- excluded by the constraint-skip regex; filter again as a guard.",
+      "Renamed-away columns general_applications.servant_leadership_definition / servant_leadership_actions / servant_leadership_challenges / servant_leadership_situation (renamed to service_leadership_* in 20260522031707) -- handled by RENAME subtraction; if RENAME handling is disabled these four must be allowlisted.",
+      "Anything recovered from stripped regions: CREATE FUNCTION/PROCEDURE/TRIGGER `AS $$...$$` bodies and single-quoted string literals (Gherkin/prose in bdd_scenarios, known_issue_catalog, security *_scenarios INSERT...VALUES) -- removed in STEP 1, so they cannot reach the set.",
+      "Columns on non-public tables (e.g. a future ADD COLUMN on realtime.messages) -- the public-only prod query would report them absent; allowlist rather than let them fail spuriously (still fail-closed, never silently passed)."
+    ],
+    "fixes": [
+      "Fix the constraint-skip keyword list to the exact set of Postgres table-constraint / table-element leading keywords: CONSTRAINT | PRIMARY | FOREIGN | UNIQUE | CHECK | EXCLUDE | LIKE. REMOVE `key` and `references` â€” neither can begin a table-level constraint (KEY only ever follows PRIMARY/FOREIGN; REFERENCES is a column-level constraint clause, never the first token of a table element). This immediately recovers feature_flags.key, support_categories.key and the other 4. Add a regression assertion that `key text PRIMARY KEY` yields column `key`.",
+      "Harden the ALTER TABLE and CREATE TABLE header regexes to consume an ARBITRARY schema prefix `(?:\"?([a-z_][a-z0-9_$]*)\"?\\s*\\.\\s*)?` and capture it; when the captured schema is present and not `public`, route the column to the non-public allowlist path (or skip) rather than letting the schema token be captured as the table name. Prevents the `realtime.\u003ccol\u003e` misattribution.",
+      "Keep the DO-block classifier but broaden the keep-test to tolerate `DO [LANGUAGE \u003clang\u003e] $tag$` (skip an optional LANGUAGE clause between DO and the opening tag) so a labelled DO block with ADD COLUMN is never misread as a stripped function body.",
+      "Retain the zero-scan tripwire and additionally assert a sane floor (e.g. derived columns \u003e\u003e number of declared tables) so a future regex regression that silently halves the set is caught, not just the all-zero case."
+    ]
+  },
+  {
+    "cat": "cron_jobs",
+    "soundness": "has-gaps",
+    "prodSQL": "SELECT \u0027cron_job\u0027::text AS kind, jobname AS identifier\nFROM cron.job\nWHERE jobname IS NOT NULL;\n-- FAIL CLOSED: pg_cron lives in schema `cron`. If the extension was never enabled\n-- on this project, `cron.job` does not exist and this statement raises\n-- \"relation cron.job does not exist\" (HTTP 400/500 from the Management API SQL\n-- endpoint) â€” the gate MUST treat that as failure, never as \"zero jobs, all good.\"\n-- That silent skip is precisely the original outage (jobs existed only on the old\n-- Lovable project; pg_cron was never enabled on pzvqxdgoztbfikfuifix). Do NOT wrap\n-- in to_regclass()/EXISTS guards that would let absence pass. jobname is unique per\n-- role in pg_cron \u003e=1.4 (Supabase); returns one row per live scheduled job.",
+    "norm": "Identifier = the cron job name: the first argument literal of cron.schedule(...), with its surrounding single-quote (or, defensively, double-quote / $tag$...$tag$) delimiters removed and outer whitespace trimmed. Compare EXACTLY and CASE-SENSITIVELY against cron.job.jobname. pg_cron stores jobname verbatim (it is a text value, not an SQL identifier), so names such as \u0027auth_email_watchdog_15m\u0027 and \u0027edge-deploy-smoke-10min\u0027 must match byte-for-byte â€” do NOT lowercase either side (unlike the table/function derivation, which lowercases unquoted identifiers). Treat the name as an opaque string that may contain hyphens, underscores, and digits.",
+    "regexes": [
+      "/cron\\.schedule\\s*\\(\\s*\u0027([^\u0027]+)\u0027/gi",
+      "/cron\\.schedule\\s*\\(\\s*\"([^\"]+)\"/gi",
+      "/cron\\.schedule\\s*\\(\\s*\\$([A-Za-z0-9_]*)\\$([\\s\\S]*?)\\$\\1\\$/gi"
+    ],
+    "fpFilters": [
+      "Any cron.schedule/cron.unschedule text inside a -- line comment or /* */ block comment (stripped BEFORE matching) â€” e.g. 20260316051305:257 `-- ... cron.unschedule(\u0027process-email-queue\u0027)`, 20260707200000:25 `-- original cron.schedule(...) call`, 20260708170000:4 `-- cron.schedule() in a migration...`, 20260809120010:4 `-- Root cause: cron.schedule(\u0027reconcile-stuck-emails\u0027, â€¦)`",
+      "The prose token `cron.schedule(...)` / `cron.schedule()` with an ellipsis or empty parens â€” the extractor requires a quoted literal immediately after `(`, so these never capture a name; listed for completeness",
+      "Defensive: drop any captured first-arg that is actually a cron SCHEDULE expression or interval rather than a name â€” matches /^[\\d*\\/,\\-\\s]+$/ (e.g. \u0027* * * * *\u0027, \u0027*/5 * * * *\u0027, \u00270 3 * * *\u0027) or /^\\d+\\s+seconds?$/ (e.g. \u00275 seconds\u0027, \u002730 seconds\u0027). These are 2nd args and are never captured by the 3-arg extractor, but this guards against a future 2-arg cron.schedule(schedule, command) form being mistaken for a named job",
+      "unschedule-only names that are NOT scheduled (correctly excluded because they never follow cron.schedule() â€” e.g. the short aliases \u0027prewarm-ugc-worker-30s\u0027 and \u0027process-freescout-events-15s\u0027 appear only inside cron.unschedule(... jobname IN (...)) cleanup lists)",
+      "Renamed/superseded/decommissioned jobs that legitimately no longer exist in prod (e.g. \u0027drain-notification-outbox\u0027 superseded by \u0027drain-notification-fanout-jobs\u0027) â†’ not code phantoms but expected over-extraction; retire via the reviewed allowlist with a reason, never by loosening the extractor"
+    ],
+    "fixes": [
+      "Add a reconciliation tripwire that makes the dynamic-name/2-arg false negative STRUCTURALLY impossible: after comment-stripping, count occurrences of /cron\\.schedule\\s*\\(/gi and assert it EQUALS the number of captured names; on any inequality FAIL CLOSED (\u0027a cron.schedule call site produced no literal job name\u0027). Verified 66==66 today, so it passes now and trips the instant a non-literal/auto-named form is introduced. This is the single most important addition â€” the current zero-scan-only tripwire cannot catch a single dropped job.",
+      "Ship the reviewed allowlist NOW with at least the two decommissioned jobs and reasons: drain-notification-outbox (superseded by drain-notification-fanout-jobs, unscheduled 20260427041239) and triage-digest-daily (removed by 20260822160000_remove_triage_digest.sql). Without it the gate produces 2 false positives on correct prod on day one.",
+      "Wire the recommended \u0027reject non-literal first arg to cron.schedule\u0027 lint into the gate itself rather than leaving it as prose in knownGaps â€” a rule only documented is not enforced.",
+      "Fix the consumer/column contract: the SQL returns kind=\u0027cron_job\u0027, identifier=jobname, but the existing script reads r.name / kind in {table,function}. Either alias the SQL column to `name` and add a prodJobs branch on kind=\u0027cron_job\u0027, or write a dedicated consumer that reads r.identifier. Otherwise cron rows silently map to undefined (fail-closed but a wrong/confusing signal).",
+      "Resolve the normalization contradiction: compare jobname VERBATIM (no whitespace trim) and case-sensitively, so it matches pg_cron\u0027s byte-for-byte text storage; drop the \u0027outer whitespace trimmed\u0027 clause.",
+      "Confirm the fail-closed-on-missing-cron.job path is wired as an ERROR propagation: if the cron branch is UNION ALL\u0027d into the main PROD_QUERY, a non-existent cron.job errors the whole query -\u003e res not ok -\u003e existing gate already fails closed (good); if run as a separate query, ensure the same non-2xx handling. The spec\u0027s intent here is correct and is the key win â€” just verify the integration keeps it."
+    ]
+  },
+  {
+    "cat": "rls_enabled",
+    "soundness": "broken",
+    "prodSQL": "-- Read-only. Returns every base/partitioned table with RLS turned ON, in any\n-- user-visible schema, normalized to lower(schema).lower(table) to match extraction.\n-- Extra rows never cause false negatives (gate asserts declared IS-SUBSET-OF this set).\nselect\n  \u0027rls_enabled\u0027 as kind,\n  lower(n.nspname) || \u0027.\u0027 || lower(c.relname) as identifier\nfrom pg_class c\njoin pg_namespace n on n.oid = c.relnamespace\nwhere c.relkind in (\u0027r\u0027,\u0027p\u0027)          -- ordinary + partitioned tables (RLS-capable)\n  and c.relrowsecurity = true          -- RLS ENABLED (this category); NOT relforcerowsecurity\n  and n.nspname not in (\u0027pg_catalog\u0027,\u0027information_schema\u0027,\u0027pg_toast\u0027)\norder by 1, 2;",
+    "norm": "\"lower(schema).lower(table)\" â€” schema-qualified, dot-separated, all lowercased. Schema defaults to \"public\" when the ALTER omits it (none observed, but safe). Extraction lowercases the captured (schema, table); prod SQL emits lower(n.nspname)||\u0027.\u0027||lower(c.relname). Examples: public.invitations, public.feature_flags, realtime.messages, public.reference_skills.",
+    "regexes": [
+      "ENABLE (primary, capture schema=grp2 / table=grp4): /alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?(?:(\"?)([a-zA-Z0-9_]+)\\1\\s*\\.\\s*)?(\"?)([a-zA-Z0-9_%]+)\\3\\s+enable\\s+row\\s+level\\s+security/gi",
+      "DISABLE (subtract; schema=grp2 / table=grp4): /alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?(?:(\"?)([a-zA-Z0-9_]+)\\1\\s*\\.\\s*)?(\"?)([a-zA-Z0-9_%]+)\\3\\s+disable\\s+row\\s+level\\s+security/gi",
+      "DYNAMIC marker (file uses a templated %I enable loop): /\\.\\s*%i\\s+enable\\s+row\\s+level\\s+security/i",
+      "ARRAY block (recover dynamic table names, run only when marker matched): /array\\s*\\[([\\s\\S]*?)\\]/gi",
+      "ARRAY element (harvest inside each block, add as public.\u003cname\u003e): /\u0027([a-z_][a-z0-9_]*)\u0027/gi",
+      "Comment strip applied BEFORE matching: /\\/\\*[\\s\\S]*?\\*\\//g -\u003e \u0027 \u0027 then /--[^\\n]*/g -\u003e \u0027 \u0027"
+    ],
+    "fpFilters": [
+      "Any captured table containing \u0027%\u0027 (e.g. %I / %i / %s / %L) â€” dollar-quoted format() template targets from EXECUTE loops, not real tables (both files 20260502180318 and 20260502184658 hit this; validated skipped).",
+      "The literal schema word captured AS a table (bare \u0027public\u0027,\u0027table\u0027,\u0027only\u0027,\u0027if\u0027,\u0027exists\u0027) cannot occur with the anchored ENABLE regex â€” validated 0 such captures across 711 files â€” but keep them on an ignore list if the regex is ever loosened.",
+      "Array-harvest over-extraction: when scoped to ARRAY[...] it is clean today, but any non-table string literal inside such an array in a future %I-loop file would be over-added â€” resolve via the reviewed db-objects allowlist, never by loosening the no-false-negative bias.",
+      "Supabase/platform-managed schemas surfaced by the broad prod query (realtime, storage, vault, graphql, extensions) â€” harmless: the gate only checks declared-subset-of-prod, so extra prod rows are ignored, never matched against."
+    ],
+    "fixes": [
+      "Resolve the spec/harness contradiction in favor of the documented behavior: DELETE the DROP-subtraction entirely (rls_extract_test.mjs lines 71-73 and the RE_DROP definition). This restores the 213-table set, retains profiles and the other 8 publication-only \u0027drops\u0027, and eliminates the false-negative class. Then correct declaredCountApprox to 213 and re-run verification so the stated number matches the documented algorithm.",
+      "If any DROP subtraction is ever reintroduced, anchor RE_DROP to a statement boundary so it cannot match \u0027ALTER PUBLICATION ... DROP TABLE\u0027: require start-of-statement, e.g. match only after a \u0027;\u0027 or start-of-string, /(^|;)\\s*drop\\s+table\\b/ , and explicitly exclude lines containing \u0027alter publication\u0027. Test it against 20260426221452 (profiles), 20260412202652 (notifications/project_applications), 20260513024219, 20260519172544, 20260531015413, 20260609132534 â€” none of those must reduce the enabled set.",
+      "Add an explicit non-regression assertion to the harness/gate: public.profiles MUST be in the declared RLS set (fail the derivation if not). A gate whose derivation can silently drop the primary PII table is not fail-closed.",
+      "Generalize the reused prod-row parser to handle kind===\u0027rls_enabled\u0027 reading the \u0027identifier\u0027 column (the prod SQL emits identifier, not name); otherwise the reused shell ignores every rls row.",
+      "Keep the zero-scan tripwire but raise/Ã¦ttach a category-specific floor: e.g. fail if the rls_enabled declared set is unexpectedly small (well under ~200), so a future regression in the ENABLE/array logic can\u0027t quietly shrink the checked set to a vacuous pass.",
+      "Broaden the dynamic-loop marker beyond /.%i enable.../ (or detect any FOREACH ... IN ARRAY loop whose body contains \u0027enable row level security\u0027) so a future non-%I dynamic loader is not silently missed; until then, document that new dynamic RLS loaders must use the %I template or be added to a supplementary declared-list."
+    ]
+  },
+  {
+    "cat": "tables",
+    "soundness": "has-gaps",
+    "prodSQL": "select \u0027table\u0027 as kind, c.relname as identifier from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace where n.nspname = \u0027public\u0027 and c.relkind in (\u0027r\u0027,\u0027p\u0027) order by identifier;  -- relkind r = ordinary table, p = partitioned table; deliberately excludes views(v)/matviews(m)/foreign(f)/sequences(S). relname from an unquoted-created table is already lowercase; the gate lowercases both sides before diffing.",
+    "norm": "Bare table name only (schema stripped â€” everything declared is in public and prod is queried only for public), unquoted, lowercased. e.g. declared `CREATE TABLE public.Feature_Flags` and prod relname `feature_flags` both normalize to the string \"feature_flags\". Compare declared-set vs prod-set as lowercased plain strings.",
+    "regexes": [
+      "/create\\s+(?:global\\s+|local\\s+|temp(?:orary)?\\s+|unlogged\\s+)?table\\s+(?:if\\s+not\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?(\"?)([A-Za-z_%][A-Za-z0-9_$%]*)\\1/gi",
+      "/(?:^|;|\\n)\\s*drop\\s+table\\s+(?:if\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?(\"?)([A-Za-z_][A-Za-z0-9_$]*)\\1/gi",
+      "/create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?%[A-Za-z]/gi"
+    ],
+    "fpFilters": [
+      "%I and any name containing \u0027%\u0027 â€” dynamic format() placeholder, never a real table; route to the dynamic-sidecar tripwire instead of the set",
+      "the bare word \u0027public\u0027 captured as a name â€” happens if prose/DDL writes \u0027CREATE TABLE public\u0027 with no dot; public is a schema, never a table â€” hard-exclude",
+      "SQL keywords captured from Gherkin/prose inside dollar-quoted bodies (e.g. a bdd_scenarios INSERT or a Given/When/Then line containing \u0027create table ...\u0027) â€” over-extraction is safe (allowlist), but keep a small reserved-word denylist (public, table, if, not, exists) as a guard",
+      "reference_roles â€” created dynamically then dropped via `DROP TABLE IF EXISTS public.reference_roles CASCADE` (20260503180621); must NOT be in the dynamic sidecar\u0027s live set",
+      "tables that were created then legitimately dropped-and-not-recreated (passkey_credentials, passkey_login_sessions, passkey_recovery_tokens, passkey_login_challenges, career_plans, career_plan_items, accessibility_training_completions) â€” correctly excluded by the strict-drop subtraction; if any is intentionally still-present, allowlist rather than loosen the drop regex"
+    ],
+    "fixes": [
+      "Model ALTER TABLE ... RENAME TO in the same left-to-right event stream: on a rename, DELETE the old name and ADD the new name. Regex e.g. /alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:\"?public\"?\\s*\\.\\s*)?\"?([a-z0-9_]+)\"?\\s+rename\\s+to\\s+\"?([a-z0-9_]+)\"?/gi , applied AFTER creates/drops in file order so reference_team_functions-\u003ereference_job_functions resolves correctly. This must apply to dynamically-derived names too (feed sidecar names into the same stream), not just statically-extracted ones.",
+      "Fix knownGap #1: it is factually wrong. State that exactly one table rename exists today (20260503180621: reference_team_functions -\u003e reference_job_functions) and that the gate MUST model renames now, not \u0027before any rename migration lands\u0027.",
+      "Correct the dynamic live set: remove reference_team_functions, add reference_job_functions (net still 18). Best implemented by the rename-in-stream fix above rather than editing the sidecar by hand, since reference_job_functions does not originate from a placeholder-CREATE file and cannot be keyed by one.",
+      "Add a fail-closed tripwire: if the migrations contain an ALTER TABLE ... RENAME TO but the rename model is absent/disabled, FAIL rather than silently under-verify â€” mirrors the %I placeholder tripwire.",
+      "Broaden the dynamic-DDL tripwire beyond \u0027%\u0027: also trip on EXECUTE ... \u0027CREATE TABLE\u0027 with || concatenation or quote_ident so a future non-format() dynamic create cannot silently extract nothing. (No occurrences today, so this is preventive.)",
+      "Scope the comment stripper so /* */ removal does not cross dollar-quote boundaries (strip comments only outside $tag$...$tag$ spans), preventing an unbounded swallow of real DDL."
+    ]
+  },
+  {
+    "cat": "types",
+    "soundness": "NO-VERIFY",
+    "prodSQL": "select \u0027type\u0027 as kind, t.typname as identifier\nfrom pg_type t\njoin pg_namespace n on n.oid = t.typnamespace\nwhere n.nspname = \u0027public\u0027\n  and t.typname not like \u0027\\_%\u0027\n  and (\n        t.typtype in (\u0027e\u0027,\u0027r\u0027)\n     or (t.typtype = \u0027c\u0027 and exists (\n           select 1 from pg_class c where c.oid = t.typrelid and c.relkind = \u0027c\u0027))\n  )\nunion all\nselect \u0027enum_value\u0027 as kind, (t.typname || \u0027:\u0027 || e.enumlabel) as identifier\nfrom pg_enum e\njoin pg_type t on t.oid = e.enumtypid\njoin pg_namespace n on n.oid = t.typnamespace\nwhere n.nspname = \u0027public\u0027;",
+    "norm": "Dimension 1 (type existence): lowercased bare typname, schema prefix and surrounding double-quotes stripped (`public.cohort_status`, `\"cohort_status\"` -\u003e `cohort_status`); matches pg_type.typname lowercased. Dimension 2 (enum labels): lowercased `typname:label` with SQL doubled single-quotes (\u0027\u0027) collapsed to one \u0027; matches `typname || \u0027:\u0027 || enumlabel` lowercased. Both scoped to public schema.",
+    "regexes": [
+      "/create\\s+type\\s+(?:if\\s+not\\s+exists\\s+)?(?:public\\.)?\"?([a-z0-9_]+)\"?/gi",
+      "/drop\\s+type\\s+(?:if\\s+exists\\s+)?(?:public\\.)?\"?([a-z0-9_]+)\"?/gi",
+      "/alter\\s+type\\s+(?:public\\.)?\"?([a-z0-9_]+)\"?\\s+rename\\s+to\\s+(?:public\\.)?\"?([a-z0-9_]+)\"?/gi",
+      "/alter\\s+type\\s+(?:public\\.)?\"?([a-z0-9_]+)\"?\\s+add\\s+value\\s+(?:if\\s+not\\s+exists\\s+)?\u0027((?:[^\u0027]|\u0027\u0027)*)\u0027/gi",
+      "/create\\s+type\\s+(?:public\\.)?\"?([a-z0-9_]+)\"?\\s+as\\s+enum\\s*\\(([\\s\\S]*?)\\)/gi"
+    ],
+    "fpFilters": [
+      "public â€” schema token; never a type name. Exclude if ever captured (defensive; the regex captures the token after optional `public.`, so it cannot capture bare `public` from a well-formed statement, but the tables-category has a documented phantom-`public` risk).",
+      "membership_tier_old, cohort_status_old â€” created via ALTER TYPE RENAME (not CREATE) and immediately DROPped in the swap; never real prod objects. Never captured by the CREATE regex; exclude any `%_old` name defensively.",
+      "if, not, exists, or, replace â€” keywords; cannot be captured because the regex consumes `if not exists` explicitly, but listed as defensive allowlist entries.",
+      "Enum labels removed by the rename/swap recreate: cohort_status:open, cohort_status:live, cohort_status:completed, membership_tier:free, membership_tier:paid â€” declared in an earlier CREATE TYPE body but dropped by a later recreate. Source-order replay excludes them automatically; a naive all-ever-declared label check MUST allowlist them.",
+      "Any type/label name appearing only inside a $$...$$ prose/Gherkin/dynamic-SQL body (none today) â€” handled via the reviewed `types` allowlist in scripts/ci/db-objects-allowlist.json, since $$ bodies cannot be stripped without losing the 8 real DO-block CREATE TYPEs."
+    ],
+    "fixes": {}
+  },
+  {
+    "cat": "views",
+    "soundness": "has-gaps",
+    "prodSQL": "-- Returns (kind, identifier) for every live view AND materialized view in the public schema.\n-- pg_matviews is REQUIRED: materialized views do NOT appear in pg_views / information_schema.views.\n-- pg_catalog views are used (not information_schema) to avoid privilege-based row filtering.\nSELECT \u0027view\u0027::text AS kind,\n       \u0027public.\u0027 || v.viewname AS identifier\nFROM pg_catalog.pg_views v\nWHERE v.schemaname = \u0027public\u0027\nUNION ALL\nSELECT \u0027materialized_view\u0027::text AS kind,\n       \u0027public.\u0027 || m.matviewname AS identifier\nFROM pg_catalog.pg_matviews m\nWHERE m.schemaname = \u0027public\u0027\nORDER BY identifier;",
+    "norm": "schema \u0027.\u0027 name, with Postgres identifier folding applied so it matches pg_views.viewname / pg_matviews.matviewname exactly. Rules: schema defaults to \u0027public\u0027 when the migration omits it. Unquoted identifiers are lowercased (Postgres folds unquoted to lowercase). Double-quoted identifiers: strip the surrounding quotes, unescape doubled quotes (\"\" -\u003e \"), and preserve inner case verbatim (do NOT lowercase). Prod side already returns the raw stored name, so \u0027public.\u0027 || viewname matches. All current declarations are unquoted+lowercase, so every identifier is of the form public.\u003clowercase_name\u003e (e.g. public.framework_search_mv). Reconciliation compares on identifier ONLY (case-sensitive after folding; a case-insensitive fallback compare is acceptable and stays fail-closed since it only ever ADMITS more matches for present names â€” but never use it to drop a name from the expected set). The \u0027kind\u0027 column is metadata, not part of the match key.",
+    "regexes": [
+      "CREATE (net = created minus dropped): /\\bCREATE\\s+(?:OR\\s+REPLACE\\s+)?(?:MATERIALIZED\\s+)?(?:RECURSIVE\\s+)?VIEW\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\\w$]*)\\s*\\.\\s*)?(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\\w$]*)/gi",
+      "DROP: /\\bDROP\\s+(?:MATERIALIZED\\s+)?VIEW\\s+(?:IF\\s+EXISTS\\s+)?(?:(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\\w$]*)\\s*\\.\\s*)?(\"(?:[^\"]|\"\")+\"|[A-Za-z_][\\w$]*)/gi",
+      "Dollar-quoted body strip (run first): /\\$([A-Za-z_]\\w*|)\\$[\\s\\S]*?\\$\\1\\$/g",
+      "Block-comment strip: /\\/\\*[\\s\\S]*?\\*\\//g",
+      "Line-comment strip: /--[^\\n]*/g"
+    ],
+    "fpFilters": [
+      "Line comments: \u0027-- Recreate view with security_invoker = true\u0027 (20260415012656) is the exact 33rd substring hit; removed by the line-comment strip AND by \\b (the \u0027create\u0027 inside \u0027reCREATE\u0027 has no word boundary).",
+      "Dollar-quoted bodies ($$...$$ and $tag$...$tag$): any \u0027CREATE VIEW\u0027/\u0027CREATE MATERIALIZED VIEW\u0027 appearing as PL/pgSQL body text or embedded Gherkin/BDD prose is stripped before matching, preventing phantom view objects (the same mechanism that would otherwise mint a fake table named \u0027public\u0027 for other categories).",
+      "Single-quoted seed/INSERT literals (e.g. bdd_scenarios Given/When/Then rows): stripped defensively; none currently contain \u0027create view\u0027, verified.",
+      "Schema token is never mistaken for the view name: the regex captures schema and name as separate groups, so \u0027CREATE VIEW public.x\u0027 yields name=x, never \u0027public\u0027.",
+      "DROP statements are matched separately and only subtract from the expected set; a stray keyword after the name (WITH/AS/CASCADE) is never captured as an identifier because the name group terminates at whitespace/\u0027.\u0027/quote boundary."
+    ],
+    "fixes": [
+      "Replace the four independent strip regexes with a single left-to-right SQL scanner that, at each position, consumes whichever of {line comment, block comment, single-quoted string, dollar-quoted string} opens FIRST, emitting only code text. Reordering the passes is insufficient because strings and dollar-quotes mutually nest; only a single-pass tokenizer is structurally sound. Apply CREATE/DROP matching to the code-only residue.",
+      "Add a fail-closed floor: commit an explicit expected-view manifest (the 19 distinct net-present identifiers) and FAIL the gate if the extracted Expected set does not equal it (or at minimum is smaller than it). This converts the vacuous/empty-set pass into a failure and makes an extraction regression loud.",
+      "Add a dedicated dynamic-DDL tripwire: scan the STRIPPED-OUT bodies for /EXECUTE[\\s\\S]{0,120}CREATE[\\s\\S]{0,40}VIEW/i and FAIL if found, so a future EXECUTE \u0027CREATE VIEW ...\u0027 cannot be silently ignored.",
+      "Fix declaredCountApprox to the distinct net-present count (19), or split into {createStatements:32, distinctExpectedPresent:19}, so the number is a usable cross-check against the reconciled Expected set.",
+      "Optional hardening: have the introspection SQL also emit each object\u0027s kind AND enforce kind against the declared kind (materialized vs plain) once existence is solid, closing the disclosed KIND-drift gap."
+    ]
+  },
+  {
+    "cat": "triggers",
+    "soundness": "has-gaps",
+    "prodSQL": "select \u0027trigger\u0027 as kind, lower(n.nspname || \u0027.\u0027 || c.relname || \u0027.\u0027 || t.tgname) as identifier from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid = t.tgrelid join pg_catalog.pg_namespace n on n.oid = c.relnamespace where t.tgisinternal = false and n.nspname not in (\u0027pg_catalog\u0027,\u0027information_schema\u0027) order by identifier;\n-- kind is the literal \u0027trigger\u0027. identifier is EXACTLY schema.table.triggername, lowercased, matching extraction output (which defaults omitted schema to \u0027public\u0027). tgisinternal=false drops system/RI FK-enforcement triggers (which migrations never declare) but KEEPS user CONSTRAINT triggers. NOT restricted to schema=\u0027public\u0027 on purpose: real triggers target auth.users and pgmq.q_auth_emails / pgmq.q_transactional_emails, so a public-only filter would silently pass while an auth/pgmq trigger is unapplied. pg_trigger/pg_class/pg_namespace are world-readable catalogs, so the Management API role sees triggers in auth and pgmq regardless of table ownership. Returning extra prod rows (schemas we don\u0027t declare into) is harmless: the gate only checks declared âŠ† prod.",
+    "norm": "\"schema.table.triggername\", all three segments lowercased and unquoted; schema defaults to \u0027public\u0027 when the CREATE/DROP ON clause omits it. Postgres trigger names are unique per-table (not global), and the same name recurs on different tables in this repo (e.g. trg_block_audit_mutation, trg_fw_kb_sync), so the table (with its schema) is a mandatory part of the key. Examples: public.profiles.update_profiles_updated_at ; auth.users.on_auth_user_created ; pgmq.q_auth_emails.trg_notify_email_worker_auth. Prod side builds the identical string via lower(n.nspname||\u0027.\u0027||c.relname||\u0027.\u0027||t.tgname).",
+    "regexes": [
+      "/\\bcreate\\s+(?:(?:or\\s+replace|constraint)\\s+)*trigger\\s+(?:if\\s+not\\s+exists\\s+)?\"?([a-z0-9_%]+)\"?[\\s\\S]{0,400}?\\bon\\s+(?:\"?([a-z0-9_%]+)\"?\\s*\\.\\s*)?\"?([a-z0-9_%]+)\"?/gi",
+      "/\\bdrop\\s+trigger\\s+(?:if\\s+exists\\s+)?\"?([a-z0-9_%]+)\"?[\\s\\S]{0,400}?\\bon\\s+(?:\"?([a-z0-9_%]+)\"?\\s*\\.\\s*)?\"?([a-z0-9_%]+)\"?/gi"
+    ],
+    "fpFilters": [
+      "Any identifier containing \u0027%\u0027 (e.g. public.%i.trg_audit_%i_change, public.%i.trg_fw_kb_sync, public.%i.trg_ugc_translate_%i) â€” these come from EXECUTE format(\u0027CREATE TRIGGER ...%I... ON public.%I\u0027, ...) and are unresolvable statically; excluded from the verified set and reported as a known gap (NOT silently allowlisted).",
+      "Line/block comments stripped before matching so \u0027CREATE\u0027/\u0027trigger\u0027 inside comments does not count: \u0027-- Recreate triggers under new names\u0027 (20260503180621:17), \u0027-- Create trigger on projects table\u0027 (20260319225720:105), \u0027-- Create the trigger if it doesn\u0027t exist\u0027 (20260315192526:27), and prose like \u0027...trigger to also fire when status transitions...\u0027 (20260505002310:2).",
+      "Schema-name-as-table phantom (the \u0027fake public table\u0027 trap): prevented structurally â€” because \u0027%\u0027 is inside the identifier char class, \u0027ON public.%I\u0027 matches schema=\u0027public\u0027, table=\u0027%i\u0027 (then %-filtered), instead of backtracking to table=\u0027public\u0027. No allowlist entry needed.",
+      "Residual prose phantoms from $$...$$ bodies/Gherkin that happen to match the full CREATE TRIGGER \u003cname\u003e ... ON \u003cx\u003e.\u003cy\u003e shape: extremely unlikely given the required shape; any that occur surface as declared-but-absent FAILs (fail-closed) and get moved to a reviewed name+table allowlist with a reason, per the over-extraction bias."
+    ],
+    "fixes": [
+      "Pull the dynamic-trigger mitigation INTO this spec rather than deferring it. Add a companion prod assertion per dynamic-loop function: SELECT count(*) FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace n ON n.oid=p.pronamespace WHERE t.tgisinternal=false AND n.nspname=\u0027public\u0027 AND p.proname IN (\u0027set_reference_updated_at\u0027,\u0027set_reference_search_tsv\u0027,\u0027audit_public_table_change\u0027,\u0027tg_sync_reference_to_kb\u0027,\u0027enqueue_ugc_translation_jobs\u0027, ...) GROUP BY p.proname; then FAIL if any expected fan-out function has 0 (loop never applied) or fewer than the literal-array length the migration declares. This converts the biggest blind spot from \u0027silent green\u0027 to \u0027checked\u0027. Enumerate the expected functions + minimum counts from the migrations and keep them in a small reviewed table alongside the allowlist.",
+      "Replace the 400-char magic window with a robust anchor or widen it substantially (e.g. 2000) AND add a count-parity tripwire: raw-count every \u0027create ... trigger\u0027 keyword hit (minus known %-dynamic and comment sites) and FAIL CLOSED if the number of successfully extracted (name+ON) triggers is less than that raw count â€” this catches a single statement the regex silently failed to parse, which the current zero-total tripwire cannot.",
+      "Optionally return t.tgenabled in the prod query and FAIL (or warn-then-allowlist) when a declared trigger is present but tgenabled \u003c\u003e \u0027O\u0027, so a disabled security/audit trigger is not silently treated as satisfied.",
+      "Document that lexical filename sort must remain chronological and add a cheap assertion that every migration filename matches ^\\d{14}_ (all 711 currently do) so a future non-timestamped filename cannot silently reorder last-op-wins."
+    ]
+  },
+  {
+    "cat": "indexes",
+    "soundness": "has-gaps",
+    "prodSQL": "select \u0027index\u0027 as kind, c.relname as identifier from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = \u0027public\u0027 and c.relkind in (\u0027i\u0027,\u0027I\u0027);",
+    "norm": "Bare index relation name, double-quotes stripped, lowercased, with no schema prefix. Postgres index names are unique within a schema (indexes share the pg_class namespace), so the name alone is the full identity. CREATE INDEX never schema-qualifies the new name (the index inherits the target table\u0027s schema), and DROP INDEX\u0027s optional \u0027public.\u0027 prefix is stripped during extraction. Prod pg_class.relname for unquoted DDL is already folded to lowercase; the JS side lowercases both sides to be safe. Comparison is exact string equality of the normalized name.",
+    "regexes": [
+      "/create\\s+(?:unique\\s+)?index\\s+(?:concurrently\\s+)?(?:if\\s+not\\s+exists\\s+)?\"?([A-Za-z_][A-Za-z0-9_$]*)\"?\\s+on\\b/gi",
+      "/drop\\s+index\\s+(?:concurrently\\s+)?(?:if\\s+exists\\s+)?(?:public\\.)?\"?([A-Za-z_][A-Za-z0-9_$]*)\"?/gi"
+    ],
+    "fpFilters": [
+      "public",
+      "if",
+      "not",
+      "exists",
+      "unique",
+      "concurrently",
+      "index",
+      "on",
+      "using",
+      "%I (never captured â€” begins with \u0027%\u0027, outside [A-Za-z_]; the whole dynamic format(\u0027CREATE INDEX ... %I ...\u0027) statement yields no name and is a knownGap, not a false positive)",
+      "names occurring only inside stripped -- or /* */ comments (e.g. the \u0027CREATE INDEX takes a brief write lock\u0027 NOTE and the \u0027partial unique index on (message_id)\u0027 comment) are removed by comment-stripping before extraction"
+    ],
+    "fixes": [
+      "Make the dynamic-index companion assertion REQUIRED: enumerate the reference-table array x suffix set ({_search_idx,_name_trgm_idx,_data_idx,_category_idx,_placeholder,_description_source}) into the declared set (using the POST-rename table name reference_job_functions, not reference_team_functions) so those ~50-80 indexes are actually verified against prod, not just documented as a gap.",
+      "Fix the create/drop ordering to honor true statement order (scan CREATE and DROP in a single pass in match order, or split each file on \u0027;\u0027 and apply per-statement) so within-file drop-then-recreate (idx_fleety_response_cache_embedding in 20260807130000) correctly ends up PRESENT and verified â€” making the spec\u0027s stated \u0027dropped then re-created ends up present\u0027 actually true.",
+      "Correct knownGap #4: ALTER INDEX ... RENAME TO statements DO exist (20260503180621 renames 6 reference_team_functions_* indexes to reference_job_functions_*). They strand no statically-declared name today (the old names are constraint/dynamic indexes), but the spec\u0027s \u0027None exist\u0027 claim is false, and once the dynamic indexes are allowlisted the allowlist MUST reference the new reference_job_functions_* names, since reference_team_functions_{search,name_trgm,data,category}_idx were renamed away.",
+      "Remove idx_email_send_log_message_sent_unique from sampleDeclared (it is dropped/replaced in 20260603205609); optionally add a positive test asserting a created-then-dropped-in-a-later-file index is EXCLUDED, and a test asserting a dropped-then-recreated-in-the-same-file index is INCLUDED (currently failing).",
+      "Add a knownGap/allowlist note for the framework MV _pk indexes that may be retired by the 20260817150000 facade repoint, to pre-empt a spurious MISSING failure at first CI run."
+    ]
+  },
+  {
+    "cat": "policies",
+    "soundness": "has-gaps",
+    "prodSQL": "-- Read-only. Returns one row per live RLS policy across ALL schemas (must NOT be restricted to public: storage.objects and realtime.messages carry declared policies). identifier is built to match extraction EXACTLY: lower(schema).lower(table) :: \u003cexact policyname\u003e. pg_policies is a pg_catalog view (schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check).\nSELECT \u0027policy\u0027 AS kind,\n       lower(schemaname) || \u0027.\u0027 || lower(tablename) || \u0027 :: \u0027 || policyname AS identifier\nFROM pg_policies\nORDER BY identifier;\n-- Note: no schema WHERE-clause on purpose. Extra Supabase-internal policies returned here are harmless (the gate only checks declared MINUS prod); omitting a declared schema, by contrast, would false-flag its policies. If payload size ever matters, the minimal safe filter is: WHERE schemaname IN (\u0027public\u0027,\u0027storage\u0027,\u0027realtime\u0027) AND every schema the extractor emits is in that list â€” but unfiltered is the fail-safe choice.",
+    "norm": "Identifier = `\u003cschema\u003e.\u003ctable\u003e :: \u003cpolicyName\u003e` (separator is space-colon-colon-space, ` :: `). schema and table are lowercased on BOTH sides (extraction lowercases the captured schema/table; prod uses lower(schemaname)/lower(tablename)); schema defaults to `public` when the migration omits it (never omitted in this repo â€” 0 unqualified). policyName preserves EXACT case and spaces: for a double-quoted name, strip the surrounding quotes and unescape `\"\"`-\u003e`\"`; for a bare (unquoted) name, lowercase it (Postgres folds unquoted identifiers to lowercase, and pg_policies.policyname stores the folded form). Comparison is exact string equality of the full concatenated identifier. Examples that must match prod: `public.profiles :: Users can view their own profile`, `storage.objects :: Users can upload own avatar`, `realtime.messages :: Scoped realtime read access`, `public.reference_relationships :: fw_rel_read_active`.",
+    "regexes": [
+      "/create\\s+policy\\s+(?:if\\s+not\\s+exists\\s+)?(\"(?:[^\"]|\"\")*\"|[A-Za-z_][A-Za-z0-9_$]*)\\s+on\\s+(?:(\"?[A-Za-z_][A-Za-z0-9_$]*\"?)\\.)?(\"?[A-Za-z_%][A-Za-z0-9_$%]*\"?)/gi",
+      "/drop\\s+policy\\s+(?:if\\s+exists\\s+)?(\"(?:[^\"]|\"\")*\"|[A-Za-z_%][A-Za-z0-9_$%]*)\\s+on\\s+(?:(\"?[A-Za-z_][A-Za-z0-9_$]*\"?)\\.)?(\"?[A-Za-z_%][A-Za-z0-9_$%]*\"?)/gi"
+    ],
+    "fpFilters": [
+      "Any match whose policy-name or table contains \u0027%\u0027 (printf placeholders %I/%s/%L from EXECUTE format(...) loops) â€” these are runtime-generated, not concrete identifiers; exclude from the diff and route to the \u0027unresolved dynamic\u0027 fail-closed bucket (9 such CREATE statements in 20260502180318, 20260502184658, 20260502192050, 20260502193704). Never blanket-allowlist the literal \u0027%I\u0027 string â€” that would hide drift.",
+      "Commented-out statements: strip /* */ and -- comments before matching so a disabled CREATE POLICY is not counted.",
+      "Do NOT treat schema literals \u0027storage\u0027 or \u0027realtime\u0027 as noise â€” they are REAL and must be fetched from prod (storage.objects=39, realtime.messages=7). Only \u0027public\u0027 is the default.",
+      "pg_policies self-references inside idempotency guards (SELECT ... FROM pg_policies WHERE policyname=\u0027X\u0027) are NOT matched (regex anchors on \u0027create/drop policy\u0027), so no filter needed â€” noted only to preempt confusion.",
+      "Prose/Gherkin/seed-string phantoms (e.g. a fake table): none exist in this repo (loose \u0027create policy\u0027==strict name+ON==484, all 188 tables real), but the regex structurally guards against them by requiring a well-formed `\u003cname\u003e ON [schema.]table` immediately after CREATE POLICY."
+    ],
+    "fixes": [
+      "Harden identifierNormalization: explicitly strip surrounding double-quotes (and unescape \"\"-\u003e\") from the SCHEMA and TABLE captures BEFORE lowercasing, exactly as done for the policy name. Currently only the name has documented quote handling; the table/schema regex groups include literal quotes. Prevents both a false-negative and a case-fold false-PASS on any future quoted-identifier policy. (My Norm() reference implementation that strips quotes reproduced all 458 keys correctly.)",
+      "Add a companion RLS/definition check for the 9 dynamic policies (assert each reference_* table has rowsecurity=true and the expected policy COUNT via pg_policies GROUP BY), and keep the unresolved-dynamic bucket fail-closed until each is allowlisted-with-reason. This closes the only real coverage hole.",
+      "Seed the drop-allowlist from the actual DROP-replay finally-dropped set (151 keys today), not the \u0027~144\u0027 estimate; regenerate it from replay rather than hard-coding a number.",
+      "Optionally extend prod SQL to also return pg_policies.permissive/roles/cmd (and join pg_class.relrowsecurity) so a future phase can detect definition/RLS drift; today\u0027s name-only match is fine but document that a present-but-stale policy passes.",
+      "Keep the prod SQL UNFILTERED (no schema WHERE) as specified â€” verified correct: policies live only in public/storage/realtime today but an unfiltered query can never omit a declared schema; filtering is the only way to introduce a prod-side false pass."
+    ]
+  },
+  {
+    "cat": "extensions",
+    "soundness": "solid",
+    "prodSQL": "SELECT \u0027extension\u0027::text AS kind,\n       lower(e.extname)   AS identifier\nFROM pg_catalog.pg_extension e\nORDER BY 2;\n-- Returns every extension installed in the target database, name-only and lowercased,\n-- to exactly match extraction normalization. NOT filtered by schema: extensions are\n-- database-global and several here live outside public (pg_net/pgcrypto -\u003e extensions,\n-- pg_cron -\u003e pg_catalog/cron, vector/pg_trgm relocated via ALTER EXTENSION SET SCHEMA).\n-- Filtering by nspname would produce false GATE FAILURES for correctly-installed extensions.",
+    "norm": "Extension NAME only (no schema), unquoted, lowercased, trimmed. E.g. `CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;` -\u003e \"pg_net\"; `CREATE EXTENSION \"uuid-ossp\";` -\u003e \"uuid-ossp\". Prod side: lower(pg_extension.extname). Schema/WITH SCHEMA/VERSION clauses are deliberately excluded from identity.",
+    "regexes": [
+      "/\\bCREATE\\s+EXTENSION\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_$]*))/gi",
+      "/\\bDROP\\s+EXTENSION\\s+(?:IF\\s+EXISTS\\s+)?(?:\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_$]*))/gi"
+    ],
+    "fpFilters": [
+      "SQL line comments `-- ...` containing CREATE EXTENSION â€” REAL case: 20260707200000_recreate_cron_jobs_on_live_project.sql:32 `--   CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA cron;`. Neutralized by stripping `--` line comments and `/* */` block comments before matching (comment-aware, without deleting dollar-quoted bodies).",
+      "IF / NOT / EXISTS keywords are never captured as an extension name because the optional `(?:IF\\s+NOT\\s+EXISTS\\s+)?` prefix is consumed first.",
+      "Dollar-quoted PROSE/Gherkin mentioning \u0027create extension\u0027 would over-extract a spurious name â€” NONE found for this category (all dollar-body CREATE EXTENSION hits, e.g. email_infra.sql:9 pg_cron, are genuine). If one ever appears, allowlist by name since it will not be a real Postgres extension. NOTE: do NOT filter out dollar-quoted CREATE EXTENSION wholesale â€” email_infra.sql:9 is a real declaration inside a DO block.",
+      "Supabase-preinstalled extensions returned by introspection but never declared in migrations (e.g. plpgsql, pg_stat_statements, uuid-ossp, pgjwt) are EXTRA live objects; the gate compares declared âŠ† live and must not fail on them."
+    ],
+    "fixes": [
+      "Keep name-only identity for PRESENCE, but add a SECOND, non-fatal (or configurable-fatal) schema assertion to close the real blind spot: extend the prod SQL to also return the install schema â€” SELECT lower(e.extname) AS identifier, n.nspname AS schema FROM pg_catalog.pg_extension e JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace â€” and, for any declared name whose final declared schema is resolvable (last WITH SCHEMA / SCHEMA clause, or an ALTER EXTENSION ... SET SCHEMA superseding it), assert it matches. This catches the extensions.gen_random_bytes-style breakage that presence-only misses.",
+      "Enable the optional ALTER EXTENSION regex (/\\bALTER\\s+EXTENSION\\s+(?:\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_$]*))/gi) and union its names into the declared set, so an ALTER-only reference to a never-CREATEd extension is still asserted present. Zero cost today (both ALTER\u0027d names are already CREATEd) and removes the structural CREATE-only gap.",
+      "Make the dollar-quote-aware comment stripper an explicit, tested requirement (unit-test: a -- inside a $$...$$ body preceding a CREATE EXTENSION must NOT drop that declaration; a top-level -- CREATE EXTENSION must be dropped). This converts the currently-latent stripper invariant into an enforced one so a future migration can\u0027t induce a false negative.",
+      "Harden fail-closed beyond \u0027zero rows / timeout\u0027: also FAIL if the HTTP status is not 200, if the response body is not the expected JSON array shape, or if any row lacks the identifier field â€” so a malformed/partial prod response cannot be misread as \u0027all declared names present\u0027.",
+      "Assert both comparison sides are lowercased at compare time (belt-and-suspenders): compare declared.map(toLowerCase) against live identifiers, so a future non-lowercase capture path (e.g. a quoted mixed-case name) cannot desync from lower(extname)."
+    ]
+  },
+  {
+    "cat": "functions",
+    "soundness": "has-gaps",
+    "prodSQL": "SELECT\n  \u0027function\u0027::text AS kind,\n  n.nspname || \u0027.\u0027 || p.proname || \u0027(\u0027 || pg_get_function_identity_arguments(p.oid) || \u0027)\u0027 AS identifier\nFROM pg_catalog.pg_proc p\nJOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace\nWHERE n.nspname = \u0027public\u0027\n  AND p.prokind IN (\u0027f\u0027,\u0027w\u0027)   -- plain + window functions created via CREATE FUNCTION; excludes aggregates \u0027a\u0027 and procedures \u0027p\u0027 (separate categories)\nORDER BY 2;\n-- Read-only. pg_get_function_identity_arguments returns exactly the INPUT-arg types (no names, no DEFAULTs, no OUT args, no typmod) in Postgres-canonical spelling, e.g. \u0027\u0027, \u0027text\u0027, \u0027uuid, text\u0027, \u0027text[]\u0027, \u0027vector\u0027, \u0027uuid, app_role\u0027 â€” the same identity used for DROP/overload resolution. The gate MUST pass this identifier\u0027s arg portion through the identical normalizeSignature() used on the migration side before set comparison, so alias/spelling differences collapse on both sides.",
+    "norm": "Identity string = \"\u003cschema\u003e.\u003cname\u003e(\u003ccomma-joined normalized input-arg types\u003e)\", lowercased.\nNAME: lowercase; strip surrounding double-quotes; if unqualified, prefix \u0027public.\u0027. (No quoted/mixed-case/non-public names exist today, so lowercasing is safe.)\nSIGNATURE (normalizeSignature): split the arg-list body on TOP-LEVEL commas (depth-aware over () and [] , skipping single-quoted literals) so commas inside numeric(10,2)/array/expr do not split. For each item:\n  - CREATE side: drop trailing DEFAULT/`= expr`; drop a leading arg-mode keyword (exclude OUT-only items entirely; keep IN/INOUT/VARIADIC); the FIRST whitespace token is the arg name -\u003e the TYPE is everything after it.\n  - DROP side \u0026 prod side (pg_get_function_identity_arguments items): the WHOLE item is the type (type-only, no names).\n  - normalizeType(type): lowercase; collapse whitespace; peel off \u0026 remember array suffix(es) matching /\\[\\s*\\d*\\s*\\]$/ -\u003e re-append as \u0027[]\u0027 per level; strip trailing typmod \u0027(...)\u0027 (Postgres stores no typmod on function args, so vector(768)-\u003evector, numeric(10,2)-\u003enumeric, character varying(255)-\u003echaracter varying); strip a leading \u0027public.\u0027 on the type (custom types like app_role may print schema-qualified or bare depending on search_path); apply alias map: int|int4-\u003einteger, int2-\u003esmallint, int8|bigint-\u003ebigint, serial-\u003einteger(n/a to args), bool-\u003eboolean, varchar-\u003echaracter varying, char|bpchar-\u003echaracter, timestamptz-\u003etimestamp with time zone, timestamp-\u003etimestamp without time zone, timetz-\u003etime with time zone, time-\u003etime without time zone, decimal-\u003enumeric, float4-\u003ereal, float8-\u003edouble precision.\n  Join normalized types with \u0027, \u0027. Zero-arg -\u003e \u0027\u0027 so identity ends with \u0027()\u0027.\nBoth the migration-extracted signature AND the prod pg_get_function_identity_arguments string are run through this SAME normalizeSignature(), guaranteeing convergence (the normalizer is idempotent on Postgres-canonical output). Comparison is exact string equality of the full identity string.",
+    "regexes": [
+      "/\\bCREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+(\"?[A-Za-z_][\\w$]*\"?(?:\\s*\\.\\s*\"?[A-Za-z_][\\w$]*\"?)?)\\s*\\(/gi",
+      "/\\bDROP\\s+FUNCTION\\s+(?:IF\\s+EXISTS\\s+)?(\"?[A-Za-z_][\\w$]*\"?(?:\\s*\\.\\s*\"?[A-Za-z_][\\w$]*\"?)?)\\s*(\\(|;)/gi",
+      "/\\$([A-Za-z_]\\w*)?\\$[\\s\\S]*?\\$\\1\\$/g",
+      "/\\/\\*[\\s\\S]*?\\*\\//g",
+      "/--[^\\n]*/g"
+    ],
+    "fpFilters": [
+      "Comments: \u0027-- Create function to generate ...\u0027 (yields phantom name \u0027to\u0027) and \u0027-- ... on every CREATE FUNCTION (Supabase advisor ...\u0027 â€” removed by line-comment stripping; also excluded because the CREATE regex requires a real identifier immediately followed by \u0027(\u0027 (the advisor line has \u0027FUNCTION (\u0027 with no identifier between).",
+      "Dollar-quoted body prose/Gherkin containing DDL-like text (e.g. \u0027CREATE TABLE public\u0027, \u0027public\u0027 as a fake object, EXECUTE-style strings) â€” removed by dollar-body stripping before matching; none of the 711 files actually build a function via EXECUTE \u0027CREATE FUNCTION ...\u0027.",
+      "Schema literal \u0027public\u0027 must never be emitted as a standalone object name (it is the schema, not a function).",
+      "Placeholder/diagnostic DROPs that reference never-created names (public.your_audit_function_name(), public._diag_list_vault_names()) â€” harmless: removing an absent key from the identity set is a no-op.",
+      "prokind filter excludes aggregates (\u0027a\u0027) and procedures (\u0027p\u0027) so a same-named aggregate/procedure in prod is not mistaken for the declared function."
+    ],
+    "fixes": [
+      "Canonicalize extension-schema types on BOTH sides. In normalizeType, after stripping typmod, strip a leading `extensions.` in addition to `public.` (or, more generally, strip any leading `\u003cknown-extension-schema\u003e.` prefix: extensions, but keep the list explicit to avoid collapsing legitimately distinct schema-qualified types). This makes bare `vector` and `extensions.vector` converge. Given every custom/extension type name is unique across schemas in this corpus, stripping any single leading schema qualifier from type tokens is safe and is the most robust fix.",
+      "Make the prod type rendering deterministic: send `SET search_path = public, extensions;` before the SELECT in the same Management-API request (multi-statement), OR wrap the identifier so extension types render predictably. Combined with the strip-prefix normalization this removes the environment-dependence entirely.",
+      "Replace the dollar-body REGEX with a real tokenizing scanner that tracks open/close dollar tags and FAILS CLOSED (non-zero exit) on any unterminated or unbalanced tag, instead of silently over-consuming. This closes the silent-drop false negative. Do the same balanced scan for block/line comments so a dollar-quote-like sequence inside a comment cannot mis-pair.",
+      "Change name-only DROP handling to remove exactly one overload only when exactly one matching identity exists in the current declared set; if 2+ exist, treat it as a modeling error and fail closed (Postgres itself errors on ambiguous name-only DROP), rather than silently deleting all overloads and under-requiring.",
+      "Add a per-run assertion that the number of declared function identities is within an expected band (declaredCountApprox ~409) and fail closed if it drops sharply between runs -- a large unexplained drop is the fingerprint of dollar-strip over-consumption or a regex regression, complementing the existing zero-scan tripwire.",
+      "Add a self-test fixture exercising: an OUT-param function (identity must equal input args only, e.g. class_item_release -\u003e (uuid, uuid)), a bare-`vector` vs `extensions.vector` overload, a name-only DROP, a DEFAULT containing a string with parens/commas, and a text[] arg -- so the normalizer\u0027s convergence and the parser\u0027s OUT/DEFAULT handling are proven, not assumed."
+    ]
+  }
+]
