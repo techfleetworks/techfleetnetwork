@@ -9,6 +9,7 @@ import {
   LlmRateLimitError,
   LlmTerminalError,
   parseStructuredArguments,
+  throwForLlmStatus,
   withRetries,
 } from "./port.ts";
 
@@ -181,5 +182,91 @@ Deno.test(
     const elapsed = Date.now() - started;
     assert(elapsed < 2000, `must fail within the deadline budget, took ${elapsed}ms`);
     assert(calls < 6, `must not burn all MAX_RETRIES when out of budget, made ${calls} calls`);
+  }
+);
+
+Deno.test(
+  "throwForLlmStatus: an OK response does not throw (caller consumes the body)",
+  async () => {
+    await throwForLlmStatus(new Response("{}", { status: 200 }));
+  }
+);
+
+Deno.test(
+  "throwForLlmStatus: 429 -> LlmRateLimitError waiting the Retry-After window (bare seconds)",
+  async () => {
+    const err = await assertRejects(
+      () => throwForLlmStatus(new Response(null, { status: 429, headers: { "retry-after": "2" } })),
+      LlmRateLimitError
+    );
+    assertEquals(err.waitMs, 2000);
+  }
+);
+
+Deno.test("throwForLlmStatus: 429 with no Retry-After defaults to a ~1s wait", async () => {
+  const err = await assertRejects(
+    () => throwForLlmStatus(new Response(null, { status: 429 })),
+    LlmRateLimitError
+  );
+  assertEquals(err.waitMs, 1000);
+});
+
+Deno.test(
+  "throwForLlmStatus: a long Retry-After is capped so an interactive turn can't stall for minutes",
+  async () => {
+    const err = await assertRejects(
+      () =>
+        throwForLlmStatus(new Response(null, { status: 429, headers: { "retry-after": "600" } })),
+      LlmRateLimitError
+    );
+    assertEquals(err.waitMs, 30_000); // 600s asked → capped to MAX_RATE_WAIT_MS
+  }
+);
+
+Deno.test("throwForLlmStatus: 5xx -> a transient (retryable) error, NOT terminal", async () => {
+  await assertRejects(
+    () => throwForLlmStatus(new Response("upstream boom", { status: 503 })),
+    Error,
+    "transient HTTP 503"
+  );
+  // A 5xx must NOT be an LlmTerminalError — that would make withRetries fail fast instead of retry.
+  const err = await assertRejects(() => throwForLlmStatus(new Response("x", { status: 500 })));
+  assert(!(err instanceof LlmTerminalError), "5xx is retryable, not fail-fast");
+});
+
+Deno.test(
+  "throwForLlmStatus: 402 (out of credits) -> LlmTerminalError carrying the status the handler keys off",
+  async () => {
+    const err = await assertRejects(
+      () => throwForLlmStatus(new Response("no credits", { status: 402 })),
+      LlmTerminalError,
+      "HTTP 402"
+    );
+    assert(/HTTP 402\b/.test(err.message)); // the chat handler's 402 branch matches this substring
+  }
+);
+
+Deno.test(
+  "throwForLlmStatus: other 4xx -> LlmTerminalError (fail fast, never retried)",
+  async () => {
+    await assertRejects(
+      () => throwForLlmStatus(new Response("bad", { status: 400 })),
+      LlmTerminalError,
+      "HTTP 400"
+    );
+  }
+);
+
+Deno.test(
+  "withRetries preserves the last failure as `cause` on budget exhaustion (callers can classify it)",
+  async () => {
+    const rate = new LlmRateLimitError(10);
+    const err = await assertRejects(
+      () => withRetries("t", () => Promise.reject(rate), { timeoutMs: 1000, deadlineMs: 200 }),
+      Error,
+      "budget"
+    );
+    // A persistent 429 is recoverable from `.cause` — that's how the chat handler keeps its 429 copy.
+    assertEquals((err as Error).cause, rate);
   }
 );
