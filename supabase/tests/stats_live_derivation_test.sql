@@ -73,6 +73,9 @@ SELECT is(
   'test accounts are excluded from completer counts');
 
 -- A un-completes one task — the case a stored +1 counter can never reflect.
+-- Un-completing is guarded (trg_journey_progress_block_silent_uncomplete); the
+-- confirm-dialog path sets app.allow_uncomplete='true' in-txn, so do the same here.
+SELECT set_config('app.allow_uncomplete', 'true', true);
 UPDATE public.journey_progress
    SET completed = false, completed_at = NULL
  WHERE user_id = 'a0000000-0000-0000-0000-000000000001' AND task_id = 'zz-live-2';
@@ -109,6 +112,7 @@ SELECT is(
   (SELECT core FROM _base) + 1,
   'finishing a core course increments core_courses_active live (dashboard, not a ledger)');
 
+SELECT set_config('app.allow_uncomplete', 'true', true);
 UPDATE public.journey_progress SET completed = false, completed_at = NULL
  WHERE user_id = 'a0000000-0000-0000-0000-000000000004'
    AND task_id = (SELECT lesson_id FROM public.lesson_catalog
