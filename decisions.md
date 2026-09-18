@@ -221,13 +221,15 @@ file** — never by editing a central list, which made every guard PR conflict o
 ❌ never — a central Set every guard PR must edit (a conflict magnet), or a raw walk with no opt-out
 const BESPOKE_DIR_READERS = new Set(["check-foo.mjs", …])   // two guard PRs always collide on this line
 readdirSync(dir)   // a guard with no harness AND no marker → flagged as a hand-rolled walk
-✅ always — the guard self-declares in its OWN file, as a COMMENT that carries a reason
+// see the ci-guard-integrity: bespoke-dir-reader marker docs   ← mid-sentence mention → does NOT exempt
+✅ always — the marker is the LEADING content of a comment line, in the guard's OWN file, with a reason
 // ci-guard-integrity: bespoke-dir-reader — reads migration filenames, not a recursive content scan
 ```
 
-The marker is matched **comment-only and must carry a `— <reason>`**, so a mention inside a string
-literal, help message, or negative example can't silently self-exempt (the false-green this guard
-exists to catch). Broader fleet hardening (evidence counts + zero-scan asserts on the remaining
+The marker must be the **leading content of a comment line and carry a `— <reason>`** (matched by an
+anchored regex), so a mention embedded elsewhere — in a string literal, a help message, or mid-sentence
+in prose (a "do NOT …" example, or a docblock documenting the format) — can't silently self-exempt; only
+a deliberate, reviewed declaration does. That is the false-green this guard exists to catch. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining
 guards) is tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
 `check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
 verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.

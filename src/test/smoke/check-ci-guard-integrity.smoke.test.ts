@@ -109,9 +109,9 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
   });
 
   it("MG-011: does NOT exempt a guard that only mentions the marker in a string literal", () => {
-    // The marker is a DECLARATION and must live in a COMMENT (ADR-0046). A guard that merely
-    // references the marker string in code — a future marker-VALIDATING guard, or a help/fix message —
-    // must not thereby self-exempt from the hand-rolled-walk check. Proves comment-only scoping: the
+    // The marker is a DECLARATION and must be the LEADING content of a comment line (ADR-0046). A guard
+    // that merely references the marker string in CODE — a future marker-VALIDATING guard, or a help/fix
+    // message — must not thereby self-exempt from the hand-rolled-walk check. Proves the anchoring: the
     // exact false-green (an unharnessed walk passing) the meta-guard exists to catch.
     const r = fixture({
       "check-marker-in-string.mjs":
@@ -128,6 +128,18 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
     const r = fixture({
       "check-no-reason.mjs":
         "// ci-guard-integrity: bespoke-dir-reader\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("MG-013: does NOT exempt a marker embedded mid-sentence in a comment (docblock/negative example)", () => {
+    // The marker must be the LEADING content of a comment line, not merely appear inside one. A guard
+    // that DOCUMENTS the marker format (or warns against it) — e.g. a future marker-validating guard's
+    // docblock — must not self-exempt. Closes the residual comment-mention hole judge-arch flagged.
+    const r = fixture({
+      "check-doc-mention.mjs":
+        "// do NOT self-declare unless bespoke: ci-guard-integrity: bespoke-dir-reader — <reason>\n" +
         'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
     });
     expect(runGuard(r)).toBe(1);
