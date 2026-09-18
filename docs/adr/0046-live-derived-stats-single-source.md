@@ -1,4 +1,4 @@
-# ADR 0045 — Displayed community stats are live-derived from the source of truth, never from a stored counter
+# ADR 0046 — Displayed community stats are live-derived from the source of truth, never from a stored counter
 
 - Status: Accepted
 - Date: 2026-09-18

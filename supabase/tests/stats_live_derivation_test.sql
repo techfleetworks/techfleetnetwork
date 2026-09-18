@@ -1,4 +1,4 @@
--- pgTAP — proves the displayed-stats RPCs are LIVE reads of the source of truth (ADR-0045),
+-- pgTAP — proves the displayed-stats RPCs are LIVE reads of the source of truth (ADR-0046),
 -- not stored counters. A stored/denormalized counter cannot pass these: the count must move
 -- the instant a row changes, within this same rolled-back transaction (no recompute, no cron).
 -- Run: `supabase db test` (or pg_prove) against a DB with the migrations applied.
@@ -15,12 +15,14 @@ INSERT INTO auth.users (id, email) VALUES
   ('a0000000-0000-0000-0000-000000000004','d@live.test')
 ON CONFLICT (id) DO NOTHING;
 
+-- handle_new_user auto-creates a profile (is_test_account=false) when the auth.users row is
+-- inserted above, so DO NOTHING would never apply is_test_account=true to C. Force it.
 INSERT INTO public.profiles (user_id, display_name, email, is_test_account) VALUES
   ('a0000000-0000-0000-0000-000000000001','A','a@live.test',false),
   ('a0000000-0000-0000-0000-000000000002','B','b@live.test',false),
   ('a0000000-0000-0000-0000-000000000003','C','c@live.test',true),
   ('a0000000-0000-0000-0000-000000000004','D','d@live.test',false)
-ON CONFLICT (user_id) DO NOTHING;
+ON CONFLICT (user_id) DO UPDATE SET is_test_account = EXCLUDED.is_test_account;
 
 -- ── Course cards: get_course_completion_counts ─────────────────────────────────
 -- A synthetic two-task course. Its task_ids are absent from real data and from
