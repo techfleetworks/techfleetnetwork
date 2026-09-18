@@ -26,25 +26,14 @@ import { join } from "node:path";
 const DIR = join(process.cwd(), "scripts/ci");
 const SELF = "check-ci-guard-integrity.mjs";
 
-// Reviewed, intentionally-bespoke directory readers that legitimately do NOT use
-// the scan harness (they read filenames, generate a manifest, or query a DB — not
-// a recursive content scan). Adding a guard here is a conscious decision on record.
-const BESPOKE_DIR_READERS = new Set([
-  "check-adr-number-collision.mjs", // filename collision detector
-  "check-migration-version-collision.mjs", // filename collision detector
-  "check-edge-function-coverage.mjs", // manifest generator
-  "check-guard-has-test.mjs", // enumerates guards + cross-references the test tree (not a content scan)
-  "check-guards-wired.mjs", // meta-check: enumerates guards + workflow files (not a per-file content scan)
-  "check-edge-cors-trace.mjs", // cross-references src/ invokeEdge call sites with supabase/functions CORS (not a per-file content scan)
-  "check-legacy-auth-importers.mjs", // snapshot-diff guard with an --update mode + shrink notice (not a per-file rule)
-  "check-owasp-coverage.mjs", // reads the OWASP map + SAST config
-  "check-triage-actionable-parity.mjs", // reads one TS file + newest matching migration
-  "check-erasure-completeness.mjs", // ADR-0039 right-to-erasure guard: reads migration filenames + the winning handle_user_deletion body (not a recursive content scan)
-  "check-no-inline-cors.mjs", // ADR-0043 edge-CORS guard: readdirSync over supabase/functions to find inline-CORS offenders + a shrink-only grandfather allowlist (not a per-file rule/content scan)
-  "check-db-schema-present.mjs", // ADR-0036 schema-reconciliation gate: readdirSync over migrations to derive declared objects across categories, then queries prod via the Management API (not a recursive content scan)
-  "check-db-schema-allowlist-shrinks.mjs", // ADR-0036 drift-allowlist shrink ratchet: reads one JSON (db-schema-allowlist.json) and compares per-category counts to committed caps (not a recursive content scan)
-  "arch-gate.mjs", // the flagship architecture engine — its own dependency-free scanner, already fail-closed + evidence-bearing
-]);
+// A genuinely-bespoke directory reader (a collision detector, manifest generator, DB/API query —
+// not a recursive content scan) opts out of the harness requirement by SELF-DECLARING in its own
+// file, not by being added to a central list here. A guard is bespoke iff its source contains the
+// marker `ci-guard-integrity: bespoke-dir-reader` (conventionally on the JSDoc/rationale line).
+// This is deliberate (ADR-0046): a central Set made EVERY new guard PR edit this one file, so two
+// guard PRs always conflicted here — the exact per-merge churn we are removing. Now a guard carries
+// its own exemption; adding one touches only that guard's file.
+const BESPOKE_MARKER = /ci-guard-integrity:\s*bespoke-dir-reader/;
 
 let files;
 try {
@@ -108,10 +97,12 @@ for (const f of files) {
   // Class 2: new URL(...).pathname (Windows path-portability crash).
   if (/new URL\([^)]*\)\s*\.pathname/.test(code)) pathBug.push(f);
 
-  // Class 3: hand-rolled directory walk not going through the harness.
+  // Class 3: hand-rolled directory walk not going through the harness. A guard opts out by
+  // self-declaring the bespoke marker in its own source (checked on RAW src — it lives in a comment).
   const readsDir = /\breaddirSync\b|\breaddir\s*\(/.test(code);
   const usesHarness = /from\s+["']\.\/_guard\.mjs["']/.test(code);
-  if (readsDir && !usesHarness && !BESPOKE_DIR_READERS.has(f)) rawWalk.push(f);
+  const isBespoke = BESPOKE_MARKER.test(src);
+  if (readsDir && !usesHarness && !isBespoke) rawWalk.push(f);
 }
 
 const problems = [];
@@ -131,7 +122,7 @@ if (rawWalk.length)
   problems.push([
     "reads a directory without the shared harness (hand-rolled walk):",
     rawWalk,
-    "Use runScanGuard from ./_guard.mjs (it owns fail-closed/zero-scan/evidence). If genuinely bespoke, add it to BESPOKE_DIR_READERS with a reason.",
+    "Use runScanGuard from ./_guard.mjs (it owns fail-closed/zero-scan/evidence). If genuinely bespoke, self-declare in the guard's own file with a `// ci-guard-integrity: bespoke-dir-reader — <reason>` comment.",
   ]);
 
 if (problems.length) {

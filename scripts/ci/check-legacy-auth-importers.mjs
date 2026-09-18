@@ -11,6 +11,8 @@
  * To remove an entry: delete the file (or remove the legacy import) and run
  *   node scripts/ci/check-legacy-auth-importers.mjs --update
  * locally to refresh the snapshot. CI only verifies; it never mutates.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — snapshot-diff guard with an --update mode + shrink notice (not a per-file rule)
  */
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";

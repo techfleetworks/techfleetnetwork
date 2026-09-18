@@ -41,6 +41,8 @@
  *
  * Test-only seams (never set in CI/prod): NO_INLINE_CORS_ROOT points the scan at a fixture tree;
  * NO_INLINE_CORS_BASE points the shrink check at a fixture baseline instead of `git show main:`.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — ADR-0043 edge-CORS guard: readdirSync over supabase/functions + a shrink-only grandfather allowlist (not a recursive content scan)
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";

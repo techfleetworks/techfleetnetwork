@@ -19,6 +19,8 @@
  *
  * No external dependencies — Node built-ins only, so it runs in the secret-free
  * `security-owasp` CI job with nothing but a checkout.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — reads the OWASP map + SAST config
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";

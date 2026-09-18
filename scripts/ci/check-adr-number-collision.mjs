@@ -24,6 +24,8 @@
  * (renumbering merged, cross-referenced ADRs would break existing links). The
  * guard blocks only NEW collisions — a fresh number, or a THIRD file on a
  * grandfathered number. As these are cleaned up, remove them from the set below.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — filename collision detector
  */
 import { readdirSync } from "node:fs";
 

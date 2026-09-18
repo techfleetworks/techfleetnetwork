@@ -20,6 +20,8 @@
  * Fail-closed: missing scripts/ci, missing workflows dir, or unreadable allowlist → exit 2.
  * This is a meta-check (it reads workflow YAML, not a scan over src) so it does not use the
  * _guard.mjs scan harness; it owns its own fail-closed + evidence.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — meta-check: enumerates guards + workflow files (not a per-file content scan)
  */
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";

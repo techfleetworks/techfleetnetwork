@@ -96,9 +96,14 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
     expect(runGuard(r)).toBe(0);
   });
 
-  it("MG-007: allows a readdir guard on the reviewed BESPOKE_DIR_READERS allowlist (arch-gate.mjs)", () => {
+  it("MG-007: allows a readdir guard that self-declares the bespoke-dir-reader marker", () => {
+    // The exemption is now per-guard (ADR-0046), not a central list: a guard opts out by carrying
+    // `ci-guard-integrity: bespoke-dir-reader` in its OWN source. Same file, no readdir marker (MG-004)
+    // is still flagged — so the marker is load-bearing, not decorative.
     const r = fixture({
-      "arch-gate.mjs": 'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+      "check-bespoke.mjs":
+        "// ci-guard-integrity: bespoke-dir-reader — reviewed filename-collision detector\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
     });
     expect(runGuard(r)).toBe(0);
   });

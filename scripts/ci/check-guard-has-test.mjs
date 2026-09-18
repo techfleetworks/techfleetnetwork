@@ -25,6 +25,8 @@
  * cross-references the test tree — not a single-root content scan), so it is a named
  * exception in check-ci-guard-integrity.mjs's BESPOKE_DIR_READERS. It is pinned by
  * src/test/smoke/check-guard-has-test.smoke.test.ts (it obeys its own rule).
+ *
+ * ci-guard-integrity: bespoke-dir-reader — enumerates guards + cross-references the test tree (not a content scan)
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
