@@ -2229,14 +2229,14 @@ serve(
       // served for the life of the kb_version. `hasGrounding` is false when no
       // KB / framework / canned / playbook / example / few-shot context backed
       // the turn (e.g. while retrieval is degraded) — never persist those.
+      // Never cache a fallback-model answer: the L2/L3 store is permanent per kb_version, so a
+      // flatter fallback reply would be replayed even after the primary model recovers (ADR-0044).
       const isCacheable =
         hasGrounding &&
         haveEmbeddings &&
         !cannedAnswerId &&
         webResult.sources.length === 0 &&
         lastUserMessage.length <= 800 &&
-        // Never cache a fallback-model answer: the L2/L3 store is permanent per kb_version, so a
-        // flatter fallback reply would be replayed even after the primary model recovers (ADR-0044).
         !usedFallbackModel;
       const queryHash = isCacheable
         ? await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`)

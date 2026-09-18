@@ -65,7 +65,8 @@ describe("fleety answer model (OpenRouter/DeepSeek) single source of truth", () 
     // User chat can contain personal data; DeepSeek must only run on US-headquartered
     // providers — reusing the hand-off port's US_INFERENCE_PROVIDERS allow-list.
     expect(chat).toMatch(
-      /import\s*\{\s*US_INFERENCE_PROVIDERS\s*\}\s*from\s*["']\.\.\/_shared\/llm\/port\.ts["']/
+      // US_INFERENCE_PROVIDERS must come from the port owner — allow it among other co-imports (ADR-0044).
+      /import\s*\{[^}]*\bUS_INFERENCE_PROVIDERS\b[^}]*\}\s*from\s*["']\.\.\/_shared\/llm\/port\.ts["']/
     );
     expect(chat).toMatch(/only:\s*US_INFERENCE_PROVIDERS/);
     expect(chat).toMatch(/provider:\s*OPENROUTER_PROVIDER/);
