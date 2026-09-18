@@ -1,0 +1,132 @@
+name: Deploy migrations
+
+# Applies supabase/migrations/* to the owned Supabase project on push to main —
+# the APPLIER half of the migration story (ADR-0045). ADR-0036's db-schema-gate
+# is the DETECTOR (it fails a PR whose declared objects are missing from prod);
+# this closes the loop so prod can never SILENTLY fall behind main again: there
+# is no human "remember to run the SQL" step to forget. Same auto-on-merge
+# pattern as deploy-edge-functions.yml, extended to the database.
+#
+# WHY THIS IS SAFE TO AUTO-APPLY:
+#   - migration-smoke (BLOCKING, in ci.yml) already proves every migration
+#     applies cleanly from scratch on a fresh Postgres BEFORE it can merge.
+#   - the expand/contract convention (ADR-0026) keeps migrations backward-
+#     compatible, so applying a merged migration cannot break the running app.
+#   - `supabase db push` applies ONLY migrations the remote ledger has not seen,
+#     in version order — never a reset.
+#   - the db-schema-gate remains the post-apply detector (belt + suspenders): if
+#     a push ever fails, the next PR's gate reddens on the drift.
+#
+# ONE-TIME PREREQUISITES (docs/architecture/audit-2026-08/migration-auto-apply.md):
+#   1. Prod IN SYNC with main first (ADR-0036 gate green on main).
+#   2. Bootstrap the migration ledger ONCE (mark every current migration applied)
+#      so `db push` has an accurate baseline — the repo predates any
+#      supabase_migrations.schema_migrations ledger (Lovable cutover).
+#   3. Add repo secrets: SUPABASE_ACCESS_TOKEN (already present) + SUPABASE_DB_PASSWORD
+#      (prod DB password, Supabase → Settings → Database).
+# The job preflights the secrets and fails with a clear message if absent, so it
+# never applies against a wrong/absent baseline. workflow_dispatch offers a dry-run.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "push = apply pending · dry-run = list only · bootstrap-ledger = ONE-TIME: mark all current migrations applied"
+        type: choice
+        options: [dry-run, push, bootstrap-ledger]
+        default: dry-run
+
+permissions:
+  contents: read
+
+# Serialize: never let two pushes race the same database.
+concurrency:
+  group: deploy-migrations
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: pzvqxdgoztbfikfuifix
+  SUPABASE_CLI_VERSION: 2.30.4
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Preflight — required secrets present
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -u
+          missing=0
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN is not set (Supabase → Account → Access Tokens)."
+            missing=1
+          fi
+          if [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "::error::SUPABASE_DB_PASSWORD is not set (Supabase → Settings → Database). See docs/architecture/audit-2026-08/migration-auto-apply.md."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Install Supabase CLI (retrying download — setup-cli's npm fetch flakes on GitHub 503s)
+        run: |
+          ver="${SUPABASE_CLI_VERSION}"
+          url="https://github.com/supabase/cli/releases/download/v${ver}/supabase_linux_amd64.tar.gz"
+          n=0; max=5; delay=6
+          until curl -fSL --retry 6 --retry-all-errors --retry-delay 4 -o /tmp/supabase.tgz "$url"; do
+            n=$((n + 1))
+            [ "$n" -ge "$max" ] && { echo "::error::supabase CLI ${ver} download failed after ${max} attempts"; exit 1; }
+            echo "::warning::supabase CLI download failed (attempt ${n}/${max}); retrying in ${delay}s"
+            sleep "$delay"; delay=$((delay * 2))
+          done
+          tar -xzf /tmp/supabase.tgz -C /tmp supabase
+          sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
+          supabase --version
+
+      - name: Link the prod project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Bootstrap the migration ledger (ONE-TIME)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'bootstrap-ledger' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Mark every migration in the repo as already-applied. The repo predates a
+          # supabase_migrations.schema_migrations ledger (Lovable cutover), so db push has no
+          # baseline. Run this ONCE, and ONLY after prod == main (ADR-0036 db-schema-gate green) —
+          # otherwise you would mark unapplied migrations "applied" and freeze the drift in.
+          versions=$(ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//')
+          echo "Marking $(echo "$versions" | wc -w) migration(s) as applied…"
+          supabase migration repair --status applied $versions
+          echo "Ledger bootstrapped. Verifying (expect: no pending migrations)…"
+          supabase db push --dry-run
+
+      - name: Show pending migrations (dry-run)
+        if: ${{ github.event_name == 'push' || inputs.mode == 'dry-run' || inputs.mode == 'push' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --dry-run
+
+      - name: Apply migrations to prod
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'push') }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push

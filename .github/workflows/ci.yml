@@ -827,6 +827,7 @@ jobs:
           source scripts/ci/deno-retry.sh
           deno_retry deno test --no-lock --allow-import --allow-env --allow-read \
             supabase/functions/techfleet-chat/prompt.test.ts \
+            supabase/functions/techfleet-chat/degrade.test.ts \
             supabase/functions/_shared/material-fetch.test.ts \
             supabase/functions/_shared/freescout.test.ts \
             supabase/functions/_shared/gemini-embed.test.ts \
