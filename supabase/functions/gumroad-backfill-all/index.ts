@@ -191,7 +191,7 @@ Deno.serve(
       fields: [`sales:${sales.length}`, `ingested:${ingested}`, `pending:${pending}`, `skipped:${skipped}`],
     });
 
-    // Webhook-gap alarm (ADR-0044). The upsert above uses ignoreDuplicates, so any row
+    // Webhook-gap alarm (ADR-0046). The upsert above uses ignoreDuplicates, so any row
     // this backfill NEWLY created (ingested + pending) is a sale the real-time webhook
     // MISSED. Emit it at ERROR so a dark / mis-wired webhook surfaces in the Activity Log
     // within the hour, instead of going unnoticed for weeks (the Aug-2026 Ping mismatch).

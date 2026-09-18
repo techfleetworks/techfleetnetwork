@@ -1,4 +1,4 @@
-# ADR 0044 — Gumroad ingestion: real-time webhook primary, hourly self-healing backstop that alarms on any gap
+# ADR 0046 — Gumroad ingestion: real-time webhook primary, hourly self-healing backstop that alarms on any gap
 
 - Status: Accepted
 - Date: 2026-09-18

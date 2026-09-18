@@ -133,7 +133,7 @@ describe("gumroad-backfill-all + membership observability (smoke)", () => {
     expect(cronMigration).toMatch(/functions\/v1\/gumroad-backfill-all/);
     // Authorized by the service-role bearer from Vault (same proven pattern).
     expect(cronMigration).toMatch(/vault\.decrypted_secrets/);
-    // Hourly cron expression (:11 past every hour) — ADR-0044 shrank it from weekly so a
+    // Hourly cron expression (:11 past every hour) — ADR-0046 shrank it from weekly so a
     // dark webhook is detected + self-healed within the hour, not weeks. The job NAME is
     // kept ('…-weekly') so environment_readiness()'s expected-cron watchdog still matches.
     expect(cronMigration).toMatch(/cron\.schedule\(\s*\n?\s*['"]gumroad-backfill-all-weekly['"]\s*,\s*['"]11 \* \* \* \*['"]/);
@@ -141,7 +141,7 @@ describe("gumroad-backfill-all + membership observability (smoke)", () => {
 
   it("MEM-OBS-010: backfill ALARMS (error) when it ingests a sale the real-time webhook missed", () => {
     // The upsert uses ignoreDuplicates, so any newly-created row (ingested+pending) is a
-    // webhook miss — it must surface as an ERROR, never a silent info (ADR-0044).
+    // webhook miss — it must surface as an ERROR, never a silent info (ADR-0046).
     expect(backfillAll).toMatch(/gumroad_webhook_gap_detected/);
     expect(backfillAll).toMatch(/const webhookMissed = ingested \+ pending/);
     expect(backfillAll).toMatch(/gumroad_webhook_gap_detected[\s\S]{0,160}severity:\s*["']error["']/);
