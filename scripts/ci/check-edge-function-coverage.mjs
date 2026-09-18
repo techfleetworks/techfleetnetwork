@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-guard-integrity: bespoke-dir-reader — manifest generator
 // Zero-tolerance edge-function pin guard + manifest generator.
 //
 // Rules:
