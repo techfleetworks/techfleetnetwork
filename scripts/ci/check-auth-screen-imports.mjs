@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-ARCH-CUTOVER-022 — auth screens must talk only to their engine.
  *

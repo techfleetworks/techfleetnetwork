@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 // TRANSLATOR-VOLATILE-003: Fail CI if any JSX file adds an aria-live region or a
 // volatile role (status/alert/log/timer) without data-no-translate / translate="no",
 // unless the file is on the snapshot allow-list (regions the runtime translator

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 /**
  * CI guard: forbid `.rpc(...).catch(...)` and `safeRpc(...).catch(...)` in
  * every TypeScript file across `src/**` and `supabase/functions/**`.

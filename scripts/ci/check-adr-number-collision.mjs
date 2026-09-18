@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * ADR-NUMBER-001 guard: no two files in docs/adr/ may share a `NNNN` number
  * (the numeric prefix in `<NNNN>-<slug>.md`).

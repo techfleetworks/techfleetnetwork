@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 // CI guard (BLOCKING): every real email template must have a TIER.
 //
 // The tier registry (supabase/functions/_shared/email/domain/email-tiers.ts) is

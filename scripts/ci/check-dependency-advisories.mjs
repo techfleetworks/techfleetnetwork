@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * check-dependency-advisories.mjs — the BLOCKING dependency-advisory gate.
  *

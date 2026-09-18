@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * NO-BOM-001 — no committed text file may begin with a UTF-8 BOM.
  *

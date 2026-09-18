@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 // Fails CI if an edge function authorizes on an UNVERIFIED JWT claim or on a
 // substring match of a public key — the two auth-bypass classes from the
 // 2026-08 audit (C1: unsigned service_role JWT; C2: anon-key .includes()).
