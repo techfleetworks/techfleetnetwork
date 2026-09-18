@@ -28,12 +28,17 @@ const SELF = "check-ci-guard-integrity.mjs";
 
 // A genuinely-bespoke directory reader (a collision detector, manifest generator, DB/API query —
 // not a recursive content scan) opts out of the harness requirement by SELF-DECLARING in its own
-// file, not by being added to a central list here. A guard is bespoke iff its source contains the
-// marker `ci-guard-integrity: bespoke-dir-reader` (conventionally on the JSDoc/rationale line).
-// This is deliberate (ADR-0046): a central Set made EVERY new guard PR edit this one file, so two
-// guard PRs always conflicted here — the exact per-merge churn we are removing. Now a guard carries
-// its own exemption; adding one touches only that guard's file.
-const BESPOKE_MARKER = /ci-guard-integrity:\s*bespoke-dir-reader/;
+// file, not by being added to a central list here. This is deliberate (ADR-0046): a central Set made
+// EVERY new guard PR edit this one file, so two guard PRs always conflicted here — the exact per-merge
+// churn we are removing. Now a guard carries its own exemption; adding one touches only that guard's file.
+//
+// The marker must be a COMMENT that carries a reason (`— <reason>`), and is matched against a
+// COMMENT-ONLY view of the source (see commentsOnly below), never raw src. This mirrors the positional
+// scoping of the class-1 `ci-guard-integrity-ok` opt-out: an incidental mention inside a string
+// literal, a help/fix message, or a "do NOT" negative example must NOT self-exempt a guard. (A future
+// guard that VALIDATES these markers would otherwise embed the literal and silently pass the very
+// hand-rolled-walk check this exists to enforce — the exact false-green we guard against.)
+const BESPOKE_MARKER = /ci-guard-integrity:\s*bespoke-dir-reader\s*[—-]\s+\S/;
 
 let files;
 try {
@@ -61,6 +66,15 @@ const stripComments = (src) =>
   src
     .split(/\r?\n/)
     .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .join("\n");
+
+// Inverse of stripComments — ONLY full-line comments. The bespoke marker is a declaration that must
+// live in a comment, so it is matched here (not raw src): code that merely references the marker
+// string (a marker-validating guard, a help/fix message) cannot thereby self-exempt.
+const commentsOnly = (src) =>
+  src
+    .split(/\r?\n/)
+    .filter((l) => /^\s*(\/\/|\*|\/\*)/.test(l))
     .join("\n");
 
 const swallow = []; // class 1
@@ -98,10 +112,12 @@ for (const f of files) {
   if (/new URL\([^)]*\)\s*\.pathname/.test(code)) pathBug.push(f);
 
   // Class 3: hand-rolled directory walk not going through the harness. A guard opts out by
-  // self-declaring the bespoke marker in its own source (checked on RAW src — it lives in a comment).
+  // self-declaring the bespoke marker AS A COMMENT in its own source — matched on a comment-only view
+  // plus a required reason, so a string-literal/help-message mention can't self-exempt (see
+  // BESPOKE_MARKER above).
   const readsDir = /\breaddirSync\b|\breaddir\s*\(/.test(code);
   const usesHarness = /from\s+["']\.\/_guard\.mjs["']/.test(code);
-  const isBespoke = BESPOKE_MARKER.test(src);
+  const isBespoke = BESPOKE_MARKER.test(commentsOnly(src));
   if (readsDir && !usesHarness && !isBespoke) rawWalk.push(f);
 }
 

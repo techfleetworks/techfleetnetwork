@@ -108,6 +108,31 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
     expect(runGuard(r)).toBe(0);
   });
 
+  it("MG-011: does NOT exempt a guard that only mentions the marker in a string literal", () => {
+    // The marker is a DECLARATION and must live in a COMMENT (ADR-0046). A guard that merely
+    // references the marker string in code — a future marker-VALIDATING guard, or a help/fix message —
+    // must not thereby self-exempt from the hand-rolled-walk check. Proves comment-only scoping: the
+    // exact false-green (an unharnessed walk passing) the meta-guard exists to catch.
+    const r = fixture({
+      "check-marker-in-string.mjs":
+        'import { readdirSync } from "node:fs";\n' +
+        'const HELP = "opt out with ci-guard-integrity: bespoke-dir-reader — <reason>";\n' +
+        'readdirSync("./");\nconsole.log(HELP);\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("MG-012: does NOT exempt a bespoke marker that carries no reason", () => {
+    // The opt-out must be explained: `bespoke-dir-reader` with no `— <reason>` does not match, so a
+    // bare, unjustified opt-out cannot pass mechanically.
+    const r = fixture({
+      "check-no-reason.mjs":
+        "// ci-guard-integrity: bespoke-dir-reader\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
   // ---- Fail closed --------------------------------------------------------
   it("MG-008: fails CLOSED (exit 2) when scripts/ci is missing", () => {
     expect(runGuard(fixture({}, /* makeCiDir */ false))).toBe(2);

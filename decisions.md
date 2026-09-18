@@ -212,8 +212,23 @@ and its committed test must go red. See ADR-0022, ADR-0023; the transferable pla
 `check-owasp-coverage` / `check-triage-actionable-parity` are the models. The meta-guard
 `check-ci-guard-integrity.mjs` (wired into the required gate) enforces the worst case — no
 `exit(0)` inside a `catch`; a deliberate fail-open opts out with a `// ci-guard-integrity-ok: <reason>`
-marker. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining guards) is
-tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
+marker. It also forbids a **hand-rolled directory walk** — a guard that reads the tree without the
+shared `_guard.mjs` harness (which owns fail-closed / zero-scan / evidence). A genuinely bespoke reader
+(a collision detector, a manifest generator, a DB/API query) opts out by **self-declaring in its own
+file** — never by editing a central list, which made every guard PR conflict on one hunk (ADR-0046):
+
+```
+❌ never — a central Set every guard PR must edit (a conflict magnet), or a raw walk with no opt-out
+const BESPOKE_DIR_READERS = new Set(["check-foo.mjs", …])   // two guard PRs always collide on this line
+readdirSync(dir)   // a guard with no harness AND no marker → flagged as a hand-rolled walk
+✅ always — the guard self-declares in its OWN file, as a COMMENT that carries a reason
+// ci-guard-integrity: bespoke-dir-reader — reads migration filenames, not a recursive content scan
+```
+
+The marker is matched **comment-only and must carry a `— <reason>`**, so a mention inside a string
+literal, help message, or negative example can't silently self-exempt (the false-green this guard
+exists to catch). Broader fleet hardening (evidence counts + zero-scan asserts on the remaining
+guards) is tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
 `check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
 verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.
 

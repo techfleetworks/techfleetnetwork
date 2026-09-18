@@ -25,7 +25,9 @@ The same anti-pattern lives in several places (the `ci.yml` guard matrices, `dec
 
 ## Decision outcome
 
-**Chosen: Option 2.** `check-ci-guard-integrity.mjs` replaces the `BESPOKE_DIR_READERS` Set with a `BESPOKE_MARKER` regex tested against each guard's raw source; the 14 previously-listed guards now each carry the marker (with their reason) in their own file. The class-3 (hand-rolled walk) check exempts a guard iff it self-declares. The fix message now tells authors to self-declare in their own file.
+**Chosen: Option 2.** `check-ci-guard-integrity.mjs` replaces the `BESPOKE_DIR_READERS` Set with a `BESPOKE_MARKER` regex; the 14 previously-listed guards now each carry the marker (with their reason) in their own file. The class-3 (hand-rolled walk) check exempts a guard iff it self-declares. The fix message now tells authors to self-declare in their own file.
+
+The marker is matched against a **comment-only view** of the guard's source (never raw `src`) and **must carry a `— <reason>`**. This mirrors the positional scoping of the pre-existing class-1 `ci-guard-integrity-ok` opt-out and closes a false-green hole a naive raw-substring match would open: a guard that merely _mentions_ the marker string — inside a string literal, a help/fix message, or a "do NOT" negative example, or (most concretely) a future guard whose job is to _validate these markers_ — must not thereby self-exempt from the very hand-rolled-walk check this guard enforces.
 
 ## Consequences
 
@@ -43,3 +45,4 @@ The same anti-pattern lives in several places (the `ci.yml` guard matrices, `dec
 ## Confirmation
 
 - `src/test/smoke/check-ci-guard-integrity.smoke.test.ts` MG-007 (a readdir guard _with_ the marker → exit 0) and MG-004 (a readdir guard _without_ it → exit 1) prove the marker is load-bearing; MG-010 confirms the real repo (all 14 marked) passes. `check-guard-has-test` + `check-guards-wired` stay green.
+- The comment-only + required-reason scoping is pinned against evasion: MG-011 (marker only inside a string literal + an unharnessed `readdirSync` → still exit 1) proves a mere mention can't self-exempt; MG-012 (a bespoke marker with no `— <reason>` → still exit 1) proves the opt-out must be explained.
