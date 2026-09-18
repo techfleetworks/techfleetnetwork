@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 // CI guard (BLOCKING): no edge function may call the RETIRED raw `enqueue_email` RPC.
 //
 // The raw pgmq email path (transactional_emails / bulk_emails / auth_emails) had its consumer

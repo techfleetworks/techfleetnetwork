@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * GATE-INTEGRITY companion — every guard in scripts/ci/ must have a COMMITTED test.
  *

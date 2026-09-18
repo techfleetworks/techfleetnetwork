@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * CI guard: counter-call sites must live in AuthFailurePolicy only.
  *

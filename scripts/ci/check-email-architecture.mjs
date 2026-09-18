@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 // CI guard: enforces email subsystem v2 layering.
 //   Domain MUST NOT import infrastructure/providers/Deno/npm I/O.
 //   Application MUST NOT import infrastructure directly (only ports).

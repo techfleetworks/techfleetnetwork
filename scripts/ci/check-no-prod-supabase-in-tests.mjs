@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 // CI guard (PRD G-03 / P-05 / UC-09): the test suite must NEVER reference the
 // production Supabase project. Fails with file:line for every test file that
 // references the production project ref. Static grep — no network, no DB.

@@ -225,14 +225,9 @@ describe("check-guard-has-test guard (smoke)", () => {
     expect(runGuard()).toBe(0);
   });
 
-  it("GHT-012: the guard is wired into the BLOCKING lint-arch-critical CI matrix", () => {
-    const ci = read(".github/workflows/ci.yml");
-    const criticalBlock = ci.slice(
-      ci.indexOf("lint-arch-critical:"),
-      ci.indexOf("lint-arch:") > ci.indexOf("lint-arch-critical:")
-        ? ci.indexOf("lint-arch:")
-        : ci.length
-    );
-    expect(criticalBlock).toContain("check-guard-has-test.mjs");
+  it("GHT-012: the guard declares the BLOCKING critical CI lane (ADR-0047)", () => {
+    // The lint-arch-critical matrix is DERIVED from each guard's `// ci-lane` marker (ADR-0047), not a
+    // hardcoded ci.yml list. `critical` is the blocking lane (not the informational `standard` one).
+    expect(read("scripts/ci/check-guard-has-test.mjs")).toMatch(/^\/\/ ci-lane: critical\b/m);
   });
 });

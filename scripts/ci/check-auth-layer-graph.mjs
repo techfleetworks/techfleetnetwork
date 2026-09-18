@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * CI guard: defense-in-depth layers may only import downward.
  *   ui → state → flows → services → domain

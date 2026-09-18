@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * EDGE-CORS-TRACE-001 — every edge function invoked from the browser must allow the
  * `x-trace-id` CORS preflight header.

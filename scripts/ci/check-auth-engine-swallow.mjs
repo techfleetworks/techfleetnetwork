@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-ARCH-CUTOVER-011 — fail CI if any auth engine catch block swallows an
  * error without recording telemetry. Prevents the silent reset-email outage
