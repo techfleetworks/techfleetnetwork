@@ -46,6 +46,27 @@ profiles.freescout_customer_id  // written by 3 functions on 2 different keys
 Mirrors of Discord / Freescout / Airtable / Gumroad get a single sync path; `discord_user_id`
 (immutable) is the identity key, not `discord_username` (a display cache).
 
+**Displayed stats are live-derived, never read from a stored counter.** A number shown to a human
+is a live count of its owning rows, computed in the read path — not a denormalized total that a
+cron/trigger refreshes. Stored counters freeze when their job stops and drift when a fact has two
+writers (ADR-0045: Platform Signups sat at **768** for months because its snapshot's cron was not
+running; course-card counts drifted via a `+1` trigger over an only-grows ledger).
+
+```
+❌ never — display reads a stored/aggregated counter that a job must refresh
+value={stats.total_signups}                                  // network_stats_snapshots row — frozen when the cron dies
+SELECT total_completions FROM course_completion_stats WHERE course_key = $1
+✅ always — display is a live count of the owning rows, computed in the read
+-- get_network_stats():             SELECT count(*) FROM profiles WHERE NOT is_test_account
+-- get_course_completion_counts():  count members with a completed journey_progress row for every required task
+```
+
+Enforced: `arch-gate.config.json` forbids reading `course_completion_stats` /
+`network_stats_snapshots` directly (`.from(...)`) under `src/**`; pgTAP
+(`stats_live_derivation_test.sql`) + the `stats-live-derivation` smoke guard
+prove the display RPCs read live. Static historical imports (pre-platform Airtable figures) are the
+one exception — labeled caches in `network_stats_historical`, never presented as live.
+
 ## 3 · Domain code is web-free; one Supabase client
 
 ```
