@@ -24,8 +24,8 @@
  *    sidecar (db-dynamic-objects.json) or the gate FAILS CLOSED — an unbounded silent miss becomes
  *    an explicit reviewed obligation.
  *  - FAIL CLOSED always: no token / unreachable / bad response / unreadable or zero migrations /
- *    zero derived or a per-category count off its pinned BASELINE / an active category with no
- *    BASELINE / unterminated dollar-quote / unregistered or empty dynamic file / a stale allowlist
+ *    zero derived or a per-category count DROPPED below its pinned floor / an active category with no
+ *    floor / unterminated dollar-quote / unregistered or empty dynamic file / a stale allowlist
  *    waiver (allowlisted object actually present in prod) / a test seam set in CI without opt-in /
  *    any declared object absent from prod. A gate that cannot verify must never pass.
  *  - The honest boundary: effects with no structural signature (data backfills, DROP-only,
@@ -44,6 +44,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { codeView, unterminatedDollarTag } from "./_sql-scan.mjs";
 import { readJson } from "./_json.mjs";
+import { floorReport } from "./_schema-floor.mjs";
 
 const ROOT = process.env.DB_SCHEMA_ROOT
   ? resolve(process.env.DB_SCHEMA_ROOT)
@@ -1002,16 +1003,16 @@ function loadAllowlist() {
   }
 }
 
-// Committed per-category derived-count baselines (POST-allowlist), pinned to the real corpus. The
-// gate fails when a category's count strays more than BASELINE_TOL from its baseline: a DROP is a
-// partial-capture regression (silent under-verification — the old loose floors sat ~25% below actual
-// and let ~50 objects vanish undetected); an unreviewed RISE means the schema grew and the baseline
-// must be bumped in the same PR. Only enforced against the real corpus (skipped for a DB_SCHEMA_ROOT
-// test fixture, whose counts are intentionally tiny). Bump these when a migration changes the schema.
-// Synced to the derived corpus after rebasing onto current main (DB_SCHEMA_EXTRACT_ONLY=1). The
-// rises are all intended, merged objects: #343 gumroad, #346 announcement set-based enqueue,
-// #347 erasure, #349 membership-purchase side-effects (+1 function, +1 trigger). Every category
-// set to its exact derived count so the ±2 tripwire measures future drift from an accurate baseline.
+// Committed per-category derived-count FLOORS (POST-allowlist), pinned to the real corpus. The gate
+// fails only when a category's derived count DROPS more than BASELINE_TOL below its floor — a
+// partial-capture regression (silent under-verification; the old loose floors sat ~25% below actual and
+// let ~50 objects vanish undetected). Benign GROWTH never fails (ADR-0048: a floor, not a band — the old
+// symmetric ±tol band re-tripped on every unrelated migration, the #345 whack-a-mole). Only enforced
+// against the real corpus (skipped for a DB_SCHEMA_ROOT test fixture, whose counts are intentionally
+// tiny). Raising a floor is optional (tightens drop-detection from a higher watermark); LOWERING one is
+// a reviewed, deliberate drop in the same PR. Pinned via DB_SCHEMA_EXTRACT_ONLY=1 to the corpus as of
+// #343 gumroad / #346 enqueue / #347 erasure / #349 membership-purchase — now a floor, so later growth
+// no longer re-trips the gate.
 const BASELINES = {
   table: 203,
   extension: 7,
@@ -1137,30 +1138,45 @@ async function main() {
     return;
   }
 
-  // 3b. Baseline tripwire (real corpus only; skipped for a DB_SCHEMA_ROOT test fixture, whose counts
-  //     are intentionally tiny). Each active category is pinned to its committed derived count ± a
-  //     small tolerance, so a partial-capture regression that silently drops more than a couple of
-  //     objects FAILS rather than passing under a loose floor. Legit schema growth/shrink is a
-  //     reviewed one-line bump of BASELINES in the same PR.
+  // 3b. Baseline FLOOR tripwire (real corpus only; skipped for a DB_SCHEMA_ROOT test fixture, whose
+  //     counts are intentionally tiny). Each active category is pinned to a committed FLOOR: the gate
+  //     fails only when a category's derived count DROPS more than BASELINE_TOL below it — a
+  //     partial-capture regression that would silently under-verify the schema. Benign GROWTH never
+  //     fails (ADR-0048: a floor, not a band — the old symmetric ±tol band re-tripped on every
+  //     unrelated migration, the #345 whack-a-mole; a phantom over-derivation is caught downstream by
+  //     the declared-vs-prod reconciliation). All violations are reported together (no per-category
+  //     whack-a-mole). See _schema-floor.mjs (unit-tested).
   if (!process.env.DB_SCHEMA_ROOT) {
-    for (const cat of CATEGORIES) {
-      const expect = BASELINES[cat.kind];
-      if (expect == null)
-        fail(
-          `active category '${cat.kind}' has no BASELINES entry — a new category must not ship without ` +
-            `a pinned count tripwire (that is how a partial-capture regression is caught). Add ` +
-            `BASELINES.${cat.kind} = <current derived count from DB_SCHEMA_EXTRACT_ONLY>. Failing closed.`
-        );
-      const size = declaredByKind.get(cat.kind).size;
-      if (Math.abs(size - expect) > BASELINE_TOL)
-        fail(
-          `derived ${size} '${cat.kind}' objects; committed baseline is ${expect} (±${BASELINE_TOL}). ` +
-            (size < expect
-              ? `A drop of ${expect - size} is a partial-capture regression — objects would go unverified (silent drift). `
-              : `An unreviewed increase of ${size - expect}: confirm the new objects are intended, then bump BASELINES.${cat.kind} to ${size}. `) +
-            `Failing closed.`
-        );
-    }
+    const cats = CATEGORIES.map((c) => ({ kind: c.kind, size: declaredByKind.get(c.kind).size }));
+    const { drops, noFloor, grown } = floorReport(cats, BASELINES, BASELINE_TOL);
+    const problems = [
+      ...noFloor.map(
+        (n) =>
+          `  - ${n.kind}: active category has NO BASELINES entry — a new category must ship with a floor ` +
+          `(add BASELINES.${n.kind} = ${n.size}, from DB_SCHEMA_EXTRACT_ONLY)`
+      ),
+      ...drops.map(
+        (d) =>
+          `  - ${d.kind}: derived ${d.size} < floor ${d.floor} (−${d.delta}, tol ±${BASELINE_TOL}) — ` +
+          `partial-capture regression: those objects would go unverified against prod`
+      ),
+    ];
+    if (problems.length)
+      fail(
+        `schema-floor violation(s) — a gate that cannot verify its own coverage must not pass:\n` +
+          problems.join("\n") +
+          `\nIf objects were intentionally removed, LOWER that BASELINES entry in this PR (a reviewed drop). Failing closed.`
+      );
+    // Growth is benign (a floor, not a band): never fail on it — that was the whack-a-mole. Advise
+    // raising the floor so drop-detection stays tight from the new height.
+    if (grown.length)
+      console.log(
+        `ℹ ${CODE}: schema grew above its committed floor (benign — those objects are now verified). ` +
+          `You may raise these to keep drop-detection tight:\n` +
+          grown
+            .map((g) => `  - BASELINES.${g.kind}: ${g.floor} → ${g.size} (+${g.delta})`)
+            .join("\n")
+      );
   }
 
   // 4. Query prod reality (Management API, HTTPS) — ONE REQUEST PER CATEGORY (not a single UNION-ALL).
