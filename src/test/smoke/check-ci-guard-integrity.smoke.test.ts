@@ -96,11 +96,65 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
     expect(runGuard(r)).toBe(0);
   });
 
-  it("MG-007: allows a readdir guard on the reviewed BESPOKE_DIR_READERS allowlist (arch-gate.mjs)", () => {
+  it("MG-007: allows a readdir guard that self-declares the bespoke-dir-reader marker", () => {
+    // The exemption is now per-guard (ADR-0046), not a central list: a guard opts out by carrying
+    // `ci-guard-integrity: bespoke-dir-reader` in its OWN source. Same file, no readdir marker (MG-004)
+    // is still flagged — so the marker is load-bearing, not decorative.
     const r = fixture({
-      "arch-gate.mjs": 'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+      "check-bespoke.mjs":
+        "// ci-guard-integrity: bespoke-dir-reader — reviewed filename-collision detector\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
     });
     expect(runGuard(r)).toBe(0);
+  });
+
+  it("MG-011: does NOT exempt a guard that only mentions the marker in a string literal", () => {
+    // The marker is a DECLARATION and must be the LEADING content of a comment line (ADR-0046). A guard
+    // that merely references the marker string in CODE — a future marker-VALIDATING guard, or a help/fix
+    // message — must not thereby self-exempt from the hand-rolled-walk check. Proves the anchoring: the
+    // exact false-green (an unharnessed walk passing) the meta-guard exists to catch.
+    const r = fixture({
+      "check-marker-in-string.mjs":
+        'import { readdirSync } from "node:fs";\n' +
+        'const HELP = "opt out with ci-guard-integrity: bespoke-dir-reader — <reason>";\n' +
+        'readdirSync("./");\nconsole.log(HELP);\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("MG-012: does NOT exempt a bespoke marker that carries no reason", () => {
+    // The opt-out must be explained: `bespoke-dir-reader` with no `— <reason>` does not match, so a
+    // bare, unjustified opt-out cannot pass mechanically.
+    const r = fixture({
+      "check-no-reason.mjs":
+        "// ci-guard-integrity: bespoke-dir-reader\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("MG-013: does NOT exempt a marker embedded mid-sentence in a comment (docblock/negative example)", () => {
+    // The marker must be the LEADING content of a comment line, not merely appear inside one. A guard
+    // that DOCUMENTS the marker format (or warns against it) — e.g. a future marker-validating guard's
+    // docblock — must not self-exempt. Closes the residual comment-mention hole judge-arch flagged.
+    const r = fixture({
+      "check-doc-mention.mjs":
+        "// do NOT self-declare unless bespoke: ci-guard-integrity: bespoke-dir-reader — <reason>\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
+  it("MG-014: does NOT exempt a marker split across two comment lines", () => {
+    // The marker must be the leading content of ONE comment line — the regex uses horizontal-whitespace
+    // separators, never `\s`, so it can't span a newline. A marker wrapped across two JSDoc lines is not
+    // a valid declaration and must not self-exempt (keep it on one line).
+    const r = fixture({
+      "check-split-marker.mjs":
+        "/*\n * ci-guard-integrity:\n * bespoke-dir-reader — split across lines\n */\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
   });
 
   // ---- Fail closed --------------------------------------------------------
