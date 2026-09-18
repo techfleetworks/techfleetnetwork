@@ -145,6 +145,18 @@ describe("check-ci-guard-integrity meta-guard (smoke)", () => {
     expect(runGuard(r)).toBe(1);
   });
 
+  it("MG-014: does NOT exempt a marker split across two comment lines", () => {
+    // The marker must be the leading content of ONE comment line — the regex uses horizontal-whitespace
+    // separators, never `\s`, so it can't span a newline. A marker wrapped across two JSDoc lines is not
+    // a valid declaration and must not self-exempt (keep it on one line).
+    const r = fixture({
+      "check-split-marker.mjs":
+        "/*\n * ci-guard-integrity:\n * bespoke-dir-reader — split across lines\n */\n" +
+        'import { readdirSync } from "node:fs";\nreaddirSync("./");\n',
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
   // ---- Fail closed --------------------------------------------------------
   it("MG-008: fails CLOSED (exit 2) when scripts/ci is missing", () => {
     expect(runGuard(fixture({}, /* makeCiDir */ false))).toBe(2);

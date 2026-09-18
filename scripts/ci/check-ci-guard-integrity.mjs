@@ -32,15 +32,18 @@ const SELF = "check-ci-guard-integrity.mjs";
 // EVERY new guard PR edit this one file, so two guard PRs always conflicted here — the exact per-merge
 // churn we are removing. Now a guard carries its own exemption; adding one touches only that guard's file.
 //
-// The marker must be the LEADING content of a COMMENT LINE and carry a reason (`— <reason>`): the
-// anchored, multi-line regex below matches only a `//`, ` *` (JSDoc), or `/*` line whose first content
-// is the marker. This mirrors the positional scoping of the class-1 `ci-guard-integrity-ok` opt-out, so
-// a marker that merely APPEARS somewhere does NOT self-exempt — not in a string literal or help/fix
-// message (that is code, not a comment), and not embedded mid-sentence in prose (a "do NOT …" example,
-// or a docblock that DOCUMENTS the format). Only a deliberate, reviewed declaration does. A future guard
-// that VALIDATES these markers therefore keeps the literal in code (a regex/string), where it is
-// correctly ignored, and stays held to the hand-rolled-walk check — closing the false-green we guard against.
-const BESPOKE_MARKER = /^\s*(?:\/\/|\/?\*)\s*ci-guard-integrity:\s*bespoke-dir-reader\s*[—-]\s+\S/m;
+// The marker must be the LEADING content of a COMMENT LINE, ON ONE LINE, and carry a reason
+// (`— <reason>`): the regex below is `m`-anchored to a line start and uses only horizontal-whitespace
+// separators (`[ \t]`, never `\s`, which would let a match span newlines), so it matches a `//`, ` *`
+// (JSDoc), or `/*` line whose first content is the whole marker — not a marker split across two comment
+// lines. This mirrors the positional scoping of the class-1 `ci-guard-integrity-ok` opt-out, so a marker
+// that merely APPEARS somewhere does NOT self-exempt — not in a string literal or help/fix message (that
+// is code, not a comment), and not embedded mid-sentence in prose (a "do NOT …" example, or a docblock
+// that DOCUMENTS the format). Only a deliberate, reviewed declaration does. A future guard that VALIDATES
+// these markers therefore keeps the literal in code (a regex/string), where it is correctly ignored, and
+// stays held to the hand-rolled-walk check — closing the false-green we guard against.
+const BESPOKE_MARKER =
+  /^[ \t]*(?:\/\/|\/?\*)[ \t]*ci-guard-integrity:[ \t]*bespoke-dir-reader[ \t]*[—-][ \t]+\S/m;
 
 let files;
 try {
