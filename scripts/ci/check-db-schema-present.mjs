@@ -1014,17 +1014,17 @@ function loadAllowlist() {
 // #347 erasure, #349 membership-purchase side-effects (+1 function, +1 trigger). Every category
 // set to its exact derived count so the ±2 tripwire measures future drift from an accurate baseline.
 const BASELINES = {
-  table: 203,
+  table: 204, // +1 discord_roles (ADR-0049)
   extension: 7,
   type: 25,
   view: 17,
   constraint: 20,
-  rls_enabled: 203,
-  function: 423,
+  rls_enabled: 204, // +1 public.discord_roles (ADR-0049)
+  function: 425, // +2 list_founding_discord_role_targets, report_founding_discord_role_gap (ADR-0049)
   index: 393,
   trigger: 198,
-  policy: 493,
-  column: 2056,
+  policy: 495, // +2 discord_roles admin read/write (ADR-0049)
+  column: 2060, // +4 discord_roles.{key,role_id,role_name,updated_at} (ADR-0049)
 };
 const BASELINE_TOL = 2;
 
