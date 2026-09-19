@@ -22,8 +22,10 @@ AS $$
   SELECT p.user_id, p.discord_user_id
     FROM public.profiles p
    WHERE p.is_founding_member = true
-     AND p.discord_user_id IS NOT NULL
-     AND COALESCE(p.has_discord_account, false) = true;
+     -- "connected" = a real, OAuth-verified snowflake. discord_user_id is written ONLY by the
+     -- discord-oauth-callback after ownership proof; UNCONNECTED profiles hold '' (empty string),
+     -- NOT null — so an IS NOT NULL check would count everyone. Gate on a non-empty id.
+     AND btrim(COALESCE(p.discord_user_id, '')) <> '';
 $$;
 
 COMMENT ON FUNCTION public.list_founding_discord_role_targets() IS
@@ -69,7 +71,7 @@ BEGIN
   SELECT count(*) INTO v_no_discord
     FROM public.profiles p
    WHERE p.is_founding_member = true
-     AND (p.discord_user_id IS NULL OR COALESCE(p.has_discord_account, false) = false);
+     AND btrim(COALESCE(p.discord_user_id, '')) = '';
 
   -- Rows already reflected as granted in the shared retry queue for this role (read-only).
   SELECT count(*) INTO v_granted

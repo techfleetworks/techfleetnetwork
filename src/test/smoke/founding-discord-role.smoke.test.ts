@@ -25,8 +25,9 @@ describe("founding discord role — foundation (smoke)", () => {
 
   it("FDR-002: the target set encodes the REAL invariant (founding AND OAuth-verified Discord)", () => {
     expect(targets).toMatch(/is_founding_member = true/);
-    expect(targets).toMatch(/discord_user_id IS NOT NULL/);
-    expect(targets).toMatch(/has_discord_account/);
+    // "connected" must be a NON-EMPTY discord_user_id: this DB stores '' (not NULL) for
+    // unconnected profiles, so an IS NOT NULL check would count everyone.
+    expect(targets).toMatch(/btrim\(COALESCE\(p\.discord_user_id, ''\)\) <> ''/);
     // Hardened convention: SECURITY DEFINER with a pinned empty search_path.
     expect(targets).toMatch(/security definer[\s\S]{0,80}set search_path\s*=\s*''/i);
   });
