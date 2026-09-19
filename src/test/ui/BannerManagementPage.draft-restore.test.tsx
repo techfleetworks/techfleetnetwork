@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@/lib/react-query";
 import BannerManagementPage from "@/pages/BannerManagementPage";
+// Module under test: src/pages/BannerManagementPage.tsx
 
 /**
  * Regression: opening "New Banner" with an existing server-draft must populate

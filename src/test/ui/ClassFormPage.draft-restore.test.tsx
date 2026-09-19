@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@/lib/react-query";
 import ClassFormPage from "@/pages/ClassFormPage";
+// Module under test: src/pages/ClassFormPage.tsx
 
 /**
  * Regression: a restored server-draft must actually populate the create form's

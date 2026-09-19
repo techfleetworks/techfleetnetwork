@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@/lib/react-query";
 import CohortFormPage from "@/pages/CohortFormPage";
+// Module under test: src/pages/CohortFormPage.tsx
 
 /**
  * Regression: a restored cohort server-draft must populate the create form's
