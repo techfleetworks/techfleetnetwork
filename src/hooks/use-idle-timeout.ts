@@ -1,7 +1,19 @@
 import { useEffect, useRef, useCallback } from "react";
 import { recordActivity } from "@/lib/session-activity";
+import { SESSION_IDLE_TIMEOUT_MS, SESSION_IDLE_WARNING_MS } from "@/lib/session-timeout-policy";
 
-const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "keyup", "scroll", "touchstart", "click", "input", "focus", "change"];
+const IDLE_EVENTS = [
+  "mousedown",
+  "mousemove",
+  "keydown",
+  "keyup",
+  "scroll",
+  "touchstart",
+  "click",
+  "input",
+  "focus",
+  "change",
+];
 
 /**
  * Auto-signs the user out after a period of inactivity.
@@ -15,18 +27,20 @@ const IDLE_EVENTS = ["mousedown", "mousemove", "keydown", "keyup", "scroll", "to
  * `<video>`/`<audio>` playback in addition to listening for DOM events.
  */
 export function useIdleTimeout({
-  timeoutMs = 30 * 60 * 1000, // 30 minutes
-  warningMs = 2 * 60 * 1000,  // 2 minutes before timeout
   onWarning,
   onTimeout,
   enabled = true,
 }: {
-  timeoutMs?: number;
-  warningMs?: number;
   onWarning?: () => void;
   onTimeout: () => void;
   enabled?: boolean;
 }) {
+  // The idle window is deliberately NOT a per-call override: the single owner
+  // (src/lib/session-timeout-policy.ts) is the only source, so no consumer can
+  // pass a divergent literal and reintroduce two-clock drift (ADR-0049).
+  const timeoutMs = SESSION_IDLE_TIMEOUT_MS;
+  const warningMs = SESSION_IDLE_WARNING_MS;
+
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);

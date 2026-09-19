@@ -279,48 +279,101 @@ describe("isClientRateLimited", () => {
 });
 
 describe("isSessionWithinPolicy", () => {
+  // Arbitrary bounds for exercising the pure mechanism — NOT the production policy
+  // (that is pinned in src/test/lib/session-timeout-policy.test.ts). The function now
+  // REQUIRES explicit bounds — ADR-0049 removed the silent 20min/4h defaults so a
+  // caller can never inherit a short window by forgetting to pass one.
+  const IDLE = 20 * 60 * 1000;
+  const ABS = 4 * 60 * 60 * 1000;
+
   it("accepts active non-revoked sessions", () => {
-    expect(isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000 })).toBe(
-      true
-    );
+    expect(
+      isSessionWithinPolicy({
+        startedAt: 1_000,
+        lastActivityAt: 2_000,
+        now: 3_000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
+      })
+    ).toBe(true);
   });
   it("rejects revoked, idle, and absolute-timeout sessions", () => {
     expect(
-      isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000, revoked: true })
+      isSessionWithinPolicy({
+        startedAt: 1_000,
+        lastActivityAt: 2_000,
+        now: 3_000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
+        revoked: true,
+      })
     ).toBe(false);
     expect(
-      isSessionWithinPolicy({ startedAt: 1_000, lastActivityAt: 2_000, now: 25 * 60 * 1000 })
+      isSessionWithinPolicy({
+        startedAt: 1_000,
+        lastActivityAt: 2_000,
+        now: 25 * 60 * 1000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
+      })
     ).toBe(false);
     expect(
       isSessionWithinPolicy({
         startedAt: 1_000,
         lastActivityAt: 4 * 60 * 60 * 1000,
         now: 5 * 60 * 60 * 1000,
+        idleTimeoutMs: 2 * 60 * 60 * 1000, // wide idle window so the ABSOLUTE cap is what trips
+        absoluteTimeoutMs: ABS,
       })
     ).toBe(false);
   });
   it("returns precise failure reasons for session enforcement telemetry", () => {
     expect(
-      getSessionPolicyFailureReason({ startedAt: 1_000, lastActivityAt: 2_000, now: 3_000 })
+      getSessionPolicyFailureReason({
+        startedAt: 1_000,
+        lastActivityAt: 2_000,
+        now: 3_000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
+      })
     ).toBeNull();
     expect(
       getSessionPolicyFailureReason({
         startedAt: 1_000,
         lastActivityAt: 2_000,
         now: 3_000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
         revoked: true,
       })
     ).toBe("revoked");
     expect(
-      getSessionPolicyFailureReason({ startedAt: 2_000, lastActivityAt: 1_000, now: 3_000 })
+      getSessionPolicyFailureReason({
+        startedAt: 2_000,
+        lastActivityAt: 1_000,
+        now: 3_000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
+      })
     ).toBe("invalid");
     expect(
       getSessionPolicyFailureReason({
         startedAt: 1_000,
         lastActivityAt: 2_000,
         now: 25 * 60 * 1000,
+        idleTimeoutMs: IDLE,
+        absoluteTimeoutMs: ABS,
       })
     ).toBe("idle_timeout");
+    expect(
+      getSessionPolicyFailureReason({
+        startedAt: 1_000,
+        lastActivityAt: 5 * 60 * 60 * 1000,
+        now: 5 * 60 * 60 * 1000 + 1_000,
+        idleTimeoutMs: 2 * 60 * 60 * 1000, // fresh on idle, so the ABSOLUTE cap is what trips
+        absoluteTimeoutMs: ABS,
+      })
+    ).toBe("absolute_timeout");
   });
 });
 
