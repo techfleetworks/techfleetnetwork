@@ -327,7 +327,9 @@ Enforced by `scripts/ci/check-db-schema-present.mjs` (**ADR-0036**, superseding 
 schema object the committed migrations declare — 11 categories (table, extension, type, view, constraint,
 rls_enabled, function, index, trigger, policy, column; cron deferred) — must EXIST in prod (queried over
 HTTPS via the Management API) or the gate is red; no token / unreachable / unexpected response / a per-
-category count off its pinned baseline fails **closed**. Blocking on migration-touching PRs (`db-schema-gate`).
+category count that DROPS below its pinned FLOOR fails **closed** (ADR-0052: a drop-only floor, not an
+exact band — benign growth never trips it, so unrelated migrations don't re-trip the gate). Blocking on
+migration-touching PRs (`db-schema-gate`).
 
 **No UTF-8 BOM in tracked text.** A BOM (bytes `EF BB BF`) at the start of a file is invisible in most
 editors but makes `JSON.parse` throw — so a budget/allowlist file that silently gains one crashes the guard
