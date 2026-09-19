@@ -1,4 +1,4 @@
--- ADR-0048 — live-derived stats (EXPAND). Course-card completer counts become a live
+-- ADR-0050 — live-derived stats (EXPAND). Course-card completer counts become a live
 -- count of the source-of-truth rows (journey_progress), using the exact task_ids the
 -- client already sends. Same signature as before, so it is safe to apply before/after the
 -- frontend deploys; it stops reading the stored counter `course_completion_stats`.

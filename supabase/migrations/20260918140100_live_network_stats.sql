@@ -1,4 +1,4 @@
--- ADR-0048 — live-derived stats (EXPAND). get_network_stats() computes platform-owned
+-- ADR-0050 — live-derived stats (EXPAND). get_network_stats() computes platform-owned
 -- facts (signups, course completions by tier, discord links, applications, badges, and
 -- their past-7d slices) as LIVE counts of the owning rows instead of reading the
 -- cron-refreshed `network_stats_snapshots`. Output shape/keys are unchanged, so it is safe
@@ -38,7 +38,7 @@ comp AS (
   -- Course completion is derived LIVE from journey_progress against the required lessons in
   -- lesson_catalog (the server-side owner of "which tasks make a course") — NOT from the
   -- append-only course_completions ledger. So a member who un-completes a required task drops
-  -- out here too, exactly as they do on the course card (ADR-0048). lesson_catalog is the
+  -- out here too, exactly as they do on the course card (ADR-0050). lesson_catalog is the
   -- server-side definition; keeping it in lockstep with the app's *_TASK_IDS is the tracked
   -- follow-up (PRD §9).
   SELECT

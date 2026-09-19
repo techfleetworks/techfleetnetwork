@@ -68,7 +68,7 @@
       "include": ["src/**"],
       "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
       "forbid": ["\\.from\\(\\s*['\"](course_completion_stats|network_stats_snapshots)['\"]"],
-      "message": "A displayed stat is being wired to a stored/denormalized counter table (course_completion_stats / network_stats_snapshots). Those freeze when their refresh job stops and drift when they have two writers (ADR-0048: Platform Signups sat at 768 for months because its snapshot's cron wasn't running). Read the LIVE count via the owning RPC — get_network_stats / get_course_completion_counts — which counts the source-of-truth rows (profiles / journey_progress / course_completions)."
+      "message": "A displayed stat is being wired to a stored/denormalized counter table (course_completion_stats / network_stats_snapshots). Those freeze when their refresh job stops and drift when they have two writers (ADR-0050: Platform Signups sat at 768 for months because its snapshot's cron wasn't running). Read the LIVE count via the owning RPC — get_network_stats / get_course_completion_counts — which counts the source-of-truth rows (profiles / journey_progress / course_completions)."
     }
   ]
 }
