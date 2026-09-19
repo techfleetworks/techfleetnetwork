@@ -17,7 +17,7 @@
 // (active/required-aware), catching any later migration that mutates the catalog.
 // Change one home without the others and this guard (or pgTAP) goes red.
 //
-// See docs/adr/0053-course-definition-parity-guard.md.
+// See docs/adr/0054-course-definition-parity-guard.md.
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";

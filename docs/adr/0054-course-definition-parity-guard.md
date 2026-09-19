@@ -1,4 +1,4 @@
-# ADR 0053 — A CI guard locks the app's course definition to the DB's `lesson_catalog`
+# ADR 0054 — A CI guard locks the app's course definition to the DB's `lesson_catalog`
 
 - Status: Accepted
 - Date: 2026-09-18
