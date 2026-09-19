@@ -102,6 +102,28 @@ Exactly one client, at `src/integrations/supabase/client.ts`. Never a second `cr
 (The frozen auth area — `src/lib/auth/**`, `src/features/auth/**`, `main.tsx` boot, the client —
 follows `06-auth-flow-lockdown`; do not touch without the auth regression suite.)
 
+One owner for the session-timeout policy, at `src/lib/session-timeout-policy.ts`: idle-only
+(activity resets the clock) with a long, _bounded_ backstop — never a second "clock" (ADR-0049).
+`useIdleTimeout` exposes NO timeout override and `getSessionPolicyFailureReason` REQUIRES its
+bounds, so a consumer cannot inject a divergent window — the owner is the only source.
+
+```
+❌ never — a rival "clock" constant, an owner constant copied out, or omitted policy bounds
+const MAX_SESSION_AGE_MS = 4 * 60 * 60_000;         // a second clock that drifts from the first
+const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;     // an owner constant copied outside the owner
+getSessionPolicyFailureReason({ startedAt, lastActivityAt });   // omits the bounds — now a TS error
+✅ always — import the single owner; pass the (required) policy bounds explicitly
+import { SESSION_IDLE_TIMEOUT_MS, SESSION_ABSOLUTE_TIMEOUT_MS } from "@/lib/session-timeout-policy";
+getSessionPolicyFailureReason({ startedAt, lastActivityAt,
+  idleTimeoutMs: SESSION_IDLE_TIMEOUT_MS, absoluteTimeoutMs: SESSION_ABSOLUTE_TIMEOUT_MS });
+```
+
+`scripts/ci/check-session-timeout-single-owner.mjs` (required gate) fails on a legacy clock
+constant (`IDLE_SESSION_AGE_MS`/`MAX_SESSION_AGE_MS`/`IDLE_TIMEOUT_MS`) declared anywhere, or an
+owner constant declared outside the owner. It does NOT ban raw time literals by value (the tree
+has many legitimate `* 60 * 1000` uses); a wholly new hand-rolled idle timer is a judge-arch/review
+catch, not a mechanical one.
+
 ## 4 · Every failure reports
 
 ```
