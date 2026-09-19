@@ -1,4 +1,4 @@
-# ADR 0049 — The schema-gate baseline is a drop-only floor, not an exact band
+# ADR 0052 — The schema-gate baseline is a drop-only floor, not an exact band
 
 - Status: Accepted
 - Date: 2026-09-18

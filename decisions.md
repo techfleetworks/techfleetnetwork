@@ -327,7 +327,7 @@ Enforced by `scripts/ci/check-db-schema-present.mjs` (**ADR-0036**, superseding 
 schema object the committed migrations declare — 11 categories (table, extension, type, view, constraint,
 rls_enabled, function, index, trigger, policy, column; cron deferred) — must EXIST in prod (queried over
 HTTPS via the Management API) or the gate is red; no token / unreachable / unexpected response / a per-
-category count that DROPS below its pinned FLOOR fails **closed** (ADR-0049: a drop-only floor, not an
+category count that DROPS below its pinned FLOOR fails **closed** (ADR-0052: a drop-only floor, not an
 exact band — benign growth never trips it, so unrelated migrations don't re-trip the gate). Blocking on
 migration-touching PRs (`db-schema-gate`).
 
