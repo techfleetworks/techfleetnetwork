@@ -29,7 +29,6 @@
   "src/i18n/index.ts": 1,
   "src/lib/email-domain-validation.ts": 1,
   "src/lib/i18n/dom-translator.ts": 1,
-  "src/lib/policies.ts": 2,
   "src/lib/turnstile-verification.ts": 1,
   "src/pages/AdminIngestPage.tsx": 3,
   "src/pages/EditProfilePage.tsx": 1,
