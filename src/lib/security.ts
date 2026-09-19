@@ -885,18 +885,26 @@ export function clearSensitiveSessionData(): void {
 export interface SessionPolicyInput {
   startedAt: number;
   lastActivityAt: number;
+  /**
+   * Idle cutoff — REQUIRED. Source it from `src/lib/session-timeout-policy.ts`.
+   * There is deliberately NO default: a caller must not be able to silently get a
+   * short idle window (the 20-minute-default trap ADR-0049 removed). This function
+   * owns the mechanism ("given these bounds, is the session expired?"); the policy
+   * VALUES live in session-timeout-policy.ts and are composed by the caller.
+   */
+  idleTimeoutMs: number;
+  /** Absolute cutoff from session start — REQUIRED, same reason. */
+  absoluteTimeoutMs: number;
   now?: number;
-  idleTimeoutMs?: number;
-  absoluteTimeoutMs?: number;
   revoked?: boolean;
 }
 
 export function isSessionWithinPolicy({
   startedAt,
   lastActivityAt,
+  idleTimeoutMs,
+  absoluteTimeoutMs,
   now = Date.now(),
-  idleTimeoutMs = 20 * 60 * 1000,
-  absoluteTimeoutMs = 4 * 60 * 60 * 1000,
   revoked = false,
 }: SessionPolicyInput): boolean {
   if (revoked) return false;
@@ -910,8 +918,7 @@ export function getSessionPolicyFailureReason(
   input: SessionPolicyInput
 ): "revoked" | "invalid" | "idle_timeout" | "absolute_timeout" | null {
   const now = input.now ?? Date.now();
-  const idleTimeoutMs = input.idleTimeoutMs ?? 20 * 60 * 1000;
-  const absoluteTimeoutMs = input.absoluteTimeoutMs ?? 4 * 60 * 60 * 1000;
+  const { idleTimeoutMs, absoluteTimeoutMs } = input;
   if (input.revoked) return "revoked";
   if (
     !Number.isFinite(input.startedAt) ||
