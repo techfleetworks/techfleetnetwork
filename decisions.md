@@ -46,6 +46,27 @@ profiles.freescout_customer_id  // written by 3 functions on 2 different keys
 Mirrors of Discord / Freescout / Airtable / Gumroad get a single sync path; `discord_user_id`
 (immutable) is the identity key, not `discord_username` (a display cache).
 
+This applies to **in-progress form state**, not only DB facts. A server-draft-backed create form
+(`useServerDraft`) makes `draft.value` the one owner of what the user is typing — inputs read from
+and write to it directly. Never keep a **second** field-state store (react-hook-form, a mirrored
+`useState`) and sync it to the draft with effects: the two copies race, and on restore the form
+renders **blank under the "your draft was restored" banner** (the class-draft outage, ADR-0049).
+
+```
+❌ never — a second store mirrored into the draft; they race, the restore is lost
+const form = useForm(...)
+useEffect(() => { draft.setValue(form.watch()); }, [form.watch(), draft]);        // mirror out
+useEffect(() => { if (draft.restored) form.reset(draft.value); }, [draft.restored]); // hydrate in
+✅ always — the draft buffer IS the form state (edit mode: one local state seeded from the row)
+const form = isEdit ? editState : draft.value;
+const setForm = isEdit ? setEditState : draft.setValue;
+<Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+```
+
+Canonical shape: `src/pages/ProjectFormPage.tsx` / `ProjectBlastComposer.tsx`. `judge-arch` owns
+this one (no clean mechanical check — a file calling `useServerDraft` must not also mirror a
+`useForm`/`useState` into it); the `keepInSync` built-in catches the tell-tale marker.
+
 ## 3 · Domain code is web-free; one Supabase client
 
 ```
