@@ -50,7 +50,9 @@ describe("NetworkActivity", () => {
     expect(await screen.findByText("190")).toBeInTheDocument();
     expect(screen.getAllByText("Core Course Completions")).toHaveLength(2);
     expect(screen.getAllByText("Platform Signups")).toHaveLength(2);
-    expect(screen.getAllByText("111")).toHaveLength(2);
+    // "Core Course Completions" reads the core-tier figure (all-time + prev-week),
+    // not the all-tier course_completions_total — ADR-0050 fixed that mislabel.
+    expect(screen.getAllByText("49")).toHaveLength(2);
     expect(screen.getAllByText("122")).toHaveLength(2);
     expect(screen.getByText("120")).toBeInTheDocument();
 
@@ -58,7 +60,9 @@ describe("NetworkActivity", () => {
   });
 
   it("shows an unavailable state instead of rendering every stat as zero when stats fail", async () => {
-    mockGetNetworkStats.mockRejectedValue(new Error("permission denied for function get_network_stats"));
+    mockGetNetworkStats.mockRejectedValue(
+      new Error("permission denied for function get_network_stats")
+    );
 
     renderWithRouter(<NetworkActivity showMap={false} />);
 

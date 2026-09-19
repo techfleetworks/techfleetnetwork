@@ -50,7 +50,7 @@ This applies to **in-progress form state**, not only DB facts. A server-draft-ba
 (`useServerDraft`) makes `draft.value` the one owner of what the user is typing — inputs read from
 and write to it directly. Never keep a **second** field-state store (react-hook-form, a mirrored
 `useState`) and sync it to the draft with effects: the two copies race, and on restore the form
-renders **blank under the "your draft was restored" banner** (the class-draft outage, ADR-0049).
+renders **blank under the "your draft was restored" banner** (the class-draft outage, ADR-0051).
 
 ```
 ❌ never — a second store mirrored into the draft; they race, the restore is lost
@@ -66,6 +66,27 @@ const setForm = isEdit ? setEditState : draft.setValue;
 Canonical shape: `src/pages/ProjectFormPage.tsx` / `ProjectBlastComposer.tsx`. `judge-arch` owns
 this one (no clean mechanical check — a file calling `useServerDraft` must not also mirror a
 `useForm`/`useState` into it); the `keepInSync` built-in catches the tell-tale marker.
+
+**Displayed stats are live-derived, never read from a stored counter.** A number shown to a human
+is a live count of its owning rows, computed in the read path — not a denormalized total that a
+cron/trigger refreshes. Stored counters freeze when their job stops and drift when a fact has two
+writers (ADR-0050: Platform Signups sat at **768** for months because its snapshot's cron was not
+running; course-card counts drifted via a `+1` trigger over an only-grows ledger).
+
+```
+❌ never — display reads a stored/aggregated counter that a job must refresh
+value={stats.total_signups}                                  // network_stats_snapshots row — frozen when the cron dies
+SELECT total_completions FROM course_completion_stats WHERE course_key = $1
+✅ always — display is a live count of the owning rows, computed in the read
+-- get_network_stats():             SELECT count(*) FROM profiles WHERE NOT is_test_account
+-- get_course_completion_counts():  count members with a completed journey_progress row for every required task
+```
+
+Enforced: `arch-gate.config.json` forbids reading `course_completion_stats` /
+`network_stats_snapshots` directly (`.from(...)`) under `src/**`; pgTAP
+(`stats_live_derivation_test.sql`) + the `stats-live-derivation` smoke guard
+prove the display RPCs read live. Static historical imports (pre-platform Airtable figures) are the
+one exception — labeled caches in `network_stats_historical`, never presented as live.
 
 ## 3 · Domain code is web-free; one Supabase client
 
