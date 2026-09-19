@@ -1,4 +1,4 @@
--- pgTAP: Founding Members Discord role — invariant target set + dry-run report (ADR-0049, PR-A).
+-- pgTAP: Founding Members Discord role — invariant target set + dry-run report (ADR-0053, PR-A).
 -- Run: `supabase db test`. Proves (1) the config seed, (2) the target set = founding AND
 -- Discord-connected ONLY, (3) the dry-run report counts correctly, (4) DARK: the report
 -- enqueues nothing. Rolled back at the end.

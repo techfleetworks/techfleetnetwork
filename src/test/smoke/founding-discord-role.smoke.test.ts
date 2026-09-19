@@ -1,4 +1,4 @@
-// Smoke coverage for the Founding Members Discord role FOUNDATION (ADR-0049, PR-A).
+// Smoke coverage for the Founding Members Discord role FOUNDATION (ADR-0053, PR-A).
 // Hermetic file-content checks (no DB/network), matching the gumroad smoke convention. Each
 // guards a CONFIG or SAFETY invariant — if one fails, fix the source, do not relax the test.
 import { describe, it, expect } from "vitest";
@@ -9,7 +9,9 @@ const REPO = process.cwd();
 const read = (rel: string) => readFileSync(resolve(REPO, rel), "utf8");
 const migrationsDir = resolve(REPO, "supabase/migrations");
 const migration = (re: RegExp) =>
-  readdirSync(migrationsDir).filter((f) => re.test(f)).map((f) => read(`supabase/migrations/${f}`))[0] ?? "";
+  readdirSync(migrationsDir)
+    .filter((f) => re.test(f))
+    .map((f) => read(`supabase/migrations/${f}`))[0] ?? "";
 
 const config = migration(/discord_roles_config\.sql$/);
 const targets = migration(/founding_discord_role_targets\.sql$/);

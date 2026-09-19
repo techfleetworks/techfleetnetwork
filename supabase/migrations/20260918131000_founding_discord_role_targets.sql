@@ -1,4 +1,4 @@
--- Founding Members Discord role — invariant target set + DRY-RUN gap report (ADR-0049, PR-A).
+-- Founding Members Discord role — invariant target set + DRY-RUN gap report (ADR-0053, PR-A).
 --
 -- Defines the ONE owner of "who should hold the Founding Members Discord role":
 --     target  ⇔  is_founding_member = true  AND  Discord is connected (OAuth-verified).
@@ -29,7 +29,7 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION public.list_founding_discord_role_targets() IS
-  'ADR-0049: users who SHOULD hold the Founding Members Discord role (founding latch AND OAuth-verified Discord link). Returns discord_user_id (CONFIDENTIAL PII) — service-role only.';
+  'ADR-0053: users who SHOULD hold the Founding Members Discord role (founding latch AND OAuth-verified Discord link). Returns discord_user_id (CONFIDENTIAL PII) — service-role only.';
 
 -- Raw list exposes CONFIDENTIAL discord_user_id → service-role only (admins get counts via the
 -- report below). No grant to authenticated/anon.
@@ -101,7 +101,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.report_founding_discord_role_gap() IS
-  'ADR-0049 PR-A dry-run: counts founding members, connected targets, and bought-but-not-connected, writes one audit summary, and performs NO grants/enqueues/Discord calls.';
+  'ADR-0053 PR-A dry-run: counts founding members, connected targets, and bought-but-not-connected, writes one audit summary, and performs NO grants/enqueues/Discord calls.';
 
 REVOKE ALL ON FUNCTION public.report_founding_discord_role_gap() FROM public;
 GRANT EXECUTE ON FUNCTION public.report_founding_discord_role_gap() TO service_role;

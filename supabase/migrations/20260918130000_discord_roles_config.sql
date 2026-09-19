@@ -1,4 +1,4 @@
--- Founding Members Discord role — config table (ADR-0049, PR-A).
+-- Founding Members Discord role — config table (ADR-0053, PR-A).
 -- The single, auditable home for Discord role ids. Satisfies AC3 ("permanently store the
 -- Founding Members Role ID … never look it up more than once") without hardcoding the id in
 -- code or hiding it in a secret env var.
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.discord_roles (
 );
 
 COMMENT ON TABLE public.discord_roles IS
-  'Canonical Discord role-id mapping (ADR-0049). One row per logical role, looked up by key by the grant worker — so a role id is stored once and never re-discovered via the Discord API.';
+  'Canonical Discord role-id mapping (ADR-0053). One row per logical role, looked up by key by the grant worker — so a role id is stored once and never re-discovered via the Discord API.';
 
 -- Seed the Founding Members role (id from the ticket). Idempotent: refresh id/name if present.
 INSERT INTO public.discord_roles (key, role_id, role_name)
