@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * GATE-INTEGRITY-001 (meta-guard) — the checks that guard the architecture must
  * themselves never pass falsely, crash instead of verifying, or hand-roll the
@@ -14,7 +15,8 @@
  *      does NOT go through the shared harness (_guard.mjs). Recursive content scans
  *      MUST use runScanGuard so fail-closed / zero-scan / evidence are structural.
  *      A genuinely bespoke reader (collision detector, manifest generator, DB/API)
- *      is listed in BESPOKE_DIR_READERS below — a reviewed, named exception.
+ *      SELF-DECLARES the `bespoke-dir-reader` marker in its own file (ADR-0046) —
+ *      a reviewed, on-record exception (see BESPOKE_MARKER below).
  *
  * Deliberate fail-open for class 1 opts out with `// ci-guard-integrity-ok: <reason>`
  * on/above the exit line. This guard is itself a model: prints the count scanned and

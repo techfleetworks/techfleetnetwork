@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * MIGRATION-VERSION-001 guard: no two files in supabase/migrations/ may share a
  * version prefix (the `<version>` in `<version>_<name>.sql`, i.e. the numeric part

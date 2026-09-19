@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * DB-SCHEMA-ALLOWLIST-SHRINK-001 — the ADR-0036 drift allowlist may only SHRINK, mechanically.
  *

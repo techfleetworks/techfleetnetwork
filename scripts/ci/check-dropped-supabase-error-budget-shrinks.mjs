@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * DROPPED-SUPABASE-ERROR-BUDGET-001 — the dropped-error grandfather budget may only SHRINK.
  *

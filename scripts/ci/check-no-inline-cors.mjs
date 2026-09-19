@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * NO-INLINE-CORS-001 — edge functions must source CORS from the shared owner, never hand-roll it.
  *

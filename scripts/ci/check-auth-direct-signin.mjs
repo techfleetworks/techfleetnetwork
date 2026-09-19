@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-DIRECT-SIGNIN guard.
  *
@@ -40,9 +41,7 @@ const checks = [
 function stripComments(src) {
   // Drop /* ... */ block comments and // ... line comments so the guard
   // doesn't false-positive on the comments that document the invariant.
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
 const failures = [];
@@ -60,12 +59,15 @@ for (const check of checks) {
   }
 }
 
-
 if (failures.length) {
   console.error("\nAuth direct-signin guard FAILED:\n");
   for (const failure of failures) console.error(`  - ${failure}`);
-  console.error("\nThe active /login path must call the auth SDK through `signInWithPasswordService`.");
-  console.error("Do not restore login-with-captcha, setSession, setSessionSafe, or AuthService.signInWithPassword.\n");
+  console.error(
+    "\nThe active /login path must call the auth SDK through `signInWithPasswordService`."
+  );
+  console.error(
+    "Do not restore login-with-captcha, setSession, setSessionSafe, or AuthService.signInWithPassword.\n"
+  );
   process.exit(1);
 }
 

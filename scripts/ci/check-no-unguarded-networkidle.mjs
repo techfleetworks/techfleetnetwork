@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 // CI guard (PRD P-15 / D-19 / UC-16): forbid unguarded
 // waitForLoadState("networkidle") in E2E tests. On pages with Supabase
 // realtime/polling the network never goes idle, so an unguarded call burns the

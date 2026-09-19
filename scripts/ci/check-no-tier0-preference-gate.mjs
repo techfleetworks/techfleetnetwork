@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 // CI guard (BLOCKING): no critical (Tier 0) email sender may gate on a member preference.
 //
 // Tier 0 = critical transactional email (interview invites, applicant status, observer grants,
