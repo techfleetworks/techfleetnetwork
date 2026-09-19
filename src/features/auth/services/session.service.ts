@@ -26,11 +26,10 @@ import {
 } from "@/lib/oauth-ui-guard";
 
 import { getLastActivityAt } from "@/lib/session-activity";
+import { SESSION_ABSOLUTE_TIMEOUT_MS, SESSION_IDLE_TIMEOUT_MS } from "@/lib/session-timeout-policy";
 import { classifyAuthError, purgeLocalAuthState } from "@/lib/auth/session-health";
 
 const log = createLogger("SessionService");
-const MAX_SESSION_AGE_MS = Number.POSITIVE_INFINITY;
-const IDLE_SESSION_AGE_MS = 60 * 60 * 1000; // 1 hour
 const SESSION_STARTED_AT_KEY = "session_started_at";
 // v2: store a one-way fingerprint of the user id (uidFp), never the raw id
 // (CodeQL js/clear-text-storage-of-sensitive-data). A v1 marker fails the
@@ -325,8 +324,8 @@ export const sessionService = {
         startedAt: marker.startedAtMs,
         lastActivityAt: marker.lastActivityAtMs,
         now,
-        idleTimeoutMs: IDLE_SESSION_AGE_MS,
-        absoluteTimeoutMs: MAX_SESSION_AGE_MS,
+        idleTimeoutMs: SESSION_IDLE_TIMEOUT_MS,
+        absoluteTimeoutMs: SESSION_ABSOLUTE_TIMEOUT_MS,
       });
       if (sessionPolicyFailure) {
         log.warn(
@@ -336,7 +335,7 @@ export const sessionService = {
             reason: sessionPolicyFailure,
             elapsedMs: now - marker.startedAtMs,
             idleMs: now - marker.lastActivityAtMs,
-            maxMs: MAX_SESSION_AGE_MS,
+            maxMs: SESSION_ABSOLUTE_TIMEOUT_MS,
           }
         );
         void logAccountActivity(
