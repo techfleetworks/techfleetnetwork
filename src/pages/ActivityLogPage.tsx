@@ -117,6 +117,7 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; variant: string }> = {
   gumroad_backfill_truncated: { label: "Gumroad Backfill Truncated", variant: "secondary" },
   gumroad_backfill_all_started: { label: "Membership Resync Started", variant: "secondary" },
   gumroad_backfill_all_completed: { label: "Membership Resync Completed", variant: "default" },
+  gumroad_webhook_gap_detected: { label: "Gumroad Webhook Gap", variant: "destructive" },
   gumroad_sale_attached: { label: "Gumroad Sale Attached", variant: "default" },
   gumroad_sale_persist_failed: { label: "Gumroad Sale Persist Failed", variant: "destructive" },
   gumroad_reconcile_failed: { label: "Gumroad Reconcile Failed", variant: "destructive" },

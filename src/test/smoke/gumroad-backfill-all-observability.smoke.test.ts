@@ -27,7 +27,7 @@ const tripwireMigration =
     .map((f) => read(`supabase/migrations/${f}`))[0] ?? "";
 const cronMigration =
   readdirSync(migrationsDir)
-    .filter((f) => /gumroad_backfill_all_cron\.sql$/.test(f))
+    .filter((f) => /gumroad_backfill_hourly\.sql$/.test(f))
     .map((f) => read(`supabase/migrations/${f}`))[0] ?? "";
 const manifest = read("src/generated/edge-functions.manifest.json");
 
@@ -128,13 +128,24 @@ describe("gumroad-backfill-all + membership observability (smoke)", () => {
     expect(manifest).toMatch(/"name":\s*"gumroad-backfill-all"[\s\S]{0,120}"kind":\s*"cron"/);
   });
 
-  it("MEM-OBS-009: a weekly server-side cron runs the resync (no operator machine required)", () => {
+  it("MEM-OBS-009: an HOURLY server-side cron runs the resync backstop (no operator machine required)", () => {
     expect(cronMigration).toBeTruthy();
-    expect(cronMigration).toMatch(/gumroad-backfill-all-weekly/);
     expect(cronMigration).toMatch(/functions\/v1\/gumroad-backfill-all/);
     // Authorized by the service-role bearer from Vault (same proven pattern).
     expect(cronMigration).toMatch(/vault\.decrypted_secrets/);
-    // Weekly cron expression (Sunday).
-    expect(cronMigration).toMatch(/cron\.schedule\(\s*\n?\s*['"]gumroad-backfill-all-weekly['"]\s*,\s*['"][^'"]*\* 0['"]/);
+    // Hourly cron expression (:11 past every hour) — ADR-0048 shrank it from weekly so a
+    // dark webhook is detected + self-healed within the hour, not weeks. The job NAME is
+    // kept ('…-weekly') so environment_readiness()'s expected-cron watchdog still matches.
+    expect(cronMigration).toMatch(/cron\.schedule\(\s*\n?\s*['"]gumroad-backfill-all-weekly['"]\s*,\s*['"]11 \* \* \* \*['"]/);
+  });
+
+  it("MEM-OBS-010: backfill ALARMS (error) when it ingests a sale the real-time webhook missed", () => {
+    // The upsert uses ignoreDuplicates, so any newly-created row (ingested+pending) is a
+    // webhook miss — it must surface as an ERROR, never a silent info (ADR-0048).
+    expect(backfillAll).toMatch(/gumroad_webhook_gap_detected/);
+    expect(backfillAll).toMatch(/const webhookMissed = ingested \+ pending/);
+    expect(backfillAll).toMatch(/gumroad_webhook_gap_detected[\s\S]{0,160}severity:\s*["']error["']/);
+    // …and the Activity Log labels it so an admin actually sees it.
+    expect(activityLog).toContain("gumroad_webhook_gap_detected");
   });
 });
