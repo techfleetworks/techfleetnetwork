@@ -71,13 +71,6 @@
   },
   {
     "rule": "UI must not access the database directly",
-    "path": "src/components/admin/StatsControlsCard.tsx",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "UI must not access the database directly",
     "path": "src/components/admin/system-health/TranslationsTab.tsx",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",

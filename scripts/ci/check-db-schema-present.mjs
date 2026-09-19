@@ -1013,18 +1013,25 @@ function loadAllowlist() {
 // rises are all intended, merged objects: #343 gumroad, #346 announcement set-based enqueue,
 // #347 erasure, #349 membership-purchase side-effects (+1 function, +1 trigger). Every category
 // set to its exact derived count so the ±2 tripwire measures future drift from an accurate baseline.
+// ADR-0052 (retire stats-snapshot subsystem) shrinks the schema: DROP TABLE course_completion_stats
+// + network_stats_snapshots (table −2, rls_enabled −2, column −8), DROP recompute_all_stats /
+// admin_recompute_stats / admin_reconcile_parity / reconcile_course_badge_parity /
+// recompute_all_stats_lock_key and ADD fn_emit_discord_linked_badge (function −5+1 = −4), ADD the
+// trg_emit_discord_linked_badge trigger (trigger +1). Policy is unchanged: the 2 policies on the
+// dropped tables stay in the derived set (deriveNet has no table-drop cascade for policies) and are
+// removed at diff time by the step-5a prod-table filter.
 const BASELINES = {
-  table: 203,
+  table: 201,
   extension: 7,
   type: 25,
   view: 17,
   constraint: 20,
-  rls_enabled: 203,
-  function: 423,
+  rls_enabled: 201,
+  function: 419,
   index: 393,
-  trigger: 198,
+  trigger: 199,
   policy: 493,
-  column: 2056,
+  column: 2048,
 };
 const BASELINE_TOL = 2;
 
