@@ -1,5 +1,5 @@
 // Centralized policy document links + server-side acknowledgment helper.
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 export const POLICY_LAST_UPDATED = "May 7, 2026";
 export const CURRENT_POLICY_VERSION = "2026-05-07";
@@ -55,7 +55,7 @@ interface AckOptions {
  */
 export async function recordPolicyAcknowledgment(
   method: "checkbox" | "google-oauth" | "re-accept" | "registration",
-  opts: AckOptions = {},
+  opts: AckOptions = {}
 ): Promise<{ ok: boolean }> {
   const policies = opts.policies ?? (POLICIES.map((p) => p.key) as PolicyKey[]);
   const version = opts.version ?? CURRENT_POLICY_VERSION;
@@ -68,21 +68,24 @@ export async function recordPolicyAcknowledgment(
     anon_id: anonId(),
   };
   try {
-    const { error } = await supabase.functions.invoke("record-policy-acknowledgment", {
-      body: payload,
-    });
-    if (error) throw error;
+    // invokeEdge throws on failure (after its timeout + single retry); the catch below recovers by
+    // queuing for replay, so suppress its reporting (silentReport) — the fallback IS the handling.
+    await invokeEdge("record-policy-acknowledgment", { body: payload, silentReport: true });
     try {
       localStorage.removeItem("tfn.policy_ack_pending");
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     return { ok: true };
   } catch {
     try {
       localStorage.setItem(
         "tfn.policy_ack_pending",
-        JSON.stringify({ ...payload, queuedAt: new Date().toISOString() }),
+        JSON.stringify({ ...payload, queuedAt: new Date().toISOString() })
       );
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     return { ok: false };
   }
 }
@@ -93,9 +96,9 @@ export async function flushPendingPolicyAcknowledgment(): Promise<void> {
     const raw = localStorage.getItem("tfn.policy_ack_pending");
     if (!raw) return;
     const queued = JSON.parse(raw);
-    const { error } = await supabase.functions.invoke("record-policy-acknowledgment", {
-      body: queued,
-    });
-    if (!error) localStorage.removeItem("tfn.policy_ack_pending");
-  } catch { /* noop */ }
+    await invokeEdge("record-policy-acknowledgment", { body: queued, silentReport: true });
+    localStorage.removeItem("tfn.policy_ack_pending"); // only on success — a throw keeps the marker for the next flush
+  } catch {
+    /* recover: keep the pending marker so a later flush retries */
+  }
 }
