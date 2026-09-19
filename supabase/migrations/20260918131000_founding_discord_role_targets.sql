@@ -47,6 +47,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+#variable_conflict use_column
 DECLARE
   v_role_id text;
   v_founding_total integer;

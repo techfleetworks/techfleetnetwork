@@ -27,9 +27,9 @@ INSERT INTO public.gumroad_sales (sale_id, email, product_id, product_permalink,
   ('f-u2', 'u2@example.com', 'ftpql', 'founding-membership', 'a0000000-0000-0000-0000-000000000002', 'applied');
 
 -- Connect Discord (the OAuth-verified fields) for U1 (target) and U3 (not founding); NOT U2.
-UPDATE public.profiles SET discord_user_id = '111111111111111111', has_discord_account = true
+UPDATE public.profiles SET discord_user_id = '111111111111111111', discord_username = 'u1disc', has_discord_account = true
   WHERE user_id = 'a0000000-0000-0000-0000-000000000001';
-UPDATE public.profiles SET discord_user_id = '333333333333333333', has_discord_account = true
+UPDATE public.profiles SET discord_user_id = '333333333333333333', discord_username = 'u3disc', has_discord_account = true
   WHERE user_id = 'a0000000-0000-0000-0000-000000000003';
 
 -- 0. Fixture sanity: the ledger really flipped founding for U1 and U2.
