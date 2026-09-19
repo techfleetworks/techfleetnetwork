@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 /**
  * JOURNEY-IDENTITY-003 guard: every client read against
  * journey_progress / course_completions / badges_awarded must filter by

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * SUPPRESS-FORWARD-HAS-REPORT-001 (ADR-0033) — `suppressForward` can never be a silent drop.
  *

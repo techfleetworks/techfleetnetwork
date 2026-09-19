@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: standard
 // Fails CI when a new/edited plpgsql function in supabase/migrations declares
 // RETURNS TABLE (...) without `#variable_conflict use_column` at the top of the
 // body. Postgres OUT-parameter names shadow column references, raising

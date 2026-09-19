@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * AUTH-ARCH-CUTOVER-004 — single Google OAuth entrypoint guard.
  *

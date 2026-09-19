@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * ERROR-SHAPE-OWNER-001 — the raw edge-error shape has ONE owner.
  *

@@ -231,8 +231,19 @@ anchored regex), so a mention embedded elsewhere — in a string literal, a help
 in prose (a "do NOT …" example, or a docblock documenting the format) — can't silently self-exempt; only
 a deliberate, reviewed declaration does. That is the false-green this guard exists to catch. Broader fleet hardening (evidence counts + zero-scan asserts on the remaining
 guards) is tracked in `docs/architecture/audit-2026-08/review-followups.md`. And a guard must actually **run**:
-`check-guards-wired.mjs` fails if any `check-*.mjs` is referenced by no workflow — an unwired guard
-verifies nothing (ADR-0024, mechanized in **ADR-0029**); deliberate deferrals go on a shrink-only allowlist.
+every `check-*.mjs` self-declares a **CI lane** (ADR-0047) and `check-guards-wired.mjs` fails if any guard
+declares none. critical/standard guards ride the lint-arch matrices DERIVED from those markers
+(`emit-guard-matrix.mjs`) so a new guard never edits `ci.yml`; a `bespoke` guard (special setup —
+fetch-depth:0, prod creds, an own job) must have its own live workflow step (ADR-0024, mechanized in
+**ADR-0029/0047**); deliberate deferrals go on a shrink-only allowlist.
+
+```
+❌ never — append your new guard to a hand-maintained matrix list in ci.yml (every guard PR collides here)
+# .github/workflows/ci.yml
+matrix: { check: [check-a.mjs, …, check-your-new-one.mjs] }   ← central list = per-merge conflict magnet
+✅ always — the guard self-declares its lane; the matrix is DERIVED (emit-guard-matrix.mjs → fromJSON)
+// ci-lane: standard   ← in the guard's OWN file (critical = blocking, standard = informational, bespoke = own step)
+```
 
 **Verify reality, not a ledger.** A gate must assert the thing that matters, not a claim that stands in
 for it. The migration-applied gate (ADR-0020) queried prod's `schema_migrations` ledger — a table that

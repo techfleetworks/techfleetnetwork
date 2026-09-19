@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * DB-SCHEMA-PRESENT-001 (ADR-0036) — the schema-reconciliation gate.
  *

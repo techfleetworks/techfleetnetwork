@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * ERASURE-COMPLETENESS-001 — the WINNING handle_user_deletion() must erase/de-identify EVERY
  * registered PII table.

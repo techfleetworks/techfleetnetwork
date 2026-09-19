@@ -1,3 +1,4 @@
+// ci-lane: bespoke
 /**
  * check-owasp-coverage.mjs — the "100% OWASP cheat sheet coverage" gate.
  *

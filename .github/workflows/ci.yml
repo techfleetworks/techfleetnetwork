@@ -357,6 +357,7 @@ jobs:
         gate-verify,
         gate-test,
         gate-build,
+        guard-matrix,
         lint-arch-critical,
         security-owasp,
         arch-gate,
@@ -373,17 +374,21 @@ jobs:
           verify='${{ needs.gate-verify.result }}'
           test='${{ needs.gate-test.result }}'
           build='${{ needs.gate-build.result }}'
+          gm='${{ needs.guard-matrix.result }}'
           arch='${{ needs.lint-arch-critical.result }}'
           owasp='${{ needs.security-owasp.result }}'
           agate='${{ needs.arch-gate.result }}'
           migr='${{ needs.migration-smoke.result }}'
           schema='${{ needs.db-schema-gate.result }}'
           dchk='${{ needs.deno-check.result }}'
-          echo "gate-verify=$verify  gate-test=$test  gate-build=$build  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
+          echo "gate-verify=$verify  gate-test=$test  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
           fail=0
           [ "$verify" = "success" ] || fail=1
           [ "$test" = "success" ] || fail=1
           [ "$build" = "success" ] || fail=1
+          # guard-matrix derives the lint-arch matrices; if it failed or was skipped the matrices are
+          # untrustworthy (and lint-arch-critical would have been skipped), so it must succeed.
+          [ "$gm" = "success" ] || fail=1
           [ "$arch" = "success" ] || fail=1
           # security-owasp is unconditional (secret-free, no deps): must succeed.
           [ "$owasp" = "success" ] || fail=1
@@ -399,10 +404,37 @@ jobs:
           # otherwise it must succeed — this is what makes the edge-function unit tests block merge.
           if [ "$dchk" != "success" ] && [ "$dchk" != "skipped" ]; then fail=1; fi
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Gate failed (verify=$verify test=$test build=$build arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
+            echo "::error::Gate failed (verify=$verify test=$test build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
             exit 1
           fi
           echo "All gate jobs passed."
+
+  # ---------------------------------------------------------------------------
+  # guard-matrix — derive the two lint-arch matrices from each guard's self-declared
+  # `// ci-lane` marker (ADR-0047), so a new guard NEVER appends to a matrix list in
+  # this file (the per-merge conflict magnet ADR-0046 began removing). Zero-dependency
+  # (node built-ins) → no node_modules restore. FAILS CLOSED (emit-guard-matrix exits
+  # non-zero) if any guard lacks a lane or a matrix lane is empty (an empty matrix would
+  # run zero guards and pass vacuously).
+  # ---------------------------------------------------------------------------
+  guard-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      critical: ${{ steps.emit.outputs.critical }}
+      standard: ${{ steps.emit.outputs.standard }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - id: emit
+        name: Derive guard matrix from self-declared ci-lane markers
+        run: node scripts/ci/emit-guard-matrix.mjs --github-output >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
   # lint-arch-critical — auth-freeze / security invariants (CLAUDE.md). These
@@ -412,36 +444,14 @@ jobs:
   lint-arch-critical:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: setup
+    needs: [setup, guard-matrix]
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        check:
-          - check-auth-layer-graph.mjs
-          - check-auth-result-contract.mjs
-          - check-auth-counter-coverage.mjs
-          - check-auth-engine-swallow.mjs
-          - check-auth-screen-imports.mjs
-          - check-auth-warn-snapshot.mjs
-          - check-auth-direct-signin.mjs
-          - check-no-direct-google-oauth.mjs
-          - check-no-legacy-auth-service.mjs
-          - check-legacy-auth-importers.mjs
-          - check-email-architecture.mjs
-          - check-email-tier-registry.mjs
-          - check-no-raw-email-enqueue.mjs
-          - check-no-tier0-preference-gate.mjs
-          - check-no-unsigned-jwt-auth.mjs
-          - check-edge-audit-wrapper-coverage.mjs
-          - check-edge-cors-trace.mjs
-          - check-no-raw-functions-error-shape.mjs
-          - check-report-has-no-silent-drop.mjs
-          - check-suppressforward-has-report.mjs
-          - check-guard-has-test.mjs
-          - check-erasure-completeness.mjs
-          - check-db-schema-allowlist-shrinks.mjs
+        # Derived from each guard's `// ci-lane: critical` marker (ADR-0047) — do NOT hand-edit.
+        check: ${{ fromJSON(needs.guard-matrix.outputs.critical) }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -465,23 +475,14 @@ jobs:
   lint-arch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: setup
+    needs: [setup, guard-matrix]
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        check:
-          - check-edge-function-coverage.mjs
-          - check-plpgsql-variable-conflict.mjs
-          - check-progress-read-identity.mjs
-          - check-support-identity.mjs
-          - check-no-rpc-catch.mjs
-          - check-audit-sink-coverage.mjs
-          - check-translator-volatile-regions.mjs
-          - check-triage-actionable-parity.mjs
-          - check-profiles-id-auth-uid.mjs
-          - check-progress-identity-sql-smoke.mjs
+        # Derived from each guard's `// ci-lane: standard` marker (ADR-0047) — do NOT hand-edit.
+        check: ${{ fromJSON(needs.guard-matrix.outputs.standard) }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

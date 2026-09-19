@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: bespoke
 /**
  * RAW-INVOKE-BUDGET-001 — the raw-invoke grandfather budget may only SHRINK.
  *

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * Auth-rebuild Ship 5 guard.
  *

@@ -114,8 +114,10 @@ describe("profiles.id vs auth.uid() guard (smoke)", () => {
     expect(mig).not.toMatch(/where id = auth\.uid\(\)/i);
   });
 
-  it("T-A-007: the guard is wired into the CI lint-arch matrix", () => {
+  it("T-A-007: the guard declares a CI lane so the derived matrix runs it (ADR-0047)", () => {
     expect(existsSync(GUARD)).toBe(true);
-    expect(read(".github/workflows/ci.yml")).toContain("check-profiles-id-auth-uid.mjs");
+    // The lint-arch matrix is DERIVED from each guard's `// ci-lane` marker (ADR-0047), not a
+    // hardcoded ci.yml list. This guard rides the informational `standard` lane.
+    expect(read("scripts/ci/check-profiles-id-auth-uid.mjs")).toMatch(/^\/\/ ci-lane: standard\b/m);
   });
 });
