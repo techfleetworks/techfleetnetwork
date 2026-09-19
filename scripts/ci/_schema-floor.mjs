@@ -1,5 +1,5 @@
 /**
- * Pure floor comparison for the ADR-0036 schema gate's per-category baselines (ADR-0048). Split out so
+ * Pure floor comparison for the ADR-0036 schema gate's per-category baselines (ADR-0049). Split out so
  * the DROP-ONLY semantics can be unit-tested without prod / the real corpus, and so the comparison has
  * a single owner.
  *

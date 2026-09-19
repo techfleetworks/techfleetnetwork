@@ -1,4 +1,4 @@
-// Unit coverage for scripts/ci/_schema-floor.mjs (ADR-0048) — the pure floor comparison behind the
+// Unit coverage for scripts/ci/_schema-floor.mjs (ADR-0049) — the pure floor comparison behind the
 // ADR-0036 schema gate's per-category baselines. A BASELINE is a FLOOR, not an exact band: the gate
 // fails only on a DROP more than `tol` below the floor (a partial-capture regression that would
 // silently under-verify the schema); benign GROWTH never fails (that was the #345 whack-a-mole). The
@@ -10,7 +10,7 @@ import { floorReport } from "../../../scripts/ci/_schema-floor.mjs";
 const FLOORS = { table: 100, function: 50 };
 const TOL = 2;
 
-describe("schema-floor: drop-only baseline (ADR-0048)", () => {
+describe("schema-floor: drop-only baseline (ADR-0049)", () => {
   it("SF-001: a drop more than tol below the floor is a violation", () => {
     const { drops } = floorReport([{ kind: "table", size: 97 }], FLOORS, TOL); // 97 < 100 − 2
     expect(drops.map((d) => d.kind)).toEqual(["table"]);

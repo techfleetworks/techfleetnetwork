@@ -1007,7 +1007,7 @@ function loadAllowlist() {
 // Committed per-category derived-count FLOORS (POST-allowlist), pinned to the real corpus. The gate
 // fails only when a category's derived count DROPS more than BASELINE_TOL below its floor — a
 // partial-capture regression (silent under-verification; the old loose floors sat ~25% below actual and
-// let ~50 objects vanish undetected). Benign GROWTH never fails (ADR-0048: a floor, not a band — the old
+// let ~50 objects vanish undetected). Benign GROWTH never fails (ADR-0049: a floor, not a band — the old
 // symmetric ±tol band re-tripped on every unrelated migration, the #345 whack-a-mole). Only enforced
 // against the real corpus (skipped for a DB_SCHEMA_ROOT test fixture, whose counts are intentionally
 // tiny). Raising a floor is optional (tightens drop-detection from a higher watermark); LOWERING one is
@@ -1143,7 +1143,7 @@ async function main() {
   //     counts are intentionally tiny). Each active category is pinned to a committed FLOOR: the gate
   //     fails only when a category's derived count DROPS more than BASELINE_TOL below it — a
   //     partial-capture regression that would silently under-verify the schema. Benign GROWTH never
-  //     fails (ADR-0048: a floor, not a band — the old symmetric ±tol band re-tripped on every
+  //     fails (ADR-0049: a floor, not a band — the old symmetric ±tol band re-tripped on every
   //     unrelated migration, the #345 whack-a-mole; a phantom over-derivation is caught downstream by
   //     the declared-vs-prod reconciliation). All violations are reported together (no per-category
   //     whack-a-mole). See _schema-floor.mjs (unit-tested).
