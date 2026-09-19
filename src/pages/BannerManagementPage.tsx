@@ -63,6 +63,13 @@ interface BannerDraftPayload {
   reopen_after_dismiss: boolean;
 }
 
+const EMPTY_BANNER_DRAFT: BannerDraftPayload = {
+  title: "",
+  body_html: "",
+  status: "draft",
+  reopen_after_dismiss: false,
+};
+
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   published: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -83,66 +90,55 @@ function BannerFormDialog({
   saving: boolean;
 }) {
   const isCreate = !banner;
-  const [title, setTitle] = useState("");
-  const [bodyHtml, setBodyHtml] = useState("");
-  const [status, setStatus] = useState<"draft" | "published" | "archived">("draft");
-  const [reopenAfterDismiss, setReopenAfterDismiss] = useState(false);
 
-  // Server-side draft only for create mode (edit mode persists straight to the row).
-  const EMPTY_DRAFT: BannerDraftPayload = {
-    title: "",
-    body_html: "",
-    status: "draft",
-    reopen_after_dismiss: false,
-  };
+  // Server-side draft only for create mode (edit mode persists straight to the
+  // row). In create mode the draft buffer is the single owner of in-progress
+  // content — inputs read/write it directly, so a restored draft just renders.
   const draft = useServerDraft<BannerDraftPayload>({
     draftKey: "banner:new",
     schemaVersion: 1,
-    initialValue: EMPTY_DRAFT,
+    initialValue: EMPTY_BANNER_DRAFT,
     enabled: open && isCreate,
     label: "banner-form",
   });
 
-  // Hydrate dialog state when dialog opens (edit -> from row, create -> from draft).
+  // Edit-mode working state, seeded from the row when the dialog opens.
+  const [editState, setEditState] = useState<BannerDraftPayload>(EMPTY_BANNER_DRAFT);
   useEffect(() => {
-    if (!open) return;
-    if (isCreate) {
-      // Wait for draft hydration; if a draft exists use it, else start blank.
-      if (!draft.hydrating) {
-        const src = draft.restored ? draft.value : EMPTY_DRAFT;
-        setTitle(src.title);
-        setBodyHtml(src.body_html);
-        setStatus(src.status);
-        setReopenAfterDismiss(src.reopen_after_dismiss);
-      }
-    } else {
-      setTitle(banner?.title ?? "");
-      setBodyHtml(banner?.body_html ?? "");
-      setStatus(banner?.status ?? "draft");
-      setReopenAfterDismiss(banner?.reopen_after_dismiss ?? false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, banner, isCreate, draft.hydrating, draft.restored]);
+    if (!open || isCreate) return;
+    // Seed edit-mode state from the banner row when the dialog opens — external
+    // data → state, the sanctioned use of an effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditState({
+      title: banner?.title ?? "",
+      body_html: banner?.body_html ?? "",
+      status: banner?.status ?? "draft",
+      reopen_after_dismiss: banner?.reopen_after_dismiss ?? false,
+    });
+  }, [open, isCreate, banner]);
 
-  // Mirror local state into the draft buffer.
-  useEffect(() => {
-    if (!isCreate || !open) return;
-    draft.setValue({ title, body_html: bodyHtml, status, reopen_after_dismiss: reopenAfterDismiss });
-  }, [title, bodyHtml, status, reopenAfterDismiss, isCreate, open, draft]);
+  // One owner per mode. Create → the draft buffer; edit → local state.
+  const form = isCreate ? draft.value : editState;
+  const setForm: React.Dispatch<React.SetStateAction<BannerDraftPayload>> = isCreate
+    ? draft.setValue
+    : setEditState;
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
+    if (!form.title.trim()) {
       toast.error("Title is required");
       return;
     }
     const ok = await onSave({
-      title: title.trim(),
-      body_html: sanitizeHtml(bodyHtml),
-      status,
-      reopen_after_dismiss: reopenAfterDismiss,
+      title: form.title.trim(),
+      body_html: sanitizeHtml(form.body_html),
+      status: form.status,
+      reopen_after_dismiss: form.reopen_after_dismiss,
     });
     if (ok && isCreate) {
       await draft.clearDraft();
+      // The dialog is reused across opens — reset the buffer so the next
+      // "create" starts blank instead of showing the just-saved content.
+      draft.setValue(EMPTY_BANNER_DRAFT);
     }
   };
 
@@ -152,7 +148,9 @@ function BannerFormDialog({
         <DialogHeader>
           <DialogTitle>{banner ? "Edit Banner" : "Create Banner"}</DialogTitle>
           <DialogDescription>
-            {banner ? "Update the banner details below." : "Create a new system banner with a title, rich text body, and display settings."}
+            {banner
+              ? "Update the banner details below."
+              : "Create a new system banner with a title, rich text body, and display settings."}
           </DialogDescription>
         </DialogHeader>
 
@@ -162,10 +160,7 @@ function BannerFormDialog({
               restoredAt={draft.restoredAt}
               onDiscard={async () => {
                 await draft.clearDraft();
-                setTitle("");
-                setBodyHtml("");
-                setStatus("draft");
-                setReopenAfterDismiss(false);
+                draft.setValue(EMPTY_BANNER_DRAFT);
               }}
               noun="banner draft"
             />
@@ -175,8 +170,8 @@ function BannerFormDialog({
             <Label htmlFor="banner-title">Title</Label>
             <Input
               id="banner-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="Banner title"
               maxLength={200}
             />
@@ -185,15 +180,20 @@ function BannerFormDialog({
           <div className="space-y-2">
             <Label>Body (supports text, emojis, and links)</Label>
             <RichTextEditor
-              content={bodyHtml}
-              onChange={setBodyHtml}
+              content={form.body_html}
+              onChange={(html) => setForm((f) => ({ ...f, body_html: html }))}
               placeholder="Write your banner message here... You can add emojis 🎉, links, and formatting."
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="banner-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+            <Select
+              value={form.status}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, status: v as BannerDraftPayload["status"] }))
+              }
+            >
               <SelectTrigger id="banner-status">
                 <SelectValue />
               </SelectTrigger>
@@ -208,8 +208,8 @@ function BannerFormDialog({
           <div className="flex items-center gap-3">
             <Switch
               id="reopen-after-dismiss"
-              checked={reopenAfterDismiss}
-              onCheckedChange={setReopenAfterDismiss}
+              checked={form.reopen_after_dismiss}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, reopen_after_dismiss: v }))}
             />
             <Label htmlFor="reopen-after-dismiss" className="cursor-pointer">
               Reopen after dismissing
@@ -223,7 +223,11 @@ function BannerFormDialog({
         <DialogFooter>
           {isCreate && (
             <div className="mr-auto">
-              <AutosaveStatus status={draft.status} lastSavedAt={draft.lastSavedAt} onRetry={() => void draft.flush()} />
+              <AutosaveStatus
+                status={draft.status}
+                lastSavedAt={draft.lastSavedAt}
+                onRetry={() => void draft.flush()}
+              />
             </div>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
@@ -249,10 +253,7 @@ export default function BannerManagementPage() {
   useEffect(() => {
     setHeader({
       title: "Banner Management",
-      breadcrumbs: [
-        { label: "Admin", href: "/admin/users" },
-        { label: "Banners" },
-      ],
+      breadcrumbs: [{ label: "Admin", href: "/admin/users" }, { label: "Banners" }],
     });
     return () => setHeader(null);
   }, [setHeader]);
@@ -274,7 +275,8 @@ export default function BannerManagementPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: BannerUpdate }) => updateBanner(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: BannerUpdate }) =>
+      updateBanner(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
       queryClient.invalidateQueries({ queryKey: ["published-banners"] });
@@ -309,7 +311,7 @@ export default function BannerManagementPage() {
         return false;
       }
     },
-    [editing, user, createMutation, updateMutation],
+    [editing, user, createMutation, updateMutation]
   );
 
   const handleEdit = (banner: AdminBanner) => {
@@ -335,11 +337,11 @@ export default function BannerManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <SectionTitle className="text-lg">System Banners</SectionTitle>
-          <p className="text-sm text-muted-foreground">Create and manage banners shown to all users across the platform.</p>
+          <p className="text-sm text-muted-foreground">
+            Create and manage banners shown to all users across the platform.
+          </p>
         </div>
-        <Button onClick={handleNew}>
-          New Banner
-        </Button>
+        <Button onClick={handleNew}>New Banner</Button>
       </div>
 
       {banners.length === 0 ? (
@@ -370,7 +372,12 @@ export default function BannerManagementPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(banner)} aria-label="Edit banner">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(banner)}
+                      aria-label="Edit banner"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -379,10 +386,14 @@ export default function BannerManagementPage() {
                       onClick={() =>
                         updateMutation.mutate({
                           id: banner.id,
-                          updates: { status: banner.status === "published" ? "archived" : "published" },
+                          updates: {
+                            status: banner.status === "published" ? "archived" : "published",
+                          },
                         })
                       }
-                      aria-label={banner.status === "published" ? "Archive banner" : "Publish banner"}
+                      aria-label={
+                        banner.status === "published" ? "Archive banner" : "Publish banner"
+                      }
                     >
                       {banner.status === "published" ? (
                         <EyeOff className="h-4 w-4" />
