@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { supabase } from "@/integrations/supabase/client";
-import { __emailDomainValidationTestHooks, validateEmailDomainExists } from "@/lib/email-domain-validation";
+import {
+  __emailDomainValidationTestHooks,
+  validateEmailDomainExists,
+} from "@/lib/email-domain-validation";
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { functions: { invoke: vi.fn() } },
-}));
+// Migrated to invokeEdge (ADR-0028): invokeEdge returns the data directly and THROWS on failure,
+// so we mock it (not supabase.functions.invoke) and assert the fail-OPEN behavior on a throw.
+const { invokeEdgeMock } = vi.hoisted(() => ({ invokeEdgeMock: vi.fn() }));
+vi.mock("@/lib/edge/invokeEdge", () => ({ invokeEdge: invokeEdgeMock }));
 
 describe("email domain validation (BDD AUTH-REAL-EMAIL-DOMAIN-20260427)", () => {
   beforeEach(() => {
@@ -13,16 +16,29 @@ describe("email domain validation (BDD AUTH-REAL-EMAIL-DOMAIN-20260427)", () => 
   });
 
   it("blocks submission when the backend reports a non-existent email domain", async () => {
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { valid: false }, error: null });
+    invokeEdgeMock.mockResolvedValue({ valid: false });
 
-    await expect(validateEmailDomainExists("person@does-not-exist.invalid")).resolves.toMatchObject({ valid: false });
-    expect(supabase.functions.invoke).toHaveBeenCalledWith("validate-email-domain", { body: { domain: "does-not-exist.invalid" } });
+    await expect(validateEmailDomainExists("person@does-not-exist.invalid")).resolves.toMatchObject(
+      {
+        valid: false,
+      }
+    );
+    expect(invokeEdgeMock).toHaveBeenCalledWith(
+      "validate-email-domain",
+      expect.objectContaining({ body: { domain: "does-not-exist.invalid" } })
+    );
   });
 
   it("sends only the domain portion to the backend", async () => {
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { valid: true }, error: null });
+    invokeEdgeMock.mockResolvedValue({ valid: true });
 
     await validateEmailDomainExists("private.name@example.com");
-    expect(JSON.stringify(vi.mocked(supabase.functions.invoke).mock.calls[0])).not.toContain("private.name");
+    expect(JSON.stringify(invokeEdgeMock.mock.calls[0])).not.toContain("private.name");
+  });
+
+  it("fails OPEN when the edge call throws (a validation-service outage must not block registration)", async () => {
+    invokeEdgeMock.mockRejectedValue(new Error("edge down"));
+
+    await expect(validateEmailDomainExists("person@example.com")).resolves.toEqual({ valid: true });
   });
 });
