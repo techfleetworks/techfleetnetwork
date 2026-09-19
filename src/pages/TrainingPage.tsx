@@ -59,7 +59,7 @@ interface CourseCard {
 }
 
 function formatCompleters(n: number, _viewerCompleted: boolean): string {
-  // v4: count is total (includes viewer) per course_completion_stats.
+  // Live total of members who completed this course (includes the viewer if they have).
   if (n <= 0) return "No one has completed this yet";
   if (n === 1) return "1 member completed this course";
   return `${n.toLocaleString()} members completed this course`;

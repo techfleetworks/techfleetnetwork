@@ -13,9 +13,10 @@ export interface CourseCompletionSpec {
 }
 
 /**
- * Aggregate count of *other* members who have completed each course.
- * Powered by SECURITY DEFINER RPC `get_course_completion_counts` — returns
- * counts only, never per-user rows. Caller (auth.uid()) is excluded server-side.
+ * Aggregate count of members who have completed each course (includes the viewer
+ * if they have). Powered by the SECURITY DEFINER RPC `get_course_completion_counts`,
+ * which counts the live source-of-truth rows (journey_progress) — excluding test
+ * accounts — and returns counts only, never per-user rows (ADR-0050).
  *
  * Cached for 5 minutes — vanity stat, no need for tight freshness.
  */
@@ -40,7 +41,7 @@ export function useCourseCompletionCounts(specs: CourseCompletionSpec[]) {
       const { data, error } = await supabase.rpc(
         "get_course_completion_counts",
         // typed as Json by generated types
-        { _course_specs: payload as unknown as never },
+        { _course_specs: payload as unknown as never }
       );
       if (error) throw error;
       const map: Record<string, number> = {};
