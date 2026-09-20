@@ -27,8 +27,6 @@
   "src/hooks/use-general-application.tsx": 1,
   "src/hooks/use-membership-realtime.ts": 2,
   "src/i18n/index.ts": 1,
-  "src/lib/email-domain-validation.ts": 1,
-  "src/lib/i18n/dom-translator.ts": 1,
   "src/lib/turnstile-verification.ts": 1,
   "src/pages/AdminIngestPage.tsx": 3,
   "src/pages/EditProfilePage.tsx": 1,
@@ -43,6 +41,5 @@
   "src/services/discord-notify.service.ts": 5,
   "src/services/explore.service.ts": 1,
   "src/services/general-application.service.ts": 1,
-  "src/test/features/auth/session-and-reset.service.test.ts": 15,
-  "src/test/lib/email-domain-validation.test.ts": 4
+  "src/test/features/auth/session-and-reset.service.test.ts": 15
 }
