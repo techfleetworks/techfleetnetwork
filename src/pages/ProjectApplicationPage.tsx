@@ -4,13 +4,25 @@ import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { assertWritten } from "@/lib/db-helpers";
+import {
+  getProjectApplicationQuestions,
+  validateProjectStep2,
+  validateProjectStep3,
+} from "@/lib/applications/project-application-questions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
 import { DiscordNotifyService } from "@/services/discord-notify.service";
 import {
-  Loader2, CheckCircle2, Globe, User, ExternalLink,
-  PartyPopper, AlertTriangle, Pencil, AlertCircle,
+  Loader2,
+  CheckCircle2,
+  Globe,
+  User,
+  ExternalLink,
+  PartyPopper,
+  AlertTriangle,
+  Pencil,
+  AlertCircle,
 } from "lucide-react";
 import { StepProgressBar } from "@/components/StepProgressBar";
 import { FlowMobileNav } from "@/components/FlowMobileNav";
@@ -23,18 +35,20 @@ import { Separator } from "@/components/ui/separator";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { usePageHeader } from "@/contexts/PageHeaderContext";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
-import {
-  PROJECT_TYPES, PROJECT_PHASES, TEAM_HATS,
-} from "@/data/project-constants";
+import { PROJECT_TYPES, PROJECT_PHASES, TEAM_HATS } from "@/data/project-constants";
 import { format } from "date-fns";
 import { useAutosave } from "@/hooks/use-autosave";
 import { AutosaveStatus } from "@/components/ui/AutosaveStatus";
 import { AutosaveCircuitBanner } from "@/components/forms/AutosaveCircuitBanner";
-
 
 /* ── types ─────────────────────────────────────────────────── */
 interface ProjectApp {
@@ -69,6 +83,9 @@ interface ProjectInfo {
   coordinator_id?: string | null;
   friendly_name?: string;
   description?: string;
+  // Optional on purpose: a missing column (projection/grant regression) stays visible to the
+  // compiler and resolves to the normal question set rather than silently hiding questions.
+  is_shipathon?: boolean;
 }
 
 interface ClientInfo {
@@ -81,7 +98,12 @@ interface ClientInfo {
   kind?: "external" | "internal";
 }
 
-const STEP_LABELS = ["Review General App", "Project Questions", "Client Questions", "Review & Submit"];
+const STEP_LABELS = [
+  "Review General App",
+  "Project Questions",
+  "Client Questions",
+  "Review & Submit",
+];
 
 /* ── read-only display helpers ───────────────────────────── */
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
@@ -89,7 +111,9 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-foreground">{label}</p>
-      <p className={`text-sm whitespace-pre-wrap leading-relaxed ${hasValue ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`}>
+      <p
+        className={`text-sm whitespace-pre-wrap leading-relaxed ${hasValue ? "text-muted-foreground" : "text-muted-foreground/50 italic"}`}
+      >
         {hasValue ? value : "Not provided"}
       </p>
     </div>
@@ -103,7 +127,9 @@ function ReadOnlyArrayField({ label, items }: { label: string; items: string[] }
       <p className="text-sm font-semibold text-foreground">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {items.map((item) => (
-          <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+          <Badge key={item} variant="outline" className="text-xs">
+            {item}
+          </Badge>
         ))}
       </div>
     </div>
@@ -141,7 +167,10 @@ export default function ProjectApplicationPage() {
     queryKey: ["project-detail", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("projects").select("*").eq("id", projectId!).single();
+        .from("projects")
+        .select("*")
+        .eq("id", projectId!)
+        .single();
       if (error) throw error;
       return data as unknown as ProjectInfo;
     },
@@ -152,7 +181,10 @@ export default function ProjectApplicationPage() {
     queryKey: ["client-detail", project?.client_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clients").select("*").eq("id", project!.client_id).single();
+        .from("clients")
+        .select("*")
+        .eq("id", project!.client_id)
+        .single();
       if (error) throw error;
       return data as unknown as ClientInfo;
     },
@@ -175,7 +207,9 @@ export default function ProjectApplicationPage() {
   });
 
   const coordinatorName = coordProfile
-    ? (coordProfile.display_name || [coordProfile.first_name, coordProfile.last_name].filter(Boolean).join(" ") || null)
+    ? coordProfile.display_name ||
+      [coordProfile.first_name, coordProfile.last_name].filter(Boolean).join(" ") ||
+      null
     : null;
 
   /* ── fetch user's general application ──────────────────── */
@@ -259,7 +293,9 @@ export default function ProjectApplicationPage() {
   /* ── push page context into the global header ──────────── */
   const { setHeader } = usePageHeader();
   const headline = client?.name
-    ? (project?.friendly_name?.trim() ? `${client.name} — ${project.friendly_name}` : client.name)
+    ? project?.friendly_name?.trim()
+      ? `${client.name} — ${project.friendly_name}`
+      : client.name
     : undefined;
   const description = headline
     ? `${headline} — ${typeLabel(project?.project_type ?? "")} · ${phaseLabel(project?.phase ?? "")}`
@@ -289,26 +325,57 @@ export default function ProjectApplicationPage() {
   /* ── available team hats scoped to project ─────────────── */
   const availableHats = useMemo(
     () => (project?.team_hats ?? TEAM_HATS.map(String)).map((h) => ({ label: h, value: h })),
-    [project],
+    [project]
+  );
+
+  /* ── which questions this application asks (single source of truth) ──────── */
+  // Render, validation, and the Step-4 review all derive from this, so a question that is not
+  // shown can never be required. Shipathon projects drop the previous-phase group and the
+  // client-knowledge question (ADR-0054).
+  const questions = useMemo(
+    () => getProjectApplicationQuestions({ is_shipathon: project?.is_shipathon }),
+    [project?.is_shipathon]
   );
 
   /* ── collect form data ─────────────────────────────────── */
-  const collectFields = useCallback(() => ({
-    team_hats_interest: teamHatsInterest,
-    participated_previous_phase: participatedPrev,
-    previous_phase_position: prevPosition,
-    previous_phase_learnings: prevLearnings,
-    previous_phase_help_teammates: prevHelpTeammates,
-    prior_engagement_preparation: priorPreparation,
-    passion_for_project: passion,
-    client_project_knowledge: clientKnowledge,
-    cross_functional_contribution: crossFunctional,
-    project_success_contribution: successContribution,
-  }), [teamHatsInterest, participatedPrev, prevPosition, prevLearnings, prevHelpTeammates, priorPreparation, passion, clientKnowledge, crossFunctional, successContribution]);
+  const collectFields = useCallback(
+    () => ({
+      team_hats_interest: teamHatsInterest,
+      // Persist only what was actually asked. When the previous-phase group is not asked
+      // (Shipathon), store false/'' regardless of any stale draft state so the row never carries
+      // phantom answers to questions the applicant was never shown.
+      participated_previous_phase: questions.askPreviousPhase ? participatedPrev : false,
+      previous_phase_position: questions.askPreviousPhase ? prevPosition : "",
+      previous_phase_learnings: questions.askPreviousPhase ? prevLearnings : "",
+      previous_phase_help_teammates: questions.askPreviousPhase ? prevHelpTeammates : "",
+      prior_engagement_preparation: priorPreparation,
+      passion_for_project: passion,
+      client_project_knowledge: questions.askClientKnowledge ? clientKnowledge : "",
+      cross_functional_contribution: crossFunctional,
+      project_success_contribution: successContribution,
+    }),
+    [
+      questions,
+      teamHatsInterest,
+      participatedPrev,
+      prevPosition,
+      prevLearnings,
+      prevHelpTeammates,
+      priorPreparation,
+      passion,
+      clientKnowledge,
+      crossFunctional,
+      successContribution,
+    ]
+  );
 
   /* ── save draft mutation ───────────────────────────────── */
   const saveMutation = useMutation({
-    mutationFn: async (opts: { fields: Record<string, unknown>; newStep?: number; submit?: boolean }) => {
+    mutationFn: async (opts: {
+      fields: Record<string, unknown>;
+      newStep?: number;
+      submit?: boolean;
+    }) => {
       const payload: Record<string, unknown> = sanitizeRecordFields({
         ...opts.fields,
         current_step: opts.newStep ?? step,
@@ -354,7 +421,9 @@ export default function ProjectApplicationPage() {
         const displayName = profileData?.display_name || profileData?.first_name || "A member";
         const discord = profileData?.discord_username || undefined;
         const discordId = profileData?.discord_user_id || undefined;
-        const projectName = client?.name ? `${client.name} (${typeLabel(project?.project_type ?? "")})` : "a project";
+        const projectName = client?.name
+          ? `${client.name} (${typeLabel(project?.project_type ?? "")})`
+          : "a project";
         DiscordNotifyService.projectApplied(displayName, projectName, discord, discordId);
         // Fire-and-forget confirmation email (idempotent — outbox row + sweeper
         // back this up if the call fails or the user closes the tab).
@@ -363,7 +432,9 @@ export default function ProjectApplicationPage() {
             .invoke("send-application-confirmation", {
               body: { kind: "project", applicationId: existingApp.id },
             })
-            .catch(() => { /* sweeper will retry */ });
+            .catch(() => {
+              /* sweeper will retry */
+            });
         }
       } else {
         toast.success("Draft saved — you can resume anytime");
@@ -373,27 +444,38 @@ export default function ProjectApplicationPage() {
   });
 
   /* ── validation ────────────────────────────────────────── */
-  const validateStep2 = useCallback(() => {
-    const errs: Record<string, string> = {};
-    if (teamHatsInterest.length === 0) errs.team_hats_interest = "Select at least one team hat";
-    if (participatedPrev) {
-      if (!prevPosition.trim()) errs.previous_phase_position = "Required";
-      if (!prevLearnings.trim()) errs.previous_phase_learnings = "Required";
-      if (!prevHelpTeammates.trim()) errs.previous_phase_help_teammates = "Required";
-    } else {
-      if (!priorPreparation.trim()) errs.prior_engagement_preparation = "Required";
-    }
-    return errs;
-  }, [teamHatsInterest, participatedPrev, prevPosition, prevLearnings, prevHelpTeammates, priorPreparation]);
+  const validateStep2 = useCallback(
+    () =>
+      validateProjectStep2(
+        {
+          teamHatsInterest,
+          participatedPrev,
+          prevPosition,
+          prevLearnings,
+          prevHelpTeammates,
+          priorPreparation,
+        },
+        questions
+      ),
+    [
+      teamHatsInterest,
+      participatedPrev,
+      prevPosition,
+      prevLearnings,
+      prevHelpTeammates,
+      priorPreparation,
+      questions,
+    ]
+  );
 
-  const validateStep3 = useCallback(() => {
-    const errs: Record<string, string> = {};
-    if (!passion.trim()) errs.passion_for_project = "Required";
-    if (!clientKnowledge.trim()) errs.client_project_knowledge = "Required";
-    if (!crossFunctional.trim()) errs.cross_functional_contribution = "Required";
-    if (!successContribution.trim()) errs.project_success_contribution = "Required";
-    return errs;
-  }, [passion, clientKnowledge, crossFunctional, successContribution]);
+  const validateStep3 = useCallback(
+    () =>
+      validateProjectStep3(
+        { passion, clientKnowledge, crossFunctional, successContribution },
+        questions
+      ),
+    [passion, clientKnowledge, crossFunctional, successContribution, questions]
+  );
 
   /* ── error toast helper ─────────────────────────────────── */
   // Centralized: same toast + auto-scroll/focus pattern used by every
@@ -434,7 +516,11 @@ export default function ProjectApplicationPage() {
     }
     if (step === 2) {
       const errs = validateStep2();
-      if (Object.keys(errs).length > 0) { setErrors(errs); showValidationErrorToast(errs); return; }
+      if (Object.keys(errs).length > 0) {
+        setErrors(errs);
+        showValidationErrorToast(errs);
+        return;
+      }
       setErrors({});
       saveMutation.mutate({ fields: collectFields(), newStep: 3 });
       setStep(3);
@@ -442,7 +528,11 @@ export default function ProjectApplicationPage() {
     }
     if (step === 3) {
       const errs3 = validateStep3();
-      if (Object.keys(errs3).length > 0) { setErrors(errs3); showValidationErrorToast(errs3); return; }
+      if (Object.keys(errs3).length > 0) {
+        setErrors(errs3);
+        showValidationErrorToast(errs3);
+        return;
+      }
       setErrors({});
       saveMutation.mutate({ fields: collectFields(), newStep: 4 });
       setStep(4);
@@ -452,7 +542,11 @@ export default function ProjectApplicationPage() {
       const errs2 = validateStep2();
       const errs3 = validateStep3();
       const allErrs = { ...errs2, ...errs3 };
-      if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
+      if (Object.keys(allErrs).length > 0) {
+        setErrors(allErrs);
+        showValidationErrorToast(allErrs);
+        return;
+      }
       setErrors({});
       saveMutation.mutate({ fields: collectFields(), submit: true });
     }
@@ -462,7 +556,11 @@ export default function ProjectApplicationPage() {
     const errs2 = validateStep2();
     const errs3 = validateStep3();
     const allErrs = { ...errs2, ...errs3 };
-    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
+    if (Object.keys(allErrs).length > 0) {
+      setErrors(allErrs);
+      showValidationErrorToast(allErrs);
+      return;
+    }
     setErrors({});
     saveMutation.mutate({ fields: collectFields(), submit: true });
   }, [collectFields, validateStep2, validateStep3, saveMutation, showValidationErrorToast]);
@@ -481,7 +579,7 @@ export default function ProjectApplicationPage() {
   // ── Autosave: 30s, drafts only ─────────────────────────────────────────
   const autosaveValue = useMemo(
     () => ({ ...collectFields(), current_step: step }),
-    [collectFields, step],
+    [collectFields, step]
   );
   const autosave = useAutosave({
     value: autosaveValue,
@@ -509,12 +607,15 @@ export default function ProjectApplicationPage() {
     },
   });
 
-
   const handleSaveCompleted = useCallback(() => {
     const errs2 = validateStep2();
     const errs3 = validateStep3();
     const allErrs = { ...errs2, ...errs3 };
-    if (Object.keys(allErrs).length > 0) { setErrors(allErrs); showValidationErrorToast(allErrs); return; }
+    if (Object.keys(allErrs).length > 0) {
+      setErrors(allErrs);
+      showValidationErrorToast(allErrs);
+      return;
+    }
     setErrors({});
     saveMutation.mutate({ fields: collectFields(), submit: true });
   }, [collectFields, validateStep2, validateStep3, saveMutation]);
@@ -529,17 +630,16 @@ export default function ProjectApplicationPage() {
   // Authoritative completion signal: completed_at takes precedence over status
   // string to avoid relying on a single enum value. Either signal alone is
   // sufficient — defends against legacy rows where one field drifts.
-  const genAppComplete = !!genApp && (
-    !!(genApp.completed_at as string | null) ||
-    genApp.status === "completed" ||
-    genApp.status === "submitted"
-  );
+  const genAppComplete =
+    !!genApp &&
+    (!!(genApp.completed_at as string | null) ||
+      genApp.status === "completed" ||
+      genApp.status === "submitted");
 
   // Derived dialog open state — no useEffect, no "shown once" gate. The
   // moment a completion is detected (e.g., user finishes the general app in
   // another tab and returns), the blocking dialog disappears automatically.
-  const genAppDialogOpen =
-    !!user && initialized && genAppLoaded && !genAppComplete;
+  const genAppDialogOpen = !!user && initialized && genAppLoaded && !genAppComplete;
 
   if (authLoading || !user || !profileLoaded || projLoading || appLoading || !initialized) {
     return (
@@ -573,13 +673,25 @@ export default function ProjectApplicationPage() {
   return (
     <div className="relative">
       {/* General Application Warning Dialog */}
-      <Dialog open={genAppDialogOpen} onOpenChange={() => { /* mandatory — cannot dismiss */ }}>
-        <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()} className="[&>button[class*='close']]:hidden">
+      <Dialog
+        open={genAppDialogOpen}
+        onOpenChange={() => {
+          /* mandatory — cannot dismiss */
+        }}
+      >
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="[&>button[class*='close']]:hidden"
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">General Application Required
+            <DialogTitle className="flex items-center gap-2">
+              General Application Required
             </DialogTitle>
             <DialogDescription>
-              You must complete your General Application before submitting a project application. Admins review it alongside project applications to evaluate your readiness.
+              You must complete your General Application before submitting a project application.
+              Admins review it alongside project applications to evaluate your readiness.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -590,38 +702,45 @@ export default function ProjectApplicationPage() {
         </DialogContent>
       </Dialog>
 
-      <FlowMobileNav backTo="/project-openings" backLabel="Back to Openings" title="Project Application" />
+      <FlowMobileNav
+        backTo="/project-openings"
+        backLabel="Back to Openings"
+        title="Project Application"
+      />
 
       <div className="sticky top-[65px] z-20 border-b bg-background px-4 sm:px-6 py-3 md:top-0">
         <div className="max-w-3xl w-full mx-auto">
-        <StepProgressBar
-          steps={STEP_LABELS.map((label, i) => {
-            const stepNum = i + 1;
-            const status = isCompleted || step > stepNum
-              ? "completed"
-              : step === stepNum
-                ? "started"
-                : "not_started";
-            return { label, status };
-          })}
-          currentStep={step}
-          onStepClick={(s) => {
-            if (s === step) return;
-            // Soft-warn when jumping forward past an unvalidated step.
-            if (!isCompleted && s > step) {
-              const errs2 = s >= 2 ? validateStep2() : {};
-              const errs3 = s >= 3 ? validateStep3() : {};
-              const missing = Object.keys(errs2).length + Object.keys(errs3).length;
-              if (missing > 0) {
-                toast.info(`You can fill this out, but earlier steps still have ${missing} field${missing === 1 ? "" : "s"} to complete.`);
+          <StepProgressBar
+            steps={STEP_LABELS.map((label, i) => {
+              const stepNum = i + 1;
+              const status =
+                isCompleted || step > stepNum
+                  ? "completed"
+                  : step === stepNum
+                    ? "started"
+                    : "not_started";
+              return { label, status };
+            })}
+            currentStep={step}
+            onStepClick={(s) => {
+              if (s === step) return;
+              // Soft-warn when jumping forward past an unvalidated step.
+              if (!isCompleted && s > step) {
+                const errs2 = s >= 2 ? validateStep2() : {};
+                const errs3 = s >= 3 ? validateStep3() : {};
+                const missing = Object.keys(errs2).length + Object.keys(errs3).length;
+                if (missing > 0) {
+                  toast.info(
+                    `You can fill this out, but earlier steps still have ${missing} field${missing === 1 ? "" : "s"} to complete.`
+                  );
+                }
               }
-            }
-            setErrors({});
-            setStep(s);
-            // Persist progress so refresh lands here.
-            saveMutation.mutate({ fields: collectFields(), newStep: s });
-          }}
-        />
+              setErrors({});
+              setStep(s);
+              // Persist progress so refresh lands here.
+              saveMutation.mutate({ fields: collectFields(), newStep: s });
+            }}
+          />
         </div>
       </div>
 
@@ -634,106 +753,189 @@ export default function ProjectApplicationPage() {
             onRetry={autosave.retry}
           />
           {step === 1 && (
-          <Card>
-            <CardContent className="pt-4 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <ProjectOpeningHeading
-                  clientName={client?.name}
-                  friendlyName={project?.friendly_name}
-                  size="md"
-                  as="p"
-                />
-                <div className="flex flex-wrap justify-end gap-1.5 shrink-0">
-                  {client?.kind === "internal" && (
-                    <Badge className="bg-info/10 text-info border-info/30">Volunteer Opening</Badge>
-                  )}
-                  <Badge className="bg-warning/10 text-warning border-warning/20">Apply Now</Badge>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">{typeLabel(project.project_type)} · {phaseLabel(project.phase)}</p>
-              {client && (
-                <div className="space-y-2 text-sm pt-1">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Globe className="h-3.5 w-3.5 shrink-0" />
-                    <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                      {(() => { try { return new URL(client.website).hostname; } catch { return client.website; } })()}
-                      <ExternalLink className="h-3 w-3 inline ml-1" />
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <User className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{client.primary_contact}</span>
+            <Card>
+              <CardContent className="pt-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <ProjectOpeningHeading
+                    clientName={client?.name}
+                    friendlyName={project?.friendly_name}
+                    size="md"
+                    as="p"
+                  />
+                  <div className="flex flex-wrap justify-end gap-1.5 shrink-0">
+                    {client?.kind === "internal" && (
+                      <Badge className="bg-info/10 text-info border-info/30">
+                        Volunteer Opening
+                      </Badge>
+                    )}
+                    <Badge className="bg-warning/10 text-warning border-warning/20">
+                      Apply Now
+                    </Badge>
                   </div>
                 </div>
-              )}
-              {coordinatorName && (
+                <p className="text-sm text-muted-foreground">
+                  {typeLabel(project.project_type)} · {phaseLabel(project.phase)}
+                </p>
+                {client && (
+                  <div className="space-y-2 text-sm pt-1">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Globe className="h-3.5 w-3.5 shrink-0" />
+                      <a
+                        href={client.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline truncate"
+                      >
+                        {(() => {
+                          try {
+                            return new URL(client.website).hostname;
+                          } catch {
+                            return client.website;
+                          }
+                        })()}
+                        <ExternalLink className="h-3 w-3 inline ml-1" />
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <User className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{client.primary_contact}</span>
+                    </div>
+                  </div>
+                )}
+                {coordinatorName && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Project Coordinator
+                    </p>
+                    <p className="text-sm text-foreground font-medium">{coordinatorName}</p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Project Coordinator</p>
-                  <p className="text-sm text-foreground font-medium">{coordinatorName}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
+                  <div className="flex flex-wrap gap-1">
+                    {project.team_hats.map((h) => (
+                      <Badge key={h} variant="outline" className="text-xs">
+                        {h}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              )}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Team Hats</p>
-                <div className="flex flex-wrap gap-1">
-                  {project.team_hats.map((h) => <Badge key={h} variant="outline" className="text-xs">{h}</Badge>)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           )}
 
           {/* ── STEP 1: Review General App ────────────────── */}
           {step === 1 && (
             <div className="space-y-6">
               <div className="rounded-lg border bg-card p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">Step 1: Review General App</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Step 1: Review General App
+                </h2>
                 <p className="text-sm text-muted-foreground">
-                  Please review your general application below before proceeding. If anything needs updating, go to the General App to make edits.
+                  Please review your general application below before proceeding. If anything needs
+                  updating, go to the General App to make edits.
                 </p>
               </div>
 
               {genApp ? (
                 <>
                   <div className="rounded-lg border bg-card p-6 space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Profile Information</h3>
-                    <ReadOnlyField label="Name" value={`${(userProfile?.first_name as string) ?? ""} ${(userProfile?.last_name as string) ?? ""}`.trim()} />
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Profile Information
+                    </h3>
+                    <ReadOnlyField
+                      label="Name"
+                      value={`${(userProfile?.first_name as string) ?? ""} ${(userProfile?.last_name as string) ?? ""}`.trim()}
+                    />
                     <ReadOnlyField label="Email" value={(genApp.email as string) ?? ""} />
                     <ReadOnlyField label="Country" value={(userProfile?.country as string) ?? ""} />
-                    <ReadOnlyField label="Timezone" value={(userProfile?.timezone as string) ?? ""} />
+                    <ReadOnlyField
+                      label="Timezone"
+                      value={(userProfile?.timezone as string) ?? ""}
+                    />
                     <ReadOnlyField label="LinkedIn" value={(genApp.linkedin_url as string) ?? ""} />
-                    <ReadOnlyField label="Portfolio" value={(genApp.portfolio_url as string) ?? ""} />
-                    <ReadOnlyField label="Hours Commitment" value={(genApp.hours_commitment as string) ?? ""} />
-                  </div>
-
-
-                  <div className="rounded-lg border bg-card p-6 space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</h3>
-                    <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
-                    <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-                    <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
-                  </div>
-
-                  <div className="rounded-lg border bg-card p-6 space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</h3>
-                    <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
-                    <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
-                    <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
-                    <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
+                    <ReadOnlyField
+                      label="Portfolio"
+                      value={(genApp.portfolio_url as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Hours Commitment"
+                      value={(genApp.hours_commitment as string) ?? ""}
+                    />
                   </div>
 
                   <div className="rounded-lg border bg-card p-6 space-y-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</h3>
-                    <ReadOnlyField label="Service Leadership Definition" value={(genApp.service_leadership_definition as string) ?? ""} />
-                    <ReadOnlyField label="Service Leadership Actions" value={(genApp.service_leadership_actions as string) ?? ""} />
-                    <ReadOnlyField label="Service Leadership Challenges" value={(genApp.service_leadership_challenges as string) ?? ""} />
-                    <ReadOnlyField label="Service Leadership Situation" value={(genApp.service_leadership_situation as string) ?? ""} />
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Engagement History
+                    </h3>
+                    <ReadOnlyField
+                      label="Previous engagement with Tech Fleet"
+                      value={(genApp.previous_engagement as string) ?? ""}
+                    />
+                    <ReadOnlyArrayField
+                      label="Previous engagement ways"
+                      items={(genApp.previous_engagement_ways as string[]) ?? []}
+                    />
+                    <ReadOnlyField
+                      label="What have you learned from teammates?"
+                      value={(genApp.teammate_learnings as string) ?? ""}
+                    />
+                  </div>
+
+                  <div className="rounded-lg border bg-card p-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Agile Mindset
+                    </h3>
+                    <ReadOnlyField
+                      label="Agile vs Waterfall"
+                      value={(genApp.agile_vs_waterfall as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Psychological Safety"
+                      value={(genApp.psychological_safety as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Agile Philosophies"
+                      value={(genApp.agile_philosophies as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Collaboration Challenges"
+                      value={(genApp.collaboration_challenges as string) ?? ""}
+                    />
+                  </div>
+
+                  <div className="rounded-lg border bg-card p-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Service Leadership
+                    </h3>
+                    <ReadOnlyField
+                      label="Service Leadership Definition"
+                      value={(genApp.service_leadership_definition as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Service Leadership Actions"
+                      value={(genApp.service_leadership_actions as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Service Leadership Challenges"
+                      value={(genApp.service_leadership_challenges as string) ?? ""}
+                    />
+                    <ReadOnlyField
+                      label="Service Leadership Situation"
+                      value={(genApp.service_leadership_situation as string) ?? ""}
+                    />
                   </div>
                 </>
               ) : (
                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-6 text-center space-y-3">
                   <AlertTriangle className="h-8 w-8 text-warning mx-auto" />
-                  <p className="text-sm font-medium text-foreground">General Application Required</p>
-                  <p className="text-sm text-muted-foreground">You must complete your General Application before you can proceed with a project application.</p>
+                  <p className="text-sm font-medium text-foreground">
+                    General Application Required
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    You must complete your General Application before you can proceed with a project
+                    application.
+                  </p>
                   <Button onClick={() => navigate("/applications/general")} className="mt-2">
                     Go to General Application
                   </Button>
@@ -748,67 +950,152 @@ export default function ProjectApplicationPage() {
               <h2 className="text-lg font-semibold text-foreground">Step 2: Project Questions</h2>
 
               <div className="space-y-1.5">
-                <Label>Select all of the team hats you want to contribute to on the project <span className="text-destructive">*</span></Label>
+                <Label>
+                  Select all of the team hats you want to contribute to on the project{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
                 <MultiSelect
                   options={availableHats}
                   selected={teamHatsInterest}
                   onChange={setTeamHatsInterest}
                   placeholder="Select team hats..."
                 />
-                {errors.team_hats_interest && <p className="text-xs text-destructive">{errors.team_hats_interest}</p>}
+                {errors.team_hats_interest && (
+                  <p className="text-xs text-destructive">{errors.team_hats_interest}</p>
+                )}
               </div>
 
-              <Separator />
+              {questions.askPreviousPhase && (
+                <>
+                  <Separator />
 
-              <div className="space-y-2">
-                <Label className="text-foreground font-semibold">
-                  Did you participate in a previous phase of this project? <span className="text-destructive">*</span>
-                </Label>
-                <RadioGroup
-                  value={participatedPrev ? "yes" : "no"}
-                  onValueChange={(v) => setParticipatedPrev(v === "yes")}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="no" id="prev-phase-no" />
-                    <Label htmlFor="prev-phase-no" className="text-foreground font-medium cursor-pointer">No</Label>
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-semibold">
+                      Did you participate in a previous phase of this project?{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <RadioGroup
+                      value={participatedPrev ? "yes" : "no"}
+                      onValueChange={(v) => setParticipatedPrev(v === "yes")}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" id="prev-phase-no" />
+                        <Label
+                          htmlFor="prev-phase-no"
+                          className="text-foreground font-medium cursor-pointer"
+                        >
+                          No
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="yes" id="prev-phase-yes" />
+                        <Label
+                          htmlFor="prev-phase-yes"
+                          className="text-foreground font-medium cursor-pointer"
+                        >
+                          Yes
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="yes" id="prev-phase-yes" />
-                    <Label htmlFor="prev-phase-yes" className="text-foreground font-medium cursor-pointer">Yes</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                </>
+              )}
 
-              {participatedPrev ? (
+              {questions.askPreviousPhase && participatedPrev ? (
                 <div className="space-y-4 pl-1 border-l-2 border-primary/20 ml-2 pl-4">
-                   <div className="space-y-1.5">
-                     <Label htmlFor="prev-position">What team position did you join in the previous phase? <span className="text-destructive">*</span></Label>
-                     <Textarea id="prev-position" value={prevPosition} onChange={(e) => setPrevPosition(e.target.value)} rows={2} maxLength={5000} aria-describedby="prev-position-count" />
-                     <p id="prev-position-count" className="text-xs text-muted-foreground text-right">{prevPosition.length} / 5,000</p>
-                     {errors.previous_phase_position && <p className="text-xs text-destructive">{errors.previous_phase_position}</p>}
-                   </div>
-                   <div className="space-y-1.5">
-                     <Label htmlFor="prev-learnings">What did you learn in the previous phase? <span className="text-destructive">*</span></Label>
-                     <Textarea id="prev-learnings" value={prevLearnings} onChange={(e) => setPrevLearnings(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-learnings-count" />
-                     <p id="prev-learnings-count" className="text-xs text-muted-foreground text-right">{prevLearnings.length} / 5,000</p>
-                     {errors.previous_phase_learnings && <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>}
-                   </div>
-                   <div className="space-y-1.5">
-                     <Label htmlFor="prev-help">How will you help your teammates succeed in this upcoming phase? <span className="text-destructive">*</span></Label>
-                     <Textarea id="prev-help" value={prevHelpTeammates} onChange={(e) => setPrevHelpTeammates(e.target.value)} rows={3} maxLength={5000} aria-describedby="prev-help-count" />
-                     <p id="prev-help-count" className="text-xs text-muted-foreground text-right">{prevHelpTeammates.length} / 5,000</p>
-                     {errors.previous_phase_help_teammates && <p className="text-xs text-destructive">{errors.previous_phase_help_teammates}</p>}
-                   </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prev-position">
+                      What team position did you join in the previous phase?{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="prev-position"
+                      value={prevPosition}
+                      onChange={(e) => setPrevPosition(e.target.value)}
+                      rows={2}
+                      maxLength={5000}
+                      aria-describedby="prev-position-count"
+                    />
+                    <p
+                      id="prev-position-count"
+                      className="text-xs text-muted-foreground text-right"
+                    >
+                      {prevPosition.length} / 5,000
+                    </p>
+                    {errors.previous_phase_position && (
+                      <p className="text-xs text-destructive">{errors.previous_phase_position}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prev-learnings">
+                      What did you learn in the previous phase?{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="prev-learnings"
+                      value={prevLearnings}
+                      onChange={(e) => setPrevLearnings(e.target.value)}
+                      rows={3}
+                      maxLength={5000}
+                      aria-describedby="prev-learnings-count"
+                    />
+                    <p
+                      id="prev-learnings-count"
+                      className="text-xs text-muted-foreground text-right"
+                    >
+                      {prevLearnings.length} / 5,000
+                    </p>
+                    {errors.previous_phase_learnings && (
+                      <p className="text-xs text-destructive">{errors.previous_phase_learnings}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prev-help">
+                      How will you help your teammates succeed in this upcoming phase?{" "}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="prev-help"
+                      value={prevHelpTeammates}
+                      onChange={(e) => setPrevHelpTeammates(e.target.value)}
+                      rows={3}
+                      maxLength={5000}
+                      aria-describedby="prev-help-count"
+                    />
+                    <p id="prev-help-count" className="text-xs text-muted-foreground text-right">
+                      {prevHelpTeammates.length} / 5,000
+                    </p>
+                    {errors.previous_phase_help_teammates && (
+                      <p className="text-xs text-destructive">
+                        {errors.previous_phase_help_teammates}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="prior-prep">
-                    How has your prior engagement (either in projects, in classes, or observing) in Tech Fleet community prepared you for this team role? <span className="text-destructive">*</span>
+                    How has your prior engagement (either in projects, in classes, or observing) in
+                    Tech Fleet community prepared you for this team role?{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
-                   <Textarea id="prior-prep" value={priorPreparation} onChange={(e) => setPriorPreparation(e.target.value)} rows={4} maxLength={5000} aria-describedby="prior-prep-count" />
-                   <p id="prior-prep-count" className="text-xs text-muted-foreground text-right">{priorPreparation.length} / 5,000</p>
-                   {errors.prior_engagement_preparation && <p className="text-xs text-destructive">{errors.prior_engagement_preparation}</p>}
+                  <Textarea
+                    id="prior-prep"
+                    value={priorPreparation}
+                    onChange={(e) => setPriorPreparation(e.target.value)}
+                    rows={4}
+                    maxLength={5000}
+                    aria-describedby="prior-prep-count"
+                  />
+                  <p id="prior-prep-count" className="text-xs text-muted-foreground text-right">
+                    {priorPreparation.length} / 5,000
+                  </p>
+                  {errors.prior_engagement_preparation && (
+                    <p className="text-xs text-destructive">
+                      {errors.prior_engagement_preparation}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -820,122 +1107,237 @@ export default function ProjectApplicationPage() {
               <h2 className="text-lg font-semibold text-foreground">Step 3: Client Questions</h2>
 
               <div className="space-y-1.5">
-                <Label htmlFor="passion">Why are you passionate about being on this project? <span className="text-destructive">*</span></Label>
-                 <Textarea id="passion" value={passion} onChange={(e) => setPassion(e.target.value)} rows={4} maxLength={5000} aria-describedby="passion-count" />
-                 <p id="passion-count" className="text-xs text-muted-foreground text-right">{passion.length} / 5,000</p>
-                 {errors.passion_for_project && <p className="text-xs text-destructive">{errors.passion_for_project}</p>}
+                <Label htmlFor="passion">
+                  Why are you passionate about being on this project?{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="passion"
+                  value={passion}
+                  onChange={(e) => setPassion(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  aria-describedby="passion-count"
+                />
+                <p id="passion-count" className="text-xs text-muted-foreground text-right">
+                  {passion.length} / 5,000
+                </p>
+                {errors.passion_for_project && (
+                  <p className="text-xs text-destructive">{errors.passion_for_project}</p>
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="client-knowledge">
-                  What do you know about the client and the project that you're applying to? Tell us about it. <span className="text-destructive">*</span>
-                </Label>
-                 <Textarea id="client-knowledge" value={clientKnowledge} onChange={(e) => setClientKnowledge(e.target.value)} rows={4} maxLength={5000} aria-describedby="client-knowledge-count" />
-                 <p id="client-knowledge-count" className="text-xs text-muted-foreground text-right">{clientKnowledge.length} / 5,000</p>
-                 {errors.client_project_knowledge && <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>}
-              </div>
+              {questions.askClientKnowledge && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-knowledge">
+                    What do you know about the client and the project that you're applying to? Tell
+                    us about it. <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="client-knowledge"
+                    value={clientKnowledge}
+                    onChange={(e) => setClientKnowledge(e.target.value)}
+                    rows={4}
+                    maxLength={5000}
+                    aria-describedby="client-knowledge-count"
+                  />
+                  <p
+                    id="client-knowledge-count"
+                    className="text-xs text-muted-foreground text-right"
+                  >
+                    {clientKnowledge.length} / 5,000
+                  </p>
+                  {errors.client_project_knowledge && (
+                    <p className="text-xs text-destructive">{errors.client_project_knowledge}</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label htmlFor="cross-functional">
-                  How would you like to contribute to cross-functional teamwork on the team? <span className="text-destructive">*</span>
+                  How would you like to contribute to cross-functional teamwork on the team?{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
-                 <Textarea id="cross-functional" value={crossFunctional} onChange={(e) => setCrossFunctional(e.target.value)} rows={4} maxLength={5000} aria-describedby="cross-functional-count" />
-                 <p id="cross-functional-count" className="text-xs text-muted-foreground text-right">{crossFunctional.length} / 5,000</p>
-                 {errors.cross_functional_contribution && <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>}
+                <Textarea
+                  id="cross-functional"
+                  value={crossFunctional}
+                  onChange={(e) => setCrossFunctional(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  aria-describedby="cross-functional-count"
+                />
+                <p id="cross-functional-count" className="text-xs text-muted-foreground text-right">
+                  {crossFunctional.length} / 5,000
+                </p>
+                {errors.cross_functional_contribution && (
+                  <p className="text-xs text-destructive">{errors.cross_functional_contribution}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="success-contribution">
-                  How will you contribute to this project's successful outcomes as an apprentice or a co-lead and as a teammate? <span className="text-destructive">*</span>
+                  How will you contribute to this project's successful outcomes as an apprentice or
+                  a co-lead and as a teammate? <span className="text-destructive">*</span>
                 </Label>
-                 <Textarea id="success-contribution" value={successContribution} onChange={(e) => setSuccessContribution(e.target.value)} rows={4} maxLength={5000} aria-describedby="success-contribution-count" />
-                 <p id="success-contribution-count" className="text-xs text-muted-foreground text-right">{successContribution.length} / 5,000</p>
-                 {errors.project_success_contribution && <p className="text-xs text-destructive">{errors.project_success_contribution}</p>}
+                <Textarea
+                  id="success-contribution"
+                  value={successContribution}
+                  onChange={(e) => setSuccessContribution(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  aria-describedby="success-contribution-count"
+                />
+                <p
+                  id="success-contribution-count"
+                  className="text-xs text-muted-foreground text-right"
+                >
+                  {successContribution.length} / 5,000
+                </p>
+                {errors.project_success_contribution && (
+                  <p className="text-xs text-destructive">{errors.project_success_contribution}</p>
+                )}
               </div>
             </div>
           )}
 
           {/* ── STEP 4: Review & Submit ───────────────────── */}
-          {step === 4 && (() => {
-            const s2Errs = validateStep2();
-            const s3Errs = validateStep3();
-            const s2HasErr = Object.keys(s2Errs).length > 0;
-            const s3HasErr = Object.keys(s3Errs).length > 0;
-            const totalIncomplete = (s2HasErr ? 1 : 0) + (s3HasErr ? 1 : 0);
-            return (
-              <div className="space-y-6">
-                <div className="rounded-lg border bg-card p-6 space-y-2">
-                  <h2 className="text-lg font-semibold text-foreground">Step 4: Review &amp; Submit</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Please review your answers below before submitting. Click <strong>Edit</strong> on any section to make changes.
-                  </p>
-                  {totalIncomplete > 0 && (
-                    <p className="text-sm text-destructive flex items-center gap-1.5 pt-1">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      {totalIncomplete} {totalIncomplete === 1 ? "section needs" : "sections need"} to be completed before you can submit.
+          {step === 4 &&
+            (() => {
+              const s2Errs = validateStep2();
+              const s3Errs = validateStep3();
+              const s2HasErr = Object.keys(s2Errs).length > 0;
+              const s3HasErr = Object.keys(s3Errs).length > 0;
+              const totalIncomplete = (s2HasErr ? 1 : 0) + (s3HasErr ? 1 : 0);
+              return (
+                <div className="space-y-6">
+                  <div className="rounded-lg border bg-card p-6 space-y-2">
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Step 4: Review &amp; Submit
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Please review your answers below before submitting. Click{" "}
+                      <strong>Edit</strong> on any section to make changes.
                     </p>
-                  )}
-                </div>
-
-                {/* Section: Project Questions */}
-                <div className="rounded-lg border bg-card p-6 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-semibold text-foreground">Step 2: Project Questions</h3>
-                      {s2HasErr ? (
-                        <Badge variant="destructive" className="text-xs gap-1">
-                          <AlertCircle className="h-3 w-3" /> Incomplete
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs gap-1 bg-success/10 text-success border-success/30">
-                          <CheckCircle2 className="h-3 w-3" /> Complete
-                        </Badge>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => { setErrors({}); setStep(2); }} className="gap-1.5 text-xs">
-                      <Pencil className="h-3 w-3" /> Edit
-                    </Button>
+                    {totalIncomplete > 0 && (
+                      <p className="text-sm text-destructive flex items-center gap-1.5 pt-1">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        {totalIncomplete}{" "}
+                        {totalIncomplete === 1 ? "section needs" : "sections need"} to be completed
+                        before you can submit.
+                      </p>
+                    )}
                   </div>
-                  <ReadOnlyArrayField label="Team Hats of Interest" items={teamHatsInterest} />
-                  <ReadOnlyField label="Participated in a previous phase" value={participatedPrev ? "Yes" : "No"} />
-                  {participatedPrev ? (
-                    <>
-                      <ReadOnlyField label="Previous phase position" value={prevPosition} />
-                      <ReadOnlyField label="Previous phase learnings" value={prevLearnings} />
-                      <ReadOnlyField label="How you'll help teammates" value={prevHelpTeammates} />
-                    </>
-                  ) : (
-                    <ReadOnlyField label="Prior engagement preparation" value={priorPreparation} />
-                  )}
-                </div>
 
-                {/* Section: Client Questions */}
-                <div className="rounded-lg border bg-card p-6 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-semibold text-foreground">Step 3: Client Questions</h3>
-                      {s3HasErr ? (
-                        <Badge variant="destructive" className="text-xs gap-1">
-                          <AlertCircle className="h-3 w-3" /> Incomplete
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs gap-1 bg-success/10 text-success border-success/30">
-                          <CheckCircle2 className="h-3 w-3" /> Complete
-                        </Badge>
-                      )}
+                  {/* Section: Project Questions */}
+                  <div className="rounded-lg border bg-card p-6 space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-semibold text-foreground">
+                          Step 2: Project Questions
+                        </h3>
+                        {s2HasErr ? (
+                          <Badge variant="destructive" className="text-xs gap-1">
+                            <AlertCircle className="h-3 w-3" /> Incomplete
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs gap-1 bg-success/10 text-success border-success/30"
+                          >
+                            <CheckCircle2 className="h-3 w-3" /> Complete
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setErrors({});
+                          setStep(2);
+                        }}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => { setErrors({}); setStep(3); }} className="gap-1.5 text-xs">
-                      <Pencil className="h-3 w-3" /> Edit
-                    </Button>
+                    <ReadOnlyArrayField label="Team Hats of Interest" items={teamHatsInterest} />
+                    {questions.askPreviousPhase && (
+                      <ReadOnlyField
+                        label="Participated in a previous phase"
+                        value={participatedPrev ? "Yes" : "No"}
+                      />
+                    )}
+                    {questions.askPreviousPhase && participatedPrev ? (
+                      <>
+                        <ReadOnlyField label="Previous phase position" value={prevPosition} />
+                        <ReadOnlyField label="Previous phase learnings" value={prevLearnings} />
+                        <ReadOnlyField
+                          label="How you'll help teammates"
+                          value={prevHelpTeammates}
+                        />
+                      </>
+                    ) : (
+                      <ReadOnlyField
+                        label="Prior engagement preparation"
+                        value={priorPreparation}
+                      />
+                    )}
                   </div>
-                  <ReadOnlyField label="Why are you passionate about this project?" value={passion} />
-                  <ReadOnlyField label="What do you know about the client and the project?" value={clientKnowledge} />
-                  <ReadOnlyField label="How will you contribute to cross-functional teamwork?" value={crossFunctional} />
-                  <ReadOnlyField label="How will you contribute to the project's success?" value={successContribution} />
+
+                  {/* Section: Client Questions */}
+                  <div className="rounded-lg border bg-card p-6 space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-semibold text-foreground">
+                          Step 3: Client Questions
+                        </h3>
+                        {s3HasErr ? (
+                          <Badge variant="destructive" className="text-xs gap-1">
+                            <AlertCircle className="h-3 w-3" /> Incomplete
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs gap-1 bg-success/10 text-success border-success/30"
+                          >
+                            <CheckCircle2 className="h-3 w-3" /> Complete
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setErrors({});
+                          setStep(3);
+                        }}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </Button>
+                    </div>
+                    <ReadOnlyField
+                      label="Why are you passionate about this project?"
+                      value={passion}
+                    />
+                    {questions.askClientKnowledge && (
+                      <ReadOnlyField
+                        label="What do you know about the client and the project?"
+                        value={clientKnowledge}
+                      />
+                    )}
+                    <ReadOnlyField
+                      label="How will you contribute to cross-functional teamwork?"
+                      value={crossFunctional}
+                    />
+                    <ReadOnlyField
+                      label="How will you contribute to the project's success?"
+                      value={successContribution}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
         </div>
       </div>
 
@@ -1015,14 +1417,22 @@ export default function ProjectApplicationPage() {
       <Dialog open={celebrationOpen} onOpenChange={setCelebrationOpen}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2 text-xl">Application submitted
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              Application submitted
             </DialogTitle>
             <DialogDescription>
-              Your application for {client?.name}{project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} is in. The team will review it and follow up soon.
+              Your application for {client?.name}
+              {project?.friendly_name?.trim() ? ` — ${project.friendly_name.trim()}` : ""} is in.
+              The team will review it and follow up soon.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center pt-2">
-            <Button onClick={() => { setCelebrationOpen(false); navigate("/project-openings"); }}>
+            <Button
+              onClick={() => {
+                setCelebrationOpen(false);
+                navigate("/project-openings");
+              }}
+            >
               Browse open projects
             </Button>
           </DialogFooter>
