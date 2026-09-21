@@ -25,6 +25,8 @@ import { completePasswordReset as completePasswordResetService } from "@/feature
 export const sessionPort = {
   /** GoTrue session bootstrap with idle-policy enforcement. */
   getSession: sessionService.getSession.bind(sessionService),
+  /** App-owned token keepalive: refresh the access token shortly before expiry (ADR-0054). */
+  refreshIfExpiringSoon: sessionService.refreshIfExpiringSoon.bind(sessionService),
   /** GoTrue auth-state subscription. */
   onAuthStateChange: sessionService.onAuthStateChange.bind(sessionService),
   /** Clears local sb-* tokens + session marker. Best-effort; never throws. */
