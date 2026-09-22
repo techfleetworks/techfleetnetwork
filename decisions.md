@@ -124,6 +124,21 @@ owner constant declared outside the owner. It does NOT ban raw time literals by 
 has many legitimate `* 60 * 1000` uses); a wholly new hand-rolled idle timer is a judge-arch/review
 catch, not a mechanical one.
 
+Session SURVIVAL is app-owned, never left to the SDK's background timer (ADR-0054). The 1-hour
+access token is renewed by the app before it expires; the SDK's `autoRefreshToken` alone wedges on
+the GoTrue Web Lock and silently signs an active tab out at expiry (the 2026-09 mid-work logout).
+
+```
+❌ never — trust `autoRefreshToken` alone to keep an open tab signed in
+// client.ts sets autoRefreshToken: true and nothing else owns refresh → wedges on the Web Lock
+✅ always — own the refresh: renew before expiry through the lock-retry wrapper, mounted app-wide
+sessionPort.refreshIfExpiringSoon();   // <SessionKeepalive/> ticks it; withAuthLockRetry recovers the lock
+```
+
+Enforced by the keepalive tests: `SessionKeepalive.test.tsx` proves a mounted keepalive drives the
+refresh when signed in, and `session-keepalive-mounted.smoke.test.ts` checks App.tsx wires
+`<SessionKeepalive/>` into the shell.
+
 ## 4 · Every failure reports
 
 ```
