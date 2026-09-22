@@ -5109,6 +5109,7 @@ export type Database = {
           discord_role_name: string
           friendly_name: string
           id: string
+          is_shipathon: boolean
           notion_repository_url: string
           phase: Database["public"]["Enums"]["project_phase"]
           project_status: Database["public"]["Enums"]["project_status_enum"]
@@ -5132,6 +5133,7 @@ export type Database = {
           discord_role_name?: string
           friendly_name?: string
           id?: string
+          is_shipathon?: boolean
           notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
@@ -5155,6 +5157,7 @@ export type Database = {
           discord_role_name?: string
           friendly_name?: string
           id?: string
+          is_shipathon?: boolean
           notion_repository_url?: string
           phase?: Database["public"]["Enums"]["project_phase"]
           project_status?: Database["public"]["Enums"]["project_status_enum"]
