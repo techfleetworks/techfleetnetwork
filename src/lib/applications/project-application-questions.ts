@@ -1,7 +1,7 @@
 /**
  * Single source of truth for WHICH project-application questions apply to a project.
  *
- * A project's `is_shipathon` flag (ADR-0054) removes two questions from the application flow:
+ * A project's `is_shipathon` flag (ADR-0055) removes two questions from the application flow:
  *   - Step 2: the "Did you participate in a previous phase of this project?" radio and its
  *     three follow-ups (position / learnings / help-teammates). The standalone
  *     "prior engagement preparation" question stays and becomes the sole Step-2 narrative.

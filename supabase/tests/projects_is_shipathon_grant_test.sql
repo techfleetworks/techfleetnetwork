@@ -1,4 +1,4 @@
--- pgTAP: projects.is_shipathon column + reachability (ADR-0054).
+-- pgTAP: projects.is_shipathon column + reachability (ADR-0055).
 -- Run: `supabase db test`. Proves the Shipathon flag exists as boolean NOT NULL DEFAULT false and
 -- is SELECT-able by the `authenticated` role (the applicant application flow reads it via
 -- projects.select('*')), and is NOT readable by `anon`. The `authenticated` SELECT is the guard

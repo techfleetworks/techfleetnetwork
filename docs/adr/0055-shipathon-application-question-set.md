@@ -1,4 +1,4 @@
-# ADR 0054 — Shipathon projects: a project-level flag that drives the application question set
+# ADR 0055 — Shipathon projects: a project-level flag that drives the application question set
 
 - Status: Accepted
 - Date: 2026-09-21

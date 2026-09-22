@@ -1,4 +1,4 @@
--- Shipathon project flag (ADR-0054).
+-- Shipathon project flag (ADR-0055).
 -- When true, the project is a "Shipathon" (a cross-functional hackathon). Applicants still apply,
 -- but the project application flow omits the "previous phase" question group and the
 -- "what do you know about the client" question. Mirrors public.projects.requires_interview as a
@@ -7,7 +7,7 @@ ALTER TABLE public.projects
   ADD COLUMN IF NOT EXISTS is_shipathon boolean NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN public.projects.is_shipathon IS
-  'When true, the project is a Shipathon (cross-functional hackathon): the application flow omits the previous-phase question group and the client-knowledge question. Applicants still apply. Mirrors requires_interview as a project-level flag (ADR-0054).';
+  'When true, the project is a Shipathon (cross-functional hackathon): the application flow omits the previous-phase question group and the client-knowledge question. Applicants still apply. Mirrors requires_interview as a project-level flag (ADR-0055).';
 
 -- Reachability guard (structural: prevents a silent "feature does nothing").
 -- The applicant application flow reads this column as the `authenticated` role via projects.select('*')

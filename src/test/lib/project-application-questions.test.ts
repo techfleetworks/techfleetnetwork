@@ -8,7 +8,7 @@ import {
 } from "@/lib/applications/project-application-questions";
 
 /**
- * These tests are the structural guarantee behind the Shipathon question toggle (ADR-0054):
+ * These tests are the structural guarantee behind the Shipathon question toggle (ADR-0055):
  * because render, validation, and the review screen all consume getProjectApplicationQuestions(),
  * a question that is not asked can never be required — so a Shipathon applicant can always submit,
  * and the existing (non-Shipathon) flow is unchanged.

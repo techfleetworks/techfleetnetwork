@@ -331,7 +331,7 @@ export default function ProjectApplicationPage() {
   /* ── which questions this application asks (single source of truth) ──────── */
   // Render, validation, and the Step-4 review all derive from this, so a question that is not
   // shown can never be required. Shipathon projects drop the previous-phase group and the
-  // client-knowledge question (ADR-0054).
+  // client-knowledge question (ADR-0055).
   const questions = useMemo(
     () => getProjectApplicationQuestions({ is_shipathon: project?.is_shipathon }),
     [project?.is_shipathon]
