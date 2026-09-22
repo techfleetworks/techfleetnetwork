@@ -241,8 +241,6 @@ project_id = "pzvqxdgoztbfikfuifix"
     verify_jwt = false
   [functions.send-project-blast]
     verify_jwt = false
-  [functions.replay-dlq-emails]
-    verify_jwt = false
   [functions.repair-discord-username]
     verify_jwt = false
   [functions.gumroad-backfill]

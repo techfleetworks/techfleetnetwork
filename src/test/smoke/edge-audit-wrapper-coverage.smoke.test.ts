@@ -44,7 +44,6 @@
 //   supabase/functions/record-auth-wedge
 //   supabase/functions/refresh-community-events
 //   supabase/functions/refresh-email-health
-//   supabase/functions/replay-dlq-emails
 //   supabase/functions/replay-email-dlq
 //   supabase/functions/resend-webhook
 //   supabase/functions/save-form-draft

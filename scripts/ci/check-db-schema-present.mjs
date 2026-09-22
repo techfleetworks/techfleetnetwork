@@ -1015,17 +1015,17 @@ function loadAllowlist() {
 // #343 gumroad / #346 enqueue / #347 erasure / #349 membership-purchase — now a floor, so later growth
 // no longer re-trips the gate.
 const BASELINES = {
-  table: 204, // +1 discord_roles (ADR-0053)
+  table: 202, // ADR-0054 −2 (refactor_kpi_catalog, refactor_kpi_daily)
   extension: 7,
   type: 25,
   view: 17,
   constraint: 20,
-  rls_enabled: 204, // +1 public.discord_roles (ADR-0053)
-  function: 425, // +2 list_founding_discord_role_targets, report_founding_discord_role_gap (ADR-0053)
+  rls_enabled: 202, // ADR-0054 −2 (refactor_kpi_catalog, refactor_kpi_daily)
+  function: 418, // ADR-0054 −7 (refactor-KPIs subsystem + get_stuck_pending_email_count, clear_email_lane_cooldown)
   index: 393,
-  trigger: 198,
+  trigger: 197, // ADR-0054 −1 (trg_broadcast_refactor_kpi_change)
   policy: 495, // +2 discord_roles admin read/write (ADR-0053)
-  column: 2060, // +4 discord_roles.{key,role_id,role_name,updated_at} (ADR-0053)
+  column: 2039, // ADR-0054 −21 (refactor_kpi_catalog/daily columns)
 };
 const BASELINE_TOL = 2;
 

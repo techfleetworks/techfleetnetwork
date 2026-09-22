@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-24T00:46:41.318Z",
+  "generated_at": "2026-09-21T22:24:02.076Z",
   "functions": [
     {
       "name": "admin-purge-auth-user",
@@ -661,13 +661,6 @@
     },
     {
       "name": "repair-discord-username",
-      "verify_jwt": false,
-      "kind": "cron",
-      "critical": false,
-      "declared": true
-    },
-    {
-      "name": "replay-dlq-emails",
       "verify_jwt": false,
       "kind": "cron",
       "critical": false,

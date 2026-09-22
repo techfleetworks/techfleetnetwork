@@ -9,7 +9,7 @@
 // firecrawl-search, fleety-embed, framework-csv-fetch, generate-discord-invite, get-community-events,
 // grant-observer-role, gumroad-backfill, gumroad-reconcile, ingest-csv-knowledge, ingest-reference-csv,
 // ingest-workshop-docs, mark-interview-scheduled, promote-to-teacher, record-consent,
-// repair-discord-username, replay-dlq-emails, resolve-discord-id, revoke-teacher-role,
+// repair-discord-username, resolve-discord-id, revoke-teacher-role,
 // send-community-agreement-trigger, send-project-blast, translate-bundle, translate-strings.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,7 +37,6 @@ const MIGRATED = [
   "promote-to-teacher",
   "record-consent",
   "repair-discord-username",
-  "replay-dlq-emails",
   "resolve-discord-id",
   "revoke-teacher-role",
   "send-community-agreement-trigger",
