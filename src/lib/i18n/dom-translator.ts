@@ -18,7 +18,7 @@
  * source text matches and we still translate everything else for free.
  */
 import i18n from "@/i18n";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 const SKIP_TAGS = new Set([
   "SCRIPT",
@@ -203,10 +203,13 @@ async function flush() {
 
   state.inflight = true;
   try {
-    const { data, error } = await supabase.functions.invoke("translate-strings", {
+    // invokeEdge throws on failure → caught by the enclosing catch (re-queues on the next mutation),
+    // so silentReport: a translation blip is expected and self-heals.
+    const data = await invokeEdge<{ map?: Record<string, string> }>("translate-strings", {
       body: { locale: lang, strings: batch },
+      silentReport: true,
     });
-    if (error || !data?.map) return;
+    if (!data?.map) return;
     const map = data.map as Record<string, string>;
     for (const [src, tr] of Object.entries(map)) {
       cache.set(src, typeof tr === "string" ? tr : src);
@@ -233,9 +236,9 @@ async function flush() {
 const IDLE_CHUNK = 50;
 type IdleHandle = number;
 const ric: (cb: (deadline: { timeRemaining: () => number }) => void) => IdleHandle =
-  (typeof window !== "undefined" && (window as any).requestIdleCallback)
+  typeof window !== "undefined" && (window as any).requestIdleCallback
     ? (window as any).requestIdleCallback.bind(window)
-    : ((cb) => setTimeout(() => cb({ timeRemaining: () => 8 }), 1) as unknown as IdleHandle);
+    : (cb) => setTimeout(() => cb({ timeRemaining: () => 8 }), 1) as unknown as IdleHandle;
 
 function walkAndTranslate(root: Node, lang: string) {
   if (root.nodeType === Node.TEXT_NODE) {
@@ -288,7 +291,6 @@ function walkAndTranslate(root: Node, lang: string) {
   ric(drain);
 }
 
-
 // Wave 1 PERF-W1-008: self-write guard set — every time we mutate a Text node
 // ourselves we stamp it here so the MutationObserver callback can short-circuit.
 const ownWrites = new WeakSet<Text>();
@@ -306,7 +308,10 @@ function attachObserver() {
     for (const m of mutations) {
       if (m.type === "characterData") {
         const tn = m.target as Text;
-        if (ownWrites.has(tn)) { ownWrites.delete(tn); continue; }
+        if (ownWrites.has(tn)) {
+          ownWrites.delete(tn);
+          continue;
+        }
         if (shouldSkipElement(tn.parentElement)) continue;
         const next = tn.nodeValue ?? "";
         state.records.set(tn, next);

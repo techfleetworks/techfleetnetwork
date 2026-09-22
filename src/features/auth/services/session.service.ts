@@ -3,6 +3,7 @@
  *
  * Owns ONLY session lifecycle:
  *   - getSession (with idle-policy + server-side revocation enforcement)
+ *   - refreshIfExpiringSoon (app-owned keepalive token refresh — ADR-0054)
  *   - onAuthStateChange
  *   - signOut (single device)
  *   - signOutAllDevices (revoke-all via edge fn)
@@ -28,9 +29,19 @@ import {
 import { getLastActivityAt } from "@/lib/session-activity";
 import { SESSION_ABSOLUTE_TIMEOUT_MS, SESSION_IDLE_TIMEOUT_MS } from "@/lib/session-timeout-policy";
 import { classifyAuthError, purgeLocalAuthState } from "@/lib/auth/session-health";
+import { withAuthLockRetry } from "@/lib/auth/auth-lock-retry";
 
 const log = createLogger("SessionService");
+// Refresh the access token once it is within this margin of expiry, so an
+// actively-open tab never lapses when the SDK's background auto-refresh wedges on
+// the GoTrue Web Lock (ADR-0054). Comfortably larger than the keepalive tick so
+// several retries fit before the token actually expires.
+const SESSION_REFRESH_MARGIN_MS = 5 * 60 * 1000;
 const SESSION_STARTED_AT_KEY = "session_started_at";
+
+/** Outcome of `refreshIfExpiringSoon` — returned so callers/tests can assert it. */
+export type SessionRefreshOutcome =
+  "refreshed" | "still_valid" | "no_session" | "cleared_invalid" | "error";
 // v2: store a one-way fingerprint of the user id (uidFp), never the raw id
 // (CodeQL js/clear-text-storage-of-sensitive-data). A v1 marker fails the
 // version check below and is treated as a mismatch (a benign idle-clock reset).
@@ -362,6 +373,77 @@ export const sessionService = {
     }
 
     return data.session;
+  },
+
+  /**
+   * Keeps an open/active tab's session alive across the short access-token
+   * lifetime. The Supabase SDK's background auto-refresh acquires the GoTrue Web
+   * Lock and cannot recover when that lock wedges (the documented TFN class —
+   * see `auth-lock-retry.ts`), so a member actively working in ONE tab was signed
+   * out the instant the token expired, with no audit trail (the session is already
+   * dead when the app notices). This is the app-OWNED refresh: when the token is
+   * within `SESSION_REFRESH_MARGIN_MS` of expiry it refreshes through
+   * `withAuthLockRetry`, which recovers from the broken lock the SDK cannot.
+   * Driven by `useSessionKeepalive` (interval + focus/visibility). ADR-0054.
+   *
+   * Never throws; returns what happened so the caller and tests can assert.
+   */
+  async refreshIfExpiringSoon(now: number = Date.now()): Promise<SessionRefreshOutcome> {
+    let session: AuthSession | null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
+    } catch (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        await recoverFromInvalidRefreshToken(error, "keepalive");
+        return "cleared_invalid";
+      }
+      log.warn(
+        "refreshIfExpiringSoon",
+        "getSession failed (non-fatal)",
+        undefined,
+        error instanceof Error ? error : undefined
+      );
+      return "error";
+    }
+
+    if (!session) return "no_session";
+
+    const expiresAtMs = (session.expires_at ?? 0) * 1000;
+    if (expiresAtMs - now > SESSION_REFRESH_MARGIN_MS) return "still_valid";
+
+    try {
+      const { error } = await withAuthLockRetry(() => supabase.auth.refreshSession());
+      if (!error) {
+        log.debug("refreshIfExpiringSoon", "Access token refreshed ahead of expiry");
+        return "refreshed";
+      }
+      if (isInvalidRefreshTokenError(error)) {
+        await recoverFromInvalidRefreshToken(error, "keepalive");
+        return "cleared_invalid";
+      }
+      // Transient (network, or the lock still broken after one retry): keep the
+      // session; the next keepalive tick retries before the token truly expires.
+      log.warn(
+        "refreshIfExpiringSoon",
+        `Token refresh failed transiently: ${error.message}`,
+        undefined,
+        error
+      );
+      return "error";
+    } catch (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        await recoverFromInvalidRefreshToken(error, "keepalive");
+        return "cleared_invalid";
+      }
+      log.warn(
+        "refreshIfExpiringSoon",
+        "Token refresh threw (non-fatal)",
+        undefined,
+        error instanceof Error ? error : undefined
+      );
+      return "error";
+    }
   },
 
   onAuthStateChange(callback: Parameters<typeof supabase.auth.onAuthStateChange>[0]) {
