@@ -36,7 +36,13 @@ import { z } from "zod";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { format } from "date-fns";
 import {
-  Loader2, ArrowLeft, Globe, User, ExternalLink, CalendarIcon, AlertTriangle,
+  Loader2,
+  ArrowLeft,
+  Globe,
+  User,
+  ExternalLink,
+  CalendarIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -44,22 +50,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CharCountTextarea } from "@/components/ui/char-count-textarea";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
-  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES, TEAM_HATS, MILESTONE_OPTIONS, TIMEZONE_RANGES,
-  type ProjectTypeValue, type ProjectPhaseValue, type ProjectStatusValue,
+  PROJECT_TYPES,
+  PROJECT_PHASES,
+  PROJECT_STATUSES,
+  TEAM_HATS,
+  MILESTONE_OPTIONS,
+  TIMEZONE_RANGES,
+  type ProjectTypeValue,
+  type ProjectPhaseValue,
+  type ProjectStatusValue,
 } from "@/data/project-constants";
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
 import type { Client } from "@/components/clients/ClientsTab";
@@ -67,10 +86,11 @@ import { cn } from "@/lib/utils";
 import { reportValidationRejection } from "@/services/error-reporter.service";
 
 // ---------- Helpers ----------
-const optionalUrl = z.string().refine(
-  (v) => v === "" || /^https?:\/\/.+/.test(v),
-  { message: "Must be a valid URL starting with http:// or https://" },
-);
+const optionalUrl = z
+  .string()
+  .refine((v) => v === "" || /^https?:\/\/.+/.test(v), {
+    message: "Must be a valid URL starting with http:// or https://",
+  });
 
 // ---------- Schema ----------
 const PROJECT_TYPE_VALUES = PROJECT_TYPES.map((t) => t.value) as [string, ...string[]];
@@ -81,7 +101,14 @@ const projectSchema = z.object({
   project_type: z.enum(PROJECT_TYPE_VALUES),
   phase: z.enum(["phase_1", "phase_2", "phase_3", "phase_4"] as const),
   team_hats: z.array(z.string()).min(1, "Select at least one team hat"),
-  project_status: z.enum(["coming_soon", "apply_now", "recruiting", "team_onboarding", "project_in_progress", "project_complete"] as const),
+  project_status: z.enum([
+    "coming_soon",
+    "apply_now",
+    "recruiting",
+    "team_onboarding",
+    "project_in_progress",
+    "project_complete",
+  ] as const),
   current_phase_milestones: z.array(z.string()).min(1, "Select at least one milestone"),
   timezone_range: z.string().min(1, "Select a timezone range"),
   anticipated_start_date: z.string().nullable(),
@@ -92,6 +119,7 @@ const projectSchema = z.object({
   discord_role_name: z.string().min(1, "Discord role is required"),
   coordinator_id: z.string().nullable(),
   requires_interview: z.boolean().default(true),
+  is_shipathon: z.boolean().default(false),
 });
 
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -114,6 +142,7 @@ const EMPTY_FORM: ProjectForm = {
   discord_role_name: "",
   coordinator_id: null,
   requires_interview: true,
+  is_shipathon: false,
 };
 
 export default function ProjectFormPage() {
@@ -139,8 +168,9 @@ export default function ProjectFormPage() {
   // a local state seeded from the fetched project row.
   const [editForm, setEditForm] = useState<ProjectForm>(EMPTY_FORM);
   const form: ProjectForm = isEditing ? editForm : draft.value;
-  const setForm: React.Dispatch<React.SetStateAction<ProjectForm>> =
-    isEditing ? setEditForm : draft.setValue;
+  const setForm: React.Dispatch<React.SetStateAction<ProjectForm>> = isEditing
+    ? setEditForm
+    : draft.setValue;
 
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectForm, string>>>({});
   const [initialized, setInitialized] = useState(!isEditing);
@@ -184,6 +214,7 @@ export default function ProjectFormPage() {
             discord_role_name: (data as any).discord_role_name ?? "",
             coordinator_id: (data as any).coordinator_id ?? null,
             requires_interview: (data as any).requires_interview ?? true,
+            is_shipathon: (data as any).is_shipathon ?? false,
           });
           setInitialized(true);
         }
@@ -209,7 +240,8 @@ export default function ProjectFormPage() {
       phase: (existingProject as any).phase as ProjectPhaseValue,
       team_hats: ((existingProject as any).team_hats ?? []) as string[],
       project_status: (existingProject as any).project_status as ProjectStatusValue,
-      current_phase_milestones: ((existingProject as any).current_phase_milestones ?? []) as string[],
+      current_phase_milestones: ((existingProject as any).current_phase_milestones ??
+        []) as string[],
       timezone_range: (existingProject as any).timezone_range ?? "",
       anticipated_start_date: (existingProject as any).anticipated_start_date ?? null,
       anticipated_end_date: (existingProject as any).anticipated_end_date ?? null,
@@ -219,6 +251,7 @@ export default function ProjectFormPage() {
       discord_role_name: (existingProject as any).discord_role_name ?? "",
       coordinator_id: (existingProject as any).coordinator_id ?? null,
       requires_interview: (existingProject as any).requires_interview ?? true,
+      is_shipathon: (existingProject as any).is_shipathon ?? false,
     });
     setInitialized(true);
   }
@@ -253,10 +286,16 @@ export default function ProjectFormPage() {
         .select("user_id, display_name, first_name, last_name, email")
         .in("user_id", adminIds);
       if (profilesError) throw profilesError;
-      return (profiles ?? []).map((p) => ({
-        user_id: p.user_id,
-        label: p.display_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unknown",
-      })).sort((a, b) => a.label.localeCompare(b.label));
+      return (profiles ?? [])
+        .map((p) => ({
+          user_id: p.user_id,
+          label:
+            p.display_name ||
+            [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+            p.email ||
+            "Unknown",
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
     },
     enabled: !!user,
   });
@@ -278,86 +317,109 @@ export default function ProjectFormPage() {
     },
     enabled: isEditing && !!id,
   });
-  const showInterviewToggleWarning =
-    isEditing && !form.requires_interview && midInterviewCount > 0;
+  const showInterviewToggleWarning = isEditing && !form.requires_interview && midInterviewCount > 0;
 
   // Milestone reference
   const { data: milestoneRefs = [] } = useMilestoneReference();
   const computed = useMemo(
     () => computeMilestoneData(form.current_phase_milestones, milestoneRefs),
-    [form.current_phase_milestones, milestoneRefs],
+    [form.current_phase_milestones, milestoneRefs]
   );
 
   // Fire-and-forget Discord project update notification
-  const notifyProjectUpdate = useCallback(async (
-    action: "created" | "updated",
-    values: ProjectForm,
-    projectId: string,
-    changes?: string[],
-  ) => {
-    try {
-      const clientName = clientMap.get(values.client_id)?.name || "Unknown Client";
-      const session = await getSessionSafe();
-      if (!session) return;
-      await supabase.functions.invoke("discord-project-update", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: {
-          action,
-          project_id: projectId,
-          client_name: clientName,
-          project_type: values.project_type,
-          project_status: values.project_status,
-          phase: values.phase,
-          team_hats: values.team_hats,
-          timezone_range: values.timezone_range,
-          anticipated_start_date: values.anticipated_start_date,
-          anticipated_end_date: values.anticipated_end_date,
-          current_phase_milestones: values.current_phase_milestones,
-          changes,
-        },
-      });
-    } catch {
-      // non-critical — ignore
-    }
-  }, [clientMap]);
+  const notifyProjectUpdate = useCallback(
+    async (
+      action: "created" | "updated",
+      values: ProjectForm,
+      projectId: string,
+      changes?: string[]
+    ) => {
+      try {
+        const clientName = clientMap.get(values.client_id)?.name || "Unknown Client";
+        const session = await getSessionSafe();
+        if (!session) return;
+        await supabase.functions.invoke("discord-project-update", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: {
+            action,
+            project_id: projectId,
+            client_name: clientName,
+            project_type: values.project_type,
+            project_status: values.project_status,
+            phase: values.phase,
+            team_hats: values.team_hats,
+            timezone_range: values.timezone_range,
+            anticipated_start_date: values.anticipated_start_date,
+            anticipated_end_date: values.anticipated_end_date,
+            current_phase_milestones: values.current_phase_milestones,
+            changes,
+          },
+        });
+      } catch {
+        // non-critical — ignore
+      }
+    },
+    [clientMap]
+  );
 
   // Compute human-readable change descriptions for update diffs
-  const computeChanges = useCallback((oldData: any, newValues: ProjectForm): string[] => {
-    const changes: string[] = [];
-    const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label || v;
-    const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label || v;
-    const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label || v;
+  const computeChanges = useCallback(
+    (oldData: any, newValues: ProjectForm): string[] => {
+      const changes: string[] = [];
+      const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label || v;
+      const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label || v;
+      const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label || v;
 
-    if (oldData.project_status !== newValues.project_status)
-      changes.push(`Status changed from **${statusLabel(oldData.project_status)}** → **${statusLabel(newValues.project_status)}**`);
-    if (oldData.phase !== newValues.phase)
-      changes.push(`Phase changed from **${phaseLabel(oldData.phase)}** → **${phaseLabel(newValues.phase)}**`);
-    if (oldData.project_type !== newValues.project_type)
-      changes.push(`Type changed from **${typeLabel(oldData.project_type)}** → **${typeLabel(newValues.project_type)}**`);
-    if (oldData.client_id !== newValues.client_id)
-      changes.push(`Client changed to **${clientMap.get(newValues.client_id)?.name || "Unknown"}**`);
+      if (oldData.project_status !== newValues.project_status)
+        changes.push(
+          `Status changed from **${statusLabel(oldData.project_status)}** → **${statusLabel(newValues.project_status)}**`
+        );
+      if (oldData.phase !== newValues.phase)
+        changes.push(
+          `Phase changed from **${phaseLabel(oldData.phase)}** → **${phaseLabel(newValues.phase)}**`
+        );
+      if (oldData.project_type !== newValues.project_type)
+        changes.push(
+          `Type changed from **${typeLabel(oldData.project_type)}** → **${typeLabel(newValues.project_type)}**`
+        );
+      if (oldData.client_id !== newValues.client_id)
+        changes.push(
+          `Client changed to **${clientMap.get(newValues.client_id)?.name || "Unknown"}**`
+        );
 
-    const oldHats = (oldData.team_hats ?? []).sort().join(",");
-    const newHats = [...newValues.team_hats].sort().join(",");
-    if (oldHats !== newHats) changes.push(`Team roles updated to: ${newValues.team_hats.join(", ")}`);
+      const oldHats = (oldData.team_hats ?? []).sort().join(",");
+      const newHats = [...newValues.team_hats].sort().join(",");
+      if (oldHats !== newHats)
+        changes.push(`Team roles updated to: ${newValues.team_hats.join(", ")}`);
 
-    const oldMilestones = (oldData.current_phase_milestones ?? []).sort().join(",");
-    const newMilestones = [...newValues.current_phase_milestones].sort().join(",");
-    if (oldMilestones !== newMilestones) changes.push(`Milestones updated`);
+      const oldMilestones = (oldData.current_phase_milestones ?? []).sort().join(",");
+      const newMilestones = [...newValues.current_phase_milestones].sort().join(",");
+      if (oldMilestones !== newMilestones) changes.push(`Milestones updated`);
 
-    if (oldData.timezone_range !== newValues.timezone_range) changes.push(`Timezone range updated`);
-    if (oldData.anticipated_start_date !== newValues.anticipated_start_date) changes.push(`Start date updated`);
-    if (oldData.anticipated_end_date !== newValues.anticipated_end_date) changes.push(`End date updated`);
-    if (oldData.client_intake_url !== newValues.client_intake_url) changes.push(`Client intake URL updated`);
-    if (oldData.notion_repository_url !== newValues.notion_repository_url) changes.push(`Repository URL updated`);
+      if (oldData.timezone_range !== newValues.timezone_range)
+        changes.push(`Timezone range updated`);
+      if (oldData.anticipated_start_date !== newValues.anticipated_start_date)
+        changes.push(`Start date updated`);
+      if (oldData.anticipated_end_date !== newValues.anticipated_end_date)
+        changes.push(`End date updated`);
+      if (oldData.client_intake_url !== newValues.client_intake_url)
+        changes.push(`Client intake URL updated`);
+      if (oldData.notion_repository_url !== newValues.notion_repository_url)
+        changes.push(`Repository URL updated`);
 
-    return changes;
-  }, [clientMap]);
+      return changes;
+    },
+    [clientMap]
+  );
 
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (values: ProjectForm) => {
-      const { data, error } = await supabase.from("projects").insert(sanitizeRecordFields({ ...values, created_by: user!.id }) as any).select("id").single();
+      const { data, error } = await supabase
+        .from("projects")
+        .insert(sanitizeRecordFields({ ...values, created_by: user!.id }) as any)
+        .select("id")
+        .single();
       if (error) throw error;
       return data;
     },
@@ -396,14 +458,27 @@ export default function ProjectFormPage() {
           return matches ? "persisted" : "unresolved";
         },
         beacon: (outcome, details) => {
-          void supabase.rpc("record_event" as never, {
-            p_sink: "ops_events",
-            p_kind: outcome === "saved" ? "admin.project.save.ok" : `admin.project.save.${outcome}`,
-            p_actor: null,
-            p_payload: { project_id: id, ...(details ?? {}) } as unknown as Record<string, unknown>,
-            p_severity: outcome === "indeterminate_unresolved" || outcome === "error" ? "warn" : "info",
-            p_source_table: "ProjectFormPage",
-          } as never).then(() => {}, () => {});
+          void supabase
+            .rpc(
+              "record_event" as never,
+              {
+                p_sink: "ops_events",
+                p_kind:
+                  outcome === "saved" ? "admin.project.save.ok" : `admin.project.save.${outcome}`,
+                p_actor: null,
+                p_payload: { project_id: id, ...(details ?? {}) } as unknown as Record<
+                  string,
+                  unknown
+                >,
+                p_severity:
+                  outcome === "indeterminate_unresolved" || outcome === "error" ? "warn" : "info",
+                p_source_table: "ProjectFormPage",
+              } as never
+            )
+            .then(
+              () => {},
+              () => {}
+            );
         },
       });
     },
@@ -430,14 +505,22 @@ export default function ProjectFormPage() {
   const handleSubmit = useCallback(() => {
     const result = projectSchema.safeParse(form);
     if (!result.success) {
-      reportValidationRejection("projectSchema", result.error.issues, "ProjectFormPage.handleSubmit");
+      reportValidationRejection(
+        "projectSchema",
+        result.error.issues,
+        "ProjectFormPage.handleSubmit"
+      );
       const fieldErrors: Partial<Record<keyof ProjectForm, string>> = {};
       result.error.issues.forEach((i) => {
         const k = i.path[0] as keyof ProjectForm;
         if (!fieldErrors[k]) fieldErrors[k] = i.message;
       });
       setErrors(fieldErrors);
-      showFormErrors(fieldErrors as Record<string, string>, PROJECT_FIELD_LABELS, PROJECT_FIELD_GUIDANCE);
+      showFormErrors(
+        fieldErrors as Record<string, string>,
+        PROJECT_FIELD_LABELS,
+        PROJECT_FIELD_GUIDANCE
+      );
       scrollToFirstError();
       return;
     }
@@ -462,15 +545,16 @@ export default function ProjectFormPage() {
         },
         probe: async () => {
           const { data, error } = await supabase
-            .from("projects").select("id, name").eq("id", id!).maybeSingle();
+            .from("projects")
+            .select("id, name")
+            .eq("id", id!)
+            .maybeSingle();
           if (error || !data) return "unresolved";
           return (data as any).name === (sanitized as any).name ? "persisted" : "unresolved";
         },
       });
     },
   });
-
-
 
   if (isEditing && !initialized) {
     return (
@@ -497,7 +581,12 @@ export default function ProjectFormPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/clients?tab=projects")} aria-label="Back to projects">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/admin/clients?tab=projects")}
+          aria-label="Back to projects"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold text-foreground">
@@ -521,11 +610,22 @@ export default function ProjectFormPage() {
       <div className="rounded-lg border bg-card p-6 space-y-5">
         {/* Client */}
         <div className="space-y-1.5">
-          <Label htmlFor="client-select">Client <span className="text-destructive">*</span></Label>
-          <Select value={form.client_id} onValueChange={(v) => setForm((f) => ({ ...f, client_id: v }))}>
-            <SelectTrigger id="client-select" aria-invalid={!!errors.client_id}><SelectValue placeholder="Select a client" /></SelectTrigger>
+          <Label htmlFor="client-select">
+            Client <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={form.client_id}
+            onValueChange={(v) => setForm((f) => ({ ...f, client_id: v }))}
+          >
+            <SelectTrigger id="client-select" aria-invalid={!!errors.client_id}>
+              <SelectValue placeholder="Select a client" />
+            </SelectTrigger>
             <SelectContent>
-              {activeClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {activeClients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.client_id && <p className="text-xs text-destructive">{errors.client_id}</p>}
@@ -535,16 +635,36 @@ export default function ProjectFormPage() {
         {selectedClient && (
           <div className="rounded-md border p-4 bg-muted/30 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Client Details</p>
-              <Badge variant="outline" className={selectedClient.kind === "internal" ? "bg-info/10 text-info border-info/30" : "bg-muted text-muted-foreground"}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Client Details
+              </p>
+              <Badge
+                variant="outline"
+                className={
+                  selectedClient.kind === "internal"
+                    ? "bg-info/10 text-info border-info/30"
+                    : "bg-muted text-muted-foreground"
+                }
+              >
                 {selectedClient.kind === "internal" ? "Internal" : "External"}
               </Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Globe className="h-3.5 w-3.5 shrink-0" />
-                <a href={selectedClient.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                  {(() => { try { return new URL(selectedClient.website).hostname; } catch { return selectedClient.website; } })()}
+                <a
+                  href={selectedClient.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline truncate"
+                >
+                  {(() => {
+                    try {
+                      return new URL(selectedClient.website).hostname;
+                    } catch {
+                      return selectedClient.website;
+                    }
+                  })()}
                   <ExternalLink className="h-3 w-3 inline ml-1" />
                 </a>
               </div>
@@ -578,9 +698,12 @@ export default function ProjectFormPage() {
             aria-describedby="friendly-name-help"
           />
           <p id="friendly-name-help" className="text-xs text-muted-foreground">
-            Shown after the client name as <span className="font-medium">[Client] — [Nickname]</span>. Max 200 characters.
+            Shown after the client name as{" "}
+            <span className="font-medium">[Client] — [Nickname]</span>. Max 200 characters.
           </p>
-          {errors.friendly_name && <p className="text-xs text-destructive">{errors.friendly_name}</p>}
+          {errors.friendly_name && (
+            <p className="text-xs text-destructive">{errors.friendly_name}</p>
+          )}
         </div>
 
         {/* Project Description (long form) */}
@@ -598,32 +721,71 @@ export default function ProjectFormPage() {
 
         {/* Project Type */}
         <div className="space-y-1.5">
-          <Label htmlFor="project-type">Project Type <span className="text-destructive">*</span></Label>
-          <Select value={form.project_type} onValueChange={(v) => setForm((f) => ({ ...f, project_type: v as ProjectTypeValue }))}>
-            <SelectTrigger id="project-type"><SelectValue /></SelectTrigger>
-            <SelectContent>{PROJECT_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+          <Label htmlFor="project-type">
+            Project Type <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={form.project_type}
+            onValueChange={(v) => setForm((f) => ({ ...f, project_type: v as ProjectTypeValue }))}
+          >
+            <SelectTrigger id="project-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 
         {/* Phase */}
         <div className="space-y-1.5">
-          <Label htmlFor="phase">Phase <span className="text-destructive">*</span></Label>
-          <Select value={form.phase} onValueChange={(v) => setForm((f) => ({ ...f, phase: v as ProjectPhaseValue }))}>
-            <SelectTrigger id="phase"><SelectValue /></SelectTrigger>
-            <SelectContent>{PROJECT_PHASES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+          <Label htmlFor="phase">
+            Phase <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={form.phase}
+            onValueChange={(v) => setForm((f) => ({ ...f, phase: v as ProjectPhaseValue }))}
+          >
+            <SelectTrigger id="phase">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_PHASES.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 
         {/* Timezone Range */}
         <div className="space-y-1.5">
-          <Label htmlFor="timezone-range">Timezone Range <span className="text-destructive">*</span></Label>
-          <Select value={form.timezone_range} onValueChange={(v) => setForm((f) => ({ ...f, timezone_range: v }))}>
-            <SelectTrigger id="timezone-range" aria-invalid={!!errors.timezone_range}><SelectValue placeholder="Select a timezone range" /></SelectTrigger>
+          <Label htmlFor="timezone-range">
+            Timezone Range <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={form.timezone_range}
+            onValueChange={(v) => setForm((f) => ({ ...f, timezone_range: v }))}
+          >
+            <SelectTrigger id="timezone-range" aria-invalid={!!errors.timezone_range}>
+              <SelectValue placeholder="Select a timezone range" />
+            </SelectTrigger>
             <SelectContent>
-              {TIMEZONE_RANGES.map((tz) => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
+              {TIMEZONE_RANGES.map((tz) => (
+                <SelectItem key={tz.value} value={tz.value}>
+                  {tz.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          {errors.timezone_range && <p className="text-xs text-destructive">{errors.timezone_range}</p>}
+          {errors.timezone_range && (
+            <p className="text-xs text-destructive">{errors.timezone_range}</p>
+          )}
         </div>
 
         {/* Anticipated Date Range */}
@@ -636,17 +798,28 @@ export default function ProjectFormPage() {
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left text-sm tracking-normal font-normal",
-                    !form.anticipated_start_date && "text-muted-foreground",
+                    !form.anticipated_start_date && "text-muted-foreground"
                   )}
                 >
-                  {form.anticipated_start_date ? format(new Date(form.anticipated_start_date + "T00:00:00"), "PPP") : "Pick a date"}
+                  {form.anticipated_start_date
+                    ? format(new Date(form.anticipated_start_date + "T00:00:00"), "PPP")
+                    : "Pick a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={form.anticipated_start_date ? new Date(form.anticipated_start_date + "T00:00:00") : undefined}
-                  onSelect={(d) => setForm((f) => ({ ...f, anticipated_start_date: d ? format(d, "yyyy-MM-dd") : null }))}
+                  selected={
+                    form.anticipated_start_date
+                      ? new Date(form.anticipated_start_date + "T00:00:00")
+                      : undefined
+                  }
+                  onSelect={(d) =>
+                    setForm((f) => ({
+                      ...f,
+                      anticipated_start_date: d ? format(d, "yyyy-MM-dd") : null,
+                    }))
+                  }
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -661,19 +834,32 @@ export default function ProjectFormPage() {
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left text-sm tracking-normal font-normal",
-                    !form.anticipated_end_date && "text-muted-foreground",
+                    !form.anticipated_end_date && "text-muted-foreground"
                   )}
                 >
-                  {form.anticipated_end_date ? format(new Date(form.anticipated_end_date + "T00:00:00"), "PPP") : "Pick a date"}
+                  {form.anticipated_end_date
+                    ? format(new Date(form.anticipated_end_date + "T00:00:00"), "PPP")
+                    : "Pick a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={form.anticipated_end_date ? new Date(form.anticipated_end_date + "T00:00:00") : undefined}
-                  onSelect={(d) => setForm((f) => ({ ...f, anticipated_end_date: d ? format(d, "yyyy-MM-dd") : null }))}
+                  selected={
+                    form.anticipated_end_date
+                      ? new Date(form.anticipated_end_date + "T00:00:00")
+                      : undefined
+                  }
+                  onSelect={(d) =>
+                    setForm((f) => ({
+                      ...f,
+                      anticipated_end_date: d ? format(d, "yyyy-MM-dd") : null,
+                    }))
+                  }
                   disabled={(date) =>
-                    form.anticipated_start_date ? date < new Date(form.anticipated_start_date + "T00:00:00") : false
+                    form.anticipated_start_date
+                      ? date < new Date(form.anticipated_start_date + "T00:00:00")
+                      : false
                   }
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
@@ -685,7 +871,9 @@ export default function ProjectFormPage() {
 
         {/* Team Hats */}
         <div className="space-y-1.5">
-          <Label>Team Hats <span className="text-destructive">*</span></Label>
+          <Label>
+            Team Hats <span className="text-destructive">*</span>
+          </Label>
           <MultiSelect
             options={TEAM_HATS.map((h) => ({ label: h, value: h }))}
             selected={form.team_hats}
@@ -697,24 +885,52 @@ export default function ProjectFormPage() {
 
         {/* Project Status */}
         <div className="space-y-1.5">
-          <Label htmlFor="project-status">Project Status <span className="text-destructive">*</span></Label>
-          <Select value={form.project_status} onValueChange={(v) => setForm((f) => ({ ...f, project_status: v as ProjectStatusValue }))}>
-            <SelectTrigger id="project-status"><SelectValue /></SelectTrigger>
-            <SelectContent>{PROJECT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+          <Label htmlFor="project-status">
+            Project Status <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={form.project_status}
+            onValueChange={(v) =>
+              setForm((f) => ({ ...f, project_status: v as ProjectStatusValue }))
+            }
+          >
+            <SelectTrigger id="project-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
 
         {/* Project Coordinator */}
         <div className="space-y-1.5">
           <Label htmlFor="coordinator-select">Project Coordinator</Label>
-          <Select value={form.coordinator_id ?? "__none__"} onValueChange={(v) => setForm((f) => ({ ...f, coordinator_id: v === "__none__" ? null : v }))}>
-            <SelectTrigger id="coordinator-select"><SelectValue placeholder="Select a coordinator" /></SelectTrigger>
+          <Select
+            value={form.coordinator_id ?? "__none__"}
+            onValueChange={(v) =>
+              setForm((f) => ({ ...f, coordinator_id: v === "__none__" ? null : v }))
+            }
+          >
+            <SelectTrigger id="coordinator-select">
+              <SelectValue placeholder="Select a coordinator" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">No coordinator assigned</SelectItem>
-              {adminUsers.map((a) => <SelectItem key={a.user_id} value={a.user_id}>{a.label}</SelectItem>)}
+              {adminUsers.map((a) => (
+                <SelectItem key={a.user_id} value={a.user_id}>
+                  {a.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">Only admins can be assigned as project coordinators.</p>
+          <p className="text-xs text-muted-foreground">
+            Only admins can be assigned as project coordinators.
+          </p>
         </div>
 
         {/* Interview Toggle */}
@@ -725,7 +941,8 @@ export default function ProjectFormPage() {
                 This project includes applicant interviews
               </Label>
               <p id="requires-interview-help" className="text-xs text-muted-foreground">
-                Turn off if the coordinator selects teammates directly from applications without scheduling interviews.
+                Turn off if the coordinator selects teammates directly from applications without
+                scheduling interviews.
               </p>
             </div>
             <Switch
@@ -739,23 +956,49 @@ export default function ProjectFormPage() {
             <div className="flex gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground">
               <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
               <p className="text-foreground">
-                {midInterviewCount} applicant{midInterviewCount === 1 ? " is" : "s are"} mid-interview.
-                Their flow will continue; the change applies to new applicants only.
+                {midInterviewCount} applicant{midInterviewCount === 1 ? " is" : "s are"}{" "}
+                mid-interview. Their flow will continue; the change applies to new applicants only.
               </p>
             </div>
           )}
         </div>
 
+        {/* Shipathon Toggle */}
+        <div className="space-y-2 rounded-md border p-4 bg-muted/20">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="is-shipathon" className="text-sm font-medium">
+                This project is a Shipathon
+              </Label>
+              <p id="is-shipathon-help" className="text-xs text-muted-foreground">
+                Turn on for a cross-functional hackathon. Applicants still apply, but the
+                application skips the previous-phase questions and the &ldquo;what do you know about
+                the client&rdquo; question.
+              </p>
+            </div>
+            <Switch
+              id="is-shipathon"
+              checked={form.is_shipathon}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, is_shipathon: v }))}
+              aria-describedby="is-shipathon-help"
+            />
+          </div>
+        </div>
+
         {/* Current Phase Milestones */}
         <div className="space-y-1.5">
-          <Label>Current Phase Milestones <span className="text-destructive">*</span></Label>
+          <Label>
+            Current Phase Milestones <span className="text-destructive">*</span>
+          </Label>
           <MultiSelect
             options={MILESTONE_OPTIONS.map((m) => ({ label: m, value: m }))}
             selected={form.current_phase_milestones}
             onChange={(v) => setForm((f) => ({ ...f, current_phase_milestones: v }))}
             placeholder="Select milestones..."
           />
-          {errors.current_phase_milestones && <p className="text-xs text-destructive">{errors.current_phase_milestones}</p>}
+          {errors.current_phase_milestones && (
+            <p className="text-xs text-destructive">{errors.current_phase_milestones}</p>
+          )}
         </div>
 
         {/* Computed read-only fields */}
@@ -763,32 +1006,64 @@ export default function ProjectFormPage() {
           <>
             <Separator />
             <div className="space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Computed from Selected Milestones</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Computed from Selected Milestones
+              </p>
 
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Current Phase Deliverables</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {computed.deliverables.length > 0
-                    ? computed.deliverables.map((d) => <Badge key={d} variant="outline" className="text-xs bg-accent/50">{d}</Badge>)
-                    : <span className="text-xs text-muted-foreground italic">No deliverables found</span>}
+                  {computed.deliverables.length > 0 ? (
+                    computed.deliverables.map((d) => (
+                      <Badge key={d} variant="outline" className="text-xs bg-accent/50">
+                        {d}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      No deliverables found
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Expected Activities</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {computed.activities.length > 0
-                    ? computed.activities.map((a) => <Badge key={a} variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">{a}</Badge>)
-                    : <span className="text-xs text-muted-foreground italic">No activities found</span>}
+                  {computed.activities.length > 0 ? (
+                    computed.activities.map((a) => (
+                      <Badge
+                        key={a}
+                        variant="outline"
+                        className="text-xs bg-primary/10 text-primary border-primary/20"
+                      >
+                        {a}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      No activities found
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-muted-foreground">Expected Skillsets for Teammates</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {computed.skills.length > 0
-                    ? computed.skills.map((s) => <Badge key={s} variant="outline" className="text-xs bg-secondary text-secondary-foreground">{s}</Badge>)
-                    : <span className="text-xs text-muted-foreground italic">No skills found</span>}
+                  {computed.skills.length > 0 ? (
+                    computed.skills.map((s) => (
+                      <Badge
+                        key={s}
+                        variant="outline"
+                        className="text-xs bg-secondary text-secondary-foreground"
+                      >
+                        {s}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">No skills found</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -799,7 +1074,9 @@ export default function ProjectFormPage() {
 
         {/* Links */}
         <div className="space-y-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">External Links</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            External Links
+          </p>
 
           <div className="space-y-1.5">
             <Label htmlFor="client-intake-url">Client Intake Link</Label>
@@ -811,7 +1088,9 @@ export default function ProjectFormPage() {
               onChange={(e) => setForm((f) => ({ ...f, client_intake_url: e.target.value }))}
               aria-invalid={!!errors.client_intake_url}
             />
-            {errors.client_intake_url && <p className="text-xs text-destructive">{errors.client_intake_url}</p>}
+            {errors.client_intake_url && (
+              <p className="text-xs text-destructive">{errors.client_intake_url}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -824,7 +1103,9 @@ export default function ProjectFormPage() {
               onChange={(e) => setForm((f) => ({ ...f, notion_repository_url: e.target.value }))}
               aria-invalid={!!errors.notion_repository_url}
             />
-            {errors.notion_repository_url && <p className="text-xs text-destructive">{errors.notion_repository_url}</p>}
+            {errors.notion_repository_url && (
+              <p className="text-xs text-destructive">{errors.notion_repository_url}</p>
+            )}
           </div>
         </div>
 
@@ -835,10 +1116,14 @@ export default function ProjectFormPage() {
           <DiscordRolePicker
             selectedRoleId={form.discord_role_id}
             selectedRoleName={form.discord_role_name}
-            onSelect={(roleId, roleName) => setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))}
+            onSelect={(roleId, roleName) =>
+              setForm((f) => ({ ...f, discord_role_id: roleId, discord_role_name: roleName }))
+            }
           />
           {(errors.discord_role_id || errors.discord_role_name) && (
-            <p className="text-xs text-destructive">Discord role is required. Please select or create a Discord role for this project.</p>
+            <p className="text-xs text-destructive">
+              Discord role is required. Please select or create a Discord role for this project.
+            </p>
           )}
         </div>
       </div>
@@ -856,11 +1141,17 @@ export default function ProjectFormPage() {
           <AutosaveStatus
             status={draft.status}
             lastSavedAt={draft.lastSavedAt}
-            onRetry={() => { void draft.flush(); }}
+            onRetry={() => {
+              void draft.flush();
+            }}
             className="mr-auto sm:mr-0"
           />
         )}
-        <Button variant="outline" onClick={() => navigate("/admin/clients?tab=projects")} disabled={isSaving}>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/admin/clients?tab=projects")}
+          disabled={isSaving}
+        >
           Cancel
         </Button>
         <Button onClick={handleSubmit} disabled={isSaving}>
@@ -868,7 +1159,6 @@ export default function ProjectFormPage() {
           {isEditing ? "Save Changes" : "Create Project"}
         </Button>
       </div>
-
     </div>
   );
 }

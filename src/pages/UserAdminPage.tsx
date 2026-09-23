@@ -130,10 +130,30 @@ export default function UserAdminPage() {
       // the admin_list_users() RPC. This surfaces members whose profile row is
       // missing or incomplete (previously invisible when the grid read profiles
       // directly). Admin-gated + secret-scrubbed server-side.
-      const { data: accounts, error: accountsErr } = await supabase.rpc(
-        "admin_list_users" as never
-      );
-      if (accountsErr) throw accountsErr;
+      // admin_list_users() is a SETOF, so PostgREST caps each response at the project's
+      // max-rows (1000). A single call silently truncated the roster to 1000 accounts — the
+      // grid hid everyone past #1000 and the "N users" badge reported the cap, not the real
+      // total. Page through in max-rows windows until a short page. De-dupe by user_id so a
+      // created_at tie straddling a page boundary can never double-count.
+      const PAGE_SIZE = 1000;
+      const MAX_PAGES = 100; // hard stop (100k accounts) so a backend anomaly can't loop forever
+      const seenAccountIds = new Set<string>();
+      const accounts: AdminUserRow[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const from = page * PAGE_SIZE;
+        const { data: batch, error: accountsErr } = await supabase
+          .rpc("admin_list_users" as never)
+          .range(from, from + PAGE_SIZE - 1);
+        if (accountsErr) throw accountsErr;
+        const batchRows = (batch as AdminUserRow[] | null) ?? [];
+        for (const a of batchRows) {
+          if (!seenAccountIds.has(a.user_id)) {
+            seenAccountIds.add(a.user_id);
+            accounts.push(a);
+          }
+        }
+        if (batchRows.length < PAGE_SIZE) break;
+      }
 
       const { data: roles } = await supabase.from("user_roles").select("user_id, role");
       const adminIds = new Set(
@@ -157,7 +177,7 @@ export default function UserAdminPage() {
         ((teacherPromos as { user_id: string }[] | null) || []).map((p) => p.user_id)
       );
 
-      const rows: UserRow[] = ((accounts as AdminUserRow[] | null) || []).map((a) => ({
+      const rows: UserRow[] = accounts.map((a) => ({
         user_id: a.user_id,
         email: a.email ?? "",
         first_name: a.first_name ?? "",

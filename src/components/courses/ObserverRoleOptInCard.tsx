@@ -1,13 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Loader2, Sparkles, Calendar, MessagesSquare, Bell, ExternalLink, AlertTriangle, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+  Calendar,
+  MessagesSquare,
+  Bell,
+  ExternalLink,
+  AlertTriangle,
+  ShieldCheck,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ProfileDiscordConnector } from "@/components/profile/ProfileDiscordConnector";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { toast } from "sonner";
 
 interface OptInState {
@@ -38,7 +56,9 @@ function NextSteps({ partial }: { partial: boolean }) {
           </div>
           <div className="flex-1 space-y-2">
             <p className="text-sm font-medium">1. Pick a project meeting</p>
-            <p className="text-xs text-muted-foreground">Browse upcoming Tech Fleet project meetings on the platform's Events Calendar.</p>
+            <p className="text-xs text-muted-foreground">
+              Browse upcoming Tech Fleet project meetings on the platform's Events Calendar.
+            </p>
             <Button asChild size="sm" variant="secondary" className="h-8">
               <Link to="/events">Open Events Calendar</Link>
             </Button>
@@ -50,7 +70,10 @@ function NextSteps({ partial }: { partial: boolean }) {
           </div>
           <div className="flex-1 space-y-2">
             <p className="text-sm font-medium">2. Explore project Discord channels</p>
-            <p className="text-xs text-muted-foreground">Hop into Tech Fleet Discord and visit the project channels to see what each team is working on.</p>
+            <p className="text-xs text-muted-foreground">
+              Hop into Tech Fleet Discord and visit the project channels to see what each team is
+              working on.
+            </p>
             <Button asChild size="sm" variant="secondary" className="h-8">
               <a href={DISCORD_GUILD_DEEP_LINK} target="_blank" rel="noopener noreferrer">
                 Open Discord <ExternalLink className="h-3 w-3 ml-1.5" />
@@ -65,7 +88,9 @@ function NextSteps({ partial }: { partial: boolean }) {
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium">3. Watch for daily alerts</p>
             <p className="text-xs text-muted-foreground">
-              New <code className="px-1 py-0.5 rounded bg-muted text-xs">#calling-all-observers</code> posts ping you each day with meetings to join.
+              New{" "}
+              <code className="px-1 py-0.5 rounded bg-muted text-xs">#calling-all-observers</code>{" "}
+              posts ping you each day with meetings to join.
             </p>
           </div>
         </Card>
@@ -87,9 +112,11 @@ function Confetti({ active }: { active: boolean }) {
       delay: Math.random() * 0.4,
       duration: 1.6 + Math.random() * 1.2,
       color: ["#10b981", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899"][i % 5],
-    })),
+    }))
   );
-  const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const reduced =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (!active || reduced) return null;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -126,7 +153,11 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   const justSucceededRef = useRef(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
-  const linked = !!(profile?.discord_user_id && profile.discord_user_id.trim().length > 0 && profile.has_discord_account);
+  const linked = !!(
+    profile?.discord_user_id &&
+    profile.discord_user_id.trim().length > 0 &&
+    profile.has_discord_account
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -144,16 +175,20 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
           optedIn: !!data,
           projectsGranted: !!data?.projects_role_granted_at,
           observersGranted: !!data?.observers_role_granted_at,
-          queuedForRetry: !!data && !(data.projects_role_granted_at && data.observers_role_granted_at),
+          queuedForRetry:
+            !!data && !(data.projects_role_granted_at && data.observers_role_granted_at),
           optedInAt: data?.opted_in_at ?? null,
           error: data?.last_error ?? null,
         }));
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const fullSuccess = state.projectsGranted && state.observersGranted;
-  const partialSuccess = state.optedIn && !fullSuccess && (state.projectsGranted || state.queuedForRetry);
+  const partialSuccess =
+    state.optedIn && !fullSuccess && (state.projectsGranted || state.queuedForRetry);
 
   useEffect(() => {
     if (fullSuccess && justSucceededRef.current) {
@@ -164,10 +199,17 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   async function handleGrant() {
     setState((s) => ({ ...s, granting: true, error: null }));
     try {
-      const { data, error } = await supabase.functions.invoke("grant-observer-role", {
+      // invokeEdge throws on failure (and reports to audit); the catch below sets the error state.
+      const data = await invokeEdge<{
+        ok?: boolean;
+        projects_granted?: boolean;
+        observers_granted?: boolean;
+        alreadyGranted?: boolean;
+        queued_for_retry?: boolean;
+        error?: string;
+      }>("grant-observer-role", {
         body: { confirm: true },
       });
-      if (error) throw error;
       const projects = !!data?.projects_granted || !!data?.alreadyGranted;
       const observers = !!data?.observers_granted || !!data?.alreadyGranted;
       const ok = !!data?.ok && projects && observers;
@@ -195,7 +237,10 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         });
         onCompleted?.();
       } else {
-        toast.error(data?.error || "Could not grant roles.", { duration: 30000, position: "top-center" });
+        toast.error(data?.error || "Could not grant roles.", {
+          duration: 30000,
+          position: "top-center",
+        });
       }
     } catch (e) {
       const msg = (e as Error).message || "Unexpected error";
@@ -205,7 +250,10 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
   }
 
   function handleSkip() {
-    toast("Got it — no problem. You can grab the roles manually anytime.", { duration: 8000, position: "top-center" });
+    toast("Got it — no problem. You can grab the roles manually anytime.", {
+      duration: 8000,
+      position: "top-center",
+    });
     onCompleted?.();
   }
 
@@ -247,10 +295,16 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+              <Badge
+                variant="secondary"
+                className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+              >
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Projects role granted
               </Badge>
-              <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+              <Badge
+                variant="secondary"
+                className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+              >
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Observers role granted
               </Badge>
             </div>
@@ -263,8 +317,7 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">You're an Observer! 🎉
-              </DialogTitle>
+              <DialogTitle className="flex items-center gap-2">You're an Observer! 🎉</DialogTitle>
               <DialogDescription>
                 Your Projects and Observers Discord roles are active. Here's what to do next.
               </DialogDescription>
@@ -290,15 +343,30 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
           <div>
             <h3 className="text-lg font-semibold">Almost there — we'll keep trying</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              We saved your opt-in. Any role we couldn't grant yet will retry automatically on your next login.
+              We saved your opt-in. Any role we couldn't grant yet will retry automatically on your
+              next login.
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className={state.projectsGranted ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border-amber-500/30"}>
+          <Badge
+            variant="secondary"
+            className={
+              state.projectsGranted
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+            }
+          >
             {state.projectsGranted ? "✓ Projects granted" : "⏳ Projects — retrying"}
           </Badge>
-          <Badge variant="secondary" className={state.observersGranted ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border-amber-500/30"}>
+          <Badge
+            variant="secondary"
+            className={
+              state.observersGranted
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+            }
+          >
             {state.observersGranted ? "✓ Observers granted" : "⏳ Observers — retrying"}
           </Badge>
         </div>
@@ -339,9 +407,13 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
           <Sparkles className="h-5 w-5 text-emerald-400" aria-hidden />
         </div>
         <div>
-          <h3 className="text-lg font-semibold">Want us to grant your Discord roles automatically?</h3>
+          <h3 className="text-lg font-semibold">
+            Want us to grant your Discord roles automatically?
+          </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            We'll add the <strong className="text-foreground">Projects</strong> role and the <strong className="text-foreground">Observers</strong> role to your Tech Fleet Discord profile in one click.
+            We'll add the <strong className="text-foreground">Projects</strong> role and the{" "}
+            <strong className="text-foreground">Observers</strong> role to your Tech Fleet Discord
+            profile in one click.
           </p>
         </div>
       </div>
@@ -355,7 +427,9 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
           className="bg-emerald-600 hover:bg-emerald-500 text-white"
         >
           {state.granting ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Granting roles…</>
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Granting roles…
+            </>
           ) : (
             <>Grant me Projects + Observers roles</>
           )}
@@ -365,7 +439,9 @@ export function ObserverRoleOptInCard({ onCompleted }: Props) {
         </Button>
       </div>
       {state.error && (
-        <p className="text-xs text-red-400" role="alert">{state.error}</p>
+        <p className="text-xs text-red-400" role="alert">
+          {state.error}
+        </p>
       )}
     </Card>
   );

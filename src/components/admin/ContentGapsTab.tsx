@@ -158,8 +158,11 @@ export function ContentGapsTab() {
     // Refresh the matching framework://<slug> KB row (single-slug mode).
     // Non-fatal if the embed function isn't reachable.
     try {
-      await supabase.functions.invoke("fleety-embed", {
+      // Best-effort refresh; invokeEdge throws on failure → the non-fatal catch swallows it and the
+      // daily backfill cron reconciles, so silentReport (no audit noise for an expected, recovered blip).
+      await invokeEdge("fleety-embed", {
         body: { slugs: [editing.slug], table: editing.table },
+        silentReport: true,
       });
     } catch {
       /* non-fatal; daily backfill cron will catch it */

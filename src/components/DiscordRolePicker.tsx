@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { toast } from "sonner";
 
 interface DiscordRole {
@@ -41,13 +41,13 @@ export function DiscordRolePicker({
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
 
-      const res = await supabase.functions.invoke("manage-discord-roles", {
+      // invokeEdge throws (with the edge error message) on failure AND reports to audit; the catch
+      // below toasts the same message and clears the list.
+      const data = await invokeEdge<{ roles?: DiscordRole[] }>("manage-discord-roles", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { action: "list", search: query || undefined },
       });
-
-      if (res.error) throw new Error(res.error.message || "Failed to fetch roles");
-      setRoles(res.data?.roles ?? []);
+      setRoles(data?.roles ?? []);
     } catch (err: any) {
       toast.error(err.message || "Failed to load Discord roles");
       setRoles([]);
@@ -86,19 +86,20 @@ export function DiscordRolePicker({
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
 
-      const res = await supabase.functions.invoke("manage-discord-roles", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { action: "create", name },
-      });
-
-      if (res.error) {
-        const errBody = res.data?.error;
-        if (errBody === "Failed to create Discord role") {
-          throw new Error("Discord bot lacks 'Manage Roles' permission. Please check bot permissions in Discord server settings.");
+      // invokeEdge throws on failure AND reports to audit. The old `res.data?.error` permission branch
+      // was dead code: supabase sets data:null on a non-2xx, so errBody was always undefined and never
+      // matched — the user already saw only the generic message. (Restoring a friendly "bot lacks
+      // Manage Roles" hint would need the edge fn to return 200 + a soft-error body, or invokeEdge to
+      // read the body: for a non-2xx it throws with supabase-js's generic status message, not the
+      // body's `error` field.) Nothing reachable is lost here.
+      const data = await invokeEdge<{ role?: { id: string; name: string } }>(
+        "manage-discord-roles",
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: { action: "create", name },
         }
-        throw new Error(res.error.message || "Failed to create role");
-      }
-      const role = res.data?.role;
+      );
+      const role = data?.role;
       if (!role) throw new Error("No role returned");
 
       onSelect(role.id, role.name);
@@ -200,7 +201,10 @@ export function DiscordRolePicker({
               variant="ghost"
               size="sm"
               className="text-xs"
-              onClick={() => { setMode("idle"); setSearch(""); }}
+              onClick={() => {
+                setMode("idle");
+                setSearch("");
+              }}
             >
               Cancel
             </Button>
@@ -247,7 +251,10 @@ export function DiscordRolePicker({
               variant="ghost"
               size="sm"
               className="gap-1.5 text-xs w-full"
-              onClick={() => { setMode("create"); setSearch(""); }}
+              onClick={() => {
+                setMode("create");
+                setSearch("");
+              }}
             >
               <Plus className="h-3.5 w-3.5" />
               Create a new role instead
@@ -291,20 +298,27 @@ export function DiscordRolePicker({
               variant="ghost"
               size="sm"
               className="text-xs h-8"
-              onClick={() => { setMode("idle"); setNewRoleName(""); }}
+              onClick={() => {
+                setMode("idle");
+                setNewRoleName("");
+              }}
             >
               Cancel
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            This role will be created in Discord with "Allow anyone to mention this role" enabled and no additional permissions.
+            This role will be created in Discord with "Allow anyone to mention this role" enabled
+            and no additional permissions.
           </p>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs w-full"
-            onClick={() => { setMode("search"); setNewRoleName(""); }}
+            onClick={() => {
+              setMode("search");
+              setNewRoleName("");
+            }}
           >
             <Search className="h-3.5 w-3.5" />
             Select an existing role instead
