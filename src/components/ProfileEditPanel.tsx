@@ -58,7 +58,8 @@ import { sessionPort } from "@/features/auth/ports/session.port";
 import { COUNTRIES } from "@/lib/countries";
 import { TIMEZONES } from "@/lib/timezones";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
+import { AppError } from "@/lib/errors/AppError";
 import { signOutSafe, getSessionSafe } from "@/lib/auth/session-port";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -225,11 +226,14 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
 
-      const res = await supabase.functions.invoke("delete-account", {
+      // invokeEdge throws on failure (and reports to audit); the catch below keeps the account and
+      // toasts, so a failed deletion never signs the user out or navigates away. timeoutMs is raised
+      // above the 8s default: the raw invoke had no client timeout, and the server-side delete cascade
+      // can legitimately run past 8s — aborting early would falsely report failure while it proceeds.
+      await invokeEdge("delete-account", {
         headers: { Authorization: `Bearer ${session.access_token}` },
+        timeoutMs: 30_000,
       });
-
-      if (res.error) throw new Error("Failed to delete account");
 
       toast.success("Your account has been deleted.");
       setDeleteDialogOpen(false);
@@ -237,7 +241,12 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       await signOutSafe({ scope: "local", reason: "profile_update" });
       navigate("/", { replace: true });
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete account. Please try again.");
+      // Any edge/transport failure (EdgeInvokeError, TimeoutError, … all extend AppError) gets the
+      // original generic copy so the wrapper's internal messages never leak; the pre-call
+      // "Not authenticated" guard throws a plain Error and still surfaces its own message.
+      const message =
+        err instanceof AppError ? "Failed to delete account. Please try again." : err?.message;
+      toast.error(message || "Failed to delete account. Please try again.");
     } finally {
       setDeleting(false);
     }
