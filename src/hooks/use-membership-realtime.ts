@@ -126,13 +126,12 @@ export function useMembershipRealtime() {
           /* ignore */
         }
         // Best-effort, non-fatal; invokeEdge throws → the catch log.warns; silentReport avoids noise.
-        // timeoutMs well above the 8s default: backfill pages historical sales via the Gumroad API
-        // ("expensive + rate-limited"), and since the once-per-session flag is set above, an 8s abort
-        // would falsely disable backfill for the whole session while the server is still working.
+        // The 30s timeout for this expensive/rate-limited Gumroad paging call comes from the per-function
+        // registry (edge-timeouts.ts) — so the once-per-session flag set above can't be tripped by a
+        // spurious 8s abort, and any future caller of gumroad-backfill inherits the right budget too.
         const data = await invokeEdge<{ imported?: number; tier?: string }>("gumroad-backfill", {
           body: {},
           silentReport: true,
-          timeoutMs: 30_000,
         });
         if (data?.imported && data.imported > appliedFromReconcile) {
           log.info("backfill", `Imported ${data.imported} historical sale(s) for user ${user.id}`, {
