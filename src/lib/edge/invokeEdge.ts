@@ -38,6 +38,12 @@ export interface InvokeEdgeOptions<TIn = unknown, TOut = unknown> {
   headers?: Record<string, string>;
   /** Suppress reporting for expected failures (caller will handle classification). */
   silentReport?: boolean;
+  /**
+   * HTTP method. Defaults to POST (the supabase-js default). Set "GET" for GET-only edge
+   * functions (e.g. get-community-events / get-discord-member-count, which 405 a POST) so they
+   * can migrate off raw `supabase.functions.invoke(fn, { method: "GET" })` — ADR-0028.
+   */
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 }
 
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -57,9 +63,11 @@ async function invokeOnce<TOut>(
   body: unknown,
   headers: Record<string, string>,
   signal: AbortSignal,
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
 ): Promise<TOut> {
   // The supabase JS client doesn't pass AbortSignal to invoke; we race manually.
-  const callPromise = supabase.functions.invoke<TOut>(fn, { body, headers });
+  // method is omitted (undefined) unless set, so callers keep the supabase-js POST default.
+  const callPromise = supabase.functions.invoke<TOut>(fn, { body, headers, method });
   const abortPromise = new Promise<never>((_, reject) => {
     signal.addEventListener(
       "abort",
@@ -105,7 +113,7 @@ export async function invokeEdge<TOut = unknown, TIn = unknown>(
       const ac = new AbortController();
       const t = setTimeout(() => ac.abort(), timeoutMs);
       try {
-        return await invokeOnce<TOut>(fn, body, headers, ac.signal);
+        return await invokeOnce<TOut>(fn, body, headers, ac.signal, options.method);
       } finally {
         clearTimeout(t);
       }
