@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { createLogger } from "@/services/logger.service";
 import { reportError } from "@/services/error-reporter.service";
-import { edgeFunctionBreaker } from "@/lib/circuit-breaker";
+import { edgeFunctionBreaker, firecrawlBreaker } from "@/lib/circuit-breaker";
 import { normalizeQueryKey } from "@/lib/normalize-query";
 import { sanitizeText, isSafeUrl } from "@/lib/security";
 import type { WebSearchResult } from "@/components/resources/ExploreResultsSection";
@@ -213,12 +213,18 @@ export async function writeCache(normalizedKey: string, markdown: string): Promi
 
 export async function fetchWebResults(query: string): Promise<WebSearchResult[]> {
   try {
-    const { data } = await edgeFunctionBreaker.executeWithFallback(
+    // invokeEdge returns data directly and THROWS on failure; executeWithFallback catches the throw,
+    // counts it toward the circuit, and returns the fallback — so the breaker now actually trips on
+    // firecrawl failures (the old raw invoke never threw, so the circuit never opened). Use the
+    // DEDICATED firecrawlBreaker, NOT the shared edgeFunctionBreaker: that shared one also guards the
+    // critical techfleet-chat streaming path below, and a non-critical Firecrawl outage must not open
+    // it and fast-fail the core AI feature. Timeout (30s) comes from the per-function registry.
+    const data = await firecrawlBreaker.executeWithFallback(
       () =>
-        supabase.functions.invoke("firecrawl-search", {
+        invokeEdge<{ success?: boolean; results?: WebSearchResult[] }>("firecrawl-search", {
           body: { query, limit: WEB_SEARCH_LIMIT },
         }),
-      { data: { success: false, results: [] }, error: null }
+      { success: false, results: [] }
     );
 
     if (data?.success && Array.isArray(data.results)) {
