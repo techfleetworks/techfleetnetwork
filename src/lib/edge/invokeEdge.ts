@@ -21,6 +21,7 @@ import { EdgeInvokeError, TimeoutError } from "@/lib/errors/AppError";
 import { toError } from "@/lib/errors/toError";
 import { classify } from "@/lib/observability/classify";
 import { report } from "@/lib/observability/report";
+import { resolveEdgeTimeoutMs } from "@/lib/edge/edge-timeouts";
 import type { ZodSchema } from "zod";
 
 export interface InvokeEdgeOptions<TIn = unknown, TOut = unknown> {
@@ -30,7 +31,11 @@ export interface InvokeEdgeOptions<TIn = unknown, TOut = unknown> {
   bodySchema?: ZodSchema<TIn>;
   /** Validate response data. */
   responseSchema?: ZodSchema<TOut>;
-  /** Override timeout. Default 8000ms. */
+  /**
+   * Per-call timeout override (ms). Precedence: this → the per-function registry
+   * (`EDGE_FUNCTION_TIMEOUTS_MS` in edge-timeouts.ts) → the 8s default. For a slow function,
+   * prefer registering it in edge-timeouts.ts (one place, all callers) over setting this here.
+   */
   timeoutMs?: number;
   /** Disable the automatic single retry on network failure. */
   noRetry?: boolean;
@@ -106,7 +111,10 @@ export async function invokeEdge<TOut = unknown, TIn = unknown>(
     body = parsed.data;
   }
 
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  // Explicit per-call override → per-function registry → 8s default. The registry makes a slow
+  // function's timeout travel with its identity, so no call site can silently inherit an 8s cap that
+  // aborts a still-running server op (decisions.md §8 / ADR-0028).
+  const timeoutMs = resolveEdgeTimeoutMs(fn, options.timeoutMs, DEFAULT_TIMEOUT_MS);
 
   return withTrace(async () => {
     const attempt = async (): Promise<TOut> => {

@@ -162,14 +162,13 @@ export function EmailDlqPanel() {
       for (const [template, ids] of byTemplate) {
         // invokeEdge throws on failure (and reports to audit); the per-template try/catch preserves
         // continue-on-error so one failed template doesn't abort the rest (partial replay is fine).
-        // timeoutMs is raised well above the 8s default: the raw invoke had no client timeout, and a
-        // template can carry up to 500 ids that the edge fn re-enqueues sequentially — an 8s abort
-        // would spuriously "fail" a large batch that actually keeps running server-side.
+        // The 60s timeout for this sequential re-enqueue of up to 500 ids comes from the per-function
+        // registry (edge-timeouts.ts), not this call site.
         let r: { replayed?: number; skipped?: number; reasons?: typeof skipReasons };
         try {
           r = await invokeEdge<{ replayed?: number; skipped?: number; reasons?: typeof skipReasons }>(
             "replay-dlq-emails",
-            { body: { template_name: template, message_ids: ids }, timeoutMs: 60_000 },
+            { body: { template_name: template, message_ids: ids } },
           );
         } catch (e) {
           hadError = true;

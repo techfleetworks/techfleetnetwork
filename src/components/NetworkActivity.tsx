@@ -187,13 +187,11 @@ export const NetworkActivity = memo(function NetworkActivity({
     queryKey: ["discord-member-count"],
     queryFn: async () => {
       // Cached GET read; method:"GET" matches the pre-migration call (the fn accepts POST too, but GET
-      // is canonical). timeoutMs is set above the fn's own 8s Discord-fetch budget: on the 24h refresh
-      // boundary it makes a LIVE upstream fetch, and the raw invoke had no client timeout, so the 8s
-      // invokeEdge default could abort a still-refreshing request — react-query retry then hits the warm
-      // cache. invokeEdge throws on failure; useQuery surfaces error/retry.
+      // is canonical). The 12s timeout (above the fn's 8s live-Discord-fetch budget on its 24h refresh
+      // boundary) comes from the per-function registry (edge-timeouts.ts). invokeEdge throws; useQuery
+      // surfaces error/retry, then the warm cache.
       return invokeEdge<{ member_count: number }>("get-discord-member-count", {
         method: "GET",
-        timeoutMs: 12_000,
       });
     },
     staleTime: 60 * 60 * 1000, // 1h client cache
