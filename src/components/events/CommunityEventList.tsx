@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CalendarOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { CommunityEventCard, type CommunityEvent } from "./CommunityEventCard";
 
 interface Props {
@@ -9,11 +9,12 @@ interface Props {
 }
 
 async function fetchEvents(): Promise<CommunityEvent[]> {
-  const { data, error } = await supabase.functions.invoke("get-community-events", {
+  // get-community-events is GET-only (405s a POST); invokeEdge forwards method:"GET" and throws on
+  // failure — the useQuery below surfaces the error/retry.
+  const data = await invokeEdge<{ events?: CommunityEvent[] }>("get-community-events", {
     method: "GET",
   });
-  if (error) throw error;
-  return ((data as { events?: CommunityEvent[] })?.events ?? []) as CommunityEvent[];
+  return data?.events ?? [];
 }
 
 function Skeleton() {
