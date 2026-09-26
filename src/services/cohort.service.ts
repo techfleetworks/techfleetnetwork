@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getUserSafe } from "@/lib/auth/session-port";
-import type { CohortFormValues } from "@/lib/validators/cohort";
+import type { CohortFormValues, CohortRegistrationStatus } from "@/lib/validators/cohort";
 import { assertWritten } from "@/lib/db-helpers";
 import { retryTransientWrite } from "@/lib/db/retry";
 import { retryPostgrest } from "@/lib/data/transient-retry";
@@ -16,6 +16,7 @@ export type CohortRow = {
   meeting_url: string | null;
   capacity: number | null;
   status: "draft" | "pending_review" | "published" | "archived" | "cancelled";
+  registration_status: CohortRegistrationStatus;
   schedule: string;
   submitted_at: string | null;
   published_at: string | null;
@@ -109,6 +110,21 @@ export const CohortService = {
     const { error } = await (supabase as any).rpc("cancel_cohort", {
       p_cohort_id: id,
       p_reason: reason ?? null,
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * Set the cohort's registration status (Coming Soon / Register Now / Live / Finished).
+   * Goes through the SECURITY DEFINER RPC (owner-or-admin), not a table update, because the
+   * table UPDATE policy only lets owners write draft|pending_review cohorts — registration_status
+   * must be settable after publication (that is when a cohort goes Live/Finished). See migration
+   * 20260926120000_cohort_registration_status.sql.
+   */
+  async setRegistrationStatus(cohortId: string, status: CohortRegistrationStatus): Promise<void> {
+    const { error } = await (supabase as any).rpc("set_cohort_registration_status", {
+      p_cohort_id: cohortId,
+      p_status: status,
     });
     if (error) throw error;
   },
