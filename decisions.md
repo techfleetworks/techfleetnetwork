@@ -473,6 +473,27 @@ ban — once `no-raw-functions-invoke` is `error` and every call goes through `i
 receive a raw error to couple to. Residual coupled consumers at un-migrated raw-invoke sites are tracked
 for Phase 1. Rationale: **ADR-0028**.
 
+**A previously-untimed call that can run long must set `timeoutMs` when it moves to `invokeEdge`.**
+`invokeEdge` imposes an 8s `AbortController` default; the raw `supabase.functions.invoke` had **no**
+client timeout. Convert a bulk / cascade / sequential-server-work call without a `timeoutMs` and you
+silently cap it at 8s — the client aborts with `TimeoutError` while the **server keeps running**, so the
+user sees a false failure and the audit gets a spurious `edge_invoke_failed` on exactly the large
+operation the code exists for. (Caught twice in the Phase-1 burn-down: `delete-account`, `replay-dlq-emails`.)
+
+```ts
+// ❌ never — a long op inherits the 8s default and false-fails while the server finishes
+await invokeEdge("replay-dlq-emails", { body: { message_ids } });     // up to 500 ids, sequential re-enqueue
+await invokeEdge("delete-account", { headers });                       // cascading delete
+// ✅ always — size the ceiling to the operation (still bounded)
+await invokeEdge("replay-dlq-emails", { body: { message_ids }, timeoutMs: 60_000 });
+await invokeEdge("delete-account", { headers, timeoutMs: 30_000 });
+```
+
+And on such a site, a catch that filters the user-facing message must test `err instanceof AppError`
+(covers `TimeoutError`), **not** just `EdgeInvokeError`, or the timeout leaks `"Edge function X timed out"`.
+No mechanical check — duration isn't statically knowable — so this is a **judge-arch lens** applied to every
+`invokeEdge` migration (judge-arch caught both regressions above in fresh context). Rationale: **ADR-0028**.
+
 ---
 
 ## 9 · Fleety never denies a capability it has (truthful capability, one source)
