@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { getSessionSafe } from "@/lib/auth/session-port";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { isUsableDiscordUsername } from "@/lib/discord/username";
 
 const SESSION_FLAG = "tfn_discord_repair_attempted";
@@ -72,15 +72,17 @@ export function useDiscordUsernameRepair() {
       try {
         const session = await getSessionSafe();
         if (!session) return;
-        const res = await supabase.functions.invoke("repair-discord-username", {
+        // invokeEdge throws on failure; the catch records a negative cache to back off. silentReport —
+        // best-effort background repair that self-heals via the neg-cache/retry, not operator-worthy.
+        const data = await invokeEdge<{ repaired?: boolean }>("repair-discord-username", {
           headers: { Authorization: `Bearer ${session.access_token}` },
+          silentReport: true,
         });
-        const repaired = !res.error && (res.data as { repaired?: boolean })?.repaired;
-        if (repaired) {
+        if (data?.repaired) {
           clearNegCache(user.id);
           await refreshProfile();
         } else {
-          // Miss or upstream error — record so we don't hammer for 5 min.
+          // Miss — record so we don't hammer for 5 min.
           recordNegCache(user.id);
         }
       } catch {

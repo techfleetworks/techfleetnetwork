@@ -110,13 +110,17 @@ export async function ensureLocale(lng: string, ns: string = "common"): Promise<
   } catch {
     /* fall through to AI fallback */
   }
-  // AI fallback. Lazy import to avoid pulling supabase into the i18n entry.
+  // AI fallback. Lazy import to keep the edge client (and its supabase dep) out of the i18n entry.
   try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data, error } = await supabase.functions.invoke("translate-bundle", {
+    const { invokeEdge } = await import("@/lib/edge/invokeEdge");
+    // invokeEdge throws on failure → the catch returns false; silentReport since the missing-bundle
+    // fallback to FALLBACK_LOCALE is the expected, self-healing outcome. The longer timeout for this
+    // whole-namespace AI translation comes from the per-function registry (edge-timeouts.ts).
+    const data = await invokeEdge<{ bundle?: Record<string, unknown> }>("translate-bundle", {
       body: { locale: lng, namespace: ns },
+      silentReport: true,
     });
-    if (error || !data?.bundle) return false;
+    if (!data?.bundle) return false;
     i18n.addResourceBundle(lng, ns, data.bundle, true, true);
     return true;
   } catch {

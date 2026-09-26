@@ -473,26 +473,33 @@ ban — once `no-raw-functions-invoke` is `error` and every call goes through `i
 receive a raw error to couple to. Residual coupled consumers at un-migrated raw-invoke sites are tracked
 for Phase 1. Rationale: **ADR-0028**.
 
-**A previously-untimed call that can run long must set `timeoutMs` when it moves to `invokeEdge`.**
+**A slow edge function's client timeout belongs in the per-function registry, not at the call site.**
 `invokeEdge` imposes an 8s `AbortController` default; the raw `supabase.functions.invoke` had **no**
-client timeout. Convert a bulk / cascade / sequential-server-work call without a `timeoutMs` and you
-silently cap it at 8s — the client aborts with `TimeoutError` while the **server keeps running**, so the
-user sees a false failure and the audit gets a spurious `edge_invoke_failed` on exactly the large
-operation the code exists for. (Caught twice in the Phase-1 burn-down: `delete-account`, `replay-dlq-emails`.)
+client timeout. A bulk / cascade / sequential / live-upstream-fetch function invoked without a longer
+budget silently caps at 8s — the client aborts with `TimeoutError` while the **server keeps running**, so
+the user sees a false failure and the audit gets a spurious `edge_invoke_failed` on exactly the large
+operation the code exists for. This recurred five times in the Phase-1 burn-down (`delete-account`,
+`replay-dlq-emails`, `get-discord-member-count`, `gumroad-backfill`, `translate-bundle`) — a per-call
+`timeoutMs` does not travel, so the *next* caller of the same function re-inherits the 8s bug.
+
+The budget is a property of the **function**, so it lives with the function's identity:
 
 ```ts
-// ❌ never — a long op inherits the 8s default and false-fails while the server finishes
-await invokeEdge("replay-dlq-emails", { body: { message_ids } });     // up to 500 ids, sequential re-enqueue
-await invokeEdge("delete-account", { headers });                       // cascading delete
-// ✅ always — size the ceiling to the operation (still bounded)
-await invokeEdge("replay-dlq-emails", { body: { message_ids }, timeoutMs: 60_000 });
-await invokeEdge("delete-account", { headers, timeoutMs: 30_000 });
+// ❌ never — a slow function trusts the 8s default, or its budget is pinned at the call site
+await invokeEdge("some-slow-report", { body });                        // unregistered → 8s aborts a long call
+await invokeEdge("some-slow-report", { body, timeoutMs: 30_000 });     // right value, wrong place — the next caller forgets
+// ✅ always — register the budget once; every call site (present + future) inherits it
+// src/lib/edge/edge-timeouts.ts:  "some-slow-report": 30_000,
+await invokeEdge("some-slow-report", { body });                        // resolves to 30s via the registry
 ```
 
-And on such a site, a catch that filters the user-facing message must test `err instanceof AppError`
-(covers `TimeoutError`), **not** just `EdgeInvokeError`, or the timeout leaks `"Edge function X timed out"`.
-No mechanical check — duration isn't statically knowable — so this is a **judge-arch lens** applied to every
-`invokeEdge` migration (judge-arch caught both regressions above in fresh context). Rationale: **ADR-0028**.
+`invokeEdge` resolves `explicit timeoutMs → EDGE_FUNCTION_TIMEOUTS_MS[fn] → 8s`. Registering a slow
+function makes the 8s-abort structurally impossible for it: you cannot forget a timeout you never type.
+`edge-timeouts.test.ts` enforces the registry can't rot (every key is a real `supabase/functions/<name>/`,
+every value exceeds 8s). The **judge-arch lens** remains the backstop for a *newly added* slow function
+not yet registered (duration isn't statically knowable). And on any such site, a catch that filters the
+user-facing message must test `err instanceof AppError` (covers `TimeoutError`), **not** just
+`EdgeInvokeError`, or the timeout leaks `"Edge function X timed out"`. Rationale: **ADR-0028**.
 
 ---
 

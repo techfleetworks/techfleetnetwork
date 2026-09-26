@@ -227,12 +227,10 @@ export function ProfileEditPanel({ open, onOpenChange }: ProfileEditPanelProps) 
       if (!session) throw new Error("Not authenticated");
 
       // invokeEdge throws on failure (and reports to audit); the catch below keeps the account and
-      // toasts, so a failed deletion never signs the user out or navigates away. timeoutMs is raised
-      // above the 8s default: the raw invoke had no client timeout, and the server-side delete cascade
-      // can legitimately run past 8s — aborting early would falsely report failure while it proceeds.
+      // toasts, so a failed deletion never signs the user out or navigates away. The 30s timeout for
+      // this delete cascade comes from the per-function registry (edge-timeouts.ts), not this call site.
       await invokeEdge("delete-account", {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        timeoutMs: 30_000,
       });
 
       toast.success("Your account has been deleted.");
