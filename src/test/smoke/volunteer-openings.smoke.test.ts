@@ -51,4 +51,13 @@ describe("Volunteer Openings (smoke)", () => {
     expect(projectFormPage).toMatch(/Client Details/);
     expect(projectFormPage).toMatch(/selectedClient\.kind/);
   });
+
+  it("HACKATHON-001: Hackathons tab surfaces Shipathons via getOpeningCategory + is_shipathon", () => {
+    // The openings page has a Hackathons tab and partitions via the shared categorizer, and the
+    // openings edge function exposes is_shipathon so the client can route Shipathons to it.
+    expect(openingsPage).toMatch(/Hackathons/);
+    expect(openingsPage).toMatch(/getOpeningCategory/);
+    expect(openingsPage).toMatch(/hackathon/);
+    expect(publicOpeningsFn).toMatch(/is_shipathon/);
+  });
 });

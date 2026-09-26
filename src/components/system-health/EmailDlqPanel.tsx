@@ -12,6 +12,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,19 +160,22 @@ export function EmailDlqPanel() {
 
     try {
       for (const [template, ids] of byTemplate) {
-        const { data: res, error } = await supabase.functions.invoke("replay-dlq-emails", {
-          body: { template_name: template, message_ids: ids },
-        });
-        if (error) {
+        // invokeEdge throws on failure (and reports to audit); the per-template try/catch preserves
+        // continue-on-error so one failed template doesn't abort the rest (partial replay is fine).
+        // timeoutMs is raised well above the 8s default: the raw invoke had no client timeout, and a
+        // template can carry up to 500 ids that the edge fn re-enqueues sequentially — an 8s abort
+        // would spuriously "fail" a large batch that actually keeps running server-side.
+        let r: { replayed?: number; skipped?: number; reasons?: typeof skipReasons };
+        try {
+          r = await invokeEdge<{ replayed?: number; skipped?: number; reasons?: typeof skipReasons }>(
+            "replay-dlq-emails",
+            { body: { template_name: template, message_ids: ids }, timeoutMs: 60_000 },
+          );
+        } catch (e) {
           hadError = true;
-          console.error("replay-dlq-emails failed:", error);
+          console.error("replay-dlq-emails failed:", e);
           continue;
         }
-        const r = res as {
-          replayed?: number;
-          skipped?: number;
-          reasons?: typeof skipReasons;
-        };
         totalReplayed += r.replayed ?? 0;
         totalSkipped += r.skipped ?? 0;
         for (const k of Object.keys(skipReasons) as (keyof typeof skipReasons)[]) {
