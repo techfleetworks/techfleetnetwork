@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { useAuth } from "@/contexts/AuthContext";
 import { createLogger } from "@/services/logger.service";
 import { useDeferredMount } from "@/lib/defer-until-idle";
@@ -80,12 +81,14 @@ export function useMembershipRealtime() {
       let appliedFromReconcile = 0;
 
       try {
-        const { data, error } = await supabase.functions.invoke("gumroad-reconcile", { body: {} });
-        if (error) {
-          log.warn("reconcile", `Reconcile failed: ${error.message}`, {
-            userId: user.id,
-          });
-        } else if (data?.applied && data.applied > 0) {
+        // Best-effort, non-fatal (realtime + manual refresh remain; server-side webhook/nightly sweep
+        // is the durable path). invokeEdge throws on failure → the catch log.warns; silentReport avoids
+        // audit noise for this convenience reconcile.
+        const data = await invokeEdge<{ applied?: number; tier?: string }>("gumroad-reconcile", {
+          body: {},
+          silentReport: true,
+        });
+        if (data?.applied && data.applied > 0) {
           appliedFromReconcile = data.applied;
           log.info("reconcile", `Applied ${data.applied} pending sale(s) for user ${user.id}`, {
             userId: user.id,
@@ -94,7 +97,7 @@ export function useMembershipRealtime() {
           await refreshProfile();
         }
       } catch (err) {
-        log.warn("reconcile", `Unexpected reconcile error: ${(err as Error).message}`, {
+        log.warn("reconcile", `Reconcile failed: ${(err as Error).message}`, {
           userId: user.id,
         });
       }
@@ -115,18 +118,22 @@ export function useMembershipRealtime() {
         return;
       }
       try {
-        const { data, error } = await supabase.functions.invoke("gumroad-backfill", { body: {} });
+        // Mark attempted BEFORE the call so a failure doesn't re-hammer Gumroad on the next mount
+        // (the raw invoke returned {error} so setItem always ran; invokeEdge throws, so set it up-front).
         try {
           sessionStorage.setItem(backfillKey, "1");
         } catch {
           /* ignore */
         }
-        if (error) {
-          log.warn("backfill", `Backfill failed: ${error.message}`, {
-            userId: user.id,
-          });
-          return;
-        }
+        // Best-effort, non-fatal; invokeEdge throws → the catch log.warns; silentReport avoids noise.
+        // timeoutMs well above the 8s default: backfill pages historical sales via the Gumroad API
+        // ("expensive + rate-limited"), and since the once-per-session flag is set above, an 8s abort
+        // would falsely disable backfill for the whole session while the server is still working.
+        const data = await invokeEdge<{ imported?: number; tier?: string }>("gumroad-backfill", {
+          body: {},
+          silentReport: true,
+          timeoutMs: 30_000,
+        });
         if (data?.imported && data.imported > appliedFromReconcile) {
           log.info("backfill", `Imported ${data.imported} historical sale(s) for user ${user.id}`, {
             userId: user.id,
@@ -135,7 +142,7 @@ export function useMembershipRealtime() {
           await refreshProfile();
         }
       } catch (err) {
-        log.warn("backfill", `Unexpected backfill error: ${(err as Error).message}`, {
+        log.warn("backfill", `Backfill failed: ${(err as Error).message}`, {
           userId: user.id,
         });
       } finally {

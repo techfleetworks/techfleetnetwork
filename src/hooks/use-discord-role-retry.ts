@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { rpcWithTimeout } from "@/lib/db/rpc-with-timeout";
 import { createLogger } from "@/services/logger.service";
 
@@ -33,15 +33,18 @@ export function useDiscordRoleRetry() {
       for (const row of pending) {
         if (cancelled) break;
         try {
-          const res = await supabase.functions.invoke("manage-discord-roles", {
+          // invokeEdge throws on failure; the existing catch records the failure in the grant ledger
+          // (the retry/backoff source of truth), so silentReport avoids audit noise from this drain loop.
+          const data = await invokeEdge<{ success?: boolean }>("manage-discord-roles", {
             headers: { Authorization: `Bearer ${session.access_token}` },
             body: { action: "assign", discord_user_id: row.discord_user_id, role_id: row.role_id },
+            silentReport: true,
           });
-          const ok = !res.error && (res.data as { success?: boolean })?.success !== false;
+          const ok = data?.success !== false;
           await rpcWithTimeout("mark_discord_role_grant_result", {
             p_id: row.id,
             p_success: ok,
-            p_error: ok ? null : (res.error?.message ?? "retry failed"),
+            p_error: ok ? null : "retry failed",
           });
           if (ok) log.info("retry", `Granted queued role ${row.role_id}`);
         } catch (err) {
