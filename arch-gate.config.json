@@ -64,6 +64,13 @@
       "message": "A hand-rolled tag-stripping regex (`<[^>]*>` / `<[^>]+>`). Single-pass strippers are bypassable by nested reconstruction and mis-handle entities (CodeQL js/incomplete-multi-character-sanitization, js/bad-tag-filter, js/double-escaping). Use the shared owner supabase/functions/_shared/html-to-text.ts (htmlToPlainText / stripActiveContent) — fixpoint + tempered match + `&amp;`-last decode."
     },
     {
+      "name": "ops_events writes go through record_event, never a direct insert",
+      "include": ["supabase/functions/**/*.ts"],
+      "exclude": ["**/*.test.ts"],
+      "forbid": ["\\.from\\(\\s*['\"]ops_events['\"]\\s*\\)\\s*\\.insert"],
+      "message": "A direct insert into ops_events bypasses record_event (the single write path) and drifts from the table shape: ops_events has no `source` column, so a top-level `source` made PostgREST silently 400-drop every email-v2 telemetry row (PGRST204, ADR-0060). Emit via supabase.rpc('record_event', { p_sink: 'ops_events', p_kind, p_severity, p_payload }) — the path the record-auth-* functions use — with event metadata in p_payload. Reads (.select) are fine. NOTE: this rule INCLUDES _shared/** because the writer is a CONSUMER of the record_event owner — unlike the handler-only edge rules above, which exclude _shared."
+    },
+    {
       "name": "Displayed stats must be live-derived, never read a stored counter table",
       "include": ["src/**"],
       "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
