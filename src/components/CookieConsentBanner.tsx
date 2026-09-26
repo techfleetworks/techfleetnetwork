@@ -26,7 +26,7 @@
  */
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { applyConsent } from "@/lib/consent/loadAnalytics";
 import {
   bootstrapConsent,
@@ -123,24 +123,27 @@ function persist(state: ConsentState, source: "cookieyes" | "gpc" | "reconcile" 
   } catch {
     /* private mode */
   }
-  try {
-    void supabase.functions.invoke("record-consent", {
-      body: {
-        anon_id: getAnonId(),
-        categories: {
-          strictly_necessary: true,
-          functional: state.functional,
-          analytics: state.analytics,
-          marketing: state.marketing,
-        },
-        gpc_signal: state.gpc,
-        policy_version: state.policyVersion,
-        source,
+  // Best-effort consent write. invokeEdge rejects on failure, so swallow the rejection with .catch
+  // (silentReport — a failed write self-heals when consent next changes or on a new session; the
+  // same-fingerprint dedup above is set before the call, so it won't re-POST an identical failure
+  // this session). The old try/catch only caught synchronous throws and left the rejection unhandled.
+  void invokeEdge("record-consent", {
+    body: {
+      anon_id: getAnonId(),
+      categories: {
+        strictly_necessary: true,
+        functional: state.functional,
+        analytics: state.analytics,
+        marketing: state.marketing,
       },
-    });
-  } catch {
-    /* offline ok */
-  }
+      gpc_signal: state.gpc,
+      policy_version: state.policyVersion,
+      source,
+    },
+    silentReport: true,
+  }).catch(() => {
+    /* offline ok; reconcile retries */
+  });
 }
 
 /**

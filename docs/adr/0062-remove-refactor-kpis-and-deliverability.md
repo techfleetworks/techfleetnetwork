@@ -1,4 +1,4 @@
-# ADR 0056 — Remove "Refactor KPIs" and "Deliverability" from System Health
+# ADR 0062 — Remove "Refactor KPIs" and "Deliverability" from System Health
 
 - Status: Accepted
 - Date: 2026-09-21

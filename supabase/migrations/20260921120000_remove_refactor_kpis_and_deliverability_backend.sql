@@ -1,5 +1,5 @@
 -- Remove the Refactor-KPIs dashboard and the Deliverability tab's admin-only backend
--- (owner decision — ADR-0056). The System Health page no longer renders the "Refactor KPIs"
+-- (owner decision — ADR-0062). The System Health page no longer renders the "Refactor KPIs"
 -- or "Deliverability" tabs, so nothing calls these objects any more.
 --
 -- CONTRACT migration (expand/contract, ADR-0026). This is destructive and forward-only. It is

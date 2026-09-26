@@ -33,7 +33,7 @@ import {
 import { Badge, Button } from "@/design-system";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { getSessionSafe } from "@/lib/auth/session-port";
 import { beginDiscordOAuth } from "@/lib/discord/oauth-link";
 import { isUsableDiscordUsername } from "@/lib/discord/username";
@@ -97,11 +97,12 @@ export function ProfileDiscordConnector({
     try {
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
-      const res = await supabase.functions.invoke("generate-discord-invite", {
+      // invokeEdge throws (with the edge error message) on failure AND reports to audit — the catch
+      // surfaces the same toast, so this keeps the UX and adds operator visibility (§4).
+      const data = await invokeEdge<{ invite_url?: string }>("generate-discord-invite", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (res.error) throw new Error(res.error.message || "Failed to generate invite");
-      const url = res.data?.invite_url;
+      const url = data?.invite_url;
       if (!url) throw new Error("No invite URL returned");
       setInviteUrl(url);
       setStatus("Your invite link is ready.");

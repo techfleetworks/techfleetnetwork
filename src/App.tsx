@@ -12,6 +12,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { TeacherRoute } from "@/components/TeacherRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
+import { SessionKeepalive } from "@/components/SessionKeepalive";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScopedErrorBoundary } from "@/components/ScopedErrorBoundary";
 import { AuthRedirectHandler } from "@/components/AuthRedirectHandler";
@@ -203,6 +204,7 @@ const App = () => (
                 </IdleMount>
                 <AppLayout>
                   <IdleTimeoutGuard />
+                  <SessionKeepalive />
                   <IdleMount>
                     <Suspense fallback={null}>
                       <SelfHealingRunner />

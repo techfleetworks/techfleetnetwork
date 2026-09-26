@@ -124,6 +124,21 @@ owner constant declared outside the owner. It does NOT ban raw time literals by 
 has many legitimate `* 60 * 1000` uses); a wholly new hand-rolled idle timer is a judge-arch/review
 catch, not a mechanical one.
 
+Session SURVIVAL is app-owned, never left to the SDK's background timer (ADR-0054). The 1-hour
+access token is renewed by the app before it expires; the SDK's `autoRefreshToken` alone wedges on
+the GoTrue Web Lock and silently signs an active tab out at expiry (the 2026-09 mid-work logout).
+
+```
+❌ never — trust `autoRefreshToken` alone to keep an open tab signed in
+// client.ts sets autoRefreshToken: true and nothing else owns refresh → wedges on the Web Lock
+✅ always — own the refresh: renew before expiry through the lock-retry wrapper, mounted app-wide
+sessionPort.refreshIfExpiringSoon();   // <SessionKeepalive/> ticks it; withAuthLockRetry recovers the lock
+```
+
+Enforced by the keepalive tests: `SessionKeepalive.test.tsx` proves a mounted keepalive drives the
+refresh when signed in, and `session-keepalive-mounted.smoke.test.ts` checks App.tsx wires
+`<SessionKeepalive/>` into the shell.
+
 ## 4 · Every failure reports
 
 ```
@@ -457,6 +472,27 @@ destructured access slips past it. The **by-construction** guarantee comes from 
 ban — once `no-raw-functions-invoke` is `error` and every call goes through `invokeEdge`, consumers never
 receive a raw error to couple to. Residual coupled consumers at un-migrated raw-invoke sites are tracked
 for Phase 1. Rationale: **ADR-0028**.
+
+**A previously-untimed call that can run long must set `timeoutMs` when it moves to `invokeEdge`.**
+`invokeEdge` imposes an 8s `AbortController` default; the raw `supabase.functions.invoke` had **no**
+client timeout. Convert a bulk / cascade / sequential-server-work call without a `timeoutMs` and you
+silently cap it at 8s — the client aborts with `TimeoutError` while the **server keeps running**, so the
+user sees a false failure and the audit gets a spurious `edge_invoke_failed` on exactly the large
+operation the code exists for. (Caught twice in the Phase-1 burn-down: `delete-account`, `replay-dlq-emails`.)
+
+```ts
+// ❌ never — a long op inherits the 8s default and false-fails while the server finishes
+await invokeEdge("replay-dlq-emails", { body: { message_ids } });     // up to 500 ids, sequential re-enqueue
+await invokeEdge("delete-account", { headers });                       // cascading delete
+// ✅ always — size the ceiling to the operation (still bounded)
+await invokeEdge("replay-dlq-emails", { body: { message_ids }, timeoutMs: 60_000 });
+await invokeEdge("delete-account", { headers, timeoutMs: 30_000 });
+```
+
+And on such a site, a catch that filters the user-facing message must test `err instanceof AppError`
+(covers `TimeoutError`), **not** just `EdgeInvokeError`, or the timeout leaks `"Edge function X timed out"`.
+No mechanical check — duration isn't statically knowable — so this is a **judge-arch lens** applied to every
+`invokeEdge` migration (judge-arch caught both regressions above in fresh context). Rationale: **ADR-0028**.
 
 ---
 
