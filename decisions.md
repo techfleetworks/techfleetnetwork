@@ -485,12 +485,12 @@ operation the code exists for. This recurred five times in the Phase-1 burn-down
 The budget is a property of the **function**, so it lives with the function's identity:
 
 ```ts
-// ❌ never — a slow function trusts the 8s default, or the budget is duplicated per call site
-await invokeEdge("gumroad-backfill", { body });                        // 8s aborts a paging Gumroad call
-await invokeEdge("gumroad-backfill", { body, timeoutMs: 30_000 });     // right value, wrong place — the next caller forgets
+// ❌ never — a slow function trusts the 8s default, or its budget is pinned at the call site
+await invokeEdge("some-slow-report", { body });                        // unregistered → 8s aborts a long call
+await invokeEdge("some-slow-report", { body, timeoutMs: 30_000 });     // right value, wrong place — the next caller forgets
 // ✅ always — register the budget once; every call site (present + future) inherits it
-// src/lib/edge/edge-timeouts.ts:  "gumroad-backfill": 30_000,
-await invokeEdge("gumroad-backfill", { body });                        // resolves to 30s via the registry
+// src/lib/edge/edge-timeouts.ts:  "some-slow-report": 30_000,
+await invokeEdge("some-slow-report", { body });                        // resolves to 30s via the registry
 ```
 
 `invokeEdge` resolves `explicit timeoutMs → EDGE_FUNCTION_TIMEOUTS_MS[fn] → 8s`. Registering a slow
