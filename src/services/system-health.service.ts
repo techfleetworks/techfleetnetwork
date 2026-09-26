@@ -158,57 +158,6 @@ export const SystemHealthService = {
       stuck_pending: 0, last_run_at: null, last_run: null, last_severity: null,
     };
   },
-
-  async getRefactorKpis(days = 30): Promise<RefactorKpi[]> {
-    const { data, error } = await retryPostgrest<any[]>(() =>
-      sb.rpc("get_refactor_kpis", { p_days: days })
-    );
-    if (error) throw error;
-    return (data ?? []).map((row: any): RefactorKpi => ({
-      metric_key: row.metric_key,
-      label: row.label,
-      description: row.description,
-      category: row.category,
-      unit: row.unit,
-      baseline_value: Number(row.baseline_value),
-      target_value: Number(row.target_value),
-      direction: row.direction,
-      related_section: row.related_section,
-      current_value: row.current_value == null ? null : Number(row.current_value),
-      previous_value: row.previous_value == null ? null : Number(row.previous_value),
-      current_window: null,
-      last_updated: row.last_snapshot ?? null,
-      trend: Array.isArray(row.trend) ? row.trend.map((v: any) => Number(v)) : [],
-      status: row.status,
-    }));
-  },
-
-  async runRefactorKpisSnapshot(): Promise<number> {
-    const { data, error } = await sb.rpc("run_refactor_kpis_snapshot_now");
-    if (error) throw error;
-    const payload = (data ?? {}) as { ok?: boolean; rows?: number };
-    return Number(payload.rows ?? 0);
-  },
 };
-
-export type RefactorKpiStatus = "met" | "on_track" | "at_risk" | "off_track" | "no_data";
-
-export interface RefactorKpi {
-  metric_key: string;
-  label: string;
-  description: string;
-  category: "errors" | "ux" | "email" | "infra" | "auth";
-  unit: "percent" | "count" | "minutes" | "ratio" | "seconds";
-  baseline_value: number;
-  target_value: number;
-  direction: "lower_is_better" | "higher_is_better";
-  related_section: string;
-  current_value: number | null;
-  previous_value: number | null;
-  current_window: string | null;
-  last_updated: string | null;
-  trend: number[];
-  status: RefactorKpiStatus;
-}
 
 

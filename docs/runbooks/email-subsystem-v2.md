@@ -105,13 +105,16 @@ Do NOT drop legacy artifacts until:
 Then delete in this order, one PR per step:
 
 1. `process-email-queue` edge function.
-2. `reconcile-stuck-emails`, `replay-dlq-emails`, `replay-email-dlq`,
-   `email-pipeline-health` edge fns.
+2. `reconcile-stuck-emails`, `replay-email-dlq`,
+   `email-pipeline-health` edge fns. (`replay-dlq-emails` — the admin manual
+   replay behind the removed Deliverability tab — was already deleted ahead of
+   this sequence via ADR-0062. The automated `replay-email-dlq` drain is unaffected.)
 3. pgmq queues: `q_auth_emails`, `q_transactional_emails`, `q_bulk_emails`.
 4. Columns: `email_send_state.bulk_paused`, `*_consecutive_rate_limits`,
    `*_retry_after_until`, `bulk_retry_after_until`.
 5. RPC `clear_email_lane_cooldown` (replaced by `pause_email_lane` /
-   `resume_email_lane`).
+   `resume_email_lane`) — already dropped early via ADR-0062 (it was only
+   called by the removed Deliverability throttle card).
 6. Convert `email_send_log` to a view over `email_outbox` (kept for
    backward-compat reads from existing dashboards).
 

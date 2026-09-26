@@ -1828,20 +1828,6 @@
   },
   {
     "rule": "Edge functions must not hand-roll auth or read service-role secrets in the handler",
-    "path": "supabase/functions/replay-dlq-emails/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll CORS or responses in the handler",
-    "path": "supabase/functions/replay-dlq-emails/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll auth or read service-role secrets in the handler",
     "path": "supabase/functions/replay-email-dlq/index.ts",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",

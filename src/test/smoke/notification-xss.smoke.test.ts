@@ -14,7 +14,6 @@ const promoteTeacher = read("supabase/functions/promote-to-teacher/index.ts");
 const notifyClassPublished = read("supabase/functions/notify-class-published/index.ts");
 const notifyApplicant = read("supabase/functions/notify-applicant-status/index.ts");
 const announcementRender = read("supabase/functions/_shared/email/announcement-render.ts");
-const replayDlq = read("supabase/functions/replay-dlq-emails/index.ts");
 
 describe("notification stored-XSS escaping (smoke)", () => {
   it("T-D-001: quest-nudge escapes path_title before title/body_html", () => {
@@ -56,7 +55,5 @@ describe("notification stored-XSS escaping (smoke)", () => {
     // the title still lands HTML-escaped in the <h2> sink there.
     expect(announcementRender).toMatch(/<h2[^>]*>\$\{escHtml\(title\)\}<\/h2>/);
     expect(announcementRender).not.toMatch(/<h2[^>]*>\$\{title\}<\/h2>/);
-    expect(replayDlq).toMatch(/<h2[^>]*>\$\{escHtml\(title\)\}<\/h2>/);
-    expect(replayDlq).not.toMatch(/<h2[^>]*>\$\{title\}<\/h2>/);
   });
 });

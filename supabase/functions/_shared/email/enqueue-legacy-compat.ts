@@ -1,7 +1,7 @@
 // Compat helper (PR 2): forward a LEGACY raw-queue email payload to the v2 outbox.
 //
 // A few edge callers historically wrote to the retired raw pgmq path via
-// `enqueue_email(queue_name, payload)` (replay-email-dlq, replay-dlq-emails, and the
+// `enqueue_email(queue_name, payload)` (replay-email-dlq and the
 // send-announcement-email legacy fallback). That path's consumer was retired at the July v2
 // cutover, so anything enqueued there is stranded. This maps the legacy payload shape
 // ({to, subject, html, text, label, message_id, idempotency_key, ...}) onto `enqueue_email_v2`

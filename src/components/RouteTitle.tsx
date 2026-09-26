@@ -75,7 +75,6 @@ const ROUTE_TITLES: Array<{ pattern: string; title: string }> = [
   { pattern: "/admin/roster", title: "Admin · Roster" },
   { pattern: "/admin/banners", title: "Admin · Banners" },
   { pattern: "/admin/system-health", title: "Admin · System health" },
-  { pattern: "/admin/email-deliverability-test", title: "Admin · Email deliverability" },
   { pattern: "/admin/brand-tokens", title: "Admin · Brand tokens" },
   { pattern: "/admin/classes", title: "Teaching · All classes" },
 

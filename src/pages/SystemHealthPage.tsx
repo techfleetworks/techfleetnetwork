@@ -37,9 +37,6 @@ import { PerformanceByBrowserTab } from "@/components/system-health/PerformanceB
 import { PrivacyRequestsTab } from "@/components/system-health/PrivacyRequestsTab";
 import { IncidentsTab } from "@/components/system-health/IncidentsTab";
 import { ProjectBlastsHealthCard } from "@/components/system-health/ProjectBlastsHealthCard";
-import { EmailDeliverabilityCard } from "@/components/system-health/EmailDeliverabilityCard";
-import { EmailDlqPanel } from "@/components/system-health/EmailDlqPanel";
-import { EmailBulkThrottleCard } from "@/components/system-health/EmailBulkThrottleCard";
 import { EmailControlCenterTab } from "@/components/system-health/EmailControlCenterTab";
 import { DiscordRepairTab } from "@/components/system-health/DiscordRepairTab";
 import { LoginHealthTab } from "@/components/system-health/LoginHealthTab";
@@ -47,7 +44,6 @@ import { ResetHealthTab } from "@/components/system-health/ResetHealthTab";
 import { AuthFunnelTab } from "@/components/system-health/AuthFunnelTab";
 import { TranslationsTab } from "@/components/admin/system-health/TranslationsTab";
 import { HelpDeskTab } from "@/components/system-health/HelpDeskTab";
-import { RefactorKpisTab } from "@/components/system-health/RefactorKpisTab";
 import { EdgeFunctionsTab } from "@/components/system-health/EdgeFunctionsTab";
 import { PageTitle } from "@/components/ui/typography";
 
@@ -311,11 +307,9 @@ export default function SystemHealthPage() {
 
       <SystemHealthTabs>
         <TabsList aria-label="System health sections">
-          <TabsTrigger value="refactor-kpis">Refactor KPIs</TabsTrigger>
           <TabsTrigger value="queues">Queues</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="email-v2">Email v2</TabsTrigger>
-          <TabsTrigger value="deliverability">Deliverability</TabsTrigger>
           <TabsTrigger value="blasts">Project Blasts</TabsTrigger>
           <TabsTrigger value="errors">Errors</TabsTrigger>
           <TabsTrigger value="triage">Triage</TabsTrigger>
@@ -335,10 +329,6 @@ export default function SystemHealthPage() {
           <TabsTrigger value="edge-functions">Edge functions</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="refactor-kpis">
-          <RefactorKpisTab />
-        </TabsContent>
 
         <TabsContent value="queues" className="grid gap-4 md:grid-cols-2">
           {data.queue_stats.map((queue) => (
@@ -381,11 +371,6 @@ export default function SystemHealthPage() {
         </TabsContent>
         <TabsContent value="email-v2">
           <EmailControlCenterTab />
-        </TabsContent>
-        <TabsContent value="deliverability" className="space-y-4">
-          <EmailBulkThrottleCard />
-          <EmailDeliverabilityCard />
-          <EmailDlqPanel />
         </TabsContent>
         <TabsContent value="blasts">
           <ProjectBlastsHealthCard />
@@ -563,11 +548,9 @@ function ErrorList({
 }
 
 const VALID_HEALTH_TABS = [
-  "refactor-kpis",
   "queues",
   "delivery",
   "email-v2",
-  "deliverability",
   "blasts",
   "errors",
   "triage",

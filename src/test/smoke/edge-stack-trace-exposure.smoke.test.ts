@@ -15,7 +15,6 @@ const FUNCTIONS = [
   "supabase/functions/airtable-diag/index.ts",
   "supabase/functions/auth-broker/index.ts",
   "supabase/functions/refresh-community-events/index.ts",
-  "supabase/functions/replay-dlq-emails/index.ts",
   "supabase/functions/resend-signup-confirmations/index.ts",
   "supabase/functions/send-project-blast/index.ts",
   "supabase/functions/sync-airtable-network-stats/index.ts",
