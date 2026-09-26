@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/design-system";
 
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { toast } from "sonner";
 
 interface DiscordRoleAssignmentProps {
@@ -47,15 +47,12 @@ export function DiscordRoleAssignment({
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
 
-      const res = await supabase.functions.invoke("manage-discord-roles", {
+      // invokeEdge throws on failure (with the edge error message) AND reports to audit — the catch
+      // surfaces the same message as a toast, so this keeps the UX and adds operator visibility (§4).
+      await invokeEdge("manage-discord-roles", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { action: "assign", discord_user_id: applicantDiscordUserId, role_id: discordRoleId },
       });
-
-      if (res.error) {
-        const errBody = res.data?.error;
-        throw new Error(errBody || res.error.message || "Failed to assign role");
-      }
 
       toast.success(`Assigned "${discordRoleName}" to ${applicantName}`);
     } catch (err: unknown) {
@@ -73,15 +70,10 @@ export function DiscordRoleAssignment({
       const session = await getSessionSafe();
       if (!session) throw new Error("Not authenticated");
 
-      const res = await supabase.functions.invoke("manage-discord-roles", {
+      await invokeEdge("manage-discord-roles", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { action: "remove", discord_user_id: applicantDiscordUserId, role_id: discordRoleId },
       });
-
-      if (res.error) {
-        const errBody = res.data?.error;
-        throw new Error(errBody || res.error.message || "Failed to remove role");
-      }
 
       toast.success(`Removed "${discordRoleName}" from ${applicantName}`);
     } catch (err: unknown) {

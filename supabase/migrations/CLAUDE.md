@@ -48,3 +48,21 @@ the code that uses it ships, and safe to leave applied if that code later rolls 
 
 - **Prove it.** RLS / `SECURITY DEFINER` / trigger changes get a pgTAP suite in `supabase/tests/` (runs in
   the `db-test` job). The invariant is proven at the DB, its owning layer (ADR-0024).
+
+- **`public.projects` is COLUMN-SCOPED for `authenticated` (ADR-0056) — a new non-sensitive column is not
+  auto-readable; grant it.** After `20260922120000`, `authenticated` no longer holds table-level `SELECT`
+  on `projects`; it has `SELECT` on an explicit column list (everything except the four operational columns
+  `discord_role_id`, `discord_role_name`, `notion_repository_url`, `client_intake_url`). So a migration that
+  adds a member-readable column MUST also grant it, or the app can't read it. A new _sensitive_ column is
+  simply left ungranted (reachable only via `get_project_internal_links`).
+
+  ```sql
+  -- ❌ never — column added but not granted; authenticated cannot SELECT it (silent read gap)
+  ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS cohort_label text;
+  -- ✅ always — grant the new non-sensitive column to authenticated (as 20260921120000 did for is_shipathon)
+  ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS cohort_label text;
+  GRANT SELECT (cohort_label) ON public.projects TO authenticated;
+  ```
+
+  And never "fix" an unreadable column with a table-level `GRANT SELECT ON public.projects TO authenticated`
+  — that re-exposes the four sensitive columns and reopens the leak ADR-0056 closed. Grant the column, scoped.

@@ -852,6 +852,7 @@ jobs:
             supabase/functions/_shared/translation-guard.test.ts \
             supabase/functions/_shared/escape-html.test.ts \
             supabase/functions/_shared/email/domain/email-tiers.test.ts \
+            supabase/functions/_shared/email/infrastructure/ops-event-sink.test.ts \
             supabase/functions/sync-airtable/ownership.test.ts \
             supabase/functions/_shared/client-ip.test.ts \
             supabase/functions/_shared/bounded-body.test.ts \

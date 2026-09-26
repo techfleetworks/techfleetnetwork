@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, CheckCircle2, AlertCircle, FileText, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { extractMarkdownFromPdf } from "@/lib/pdf-to-markdown";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { SectionTitle } from "@/components/ui/typography";
 
 type DocStatus = "parsing" | "ready" | "uploading" | "uploaded" | "error";
@@ -77,11 +77,11 @@ export function WorkshopDocsUploader() {
               const message = err instanceof Error ? err.message : "Parse failed";
               updateDoc(doc.id, { status: "error", error: message });
             }
-          }),
+          })
         );
       }
     },
-    [updateDoc],
+    [updateDoc]
   );
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,15 +109,17 @@ export function WorkshopDocsUploader() {
     ready.forEach((d) => updateDoc(d.id, { status: "uploading" }));
 
     try {
-      const { data, error } = await supabase.functions.invoke("ingest-workshop-docs", {
+      // invokeEdge throws on failure (and reports to audit); the catch below marks every doc errored.
+      const data = await invokeEdge<{
+        results?: { title: string; ok: boolean; error?: string }[];
+        inserted?: number;
+      }>("ingest-workshop-docs", {
         body: {
           docs: ready.map((d) => ({ title: d.title, content: d.markdown })),
         },
       });
 
-      if (error) throw new Error(error.message);
-
-      const results = (data?.results ?? []) as { title: string; ok: boolean; error?: string }[];
+      const results = data?.results ?? [];
       ready.forEach((d, i) => {
         const res = results[i];
         if (res?.ok) {
@@ -128,7 +130,9 @@ export function WorkshopDocsUploader() {
       });
 
       const inserted = data?.inserted ?? 0;
-      toast.success(`Uploaded ${inserted} workshop${inserted === 1 ? "" : "s"} to Fleety's knowledge base`);
+      toast.success(
+        `Uploaded ${inserted} workshop${inserted === 1 ? "" : "s"} to Fleety's knowledge base`
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
       ready.forEach((d) => updateDoc(d.id, { status: "error", error: message }));
@@ -150,8 +154,8 @@ export function WorkshopDocsUploader() {
       <div>
         <SectionTitle className="text-xl">Workshop Documents</SectionTitle>
         <p className="text-sm text-muted-foreground">
-          Upload detailed workshop PDFs. Each becomes a rich entry in Fleety's knowledge base so it can give step-by-step
-          facilitation guidance instead of one-line summaries.
+          Upload detailed workshop PDFs. Each becomes a rich entry in Fleety's knowledge base so it
+          can give step-by-step facilitation guidance instead of one-line summaries.
         </p>
       </div>
 
@@ -208,7 +212,10 @@ export function WorkshopDocsUploader() {
           <li key={doc.id}>
             <Card className="p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <FileText className="h-5 w-5 mt-1 text-muted-foreground shrink-0" aria-hidden="true" />
+                <FileText
+                  className="h-5 w-5 mt-1 text-muted-foreground shrink-0"
+                  aria-hidden="true"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground truncate">{doc.fileName}</p>
                   <Input
@@ -261,15 +268,34 @@ export function WorkshopDocsUploader() {
 
 function StatusBadge({ status }: { status: DocStatus }) {
   const map: Record<DocStatus, { label: string; icon: React.ReactNode; className: string }> = {
-    parsing: { label: "Parsing", icon: <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />, className: "text-muted-foreground" },
+    parsing: {
+      label: "Parsing",
+      icon: <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />,
+      className: "text-muted-foreground",
+    },
     ready: { label: "Ready", icon: null, className: "text-foreground" },
-    uploading: { label: "Uploading", icon: <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />, className: "text-primary" },
-    uploaded: { label: "Uploaded", icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" />, className: "text-success" },
-    error: { label: "Error", icon: <AlertCircle className="h-3 w-3" aria-hidden="true" />, className: "text-destructive" },
+    uploading: {
+      label: "Uploading",
+      icon: <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />,
+      className: "text-primary",
+    },
+    uploaded: {
+      label: "Uploaded",
+      icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" />,
+      className: "text-success",
+    },
+    error: {
+      label: "Error",
+      icon: <AlertCircle className="h-3 w-3" aria-hidden="true" />,
+      className: "text-destructive",
+    },
   };
   const { label, icon, className } = map[status];
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium ${className} shrink-0`} role="status">
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${className} shrink-0`}
+      role="status"
+    >
       {icon}
       {label}
     </span>
