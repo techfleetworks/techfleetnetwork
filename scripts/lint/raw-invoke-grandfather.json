@@ -23,7 +23,6 @@
   "src/pages/UserAdminPage.tsx": 5,
   "src/services/class-emails.ts": 1,
   "src/services/discord-notify.service.ts": 5,
-  "src/services/explore.service.ts": 1,
   "src/services/general-application.service.ts": 1,
   "src/test/features/auth/session-and-reset.service.test.ts": 15
 }

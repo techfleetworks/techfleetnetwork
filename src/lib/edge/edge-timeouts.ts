@@ -38,6 +38,8 @@ export const EDGE_FUNCTION_TIMEOUTS_MS: Readonly<Record<string, number>> = {
   "gumroad-backfill": 30_000,
   // AI translation of a whole i18n namespace.
   "translate-bundle": 20_000,
+  // Web search/crawl via the Firecrawl API (behind edgeFunctionBreaker; the raw invoke had no timeout).
+  "firecrawl-search": 30_000,
 };
 
 /**
