@@ -3,12 +3,10 @@
 // Public (no auth required) — the value is shown on the logged-out landing page.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { withAuditWrapper } from "../_shared/audit.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
+// CORS from the shared owner so the preflight allows x-trace-id, which invokeEdge attaches to every
+// browser call. A hand-rolled allow-list that omits it fails preflight the moment the client migrates
+// to invokeEdge (the recruiting-center outage class) — enforced by check-edge-cors-trace.
+import { corsHeaders } from "../_shared/http.ts";
 
 const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const DISCORD_TIMEOUT_MS = 8_000;

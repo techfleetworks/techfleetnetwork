@@ -16,7 +16,7 @@ import { useQuery } from "@/lib/react-query";
 import { StatsService, type NetworkStats } from "@/services/stats.service";
 import { PageTitle, SectionTitle } from "@/components/ui/typography";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "@/components/ui/icon";
 
@@ -186,12 +186,15 @@ export const NetworkActivity = memo(function NetworkActivity({
   const { data: discordStats } = useQuery({
     queryKey: ["discord-member-count"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<{ member_count: number }>(
-        "get-discord-member-count",
-        { method: "GET" }
-      );
-      if (error) throw error;
-      return data;
+      // Cached GET read; method:"GET" matches the pre-migration call (the fn accepts POST too, but GET
+      // is canonical). timeoutMs is set above the fn's own 8s Discord-fetch budget: on the 24h refresh
+      // boundary it makes a LIVE upstream fetch, and the raw invoke had no client timeout, so the 8s
+      // invokeEdge default could abort a still-refreshing request — react-query retry then hits the warm
+      // cache. invokeEdge throws on failure; useQuery surfaces error/retry.
+      return invokeEdge<{ member_count: number }>("get-discord-member-count", {
+        method: "GET",
+        timeoutMs: 12_000,
+      });
     },
     staleTime: 60 * 60 * 1000, // 1h client cache
     refetchOnWindowFocus: false,
