@@ -13,6 +13,7 @@ const updateChain = {
   eqMock: vi.fn(),
   selectMock: vi.fn(),
 };
+const rpcChain = { rpcMock: vi.fn() };
 
 vi.mock("@/integrations/supabase/client", () => {
   return {
@@ -31,6 +32,7 @@ vi.mock("@/integrations/supabase/client", () => {
           };
         },
       }),
+      rpc: (name: string, args: unknown) => rpcChain.rpcMock(name, args),
     },
   };
 });
@@ -65,12 +67,15 @@ beforeEach(() => {
   updateChain.updateMock.mockReset();
   updateChain.eqMock.mockReset();
   updateChain.selectMock.mockReset();
+  rpcChain.rpcMock.mockReset();
 });
 
 describe("CohortService.create", () => {
   it("retries on transient PGRST002 then succeeds", async () => {
     insertChain.insertMock
-      .mockReturnValueOnce(buildInsertChain({ data: null, error: { message: "schema cache miss", code: "PGRST002" } }))
+      .mockReturnValueOnce(
+        buildInsertChain({ data: null, error: { message: "schema cache miss", code: "PGRST002" } })
+      )
       .mockReturnValueOnce(buildInsertChain({ data: { id: "c1" }, error: null }));
 
     const id = await CohortService.create("class-1", validValues);
@@ -82,7 +87,9 @@ describe("CohortService.create", () => {
     insertChain.insertMock.mockReturnValue(
       buildInsertChain({ data: null, error: { message: "permission denied", code: "42501" } })
     );
-    await expect(CohortService.create("class-1", validValues)).rejects.toMatchObject({ code: "42501" });
+    await expect(CohortService.create("class-1", validValues)).rejects.toMatchObject({
+      code: "42501",
+    });
     expect(insertChain.insertMock).toHaveBeenCalledTimes(1);
   });
 
@@ -94,7 +101,10 @@ describe("CohortService.create", () => {
   it("forwards the schedule field in the insert payload", async () => {
     insertChain.insertMock.mockReturnValue(buildInsertChain({ data: { id: "c2" }, error: null }));
     await CohortService.create("class-1", validValues);
-    const payload = insertChain.insertMock.mock.calls[0][0] as { schedule: string; class_id: string };
+    const payload = insertChain.insertMock.mock.calls[0][0] as {
+      schedule: string;
+      class_id: string;
+    };
     expect(payload.schedule).toBe("<p>Mondays 6pm</p>");
     expect(payload.class_id).toBe("class-1");
   });
@@ -124,5 +134,26 @@ describe("CohortService.update", () => {
     await CohortService.update("c1", { meeting_url: "" });
     const payload = updateChain.updateMock.mock.calls[0][0] as { meeting_url: string | null };
     expect(payload.meeting_url).toBeNull();
+  });
+});
+
+describe("CohortService.setRegistrationStatus", () => {
+  it("calls the set_cohort_registration_status RPC with the cohort id and status", async () => {
+    rpcChain.rpcMock.mockResolvedValue({ data: null, error: null });
+    await CohortService.setRegistrationStatus("c1", "live");
+    expect(rpcChain.rpcMock).toHaveBeenCalledWith("set_cohort_registration_status", {
+      p_cohort_id: "c1",
+      p_status: "live",
+    });
+  });
+
+  it("throws when the RPC returns an error (authorization / RLS denial)", async () => {
+    rpcChain.rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: "not authorized", code: "P0001" },
+    });
+    await expect(CohortService.setRegistrationStatus("c1", "finished")).rejects.toMatchObject({
+      code: "P0001",
+    });
   });
 });

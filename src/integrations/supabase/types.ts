@@ -1249,6 +1249,7 @@ export type Database = {
           label: string
           meeting_url: string | null
           published_at: string | null
+          registration_status: Database["public"]["Enums"]["cohort_registration_status"]
           registration_url: string
           schedule: string
           start_date: string
@@ -1268,6 +1269,7 @@ export type Database = {
           label: string
           meeting_url?: string | null
           published_at?: string | null
+          registration_status?: Database["public"]["Enums"]["cohort_registration_status"]
           registration_url: string
           schedule?: string
           start_date: string
@@ -1287,6 +1289,7 @@ export type Database = {
           label?: string
           meeting_url?: string | null
           published_at?: string | null
+          registration_status?: Database["public"]["Enums"]["cohort_registration_status"]
           registration_url?: string
           schedule?: string
           start_date?: string
@@ -9406,6 +9409,7 @@ export type Database = {
       class_track: "basic_training" | "advanced_training"
       client_kind: "external" | "internal"
       client_status: "active" | "inactive"
+      cohort_registration_status: "coming_soon" | "register_now" | "live" | "finished"
       cohort_status:
         | "draft"
         | "pending_review"
@@ -9656,6 +9660,7 @@ export const Constants = {
       class_track: ["basic_training", "advanced_training"],
       client_kind: ["external", "internal"],
       client_status: ["active", "inactive"],
+      cohort_registration_status: ["coming_soon", "register_now", "live", "finished"],
       cohort_status: [
         "draft",
         "pending_review",

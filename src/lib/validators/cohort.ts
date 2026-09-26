@@ -6,8 +6,33 @@ import {
   safeUrlSchema,
 } from "@/lib/validators/shared-input";
 
-export const COHORT_STATUSES = ["draft", "pending_review", "published", "archived", "cancelled"] as const;
+export const COHORT_STATUSES = [
+  "draft",
+  "pending_review",
+  "published",
+  "archived",
+  "cancelled",
+] as const;
 export type CohortStatus = (typeof COHORT_STATUSES)[number];
+
+/**
+ * Cohort REGISTRATION status — the learner-facing lifecycle of a cohort's run, distinct from
+ * CohortStatus (the draft->pending_review->published->archived PUBLISH/approval workflow). Owned by
+ * the DB column cohorts.registration_status; written only through set_cohort_registration_status()
+ * (owner-or-admin). Mirrors the {value,label} shape of PROJECT_STATUSES so the UI renders labels
+ * without a second map.
+ */
+export const COHORT_REGISTRATION_STATUSES = [
+  { value: "coming_soon", label: "Coming Soon" },
+  { value: "register_now", label: "Register Now" },
+  { value: "live", label: "Live" },
+  { value: "finished", label: "Finished" },
+] as const;
+export type CohortRegistrationStatus = (typeof COHORT_REGISTRATION_STATUSES)[number]["value"];
+
+export function cohortRegistrationStatusLabel(status: CohortRegistrationStatus): string {
+  return COHORT_REGISTRATION_STATUSES.find((s) => s.value === status)?.label ?? status;
+}
 
 const dateSchema = z
   .string()
@@ -28,7 +53,11 @@ export const cohortFormSchema = z
     meeting_url: safeUrlSchema("Meeting URL", 500).optional().default(""),
     timezone: safeShortTextSchema("Timezone", 80).default("America/New_York"),
     capacity: z
-      .union([z.coerce.number().int().min(1).max(10_000), z.literal("").transform(() => null), z.null()])
+      .union([
+        z.coerce.number().int().min(1).max(10_000),
+        z.literal("").transform(() => null),
+        z.null(),
+      ])
       .optional()
       .nullable(),
     // New optional rich-text section (CLASS-EDIT-EXT-004).
