@@ -1,3 +1,4 @@
+// bdd-gate coverage: src/services/cohort.service.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
