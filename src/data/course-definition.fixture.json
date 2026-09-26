@@ -1,0 +1,136 @@
+{
+  "_note": "CANONICAL source of truth for which lesson/task IDs make up each course. This one declaration is what every other representation is proven equal to: (a) the app arrays (ALL_*_LESSON_IDS / FIRST_STEPS_TASK_IDS / CONNECT_DISCORD_TASK_IDS) that drive the course cards + get_course_completion_counts, (b) the COURSE_COMPLETION_SPECS wiring in src/pages/TrainingPage.tsx, (c) the embedded SQL literals in supabase/tests/course_definition_parity_test.sql, and (d) the public.lesson_catalog active+required rows seeded in migration 20260520035523_*.sql (which drives get_network_stats). Do NOT edit one home without the others: the vitest guard src/test/smoke/course-definition-parity.smoke.test.ts (blocking, gate-test) and the pgTAP guard course_definition_parity_test.sql (db-test) fail on any divergence. See docs/adr/0056-course-definition-parity-guard.md and stats-integrity-prd.md §9.",
+  "courses": {
+    "connect-discord": {
+      "phase": "first_steps",
+      "required_lesson_ids": ["connect-discord"]
+    },
+    "onboarding": {
+      "phase": "first_steps",
+      "required_lesson_ids": [
+        "community-agreement",
+        "terms-conditions",
+        "terms-of-use",
+        "privacy-policy",
+        "cookie-policy",
+        "profile",
+        "onboarding-class",
+        "figma-account"
+      ]
+    },
+    "agile-mindset": {
+      "phase": "second_steps",
+      "required_lesson_ids": [
+        "agile-intro-1",
+        "agile-intro-2",
+        "agile-intro-3",
+        "agile-phil-1",
+        "agile-phil-2",
+        "agile-phil-3",
+        "agile-phil-4",
+        "agile-team-1",
+        "agile-team-2",
+        "agile-team-3",
+        "agile-prac-1",
+        "agile-prac-2",
+        "agile-prac-3",
+        "agile-prac-4",
+        "agile-prac-5",
+        "agile-cross-1",
+        "agile-cross-2",
+        "agile-cross-3",
+        "agile-conflict-1",
+        "agile-conflict-2",
+        "agile-conflict-3",
+        "agile-method-1",
+        "agile-method-2",
+        "agile-method-3",
+        "agile-method-4"
+      ]
+    },
+    "observer-course": {
+      "phase": "observer",
+      "required_lesson_ids": [
+        "obs-1",
+        "obs-2",
+        "obs-3",
+        "obs-4",
+        "obs-5",
+        "obs-6",
+        "obs-7",
+        "obs-8"
+      ]
+    },
+    "agile-teamwork": {
+      "phase": "third_steps",
+      "required_lesson_ids": [
+        "tw-intro-1",
+        "tw-intro-2",
+        "tw-intro-3",
+        "tw-intro-4",
+        "tw-learn-1",
+        "tw-learn-2",
+        "tw-expect-1",
+        "tw-expect-2",
+        "tw-expect-3",
+        "tw-expect-4",
+        "tw-expect-5",
+        "tw-expect-6"
+      ]
+    },
+    "project-training": {
+      "phase": "project_training",
+      "required_lesson_ids": [
+        "pt-intro-1",
+        "pt-intro-2",
+        "pt-intro-3",
+        "pt-intro-4",
+        "pt-apply-1",
+        "pt-apply-2",
+        "pt-apply-3",
+        "pt-apply-4",
+        "pt-apply-5",
+        "pt-apply-6",
+        "pt-apply-7",
+        "pt-tips-1",
+        "pt-tips-2",
+        "pt-tips-3"
+      ]
+    },
+    "volunteer-teams": {
+      "phase": "volunteer",
+      "required_lesson_ids": [
+        "vt-intro-1",
+        "vt-intro-2",
+        "vt-work-1",
+        "vt-work-2",
+        "vt-work-3",
+        "vt-work-4"
+      ]
+    },
+    "discord-learning": {
+      "phase": "discord_learning",
+      "required_lesson_ids": [
+        "discord-intro-1",
+        "discord-start-1",
+        "discord-start-2",
+        "discord-start-3",
+        "discord-security-1",
+        "discord-security-2",
+        "discord-security-3",
+        "discord-interact-1",
+        "discord-interact-2",
+        "discord-interact-3",
+        "discord-interact-4",
+        "discord-interact-5",
+        "discord-roles-1",
+        "discord-roles-2",
+        "discord-training-1",
+        "discord-training-2",
+        "discord-training-3",
+        "discord-training-4",
+        "discord-support-1"
+      ]
+    }
+  }
+}

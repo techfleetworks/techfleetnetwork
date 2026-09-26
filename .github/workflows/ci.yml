@@ -44,6 +44,7 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       functions: ${{ steps.filter.outputs.functions }}
       db_schema: ${{ steps.filter.outputs.db_schema }}
+      db_test: ${{ steps.filter.outputs.db_test }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -82,6 +83,14 @@ jobs:
             echo "db_schema=true" >> "$GITHUB_OUTPUT"
           else
             echo "db_schema=false" >> "$GITHUB_OUTPUT"
+          fi
+          # db-test (pgTAP) runs when migrations change OR when a pgTAP suite in
+          # supabase/tests/ itself changes, so a test-only PR (e.g. adding the
+          # course-definition parity guard) actually executes its suite in CI.
+          if echo "$CHANGED" | grep -qE '^supabase/(migrations|tests)/'; then
+            echo "db_test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "db_test=false" >> "$GITHUB_OUTPUT"
           fi
 
   # ---------------------------------------------------------------------------
@@ -613,7 +622,7 @@ jobs:
   # ---------------------------------------------------------------------------
   db-test:
     needs: [detect-changes]
-    if: needs.detect-changes.outputs.migrations == 'true'
+    if: needs.detect-changes.outputs.db_test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
