@@ -20,7 +20,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useQueryClient, useQuery } from "@/lib/react-query";
 import { ApprovalActions } from "@/components/classes/ApprovalActions";
+import { CohortRegistrationStatusControl } from "@/components/classes/CohortRegistrationStatusControl";
 import { ClassAuditHistory } from "@/components/classes/ClassAuditHistory";
+import { cohortRegistrationStatusLabel } from "@/lib/validators/cohort";
 import { ClassService } from "@/services/class.service";
 import { sanitizeHtml } from "@/lib/security";
 
@@ -32,6 +34,14 @@ const STATUS_CLASS: Record<string, string> = {
   pending_review: "bg-warning/10 text-warning border-warning/20",
   published: "bg-success/10 text-success border-success/20",
   archived: "bg-muted text-muted-foreground",
+};
+
+// Learner-facing registration-status badge colors (read-only view; owners/admins get the dropdown).
+const REGISTRATION_STATUS_CLASS: Record<string, string> = {
+  coming_soon: "bg-muted text-muted-foreground",
+  register_now: "bg-success/10 text-success border-success/20",
+  live: "bg-primary/10 text-primary border-primary/20",
+  finished: "bg-muted text-muted-foreground",
 };
 
 export default function ClassDetailPage() {
@@ -146,9 +156,12 @@ export default function ClassDetailPage() {
       )}
 
       <div>
-        <Badge variant="outline" className={`mb-2 ${STATUS_CLASS[cls.status] ?? ""}`}>
-          {cls.status.replace("_", " ")}
-        </Badge>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Publish Status</span>
+          <Badge variant="outline" className={STATUS_CLASS[cls.status] ?? ""}>
+            {cls.status.replace("_", " ")}
+          </Badge>
+        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{cls.title}</h1>
         {cls.summary && (
           <div
@@ -301,7 +314,30 @@ export default function ClassDetailPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline">{c.status}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">Publish</span>
+                          <Badge variant="outline" className={STATUS_CLASS[c.status] ?? ""}>
+                            {c.status.replace("_", " ")}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">Registration</span>
+                          {canEdit ? (
+                            <CohortRegistrationStatusControl
+                              cohortId={c.id}
+                              classId={cls.id}
+                              value={c.registration_status}
+                              cohortLabel={c.label}
+                            />
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className={REGISTRATION_STATUS_CLASS[c.registration_status] ?? ""}
+                            >
+                              {cohortRegistrationStatusLabel(c.registration_status)}
+                            </Badge>
+                          )}
+                        </div>
                         {c.status === "published" && c.registration_url && (
                           <Button
                             asChild
