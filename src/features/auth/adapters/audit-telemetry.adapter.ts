@@ -39,12 +39,14 @@ export type AuthEngineKind =
   | "auth_engine.reset_failed"
   // AUTH-ARCH-CUTOVER-011 — typed resend outcome.
   | "auth_engine.resend_confirmation_email_delivery_unverified"
+  | "auth_engine.confirm_signup_succeeded"
+  | "auth_engine.confirm_signup_failed"
   | "auth_engine.bad_jwt_transient";
 
 export function recordAuthEngineEvent(
   kind: AuthEngineKind,
   payload: Record<string, unknown> = {},
-  actor: string | null = null,
+  actor: string | null = null
 ): void {
   // Fire-and-forget — never await, never throw.
   try {

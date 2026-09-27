@@ -10,6 +10,7 @@ import { MagicLinkEmail } from "../_shared/email-templates/magic-link.tsx";
 import { RecoveryEmail } from "../_shared/email-templates/recovery.tsx";
 import { EmailChangeEmail } from "../_shared/email-templates/email-change.tsx";
 import { ReauthenticationEmail } from "../_shared/email-templates/reauthentication.tsx";
+import { buildConfirmationUrl } from "./confirmation-url.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // auth-email-hook
@@ -98,6 +99,7 @@ const SAMPLE_DATA: Record<string, object> = {
     siteUrl: SAMPLE_URL,
     recipient: SAMPLE_EMAIL,
     confirmationUrl: SAMPLE_URL,
+    token: "123456",
   },
   magiclink: { siteName: SITE_NAME, confirmationUrl: SAMPLE_URL },
   recovery: { siteName: SITE_NAME, confirmationUrl: SAMPLE_URL },
@@ -163,34 +165,9 @@ async function handlePreview(req: Request): Promise<Response> {
   });
 }
 
-// Build the link the email button points at, from GoTrue's token_hash.
-function buildConfirmationUrl(rawType: string, tokenHash: string, redirectToRaw: string): string {
-  const fallbackRedirect = redirectToRaw || `${APP_ORIGIN}/reset-password`;
-  try {
-    const rt = new URL(fallbackRedirect);
-    const origin = ALLOWED_RESET_ORIGINS.has(rt.origin) ? rt.origin : APP_ORIGIN;
-
-    // Recovery uses the app's inert confirm landing (AUTH-RESET-PREFETCH-001):
-    // link scanners can GET it without consuming the single-use token; only a
-    // human click forwards to /reset-password where verifyOtp runs.
-    if (rawType === "recovery" && tokenHash) {
-      const target = new URL("/reset-password/confirm", origin);
-      target.searchParams.set("token_hash", tokenHash);
-      target.searchParams.set("type", "recovery");
-      return target.toString();
-    }
-  } catch {
-    // fall through to the standard verify URL
-  }
-
-  // Everything else: the standard GoTrue verify endpoint, which validates the
-  // token_hash server-side then redirects to redirect_to.
-  const verify = new URL("/auth/v1/verify", SUPABASE_URL);
-  verify.searchParams.set("token", tokenHash);
-  verify.searchParams.set("type", rawType);
-  verify.searchParams.set("redirect_to", fallbackRedirect);
-  return verify.toString();
-}
+// buildConfirmationUrl (ADR-0064) is a pure function in ./confirmation-url.ts —
+// unit-tested there (signup/invite/magiclink -> inert /auth/confirm, never the
+// single-use /auth/v1/verify GET). Env-derived config is passed in at the call site.
 
 async function handleWebhook(req: Request): Promise<Response> {
   const hookSecret = Deno.env.get("AUTH_EMAIL_HOOK_SECRET") ?? "";
@@ -240,7 +217,8 @@ async function handleWebhook(req: Request): Promise<Response> {
   const confirmationUrl = buildConfirmationUrl(
     rawType,
     emailData.token_hash,
-    emailData.redirect_to
+    emailData.redirect_to,
+    { appOrigin: APP_ORIGIN, allowedOrigins: ALLOWED_RESET_ORIGINS, supabaseUrl: SUPABASE_URL }
   );
 
   const templateProps = {
