@@ -162,6 +162,8 @@ export const AnnouncementService = {
       // set-based since #346) and can still exceed invokeEdge's 8s default on a large send — the
       // raw invoke it replaces had NO client timeout. An 8s abort would log a false "failed" on a
       // succeeding enqueue; a retry could re-enqueue. Wait for the real result instead.
+      // Deliberately call-site, NOT edge-timeouts.ts: legacy-email fn slated for removal via the v2
+      // EnqueueEmail track — registering would bless a doomed invoke + leave dead config (decisions.md §8).
       await invokeEdge("send-announcement-email", {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { announcement_id: announcementId, marketing_attested: marketingAttested },
