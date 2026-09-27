@@ -5,7 +5,7 @@
 -- (never clears, never churns) and is service-role only. Rolled back at the end.
 
 BEGIN;
-SELECT plan(11);
+SELECT plan(12);
 
 -- ── Fixtures ─────────────────────────────────────────────────────────────────
 INSERT INTO auth.users (id, email) VALUES
