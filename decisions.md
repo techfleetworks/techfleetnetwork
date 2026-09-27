@@ -480,26 +480,56 @@ budget silently caps at 8s — the client aborts with `TimeoutError` while the *
 the user sees a false failure and the audit gets a spurious `edge_invoke_failed` on exactly the large
 operation the code exists for. This recurred five times in the Phase-1 burn-down (`delete-account`,
 `replay-dlq-emails`, `get-discord-member-count`, `gumroad-backfill`, `translate-bundle`) — a per-call
-`timeoutMs` does not travel, so the *next* caller of the same function re-inherits the 8s bug.
+`timeoutMs` does not travel, so the _next_ caller of the same function re-inherits the 8s bug.
 
 The budget is a property of the **function**, so it lives with the function's identity:
 
 ```ts
 // ❌ never — a slow function trusts the 8s default, or its budget is pinned at the call site
-await invokeEdge("some-slow-report", { body });                        // unregistered → 8s aborts a long call
-await invokeEdge("some-slow-report", { body, timeoutMs: 30_000 });     // right value, wrong place — the next caller forgets
+await invokeEdge("some-slow-report", { body }); // unregistered → 8s aborts a long call
+await invokeEdge("some-slow-report", { body, timeoutMs: 30_000 }); // right value, wrong place — the next caller forgets
 // ✅ always — register the budget once; every call site (present + future) inherits it
 // src/lib/edge/edge-timeouts.ts:  "some-slow-report": 30_000,
-await invokeEdge("some-slow-report", { body });                        // resolves to 30s via the registry
+await invokeEdge("some-slow-report", { body }); // resolves to 30s via the registry
 ```
 
 `invokeEdge` resolves `explicit timeoutMs → EDGE_FUNCTION_TIMEOUTS_MS[fn] → 8s`. Registering a slow
 function makes the 8s-abort structurally impossible for it: you cannot forget a timeout you never type.
 `edge-timeouts.test.ts` enforces the registry can't rot (every key is a real `supabase/functions/<name>/`,
-every value exceeds 8s). The **judge-arch lens** remains the backstop for a *newly added* slow function
+every value exceeds 8s). The **judge-arch lens** remains the backstop for a _newly added_ slow function
 not yet registered (duration isn't statically knowable). And on any such site, a catch that filters the
 user-facing message must test `err instanceof AppError` (covers `TimeoutError`), **not** just
 `EdgeInvokeError`, or the timeout leaks `"Edge function X timed out"`. Rationale: **ADR-0028**.
+
+**Not every call-site `timeoutMs` is a registry candidate — three that deliberately stay put.** The
+registry keys on a **function's identity** and carries **only** a timeout. A budget belongs at the call
+site (not `edge-timeouts.ts`) when any of these hold — "migrating" one of these into the registry is a
+mistake, not thoroughness (judge-arch has flagged all three; this note is the standing answer):
+
+```ts
+// ❌ never — registering these is wrong:
+
+// 1. Not an invokeEdge call at all. withBoundedSave wraps a direct Supabase DB write (timeout → probe,
+//    not → abort) and owns its own DEFAULT_TIMEOUT_MS. There is no supabase/functions/<name>/ dir, so
+//    edge-timeouts.test.ts would fail on the key. (src/pages/ProjectFormPage.tsx)
+await withBoundedSave({ timeoutMs: 15_000, save, probe });
+
+// 2. Legacy-email invoke slated for deletion. send-announcement-email is in FORBIDDEN_FUNCTIONS and
+//    trips no-legacy-email-send (warn); the email-rearchitecture track routes it through the v2
+//    EnqueueEmail use-case, which removes the invoke entirely. Registering blesses a doomed call and
+//    leaves dead config the test can't flag while the fn dir still exists. Single caller today; a 2nd
+//    caller trips the lint warn, not the 8s bug — so the registry buys nothing. (src/services/announcement.service.ts)
+await invokeEdge("send-announcement-email", { timeoutMs: 150_000, noRetry: true });
+
+// 3. Slowness is per-call-variant AND the budget is coupled to noRetry. handoff-submit is fast for
+//    text/link (correctly 8s) and slow only for a ≤50 MB file upload, which also needs noRetry:true
+//    (a retried upload duplicates the stored blob + submission row). A per-function key over-applies
+//    120s to the fast paths and carries neither the variant scoping nor noRetry. (src/services/handoff.service.ts submitFile)
+await invokeEdge("handoff-submit", { body: form, timeoutMs: 120_000, noRetry: true });
+```
+
+Register in `edge-timeouts.ts` only when the **whole function** is uniformly slow and a bare
+`invokeEdge("fn")` is the intended shape at every site. Rationale: **ADR-0028**.
 
 ---
 
