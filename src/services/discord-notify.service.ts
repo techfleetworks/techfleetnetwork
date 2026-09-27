@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/edge/invokeEdge";
 import { createLogger } from "@/services/logger.service";
 import { discordBreaker } from "@/lib/circuit-breaker";
 
@@ -83,14 +84,19 @@ async function notify(payload: NotifyPayload) {
       discordUsername: payload.discord_username,
     });
 
-    const { data, error } = await discordBreaker.executeWithFallback(
-      () => supabase.functions.invoke("discord-notify", { body: payload }),
-      { data: { success: false, reason: "circuit_open" }, error: null }
+    // invokeEdge returns data directly and THROWS on failure; executeWithFallback catches the throw,
+    // counts it toward discordBreaker, and returns the fallback. (The old raw invoke never threw, so the
+    // breaker never actually opened on notify failures — it does now.) discordBreaker is dedicated to
+    // this non-critical notification path, NOT shared with the account-linking calls below. silentReport:
+    // the breaker + non-critical log.warn already handle it.
+    const data = await discordBreaker.executeWithFallback(
+      () =>
+        invokeEdge<{ success?: boolean; reason?: string; status?: number }>("discord-notify", {
+          body: payload,
+          silentReport: true,
+        }),
+      { success: false, reason: "circuit_open" }
     );
-
-    if (error) {
-      throw error;
-    }
 
     if (data?.success === false) {
       log.warn(
