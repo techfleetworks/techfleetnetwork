@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { screen, cleanup, waitFor } from "@testing-library/react";
+import { Routes, Route } from "react-router-dom";
 import { renderWithRouter } from "./test-utils";
 
 // bdd-gate coverage: src/components/ClassAdminRoute.tsx
@@ -47,11 +48,24 @@ vi.mock("@/components/MfaChallengeDialog", () => ({
 // Import AFTER mocks are registered.
 import { ClassAdminRoute } from "@/components/ClassAdminRoute";
 
+// Render the guard as a real route element. It must live inside <Routes> so that when it renders a
+// <Navigate> (member → /access-denied, signed-out → /login) React Router matches the target route and
+// UNMOUNTS the guard — exactly as in production (App.tsx). Rendering it bare would leave <Navigate>
+// mounted, re-navigating every render with a fresh `state` object, an async loop that leaks until OOM.
 function renderGuard() {
   return renderWithRouter(
-    <ClassAdminRoute>
-      <div>PROTECTED</div>
-    </ClassAdminRoute>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <ClassAdminRoute>
+            <div>PROTECTED</div>
+          </ClassAdminRoute>
+        }
+      />
+      <Route path="/access-denied" element={<div>ACCESS DENIED</div>} />
+      <Route path="/login" element={<div>LOGIN</div>} />
+    </Routes>
   );
 }
 
