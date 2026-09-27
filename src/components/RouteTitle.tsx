@@ -77,7 +77,6 @@ const ROUTE_TITLES: Array<{ pattern: string; title: string }> = [
   { pattern: "/admin/system-health", title: "Admin · System health" },
   { pattern: "/admin/email-deliverability-test", title: "Admin · Email deliverability" },
   { pattern: "/admin/brand-tokens", title: "Admin · Brand tokens" },
-  { pattern: "/admin/classes", title: "Teaching · All classes" },
 
   { pattern: "/updates", title: "Updates" },
   { pattern: "/profile/edit", title: "Edit profile" },
@@ -96,11 +95,13 @@ const ROUTE_TITLES: Array<{ pattern: string; title: string }> = [
   { pattern: "/confirm-admin", title: "Confirm admin role" },
   { pattern: "/confirm-teacher", title: "Confirm teacher role" },
 
-  { pattern: "/teach/classes/:id/cohorts/new", title: "New cohort" },
-  { pattern: "/teach/classes/:id/edit", title: "Edit class" },
-  { pattern: "/teach/classes/:id", title: "Class detail" },
-  { pattern: "/teach/classes/new", title: "New class" },
-  { pattern: "/teach/classes", title: "My classes" },
+  { pattern: "/class-admin/classes/:id/cohorts/:cohortId/edit", title: "Edit cohort" },
+  { pattern: "/class-admin/classes/:id/cohorts/new", title: "New cohort" },
+  { pattern: "/class-admin/classes/:id/edit", title: "Edit class" },
+  { pattern: "/class-admin/classes/:id", title: "Class detail" },
+  { pattern: "/class-admin/classes/new", title: "New class" },
+  { pattern: "/class-admin/cohorts", title: "Class Admin · Cohorts" },
+  { pattern: "/class-admin/classes", title: "Class Admin · Classes" },
 
   { pattern: "/unsubscribe", title: "Unsubscribe" },
   { pattern: "/access-denied", title: "Access denied" },

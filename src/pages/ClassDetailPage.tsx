@@ -109,7 +109,7 @@ export default function ClassDetailPage() {
   return (
     <div className="container-app py-8 sm:py-12 space-y-6 max-w-4xl">
       <Button asChild variant="ghost" size="sm">
-        <Link to={isAdmin ? "/admin/classes" : "/teach/classes"}>
+        <Link to="/class-admin/classes">
           <ArrowLeft className="h-4 w-4 mr-1" aria-hidden="true" />
           Back
         </Link>
@@ -121,7 +121,7 @@ export default function ClassDetailPage() {
           data-no-card
         >
           <Button asChild variant="outline" size="sm">
-            <Link to={`/teach/classes/${cls.id}/edit`}>
+            <Link to={`/class-admin/classes/${cls.id}/edit`}>
               <Pencil className="h-4 w-4 mr-1" aria-hidden="true" />
               Edit
             </Link>
@@ -292,7 +292,7 @@ export default function ClassDetailPage() {
               <h2 className="text-xl font-semibold">Cohorts</h2>
               {canEdit && (
                 <Button asChild size="sm">
-                  <Link to={`/teach/classes/${cls.id}/cohorts/new`}>
+                  <Link to={`/class-admin/classes/${cls.id}/cohorts/new`}>
                     <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
                     New cohort
                   </Link>
@@ -355,7 +355,7 @@ export default function ClassDetailPage() {
                           (isAdmin || c.status === "draft" || c.status === "pending_review") && (
                             <Button asChild size="sm" variant="outline">
                               <Link
-                                to={`/teach/classes/${cls.id}/cohorts/${c.id}/edit`}
+                                to={`/class-admin/classes/${cls.id}/cohorts/${c.id}/edit`}
                                 aria-label={`Edit cohort ${c.label}`}
                               >
                                 <Pencil className="h-4 w-4 mr-1" aria-hidden="true" />
