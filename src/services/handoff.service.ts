@@ -124,6 +124,9 @@ export async function submitLink(
 // uploading files"). Give uploads a generous ceiling instead. Also disable the auto-retry: invokeEdge
 // aborts the *race*, not the underlying fetch (supabase-js ignores the signal), so a slow upload can
 // still succeed server-side — retrying it would create a duplicate stored blob + submission row.
+// Deliberately call-site, NOT edge-timeouts.ts: only the file variant is slow (submitText/submitLink
+// are correctly on the 8s default), and the budget is coupled to noRetry — a per-function registry key
+// can carry neither the variant scoping nor noRetry (decisions.md §8).
 const FILE_UPLOAD_TIMEOUT_MS = 120_000;
 
 export async function submitFile(

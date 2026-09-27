@@ -86,11 +86,9 @@ import { cn } from "@/lib/utils";
 import { reportValidationRejection } from "@/services/error-reporter.service";
 
 // ---------- Helpers ----------
-const optionalUrl = z
-  .string()
-  .refine((v) => v === "" || /^https?:\/\/.+/.test(v), {
-    message: "Must be a valid URL starting with http:// or https://",
-  });
+const optionalUrl = z.string().refine((v) => v === "" || /^https?:\/\/.+/.test(v), {
+  message: "Must be a valid URL starting with http:// or https://",
+});
 
 // ---------- Schema ----------
 const PROJECT_TYPE_VALUES = PROJECT_TYPES.map((t) => t.value) as [string, ...string[]];
@@ -440,6 +438,8 @@ export default function ProjectFormPage() {
     mutationFn: async (values: ProjectForm) => {
       const sanitized = sanitizeRecordFields(values as unknown as Record<string, unknown>) as any;
       return withBoundedSave({
+        // Bounded DB write (timeout → probe), NOT an invokeEdge call → not an edge-timeouts.ts
+        // candidate; withBoundedSave owns this budget (decisions.md §8).
         timeoutMs: 15_000,
         save: async () => {
           const { error } = await supabase.from("projects").update(sanitized).eq("id", id!);
@@ -538,6 +538,8 @@ export default function ProjectFormPage() {
     onSave: async (values) => {
       const sanitized = sanitizeRecordFields(values as unknown as Record<string, unknown>) as any;
       await withBoundedSave({
+        // Bounded DB write (timeout → probe), NOT an invokeEdge call → not an edge-timeouts.ts
+        // candidate; withBoundedSave owns this budget (decisions.md §8).
         timeoutMs: 15_000,
         save: async () => {
           const { error } = await supabase.from("projects").update(sanitized).eq("id", id!);
