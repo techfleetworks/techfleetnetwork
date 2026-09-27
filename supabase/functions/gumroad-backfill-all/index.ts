@@ -32,31 +32,61 @@ const GUMROAD_SELLER_ID = Deno.env.get("GUMROAD_SELLER_ID") ?? "";
 const MAX_PAGES = 100;
 
 function json(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 interface GumroadSale {
-  id: string; email: string; seller_id?: string; product_id?: string;
-  product_permalink?: string; permalink?: string; subscription_id?: string;
-  price?: number; recurrence?: string; refunded?: boolean; disputed?: boolean; dispute_won?: boolean;
+  id: string;
+  email: string;
+  seller_id?: string;
+  product_id?: string;
+  product_permalink?: string;
+  permalink?: string;
+  subscription_id?: string;
+  price?: number;
+  recurrence?: string;
+  refunded?: boolean;
+  disputed?: boolean;
+  dispute_won?: boolean;
   [k: string]: unknown;
 }
-type SubLifecycle = { state: "active" | "ended" | "unknown"; endedAt: string | null; cancelledAt: string | null };
+type SubLifecycle = {
+  state: "active" | "ended" | "unknown";
+  endedAt: string | null;
+  cancelledAt: string | null;
+};
 
 async function fetchSubscriberLifecycle(subscriptionId: string): Promise<SubLifecycle> {
   try {
     const resp = await fetch(
-      `https://api.gumroad.com/v2/subscribers/${encodeURIComponent(subscriptionId)}?access_token=${encodeURIComponent(GUMROAD_ACCESS_TOKEN)}`,
+      `https://api.gumroad.com/v2/subscribers/${encodeURIComponent(subscriptionId)}?access_token=${encodeURIComponent(GUMROAD_ACCESS_TOKEN)}`
     );
     if (!resp.ok) return { state: "unknown", endedAt: null, cancelledAt: null };
-    const body = (await resp.json()) as { success?: boolean; subscriber?: Record<string, string | null> };
+    const body = (await resp.json()) as {
+      success?: boolean;
+      subscriber?: Record<string, string | null>;
+    };
     const s = body.subscriber;
     if (!body.success || !s) return { state: "unknown", endedAt: null, cancelledAt: null };
-    const cancelledAt = (s.cancelled_at ?? s.user_requested_cancellation_at ?? null) as string | null;
+    const cancelledAt = (s.cancelled_at ?? s.user_requested_cancellation_at ?? null) as
+      string | null;
     const status = s.status as string | undefined;
-    const terminal = !!s.ended_at || !!s.failed_at ||
-      (!!status && ["cancelled", "failed_payment", "fixed_subscription_period_ended", "ended"].includes(status));
+    const terminal =
+      !!s.ended_at ||
+      !!s.failed_at ||
+      (!!status &&
+        ["cancelled", "failed_payment", "fixed_subscription_period_ended", "ended"].includes(
+          status
+        ));
     const active = status === "alive" || status === "pending_cancellation";
-    if (terminal) return { state: "ended", endedAt: (s.ended_at ?? s.failed_at ?? new Date().toISOString()) as string, cancelledAt };
+    if (terminal)
+      return {
+        state: "ended",
+        endedAt: (s.ended_at ?? s.failed_at ?? new Date().toISOString()) as string,
+        cancelledAt,
+      };
     if (active) return { state: "active", endedAt: null, cancelledAt };
     return { state: "unknown", endedAt: null, cancelledAt };
   } catch {
@@ -65,7 +95,12 @@ async function fetchSubscriberLifecycle(subscriptionId: string): Promise<SubLife
 }
 
 async function isAdmin(admin: SupabaseClient<any, any, any>, userId: string): Promise<boolean> {
-  const { data } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
+  const { data } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
   return !!data;
 }
 
@@ -85,12 +120,20 @@ Deno.serve(
     if (!svc.ok) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
       const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
       const userId = claims?.claims?.sub as string | undefined;
       if (!userId) return json({ error: "Unauthorized" }, 401);
       if (!(await isAdmin(admin, userId))) {
-        void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "authz_admin_denied", traceId: ctx.traceId, severity: "warn", userId });
+        void auditEdgeEvent(auditClient, {
+          fn: "gumroad-backfill-all",
+          event: "authz_admin_denied",
+          traceId: ctx.traceId,
+          severity: "warn",
+          userId,
+        });
         return json({ error: "Admin role required" }, 403);
       }
       actor = userId;
@@ -98,14 +141,23 @@ Deno.serve(
 
     if (!GUMROAD_ACCESS_TOKEN) {
       void auditEdgeEvent(auditClient, {
-        fn: "gumroad-backfill-all", event: "gumroad_ingestion_misconfigured", traceId: ctx.traceId,
-        severity: "error", fields: ["secret:GUMROAD_ACCESS_TOKEN", "state:missing"],
+        fn: "gumroad-backfill-all",
+        event: "gumroad_ingestion_misconfigured",
+        traceId: ctx.traceId,
+        severity: "error",
+        fields: ["secret:GUMROAD_ACCESS_TOKEN", "state:missing"],
         errorMessage: "gumroad-backfill-all cannot run: GUMROAD_ACCESS_TOKEN is unset",
       });
       return json({ error: "Not configured" }, 503);
     }
 
-    void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "gumroad_backfill_all_started", traceId: ctx.traceId, severity: "info", fields: [`actor:${actor.slice(0, 40)}`] });
+    void auditEdgeEvent(auditClient, {
+      fn: "gumroad-backfill-all",
+      event: "gumroad_backfill_all_started",
+      traceId: ctx.traceId,
+      severity: "info",
+      fields: [`actor:${actor.slice(0, 40)}`],
+    });
 
     // ── Pull all sales ────────────────────────────────────────────────────────
     const sales: GumroadSale[] = [];
@@ -117,12 +169,30 @@ Deno.serve(
         if (pageKey) params.set("page_key", pageKey);
         const resp = await fetch(`https://api.gumroad.com/v2/sales?${params}`, { method: "GET" });
         if (!resp.ok) {
-          void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "gumroad_api_error", traceId: ctx.traceId, severity: "error", fields: [`status:${resp.status}`], errorMessage: "sales API non-2xx" });
+          void auditEdgeEvent(auditClient, {
+            fn: "gumroad-backfill-all",
+            event: "gumroad_api_error",
+            traceId: ctx.traceId,
+            severity: "error",
+            fields: [`status:${resp.status}`],
+            errorMessage: "sales API non-2xx",
+          });
           return json({ error: "Gumroad API error", status: resp.status }, 502);
         }
-        const body = (await resp.json()) as { success?: boolean; sales?: GumroadSale[]; next_page_key?: string; message?: string };
+        const body = (await resp.json()) as {
+          success?: boolean;
+          sales?: GumroadSale[];
+          next_page_key?: string;
+          message?: string;
+        };
         if (!body.success) {
-          void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "gumroad_api_error", traceId: ctx.traceId, severity: "error", errorMessage: body.message ?? "unsuccessful" });
+          void auditEdgeEvent(auditClient, {
+            fn: "gumroad-backfill-all",
+            event: "gumroad_api_error",
+            traceId: ctx.traceId,
+            severity: "error",
+            errorMessage: body.message ?? "unsuccessful",
+          });
           return json({ error: body.message ?? "Gumroad API error" }, 502);
         }
         if (body.sales?.length) sales.push(...body.sales);
@@ -130,65 +200,145 @@ Deno.serve(
         pages += 1;
       } while (pageKey && pages < MAX_PAGES);
     } catch (err) {
-      void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "gumroad_api_error", traceId: ctx.traceId, severity: "error", errorMessage: err instanceof Error ? err.message : "fetch failed" });
+      void auditEdgeEvent(auditClient, {
+        fn: "gumroad-backfill-all",
+        event: "gumroad_api_error",
+        traceId: ctx.traceId,
+        severity: "error",
+        errorMessage: err instanceof Error ? err.message : "fetch failed",
+      });
       return json({ error: "Fetch failed" }, 502);
     }
     if (pageKey) {
-      void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "gumroad_backfill_truncated", traceId: ctx.traceId, severity: "warn", fields: [`max_pages:${MAX_PAGES}`], errorMessage: "sales pages remained after the cap" });
+      void auditEdgeEvent(auditClient, {
+        fn: "gumroad-backfill-all",
+        event: "gumroad_backfill_truncated",
+        traceId: ctx.traceId,
+        severity: "warn",
+        fields: [`max_pages:${MAX_PAGES}`],
+        errorMessage: "sales pages remained after the cap",
+      });
     }
 
     // ── Ingest (lifecycle-aware, fail-closed on unverifiable subscriptions) ────
     const now = new Date().toISOString();
     const subCache = new Map<string, SubLifecycle>();
-    let ingested = 0, pending = 0, skipped = 0;
+    let ingested = 0,
+      pending = 0,
+      skipped = 0;
     for (const s of sales) {
       const email = (s.email || "").trim().toLowerCase();
-      if (!email || !s.id) { skipped++; continue; }
-      if (GUMROAD_SELLER_ID && s.seller_id && s.seller_id !== GUMROAD_SELLER_ID) { skipped++; continue; }
+      if (!email || !s.id) {
+        skipped++;
+        continue;
+      }
+      if (GUMROAD_SELLER_ID && s.seller_id && s.seller_id !== GUMROAD_SELLER_ID) {
+        skipped++;
+        continue;
+      }
 
       const subId = typeof s.subscription_id === "string" ? s.subscription_id : null;
-      let endedAt: string | null = null, cancelledAt: string | null = null, grant = true;
+      let endedAt: string | null = null,
+        cancelledAt: string | null = null,
+        grant = true;
       if (subId) {
         let life = subCache.get(subId);
-        if (!life) { life = await fetchSubscriberLifecycle(subId); subCache.set(subId, life); }
-        if (life.state === "ended") { endedAt = life.endedAt; cancelledAt = life.cancelledAt; }
-        else if (life.state === "active") { cancelledAt = life.cancelledAt; }
-        else grant = false;
+        if (!life) {
+          life = await fetchSubscriberLifecycle(subId);
+          subCache.set(subId, life);
+        }
+        if (life.state === "ended") {
+          endedAt = life.endedAt;
+          cancelledAt = life.cancelledAt;
+        } else if (life.state === "active") {
+          cancelledAt = life.cancelledAt;
+        } else grant = false;
       }
       // Resolve through the single identity owner (ADR-0038) so a backfill re-ingest
       // recognizes buyers via their verified alias emails, not just the profile primary.
       const { data: resolved } = await admin.rpc("resolve_gumroad_user", { p_email: email });
       const resolvedUserId = grant ? ((resolved as string | null) ?? null) : null;
 
-      const { error, count } = await admin.from("gumroad_sales").upsert({
-        sale_id: s.id, seller_id: s.seller_id ?? GUMROAD_SELLER_ID,
-        subscription_id: subId, product_id: s.product_id ?? "",
-        product_permalink: s.permalink || s.product_permalink || "", email,
-        price_cents: typeof s.price === "number" ? s.price : 0,
-        recurrence: typeof s.recurrence === "string" ? s.recurrence : "",
-        resource_name: "backfill-all",
-        resolved_user_id: resolvedUserId,
-        status: resolvedUserId ? "applied" : "pending_user",
-        refunded_at: s.refunded ? now : null,
-        disputed_at: s.disputed && !s.dispute_won ? now : null,
-        subscription_cancelled_at: cancelledAt, subscription_ended_at: endedAt,
-        raw_payload: s as unknown as Record<string, unknown>,
-        received_at: now, processed_at: resolvedUserId ? now : null,
-      }, { onConflict: "sale_id", ignoreDuplicates: true, count: "exact" });
-      if (error) { skipped++; continue; }
-      if ((count ?? 0) > 0) { if (resolvedUserId) ingested++; else pending++; } else skipped++;
+      const { error, count } = await admin.from("gumroad_sales").upsert(
+        {
+          sale_id: s.id,
+          seller_id: s.seller_id ?? GUMROAD_SELLER_ID,
+          subscription_id: subId,
+          product_id: s.product_id ?? "",
+          product_permalink: s.permalink || s.product_permalink || "",
+          email,
+          price_cents: typeof s.price === "number" ? s.price : 0,
+          recurrence: typeof s.recurrence === "string" ? s.recurrence : "",
+          resource_name: "backfill-all",
+          resolved_user_id: resolvedUserId,
+          status: resolvedUserId ? "applied" : "pending_user",
+          refunded_at: s.refunded ? now : null,
+          disputed_at: s.disputed && !s.dispute_won ? now : null,
+          subscription_cancelled_at: cancelledAt,
+          subscription_ended_at: endedAt,
+          raw_payload: s as unknown as Record<string, unknown>,
+          received_at: now,
+          processed_at: resolvedUserId ? now : null,
+        },
+        { onConflict: "sale_id", ignoreDuplicates: true, count: "exact" }
+      );
+      if (error) {
+        skipped++;
+        continue;
+      }
+      // Converge lifecycle on an existing ledger row (ADR-0063): the upsert above
+      // ignores duplicates, so a refund/dispute/end for a sale already recorded would
+      // be dropped and a missed webhook would never downgrade. Apply set-once; the
+      // projection trigger re-derives access. Report and continue on failure.
+      if (s.refunded || (s.disputed && !s.dispute_won) || cancelledAt || endedAt) {
+        const { error: lifeErr } = await admin.rpc("apply_gumroad_sale_lifecycle", {
+          p_sale_id: s.id,
+          p_refunded: !!s.refunded,
+          p_disputed: !!(s.disputed && !s.dispute_won),
+          p_cancelled_at: cancelledAt,
+          p_ended_at: endedAt,
+        });
+        if (lifeErr) {
+          void auditEdgeEvent(auditClient, {
+            fn: "gumroad-backfill-all",
+            event: "gumroad_lifecycle_apply_failed",
+            traceId: ctx.traceId,
+            severity: "error",
+            fields: [`sale:${s.id}`],
+            errorMessage: lifeErr.message,
+          });
+        }
+      }
+      if ((count ?? 0) > 0) {
+        if (resolvedUserId) ingested++;
+        else pending++;
+      } else skipped++;
     }
 
     // ── Project everyone (also fires the invariant tripwire). ─────────────────
     const { error: reErr } = await admin.rpc("reproject_membership_drift");
     if (reErr) {
-      void auditEdgeEvent(auditClient, { fn: "gumroad-backfill-all", event: "membership_projection_failed", traceId: ctx.traceId, severity: "error", errorMessage: reErr.message });
+      void auditEdgeEvent(auditClient, {
+        fn: "gumroad-backfill-all",
+        event: "membership_projection_failed",
+        traceId: ctx.traceId,
+        severity: "error",
+        errorMessage: reErr.message,
+      });
       return json({ error: "Projection failed" }, 500);
     }
 
     void auditEdgeEvent(auditClient, {
-      fn: "gumroad-backfill-all", event: "gumroad_backfill_all_completed", traceId: ctx.traceId, severity: "info",
-      fields: [`sales:${sales.length}`, `ingested:${ingested}`, `pending:${pending}`, `skipped:${skipped}`],
+      fn: "gumroad-backfill-all",
+      event: "gumroad_backfill_all_completed",
+      traceId: ctx.traceId,
+      severity: "info",
+      fields: [
+        `sales:${sales.length}`,
+        `ingested:${ingested}`,
+        `pending:${pending}`,
+        `skipped:${skipped}`,
+      ],
     });
 
     // Webhook-gap alarm (ADR-0048). The upsert above uses ignoreDuplicates, so any row
@@ -198,7 +348,9 @@ Deno.serve(
     const webhookMissed = ingested + pending;
     if (webhookMissed > 0) {
       void auditEdgeEvent(auditClient, {
-        fn: "gumroad-backfill-all", event: "gumroad_webhook_gap_detected", traceId: ctx.traceId,
+        fn: "gumroad-backfill-all",
+        event: "gumroad_webhook_gap_detected",
+        traceId: ctx.traceId,
         severity: "error",
         fields: [`missed:${webhookMissed}`, `ingested:${ingested}`, `pending:${pending}`],
         errorMessage:
@@ -207,5 +359,5 @@ Deno.serve(
       });
     }
     return json({ ok: true, sales: sales.length, ingested, pending, skipped, webhookMissed }, 200);
-  }),
+  })
 );
