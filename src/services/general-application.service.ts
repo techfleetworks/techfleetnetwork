@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createLogger } from "@/services/logger.service";
 import { reportError } from "@/services/error-reporter.service";
-import { airtableBreaker } from "@/lib/circuit-breaker";
 import { sanitizeRecordFields } from "@/lib/validators/shared-input";
 import { assertWritten } from "@/lib/db-helpers";
 
@@ -22,47 +21,6 @@ function sanitizeFields(fields: Record<string, unknown>): Record<string, unknown
     }
   }
   return result;
-}
-
-/** Fire-and-forget sync to Airtable via edge function (with circuit breaker) */
-async function syncToAirtable(app: GeneralApplication): Promise<void> {
-  try {
-    const { data, error } = await airtableBreaker.executeWithFallback(
-      () => supabase.functions.invoke<{
-        success: boolean;
-        error?: string;
-        airtable_id?: string | null;
-      }>("sync-airtable", {
-        body: {
-          application_id: app.id,
-          email: app.email,
-          title: app.title,
-          about_yourself: app.about_yourself,
-          status: app.status,
-          created_at: app.created_at,
-          updated_at: app.updated_at,
-        },
-      }),
-      { data: { success: false, error: "circuit_open" }, error: null },
-    );
-
-    if (error) {
-      log.warn("syncToAirtable", `Airtable sync request failed: ${error.message}`, { appId: app.id }, error);
-      return;
-    }
-
-    if (!data?.success) {
-      log.warn("syncToAirtable", `Airtable sync failed: ${data?.error ?? "Unknown error"}`, { appId: app.id });
-      return;
-    }
-
-    log.info("syncToAirtable", `Synced app ${app.id} to Airtable`, {
-      appId: app.id,
-      airtableId: data.airtable_id ?? null,
-    });
-  } catch (err) {
-    log.warn("syncToAirtable", "Airtable sync error (non-blocking)", { appId: app.id }, err);
-  }
 }
 
 export interface GeneralApplication {
@@ -176,7 +134,7 @@ export const GeneralApplicationService = {
     });
   },
 
-  /** Save progress (update fields), sync email/background to profile, and sync to Airtable */
+  /** Save progress (update fields) and mirror about_yourself to the profile background */
   async save(id: string, fields: Partial<Omit<GeneralApplication, "id" | "user_id" | "created_at" | "updated_at">>): Promise<void> {
     return log.track("save", `Saving general app ${id}`, { id, fields: Object.keys(fields) }, async () => {
       // Defensive .select() so silent RLS-filtered 0-row updates surface as
@@ -198,8 +156,6 @@ export const GeneralApplicationService = {
         if ((fields as Record<string, unknown>).about_yourself !== undefined) {
           syncToProfileBackground(updated.user_id, updated.about_yourself).catch((e) => reportError(e, "general-application.syncToProfileBackground", { severity: "warn" }));
         }
-        // Sync to Airtable (non-blocking, circuit-breaker protected)
-        syncToAirtable(updated).catch((e) => reportError(e, "general-application.syncToAirtable", { severity: "warn" }));
       }
     });
   },
