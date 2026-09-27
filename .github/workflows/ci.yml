@@ -558,6 +558,15 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
+      # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      - name: Authenticate ECR Public (avoids anonymous pull rate limit)
+        if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUBLIC_AWS_SECRET_ACCESS_KEY }}
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
       - name: Start local Supabase (Postgres + pgvector)
         run: supabase start
       - name: Apply all migrations in sequence
@@ -637,6 +646,15 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
+      # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      - name: Authenticate ECR Public (avoids anonymous pull rate limit)
+        if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUBLIC_AWS_SECRET_ACCESS_KEY }}
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
       - name: Start local Supabase (Postgres + pgTAP)
         run: supabase start
       - name: Apply migrations
@@ -694,6 +712,15 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
+      # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      - name: Authenticate ECR Public (avoids anonymous pull rate limit)
+        if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUBLIC_AWS_SECRET_ACCESS_KEY }}
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
       - name: Start local Supabase (Docker) + apply migrations
         run: |
           supabase start
