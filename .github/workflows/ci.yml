@@ -857,7 +857,8 @@ jobs:
             supabase/functions/_shared/llm/ \
             supabase/functions/_shared/email-octopus/ \
             supabase/functions/email-octopus-sync/ \
-            supabase/functions/eo-contact-status/
+            supabase/functions/eo-contact-status/ \
+            supabase/functions/auth-email-hook/confirmation-url.test.ts
 
   dependency-review:
     runs-on: ubuntu-latest
