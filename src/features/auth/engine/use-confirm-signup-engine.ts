@@ -150,17 +150,11 @@ export function useConfirmSignupEngine(): ConfirmSignupEngine {
     [navigate]
   );
 
-  // A verify failure is REPORTED to operators (decisions.md §4), not only shown
-  // to the user, so a confirmation outage (OTP-expiry misconfig, redirect-
-  // allowlist error, an otp_invalid spike) is observable — never a silent
-  // user-only message. The raw code/token_hash is never included.
-  const failVerify = useCallback((method: "code" | "token_hash", err: unknown) => {
-    const c = classifyConfirmError(err);
-    telemetryPort.record("auth_engine.confirm_signup_failed", { method, code: c.code });
-    setError(c.message);
-    setErrorCode(c.code);
-  }, []);
-
+  // Both verify paths funnel their failure — a returned GoTrue error OR a thrown
+  // exception — into ONE catch that REPORTS to operators (decisions.md §4 /
+  // AUTH-ARCH-CUTOVER-011): a confirmation outage (OTP-expiry misconfig,
+  // redirect-allowlist error, an otp_invalid spike) is observable, never a
+  // silent user-only message. The raw code/token_hash is never recorded.
   const handleConfirmByButton = useCallback(async () => {
     if (!tokenHash || verifying) return;
     setVerifying(true);
@@ -168,17 +162,20 @@ export function useConfirmSignupEngine(): ConfirmSignupEngine {
     setErrorCode("");
     try {
       const { error: verifyError } = await confirmSignupByTokenHash(tokenHash);
-      if (verifyError) {
-        failVerify("token_hash", verifyError);
-        return;
-      }
+      if (verifyError) throw verifyError;
       onVerified("token_hash");
     } catch (err) {
-      failVerify("token_hash", err);
+      const c = classifyConfirmError(err);
+      telemetryPort.record("auth_engine.confirm_signup_failed", {
+        method: "token_hash",
+        code: c.code,
+      });
+      setError(c.message);
+      setErrorCode(c.code);
     } finally {
       setVerifying(false);
     }
-  }, [tokenHash, verifying, onVerified, failVerify]);
+  }, [tokenHash, verifying, onVerified]);
 
   const handleSubmitCode = useCallback(
     async (e: FormEvent) => {
@@ -201,18 +198,18 @@ export function useConfirmSignupEngine(): ConfirmSignupEngine {
       setErrorCode("");
       try {
         const { error: verifyError } = await confirmSignupByCode(parsedEmail.data, digits);
-        if (verifyError) {
-          failVerify("code", verifyError);
-          return;
-        }
+        if (verifyError) throw verifyError;
         onVerified("code");
       } catch (err) {
-        failVerify("code", err);
+        const c = classifyConfirmError(err);
+        telemetryPort.record("auth_engine.confirm_signup_failed", { method: "code", code: c.code });
+        setError(c.message);
+        setErrorCode(c.code);
       } finally {
         setVerifying(false);
       }
     },
-    [email, code, verifying, onVerified, failVerify]
+    [email, code, verifying, onVerified]
   );
 
   const handleResend = useCallback(async () => {
