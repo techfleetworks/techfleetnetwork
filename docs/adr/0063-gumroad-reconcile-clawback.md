@@ -27,7 +27,7 @@ so every reconcile drives access to Gumroad's truth in both directions.
 p_ended_at)`, `SECURITY DEFINER`, `search_path = ''`, service role only. It updates only the
   lifecycle timestamps via `COALESCE` (set once), so it can never clear a clawback, never move an
   existing timestamp, and never touch `resolved_user_id` or `status`. Its `WHERE` clause makes a
-  no-op match no row, so repeated sweeps do not churn `updated_at` or re-fire the trigger.
+  no-op match no row, so repeated sweeps do not re-fire the projection trigger.
 - `gumroad-backfill` and `gumroad-backfill-all` call it for every clawed-back sale they pull, right
   after the insert. New sales still insert via `ignoreDuplicates`; existing rows converge lifecycle
   through the apply. The existing AFTER UPDATE projection trigger then re-derives access, which
