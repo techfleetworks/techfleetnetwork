@@ -1,3 +1,5 @@
+// Coverage for supabase/functions/auth-email-hook (ADR-0064): the confirmation
+// URL builder used by the auth-email-hook entrypoint.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { buildConfirmationUrl } from "./confirmation-url.ts";
 
