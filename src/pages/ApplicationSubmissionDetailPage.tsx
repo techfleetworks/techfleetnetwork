@@ -4,16 +4,27 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import {
-  ArrowLeft, Share2, CheckCircle2, XCircle, User,
-  Briefcase, GraduationCap, Loader2, Copy,
+  ArrowLeft,
+  Share2,
+  CheckCircle2,
+  XCircle,
+  User,
+  Briefcase,
+  GraduationCap,
+  Loader2,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
@@ -47,8 +58,13 @@ export default function ApplicationSubmissionDetailPage() {
   const { data: project } = useQuery({
     queryKey: ["admin-proj-detail-for-app", projApp?.project_id],
     queryFn: async () => {
+      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
+      // (ADR-0056/0065); select('*') fails 42501/403. Operational columns are never needed here.
       const { data, error } = await supabase
-        .from("projects").select("*").eq("id", projApp!.project_id as string).single();
+        .from("projects")
+        .select("id, client_id, project_type, phase, project_status")
+        .eq("id", projApp!.project_id as string)
+        .single();
       if (error) throw error;
       return data as Record<string, unknown>;
     },
@@ -60,7 +76,10 @@ export default function ApplicationSubmissionDetailPage() {
     queryKey: ["admin-client-detail-for-app", project?.client_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clients").select("*").eq("id", project!.client_id as string).single();
+        .from("clients")
+        .select("*")
+        .eq("id", project!.client_id as string)
+        .single();
       if (error) throw error;
       return data as Record<string, unknown>;
     },
@@ -72,7 +91,10 @@ export default function ApplicationSubmissionDetailPage() {
     queryKey: ["admin-profile-for-app", projApp?.user_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles").select("*").eq("user_id", projApp!.user_id as string).single();
+        .from("profiles")
+        .select("*")
+        .eq("user_id", projApp!.user_id as string)
+        .single();
       if (error) throw error;
       return data as Record<string, unknown>;
     },
@@ -126,7 +148,9 @@ export default function ApplicationSubmissionDetailPage() {
     return (
       <div className="container-app py-12 text-center">
         <p className="text-muted-foreground">Application not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/applications")}>Back</Button>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/applications")}>
+          Back
+        </Button>
       </div>
     );
   }
@@ -151,7 +175,12 @@ export default function ApplicationSubmissionDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/applications")} aria-label="Back">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/applications")}
+            aria-label="Back"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -159,7 +188,9 @@ export default function ApplicationSubmissionDetailPage() {
             <p className="text-sm text-muted-foreground">
               {applicantName} — {(client?.name as string) ?? "Project"}
               {(project as any)?.friendly_name?.trim() && (
-                <span className="block text-xs text-muted-foreground/80 mt-0.5">{(project as any).friendly_name}</span>
+                <span className="block text-xs text-muted-foreground/80 mt-0.5">
+                  {(project as any).friendly_name}
+                </span>
               )}
             </p>
           </div>
@@ -178,12 +209,26 @@ export default function ApplicationSubmissionDetailPage() {
             Submitted {format(new Date(projApp.completed_at as string), "MMMM d, yyyy")}
           </Badge>
         )}
-        <Badge variant="secondary" className="w-fit">{typeLabel((project?.project_type as string) ?? "")}</Badge>
-        <Badge variant="outline" className="w-fit">{phaseLabel((project?.phase as string) ?? "")}</Badge>
-        <Badge variant="outline" className="w-fit">{statusLabel((project?.project_status as string) ?? "")}</Badge>
-        {participatedPrev
-          ? <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit"><CheckCircle2 className="h-3 w-3" />Previous Participant</Badge>
-          : <Badge variant="outline" className="gap-1 w-fit"><XCircle className="h-3 w-3" />New Participant</Badge>}
+        <Badge variant="secondary" className="w-fit">
+          {typeLabel((project?.project_type as string) ?? "")}
+        </Badge>
+        <Badge variant="outline" className="w-fit">
+          {phaseLabel((project?.phase as string) ?? "")}
+        </Badge>
+        <Badge variant="outline" className="w-fit">
+          {statusLabel((project?.project_status as string) ?? "")}
+        </Badge>
+        {participatedPrev ? (
+          <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit">
+            <CheckCircle2 className="h-3 w-3" />
+            Previous Participant
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="gap-1 w-fit">
+            <XCircle className="h-3 w-3" />
+            New Participant
+          </Badge>
+        )}
       </div>
 
       <Separator />
@@ -191,8 +236,7 @@ export default function ApplicationSubmissionDetailPage() {
       {/* ── SECTION 1: Applicant Profile ────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">Applicant Profile
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg">Applicant Profile</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <ReadOnlyField label="Name" value={applicantName} />
@@ -203,17 +247,49 @@ export default function ApplicationSubmissionDetailPage() {
             <ReadOnlyField label="Discord" value={profile.discord_username as string} />
           )}
           {(profile?.linkedin_url as string) && (
-            <ReadOnlyLinkField label="LinkedIn" href={profile.linkedin_url as string} linkText="Profile" />
+            <ReadOnlyLinkField
+              label="LinkedIn"
+              href={profile.linkedin_url as string}
+              linkText="Profile"
+            />
           )}
           {(profile?.portfolio_url as string) && (
-            <ReadOnlyLinkField label="Portfolio" href={profile.portfolio_url as string} linkText="View" />
+            <ReadOnlyLinkField
+              label="Portfolio"
+              href={profile.portfolio_url as string}
+              linkText="View"
+            />
           )}
-          <ReadOnlyArrayField label="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
-          <ReadOnlyArrayField label="Education Background" items={(profile?.education_background as string[]) ?? []} />
+          <ReadOnlyArrayField
+            label="Experience Areas"
+            items={(profile?.experience_areas as string[]) ?? []}
+          />
+          <ReadOnlyArrayField
+            label="Education Background"
+            items={(profile?.education_background as string[]) ?? []}
+          />
           <ReadOnlyArrayField label="Interests" items={(profile?.interests as string[]) ?? []} />
-          <ReadOnlyField label="Professional Background" value={(profile?.professional_background as string) ?? ""} entityTable="profiles" entityId={(profile as any)?.id} columnName="professional_background" />
-          <ReadOnlyField label="Professional Goals" value={(profile?.professional_goals as string) ?? ""} entityTable="profiles" entityId={(profile as any)?.id} columnName="professional_goals" />
-          <ReadOnlyField label="Bio" value={(profile?.bio as string) ?? ""} entityTable="profiles" entityId={(profile as any)?.id} columnName="bio" />
+          <ReadOnlyField
+            label="Professional Background"
+            value={(profile?.professional_background as string) ?? ""}
+            entityTable="profiles"
+            entityId={(profile as any)?.id}
+            columnName="professional_background"
+          />
+          <ReadOnlyField
+            label="Professional Goals"
+            value={(profile?.professional_goals as string) ?? ""}
+            entityTable="profiles"
+            entityId={(profile as any)?.id}
+            columnName="professional_goals"
+          />
+          <ReadOnlyField
+            label="Bio"
+            value={(profile?.bio as string) ?? ""}
+            entityTable="profiles"
+            entityId={(profile as any)?.id}
+            columnName="bio"
+          />
         </CardContent>
       </Card>
 
@@ -221,8 +297,7 @@ export default function ApplicationSubmissionDetailPage() {
       {genApp && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">General Application
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">General Application</CardTitle>
             {genApp.completed_at && (
               <p className="text-xs text-muted-foreground">
                 Completed {format(new Date(genApp.completed_at as string), "MMMM d, yyyy")}
@@ -230,27 +305,99 @@ export default function ApplicationSubmissionDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
+            <ReadOnlyField
+              label="Hours commitment"
+              value={(genApp.hours_commitment as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
-            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="previous_engagement" />
-            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="teammate_learnings" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Engagement History
+            </p>
+            <ReadOnlyField
+              label="Previous engagement with Tech Fleet"
+              value={(genApp.previous_engagement as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="previous_engagement"
+            />
+            <ReadOnlyArrayField
+              label="Previous engagement ways"
+              items={(genApp.previous_engagement_ways as string[]) ?? []}
+            />
+            <ReadOnlyField
+              label="What have you learned from teammates?"
+              value={(genApp.teammate_learnings as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="teammate_learnings"
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
-            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="agile_vs_waterfall" />
-            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="psychological_safety" />
-            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="agile_philosophies" />
-            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="collaboration_challenges" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Agile Mindset
+            </p>
+            <ReadOnlyField
+              label="Agile vs Waterfall"
+              value={(genApp.agile_vs_waterfall as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="agile_vs_waterfall"
+            />
+            <ReadOnlyField
+              label="Psychological Safety"
+              value={(genApp.psychological_safety as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="psychological_safety"
+            />
+            <ReadOnlyField
+              label="Agile Philosophies"
+              value={(genApp.agile_philosophies as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="agile_philosophies"
+            />
+            <ReadOnlyField
+              label="Collaboration Challenges"
+              value={(genApp.collaboration_challenges as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="collaboration_challenges"
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
-            <ReadOnlyField label="Service Leadership Definition" value={(genApp.service_leadership_definition as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="service_leadership_definition" />
-            <ReadOnlyField label="Service Leadership Actions" value={(genApp.service_leadership_actions as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="service_leadership_actions" />
-            <ReadOnlyField label="Service Leadership Challenges" value={(genApp.service_leadership_challenges as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="service_leadership_challenges" />
-            <ReadOnlyField label="Service Leadership Situation" value={(genApp.service_leadership_situation as string) ?? ""} entityTable="general_applications" entityId={(genApp as any)?.id} columnName="service_leadership_situation" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Service Leadership
+            </p>
+            <ReadOnlyField
+              label="Service Leadership Definition"
+              value={(genApp.service_leadership_definition as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="service_leadership_definition"
+            />
+            <ReadOnlyField
+              label="Service Leadership Actions"
+              value={(genApp.service_leadership_actions as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="service_leadership_actions"
+            />
+            <ReadOnlyField
+              label="Service Leadership Challenges"
+              value={(genApp.service_leadership_challenges as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="service_leadership_challenges"
+            />
+            <ReadOnlyField
+              label="Service Leadership Situation"
+              value={(genApp.service_leadership_situation as string) ?? ""}
+              entityTable="general_applications"
+              entityId={(genApp as any)?.id}
+              columnName="service_leadership_situation"
+            />
           </CardContent>
         </Card>
       )}
@@ -258,11 +405,16 @@ export default function ApplicationSubmissionDetailPage() {
       {/* ── SECTION 3: Project Application Responses ──── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">Project Application — {(client?.name as string) ?? "Project"}{(project as any)?.friendly_name?.trim() ? ` — ${(project as any).friendly_name}` : ""}
+          <CardTitle className="flex items-center gap-2 text-lg">
+            Project Application — {(client?.name as string) ?? "Project"}
+            {(project as any)?.friendly_name?.trim() ? ` — ${(project as any).friendly_name}` : ""}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ReadOnlyArrayField label="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
+          <ReadOnlyArrayField
+            label="Team Hats of Interest"
+            items={(projApp.team_hats_interest as string[]) ?? []}
+          />
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -271,24 +423,70 @@ export default function ApplicationSubmissionDetailPage() {
 
           {participatedPrev ? (
             <>
-              <ReadOnlyField label="What team position did you join in the previous phase?" value={(projApp.previous_phase_position as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="previous_phase_position" />
-              <ReadOnlyField label="What did you learn in the previous phase?" value={(projApp.previous_phase_learnings as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="previous_phase_learnings" />
-              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(projApp.previous_phase_help_teammates as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="previous_phase_help_teammates" />
+              <ReadOnlyField
+                label="What team position did you join in the previous phase?"
+                value={(projApp.previous_phase_position as string) ?? ""}
+                entityTable="project_applications"
+                entityId={(projApp as any)?.id}
+                columnName="previous_phase_position"
+              />
+              <ReadOnlyField
+                label="What did you learn in the previous phase?"
+                value={(projApp.previous_phase_learnings as string) ?? ""}
+                entityTable="project_applications"
+                entityId={(projApp as any)?.id}
+                columnName="previous_phase_learnings"
+              />
+              <ReadOnlyField
+                label="How will you help your teammates succeed in this upcoming phase?"
+                value={(projApp.previous_phase_help_teammates as string) ?? ""}
+                entityTable="project_applications"
+                entityId={(projApp as any)?.id}
+                columnName="previous_phase_help_teammates"
+              />
             </>
           ) : (
             <ReadOnlyField
               label="How has your prior engagement in Tech Fleet prepared you for this team role?"
               value={(projApp.prior_engagement_preparation as string) ?? ""}
-              entityTable="project_applications" entityId={(projApp as any)?.id} columnName="prior_engagement_preparation"
+              entityTable="project_applications"
+              entityId={(projApp as any)?.id}
+              columnName="prior_engagement_preparation"
             />
           )}
 
           <Separator className="my-2" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
-          <ReadOnlyField label="Why are you passionate about being on this project?" value={(projApp.passion_for_project as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="passion_for_project" />
-          <ReadOnlyField label="What do you know about the client and the project?" value={(projApp.client_project_knowledge as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="client_project_knowledge" />
-          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(projApp.cross_functional_contribution as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="cross_functional_contribution" />
-          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(projApp.project_success_contribution as string) ?? ""} entityTable="project_applications" entityId={(projApp as any)?.id} columnName="project_success_contribution" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Client Questions
+          </p>
+          <ReadOnlyField
+            label="Why are you passionate about being on this project?"
+            value={(projApp.passion_for_project as string) ?? ""}
+            entityTable="project_applications"
+            entityId={(projApp as any)?.id}
+            columnName="passion_for_project"
+          />
+          <ReadOnlyField
+            label="What do you know about the client and the project?"
+            value={(projApp.client_project_knowledge as string) ?? ""}
+            entityTable="project_applications"
+            entityId={(projApp as any)?.id}
+            columnName="client_project_knowledge"
+          />
+          <ReadOnlyField
+            label="How would you like to contribute to cross-functional teamwork?"
+            value={(projApp.cross_functional_contribution as string) ?? ""}
+            entityTable="project_applications"
+            entityId={(projApp as any)?.id}
+            columnName="cross_functional_contribution"
+          />
+          <ReadOnlyField
+            label="How will you contribute to this project's successful outcomes?"
+            value={(projApp.project_success_contribution as string) ?? ""}
+            entityTable="project_applications"
+            entityId={(projApp as any)?.id}
+            columnName="project_success_contribution"
+          />
         </CardContent>
       </Card>
 
