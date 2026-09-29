@@ -166,15 +166,24 @@ export default function ProjectApplicationPage() {
   const { data: project, isLoading: projLoading } = useQuery({
     queryKey: ["project-detail", projectId],
     queryFn: async () => {
+      // Explicit non-sensitive columns only — never select('*'). public.projects is COLUMN-SCOPED for
+      // `authenticated` (ADR-0056): select('*') expands to the four operational columns this role cannot
+      // read and fails 42501/403, which surfaced to applicants as "Project not found" on resume. Keep the
+      // list to exactly ProjectInfo; is_shipathon is granted to authenticated (20260921120000) and MUST be
+      // selected so the Shipathon question flow (ADR-0055) stays correct. (ADR-0065)
       const { data, error } = await supabase
         .from("projects")
-        .select("*")
+        .select(
+          "id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, coordinator_id, friendly_name, description, is_shipathon"
+        )
         .eq("id", projectId!)
         .single();
       if (error) throw error;
       return data as unknown as ProjectInfo;
     },
-    enabled: !!projectId,
+    // Gate on user so the read runs as `authenticated` (not anon, which holds no SELECT on projects) —
+    // the page already requires a signed-in user to render; this closes the session-race "not found".
+    enabled: !!projectId && !!user,
   });
 
   const { data: client } = useQuery({
