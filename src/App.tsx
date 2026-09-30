@@ -1,6 +1,6 @@
 import { appQueryClient, QueryClientProvider, PersistQueryClientProvider } from "@/lib/react-query";
 import { getQueryPersister, shouldPersistQuery, PERSISTER_BUSTER } from "@/lib/query/persister";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
-import { TeacherRoute } from "@/components/TeacherRoute";
+import { ClassAdminRoute } from "@/components/ClassAdminRoute";
 import { IdleTimeoutGuard } from "@/components/IdleTimeoutGuard";
 import { SessionKeepalive } from "@/components/SessionKeepalive";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -147,11 +147,10 @@ const AdminEmailDeliverabilityTestPage = lazy(
 );
 const BrandTokensPage = lazy(() => import("./pages/BrandTokensPage"));
 const DesignSystemShowcasePage = lazy(() => import("./pages/DesignSystemShowcasePage"));
-const MyClassesPage = lazy(() => import("./pages/MyClassesPage"));
+const ClassAdminPage = lazy(() => import("./pages/ClassAdminPage"));
 const ClassFormPage = lazy(() => import("./pages/ClassFormPage"));
 const ClassDetailPage = lazy(() => import("./pages/ClassDetailPage"));
 const CohortFormPage = lazy(() => import("./pages/CohortFormPage"));
-const AdminClassesPage = lazy(() => import("./pages/AdminClassesPage"));
 const ConfirmTeacherPage = lazy(() => import("./pages/ConfirmTeacherPage"));
 
 function RouteFallback() {
@@ -160,6 +159,26 @@ function RouteFallback() {
       <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
+}
+
+/**
+ * Redirects the legacy class routes to the merged Class Admin namespace (ADR-0063), preserving the
+ * path suffix, search, and hash so bookmarks, the confirm-teacher email, and deep links keep working:
+ *   /admin/classes            → /class-admin/classes
+ *   /teach/classes[/...]      → /class-admin/classes[/...]
+ */
+function ClassRoutesRedirect() {
+  const location = useLocation();
+  const { pathname, search, hash } = location;
+  let target: string;
+  if (pathname === "/admin/classes") {
+    target = "/class-admin/classes";
+  } else if (pathname.startsWith("/teach/classes")) {
+    target = pathname.replace(/^\/teach\/classes/, "/class-admin/classes");
+  } else {
+    target = "/class-admin/classes";
+  }
+  return <Navigate to={{ pathname: target, search, hash }} replace />;
 }
 
 if (consumeQueryCacheResetPending()) appQueryClient.clear();
@@ -639,62 +658,71 @@ const App = () => (
                       />
                       <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                       <Route path="/confirm-teacher" element={<ConfirmTeacherPage />} />
+                      {/* Class Admin (ADR-0063): one namespace for teachers + admins, guarded by
+                          ClassAdminRoute (role gate + role-aware 2FA). */}
                       <Route
-                        path="/teach/classes"
+                        path="/class-admin"
+                        element={<Navigate to="/class-admin/classes" replace />}
+                      />
+                      <Route
+                        path="/class-admin/classes"
                         element={
-                          <TeacherRoute>
-                            <MyClassesPage />
-                          </TeacherRoute>
+                          <ClassAdminRoute>
+                            <ClassAdminPage tab="classes" />
+                          </ClassAdminRoute>
                         }
                       />
                       <Route
-                        path="/teach/classes/new"
+                        path="/class-admin/cohorts"
                         element={
-                          <TeacherRoute>
+                          <ClassAdminRoute>
+                            <ClassAdminPage tab="cohorts" />
+                          </ClassAdminRoute>
+                        }
+                      />
+                      <Route
+                        path="/class-admin/classes/new"
+                        element={
+                          <ClassAdminRoute>
                             <ClassFormPage />
-                          </TeacherRoute>
+                          </ClassAdminRoute>
                         }
                       />
                       <Route
-                        path="/teach/classes/:id"
+                        path="/class-admin/classes/:id"
                         element={
-                          <TeacherRoute>
+                          <ClassAdminRoute>
                             <ClassDetailPage />
-                          </TeacherRoute>
+                          </ClassAdminRoute>
                         }
                       />
                       <Route
-                        path="/teach/classes/:id/edit"
+                        path="/class-admin/classes/:id/edit"
                         element={
-                          <TeacherRoute>
+                          <ClassAdminRoute>
                             <ClassFormPage />
-                          </TeacherRoute>
+                          </ClassAdminRoute>
                         }
                       />
                       <Route
-                        path="/teach/classes/:id/cohorts/new"
+                        path="/class-admin/classes/:id/cohorts/new"
                         element={
-                          <TeacherRoute>
+                          <ClassAdminRoute>
                             <CohortFormPage />
-                          </TeacherRoute>
+                          </ClassAdminRoute>
                         }
                       />
                       <Route
-                        path="/teach/classes/:id/cohorts/:cohortId/edit"
+                        path="/class-admin/classes/:id/cohorts/:cohortId/edit"
                         element={
-                          <TeacherRoute>
+                          <ClassAdminRoute>
                             <CohortFormPage />
-                          </TeacherRoute>
+                          </ClassAdminRoute>
                         }
                       />
-                      <Route
-                        path="/admin/classes"
-                        element={
-                          <AdminRoute>
-                            <AdminClassesPage />
-                          </AdminRoute>
-                        }
-                      />
+                      {/* Legacy redirects → Class Admin (preserve bookmarks / the confirm-teacher email). */}
+                      <Route path="/teach/classes/*" element={<ClassRoutesRedirect />} />
+                      <Route path="/admin/classes" element={<ClassRoutesRedirect />} />
                       <Route
                         path="/profile/notifications"
                         element={

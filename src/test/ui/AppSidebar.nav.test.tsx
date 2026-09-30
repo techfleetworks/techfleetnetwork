@@ -5,22 +5,16 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 /**
- * Navigation refactor coverage:
- *  - The admin "Curriculum" page/link (/admin/curriculum) is fully removed.
- *  - The class-approval queue moved out of the Admin group into the Teaching
- *    group, renamed "All Classes", and stays admin-only.
- *
- * These are behavioral (Gherkin-style) scenarios wired into the Vitest suite so
- * a regression that re-adds Curriculum or leaks All Classes to non-admin
- * teachers fails CI.
+ * Navigation coverage (ADR-0063): the admin "All Classes" and teacher "My Classes" entries are merged
+ * into ONE "Class Admin" link under Teaching, shown to teachers AND admins, pointing at
+ * /class-admin/classes. Members never see it. The old labels/paths must be gone. Behavioral
+ * (Gherkin-style) scenarios wired into Vitest so a regression fails CI.
  */
 
-// Auth: always a logged-in user (AppSidebar returns null otherwise).
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "u1", email: "t@example.com" } }),
 }));
 
-// Role hooks are re-stubbed per scenario.
 const adminState = { isAdmin: false };
 const teacherState = { isTeacher: false };
 vi.mock("@/hooks/use-admin", () => ({ useAdmin: () => adminState }));
@@ -39,7 +33,7 @@ function renderSidebar() {
   );
 }
 
-describe("AppSidebar navigation refactor", () => {
+describe("AppSidebar — Class Admin navigation", () => {
   beforeEach(() => {
     adminState.isAdmin = false;
     teacherState.isTeacher = false;
@@ -51,34 +45,42 @@ describe("AppSidebar navigation refactor", () => {
     teacherState.isTeacher = true;
     renderSidebar();
     expect(screen.queryByText("Curriculum")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /curriculum/i })).not.toBeInTheDocument();
     expect(document.querySelector('a[href="/admin/curriculum"]')).toBeNull();
   });
 
-  it("shows 'All Classes' under the Teaching group for admins, pointing at /admin/classes", () => {
+  it("shows a single 'Class Admin' link under Teaching for admins, pointing at /class-admin/classes", () => {
     adminState.isAdmin = true;
     renderSidebar();
-    const link = screen.getByRole("link", { name: /all classes/i });
-    expect(link).toHaveAttribute("href", "/admin/classes");
-    // It must live in the Teaching group, not a stray Admin entry.
+    const link = screen.getByRole("link", { name: /class admin/i });
+    expect(link).toHaveAttribute("href", "/class-admin/classes");
     const teaching = screen.getByText("Teaching").closest("div[data-sidebar='group']")!;
-    expect(within(teaching as HTMLElement).getByText("All Classes")).toBeInTheDocument();
+    expect(within(teaching as HTMLElement).getByText("Class Admin")).toBeInTheDocument();
   });
 
-  it("hides 'All Classes' from non-admin teachers (approval queue is admin-only)", () => {
-    teacherState.isTeacher = true; // teacher but NOT admin
+  it("shows 'Class Admin' to a non-admin teacher too, at the same route", () => {
+    teacherState.isTeacher = true;
     renderSidebar();
-    // Teaching group still renders "My Classes"...
-    expect(screen.getByRole("link", { name: /my classes/i })).toBeInTheDocument();
-    // ...but not the admin-only approval queue.
-    expect(screen.queryByText("All Classes")).not.toBeInTheDocument();
-    expect(document.querySelector('a[href="/admin/classes"]')).toBeNull();
+    expect(screen.getByRole("link", { name: /class admin/i })).toHaveAttribute(
+      "href",
+      "/class-admin/classes"
+    );
   });
 
-  it("no longer lists an admin 'Classes' entry in the Admin group", () => {
+  it("hides Class Admin (and the whole Teaching group) from members", () => {
+    // neither teacher nor admin
+    renderSidebar();
+    expect(screen.queryByText("Class Admin")).not.toBeInTheDocument();
+    expect(screen.queryByText("Teaching")).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/class-admin/classes"]')).toBeNull();
+  });
+
+  it("no longer renders the old 'My Classes' / 'All Classes' entries or the old routes", () => {
     adminState.isAdmin = true;
+    teacherState.isTeacher = true;
     renderSidebar();
-    // Old label was exactly "Classes"; the new label is "All Classes".
-    expect(screen.queryByText("Classes")).not.toBeInTheDocument();
+    expect(screen.queryByText("My Classes")).not.toBeInTheDocument();
+    expect(screen.queryByText("All Classes")).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/teach/classes"]')).toBeNull();
+    expect(document.querySelector('a[href="/admin/classes"]')).toBeNull();
   });
 });
