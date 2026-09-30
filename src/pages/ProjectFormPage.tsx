@@ -86,11 +86,9 @@ import { cn } from "@/lib/utils";
 import { reportValidationRejection } from "@/services/error-reporter.service";
 
 // ---------- Helpers ----------
-const optionalUrl = z
-  .string()
-  .refine((v) => v === "" || /^https?:\/\/.+/.test(v), {
-    message: "Must be a valid URL starting with http:// or https://",
-  });
+const optionalUrl = z.string().refine((v) => v === "" || /^https?:\/\/.+/.test(v), {
+  message: "Must be a valid URL starting with http:// or https://",
+});
 
 // ---------- Schema ----------
 const PROJECT_TYPE_VALUES = PROJECT_TYPES.map((t) => t.value) as [string, ...string[]];
@@ -179,8 +177,17 @@ export default function ProjectFormPage() {
   // Sensitive operational columns were revoked from authenticated for security
   // and must be re-merged via the admin/roster-gated RPC.
   const fetchProjectWithLinks = async () => {
+    // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`, so
+    // select('*') fails 42501/403 (ADR-0056/0065). This is every column the form hydrates EXCEPT the
+    // four operational ones, which are re-merged from get_project_internal_links (the RPC below).
     const [{ data, error }, { data: linkRows, error: linkErr }] = await Promise.all([
-      supabase.from("projects").select("*").eq("id", id!).single(),
+      supabase
+        .from("projects")
+        .select(
+          "id, client_id, friendly_name, description, project_type, phase, team_hats, project_status, current_phase_milestones, timezone_range, anticipated_start_date, anticipated_end_date, coordinator_id, requires_interview, is_shipathon"
+        )
+        .eq("id", id!)
+        .single(),
       supabase.rpc("get_project_internal_links", { p_project_id: id! }),
     ]);
     if (error) throw error;
@@ -440,6 +447,8 @@ export default function ProjectFormPage() {
     mutationFn: async (values: ProjectForm) => {
       const sanitized = sanitizeRecordFields(values as unknown as Record<string, unknown>) as any;
       return withBoundedSave({
+        // Bounded DB write (timeout → probe), NOT an invokeEdge call → not an edge-timeouts.ts
+        // candidate; withBoundedSave owns this budget (decisions.md §8).
         timeoutMs: 15_000,
         save: async () => {
           const { error } = await supabase.from("projects").update(sanitized).eq("id", id!);
@@ -538,6 +547,8 @@ export default function ProjectFormPage() {
     onSave: async (values) => {
       const sanitized = sanitizeRecordFields(values as unknown as Record<string, unknown>) as any;
       await withBoundedSave({
+        // Bounded DB write (timeout → probe), NOT an invokeEdge call → not an edge-timeouts.ts
+        // candidate; withBoundedSave owns this budget (decisions.md §8).
         timeoutMs: 15_000,
         save: async () => {
           const { error } = await supabase.from("projects").update(sanitized).eq("id", id!);

@@ -2,7 +2,7 @@
  * Circuit Breaker pattern for resilient service calls at scale.
  *
  * Prevents cascade failures when downstream services (Discord bot,
- * Airtable, edge functions) become unavailable by short-circuiting
+ * Firecrawl, edge functions) become unavailable by short-circuiting
  * calls after repeated failures.
  *
  * States:
@@ -148,14 +148,6 @@ export const discordBreaker = new CircuitBreaker({
   failureThreshold: 5,
   cooldownMs: 60_000,
   windowMs: 120_000,
-});
-
-/** Airtable sync — non-critical, open quickly */
-export const airtableBreaker = new CircuitBreaker({
-  name: "Airtable",
-  failureThreshold: 3,
-  cooldownMs: 45_000,
-  windowMs: 60_000,
 });
 
 /** Generic edge function calls */

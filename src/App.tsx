@@ -84,6 +84,7 @@ const ForgotPasswordPage = lazy(() => import("@/features/auth/ui/ForgotPasswordS
 // ResetPasswordPage stays on disk until Ship 5.
 const ResetPasswordPage = lazy(() => import("@/features/auth/ui/ResetPasswordScreen"));
 const ConfirmRecoveryLinkPage = lazy(() => import("./pages/ConfirmRecoveryLinkPage"));
+const ConfirmSignupPage = lazy(() => import("./pages/ConfirmSignupPage"));
 const ProfileSetupPage = lazy(() => import("./pages/ProfileSetupPage"));
 const WelcomeWizard = lazy(() => import("./pages/WelcomeWizard"));
 const FirstStepsPage = lazy(() => import("./pages/FirstStepsPage"));
@@ -242,6 +243,7 @@ const App = () => (
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                       <Route path="/reset-password" element={<ResetPasswordPage />} />
                       <Route path="/reset-password/confirm" element={<ConfirmRecoveryLinkPage />} />
+                      <Route path="/auth/confirm" element={<ConfirmSignupPage />} />
                       {/* AUTH-ARCH-CUTOVER-002: legacy reset links generated before
                         2026-06-11 pointed at /reset-password/<anything>. Any
                         unrecognized sub-path forwards to the live ResetPasswordScreen
