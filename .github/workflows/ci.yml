@@ -560,7 +560,7 @@ jobs:
           supabase --version
       # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
       # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
-      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0068.
       - name: Authenticate ECR Public (avoids anonymous pull rate limit)
         if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
         env:
@@ -648,7 +648,7 @@ jobs:
           supabase --version
       # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
       # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
-      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0068.
       - name: Authenticate ECR Public (avoids anonymous pull rate limit)
         if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
         env:
@@ -714,7 +714,7 @@ jobs:
           supabase --version
       # Authenticate ECR Public so supabase start's image pulls avoid the anonymous
       # "toomanyrequests: Data limit exceeded" rate limit that flakes db/e2e jobs.
-      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0065.
+      # Skips gracefully if the credential is unset (forks / pre-rollout). ADR-0068.
       - name: Authenticate ECR Public (avoids anonymous pull rate limit)
         if: ${{ secrets.ECR_PUBLIC_AWS_ACCESS_KEY_ID != '' }}
         env:

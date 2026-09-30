@@ -1,4 +1,4 @@
-# ADR 0065 — Authenticate ECR Public pulls in CI to stop the anonymous rate limit
+# ADR 0068 — Authenticate ECR Public pulls in CI to stop the anonymous rate limit
 
 - Status: Accepted
 - Date: 2026-09-27
