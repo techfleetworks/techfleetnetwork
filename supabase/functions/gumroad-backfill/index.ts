@@ -14,7 +14,7 @@
  *  - Seller-id filter (defense in depth) + email re-check.
  *  - Misconfiguration (no access token) fails closed with a 503 AND an audit
  *    event, so a silent outage is visible (Observability).
- *  - Reconcile convergence (ADR-0063): new sales insert (ignoreDuplicates); for a
+ *  - Reconcile convergence (ADR-0067): new sales insert (ignoreDuplicates); for a
  *    sale already in the ledger, lifecycle pulled from the API is applied set-once
  *    via apply_gumroad_sale_lifecycle, so a missed refund webhook still downgrades.
  */
@@ -280,7 +280,7 @@ Deno.serve(
       }
     }
 
-    // Converge lifecycle on sales already in the ledger (ADR-0063). The insert above
+    // Converge lifecycle on sales already in the ledger (ADR-0067). The insert above
     // ignores duplicates, so a refund/dispute/end pulled from the API for an existing
     // sale would otherwise be dropped, and a missed webhook would never downgrade.
     // apply_gumroad_sale_lifecycle sets timestamps once (never clears, never touches

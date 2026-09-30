@@ -1,4 +1,4 @@
--- Gumroad reconcile clawback fix (ADR-0063).
+-- Gumroad reconcile clawback fix (ADR-0067).
 --
 -- Root cause (data/integration layer, not the projector). The pull paths
 -- gumroad-backfill and gumroad-backfill-all fetch refund, dispute, and
@@ -18,7 +18,7 @@
 -- every reconcile run converges access to Gumroad's truth in BOTH directions, so a
 -- missed webhook self-heals within the sweep instead of never. This also protects
 -- membership today and is a prerequisite for the class-registration domain reusing
--- the same pipeline (ADR-0062).
+-- the same pipeline (ADR-0066).
 --
 -- The invariant this closes is proven in supabase/tests/gumroad_reconcile_clawback_test.sql:
 -- a sale with refunded_at or disputed_at set yields no active membership, even
@@ -59,7 +59,7 @@ begin
 end$$;
 
 comment on function public.apply_gumroad_sale_lifecycle(text, boolean, boolean, timestamptz, timestamptz) is
-  'Set-once idempotent apply of Gumroad lifecycle (refund/dispute/cancel/end) to an existing gumroad_sales row, used by the reconcile pull paths so a missed webhook still downgrades access. Only sets timestamps, never clears them or touches resolution state. Service role only. ADR-0063.';
+  'Set-once idempotent apply of Gumroad lifecycle (refund/dispute/cancel/end) to an existing gumroad_sales row, used by the reconcile pull paths so a missed webhook still downgrades access. Only sets timestamps, never clears them or touches resolution state. Service role only. ADR-0067.';
 
 -- Least privilege: the pull paths run as service role; members and anon can never
 -- call this (they cannot write the ledger at all).

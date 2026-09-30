@@ -286,7 +286,7 @@ Deno.serve(
         skipped++;
         continue;
       }
-      // Converge lifecycle on an existing ledger row (ADR-0063): the upsert above
+      // Converge lifecycle on an existing ledger row (ADR-0067): the upsert above
       // ignores duplicates, so a refund/dispute/end for a sale already recorded would
       // be dropped and a missed webhook would never downgrade. Apply set-once; the
       // projection trigger re-derives access. Report and continue on failure.

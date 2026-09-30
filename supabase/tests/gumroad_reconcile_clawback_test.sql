@@ -1,4 +1,4 @@
--- pgTAP: Gumroad reconcile clawback fix (ADR-0063).
+-- pgTAP: Gumroad reconcile clawback fix (ADR-0067).
 -- Proves the structural guarantee that the audit found broken: a refund pulled by
 -- the reconcile path for a sale already in the ledger downgrades access, and a
 -- refunded sale can never still grant. apply_gumroad_sale_lifecycle is set-once

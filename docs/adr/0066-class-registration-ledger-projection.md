@@ -1,4 +1,4 @@
-# ADR 0062 — Class registration as a verified Gumroad ledger projection
+# ADR 0066 — Class registration as a verified Gumroad ledger projection
 
 - Status: Accepted
 - Date: 2026-09-26
