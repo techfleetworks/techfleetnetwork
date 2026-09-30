@@ -9,6 +9,7 @@ import {
   validateProjectStep2,
   validateProjectStep3,
 } from "@/lib/applications/project-application-questions";
+import { useProjectForApplication } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
@@ -70,22 +71,6 @@ interface ProjectApp {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
-}
-
-interface ProjectInfo {
-  id: string;
-  client_id: string;
-  project_type: string;
-  phase: string;
-  project_status: string;
-  team_hats: string[];
-  current_phase_milestones: string[];
-  coordinator_id?: string | null;
-  friendly_name?: string;
-  description?: string;
-  // Optional on purpose: a missing column (projection/grant regression) stays visible to the
-  // compiler and resolves to the normal question set rather than silently hiding questions.
-  is_shipathon?: boolean;
 }
 
 interface ClientInfo {
@@ -163,27 +148,12 @@ export default function ProjectApplicationPage() {
   const [initialized, setInitialized] = useState(false);
 
   /* ── fetch project info ────────────────────────────────── */
-  const { data: project, isLoading: projLoading } = useQuery({
-    queryKey: ["project-detail", projectId],
-    queryFn: async () => {
-      // Explicit non-sensitive columns only — never select('*'). public.projects is COLUMN-SCOPED for
-      // `authenticated` (ADR-0056): select('*') expands to the four operational columns this role cannot
-      // read and fails 42501/403, which surfaced to applicants as "Project not found" on resume. Keep the
-      // list to exactly ProjectInfo; is_shipathon is granted to authenticated (20260921120000) and MUST be
-      // selected so the Shipathon question flow (ADR-0055) stays correct. (ADR-0065)
-      const { data, error } = await supabase
-        .from("projects")
-        .select(
-          "id, client_id, project_type, phase, project_status, team_hats, current_phase_milestones, coordinator_id, friendly_name, description, is_shipathon"
-        )
-        .eq("id", projectId!)
-        .single();
-      if (error) throw error;
-      return data as unknown as ProjectInfo;
-    },
-    // Gate on user so the read runs as `authenticated` (not anon, which holds no SELECT on projects) —
-    // the page already requires a signed-in user to render; this closes the session-race "not found".
-    enabled: !!projectId && !!user,
+  // Owned by projectService via use-project.ts — the page no longer selects projects columns itself;
+  // the column contract (incl. is_shipathon for the Shipathon flow, ADR-0055) lives in one place
+  // (ADR-0066). Gated on `user` so the read runs as `authenticated`, not `anon` (no SELECT on
+  // projects), which also closes the session-race "Project not found" (ADR-0065).
+  const { data: project, isLoading: projLoading } = useProjectForApplication(projectId, {
+    enabled: !!user,
   });
 
   const { data: client } = useQuery({
