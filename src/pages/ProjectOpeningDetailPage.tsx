@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ReadinessChecklist } from "@/components/ReadinessChecklist";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicProjectDetail } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2,
@@ -54,52 +55,7 @@ const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
-/* ── Types ───────────────────────────────────────────────── */
-interface ProjectDetail {
-  id: string;
-  client_id: string;
-  project_type: string;
-  phase: string;
-  project_status: string;
-  team_hats: string[];
-  current_phase_milestones: string[];
-  created_at: string;
-  timezone_range?: string;
-  anticipated_start_date?: string | null;
-  anticipated_end_date?: string | null;
-  client_intake_url?: string;
-  notion_repository_url?: string;
-  coordinator_id?: string | null;
-  friendly_name?: string;
-  description?: string;
-  requires_interview?: boolean;
-}
-
-interface ClientDetail {
-  id: string;
-  name: string;
-  website: string;
-  mission: string;
-  project_summary: string;
-  primary_contact: string;
-  status: string;
-  logo_url?: string | null;
-  kind?: "external" | "internal";
-}
-
-interface MilestoneData {
-  deliverables: string[];
-  activities: string[];
-  skills: string[];
-}
-
-interface ApiResponse {
-  project: ProjectDetail;
-  client: ClientDetail | null;
-  milestoneData: MilestoneData;
-  applicationCount: number;
-  coordinatorName: string | null;
-}
+/* Types for the public opening-detail payload are owned by projectService (ADR-0066). */
 
 /* ── Pill list component ─────────────────────────────────── */
 function PillList({
@@ -161,36 +117,11 @@ export default function ProjectOpeningDetailPage() {
   const openingsHref = fromVolunteer ? "/project-openings?tab=volunteer" : "/project-openings";
   const openingsLabel = fromVolunteer ? "Volunteer Openings" : "Project Openings";
   const { user } = useAuth();
-  const [data, setData] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!projectId) return;
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    fetch(
-      `${supabaseUrl}/functions/v1/public-project-detail?projectId=${encodeURIComponent(projectId)}`,
-      {
-        headers: {
-          apikey: anonKey,
-          "Content-Type": "application/json",
-        },
-      }
-    )
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || "Failed to load project");
-        }
-        return res.json();
-      })
-      .then((d) => setData(d as ApiResponse))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  // Public opening-detail read is owned by projectService via use-project.ts (service-role edge fn,
+  // safe for logged-out visitors — the page no longer builds the fetch itself). ADR-0066.
+  const { data, isLoading: loading, error: loadError } = usePublicProjectDetail(projectId);
+  const error =
+    loadError instanceof Error ? loadError.message : loadError ? "Failed to load project" : null;
 
   /* The member's submission state on this project — one source of truth (none | draft | completed).
      A draft (started, not yet submitted) must offer "Resume", never claim "you've already submitted":

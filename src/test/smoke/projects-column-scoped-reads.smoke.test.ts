@@ -8,6 +8,10 @@
 // so the Shipathon question flow (ADR-0055) stays correct, and that the two "applied?" surfaces derive
 // submission state from the single owner rather than row existence. Reading each source by its full path
 // also gives these modules bdd-gate coverage (D-13).
+//
+// ADR-0066: the authenticated projects reads are moving behind projectService (the single owner of
+// projects reads for the UI); this suite now guards that owner too and keeps the per-surface
+// regression checks so a raw select('*') can't reappear at a page/component either.
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
@@ -17,8 +21,11 @@ const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8")
 // `from("projects").select("*"` — single-line or multiline chain (same shape the arch-gate rule bans).
 const PROJECTS_SELECT_STAR = /from\(\s*['"]projects['"]\s*\)\s*\.select\(\s*['"]\*/;
 
-// Every file migrated off select("*") for public.projects (authenticated client).
+// Every reader migrated off select("*") for public.projects (authenticated client). As reads move
+// behind projectService (ADR-0066) the service becomes the primary guarded reader; the page/component
+// entries stay on as regression guards so a raw select('*') can't reappear at a surface either.
 const PROJECT_READERS = [
+  "src/services/project.service.ts",
   "src/pages/ProjectApplicationPage.tsx",
   "src/pages/ProjectOpeningDetailPage.tsx",
   "src/pages/MyProjectApplicationsPage.tsx",
@@ -34,7 +41,10 @@ describe("projects column-scoped reads (ADR-0065 smoke)", () => {
     expect(read(file)).not.toMatch(PROJECTS_SELECT_STAR);
   });
 
-  it("APP-RESUME-001: the apply page selects is_shipathon (keeps the Shipathon flow, ADR-0055)", () => {
+  it("APP-RESUME-001: projectService's apply column contract keeps is_shipathon, and the apply page consumes it (ADR-0055/0066)", () => {
+    // The column now lives in the service (the one owner); the page must still pass it to the
+    // question logic. Both halves guarded so the Shipathon flow can't silently break.
+    expect(read("src/services/project.service.ts")).toMatch(/is_shipathon/);
     expect(read("src/pages/ProjectApplicationPage.tsx")).toMatch(/is_shipathon/);
   });
 
