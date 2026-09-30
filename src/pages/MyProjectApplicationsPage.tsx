@@ -6,8 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { format } from "date-fns";
 import {
-  ArrowLeft, CheckCircle2, Clock, ExternalLink, Loader2, FolderKanban,
-  LayoutGrid, List,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Loader2,
+  FolderKanban,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { PageTitle } from "@/components/ui/typography";
 
@@ -15,8 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ThemedAgGrid } from "@/components/AgGrid";
@@ -60,7 +70,15 @@ const APPLICANT_STATUS_LABELS: Record<string, string> = {
 };
 
 interface EnrichedApp extends ProjectApp {
-  project?: { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[]; friendly_name?: string | null };
+  project?: {
+    id: string;
+    project_type: string;
+    phase: string;
+    project_status: string;
+    client_id: string;
+    team_hats: string[];
+    friendly_name?: string | null;
+  };
   client?: { id: string; name: string; logo_url?: string | null; kind?: "external" | "internal" };
 }
 
@@ -82,7 +100,6 @@ export default function MyProjectApplicationsPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const [view, setView] = useState<"card" | "table">("card");
-  
 
   /* Realtime invalidation is mounted globally in AppLayout
    * (useProjectApplicationsRealtime + useNotificationRealtime), so we no
@@ -112,24 +129,46 @@ export default function MyProjectApplicationsPage() {
     queryKey: ["my-projects-for-apps", projectIds],
     queryFn: async () => {
       if (projectIds.length === 0) return [];
+      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`,
+      // so select('*') fails 42501/403 (ADR-0056/0065). List exactly what this page renders.
       const { data, error } = await supabase
-        .from("projects").select("*").in("id", projectIds);
+        .from("projects")
+        .select("id, project_type, phase, project_status, client_id, team_hats, friendly_name")
+        .in("id", projectIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; project_type: string; phase: string; project_status: string; client_id: string; team_hats: string[]; friendly_name?: string | null }[];
+      return (data ?? []) as {
+        id: string;
+        project_type: string;
+        phase: string;
+        project_status: string;
+        client_id: string;
+        team_hats: string[];
+        friendly_name?: string | null;
+      }[];
     },
     enabled: projectIds.length > 0,
   });
 
-  const clientIds = useMemo(() => [...new Set((projects ?? []).map((p) => p.client_id))], [projects]);
+  const clientIds = useMemo(
+    () => [...new Set((projects ?? []).map((p) => p.client_id))],
+    [projects]
+  );
 
   const { data: clients } = useQuery({
     queryKey: ["my-clients-for-apps", clientIds],
     queryFn: async () => {
       if (clientIds.length === 0) return [];
       const { data, error } = await supabase
-        .from("clients").select("id, name, logo_url, kind").in("id", clientIds);
+        .from("clients")
+        .select("id, name, logo_url, kind")
+        .in("id", clientIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; name: string; logo_url: string | null; kind?: "external" | "internal" }[];
+      return (data ?? []) as {
+        id: string;
+        name: string;
+        logo_url: string | null;
+        kind?: "external" | "internal";
+      }[];
     },
     enabled: clientIds.length > 0,
   });
@@ -137,107 +176,116 @@ export default function MyProjectApplicationsPage() {
   const projectMap = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p])), [projects]);
   const clientMap = useMemo(() => new Map((clients ?? []).map((c) => [c.id, c])), [clients]);
 
-  const enriched = useMemo(() => (apps ?? []).map((a) => {
-    const proj = projectMap.get(a.project_id);
-    const cli = proj ? clientMap.get(proj.client_id) : undefined;
-    return { ...a, project: proj, client: cli };
-  }), [apps, projectMap, clientMap]);
+  const enriched = useMemo(
+    () =>
+      (apps ?? []).map((a) => {
+        const proj = projectMap.get(a.project_id);
+        const cli = proj ? clientMap.get(proj.client_id) : undefined;
+        return { ...a, project: proj, client: cli };
+      }),
+    [apps, projectMap, clientMap]
+  );
 
   /* ── AG Grid column definitions ── */
-  const columnDefs = useMemo<ColDef<EnrichedApp>[]>(() => [
-    {
-      headerName: "Client",
-      field: "client",
-      valueGetter: (p) => p.data?.client?.name ?? "Unknown",
-      flex: 1.5,
-      minWidth: 140,
-    },
-    {
-      headerName: "Project",
-      colId: "project_friendly",
-      valueGetter: (p) => p.data?.project?.friendly_name?.trim() || "—",
-      flex: 1.5,
-      minWidth: 140,
-    },
-    {
-      headerName: "App Status",
-      field: "status",
-      cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
-        const d = p.data;
-        if (!d) return null;
-        if (d.status === "completed") return "Submitted";
-        if (d.status === "draft") return "In Progress";
-        return d.status;
+  const columnDefs = useMemo<ColDef<EnrichedApp>[]>(
+    () => [
+      {
+        headerName: "Client",
+        field: "client",
+        valueGetter: (p) => p.data?.client?.name ?? "Unknown",
+        flex: 1.5,
+        minWidth: 140,
       },
-      flex: 0.8,
-      minWidth: 90,
-    },
-    {
-      headerName: "Applicant Status",
-      field: "applicant_status",
-      valueGetter: (p) => APPLICANT_STATUS_LABELS[p.data?.applicant_status ?? "pending_review"] ?? p.data?.applicant_status,
-      flex: 1.2,
-      minWidth: 130,
-    },
-    {
-      headerName: "Type",
-      valueGetter: (p) => typeLabel(p.data?.project?.project_type ?? ""),
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      headerName: "Phase",
-      valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? ""),
-      flex: 0.8,
-      minWidth: 80,
-    },
-    {
-      headerName: "Project Status",
-      valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? ""),
-      flex: 1,
-      minWidth: 110,
-    },
-    {
-      headerName: "Team Hats",
-      valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
-      flex: 1.5,
-      minWidth: 140,
-    },
-    {
-      headerName: "Date",
-      valueGetter: (p) => {
-        const d = p.data;
-        if (!d) return "";
-        return d.completed_at
-          ? format(new Date(d.completed_at), "MMM d, yyyy")
-          : format(new Date(d.updated_at), "MMM d, yyyy");
+      {
+        headerName: "Project",
+        colId: "project_friendly",
+        valueGetter: (p) => p.data?.project?.friendly_name?.trim() || "—",
+        flex: 1.5,
+        minWidth: 140,
       },
-      flex: 1,
-      minWidth: 110,
-    },
-    {
-      headerName: "",
-      sortable: false,
-      filter: false,
-      maxWidth: 100,
-      cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
-        if (!p.data) return null;
-        const route = getAppRoute(p.data);
-        const isStatusPage = route.includes("/status");
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 h-7 text-xs"
-            onClick={() => navigate(route)}
-          >
-            {isStatusPage ? "Status" : p.data.status === "completed" ? "View" : "Continue"}
-            <ExternalLink className="h-3 w-3" />
-          </Button>
-        );
+      {
+        headerName: "App Status",
+        field: "status",
+        cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
+          const d = p.data;
+          if (!d) return null;
+          if (d.status === "completed") return "Submitted";
+          if (d.status === "draft") return "In Progress";
+          return d.status;
+        },
+        flex: 0.8,
+        minWidth: 90,
       },
-    },
-  ], [navigate]);
+      {
+        headerName: "Applicant Status",
+        field: "applicant_status",
+        valueGetter: (p) =>
+          APPLICANT_STATUS_LABELS[p.data?.applicant_status ?? "pending_review"] ??
+          p.data?.applicant_status,
+        flex: 1.2,
+        minWidth: 130,
+      },
+      {
+        headerName: "Type",
+        valueGetter: (p) => typeLabel(p.data?.project?.project_type ?? ""),
+        flex: 1,
+        minWidth: 120,
+      },
+      {
+        headerName: "Phase",
+        valueGetter: (p) => phaseLabel(p.data?.project?.phase ?? ""),
+        flex: 0.8,
+        minWidth: 80,
+      },
+      {
+        headerName: "Project Status",
+        valueGetter: (p) => statusLabel(p.data?.project?.project_status ?? ""),
+        flex: 1,
+        minWidth: 110,
+      },
+      {
+        headerName: "Team Hats",
+        valueGetter: (p) => (p.data?.team_hats_interest ?? []).join(", "),
+        flex: 1.5,
+        minWidth: 140,
+      },
+      {
+        headerName: "Date",
+        valueGetter: (p) => {
+          const d = p.data;
+          if (!d) return "";
+          return d.completed_at
+            ? format(new Date(d.completed_at), "MMM d, yyyy")
+            : format(new Date(d.updated_at), "MMM d, yyyy");
+        },
+        flex: 1,
+        minWidth: 110,
+      },
+      {
+        headerName: "",
+        sortable: false,
+        filter: false,
+        maxWidth: 100,
+        cellRenderer: (p: ICellRendererParams<EnrichedApp>) => {
+          if (!p.data) return null;
+          const route = getAppRoute(p.data);
+          const isStatusPage = route.includes("/status");
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 h-7 text-xs"
+              onClick={() => navigate(route)}
+            >
+              {isStatusPage ? "Status" : p.data.status === "completed" ? "View" : "Continue"}
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          );
+        },
+      },
+    ],
+    [navigate]
+  );
 
   if (isLoading) {
     return (
@@ -265,7 +313,12 @@ export default function MyProjectApplicationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/applications")} aria-label="Back to Applications">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/applications")}
+            aria-label="Back to Applications"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -337,7 +390,8 @@ export default function MyProjectApplicationsPage() {
             const isDraft = app.status === "draft";
             const route = getAppRoute(app);
             const hasStatusUpdate = isCompleted && STATUS_PAGE_STATUSES.has(app.applicant_status);
-            const statusLabel2 = APPLICANT_STATUS_LABELS[app.applicant_status] ?? app.applicant_status;
+            const statusLabel2 =
+              APPLICANT_STATUS_LABELS[app.applicant_status] ?? app.applicant_status;
 
             return (
               <Card
@@ -360,12 +414,18 @@ export default function MyProjectApplicationsPage() {
                       />
                     </div>
                     {hasStatusUpdate ? (
-                      <Badge className={`gap-1 shrink-0 ${
-                        app.applicant_status === "invited_to_interview" ? "bg-primary/10 text-primary border-primary/30" :
-                        app.applicant_status === "interview_scheduled" || app.applicant_status === "active_participant" ? "bg-success/10 text-success border-success/30" :
-                        app.applicant_status === "not_selected" ? "bg-destructive/10 text-destructive border-destructive/30" :
-                        "bg-muted text-muted-foreground border-border"
-                      }`}>
+                      <Badge
+                        className={`gap-1 shrink-0 ${
+                          app.applicant_status === "invited_to_interview"
+                            ? "bg-primary/10 text-primary border-primary/30"
+                            : app.applicant_status === "interview_scheduled" ||
+                                app.applicant_status === "active_participant"
+                              ? "bg-success/10 text-success border-success/30"
+                              : app.applicant_status === "not_selected"
+                                ? "bg-destructive/10 text-destructive border-destructive/30"
+                                : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
                         {statusLabel2}
                       </Badge>
                     ) : isCompleted ? (
@@ -384,11 +444,19 @@ export default function MyProjectApplicationsPage() {
                   {/* Project details */}
                   <div className="flex flex-wrap gap-1.5">
                     {app.client?.kind === "internal" && (
-                      <Badge className="bg-info/10 text-info border-info/30 text-xs">Volunteer Opening</Badge>
+                      <Badge className="bg-info/10 text-info border-info/30 text-xs">
+                        Volunteer Opening
+                      </Badge>
                     )}
-                    <Badge variant="outline" className="text-xs">{typeLabel(app.project?.project_type ?? "")}</Badge>
-                    <Badge variant="outline" className="text-xs">{phaseLabel(app.project?.phase ?? "")}</Badge>
-                    <Badge variant="secondary" className="text-xs">{statusLabel(app.project?.project_status ?? "")}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {typeLabel(app.project?.project_type ?? "")}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {phaseLabel(app.project?.phase ?? "")}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {statusLabel(app.project?.project_status ?? "")}
+                    </Badge>
                   </div>
 
                   {/* Team hats */}
@@ -397,7 +465,9 @@ export default function MyProjectApplicationsPage() {
                       <p className="text-sm font-semibold text-muted-foreground">Your Team Hats</p>
                       <div className="flex flex-wrap gap-1">
                         {app.team_hats_interest.map((h) => (
-                          <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
+                          <Badge key={h} variant="outline" className="text-xs">
+                            {h}
+                          </Badge>
                         ))}
                       </div>
                     </div>
@@ -410,12 +480,27 @@ export default function MyProjectApplicationsPage() {
                     </p>
                   ) : isDraft ? (
                     <p className="text-xs text-muted-foreground">
-                      Step {app.current_step} of 3 · Last updated {format(new Date(app.updated_at), "MMM d, yyyy")}
+                      Step {app.current_step} of 3 · Last updated{" "}
+                      {format(new Date(app.updated_at), "MMM d, yyyy")}
                     </p>
                   ) : null}
 
-                  <Button variant={hasStatusUpdate && app.applicant_status === "invited_to_interview" ? "default" : "outline"} size="sm" className="w-full gap-1">
-                    {hasStatusUpdate ? (app.applicant_status === "invited_to_interview" ? "Accept Invitation" : "View Status") : isCompleted ? "View Status" : "Continue Application"}
+                  <Button
+                    variant={
+                      hasStatusUpdate && app.applicant_status === "invited_to_interview"
+                        ? "default"
+                        : "outline"
+                    }
+                    size="sm"
+                    className="w-full gap-1"
+                  >
+                    {hasStatusUpdate
+                      ? app.applicant_status === "invited_to_interview"
+                        ? "Accept Invitation"
+                        : "View Status"
+                      : isCompleted
+                        ? "View Status"
+                        : "Continue Application"}
                     <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
                 </CardContent>
