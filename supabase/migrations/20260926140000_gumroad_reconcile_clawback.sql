@@ -1,4 +1,4 @@
--- Gumroad reconcile clawback fix (ADR-0067).
+-- Gumroad reconcile clawback fix (ADR-0070).
 --
 -- Root cause (data/integration layer, not the projector). The pull paths
 -- gumroad-backfill and gumroad-backfill-all fetch refund, dispute, and
@@ -59,7 +59,7 @@ begin
 end$$;
 
 comment on function public.apply_gumroad_sale_lifecycle(text, boolean, boolean, timestamptz, timestamptz) is
-  'Set-once idempotent apply of Gumroad lifecycle (refund/dispute/cancel/end) to an existing gumroad_sales row, used by the reconcile pull paths so a missed webhook still downgrades access. Only sets timestamps, never clears them or touches resolution state. Service role only. ADR-0067.';
+  'Set-once idempotent apply of Gumroad lifecycle (refund/dispute/cancel/end) to an existing gumroad_sales row, used by the reconcile pull paths so a missed webhook still downgrades access. Only sets timestamps, never clears them or touches resolution state. Service role only. ADR-0070.';
 
 -- Least privilege: the pull paths run as service role; members and anon can never
 -- call this (they cannot write the ledger at all).

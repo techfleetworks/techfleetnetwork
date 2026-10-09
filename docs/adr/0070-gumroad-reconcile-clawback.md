@@ -1,4 +1,4 @@
-# ADR 0067 — Reconcile converges Gumroad lifecycle in both directions (clawback fix)
+# ADR 0070 — Reconcile converges Gumroad lifecycle in both directions (clawback fix)
 
 - Status: Accepted
 - Date: 2026-09-26
