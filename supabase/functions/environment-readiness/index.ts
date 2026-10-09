@@ -42,8 +42,6 @@ const SECRETS: Array<{ name: string; category: string; required: boolean }> = [
   // Discord
   { name: "DISCORD_BOT_TOKEN", category: "discord", required: true },
   { name: "DISCORD_GUILD_ID", category: "discord", required: true },
-  // Integrations
-  { name: "AIRTABLE_API_KEY", category: "integrations", required: false },
   // Legacy (should be UNSET once fully off Lovable)
   { name: "LOVABLE_API_KEY", category: "legacy", required: false },
 ];
