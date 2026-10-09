@@ -107,7 +107,7 @@ export default function ConfirmTeacherPage() {
           You can now create and publish classes in Tech Fleet Network.
         </p>
         <Button asChild>
-          <Link to="/teach/classes">Go to My Classes</Link>
+          <Link to="/class-admin/classes">Go to Class Admin</Link>
         </Button>
       </Shell>
     );
