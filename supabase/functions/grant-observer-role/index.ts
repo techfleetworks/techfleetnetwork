@@ -15,6 +15,17 @@ const log = createEdgeLogger("grant-observer-role");
 
 const MAX_BODY_BYTES = 1024;
 
+// Hard ceiling on the two live-Discord role grants (Projects then Observers), SHARED across BOTH.
+// It stays below the client's invokeEdge budget for "grant-observer-role"
+// (src/lib/edge/edge-timeouts.ts = 15_000) so the grants — the part that can hang on Discord 429s —
+// resolve (success, or a clean failure that's queued for self-healing retry) before the browser
+// aborts. The two grants run sequentially, so budgeting each independently could total ~24s and
+// outrun the client; instead both draw down ONE budget measured from the first grant. NOTE: the
+// best-effort notification + transactional-email calls AFTER a successful grant are outside this
+// budget; if that email call hangs the whole handler can still exceed the client budget, but the
+// grant is already persisted and the reload path returns alreadyGranted:true. ADR-0063.
+const OBSERVER_TOTAL_BUDGET_MS = 12_000;
+
 // All Observer course lesson IDs that must be completed before granting roles.
 const REQUIRED_LESSON_IDS = ["obs-1", "obs-2", "obs-3", "obs-4", "obs-5", "obs-6", "obs-7"];
 
@@ -190,13 +201,24 @@ serve(
 
     const discordHeaders = { Authorization: `Bot ${BOT_TOKEN}` };
 
+    // One wall-clock budget shared by both grants below (see OBSERVER_TOTAL_BUDGET_MS). Started here,
+    // just before the first grant, so a slow first role leaves the second only the remaining budget
+    // and the pair can never outrun the client.
+    const grantsStartedAt = Date.now();
+
     async function grantRole(
       roleId: string
     ): Promise<{ ok: boolean; error?: string; status?: number }> {
+      const budgetLeft = OBSERVER_TOTAL_BUDGET_MS - (Date.now() - grantsStartedAt);
+      if (budgetLeft <= 0) {
+        // Budget spent by the prior grant — don't start a call we can't finish in time. Report it
+        // as a recoverable failure so the caller queues it for the self-healing retry path below.
+        return { ok: false, error: "role-grant time budget exhausted" };
+      }
       try {
         const { response } = await discordFetch(
           `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${discordUserId}/roles/${roleId}`,
-          { method: "PUT", headers: discordHeaders }
+          { method: "PUT", headers: discordHeaders, totalBudgetMs: budgetLeft }
         );
         if (!response.ok) {
           const text = await response.text();

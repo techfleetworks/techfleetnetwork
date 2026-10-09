@@ -105,6 +105,55 @@ serve(
       return jsonResponse({ error: "Could not verify your Discord link session." }, 500);
     }
     if (!redirectUri || typeof redirectUri !== "string") {
+      // A single-use state comes back invalid/used on the FIRST successful call's
+      // benign replays too: a page refresh, a double-mounted callback, or a
+      // back-navigation re-runs the exchange with the same (now-consumed) state.
+      // If THIS user is already linked, the earlier call already succeeded — report
+      // success (idempotent) instead of a scary error to an already-connected user.
+      // We only ever read/return this caller's OWN profile (bound to their JWT), so
+      // there is no cross-user disclosure and nothing is written here.
+      const { data: existing, error: existingErr } = await admin
+        .from("profiles")
+        .select("discord_user_id, discord_username")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (existingErr) {
+        // Report — don't let a profiles-read outage masquerade as an "expired session"
+        // (§4: every failure recovers/retries/reports). We still fall through to the
+        // friendly invalid_state message below so the user gets an actionable next step.
+        log.error(
+          "idempotent",
+          `Profiles read failed on the invalid-state path: ${existingErr.message}`,
+          { userId },
+          existingErr
+        );
+      }
+      if (!existingErr && existing?.discord_user_id) {
+        void auditEdgeEvent(admin, {
+          fn: "discord-oauth-callback",
+          event: "discord_link_idempotent_replay",
+          table: "profiles",
+          recordId: userId,
+          userId,
+          traceId: ctx.traceId,
+          severity: "info",
+          fields: ["reason:already_linked_state_replay"],
+        });
+        log.info("state", "Idempotent replay of an already-linked account", { userId });
+        return jsonResponse(
+          {
+            discord_user_id: existing.discord_user_id,
+            discord_username: existing.discord_username,
+            discord_display_name: null,
+            global_name: null,
+            nick: null,
+            avatar: null,
+            idempotent: true,
+          },
+          200
+        );
+      }
+
       log.warn("state", "Rejected invalid/expired/replayed OAuth state", { userId });
       void auditEdgeEvent(admin, {
         fn: "discord-oauth-callback",
