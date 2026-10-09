@@ -846,6 +846,7 @@ jobs:
             supabase/functions/_shared/email/infrastructure/ops-event-sink.test.ts \
             supabase/functions/_shared/client-ip.test.ts \
             supabase/functions/_shared/bounded-body.test.ts \
+            supabase/functions/_shared/discord-fetch.test.ts \
             supabase/functions/discord-interactions/freshness.test.ts \
             supabase/functions/handoff-produce/ \
             supabase/functions/handoff-submit/ \

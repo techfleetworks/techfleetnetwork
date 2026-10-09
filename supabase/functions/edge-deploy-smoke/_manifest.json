@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-27T16:49:19.484Z",
+  "generated_at": "2026-10-09T01:33:25.197Z",
   "functions": [
     {
       "name": "admin-purge-auth-user",
@@ -684,13 +684,6 @@
       "name": "resend-webhook",
       "verify_jwt": false,
       "kind": "public",
-      "critical": false,
-      "declared": true
-    },
-    {
-      "name": "resolve-discord-id",
-      "verify_jwt": false,
-      "kind": "cron",
       "critical": false,
       "declared": true
     },

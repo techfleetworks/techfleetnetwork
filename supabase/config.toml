@@ -80,8 +80,6 @@ project_id = "pzvqxdgoztbfikfuifix"
   [functions.register-support-command]
     # Admin-only Discord /support command registrar (JWT + admin checked in code).
     verify_jwt = false
-  [functions.resolve-discord-id]
-    verify_jwt = false
   [functions.discord-oauth-start]
     # Audit H11 follow-up: begins the Discord account-link OAuth flow. JWT
     # enforced in code (requireAuthenticatedRequest). Needs DISCORD_CLIENT_ID.
