@@ -26,7 +26,7 @@ import {
 
 /**
  * The Classes tab of Class Admin — one role-aware list that replaces the old duplicated
- * AdminClassesPage + MyClassesPage (ADR-0063). `mode="admin"` shows every class with the review
+ * AdminClassesPage + MyClassesPage (ADR-0067). `mode="admin"` shows every class with the review
  * workflow (approve / request changes / archive); `mode="mine"` shows the current teacher's own
  * classes with author actions (edit / submit). The caller (ClassAdminPage) picks the mode from role
  * and passes the already-fetched rows, so only one query runs.

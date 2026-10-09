@@ -70,7 +70,7 @@ export function useCohortsForScope() {
 }
 
 /**
- * Delete a cohort via the owner-or-admin RPC (ADR-0063), then refresh the scoped list, the parent
+ * Delete a cohort via the owner-or-admin RPC (ADR-0067), then refresh the scoped list, the parent
  * class's cohort list, and the cohort-by-id cache. The RPC decides hard-delete vs soft-cancel; the
  * resolved value ("deleted" | "cancelled") is returned so the caller can tailor the confirmation toast.
  */

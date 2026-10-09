@@ -15,7 +15,7 @@ import { extractErrorMessage } from "@/lib/errors/extract";
 import type { CohortWithClass } from "@/services/cohort.service";
 
 /**
- * Confirm deleting a cohort. The owner-or-admin RPC (delete_cohort, ADR-0063) decides the outcome:
+ * Confirm deleting a cohort. The owner-or-admin RPC (delete_cohort, ADR-0067) decides the outcome:
  * an empty, unpublished cohort is permanently deleted; one that is published or has registrations is
  * soft-cancelled so registration history is never silently dropped. We surface that up front and
  * report which happened. Data access goes through the hook → service → RPC (no Supabase here).

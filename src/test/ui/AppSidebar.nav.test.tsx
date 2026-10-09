@@ -5,7 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 /**
- * Navigation coverage (ADR-0063): the admin "All Classes" and teacher "My Classes" entries are merged
+ * Navigation coverage (ADR-0067): the admin "All Classes" and teacher "My Classes" entries are merged
  * into ONE "Class Admin" link under Teaching, shown to teachers AND admins, pointing at
  * /class-admin/classes. Members never see it. The old labels/paths must be gone. Behavioral
  * (Gherkin-style) scenarios wired into Vitest so a regression fails CI.

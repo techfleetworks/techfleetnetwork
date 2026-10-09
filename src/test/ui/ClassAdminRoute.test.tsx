@@ -6,7 +6,7 @@ import { renderWithRouter } from "./test-utils";
 // bdd-gate coverage: src/components/ClassAdminRoute.tsx
 
 /**
- * ClassAdminRoute (ADR-0063) — role gate + role-aware 2FA:
+ * ClassAdminRoute (ADR-0067) — role gate + role-aware 2FA:
  *  - member  → denied (children never render)
  *  - teacher → 2FA optional (allowed if not enrolled; hard-blocked if enrolled but below AAL2)
  *  - admin   → 2FA mandatory (enrolled+AAL2 in; enrolled+AAL1 blocked; not enrolled → grace/setup)

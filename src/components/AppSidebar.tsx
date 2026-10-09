@@ -145,7 +145,7 @@ export const AppSidebar = memo(function AppSidebar() {
             <SidebarGroupLabel>Teaching</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {/* One Class Admin entry for teachers and admins (ADR-0063). Admins see all
+                {/* One Class Admin entry for teachers and admins (ADR-0067). Admins see all
                     classes/cohorts, teachers only their own — enforced by <ClassAdminRoute> and RLS,
                     so the link is shown to both roles; the pending-review badge is admin-only. */}
                 <SidebarMenuItem>

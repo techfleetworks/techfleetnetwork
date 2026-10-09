@@ -1,4 +1,4 @@
--- Cohort delete (ADR-0063): give the class owner (teacher) a way to delete their OWN cohorts, and
+-- Cohort delete (ADR-0067): give the class owner (teacher) a way to delete their OWN cohorts, and
 -- admins to delete ANY cohort, through one safe, audited path — the standalone Cohorts management
 -- surface in Class Admin.
 --

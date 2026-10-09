@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 /**
- * class-status emails build a deep link to the class. After the Class Admin merge (ADR-0063) that
+ * class-status emails build a deep link to the class. After the Class Admin merge (ADR-0067) that
  * link points at the /class-admin/* namespace: admins land on the Classes list, the owning teacher
  * on their class. This locks that in so a regression can't send stale /admin/classes or
  * /teach/classes links (which only work via redirect).

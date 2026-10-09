@@ -14,7 +14,7 @@ import { signOutSafe } from "@/lib/auth/session-port";
 import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
 
 /**
- * Route guard for the merged Class Admin section (ADR-0063). One entry point for teachers AND admins,
+ * Route guard for the merged Class Admin section (ADR-0067). One entry point for teachers AND admins,
  * so the 2FA policy is role-aware:
  *
  *  - member (neither role)     → /access-denied (the section is never shown to them either).
@@ -36,7 +36,7 @@ import { MfaChallengeDialog } from "@/components/MfaChallengeDialog";
  * NOTE (told the product owner): route-level 2FA in this app is a client-side control — there is no DB
  * AAL2 backstop on ordinary class/cohort reads. The durable server-side guarantee is authorization
  * (RLS + the owner/admin RPCs). The one destructive path, delete_cohort, does add a backend aal2 check
- * for admin callers (ADR-0063).
+ * for admin callers (ADR-0067).
  */
 function GuardSpinner() {
   return (

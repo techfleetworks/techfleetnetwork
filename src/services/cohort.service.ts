@@ -164,7 +164,7 @@ export const CohortService = {
   },
 
   /**
-   * Delete a cohort through the owner-or-admin SECURITY DEFINER RPC (ADR-0063). The RPC hard-deletes
+   * Delete a cohort through the owner-or-admin SECURITY DEFINER RPC (ADR-0067). The RPC hard-deletes
    * an empty, unpublished cohort but SOFT-cancels one that has registrations or is published, so
    * registration history is never silently dropped. Returns which happened so the UI can say so.
    * Mirrors the other cohort mutation wrappers (throws on error; satisfies no-dropped-supabase-error).

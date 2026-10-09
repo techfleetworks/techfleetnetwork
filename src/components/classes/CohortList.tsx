@@ -18,7 +18,7 @@ import { DeleteCohortDialog } from "@/components/classes/DeleteCohortDialog";
 import { AddCohortDialog } from "@/components/classes/AddCohortDialog";
 
 /**
- * The Cohorts tab of Class Admin — a standalone, cross-class cohort management table (ADR-0063). Rows
+ * The Cohorts tab of Class Admin — a standalone, cross-class cohort management table (ADR-0067). Rows
  * are scoped by RLS (a teacher's own, or every cohort for an admin). Registration status is the
  * cohort-level lifecycle (Coming Soon / Register Now / Live / Finished, from #387) shown read-only
  * here; it's changed via the owner/admin control on the class detail page (the single writer). The

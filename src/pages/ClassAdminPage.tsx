@@ -7,7 +7,7 @@ import { ClassList } from "@/components/classes/ClassList";
 import { CohortList } from "@/components/classes/CohortList";
 
 /**
- * Class Admin (ADR-0063) — the single, role-aware home for managing classes and cohorts, replacing the
+ * Class Admin (ADR-0067) — the single, role-aware home for managing classes and cohorts, replacing the
  * old split of admin "All Classes" (/admin/classes) and teacher "My Classes" (/teach/classes). Admins
  * see and manage everything; teachers see only their own. Two tabs, each a real route
  * (/class-admin/classes, /class-admin/cohorts) so they're deep-linkable and back-button friendly.

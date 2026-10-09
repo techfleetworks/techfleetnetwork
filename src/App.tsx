@@ -162,7 +162,7 @@ function RouteFallback() {
 }
 
 /**
- * Redirects the legacy class routes to the merged Class Admin namespace (ADR-0063), preserving the
+ * Redirects the legacy class routes to the merged Class Admin namespace (ADR-0067), preserving the
  * path suffix, search, and hash so bookmarks, the confirm-teacher email, and deep links keep working:
  *   /admin/classes            → /class-admin/classes
  *   /teach/classes[/...]      → /class-admin/classes[/...]
@@ -658,7 +658,7 @@ const App = () => (
                       />
                       <Route path="/confirm-admin" element={<ConfirmAdminPage />} />
                       <Route path="/confirm-teacher" element={<ConfirmTeacherPage />} />
-                      {/* Class Admin (ADR-0063): one namespace for teachers + admins, guarded by
+                      {/* Class Admin (ADR-0067): one namespace for teachers + admins, guarded by
                           ClassAdminRoute (role gate + role-aware 2FA). */}
                       <Route
                         path="/class-admin"

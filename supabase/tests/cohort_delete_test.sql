@@ -1,4 +1,4 @@
--- pgTAP: delete_cohort() authorization + safety (ADR-0063). Run: `supabase db test`.
+-- pgTAP: delete_cohort() authorization + safety (ADR-0067). Run: `supabase db test`.
 -- Proves the owner-or-admin SECURITY DEFINER delete path:
 --   * a class owner (teacher) can delete THEIR OWN cohort; a different teacher / outsider cannot.
 --   * an admin caller must present fresh 2FA (aal2) — without it the delete is refused (42501).

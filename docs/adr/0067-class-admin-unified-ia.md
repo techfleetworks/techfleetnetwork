@@ -1,4 +1,4 @@
-# ADR 0063 — Unify "Classes" + "My Classes" into one role-aware "Class Admin" (Classes + Cohorts tabs)
+# ADR 0067 — Unify "Classes" + "My Classes" into one role-aware "Class Admin" (Classes + Cohorts tabs)
 
 - Status: Accepted
 - Date: 2026-09-26
