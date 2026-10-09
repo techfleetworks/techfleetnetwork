@@ -1,0 +1,46 @@
+name: Cache Supabase CLI Docker images
+description: >
+  Restore the public.ecr.aws/supabase/* images that `supabase start` needs from the
+  Actions cache and load them into the local Docker daemon, so the job does not
+  re-pull multi-hundred-MB layers from the anonymous ECR Public registry on every
+  run. ECR Public rate-limits anonymous pulls ("toomanyrequests: Data limit
+  exceeded" / "Rate exceeded"), which was flaking migration-smoke / db-test / e2e.
+  On a cache MISS this does nothing but restore an empty dir and flag the miss; the
+  caller runs `supabase start` (which pulls once) and then the companion save step
+  populates the cache dir, which this action's cache step persists at post-job. On a
+  HIT the images are already present, so `supabase start`'s pull is a cheap manifest
+  check with no layer download — the heavy transfer that trips the data limit is gone.
+
+inputs:
+  cli-version:
+    description: Supabase CLI version — part of the cache key so a CLI bump (new image tags) misses cleanly.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Supabase image cache
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      with:
+        path: ~/.cache/supabase-images
+        key: supabase-images-v1-${{ runner.os }}-${{ inputs.cli-version }}
+
+    - name: Load cached Supabase images into Docker
+      if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        shopt -s nullglob
+        loaded=0
+        for t in ~/.cache/supabase-images/*.tar; do
+          docker load -i "$t"
+          loaded=$((loaded + 1))
+        done
+        echo "Loaded $loaded cached Supabase image(s)."
+
+    - name: Flag cache miss for the save step
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      # The companion save step (after `supabase start`) only populates the cache dir
+      # on a miss; the restore step above persists it at post-job.
+      run: echo "SUPABASE_IMAGES_CACHE_MISS=1" >> "$GITHUB_ENV"
