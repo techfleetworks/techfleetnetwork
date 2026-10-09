@@ -11,20 +11,23 @@ export function usePublishedClassesByTrack(track: ClassRow["track"]) {
   });
 }
 
-export function useMyClasses() {
+export function useMyClasses(enabled = true) {
   const { user } = useAuth();
   return useQuery({
-    queryKey: user ? (["classes", "mine", user.id] as const) : (["classes", "mine", "anon"] as const),
+    queryKey: user
+      ? (["classes", "mine", user.id] as const)
+      : (["classes", "mine", "anon"] as const),
     queryFn: () => (user ? ClassService.listMine(user.id) : Promise.resolve([])),
-    enabled: !!user,
+    enabled: enabled && !!user,
     ...CACHE_USER_MUTABLE,
   });
 }
 
-export function useAllClasses() {
+export function useAllClasses(enabled = true) {
   return useQuery({
     queryKey: ["classes", "all"] as const,
     queryFn: () => ClassService.listAll(),
+    enabled,
     ...CACHE_USER_MUTABLE,
   });
 }
