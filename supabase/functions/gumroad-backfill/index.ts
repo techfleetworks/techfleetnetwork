@@ -14,7 +14,9 @@
  *  - Seller-id filter (defense in depth) + email re-check.
  *  - Misconfiguration (no access token) fails closed with a 503 AND an audit
  *    event, so a silent outage is visible (Observability).
- *  - ignoreDuplicates: never clobbers webhook-managed lifecycle timestamps.
+ *  - Reconcile convergence (ADR-0070): new sales insert (ignoreDuplicates); for a
+ *    sale already in the ledger, lifecycle pulled from the API is applied set-once
+ *    via apply_gumroad_sale_lifecycle, so a missed refund webhook still downgrades.
  */
 import { withAuditWrapper, auditEdgeEvent, type AuditSeverity } from "../_shared/audit.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
@@ -266,13 +268,42 @@ Deno.serve(
     }
 
     if (rows.length > 0) {
-      // Insert new sales only; never clobber webhook-managed lifecycle state.
+      // Insert NEW sales only; the row's fields (incl. lifecycle) are written on
+      // insert. For a sale ALREADY in the ledger the row is skipped, so lifecycle is
+      // converged separately below.
       const { error: upsertErr } = await admin
         .from("gumroad_sales")
         .upsert(rows, { onConflict: "sale_id", ignoreDuplicates: true });
       if (upsertErr) {
         await audit("gumroad_sale_persist_failed", [`rows:${rows.length}`], upsertErr.message);
         return json({ error: "Persist failed" }, 500);
+      }
+    }
+
+    // Converge lifecycle on sales already in the ledger (ADR-0070). The insert above
+    // ignores duplicates, so a refund/dispute/end pulled from the API for an existing
+    // sale would otherwise be dropped, and a missed webhook would never downgrade.
+    // apply_gumroad_sale_lifecycle sets timestamps once (never clears, never touches
+    // resolution), and the AFTER UPDATE projection trigger re-derives access. Only the
+    // clawed-back subset needs this. Report and continue so one failure does not abort
+    // the run; the next sweep retries.
+    for (const r of rows) {
+      if (
+        !r.refunded_at &&
+        !r.disputed_at &&
+        !r.subscription_cancelled_at &&
+        !r.subscription_ended_at
+      )
+        continue;
+      const { error: lifeErr } = await admin.rpc("apply_gumroad_sale_lifecycle", {
+        p_sale_id: r.sale_id as string,
+        p_refunded: r.refunded_at != null,
+        p_disputed: r.disputed_at != null,
+        p_cancelled_at: (r.subscription_cancelled_at as string | null) ?? null,
+        p_ended_at: (r.subscription_ended_at as string | null) ?? null,
+      });
+      if (lifeErr) {
+        await audit("gumroad_lifecycle_apply_failed", [`sale:${r.sale_id}`], lifeErr.message);
       }
     }
 
