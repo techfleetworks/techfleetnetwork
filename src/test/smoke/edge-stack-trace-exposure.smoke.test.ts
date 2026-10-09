@@ -12,13 +12,11 @@ import path from "path";
 // Module paths are spelled out in full so the BDD gate's per-module grep
 // (supabase/functions/<name>) matches this file.
 const FUNCTIONS = [
-  "supabase/functions/airtable-diag/index.ts",
   "supabase/functions/auth-broker/index.ts",
   "supabase/functions/refresh-community-events/index.ts",
   "supabase/functions/replay-dlq-emails/index.ts",
   "supabase/functions/resend-signup-confirmations/index.ts",
   "supabase/functions/send-project-blast/index.ts",
-  "supabase/functions/sync-airtable-network-stats/index.ts",
   "supabase/functions/translate-bundle/index.ts",
   "supabase/functions/triage-error/index.ts",
 ] as const;
