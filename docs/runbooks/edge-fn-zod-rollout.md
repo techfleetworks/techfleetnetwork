@@ -7,6 +7,7 @@
 ## Per-function risk classes
 
 ### Class A — already validates manually (low priority, may not need Zod)
+
 These already have field-by-field guards. Wrapping in Zod is cosmetic and risks regression.
 
 - `record-consent` — typeof checks + slice() length caps
@@ -19,6 +20,7 @@ These already have field-by-field guards. Wrapping in Zod is cosmetic and risks 
 **Action:** skip in Zod pass. Manual guards already meet input-validation control.
 
 ### Class B — admin-gated, write-heavy (HIGH care)
+
 Must verify every existing field still passes after Zod. All fields `.optional()` unless code path proves required.
 
 - `admin-purge-auth-user`, `admin-sign-out-all-users`
@@ -32,6 +34,7 @@ Must verify every existing field still passes after Zod. All fields `.optional()
 **Action:** 1 PR per 3-4 functions. Each PR: read every client call site → schema → curl → ship.
 
 ### Class C — webhook / signed (do NOT add origin-restricting CORS)
+
 Signature is the auth. Body shape is dictated by upstream provider — Zod schema must match provider docs exactly.
 
 - `discord-interactions` (Discord)
@@ -42,6 +45,7 @@ Signature is the auth. Body shape is dictated by upstream provider — Zod schem
 **Action:** schemas mirror upstream docs verbatim. Keep `Access-Control-Allow-Origin: *`.
 
 ### Class D — service-role / cron (no public callers)
+
 Body shape controlled entirely by our own cron / NOTIFY listener. Lowest risk.
 
 - `process-email-queue`, `process-notification-fanout`
@@ -60,6 +64,7 @@ Body shape controlled entirely by our own cron / NOTIFY listener. Lowest risk.
 **Action:** straightforward Zod pass — but cron callers don't always send a body. Schema = `z.object({...}).optional()` at top-level so empty POSTs still pass.
 
 ### Class E — public reads (anon-callable, no auth required)
+
 - `public-classes`, `public-project-detail`, `public-project-openings`
 - `get-community-events`, `geo-hint`
 - `translate-bundle`, `translate-strings`
@@ -69,7 +74,6 @@ Body shape controlled entirely by our own cron / NOTIFY listener. Lowest risk.
 - `validate-email-domain`
 - `check-account-identity`
 - `login-with-captcha`
-- `resolve-discord-id`
 - `generate-discord-invite`
 - `push-config`
 - `send-push-notification`
@@ -83,6 +87,7 @@ Body shape controlled entirely by our own cron / NOTIFY listener. Lowest risk.
 ## CORS hygiene (M-05) bundled into each PR
 
 When a function in Class B/D/E ships its Zod schema, also:
+
 1. Replace `Access-Control-Allow-Origin: *` with the import from `npm:@supabase/supabase-js@2/cors` (echoes request origin against Supabase allow-list).
 2. Verify with curl from preview origin, custom domain, and (where applicable) localhost.
 3. Class C functions keep `*` with a code comment `// signed webhook — origin not the auth boundary`.

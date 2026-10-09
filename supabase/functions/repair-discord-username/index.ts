@@ -9,6 +9,12 @@ import { corsHeaders } from "../_shared/http.ts";
 
 const log = createEdgeLogger("repair-discord-username");
 
+// Hard ceiling on the single live-Discord member fetch. It MUST stay below the client's invokeEdge
+// budget for "repair-discord-username" (src/lib/edge/edge-timeouts.ts = 15_000) so the server
+// finishes before the browser aborts. Unbounded, discordFetch's 429 backoff could sleep past any
+// client budget; totalBudgetMs caps the total (attempts + backoff). ADR-0063.
+const REPAIR_TOTAL_BUDGET_MS = 12_000;
+
 function isUsable(value: string | null | undefined): boolean {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
@@ -100,6 +106,7 @@ serve(
       const { response } = await discordFetch(memberUrl, {
         headers: { Authorization: `Bot ${BOT_TOKEN}` },
         maxRetries: 2,
+        totalBudgetMs: REPAIR_TOTAL_BUDGET_MS,
       });
       memberRes = response;
     } catch (err) {
