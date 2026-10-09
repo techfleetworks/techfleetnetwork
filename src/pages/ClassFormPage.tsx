@@ -196,11 +196,11 @@ export default function ClassFormPage() {
         await draft.clearDraft();
         toast.success("Class created");
         await queryClient.invalidateQueries({ queryKey: ["classes"] });
-        navigate(`/teach/classes/${newId}`);
+        navigate(`/class-admin/classes/${newId}`);
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ["classes"] });
-      navigate(`/teach/classes/${id}`);
+      navigate(`/class-admin/classes/${id}`);
     } catch (err) {
       const { message, description } = extractErrorMessage(err, "We couldn't save your class.");
       toast.error(message, description ? { description } : undefined);
@@ -220,7 +220,7 @@ export default function ClassFormPage() {
   return (
     <div className="container-app py-8 sm:py-12 max-w-3xl">
       <Button asChild variant="ghost" size="sm" className="mb-3">
-        <Link to="/teach/classes">
+        <Link to="/class-admin/classes">
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Link>
@@ -389,7 +389,7 @@ export default function ClassFormPage() {
             {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEdit ? "Save changes" : "Create draft"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/teach/classes")}>
+          <Button type="button" variant="outline" onClick={() => navigate("/class-admin/classes")}>
             Cancel
           </Button>
         </div>
