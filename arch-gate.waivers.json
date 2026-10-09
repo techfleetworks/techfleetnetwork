@@ -519,13 +519,6 @@
   },
   {
     "rule": "UI must not access the database directly",
-    "path": "src/pages/admin/HandoffAdminPage.tsx",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "UI must not access the database directly",
     "path": "src/pages/AdminEmailDeliverabilityTestPage.tsx",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",
