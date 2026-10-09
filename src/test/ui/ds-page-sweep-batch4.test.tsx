@@ -12,7 +12,6 @@ import { describe, it, expect } from "vitest";
  *   src/pages/community/CategoryReportPanel.tsx
  *   src/pages/community/MonthlyReportPanel.tsx
  *   src/pages/MyJourneyPage.tsx
- *   src/pages/MyClassesPage.tsx
  *   src/pages/ConfirmAdminPage.tsx
  *   src/pages/ConfirmTeacherPage.tsx
  *   src/pages/ClassDetailPage.tsx
@@ -25,7 +24,6 @@ import * as UnsubscribePage from "@/pages/UnsubscribePage";
 import * as CategoryReportPanel from "@/pages/community/CategoryReportPanel";
 import * as MonthlyReportPanel from "@/pages/community/MonthlyReportPanel";
 import * as MyJourneyPage from "@/pages/MyJourneyPage";
-import * as MyClassesPage from "@/pages/MyClassesPage";
 import * as ConfirmAdminPage from "@/pages/ConfirmAdminPage";
 import * as ConfirmTeacherPage from "@/pages/ConfirmTeacherPage";
 import * as ClassDetailPage from "@/pages/ClassDetailPage";
@@ -40,7 +38,6 @@ describe("page sweep batch 4 — migrated pages load", () => {
     ["CategoryReportPanel", CategoryReportPanel],
     ["MonthlyReportPanel", MonthlyReportPanel],
     ["MyJourneyPage", MyJourneyPage],
-    ["MyClassesPage", MyClassesPage],
     ["ConfirmAdminPage", ConfirmAdminPage],
     ["ConfirmTeacherPage", ConfirmTeacherPage],
     ["ClassDetailPage", ClassDetailPage],

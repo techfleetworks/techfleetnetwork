@@ -26,6 +26,18 @@ export type CohortRow = {
   updated_at: string;
 };
 
+/** The parent-class columns the standalone Cohorts table needs (title, track, publish status, owner). */
+export type CohortClassInfo = {
+  id: string;
+  title: string;
+  track: "basic_training" | "advanced_training";
+  status: "draft" | "pending_review" | "published" | "archived";
+  owner_user_id: string;
+};
+
+/** A cohort plus its parent class — the row shape for the cross-class Cohorts management table. */
+export type CohortWithClass = CohortRow & { class: CohortClassInfo };
+
 export const CohortService = {
   async listByClass(classId: string): Promise<CohortRow[]> {
     const { data, error } = await retryPostgrest(() =>
@@ -127,6 +139,42 @@ export const CohortService = {
       p_status: status,
     });
     if (error) throw error;
+  },
+
+  /**
+   * All cohorts the current user may manage, each with its parent class — the data for the standalone
+   * Cohorts tab in Class Admin. Row scoping is done by RLS ("Teachers can view their cohorts" /
+   * "Admins can view all cohorts"), so this single query returns the teacher's own or every cohort
+   * depending on role — no owner filter here.
+   *
+   * NOTE: bounded by PostgREST's max-rows. Cohort totals are far below that today; if they ever
+   * approach it, move to a keyset-paginated RPC (see admin_list_users). The explicit range makes the
+   * bound visible rather than silently capping at the default (the User Admin roster lesson).
+   */
+  async listForScope(): Promise<CohortWithClass[]> {
+    const { data, error } = await retryPostgrest(() =>
+      supabase
+        .from("cohorts")
+        .select("*, class:classes!inner(id,title,track,status,owner_user_id)")
+        .order("start_date", { ascending: false })
+        .range(0, 4999)
+    );
+    if (error) throw error;
+    return (data ?? []) as unknown as CohortWithClass[];
+  },
+
+  /**
+   * Delete a cohort through the owner-or-admin SECURITY DEFINER RPC (ADR-0067). The RPC hard-deletes
+   * an empty, unpublished cohort but SOFT-cancels one that has registrations or is published, so
+   * registration history is never silently dropped. Returns which happened so the UI can say so.
+   * Mirrors the other cohort mutation wrappers (throws on error; satisfies no-dropped-supabase-error).
+   */
+  async remove(cohortId: string): Promise<"deleted" | "cancelled"> {
+    const { data, error } = await (supabase as any).rpc("delete_cohort", {
+      p_cohort_id: cohortId,
+    });
+    if (error) throw error;
+    return data as "deleted" | "cancelled";
   },
 
   async recordRegistrationClick(cohortId: string, referrer?: string): Promise<void> {
