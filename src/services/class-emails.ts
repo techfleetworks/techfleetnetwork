@@ -40,7 +40,9 @@ async function sendOne(args: {
   reason?: string;
 }) {
   const linkPath =
-    args.recipientRole === "admin" ? "/admin/classes" : `/teach/classes/${args.classId}`;
+    args.recipientRole === "admin"
+      ? "/class-admin/classes"
+      : `/class-admin/classes/${args.classId}`;
   try {
     await supabase.functions.invoke("send-transactional-email", {
       body: {
@@ -71,7 +73,7 @@ async function sendOne(args: {
 export async function sendClassStatusEmails(
   classId: string,
   action: ClassEmailAction,
-  reason?: string,
+  reason?: string
 ): Promise<void> {
   try {
     const [{ data: ownerRows }, { data: adminRows }, actorName] = await Promise.all([
