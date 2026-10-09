@@ -36,6 +36,15 @@
       "added": "2026-09-28",
       "expires": "2026-12-31",
       "owner": "mdenner@techfleet.org"
+    },
+    {
+      "ghsa": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "severity": "high",
+      "reason": "braces@3.0.3 is a transitive BUILD-TIME dependency (tailwindcss-animate -> Tailwind/PostCSS content globbing via micromatch); it runs only during `npm run build`, never in the shipped static bundle nor the Supabase Deno edge runtime. braces has NO upstream patch yet — 3.0.3 is the latest 3.x and is itself the vulnerable version; the only fix npm offers is a major micromatch/tailwind upgrade. The deeply-nested-pattern stack-exhaustion DoS is unreachable in production (it never parses user-controlled glob patterns). Remove when the Tailwind chain ships a patched braces.",
+      "added": "2026-10-09",
+      "expires": "2026-12-31",
+      "owner": "mdenner@techfleet.org"
     }
   ]
 }
