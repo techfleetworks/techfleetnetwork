@@ -156,9 +156,16 @@ files. Any regression — re-pointing CI at `tsc --noEmit`, emptying an `include
 **Negative / accepted**
 
 - The `handoff_*` / `handoff_completeness` entries in `types.ts` are hand-authored (no DB creds here
-  to run `supabase gen types`). They match the migrations; the **follow-up** is to wire
-  `supabase gen types` + a generated-vs-migrations drift check into CI so the generated file can
-  never drift again.
+  to run `supabase gen types`), but they were **verified against the live prod schema** by
+  introspecting `pg_attribute` / `pg_proc` (column names, exact types, nullability, the RPC
+  signature) and correcting the drift the check found — two columns on
+  `handoff_deliverable_submissions` (`extracted_text`, `extracted_at`) and five on
+  `handoff_productions` (`worker_id`, `lease_expires_at`, `heartbeat_at`, `attempts`,
+  `pipeline_state`) that later migrations added after the ones first transcribed, plus `gap_count`'s
+  non-null flag. `phase` is intentionally typed `string` rather than the `project_phase` enum, to
+  match how the untouched `handoff.service.ts` already passes it. The remaining **follow-up** is to
+  wire `supabase gen types` + a generated-vs-schema drift check into CI so the file can never drift
+  again without a red build.
 - The test project checks app code it imports under `strictNullChecks` while the app project does
   not — a deliberate, bounded inconsistency until the app-wide `strict` migration (tracked
   follow-up) lands.

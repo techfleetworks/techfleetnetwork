@@ -3805,6 +3805,8 @@ export type Database = {
           component_slug: string
           created_at: string
           created_by: string
+          extracted_at: string | null
+          extracted_text: string | null
           external_url: string | null
           file_name: string | null
           file_path: string | null
@@ -3818,6 +3820,8 @@ export type Database = {
           component_slug: string
           created_at?: string
           created_by?: string
+          extracted_at?: string | null
+          extracted_text?: string | null
           external_url?: string | null
           file_name?: string | null
           file_path?: string | null
@@ -3831,6 +3835,8 @@ export type Database = {
           component_slug?: string
           created_at?: string
           created_by?: string
+          extracted_at?: string | null
+          extracted_text?: string | null
           external_url?: string | null
           file_name?: string | null
           file_path?: string | null
@@ -3910,54 +3916,69 @@ export type Database = {
       }
       handoff_productions: {
         Row: {
+          attempts: number
           audiences: string[] | null
           created_at: string
           error: string | null
-          gap_count: number | null
+          gap_count: number
+          heartbeat_at: string | null
           id: string
           idempotency_key: string | null
           is_latest: boolean
+          lease_expires_at: string | null
           model: string | null
           phase: string
+          pipeline_state: Json | null
           project_id: string
           spf_version: string | null
           status: string
           triggered_by: string
           updated_at: string
+          worker_id: string | null
           writer_only: boolean
         }
         Insert: {
+          attempts?: number
           audiences?: string[] | null
           created_at?: string
           error?: string | null
-          gap_count?: number | null
+          gap_count?: number
+          heartbeat_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_latest?: boolean
+          lease_expires_at?: string | null
           model?: string | null
           phase: string
+          pipeline_state?: Json | null
           project_id: string
           spf_version?: string | null
           status?: string
           triggered_by: string
           updated_at?: string
+          worker_id?: string | null
           writer_only?: boolean
         }
         Update: {
+          attempts?: number
           audiences?: string[] | null
           created_at?: string
           error?: string | null
-          gap_count?: number | null
+          gap_count?: number
+          heartbeat_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_latest?: boolean
+          lease_expires_at?: string | null
           model?: string | null
           phase?: string
+          pipeline_state?: Json | null
           project_id?: string
           spf_version?: string | null
           status?: string
           triggered_by?: string
           updated_at?: string
+          worker_id?: string | null
           writer_only?: boolean
         }
         Relationships: []
