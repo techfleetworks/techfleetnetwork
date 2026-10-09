@@ -24,7 +24,15 @@ import {
 import { ThemedAgGrid } from "@/components/AgGrid";
 import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import { getOpeningCategory } from "@/lib/projects/opening-category";
+import {
+  getProjectApplicationSubmissionState,
+  type ProjectApplicationSubmissionState,
+} from "@/lib/applications/project-application-status";
 import type { ColDef } from "ag-grid-community";
+
+/** "Your Status" label for the openings list — a draft reads "In Progress", never "Applied" (ADR-0065). */
+const applicationStateLabel = (s: ProjectApplicationSubmissionState): string =>
+  s === "completed" ? "Applied" : s === "draft" ? "In Progress" : "Not applied";
 
 interface OpenProject {
   id: string;
@@ -72,7 +80,7 @@ interface EnrichedProject extends OpenProject {
   clientKind: "external" | "internal";
   totalApps: number;
   hatCounts: Record<string, number>;
-  userApplied: boolean;
+  applicationState: ProjectApplicationSubmissionState;
 }
 
 type OpeningTab = "client" | "volunteer" | "hackathon";
@@ -124,10 +132,17 @@ export default function ProjectOpeningsPage() {
     enabled: !!user,
   });
 
-  const appliedProjectIds = useMemo(
-    () => new Set(myProjectApps.map((a) => a.project_id)),
-    [myProjectApps]
-  );
+  // Per-project submission state (none | draft | completed) from the SAME single source every surface
+  // uses. A draft is "In Progress", never "Applied" — the mere existence of a row is not a submission.
+  const applicationStateByProjectId = useMemo(() => {
+    const map = new Map<string, ProjectApplicationSubmissionState>();
+    for (const a of myProjectApps) {
+      // Defensive: if more than one row exists for a project, a completed one outranks a draft.
+      if (map.get(a.project_id) === "completed") continue;
+      map.set(a.project_id, getProjectApplicationSubmissionState(a));
+    }
+    return map;
+  }, [myProjectApps]);
 
   const enrichedProjects = useMemo<EnrichedProject[]>(
     () =>
@@ -141,10 +156,10 @@ export default function ProjectOpeningsPage() {
           clientKind: client?.kind ?? "external",
           totalApps: stats?.total ?? 0,
           hatCounts: stats?.hatCounts ?? {},
-          userApplied: appliedProjectIds.has(p.id),
+          applicationState: applicationStateByProjectId.get(p.id) ?? "none",
         };
       }),
-    [projects, clientMap, statsMap, appliedProjectIds]
+    [projects, clientMap, statsMap, applicationStateByProjectId]
   );
 
   /* ── Partition by opening category (Shipathon → Hackathons, exclusive) ─────── */
@@ -308,7 +323,7 @@ export default function ProjectOpeningsPage() {
         headerName: "Your Status",
         flex: 1,
         minWidth: 110,
-        valueGetter: (params) => (params.data?.userApplied ? "Applied" : "Not Applied"),
+        valueGetter: (params) => applicationStateLabel(params.data?.applicationState ?? "none"),
         cellStyle: (params) => ({
           color: params.value === "Applied" ? "hsl(var(--primary))" : undefined,
           fontWeight: params.value === "Applied" ? 600 : undefined,
@@ -506,9 +521,9 @@ function ProjectSection({
                 <div className="space-y-1.5">
                   <p className={sectionLabel}>Your Status</p>
                   <p
-                    className={`text-base ${p.userApplied ? "text-primary font-semibold" : "text-foreground"}`}
+                    className={`text-base ${p.applicationState === "completed" ? "text-primary font-semibold" : "text-foreground"}`}
                   >
-                    {p.userApplied ? "Applied" : "Not yet applied"}
+                    {applicationStateLabel(p.applicationState)}
                   </p>
                 </div>
 

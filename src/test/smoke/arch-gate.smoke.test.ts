@@ -5,7 +5,7 @@
 // "Guard the guard": the engine that enforces every structural rule must itself be proven.
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -119,5 +119,42 @@ describe("arch-gate mechanical gate (smoke)", () => {
   // ---- The real repo ------------------------------------------------------
   it("AG-007: the real repo passes the mechanical gate", () => {
     expect(runGate(REPO)).toBe(0);
+  });
+
+  // ---- Discriminating coverage for the projects select('*') rule (ADR-0065) ----
+  // Runs the REAL arch-gate.config.json (not the generic fixture rule) so the specific
+  // "projects reads use explicit columns, never select('*')" rule is proven to fire on the
+  // regression and stay quiet on the fix. Fixtures live in src/services/** so ONLY this rule can
+  // match (the "UI must not access the database directly" rule covers pages/components only).
+  const REAL_CONFIG = JSON.parse(readFileSync(resolve(REPO, "arch-gate.config.json"), "utf8"));
+
+  it("AG-008: real config flags a single-line projects.select('*')", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/services/x.service.ts": `const q = supabase.from("projects").select("*").eq("id", id);\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-009: real config flags a MULTILINE projects.from(...).select('*') chain", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/services/y.service.ts": `const q = await supabase\n  .from("projects")\n  .select("*, clients(name)")\n  .single();\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-010: real config does NOT flag an explicit-column projects select (the fix)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/services/z.service.ts": `const q = supabase.from("projects").select("id, project_type, phase, is_shipathon").in("id", ids);\n`,
+      },
+    });
+    expect(runGate(r)).toBe(0);
   });
 });
