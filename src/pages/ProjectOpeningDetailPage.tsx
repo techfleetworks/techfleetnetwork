@@ -55,7 +55,7 @@ const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.label ?? v;
 
-/* Types for the public opening-detail payload are owned by projectService (ADR-0066). */
+/* Types for the public opening-detail payload are owned by projectService (ADR-0067). */
 
 /* ── Pill list component ─────────────────────────────────── */
 function PillList({
@@ -118,7 +118,7 @@ export default function ProjectOpeningDetailPage() {
   const openingsLabel = fromVolunteer ? "Volunteer Openings" : "Project Openings";
   const { user } = useAuth();
   // Public opening-detail read is owned by projectService via use-project.ts (service-role edge fn,
-  // safe for logged-out visitors — the page no longer builds the fetch itself). ADR-0066.
+  // safe for logged-out visitors — the page no longer builds the fetch itself). ADR-0067.
   const { data, isLoading: loading, error: loadError } = usePublicProjectDetail(projectId);
   const error =
     loadError instanceof Error ? loadError.message : loadError ? "Failed to load project" : null;

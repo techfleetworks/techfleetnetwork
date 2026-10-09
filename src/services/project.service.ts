@@ -1,7 +1,7 @@
 // Client service for public.projects reads — the ONE owner of project reads for the UI
 // (decisions.md §1). Pages/components call a use-project.ts hook that delegates here; none of them
 // call supabase.from("projects") directly, so the column list lives in exactly one place and the
-// surfaces that read a project can never drift apart again (ADR-0066).
+// surfaces that read a project can never drift apart again (ADR-0067).
 //
 // public.projects is COLUMN-SCOPED for `authenticated` (ADR-0056): a select('*') expands to the four
 // operational columns this role cannot read and fails Postgres 42501 / HTTP 403 — the "Project not
@@ -121,7 +121,7 @@ export async function getProjectForApplication(projectId: string): Promise<Proje
  * (no ProtectedRoute; the public-project-detail edge function is verify_jwt=false), so it CANNOT use
  * the authenticated client — it goes through the service-role edge function, which owns the public
  * projection (no is_shipathon, operational links intentionally omitted). Deliberately kept on the
- * edge-fn transport (ADR-0066): routing it through the authenticated client would blank the page for
+ * edge-fn transport (ADR-0067): routing it through the authenticated client would blank the page for
  * anon visitors, and switching to invokeEdge would first require the edge function's hand-rolled CORS
  * to add x-trace-id (decisions.md §5) plus a coordinated, non-atomic edge deploy.
  */

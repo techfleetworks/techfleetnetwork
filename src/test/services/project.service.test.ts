@@ -21,7 +21,7 @@ const OPERATIONAL_COLUMNS = [
   "client_intake_url",
 ];
 
-describe("projectService — apply column contract (ADR-0056 / ADR-0065 / ADR-0066)", () => {
+describe("projectService — apply column contract (ADR-0056 / ADR-0065 / ADR-0067)", () => {
   it("keeps is_shipathon so the Shipathon question flow stays correct (ADR-0055)", () => {
     expect(PROJECT_APPLICATION_COLUMNS).toContain("is_shipathon");
   });
