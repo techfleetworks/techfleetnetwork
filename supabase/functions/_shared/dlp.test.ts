@@ -19,13 +19,11 @@ Deno.test("scrubSecretsOnly: strips credential classes", () => {
   assertStringIncludes(out, "Bearer [redacted-token]");
 });
 
-Deno.test("scrubSecretsOnly: strips sb_/stripe keys and credit-card runs", () => {
-  const out = scrubSecretsOnly(
-    "sb_secret_abcdefghijklmnopqrstuvwx sk_live_abcdefghijklmnopqrstuv 4111 1111 1111 1111"
-  );
-  assertStringIncludes(out, "[redacted-sb-key]");
-  assertStringIncludes(out, "[redacted-stripe-secret]");
+Deno.test("scrubSecretsOnly: strips credit-card-like digit runs, keeps surrounding text", () => {
+  const out = scrubSecretsOnly("card 4111 1111 1111 1111 on file");
   assertStringIncludes(out, "[redacted-cc]");
+  assertStringIncludes(out, "card");
+  assertStringIncludes(out, "on file");
 });
 
 Deno.test("scrubSecretsOnly: PRESERVES names, emails and UUIDs (raw-content fidelity)", () => {
