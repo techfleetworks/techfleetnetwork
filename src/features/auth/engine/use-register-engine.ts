@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useLocation } from "react-router-dom";
 import { sessionPort } from "@/features/auth/ports/session.port";
 import { RateLimitService } from "@/services/rate-limit.service";
+import { resendSignupConfirmationFlow } from "@/features/auth/services/resend-signup-confirmation.flow";
 import { registerSchema, ageInYears, GUARDIAN_MIN_AGE } from "@/lib/validators/auth";
 import { logAccountActivity } from "@/lib/account-activity";
 import {
@@ -451,20 +452,27 @@ export function useRegisterEngine(): RegisterEngine {
         );
         return;
       }
-      const rateCheck = await RateLimitService.check(email, "signup_resend");
-      if (!rateCheck.allowed) {
-        const minutes = Math.ceil(rateCheck.retry_after / 60);
+      const result = await resendSignupConfirmationFlow(
+        email,
+        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
+        resendCaptchaToken
+      );
+      if (result.status === "rate_limited") {
+        const minutes = Math.ceil(result.retryAfterSeconds / 60);
         setResendStatus("error");
         setResendMessage(
           `Please wait ${minutes} minute${minutes > 1 ? "s" : ""} before requesting another verification email.`
         );
         return;
       }
-      await sessionPort.resendSignupConfirmation(
-        email,
-        getCanonicalAppOrigin() + (redirectParam ? redirectParam : "/profile-setup"),
-        resendCaptchaToken
-      );
+      if (result.status === "error") {
+        setResendStatus("error");
+        setResendMessage(
+          result.message ??
+            "We could not resend the verification email right now. Please try again in a minute."
+        );
+        return;
+      }
       setResendStatus("success");
       setResendMessage(
         "If this email is still waiting for verification, a fresh link has been sent. Check your inbox and spam folder."

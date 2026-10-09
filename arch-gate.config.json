@@ -76,6 +76,13 @@
       "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
       "forbid": ["\\.from\\(\\s*['\"](course_completion_stats|network_stats_snapshots)['\"]"],
       "message": "A displayed stat is being wired to a stored/denormalized counter table (course_completion_stats / network_stats_snapshots). Those freeze when their refresh job stops and drift when they have two writers (ADR-0050: Platform Signups sat at 768 for months because its snapshot's cron wasn't running). Read the LIVE count via the owning RPC — get_network_stats / get_course_completion_counts — which counts the source-of-truth rows (profiles / journey_progress / course_completions)."
+    },
+    {
+      "name": "projects reads use explicit columns, never select('*')",
+      "include": ["src/**"],
+      "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
+      "forbid": ["\\.from\\(\\s*['\"]projects['\"]\\s*\\)\\s*\\.select\\(\\s*['\"]\\*"],
+      "message": "A select('*') on public.projects from the authenticated client. projects is COLUMN-SCOPED for `authenticated` (ADR-0056): select('*') expands to the four operational columns this role cannot read and fails Postgres 42501 / HTTP 403 — which shipped as \"Project not found\" on the application-resume page (ADR-0065). List the explicit non-sensitive columns the surface renders; the four operational columns (discord_role_id, discord_role_name, notion_repository_url, client_intake_url) come only from the get_project_internal_links RPC or the service-role public-project-detail edge function."
     }
   ]
 }

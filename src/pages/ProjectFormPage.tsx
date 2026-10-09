@@ -177,8 +177,17 @@ export default function ProjectFormPage() {
   // Sensitive operational columns were revoked from authenticated for security
   // and must be re-merged via the admin/roster-gated RPC.
   const fetchProjectWithLinks = async () => {
+    // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`, so
+    // select('*') fails 42501/403 (ADR-0056/0065). This is every column the form hydrates EXCEPT the
+    // four operational ones, which are re-merged from get_project_internal_links (the RPC below).
     const [{ data, error }, { data: linkRows, error: linkErr }] = await Promise.all([
-      supabase.from("projects").select("*").eq("id", id!).single(),
+      supabase
+        .from("projects")
+        .select(
+          "id, client_id, friendly_name, description, project_type, phase, team_hats, project_status, current_phase_milestones, timezone_range, anticipated_start_date, anticipated_end_date, coordinator_id, requires_interview, is_shipathon"
+        )
+        .eq("id", id!)
+        .single(),
       supabase.rpc("get_project_internal_links", { p_project_id: id! }),
     ]);
     if (error) throw error;
