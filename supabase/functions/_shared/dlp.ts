@@ -75,6 +75,34 @@ export function scrub(text: string, allow: DlpAllowList = {}): string {
   return out;
 }
 
+/**
+ * Secrets-only scrub for third-party observability egress (e.g. Braintrust).
+ *
+ * Strips credentials/secrets — which have ZERO analytical value and are pure
+ * liability if they land in an external eval store (a member can paste a token
+ * into a chat question) — while PRESERVING names, emails and free-text content.
+ * A logging sink that sends raw content for eval fidelity needs that content
+ * intact; the residual free-text PII is governed by short retention + access
+ * controls + the processor DPA, not by redaction (see ADR-0066).
+ *
+ * This is deliberately NOT scrub(): scrub() also redacts emails/UUIDs/IPs,
+ * which would defeat raw-content logging (and would turn a v4 user_id into
+ * "[redacted-id]"). Keep secret-class coverage identical to scrub()'s first
+ * block so there is one definition of "what counts as a secret".
+ */
+export function scrubSecretsOnly(text: string): string {
+  if (!text) return text;
+  let out = text;
+  out = out.replace(JWT_RE, "[redacted-jwt]");
+  out = out.replace(BEARER_RE, "$1[redacted-token]");
+  out = out.replace(SB_KEY_RE, "[redacted-sb-key]");
+  out = out.replace(SK_KEY_RE, "[redacted-stripe-secret]");
+  out = out.replace(PK_KEY_RE, "[redacted-stripe-public]");
+  out = out.replace(HEX_TOKEN_RE, "[redacted-hex-token]");
+  out = out.replace(CC_RE, "[redacted-cc]");
+  return out;
+}
+
 /** Convenience: scrub then JSON-encode a response body. */
 export function scrubJson(body: unknown, allow: DlpAllowList = {}): string {
   const raw = typeof body === "string" ? body : JSON.stringify(body);

@@ -26,6 +26,11 @@ name: Deploy edge functions
 #       supabase secrets set GEMINI_API_KEY=… FIRECRAWL_API_KEY=… \
 #         TURNSTILE_SECRET_KEY=… --project-ref pzvqxdgoztbfikfuifix
 #     (SUPABASE_URL / ANON_KEY / SERVICE_ROLE_KEY are auto-injected.)
+#   - Braintrust observability (ADR-0066). FLEETY_BRAINTRUST_ENABLED defaults ON when unset;
+#     set it to 0 to instantly disable all Braintrust egress with no redeploy:
+#       supabase secrets set BRAINTRUST_API_KEY=… \
+#         BRAINTRUST_PROJECT_ID=8ccac30b-263e-416a-a003-f0e25a3d2c42 \
+#         FLEETY_BRAINTRUST_ENABLED=1 --project-ref pzvqxdgoztbfikfuifix
 #
 # Per-function verify_jwt is read from supabase/config.toml (already pinned by
 # the edge-function-coverage gate), so the access model deploys correctly.

@@ -28,6 +28,13 @@ import {
   US_INFERENCE_PROVIDERS,
   withRetries,
 } from "../_shared/llm/port.ts";
+// Braintrust observability (ADR-0066): the single owner of "trace one LLM turn".
+// Fail-open and a no-op when disabled, so this import adds no behaviour on its own.
+import {
+  type FleetyTrace,
+  parseUsage,
+  startFleetyTrace,
+} from "../_shared/observability/braintrust.ts";
 
 const ChatBodySchema = z
   .object({
@@ -438,7 +445,8 @@ type RouterDecision = {
 };
 async function routeWithModel(
   userMessage: string,
-  requestId: string
+  requestId: string,
+  trace?: FleetyTrace | null
 ): Promise<RouterDecision | null> {
   const apiKey = Deno.env.get("LLM_API_KEY");
   if (!apiKey) return null;
@@ -511,12 +519,23 @@ async function routeWithModel(
     const args = data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!args) return null;
     const parsed = JSON.parse(args);
-    return {
+    const decision: RouterDecision = {
       intent: parsed.intent as Intent,
       needsWeb: !!parsed.needs_web,
       webQuery: parsed.web_query || null,
       outOfScope: !!parsed.off_topic,
     };
+    // Braintrust: the router is a real, billable LLM call whose usage + intent
+    // decision are first-class eval signal (today discarded). Fail-open; the span
+    // helpers no-op when tracing is disabled.
+    if (trace) {
+      const span = trace.llmSpan("router", userMessage.slice(0, 1000), {
+        model: FLEETY_ROUTER_MODEL,
+      });
+      span.log({ output: decision, metrics: parseUsage(data?.usage) });
+      span.end();
+    }
+    return decision;
   } catch (e) {
     console.warn(`[${requestId}] router model failed:`, e instanceof Error ? e.message : e);
     return null;
@@ -527,7 +546,7 @@ async function routeWithModel(
 // exclusively from Tech Fleet's own knowledge sources.
 
 serve(
-  withAuditWrapper("techfleet-chat", async (req) => {
+  withAuditWrapper("techfleet-chat", async (req, ctx) => {
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
@@ -547,6 +566,14 @@ serve(
 
     const requestId = crypto.randomUUID().substring(0, 8);
     log.info("handler", `Chat request received [${requestId}]`, { requestId });
+
+    // Braintrust observability (ADR-0066). Declared out here so the handler's
+    // catch/finally can finalise the turn's trace on every exit. `trace` is created
+    // only after the auth + validation + quota gauntlet (below), so a started trace
+    // is always reachable by a flush point. `streamedHandoff` means the streamed
+    // path has taken ownership of finishing the trace in its stream-completion hook.
+    let trace: FleetyTrace | null = null;
+    let streamedHandoff = false;
 
     try {
       // ── WSTG-ATHZ-01: auth — an end-user JWT OR a trusted internal caller ──
@@ -922,10 +949,31 @@ serve(
       // grounded answer. Runs in parallel with embed+router (no added latency).
       const exactHash = await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`);
 
+      // Open the Braintrust turn trace here (ADR-0066): after the auth/validation/quota
+      // gauntlet, before the router, so it wraps the router span and every exit. No-op
+      // when disabled. See _shared/observability/braintrust.ts for what is recorded.
+      trace = startFleetyTrace({
+        fn: "techfleet-chat",
+        traceId: ctx.traceId,
+        userId: user.id,
+        caller: isInternal ? "internal" : "member",
+        question: lastUserMessage,
+        metadata: { audience },
+        onError: (message, err) =>
+          void auditEdgeEvent(supabase, {
+            fn: "techfleet-chat",
+            event: "fleety_braintrust_flush_failed",
+            recordId: requestId,
+            userId: user.id,
+            severity: "warn",
+            errorMessage: `${message}: ${err instanceof Error ? err.message : String(err)}`,
+          }),
+      });
+
       // Stage-1 router + query embedding + L2 exact-cache lookup, all in parallel.
       const [queryEmbedding, routerDecision, exactHit] = await Promise.all([
         embedQuery(lastUserMessage, requestId),
-        routeWithModel(lastUserMessage, requestId),
+        routeWithModel(lastUserMessage, requestId, trace),
         supabase.rpc("fleety_cache_lookup", { _query_hash: exactHash, _audience: audience }).then(
           ({ data }: { data: unknown }) => {
             const row = Array.isArray(data) ? data[0] : data;
@@ -2059,6 +2107,10 @@ serve(
                 // Material/review turns are generated NON-streamed so the whole answer can be validated
                 // before release (strict capability-denial block, ADR-0034); all other turns stream live.
                 stream: !materialWasReadable,
+                // Braintrust: OpenRouter omits usage on a streamed call unless asked; request a
+                // final usage frame on streamed turns. It is captured and dropped in the transform
+                // below so the frontend SSE contract is unchanged. (ADR-0066)
+                ...(!materialWasReadable ? { stream_options: { include_usage: true } } : {}),
                 max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
               }),
             });
@@ -2170,6 +2222,9 @@ serve(
         const degradeSources = [...new Set([...graphSourceUrls, ...extractSourceUrls(kbHits, 8)])]
           .filter((u) => /^https?:\/\//i.test(u))
           .slice(0, 5);
+        // Braintrust: all gateway models failed — mark the turn degraded (no answer span);
+        // the handler's finally flushes the trace.
+        trace?.log({ metadata: { exit: "degrade", degraded: true, reason } });
         return new Response(buildCacheSSEStream(buildDegradeMarkdown(degradeSources)), {
           headers: buildSSEHeaders({ degraded: true }),
         });
@@ -2211,6 +2266,22 @@ serve(
           visible = CAPABILITY_DENIAL_FALLBACK;
           outFollowups = [];
         }
+        // Braintrust: buffered answer turn — record the answer span with real usage; the
+        // handler's finally flushes the trace. Input is the conversation (NOT the system
+        // prompt, which embeds retrieved context/material — see ADR-0066).
+        if (trace) {
+          const span = trace.llmSpan("answer", sanitizedMessages, {
+            model: usedFallbackModel ? FLEETY_LLM_FALLBACK_MODEL : FLEETY_LLM_MODEL,
+            streamed: false,
+            used_fallback: usedFallbackModel,
+          });
+          span.log({
+            output: visible,
+            metrics: parseUsage((data as { usage?: unknown } | null)?.usage),
+          });
+          span.end();
+          trace.log({ output: visible, metadata: { exit: "buffered" } });
+        }
         // Material answers are board-specific and are never cache-read (reads bypass material
         // turns), so there is no cache write here.
         return new Response(buildCacheSSEStream(visible, outFollowups), {
@@ -2219,6 +2290,18 @@ serve(
       }
 
       log.info("ai", `AI gateway streaming response started [${requestId}]`, { requestId });
+
+      // Braintrust: open the streamed answer span now; it is finalised in the stream's flush
+      // (the one point that runs at stream completion with the isolate still alive). Input is
+      // the conversation (NOT the KB/material-laden system prompt — ADR-0066).
+      const answerSpan =
+        trace?.llmSpan("answer", sanitizedMessages, {
+          model: usedFallbackModel ? FLEETY_LLM_FALLBACK_MODEL : FLEETY_LLM_MODEL,
+          streamed: true,
+          used_fallback: usedFallbackModel,
+        }) ?? null;
+      let capturedUsage: unknown = null;
+      let firstTokenAt: number | null = null;
 
       // OWASP AI: Create a transform stream to sanitize AI output content
       // Only sanitize the actual text content inside delta.content, not the raw SSE/JSON framing.
@@ -2269,9 +2352,18 @@ serve(
             try {
               const jsonStr = line.slice(6);
               const parsed = JSON.parse(jsonStr);
+              // Braintrust: capture OpenRouter's final usage frame and DROP it (don't forward)
+              // so the client never sees an unfamiliar frame. Usage may arrive standalone (empty
+              // choices) or attached to a content frame (which we still forward).
+              if (parsed && parsed.usage) {
+                capturedUsage = parsed.usage;
+                const hasChoices = Array.isArray(parsed.choices) && parsed.choices.length > 0;
+                if (!hasChoices) continue;
+              }
               const content = parsed?.choices?.[0]?.delta?.content;
               if (typeof content === "string") {
                 const sanitized = sanitizeAIOutput(content);
+                if (firstTokenAt === null && content.length > 0) firstTokenAt = Date.now();
                 if (isCacheable) assistantBuffer += sanitized;
 
                 if (sentinelHit) {
@@ -2351,19 +2443,48 @@ serve(
                   )
               );
           }
+
+          // Braintrust: finalise the answer span + trace with the full visible answer and real
+          // usage, then hand the trace to the post-response flush. This is the one point that
+          // runs at stream completion with the isolate still alive (no waitUntil guarantee
+          // otherwise). Fail-open — telemetry must never affect the stream close.
+          try {
+            if (answerSpan) {
+              answerSpan.log({
+                output: cacheText,
+                metrics: {
+                  ...parseUsage(capturedUsage),
+                  ...(firstTokenAt !== null
+                    ? { time_to_first_token: (firstTokenAt - gatewayStart) / 1000 }
+                    : {}),
+                },
+              });
+              answerSpan.end();
+            }
+            trace?.log({ output: cacheText, metadata: { exit: "streamed" } });
+            void trace?.finish();
+          } catch {
+            /* fail-open: observability must never break the stream */
+          }
         },
       });
 
       const sanitizedBody = response.body!.pipeThrough(sanitizeStream);
 
+      // The stream flush hook above owns finishing this turn's trace; skip it in finally.
+      streamedHandoff = true;
       return new Response(sanitizedBody, { headers: buildSSEHeaders() });
     } catch (err) {
+      trace?.setError(err);
       log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
       // OWASP A09: Generic error message, no internal details
       return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    } finally {
+      // Finalise the turn's trace on every non-streamed exit; no-op when disabled or null.
+      if (!streamedHandoff) void trace?.finish();
     }
   })
 );
