@@ -127,9 +127,7 @@ function CertCard({ row, profileName }: CertCardProps) {
             <Briefcase className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-sm font-semibold leading-snug line-clamp-2">
-              {projectName || "Project Certification"}
-            </CardTitle>
+            <CardTitle>{projectName || "Project Certification"}</CardTitle>
             {phase && <p className="text-xs text-muted-foreground mt-1">{phase}</p>}
             {monthYear && <p className="text-xs text-muted-foreground mt-0.5">{monthYear}</p>}
           </div>
@@ -158,7 +156,12 @@ export function ProjectCertificationsTab() {
     if (!user) return;
     setSyncing(true);
     try {
-      const data = await invokeEdge("fetch-project-certifications");
+      const data = await invokeEdge<{
+        success: boolean;
+        total_found: number;
+        upserted: number;
+        error?: string;
+      }>("fetch-project-certifications");
       if (data?.success) {
         setHasSearched(true);
         if (data.total_found === 0) {

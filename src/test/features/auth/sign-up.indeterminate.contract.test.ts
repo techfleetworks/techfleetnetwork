@@ -84,7 +84,10 @@ describe("sign-up indeterminate-resolve probe", () => {
     expect(result.ok).toBe(false);
     // Critical: a transient sign-up failure MUST NEVER surface as
     // invalid_credentials (would punish the user via failure-policy).
-    if (!result.ok) expect(result.error.code).not.toBe("invalid_credentials");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).not.toBe(
+        "invalid_credentials"
+      );
   });
 
   it("SIGNUP-TIMEOUT-PROBE-004: server email_exists code → account_exists", async () => {
@@ -95,7 +98,8 @@ describe("sign-up indeterminate-resolve probe", () => {
 
     const result = await signUp(baseInput);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("account_exists");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("account_exists");
     // No probe needed when GoTrue tells us directly.
     expect(auth.signInWithPassword).not.toHaveBeenCalled();
   });
@@ -112,6 +116,7 @@ describe("sign-up indeterminate-resolve probe", () => {
 
     const result = await signUp(baseInput);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("account_exists");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("account_exists");
   });
 });

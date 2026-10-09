@@ -49,7 +49,7 @@ describe("ChatPage streamChat — auth", () => {
     await expect(streamChat(baseArgs)).rejects.toThrow();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const opts = fetchMock.mock.calls[0][1] as { headers: Record<string, string> };
+    const opts = (fetchMock.mock.calls[0] as unknown[])[1] as { headers: Record<string, string> };
     expect(opts.headers.Authorization).toBe("Bearer SESSION_JWT");
   });
 

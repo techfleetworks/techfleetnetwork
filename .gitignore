@@ -42,3 +42,6 @@ docs/design/design-system/.vitepress/cache
 *.sln
 *.sw?
 deno.lock
+
+# TypeScript incremental build info (never emitted by the gate, but guard against stray tsc -b runs)
+*.tsbuildinfo

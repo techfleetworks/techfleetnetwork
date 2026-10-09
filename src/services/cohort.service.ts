@@ -91,7 +91,11 @@ export const CohortService = {
     const payload: Record<string, unknown> = { ...values };
     if (values.meeting_url === "") payload.meeting_url = null;
     await retryTransientWrite(async () => {
-      const result = await supabase.from("cohorts").update(payload).eq("id", id).select("id");
+      const result = await supabase
+        .from("cohorts")
+        .update(payload as never)
+        .eq("id", id)
+        .select("id");
       if (result.error) throw result.error;
       assertWritten(result, "cohort.update", { id });
     });

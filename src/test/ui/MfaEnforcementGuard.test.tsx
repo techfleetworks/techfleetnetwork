@@ -46,7 +46,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       signOut: () => mockSignOut(),
-      onAuthStateChange: (...args: unknown[]) => mockOnAuthStateChange(...args),
+      onAuthStateChange: (...args: unknown[]) =>
+        (mockOnAuthStateChange as (...a: unknown[]) => unknown)(...args),
     },
   },
 }));

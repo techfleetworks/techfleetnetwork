@@ -45,22 +45,23 @@ vi.mock("@/lib/email-domain-validation", () => ({
   validateEmailDomainExists: vi.fn().mockResolvedValue({ valid: true }),
 }));
 
-const makeSession = (userId: string, issuedAgoMs = 60_000) => ({
-  access_token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature",
-  refresh_token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZWZyZXNoIn0.signature",
-  expires_in: 600,
-  expires_at: Math.floor((Date.now() - issuedAgoMs + 600_000) / 1000),
-  token_type: "bearer",
-  user: {
-    id: userId,
-    email: `${userId}@example.com`,
-    created_at: new Date(Date.now() - 86_400_000).toISOString(),
-    last_sign_in_at: new Date(Date.now() - issuedAgoMs).toISOString(),
-    app_metadata: {},
-    user_metadata: {},
-    aud: "authenticated",
-  },
-});
+const makeSession = (userId: string, issuedAgoMs = 60_000) =>
+  ({
+    access_token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature",
+    refresh_token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZWZyZXNoIn0.signature",
+    expires_in: 600,
+    expires_at: Math.floor((Date.now() - issuedAgoMs + 600_000) / 1000),
+    token_type: "bearer",
+    user: {
+      id: userId,
+      email: `${userId}@example.com`,
+      created_at: new Date(Date.now() - 86_400_000).toISOString(),
+      last_sign_in_at: new Date(Date.now() - issuedAgoMs).toISOString(),
+      app_metadata: {},
+      user_metadata: {},
+      aud: "authenticated",
+    },
+  }) as unknown as import("@supabase/supabase-js").Session;
 
 describe("authPort session max-age marker", () => {
   beforeEach(() => {
@@ -73,7 +74,7 @@ describe("authPort session max-age marker", () => {
     vi.mocked(supabase.auth.signInWithPassword).mockReset();
     sessionStorage.clear();
     localStorage.clear();
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null });
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null } as never);
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { valid: true }, error: null });
     vi.mocked(supabase.auth.setSession).mockReset();
     vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null });
@@ -394,7 +395,10 @@ describe("authPort session max-age marker", () => {
     );
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
       data: { session: null },
-      error: { message: "Invalid Refresh Token: Refresh Token Not Found", status: 400 },
+      error: {
+        message: "Invalid Refresh Token: Refresh Token Not Found",
+        status: 400,
+      } as unknown as import("@supabase/supabase-js").AuthError,
     });
 
     await expect(authPort.getSession()).resolves.toBeNull();

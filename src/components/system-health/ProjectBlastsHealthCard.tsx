@@ -68,7 +68,7 @@ export function ProjectBlastsHealthCard() {
     return (
       <Card className="border-destructive/40">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">Project blasts unavailable</CardTitle>
+          <CardTitle>Project blasts unavailable</CardTitle>
           <CardDescription>{error}</CardDescription>
         </CardHeader>
       </Card>
@@ -80,8 +80,8 @@ export function ProjectBlastsHealthCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">Project blasts</CardTitle>
-        <CardDescription className="flex items-center gap-1 text-xs">
+        <CardTitle>Project blasts</CardTitle>
+        <CardDescription>
           <Clock className="h-3 w-3" aria-hidden />
           Last {t?.window_days ?? 30} days · Updated{" "}
           {data ? formatDistanceToNow(new Date(data.generated_at), { addSuffix: true }) : "—"}

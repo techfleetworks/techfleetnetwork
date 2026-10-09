@@ -3800,6 +3800,189 @@ export type Database = {
         }
         Relationships: []
       }
+      handoff_deliverable_submissions: {
+        Row: {
+          component_slug: string
+          created_at: string
+          created_by: string
+          external_url: string | null
+          file_name: string | null
+          file_path: string | null
+          id: string
+          phase: string
+          project_id: string
+          submission_type: string
+          text_content: string | null
+        }
+        Insert: {
+          component_slug: string
+          created_at?: string
+          created_by?: string
+          external_url?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          phase: string
+          project_id: string
+          submission_type: string
+          text_content?: string | null
+        }
+        Update: {
+          component_slug?: string
+          created_at?: string
+          created_by?: string
+          external_url?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          phase?: string
+          project_id?: string
+          submission_type?: string
+          text_content?: string | null
+        }
+        Relationships: []
+      }
+      handoff_feedback: {
+        Row: {
+          audience: string
+          created_at: string
+          created_by: string
+          id: string
+          note: string | null
+          production_id: string
+          rating: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string | null
+          production_id: string
+          rating: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string | null
+          production_id?: string
+          rating?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      handoff_output_files: {
+        Row: {
+          audience: string
+          bytes: number | null
+          checksum: string | null
+          created_at: string
+          format: string
+          id: string
+          production_id: string
+          storage_path: string
+        }
+        Insert: {
+          audience: string
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          format: string
+          id?: string
+          production_id: string
+          storage_path: string
+        }
+        Update: {
+          audience?: string
+          bytes?: number | null
+          checksum?: string | null
+          created_at?: string
+          format?: string
+          id?: string
+          production_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
+      handoff_productions: {
+        Row: {
+          audiences: string[] | null
+          created_at: string
+          error: string | null
+          gap_count: number | null
+          id: string
+          idempotency_key: string | null
+          is_latest: boolean
+          model: string | null
+          phase: string
+          project_id: string
+          spf_version: string | null
+          status: string
+          triggered_by: string
+          updated_at: string
+          writer_only: boolean
+        }
+        Insert: {
+          audiences?: string[] | null
+          created_at?: string
+          error?: string | null
+          gap_count?: number | null
+          id?: string
+          idempotency_key?: string | null
+          is_latest?: boolean
+          model?: string | null
+          phase: string
+          project_id: string
+          spf_version?: string | null
+          status?: string
+          triggered_by: string
+          updated_at?: string
+          writer_only?: boolean
+        }
+        Update: {
+          audiences?: string[] | null
+          created_at?: string
+          error?: string | null
+          gap_count?: number | null
+          id?: string
+          idempotency_key?: string | null
+          is_latest?: boolean
+          model?: string | null
+          phase?: string
+          project_id?: string
+          spf_version?: string | null
+          status?: string
+          triggered_by?: string
+          updated_at?: string
+          writer_only?: boolean
+        }
+        Relationships: []
+      }
+      handoff_run_budget: {
+        Row: {
+          phase: string
+          project_id: string
+          runs_used: number
+          updated_at: string
+        }
+        Insert: {
+          phase: string
+          project_id: string
+          runs_used?: number
+          updated_at?: string
+        }
+        Update: {
+          phase?: string
+          project_id?: string
+          runs_used?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       incident_response: {
         Row: {
           affected_user_count: number
@@ -8724,6 +8907,10 @@ export type Database = {
           sample_error: string
           table_name: string
         }[]
+      }
+      handoff_completeness: {
+        Args: { p_phase: string; p_project_id: string }
+        Returns: Json
       }
       has_role: {
         Args: {

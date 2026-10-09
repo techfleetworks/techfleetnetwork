@@ -318,7 +318,7 @@ export default function TalTerminal() {
                 filter="url(#talCrtGlow)"
               />
               <foreignObject x="66" y="61" width="593" height="461" clipPath="url(#talScreenClip)">
-                <div xmlns="http://www.w3.org/1999/xhtml" className="tal9k__screen">
+                <div className="tal9k__screen">
                   {power === "off" && (
                     <div className="tal9k__off">
                       <p className="tal9k__off-label">&#9673; SYSTEM OFF</p>

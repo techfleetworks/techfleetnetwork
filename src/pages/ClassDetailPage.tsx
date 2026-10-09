@@ -270,14 +270,14 @@ export default function ClassDetailPage() {
         </div>
       )}
 
-      <Tabs defaultValue={canSeeCurriculum ? "curriculum" : "cohorts"} className="space-y-4">
+      <Tabs defaultValue={canSeeCurriculum ? "curriculum" : "cohorts"}>
         <TabsList>
           {canSeeCurriculum && <TabsTrigger value="curriculum">Curriculum</TabsTrigger>}
           <TabsTrigger value="cohorts">Cohorts</TabsTrigger>
         </TabsList>
 
         {canSeeCurriculum && (
-          <TabsContent value="curriculum" className="space-y-4">
+          <TabsContent value="curriculum">
             {canEdit ? (
               <CurriculumEditor classId={cls.id} />
             ) : (
