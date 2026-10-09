@@ -18,7 +18,7 @@
 -- every reconcile run converges access to Gumroad's truth in BOTH directions, so a
 -- missed webhook self-heals within the sweep instead of never. This also protects
 -- membership today and is a prerequisite for the class-registration domain reusing
--- the same pipeline (ADR-0066).
+-- the same pipeline (ADR-0069).
 --
 -- The invariant this closes is proven in supabase/tests/gumroad_reconcile_clawback_test.sql:
 -- a sale with refunded_at or disputed_at set yields no active membership, even

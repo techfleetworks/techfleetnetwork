@@ -8,7 +8,7 @@
 ## Context
 
 The Phase 0 audit of the shared Gumroad pipeline (prerequisite for class registration,
-ADR-0066) found a live membership defect. The reconcile pull paths `gumroad-backfill` and
+ADR-0069) found a live membership defect. The reconcile pull paths `gumroad-backfill` and
 `gumroad-backfill-all` fetch refund, dispute, and subscription-ended state from the Gumroad API,
 but persist sales with `ignoreDuplicates: true`. On a sale already in the ledger the whole row is
 skipped, so the freshly pulled lifecycle timestamps are never written. That left the real-time
@@ -58,5 +58,5 @@ p_ended_at)`, `SECURITY DEFINER`, `search_path = ''`, service role only. It upda
   (`classifyLifecycle` treats a won dispute as not-a-downgrade but also never clears a prior
   `disputed_at`). Restoring on a won dispute is a separate, later change if wanted.
 - The migration is additive and hand-applied to prod; the schema gate stays red until applied
-  (ADR-0036). The fix hardens the shared pipeline that class registration will reuse (ADR-0066), so
+  (ADR-0036). The fix hardens the shared pipeline that class registration will reuse (ADR-0069), so
   both domains inherit correct clawback.
