@@ -1,13 +1,13 @@
-# ADR 0067 — Retire the four dead Airtable sync/diag edge functions (Airtable partially deprecated)
+# ADR 0072 — Retire the four dead Airtable sync/diag edge functions (Airtable partially deprecated)
 
 - Status: Accepted
 - Date: 2026-09-27
 - Deciders: Morgan Denner
 - Epic: Integration teardown / Airtable deprecation
 
-> Numbering: 0066 was taken by the merged dep-advisories override fix (PR #404); 0062 (System Health,
-> PR #377), 0063 (Class Admin IA / Discord-connect) and 0066 (projects data-access, PR #403) are also
-> in flight/merged, so this takes 0067.
+> Numbering: this PR sat open while many ADRs merged (0064 signup, 0065 shipathon, 0066 dep-overrides,
+> 0067 class-admin, 0069-0071), each taking the number this ADR had claimed. Jumping above the current
+> max (main is at 0071; 0068 is a gap likely claimed by an unmerged PR) to 0072 to avoid re-colliding.
 
 ## Context
 
