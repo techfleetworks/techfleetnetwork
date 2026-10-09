@@ -150,7 +150,7 @@ export default function ProjectApplicationPage() {
   /* ── fetch project info ────────────────────────────────── */
   // Owned by projectService via use-project.ts — the page no longer selects projects columns itself;
   // the column contract (incl. is_shipathon for the Shipathon flow, ADR-0055) lives in one place
-  // (ADR-0067). Gated on `user` so the read runs as `authenticated`, not `anon` (no SELECT on
+  // (ADR-0071). Gated on `user` so the read runs as `authenticated`, not `anon` (no SELECT on
   // projects), which also closes the session-race "Project not found" (ADR-0065).
   const { data: project, isLoading: projLoading } = useProjectForApplication(projectId, {
     enabled: !!user,

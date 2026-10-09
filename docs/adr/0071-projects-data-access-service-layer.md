@@ -1,4 +1,4 @@
-# ADR 0067 — Projects data-access service layer: one owner for `projects` reads, two privilege-appropriate loaders
+# ADR 0071 — Projects data-access service layer: one owner for `projects` reads, two privilege-appropriate loaders
 
 - Status: Accepted
 - Date: 2026-09-29
