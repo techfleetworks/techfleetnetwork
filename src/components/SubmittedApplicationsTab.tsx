@@ -170,7 +170,12 @@ export default function SubmittedApplicationsTab() {
     queryKey: ["admin-projects-for-apps", projectIds],
     queryFn: async () => {
       if (projectIds.length === 0) return [];
-      const { data, error } = await supabase.from("projects").select("*").in("id", projectIds);
+      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
+      // (ADR-0056/0065); select('*') fails 42501/403. List exactly the ProjectRow fields.
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, project_type, phase, project_status, client_id, friendly_name")
+        .in("id", projectIds);
       if (error) throw error;
       return (data ?? []) as unknown as ProjectRow[];
     },

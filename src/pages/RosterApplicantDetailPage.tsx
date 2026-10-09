@@ -6,8 +6,17 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
-  ArrowLeft, ArrowRight, Share2, CheckCircle2, XCircle, User,
-  Briefcase, GraduationCap, Loader2, Copy, ShieldAlert,
+  ArrowLeft,
+  ArrowRight,
+  Share2,
+  CheckCircle2,
+  XCircle,
+  User,
+  Briefcase,
+  GraduationCap,
+  Loader2,
+  Copy,
+  ShieldAlert,
 } from "lucide-react";
 import { PageTitle } from "@/components/ui/typography";
 
@@ -16,13 +25,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { toast } from "sonner";
-import { ApplicantStatusDropdown, applicantStatusLabel } from "@/components/admin/ApplicantStatusDropdown";
+import {
+  ApplicantStatusDropdown,
+  applicantStatusLabel,
+} from "@/components/admin/ApplicantStatusDropdown";
 import { DiscordRoleAssignment } from "@/components/admin/DiscordRoleAssignment";
 import { AgreementResendButton } from "@/components/agreements/AgreementResendButton";
 import { CompletedCoursesPanel } from "@/components/admin/CompletedCoursesPanel";
@@ -75,9 +91,12 @@ export default function RosterApplicantDetailPage() {
   const { data: project } = useQuery({
     queryKey: ["roster-proj-detail", projectId],
     queryFn: async () => {
+      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
+      // (ADR-0056/0065); select('*') fails 42501/403. The 4 operational columns are fetched separately
+      // via the get_project_internal_links RPC below, exactly as this page's own comment prescribes.
       const { data, error } = await supabase
         .from("projects")
-        .select("*, clients(name)")
+        .select("id, project_type, phase, project_status, clients(name)")
         .eq("id", projectId!)
         .single();
       if (error) throw error;
@@ -90,8 +109,9 @@ export default function RosterApplicantDetailPage() {
   const { data: projectLinks } = useQuery({
     queryKey: ["roster-proj-links", projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .rpc("get_project_internal_links", { p_project_id: projectId! });
+      const { data, error } = await supabase.rpc("get_project_internal_links", {
+        p_project_id: projectId!,
+      });
       if (error) throw error;
       return (data?.[0] ?? null) as {
         discord_role_id: string | null;
@@ -152,7 +172,7 @@ export default function RosterApplicantDetailPage() {
   });
   const completedKeys = useMemo(
     () => new Set((applicantCompletions ?? []).map((r) => r.course_key)),
-    [applicantCompletions],
+    [applicantCompletions]
   );
 
   const clientName = (project?.clients as { name: string } | null)?.name ?? "Project";
@@ -166,7 +186,8 @@ export default function RosterApplicantDetailPage() {
 
   // Next/Previous navigation
   const { prevId, nextId, currentIndex, totalCount } = useMemo(() => {
-    if (!allApps || !applicationId) return { prevId: null, nextId: null, currentIndex: -1, totalCount: 0 };
+    if (!allApps || !applicationId)
+      return { prevId: null, nextId: null, currentIndex: -1, totalCount: 0 };
     const idx = allApps.findIndex((a) => a.id === applicationId);
     return {
       prevId: idx > 0 ? allApps[idx - 1].id : null,
@@ -206,7 +227,11 @@ export default function RosterApplicantDetailPage() {
     return (
       <div className="container-app py-12 text-center">
         <p className="text-muted-foreground">Application not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(`/admin/roster/project/${projectId}`)}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => navigate(`/admin/roster/project/${projectId}`)}
+        >
           Back to Project Roster
         </Button>
       </div>
@@ -258,7 +283,9 @@ export default function RosterApplicantDetailPage() {
             size="sm"
             className="gap-1.5"
             disabled={!prevId}
-            onClick={() => prevId && navigate(`/admin/roster/project/${projectId}/applicant/${prevId}`)}
+            onClick={() =>
+              prevId && navigate(`/admin/roster/project/${projectId}/applicant/${prevId}`)
+            }
           >
             <ArrowLeft className="h-4 w-4" />
             Previous
@@ -271,14 +298,15 @@ export default function RosterApplicantDetailPage() {
             size="sm"
             className="gap-1.5"
             disabled={!nextId}
-            onClick={() => nextId && navigate(`/admin/roster/project/${projectId}/applicant/${nextId}`)}
+            onClick={() =>
+              nextId && navigate(`/admin/roster/project/${projectId}/applicant/${nextId}`)
+            }
           >
             Next
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       )}
-
 
       {/* Application Status Card */}
       <Card className="border-primary/20 bg-primary/5">
@@ -291,7 +319,7 @@ export default function RosterApplicantDetailPage() {
             <p className="text-xs text-muted-foreground mt-1">
               {(project as any)?.requires_interview === false
                 ? "This project does not include interviews. Applicants move directly from Pending Review to Active Participant."
-                : "Changing status to \"Invite to Interview\" will send an email and in-app notification to the applicant."}
+                : 'Changing status to "Invite to Interview" will send an email and in-app notification to the applicant.'}
             </p>
           </div>
           <ApplicantStatusDropdown
@@ -313,17 +341,39 @@ export default function RosterApplicantDetailPage() {
 
       {/* Community Agreement Status */}
       {projApp.community_agreement_required_at ? (
-        <Card className={projApp.community_agreement_signed_at ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}>
+        <Card
+          className={
+            projApp.community_agreement_signed_at
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : "border-amber-500/30 bg-amber-500/5"
+          }
+        >
           <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Community Contributor Agreement</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Community Contributor Agreement
+              </p>
               {projApp.community_agreement_signed_at ? (
-                <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
-                  Signed {format(new Date(projApp.community_agreement_signed_at as string), "MMMM d, yyyy")}
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
+                >
+                  Signed{" "}
+                  {format(
+                    new Date(projApp.community_agreement_signed_at as string),
+                    "MMMM d, yyyy"
+                  )}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300">
-                  Pending since {format(new Date(projApp.community_agreement_required_at as string), "MMMM d, yyyy")}
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/40 text-amber-700 dark:text-amber-300"
+                >
+                  Pending since{" "}
+                  {format(
+                    new Date(projApp.community_agreement_required_at as string),
+                    "MMMM d, yyyy"
+                  )}
                 </Badge>
               )}
             </div>
@@ -345,7 +395,6 @@ export default function RosterApplicantDetailPage() {
         </CardContent>
       </Card>
 
-
       {/* Submission meta */}
       <div className="flex flex-col gap-2">
         {projApp.completed_at && (
@@ -354,12 +403,26 @@ export default function RosterApplicantDetailPage() {
             Submitted {format(new Date(projApp.completed_at as string), "MMMM d, yyyy")}
           </Badge>
         )}
-        <Badge variant="secondary" className="w-fit">{typeLabel((project?.project_type as string) ?? "")}</Badge>
-        <Badge variant="outline" className="w-fit">{phaseLabel((project?.phase as string) ?? "")}</Badge>
-        <Badge variant="outline" className="w-fit">{statusLabel((project?.project_status as string) ?? "")}</Badge>
-        {participatedPrev
-          ? <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit"><CheckCircle2 className="h-3 w-3" />Previous Participant</Badge>
-          : <Badge variant="outline" className="gap-1 w-fit"><XCircle className="h-3 w-3" />New Participant</Badge>}
+        <Badge variant="secondary" className="w-fit">
+          {typeLabel((project?.project_type as string) ?? "")}
+        </Badge>
+        <Badge variant="outline" className="w-fit">
+          {phaseLabel((project?.phase as string) ?? "")}
+        </Badge>
+        <Badge variant="outline" className="w-fit">
+          {statusLabel((project?.project_status as string) ?? "")}
+        </Badge>
+        {participatedPrev ? (
+          <Badge className="bg-success/10 text-success border-success/30 gap-1 w-fit">
+            <CheckCircle2 className="h-3 w-3" />
+            Previous Participant
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="gap-1 w-fit">
+            <XCircle className="h-3 w-3" />
+            New Participant
+          </Badge>
+        )}
       </div>
 
       <Separator />
@@ -367,8 +430,7 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION 1: Applicant Profile */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">Applicant Profile
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg">Applicant Profile</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <ReadOnlyField label="Name" value={applicantName} />
@@ -379,18 +441,49 @@ export default function RosterApplicantDetailPage() {
             <ReadOnlyField label="Discord" value={profile!.discord_username as string} />
           )}
           {(profile?.linkedin_url as string) && (
-            <ReadOnlyLinkField label="LinkedIn" href={profile!.linkedin_url as string} linkText="Profile" />
+            <ReadOnlyLinkField
+              label="LinkedIn"
+              href={profile!.linkedin_url as string}
+              linkText="Profile"
+            />
           )}
           {(profile?.portfolio_url as string) && (
-            <ReadOnlyLinkField label="Portfolio" href={profile!.portfolio_url as string} linkText="View" />
+            <ReadOnlyLinkField
+              label="Portfolio"
+              href={profile!.portfolio_url as string}
+              linkText="View"
+            />
           )}
-          <ReadOnlyArrayField label="Experience Areas" items={(profile?.experience_areas as string[]) ?? []} />
-          <ReadOnlyArrayField label="Education Background" items={(profile?.education_background as string[]) ?? []} />
+          <ReadOnlyArrayField
+            label="Experience Areas"
+            items={(profile?.experience_areas as string[]) ?? []}
+          />
+          <ReadOnlyArrayField
+            label="Education Background"
+            items={(profile?.education_background as string[]) ?? []}
+          />
           <ReadOnlyArrayField label="Interests" items={(profile?.interests as string[]) ?? []} />
-          <ReadOnlyField label="Professional Background" value={(profile?.professional_background as string) ?? ""} entityTable="profiles" entityId={profile?.id as string} columnName="professional_background" />
-          <ReadOnlyField label="Professional Goals" value={(profile?.professional_goals as string) ?? ""} entityTable="profiles" entityId={profile?.id as string} columnName="professional_goals" />
-          <ReadOnlyField label="Bio" value={(profile?.bio as string) ?? ""} entityTable="profiles" entityId={profile?.id as string} columnName="bio" />
-
+          <ReadOnlyField
+            label="Professional Background"
+            value={(profile?.professional_background as string) ?? ""}
+            entityTable="profiles"
+            entityId={profile?.id as string}
+            columnName="professional_background"
+          />
+          <ReadOnlyField
+            label="Professional Goals"
+            value={(profile?.professional_goals as string) ?? ""}
+            entityTable="profiles"
+            entityId={profile?.id as string}
+            columnName="professional_goals"
+          />
+          <ReadOnlyField
+            label="Bio"
+            value={(profile?.bio as string) ?? ""}
+            entityTable="profiles"
+            entityId={profile?.id as string}
+            columnName="bio"
+          />
         </CardContent>
       </Card>
 
@@ -409,8 +502,7 @@ export default function RosterApplicantDetailPage() {
       {genApp && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">General Application
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">General Application</CardTitle>
             {genApp.completed_at && (
               <p className="text-xs text-muted-foreground">
                 Completed {format(new Date(genApp.completed_at as string), "MMMM d, yyyy")}
@@ -418,27 +510,69 @@ export default function RosterApplicantDetailPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
+            <ReadOnlyField
+              label="Hours commitment"
+              value={(genApp.hours_commitment as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
-            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
-            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Engagement History
+            </p>
+            <ReadOnlyField
+              label="Previous engagement with Tech Fleet"
+              value={(genApp.previous_engagement as string) ?? ""}
+            />
+            <ReadOnlyArrayField
+              label="Previous engagement ways"
+              items={(genApp.previous_engagement_ways as string[]) ?? []}
+            />
+            <ReadOnlyField
+              label="What have you learned from teammates?"
+              value={(genApp.teammate_learnings as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
-            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
-            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
-            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
-            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Agile Mindset
+            </p>
+            <ReadOnlyField
+              label="Agile vs Waterfall"
+              value={(genApp.agile_vs_waterfall as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Psychological Safety"
+              value={(genApp.psychological_safety as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Agile Philosophies"
+              value={(genApp.agile_philosophies as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Collaboration Challenges"
+              value={(genApp.collaboration_challenges as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
-            <ReadOnlyField label="Service Leadership Definition" value={(genApp.service_leadership_definition as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Actions" value={(genApp.service_leadership_actions as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Challenges" value={(genApp.service_leadership_challenges as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Situation" value={(genApp.service_leadership_situation as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Service Leadership
+            </p>
+            <ReadOnlyField
+              label="Service Leadership Definition"
+              value={(genApp.service_leadership_definition as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Actions"
+              value={(genApp.service_leadership_actions as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Challenges"
+              value={(genApp.service_leadership_challenges as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Situation"
+              value={(genApp.service_leadership_situation as string) ?? ""}
+            />
           </CardContent>
         </Card>
       )}
@@ -446,11 +580,15 @@ export default function RosterApplicantDetailPage() {
       {/* SECTION 3: Project Application */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">Project Application — {clientName}
+          <CardTitle className="flex items-center gap-2 text-lg">
+            Project Application — {clientName}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ReadOnlyArrayField label="Team Hats of Interest" items={(projApp.team_hats_interest as string[]) ?? []} />
+          <ReadOnlyArrayField
+            label="Team Hats of Interest"
+            items={(projApp.team_hats_interest as string[]) ?? []}
+          />
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -459,9 +597,18 @@ export default function RosterApplicantDetailPage() {
 
           {participatedPrev ? (
             <>
-              <ReadOnlyField label="What team position did you join in the previous phase?" value={(projApp.previous_phase_position as string) ?? ""} />
-              <ReadOnlyField label="What did you learn in the previous phase?" value={(projApp.previous_phase_learnings as string) ?? ""} />
-              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(projApp.previous_phase_help_teammates as string) ?? ""} />
+              <ReadOnlyField
+                label="What team position did you join in the previous phase?"
+                value={(projApp.previous_phase_position as string) ?? ""}
+              />
+              <ReadOnlyField
+                label="What did you learn in the previous phase?"
+                value={(projApp.previous_phase_learnings as string) ?? ""}
+              />
+              <ReadOnlyField
+                label="How will you help your teammates succeed in this upcoming phase?"
+                value={(projApp.previous_phase_help_teammates as string) ?? ""}
+              />
             </>
           ) : (
             <ReadOnlyField
@@ -471,11 +618,25 @@ export default function RosterApplicantDetailPage() {
           )}
 
           <Separator className="my-2" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
-          <ReadOnlyField label="Why are you passionate about being on this project?" value={(projApp.passion_for_project as string) ?? ""} />
-          <ReadOnlyField label="What do you know about the client and the project?" value={(projApp.client_project_knowledge as string) ?? ""} />
-          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(projApp.cross_functional_contribution as string) ?? ""} />
-          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(projApp.project_success_contribution as string) ?? ""} />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Client Questions
+          </p>
+          <ReadOnlyField
+            label="Why are you passionate about being on this project?"
+            value={(projApp.passion_for_project as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="What do you know about the client and the project?"
+            value={(projApp.client_project_knowledge as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="How would you like to contribute to cross-functional teamwork?"
+            value={(projApp.cross_functional_contribution as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="How will you contribute to this project's successful outcomes?"
+            value={(projApp.project_success_contribution as string) ?? ""}
+          />
         </CardContent>
       </Card>
 

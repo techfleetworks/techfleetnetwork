@@ -5,29 +5,49 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Loader2, Send, Building2, ExternalLink, Briefcase,
-  Users, Share2, CheckCircle2, FileText, Pencil,
-  Lightbulb, ClipboardList, Target, Clock, Calendar, Link2,
-  ScrollText, ShieldCheck, CalendarClock, UserSearch, AlertTriangle,
+  Loader2,
+  Send,
+  Building2,
+  ExternalLink,
+  Briefcase,
+  Users,
+  Share2,
+  CheckCircle2,
+  FileText,
+  Pencil,
+  Lightbulb,
+  ClipboardList,
+  Target,
+  Clock,
+  Calendar,
+  Link2,
+  ScrollText,
+  ShieldCheck,
+  CalendarClock,
+  UserSearch,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NavLink } from "@/components/NavLink";
 import { ClientLogo } from "@/components/ClientLogo";
 import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import { SafeExternalLink, getSafeLinkHostname } from "@/components/security/SafeExternalLink";
 import { TranslatedContent } from "@/components/i18n/TranslatedContent";
-import {
-  PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES,
-} from "@/data/project-constants";
+import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getProjectApplicationSubmissionState } from "@/lib/applications/project-application-status";
 
 /* ── Label helpers ───────────────────────────────────────── */
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
@@ -82,7 +102,13 @@ interface ApiResponse {
 }
 
 /* ── Pill list component ─────────────────────────────────── */
-function PillList({ items, variant = "outline" }: { items: string[]; variant?: "outline" | "secondary" }) {
+function PillList({
+  items,
+  variant = "outline",
+}: {
+  items: string[];
+  variant?: "outline" | "secondary";
+}) {
   if (!items.length) return <p className="text-sm text-muted-foreground italic">None specified</p>;
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -96,16 +122,21 @@ function PillList({ items, variant = "outline" }: { items: string[]; variant?: "
 }
 
 /* ── Section component ───────────────────────────────────── */
-function InfoSection({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
+function InfoSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">{title}
-        </CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {children}
-      </CardContent>
+      <CardContent className="space-y-4">{children}</CardContent>
     </Card>
   );
 }
@@ -114,7 +145,9 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-foreground">{label}</p>
-      <div className="text-sm text-muted-foreground">{value || <span className="italic">Not provided</span>}</div>
+      <div className="text-sm text-muted-foreground">
+        {value || <span className="italic">Not provided</span>}
+      </div>
     </div>
   );
 }
@@ -142,7 +175,7 @@ export default function ProjectOpeningDetailPage() {
       `${supabaseUrl}/functions/v1/public-project-detail?projectId=${encodeURIComponent(projectId)}`,
       {
         headers: {
-          "apikey": anonKey,
+          apikey: anonKey,
           "Content-Type": "application/json",
         },
       }
@@ -159,22 +192,27 @@ export default function ProjectOpeningDetailPage() {
       .finally(() => setLoading(false));
   }, [projectId]);
 
-  /* Check if user has already applied to this project */
+  /* The member's submission state on this project — one source of truth (none | draft | completed).
+     A draft (started, not yet submitted) must offer "Resume", never claim "you've already submitted":
+     the mere existence of a row is NOT a submission — only status === 'completed' is (ADR-0065). */
   const { data: existingApp } = useQuery({
     queryKey: ["user-project-app", user?.id, projectId],
     queryFn: async () => {
-      const { data: app } = await supabase
+      const { data: app, error } = await supabase
         .from("project_applications")
-        .select("id")
+        .select("id, status")
         .eq("user_id", user!.id)
         .eq("project_id", projectId!)
         .maybeSingle();
+      if (error) throw error;
       return app;
     },
     enabled: !!user && !!projectId,
   });
 
-  const hasApplied = !!existingApp;
+  const applicationState = getProjectApplicationSubmissionState(existingApp);
+  const hasSubmitted = applicationState === "completed";
+  const hasDraft = applicationState === "draft";
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -191,7 +229,9 @@ export default function ProjectOpeningDetailPage() {
 
   useEffect(() => {
     document.title = pageTitle;
-    return () => { document.title = "Tech Fleet Network"; };
+    return () => {
+      document.title = "Tech Fleet Network";
+    };
   }, [pageTitle]);
 
   const handleShare = async () => {
@@ -210,7 +250,9 @@ export default function ProjectOpeningDetailPage() {
       navigate(applicationPath);
     } else {
       toast.info("Sign in to continue your application. We’ll bring you back here afterward.");
-      navigate(`/login?redirect=${encodeURIComponent(applicationPath)}`, { state: { from: { pathname: applicationPath } } });
+      navigate(`/login?redirect=${encodeURIComponent(applicationPath)}`, {
+        state: { from: { pathname: applicationPath } },
+      });
     }
   };
 
@@ -247,7 +289,11 @@ export default function ProjectOpeningDetailPage() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <NavLink to={user ? openingsHref : `/login?redirect=${encodeURIComponent(openingsHref)}`}>{openingsLabel}</NavLink>
+              <NavLink
+                to={user ? openingsHref : `/login?redirect=${encodeURIComponent(openingsHref)}`}
+              >
+                {openingsLabel}
+              </NavLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -266,7 +312,9 @@ export default function ProjectOpeningDetailPage() {
               {client?.kind === "internal" ? (
                 <Badge className="bg-info/10 text-info border-info/30">Volunteer Opening</Badge>
               ) : (
-                <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Client Project</Badge>
+                <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                  Client Project
+                </Badge>
               )}
               <Badge className="bg-success/10 text-success border-success/30 gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Accepting Applications
@@ -298,21 +346,19 @@ export default function ProjectOpeningDetailPage() {
                 as="p"
                 className="text-foreground whitespace-pre-wrap leading-relaxed"
               />
+            ) : client?.project_summary ? (
+              <TranslatedContent
+                entityTable="clients"
+                entityId={client.id}
+                columnName="project_summary"
+                sourceText={client.project_summary}
+                as="p"
+                className="text-muted-foreground"
+              />
             ) : (
-              client?.project_summary ? (
-                <TranslatedContent
-                  entityTable="clients"
-                  entityId={client.id}
-                  columnName="project_summary"
-                  sourceText={client.project_summary}
-                  as="p"
-                  className="text-muted-foreground"
-                />
-              ) : (
-                <p className="text-muted-foreground">
-                  {`${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
-                </p>
-              )
+              <p className="text-muted-foreground">
+                {`${typeLabel(project.project_type)} project — ${phaseLabel(project.phase)}`}
+              </p>
             )}
           </div>
         </div>
@@ -322,7 +368,15 @@ export default function ProjectOpeningDetailPage() {
           </Button>
           {project.project_status === "apply_now" && (
             <Button className="gap-1.5" onClick={handleApply}>
-              {hasApplied ? <><Pencil className="h-4 w-4" /> Edit</> : <><Send className="h-4 w-4" /> Apply</>}
+              {hasSubmitted ? (
+                <>
+                  <Pencil className="h-4 w-4" /> Edit
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" /> {hasDraft ? "Resume" : "Apply"}
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -338,16 +392,19 @@ export default function ProjectOpeningDetailPage() {
         <InfoSection icon={Building2} title="About the Client">
           <DetailRow label="Organization" value={client.name} />
           {client.mission && (
-            <DetailRow label="Mission" value={
-              <TranslatedContent
-                entityTable="clients"
-                entityId={client.id}
-                columnName="mission"
-                sourceText={client.mission}
-                as="p"
-                className="whitespace-pre-wrap leading-relaxed"
-              />
-            } />
+            <DetailRow
+              label="Mission"
+              value={
+                <TranslatedContent
+                  entityTable="clients"
+                  entityId={client.id}
+                  columnName="mission"
+                  sourceText={client.mission}
+                  as="p"
+                  className="whitespace-pre-wrap leading-relaxed"
+                />
+              }
+            />
           )}
           {project.description?.trim() && (
             <DetailRow
@@ -369,7 +426,9 @@ export default function ProjectOpeningDetailPage() {
               label="Website"
               value={
                 <SafeExternalLink
-                  href={client.website.startsWith("http") ? client.website : `https://${client.website}`}
+                  href={
+                    client.website.startsWith("http") ? client.website : `https://${client.website}`
+                  }
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
                   {client.website}
@@ -409,10 +468,7 @@ export default function ProjectOpeningDetailPage() {
               </span>
             }
           />
-          <DetailRow
-            label="Posted"
-            value={format(new Date(project.created_at), "MMMM d, yyyy")}
-          />
+          <DetailRow label="Posted" value={format(new Date(project.created_at), "MMMM d, yyyy")} />
         </div>
       </InfoSection>
 
@@ -426,7 +482,10 @@ export default function ProjectOpeningDetailPage() {
             {project.anticipated_start_date && (
               <DetailRow
                 label="Anticipated Start Date"
-                value={format(new Date(project.anticipated_start_date + "T00:00:00"), "MMMM d, yyyy")}
+                value={format(
+                  new Date(project.anticipated_start_date + "T00:00:00"),
+                  "MMMM d, yyyy"
+                )}
               />
             )}
             {project.anticipated_end_date && (
@@ -446,7 +505,8 @@ export default function ProjectOpeningDetailPage() {
       {/* ── Team Hats ─────────────────────────────────────── */}
       <InfoSection icon={Users} title="Team Hats (Roles)">
         <p className="text-sm text-muted-foreground">
-          These are the roles available for this project. Select the ones you're interested in when you apply.
+          These are the roles available for this project. Select the ones you're interested in when
+          you apply.
         </p>
         <PillList items={project.team_hats} variant="secondary" />
       </InfoSection>
@@ -496,7 +556,8 @@ export default function ProjectOpeningDetailPage() {
       {/* ── Contributor Agreement ─────────────────────────── */}
       <InfoSection icon={ScrollText} title="Contributor Agreement">
         <p className="text-sm text-foreground">
-          All Tech Fleet community contributors who join project training must read and agree to the Contributor Terms and Conditions.
+          All Tech Fleet community contributors who join project training must read and agree to the
+          Contributor Terms and Conditions.
         </p>
         <p className="text-sm text-foreground">
           Read more in the Tech Fleet Contributor Terms:{" "}
@@ -511,16 +572,44 @@ export default function ProjectOpeningDetailPage() {
           </a>
         </p>
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">People on this team are considered trainees. This means:</p>
+          <p className="text-sm font-semibold text-foreground">
+            People on this team are considered trainees. This means:
+          </p>
           <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>They are in training.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>They are not considered volunteers.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>They are not considered employees.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>They are unpaid and in apprenticeship training for the purposes of getting team experience while learning.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>They are not required to work certain amounts of hours or time frames, but are expected to put in 15 hours a week with the team doing work.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>They are on the team for the purposes of learning and experience building.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">7.</span>They are able to use the deliverables from the project on a case study or portfolio for the purposes of getting hired.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">8.</span>At the end of their training, they are not guaranteed future training positions or employment by Tech Fleet or the client.</li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">1.</span>They are in training.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">2.</span>They are not
+              considered volunteers.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">3.</span>They are not
+              considered employees.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">4.</span>They are unpaid and in
+              apprenticeship training for the purposes of getting team experience while learning.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">5.</span>They are not required
+              to work certain amounts of hours or time frames, but are expected to put in 15 hours a
+              week with the team doing work.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">6.</span>They are on the team
+              for the purposes of learning and experience building.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">7.</span>They are able to use
+              the deliverables from the project on a case study or portfolio for the purposes of
+              getting hired.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">8.</span>At the end of their
+              training, they are not guaranteed future training positions or employment by Tech
+              Fleet or the client.
+            </li>
           </ul>
         </div>
       </InfoSection>
@@ -528,7 +617,8 @@ export default function ProjectOpeningDetailPage() {
       {/* ── Tech Fleet Policies ────────────────────────────── */}
       <InfoSection icon={ShieldCheck} title="Tech Fleet Policies">
         <p className="text-sm text-foreground">
-          All Tech Fleet community contributors must read and agree to Tech Fleet policies in order to interact with the community and be a part of project training.
+          All Tech Fleet community contributors must read and agree to Tech Fleet policies in order
+          to interact with the community and be a part of project training.
         </p>
         <p className="text-sm text-foreground">
           Find the policies here:{" "}
@@ -559,12 +649,30 @@ export default function ProjectOpeningDetailPage() {
           </a>
         </p>
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">Rough timeline after applications close:</p>
+          <p className="text-sm font-semibold text-foreground">
+            Rough timeline after applications close:
+          </p>
           <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>One week after applications close: Tech Fleet Project Coordinator will {project.requires_interview === false ? "review applications and choose teammates" : "interview and choose teammates"} for the project. The entire process of building team can take up to 3–4 weeks.</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Project Week 1–3 (3 weeks): Pre-kickoff</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>Project Week 3–10 (8 weeks): Project teamwork</li>
-            <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Project Week 11 (1 week): Hand-off</li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">1.</span>One week after
+              applications close: Tech Fleet Project Coordinator will{" "}
+              {project.requires_interview === false
+                ? "review applications and choose teammates"
+                : "interview and choose teammates"}{" "}
+              for the project. The entire process of building team can take up to 3–4 weeks.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">2.</span>Project Week 1–3 (3
+              weeks): Pre-kickoff
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">3.</span>Project Week 3–10 (8
+              weeks): Project teamwork
+            </li>
+            <li className="flex gap-2">
+              <span className="text-foreground font-medium shrink-0">4.</span>Project Week 11 (1
+              week): Hand-off
+            </li>
           </ul>
         </div>
       </InfoSection>
@@ -573,7 +681,9 @@ export default function ProjectOpeningDetailPage() {
       {project.requires_interview === false ? (
         <InfoSection icon={UserSearch} title="Selection Process">
           <p className="text-sm text-foreground">
-            This project does not include interviews. The project coordinator will review applications and select teammates directly. You'll be notified by email and on your application status page when a decision is made.
+            This project does not include interviews. The project coordinator will review
+            applications and select teammates directly. You'll be notified by email and on your
+            application status page when a decision is made.
           </p>
         </InfoSection>
       ) : (
@@ -591,29 +701,69 @@ export default function ProjectOpeningDetailPage() {
             </a>
           </p>
           <p className="text-sm text-foreground">
-            Here are some important pieces of information about interviewing with Tech Fleet projects:
+            Here are some important pieces of information about interviewing with Tech Fleet
+            projects:
           </p>
 
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">How leads get selected:</p>
             <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>The project coordinator will interview selected leads.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The leads who interview may be chosen for the project team.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>There may be times when people from a previous phase are chosen to automatically continue as teammates for the sake of keeping people with project experience and knowledge, but the coordinator will communicate this, and will provide as close to 100% fair treatment as possible.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All teammates train on the project with peer learning and are operating with pro bono volunteer work.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">6.</span>Not all teammates are experts or experienced, some teammates are doing this for the first-time ever, as is designed in Tech Fleet to open more space for first-time learners.</li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">1.</span>Fill out an
+                application.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">2.</span>The project
+                coordinator will interview selected leads.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">3.</span>The leads who
+                interview may be chosen for the project team.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">4.</span>There may be times
+                when people from a previous phase are chosen to automatically continue as teammates
+                for the sake of keeping people with project experience and knowledge, but the
+                coordinator will communicate this, and will provide as close to 100% fair treatment
+                as possible.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">5.</span>All teammates train
+                on the project with peer learning and are operating with pro bono volunteer work.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">6.</span>Not all teammates
+                are experts or experienced, some teammates are doing this for the first-time ever,
+                as is designed in Tech Fleet to open more space for first-time learners.
+              </li>
             </ul>
           </div>
 
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">How apprentices get selected:</p>
             <ul className="space-y-2 text-sm text-muted-foreground mt-2">
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>Fill out an application.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Submit the video ask responses.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will interview selected apprentices.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">4.</span>Typically, for each team function, up to 4 apprentices will be chosen, but sometimes more or less will be chosen depending on circumstances.</li>
-              <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">5.</span>All apprentices train on the project with peer learning and are operating with pro bono volunteer work.</li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">1.</span>Fill out an
+                application.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">2.</span>Submit the video ask
+                responses.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">3.</span>The project
+                coordinators will interview selected apprentices.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">4.</span>Typically, for each
+                team function, up to 4 apprentices will be chosen, but sometimes more or less will
+                be chosen depending on circumstances.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-foreground font-medium shrink-0">5.</span>All apprentices
+                train on the project with peer learning and are operating with pro bono volunteer
+                work.
+              </li>
             </ul>
           </div>
         </InfoSection>
@@ -622,9 +772,24 @@ export default function ProjectOpeningDetailPage() {
       {/* ── Considerations ────────────────────────────────── */}
       <InfoSection icon={AlertTriangle} title="Considerations">
         <ul className="space-y-2 text-sm text-muted-foreground">
-          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">1.</span>While the expectations are for projects to start 4 weeks after applications close, this is not guaranteed, as this is a community-driven effort with pro bono volunteers giving their time back to coordinate projects for the betterment of the community. Please provide them patience, and thanks for understanding that the community is doing the best it can to coordinate these projects.</li>
-          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">2.</span>Not everyone who applies will be {project.requires_interview === false ? "selected" : "interviewed"}, or contacted individually due to demand on the project applications.</li>
-          <li className="flex gap-2"><span className="text-foreground font-medium shrink-0">3.</span>The project coordinators will communicate in the platform, through Email, and #project-openings channel in Tech Fleet Discord with updates.</li>
+          <li className="flex gap-2">
+            <span className="text-foreground font-medium shrink-0">1.</span>While the expectations
+            are for projects to start 4 weeks after applications close, this is not guaranteed, as
+            this is a community-driven effort with pro bono volunteers giving their time back to
+            coordinate projects for the betterment of the community. Please provide them patience,
+            and thanks for understanding that the community is doing the best it can to coordinate
+            these projects.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-foreground font-medium shrink-0">2.</span>Not everyone who applies
+            will be {project.requires_interview === false ? "selected" : "interviewed"}, or
+            contacted individually due to demand on the project applications.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-foreground font-medium shrink-0">3.</span>The project coordinators
+            will communicate in the platform, through Email, and #project-openings channel in Tech
+            Fleet Discord with updates.
+          </li>
         </ul>
       </InfoSection>
 
@@ -633,19 +798,22 @@ export default function ProjectOpeningDetailPage() {
         <h2 className="text-xl font-bold text-foreground">
           {project.project_status !== "apply_now"
             ? "Project Overview"
-            : hasApplied
+            : hasSubmitted
               ? "Review Your Application"
-              : "Ready to Join This Project?"}
+              : hasDraft
+                ? "Finish Your Application"
+                : "Ready to Join This Project?"}
         </h2>
         <p className="text-muted-foreground max-w-lg mx-auto">
           {project.project_status !== "apply_now"
             ? "This project is not currently accepting applications. Share it with others who might be interested."
-            : hasApplied
+            : hasSubmitted
               ? "You've already submitted an application for this project. You can review or edit your responses."
-              : user
-                ? "Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already."
-                : "Sign in or create an account to apply. We’ll bring you back to this application afterward."
-          }
+              : hasDraft
+                ? "You have an application in progress for this project. Pick up where you left off and submit when you're ready."
+                : user
+                  ? "Submit your application to be considered for this project team. You'll need to complete a General Application first if you haven't already."
+                  : "Sign in or create an account to apply. We’ll bring you back to this application afterward."}
         </p>
         <div className="flex items-center justify-center gap-3">
           <Button variant="outline" className="gap-1.5" onClick={handleShare}>
@@ -653,7 +821,15 @@ export default function ProjectOpeningDetailPage() {
           </Button>
           {project.project_status === "apply_now" && (
             <Button size="lg" className="gap-2" onClick={handleApply}>
-              {hasApplied ? <><Pencil className="h-5 w-5" /> Edit Application</> : <><Send className="h-5 w-5" /> Apply Now</>}
+              {hasSubmitted ? (
+                <>
+                  <Pencil className="h-5 w-5" /> Edit Application
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5" /> {hasDraft ? "Resume Application" : "Apply Now"}
+                </>
+              )}
             </Button>
           )}
         </div>
