@@ -158,3 +158,20 @@ describe("CohortService.setRegistrationStatus", () => {
     });
   });
 });
+
+describe("CohortService.remove", () => {
+  it("calls delete_cohort with the cohort id and returns the RPC outcome", async () => {
+    rpcChain.rpcMock.mockResolvedValue({ data: "cancelled", error: null });
+    const result = await CohortService.remove("c1");
+    expect(rpcChain.rpcMock).toHaveBeenCalledWith("delete_cohort", { p_cohort_id: "c1" });
+    expect(result).toBe("cancelled");
+  });
+
+  it("throws when the RPC denies (owner-or-admin / fresh-2FA check)", async () => {
+    rpcChain.rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: "not authorized to delete this cohort", code: "P0001" },
+    });
+    await expect(CohortService.remove("c1")).rejects.toMatchObject({ code: "P0001" });
+  });
+});
