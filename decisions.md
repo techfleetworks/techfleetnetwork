@@ -385,6 +385,25 @@ empties to zero files — and `scripts/ci/typecheck.mjs` itself exits non-zero o
 Test-only Node globals stay out of shipped UI via a separate `tsconfig.test.json`; the app project is
 browser-pure.
 
+**A quality gate never ends in `|| true`.** The Lighthouse workflow enforces the accessibility budget
+(`accessibility=error:0.9`), but both its `lhci collect` and `lhci assert` ended in `|| true`, which
+swallows every failure — the step exited 0 even when the a11y assertion failed, so the gate could never
+go red (a false green; enterprise-readiness audit 2026-10, H1). A trailing `|| true` / `|| :` or a
+`continue-on-error: true` on an assertion step defeats the gate the same way.
+
+```
+❌ never — swallow the gate's own failure so it can never block
+run: lhci assert --assertions.categories:accessibility=error:0.9 || true   # a11y regression ships green
+continue-on-error: true                                                    # same thing, step-level
+✅ always — let the assertion fail the step (perf/seo stay `warn`, so prod variance can't flake it)
+run: lhci assert --assertions.categories:accessibility=error:0.9
+```
+
+Enforced by `scripts/ci/check-lighthouse-gate-armed.mjs` (blocking, `critical` lane): it fails CI if the
+Lighthouse workflow neuters its lhci commands with `|| true`/`|| :`/`continue-on-error: true`, and fails
+closed (exit 2) if the workflow is missing or no longer references `lhci`. Pinned + discriminated by
+`src/test/smoke/check-lighthouse-gate-armed.smoke.test.ts`.
+
 ---
 
 ## 7 · Schema changes are expand/contract
