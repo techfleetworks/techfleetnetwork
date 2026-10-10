@@ -29,6 +29,7 @@ const PROJECT_READERS = [
   "src/pages/ProjectApplicationPage.tsx",
   "src/pages/ProjectOpeningDetailPage.tsx",
   "src/pages/MyProjectApplicationsPage.tsx",
+  "src/pages/ProjectApplicationStatusPage.tsx",
   "src/pages/ApplicationSubmissionDetailPage.tsx",
   "src/pages/ProjectFormPage.tsx",
   "src/pages/RosterApplicantDetailPage.tsx",

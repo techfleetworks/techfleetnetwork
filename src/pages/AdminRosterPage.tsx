@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRecruitingProjects } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/design-system";
 
@@ -11,36 +12,12 @@ import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 const typeLabel = (v: string) => PROJECT_TYPES.find((t) => t.value === v)?.label ?? v;
 const phaseLabel = (v: string) => PROJECT_PHASES.find((p) => p.value === v)?.label ?? v;
 
-interface ProjectWithClient {
-  id: string;
-  project_type: string;
-  phase: string;
-  project_status: string;
-  team_hats: string[];
-  client_id: string;
-  friendly_name?: string;
-  clients: { name: string } | null;
-}
-
 export default function AdminRosterPage() {
   // Admin access is enforced by AdminRoute wrapper
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projects, isLoading: projLoading } = useQuery({
-    queryKey: ["recruiting-all-projects"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select(
-          "id, project_type, phase, project_status, team_hats, client_id, friendly_name, clients(name)"
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as ProjectWithClient[];
-    },
-    enabled: !!user,
-  });
+  const { data: projects, isLoading: projLoading } = useRecruitingProjects({ enabled: !!user });
 
   const sortedProjects = useMemo(() => {
     if (!projects) return [];
