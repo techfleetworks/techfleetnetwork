@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/use-admin";
+import { useProjectForRoster, useRosterProjectLinks } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
@@ -88,38 +89,10 @@ export default function RosterApplicantDetailPage() {
   // Fetch project (broad fields). Operational/internal links (discord_role_id,
   // notion_repository_url, etc.) are revoked from authenticated for security
   // and must be fetched via get_project_internal_links RPC.
-  const { data: project } = useQuery({
-    queryKey: ["roster-proj-detail", projectId],
-    queryFn: async () => {
-      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
-      // (ADR-0056/0065); select('*') fails 42501/403. The 4 operational columns are fetched separately
-      // via the get_project_internal_links RPC below, exactly as this page's own comment prescribes.
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, clients(name)")
-        .eq("id", projectId!)
-        .single();
-      if (error) throw error;
-      return data as Record<string, unknown> & { clients: { name: string } | null };
-    },
-    enabled: !!projectId && !!user && isAdmin,
-  });
+  const { data: project } = useProjectForRoster(projectId, { enabled: !!user && isAdmin });
 
   // Admin-only operational links (discord role, notion, intake URL)
-  const { data: projectLinks } = useQuery({
-    queryKey: ["roster-proj-links", projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_project_internal_links", {
-        p_project_id: projectId!,
-      });
-      if (error) throw error;
-      return (data?.[0] ?? null) as {
-        discord_role_id: string | null;
-        discord_role_name: string | null;
-      } | null;
-    },
-    enabled: !!projectId && !!user && isAdmin,
-  });
+  const { data: projectLinks } = useRosterProjectLinks(projectId, { enabled: !!user && isAdmin });
 
   // Fetch applicant profile
   const { data: profile } = useQuery({

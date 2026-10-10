@@ -7,7 +7,6 @@
   "src/services/general-application.service.ts": 1,
   "supabase/functions/_shared/email/composition.ts": 1,
   "supabase/functions/_shared/transactional-email.ts": 1,
-  "supabase/functions/airtable-diag/index.ts": 1,
   "supabase/functions/auth-broker/index.ts": 1,
   "supabase/functions/auth-email-hook/index.ts": 1,
   "supabase/functions/backfill-discord-usernames/index.ts": 1,

@@ -765,7 +765,7 @@ export default function UserAdminPage() {
       : confirmAction === "resend"
         ? `This will re-send the admin confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
         : confirmAction === "promote_teacher"
-          ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their teacher role and gain access to "My Classes".`
+          ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their teacher role and gain access to "Class Admin".`
           : confirmAction === "resend_teacher"
             ? `This will re-send the teacher confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
             : confirmAction === "revoke_teacher"

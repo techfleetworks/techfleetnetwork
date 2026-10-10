@@ -21,8 +21,8 @@ import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
  * Create + edit form for a Cohort.
  *
  * Routes:
- *   /teach/classes/:id/cohorts/new                   → create
- *   /teach/classes/:id/cohorts/:cohortId/edit        → edit
+ *   /class-admin/classes/:id/cohorts/new                   → create
+ *   /class-admin/classes/:id/cohorts/:cohortId/edit        → edit
  *
  * Draft ownership (see docs/adr — single source of truth for create forms):
  * create mode reads/writes the `useServerDraft` buffer (`draft.value`) directly;
@@ -148,7 +148,7 @@ export default function CohortFormPage() {
       if (cohortId) {
         await queryClient.invalidateQueries({ queryKey: ["cohorts", "byId", cohortId] });
       }
-      navigate(`/teach/classes/${classId}`);
+      navigate(`/class-admin/classes/${classId}`);
     } catch (err) {
       const { message, description } = extractErrorMessage(
         err,
@@ -171,7 +171,7 @@ export default function CohortFormPage() {
   return (
     <div className="container-app py-8 sm:py-12 max-w-2xl">
       <Button asChild variant="ghost" size="sm" className="mb-3">
-        <Link to={`/teach/classes/${classId}`}>
+        <Link to={`/class-admin/classes/${classId}`}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back to class
         </Link>
@@ -314,7 +314,7 @@ export default function CohortFormPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/teach/classes/${classId}`)}
+            onClick={() => navigate(`/class-admin/classes/${classId}`)}
           >
             Cancel
           </Button>

@@ -143,3 +143,21 @@ peer conflict. The diff is exactly two files (2 override lines; 6 changed lockfi
   PASS"), and `judge-arch` returns **PASS** — no boundary, data-ownership, dependency-direction, or
   error-handling surface changed (dependency-config only); it also confirmed no waiver was added and the
   lockfile re-resolution is limited to the two packages.
+
+## Addendum (2026-10-08) — prune the now-unused `undici` / `ip-address` waivers
+
+The original ADR-0065-era waivers for `undici` (GHSA-3wwx-pv8p-q78v) and `ip-address`
+(GHSA-rpw4-54j3-4h4q, GHSA-2vr4-cq9g-pvrc) predated this ADR's `overrides`. Once the overrides pinned
+patched versions (`undici ^7.29.1`, `ip-address ^10.7.2`), `npm audit` stopped reporting those
+advisories, so the three waivers became dead entries. Because the gate **fails on any expired waiver,
+needed or not** (`check-dependency-advisories.mjs`: "Expired waivers are themselves a failure"), leaving
+them would have turned into a spurious CI failure on their 2026-12-31 expiry. They are removed here.
+`security-advisories.waivers.json` now carries only the two still-active waivers — `quill` and `braces`
+(no upstream patch; both documented, mitigated, expiring). Verified: `check-dependency-advisories.mjs`
+exits 0 (2 advisories examined, 2 waived, 0 unwaived, 0 expired).
+
+**Deliberately deferred (not done here):** `dompurify` and `sharp` are pinned both as direct deps and
+in `overrides` at the same version. This is harmless (belt-and-suspenders, no CI/security/expiry impact);
+removing the redundant pin safely requires a full lockfile regeneration plus a dependency-tree check to
+confirm no transitive consumer regresses — disproportionate for a cosmetic change, so it is left for a
+future deps pass.

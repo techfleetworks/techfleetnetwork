@@ -519,13 +519,6 @@
   },
   {
     "rule": "UI must not access the database directly",
-    "path": "src/pages/admin/HandoffAdminPage.tsx",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "UI must not access the database directly",
     "path": "src/pages/AdminEmailDeliverabilityTestPage.tsx",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",
@@ -786,20 +779,6 @@
   {
     "rule": "Edge functions must not hand-roll CORS or responses in the handler",
     "path": "supabase/functions/admin-sign-out-all-users/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll auth or read service-role secrets in the handler",
-    "path": "supabase/functions/airtable-diag/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll CORS or responses in the handler",
-    "path": "supabase/functions/airtable-diag/index.ts",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",
     "expires": ""
@@ -2081,41 +2060,6 @@
   {
     "rule": "Edge functions must not hand-roll CORS or responses in the handler",
     "path": "supabase/functions/spf-sync/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll CORS or responses in the handler",
-    "path": "supabase/functions/sync-airtable/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll auth or read service-role secrets in the handler",
-    "path": "supabase/functions/sync-airtable-network-stats/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll CORS or responses in the handler",
-    "path": "supabase/functions/sync-airtable-network-stats/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll auth or read service-role secrets in the handler",
-    "path": "supabase/functions/sync-airtable-roster/index.ts",
-    "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
-    "approvedBy": "baseline",
-    "expires": ""
-  },
-  {
-    "rule": "Edge functions must not hand-roll CORS or responses in the handler",
-    "path": "supabase/functions/sync-airtable-roster/index.ts",
     "reason": "baseline — pre-existing at gate adoption; scheduled for cleanup",
     "approvedBy": "baseline",
     "expires": ""
