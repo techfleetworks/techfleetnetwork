@@ -452,6 +452,42 @@ export default tseslint.config(
     rules: { "design-system/no-direct-mui": "error" },
   },
   {
+    // Welcome Flow (greenfield) builds on the TechFleet Design System ONLY — never shadcn
+    // '@/components/ui' and never 'lucide-react' icons. The dir does not exist yet, so this
+    // globs to zero files today and ships as "error" immediately (no legacy to grandfather).
+    // Mirrors the mechanical arch-gate rule "Welcome Flow builds on the design system only" so
+    // the same intent is caught in both the editor and the blocking gate. See
+    // ADR 20261009-welcome-flow-gate and docs/onboarding/welcome-flow-technical-requirements.md §13.
+    // NOTE: flat config does not MERGE rule options — this 'no-restricted-imports' fully
+    // REPLACES the base src/** block for welcome files. What the base block adds for these files
+    // (a warn on relative-AuthContext imports, and a warn against the deletion-pending
+    // @/services/auth.service) is dropped here. That is acceptable: welcome code uses the '@/...'
+    // aliases (never relative AuthContext), the Welcome Flow is independently mandated to live
+    // OUTSIDE the auth layer and write through ProfileService (src/components/welcome/CLAUDE.md),
+    // and the load-bearing DS-only intent is also enforced by the arch-gate rule (not overridden).
+    files: ["src/pages/WelcomePage.tsx", "src/components/welcome/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.{ts,tsx}", "src/**/__tests__/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/components/ui", "@/components/ui/*"],
+              message:
+                "Welcome Flow builds on @/design-system only — not shadcn @/components/ui (ADR 20261009-welcome-flow-gate, §13).",
+            },
+            {
+              group: ["lucide-react"],
+              message:
+                "Use the DS SvgIcon atom / brand SVG assets, not lucide-react icons (§13).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // jsx-a11y/label-has-associated-control crashes under eslint-plugin-jsx-a11y@6.x
     // with minimatch v10 (TypeError: minimatch is not a function). The rule is
     // already covered by label-has-for + label requirements elsewhere.
