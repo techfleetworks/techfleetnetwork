@@ -157,4 +157,101 @@ describe("arch-gate mechanical gate (smoke)", () => {
     });
     expect(runGate(r)).toBe(0);
   });
+
+  // ---- Discriminating coverage for the Welcome-Flow rules (ADR 20261009-welcome-flow-*) ----
+  // The welcome dir is greenfield (no files exist yet), so each new rule globs to zero real
+  // files and can only be proven by a fixture. These run the REAL arch-gate.config.json so the
+  // specific welcome rules are proven to fire on a violation and stay quiet on the correct form.
+
+  it("AG-011: welcome dir importing shadcn @/components/ui is flagged (DS-only)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/components/welcome/WelcomeStep.tsx": `import { Button } from "@/components/ui/button";\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-012: welcome dir importing lucide-react is flagged (DS-only)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/components/welcome/Icon.tsx": `import { Check } from "lucide-react";\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-013: welcome dir importing from @/design-system is clean (the correct form)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/components/welcome/WelcomeStep.tsx": `import { Button, SvgIcon } from "@/design-system";\nconst done = profile.welcome_flow_completed_at != null;\n`,
+      },
+    });
+    expect(runGate(r)).toBe(0);
+  });
+
+  it("AG-014: an object-literal write to welcome_flow_completed_at outside the owner is flagged", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        // src/lib is not policed by the UI/service rules, so ONLY the single-writer rule can match here.
+        "src/lib/bad-writer.ts": `export const payload = { welcome_flow_completed_at: new Date().toISOString() };\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-015: reading profile.welcome_flow_completed_at (dot access) is clean", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/lib/ok-reader.ts": `export const isDone = (p) => p.welcome_flow_completed_at != null;\n`,
+      },
+    });
+    expect(runGate(r)).toBe(0);
+  });
+
+  it("AG-016: an SVGR (ReactComponent) SVG import in the welcome dir is flagged (no-SVGR)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/components/welcome/Hero.tsx": `import { ReactComponent as Hero } from "@/assets/welcome-flow/hero.svg";\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-017: a welcome URL-import SVG (the fix) is clean", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/components/welcome/Hero.tsx": `import hero from "@/assets/welcome-flow/hero.svg";\nexport const H = () => <img src={hero} alt="Two teammates building together" />;\n`,
+      },
+    });
+    expect(runGate(r)).toBe(0);
+  });
+
+  it("AG-018: reading a stored welcome_flow_stats counter table is flagged (live-stat rule)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        // In src/services, the UI-data rule does not apply, so ONLY the live-stat rule can match.
+        "src/services/welcome-stat.service.ts": `const q = supabase.from("welcome_flow_stats").select("total").single();\n`,
+      },
+    });
+    expect(runGate(r)).toBe(1);
+  });
+
+  it("AG-019: reading the live completion count via the owning RPC is clean (the fix)", () => {
+    const r = fixture({
+      config: REAL_CONFIG,
+      files: {
+        "src/services/welcome-stat.service.ts": `const q = supabase.rpc("get_welcome_flow_completion_count");\n`,
+      },
+    });
+    expect(runGate(r)).toBe(0);
+  });
 });
