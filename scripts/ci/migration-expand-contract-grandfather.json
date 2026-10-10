@@ -1,0 +1,9 @@
+{
+  "_comment": "EXPAND-CONTRACT-001 shrink-only grandfather. Pre-existing migrations with in-place destructive column DDL, from before check-migration-expand-contract.mjs existed. This list may ONLY shrink. A NEW contract migration must carry a `-- expand-contract-ok: <reason>` annotation instead of being added here. See decisions.md §7.",
+  "grandfathered": [
+    "20260424133609_b99b5533-a8d8-4ef4-9e89-8d86955c712a.sql",
+    "20260502175331_f4305fbc-4e2c-4c6c-b9c9-f24803477d7b.sql",
+    "20260522031707_7f947a71-b6c6-4b83-91de-7001da00d7fa.sql",
+    "20260807130000_fleety_cache_permanent.sql"
+  ]
+}
