@@ -404,6 +404,25 @@ empties to zero files — and `scripts/ci/typecheck.mjs` itself exits non-zero o
 Test-only Node globals stay out of shipped UI via a separate `tsconfig.test.json`; the app project is
 browser-pure.
 
+**A quality gate never ends in `|| true`.** The Lighthouse workflow enforces the accessibility budget
+(`accessibility=error:0.9`), but both its `lhci collect` and `lhci assert` ended in `|| true`, which
+swallows every failure — the step exited 0 even when the a11y assertion failed, so the gate could never
+go red (a false green; enterprise-readiness audit 2026-10, H1). A trailing `|| true` / `|| :` or a
+`continue-on-error: true` on an assertion step defeats the gate the same way.
+
+```
+❌ never — swallow the gate's own failure so it can never block
+run: lhci assert --assertions.categories:accessibility=error:0.9 || true   # a11y regression ships green
+continue-on-error: true                                                    # same thing, step-level
+✅ always — let the assertion fail the step (perf/seo stay `warn`, so prod variance can't flake it)
+run: lhci assert --assertions.categories:accessibility=error:0.9
+```
+
+Enforced by `scripts/ci/check-lighthouse-gate-armed.mjs` (blocking, `critical` lane): it fails CI if the
+Lighthouse workflow neuters its lhci commands with `|| true`/`|| :`/`continue-on-error: true`, and fails
+closed (exit 2) if the workflow is missing or no longer references `lhci`. Pinned + discriminated by
+`src/test/smoke/check-lighthouse-gate-armed.smoke.test.ts`.
+
 ---
 
 ## 7 · Schema changes are expand/contract
@@ -424,6 +443,26 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + b
 Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
+
+This was convention + reviewer only — nothing mechanical caught a slip, and migrations auto-apply on merge
+in parallel with the code deploy (enterprise-readiness audit 2026-10, C3). Now enforced: a destructive,
+in-place column change needs an explicit, reviewed contract marker, or CI is red.
+
+```sql
+-- ❌ never — an un-annotated in-place destructive change; breaks still-running old code the instant it applies
+ALTER TABLE public.classes ALTER COLUMN outcomes SET NOT NULL;
+-- ✅ always — split into expand (now) + contract (a later migration), OR, when it IS a reviewed contract,
+--            declare WHY no running code uses the old shape so a reviewer signs off:
+-- expand-contract-ok: dual-write shipped in #NNN; no reader references the old shape since v2
+ALTER TABLE public.t DROP COLUMN old_c;
+```
+
+Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane): any `DROP COLUMN`
+/ `RENAME COLUMN` / `ALTER COLUMN … TYPE` / `SET NOT NULL` in `supabase/migrations/*.sql` must carry a
+`-- expand-contract-ok: <reason>` line or sit on the **shrink-only** grandfather
+(`migration-expand-contract-grandfather.json`); it fails closed on a missing migrations dir / zero migrations
+and prunes stale grandfather entries. Pinned + discriminated by
+`src/test/smoke/check-migration-expand-contract.smoke.test.ts`.
 
 ---
 
