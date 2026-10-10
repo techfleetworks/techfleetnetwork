@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-24T00:46:41.318Z",
+  "generated_at": "2026-10-09T01:33:25.197Z",
   "functions": [
     {
       "name": "admin-purge-auth-user",
@@ -13,13 +13,6 @@
       "verify_jwt": false,
       "kind": "auth",
       "critical": true,
-      "declared": true
-    },
-    {
-      "name": "airtable-diag",
-      "verify_jwt": true,
-      "kind": "auth",
-      "critical": false,
       "declared": true
     },
     {
@@ -695,13 +688,6 @@
       "declared": true
     },
     {
-      "name": "resolve-discord-id",
-      "verify_jwt": false,
-      "kind": "cron",
-      "critical": false,
-      "declared": true
-    },
-    {
       "name": "resume-application-reminder",
       "verify_jwt": false,
       "kind": "auth",
@@ -838,27 +824,6 @@
       "name": "support-provisioning-retry",
       "verify_jwt": false,
       "kind": "cron",
-      "critical": false,
-      "declared": true
-    },
-    {
-      "name": "sync-airtable",
-      "verify_jwt": true,
-      "kind": "auth",
-      "critical": false,
-      "declared": true
-    },
-    {
-      "name": "sync-airtable-network-stats",
-      "verify_jwt": false,
-      "kind": "public",
-      "critical": false,
-      "declared": true
-    },
-    {
-      "name": "sync-airtable-roster",
-      "verify_jwt": false,
-      "kind": "public",
       "critical": false,
       "declared": true
     },

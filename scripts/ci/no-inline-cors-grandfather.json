@@ -3,7 +3,6 @@
   "functions": [
     "admin-purge-auth-user",
     "admin-sign-out-all-users",
-    "airtable-diag",
     "auth-email-hook",
     "auth-prober",
     "auth-reset-smoke",
@@ -50,9 +49,6 @@
     "send-application-confirmation",
     "send-push-notification",
     "spf-sync",
-    "sync-airtable",
-    "sync-airtable-network-stats",
-    "sync-airtable-roster",
     "techfleet-chat"
   ]
 }

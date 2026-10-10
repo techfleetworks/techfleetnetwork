@@ -18,6 +18,20 @@ export interface DiscordFetchOptions extends RequestInit {
   maxRetries?: number;
   /** Base delay in ms for exponential backoff (default: 1000) */
   baseDelayMs?: number;
+  /**
+   * Hard ceiling (ms) on the TOTAL wall-clock spent here — every attempt plus
+   * every backoff sleep, combined. Once the budget is spent the wrapper stops
+   * retrying and returns/throws immediately, and each network attempt is aborted
+   * at the remaining budget. Undefined = unbounded (the historical behavior).
+   *
+   * WHY: a single 429 with a large `Retry-After` sleeps up to MAX_RETRY_DELAY_MS
+   * (15s) PER retry, so an unbounded call can run far longer than any client
+   * timeout budget — the client aborts with `TimeoutError` while THIS keeps
+   * running (orphan work + a false failure). A caller invoked from the browser
+   * must pass a budget below its `invokeEdge` timeout so the server finishes
+   * first, deterministically.
+   */
+  totalBudgetMs?: number;
 }
 
 export interface DiscordFetchResult {
@@ -30,7 +44,11 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
-function getRetryDelay(attempt: number, baseDelay: number, retryAfterHeader?: string | null): number {
+function getRetryDelay(
+  attempt: number,
+  baseDelay: number,
+  retryAfterHeader?: string | null
+): number {
   // Discord rate limit: respect Retry-After header (in seconds)
   if (retryAfterHeader) {
     const retryAfterSec = parseFloat(retryAfterHeader);
@@ -57,16 +75,42 @@ function getRetryDelay(attempt: number, baseDelay: number, retryAfterHeader?: st
  */
 export async function discordFetch(
   url: string,
-  options: DiscordFetchOptions = {},
+  options: DiscordFetchOptions = {}
 ): Promise<DiscordFetchResult> {
-  const { maxRetries = DEFAULT_MAX_RETRIES, baseDelayMs = DEFAULT_BASE_DELAY_MS, ...fetchOptions } = options;
+  const {
+    maxRetries = DEFAULT_MAX_RETRIES,
+    baseDelayMs = DEFAULT_BASE_DELAY_MS,
+    totalBudgetMs,
+    ...fetchOptions
+  } = options;
 
   let lastError: Error | null = null;
   let lastResponse: Response | null = null;
 
+  // Wall-clock budget: `remaining()` is +Infinity when no budget was supplied, so
+  // the bounded and unbounded paths share one code path.
+  const startedAt = Date.now();
+  const remaining = () =>
+    totalBudgetMs === undefined
+      ? Number.POSITIVE_INFINITY
+      : totalBudgetMs - (Date.now() - startedAt);
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (remaining() <= 0) break; // budget spent — stop before another attempt
     try {
-      const response = await fetch(url, fetchOptions);
+      // Bound the network call itself to the remaining budget so a hung socket
+      // can't exceed it. Merge with any caller-supplied signal.
+      let attemptOpts = fetchOptions;
+      if (totalBudgetMs !== undefined) {
+        const budgetSignal = AbortSignal.timeout(Math.max(1, remaining()));
+        attemptOpts = {
+          ...fetchOptions,
+          signal: fetchOptions.signal
+            ? AbortSignal.any([fetchOptions.signal, budgetSignal])
+            : budgetSignal,
+        };
+      }
+      const response = await fetch(url, attemptOpts);
 
       // Success or non-retryable client error → return immediately
       if (response.ok || !isRetryableStatus(response.status)) {
@@ -77,19 +121,24 @@ export async function discordFetch(
       lastResponse = response;
 
       if (attempt < maxRetries) {
-        const retryAfter = response.headers.get("Retry-After") ?? response.headers.get("retry-after");
-        const delay = getRetryDelay(attempt, baseDelayMs, retryAfter);
+        const retryAfter =
+          response.headers.get("Retry-After") ?? response.headers.get("retry-after");
+        // Never sleep past the remaining budget; a sleep that would overrun it
+        // means the next attempt can't run anyway, so stop now.
+        const delay = Math.min(getRetryDelay(attempt, baseDelayMs, retryAfter), remaining());
 
         // Consume body to free resources before retrying
         await response.text().catch(() => {});
+        if (delay <= 0) break;
         await new Promise((r) => setTimeout(r, delay));
       }
     } catch (err) {
-      // Network error — retry
+      // Network error (incl. an AbortError from the budget signal) — retry if budget allows
       lastError = err instanceof Error ? err : new Error(String(err));
 
       if (attempt < maxRetries) {
-        const delay = getRetryDelay(attempt, baseDelayMs);
+        const delay = Math.min(getRetryDelay(attempt, baseDelayMs), remaining());
+        if (delay <= 0) break;
         await new Promise((r) => setTimeout(r, delay));
       }
     }
@@ -121,9 +170,7 @@ export async function discordFetch(
 function safeEndpointFromUrl(rawUrl: string): string {
   try {
     const u = new URL(rawUrl);
-    return u.pathname
-      .replace(/\/\d{15,25}/g, "/:id")
-      .slice(0, 120);
+    return u.pathname.replace(/\/\d{15,25}/g, "/:id").slice(0, 120);
   } catch {
     return "unknown";
   }

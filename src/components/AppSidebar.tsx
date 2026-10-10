@@ -145,44 +145,29 @@ export const AppSidebar = memo(function AppSidebar() {
             <SidebarGroupLabel>Teaching</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* One Class Admin entry for teachers and admins (ADR-0067). Admins see all
+                    classes/cohorts, teachers only their own — enforced by <ClassAdminRoute> and RLS,
+                    so the link is shown to both roles; the pending-review badge is admin-only. */}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={isActive("/teach/classes")}
-                    tooltip="My Classes"
+                    isActive={isActive("/class-admin")}
+                    tooltip="Class Admin"
                   >
-                    <Link to="/teach/classes">
+                    <Link to="/class-admin/classes" className="flex items-center gap-2 w-full">
                       <School className="h-4 w-4" />
-                      <span>My Classes</span>
+                      <span className="flex-1">Class Admin</span>
+                      {isAdmin && pendingCount > 0 && (
+                        <span
+                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-warning text-warning-foreground"
+                          aria-label={`${pendingCount} classes pending review`}
+                        >
+                          {pendingCount > 99 ? "99+" : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {/* Admin-only class-approval queue. Lives under Teaching for
-                    discoverability, but the route itself is <AdminRoute>-guarded
-                    (defense in depth), so gating the link on isAdmin only hides
-                    it from non-admin teachers — it never grants access. */}
-                {isAdmin && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive("/admin/classes")}
-                      tooltip="All Classes"
-                    >
-                      <Link to="/admin/classes" className="flex items-center gap-2 w-full">
-                        <School className="h-4 w-4" />
-                        <span className="flex-1">All Classes</span>
-                        {pendingCount > 0 && (
-                          <span
-                            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-warning text-warning-foreground"
-                            aria-label={`${pendingCount} classes pending review`}
-                          >
-                            {pendingCount > 99 ? "99+" : pendingCount}
-                          </span>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

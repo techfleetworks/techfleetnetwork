@@ -11,33 +11,6 @@
       "owner": "mdenner@techfleet.org"
     },
     {
-      "ghsa": "GHSA-3wwx-pv8p-q78v",
-      "package": "undici",
-      "severity": "moderate",
-      "reason": "undici@7.29.0 is a transitive DEV/TEST-only dependency (jsdom -> undici); it is used only by the vitest jsdom test environment. It is NOT in the shipped browser bundle, and this app has no production Node server (Vite SPA served static by nginx; server logic runs in Supabase Deno edge functions, which do not use undici). The WebSocket permessage-deflate decompression DoS is therefore unreachable in production. Remove on the next jsdom upgrade that pulls a patched undici.",
-      "added": "2026-09-28",
-      "expires": "2026-12-31",
-      "owner": "mdenner@techfleet.org"
-    },
-    {
-      "ghsa": "GHSA-rpw4-54j3-4h4q",
-      "package": "ip-address",
-      "severity": "moderate",
-      "reason": "ip-address@10.5.0 is a transitive DEV/CI-only dependency (@cyclonedx/cyclonedx-npm -> libxmljs2 -> node-gyp -> make-fetch-happen -> @npmcli/agent -> socks-proxy-agent -> socks -> ip-address); it runs only inside the SBOM-generation tool during CI. It is NOT in the shipped bundle and there is no production Node server, and the app never parses user-controlled IP addresses through it, so the isLinkLocal (fe80::/64 vs fe80::/10) SSRF / trust-boundary bypass is unreachable at runtime. Remove on the next @cyclonedx/cyclonedx-npm upgrade.",
-      "added": "2026-09-28",
-      "expires": "2026-12-31",
-      "owner": "mdenner@techfleet.org"
-    },
-    {
-      "ghsa": "GHSA-2vr4-cq9g-pvrc",
-      "package": "ip-address",
-      "severity": "moderate",
-      "reason": "Same transitive DEV/CI-only chain as GHSA-rpw4-54j3-4h4q (@cyclonedx/cyclonedx-npm -> ... -> socks -> ip-address@10.5.0): SBOM-tool-only, not in the shipped bundle, no production Node server, no user-controlled address parsing. The missing NAT64 64:ff9b:1::/48 classifier (SSRF / trust-boundary bypass) is unreachable at runtime. Remove on the next @cyclonedx/cyclonedx-npm upgrade.",
-      "added": "2026-09-28",
-      "expires": "2026-12-31",
-      "owner": "mdenner@techfleet.org"
-    },
-    {
       "ghsa": "GHSA-vfj7-8cjw-p6xm",
       "package": "braces",
       "severity": "high",
