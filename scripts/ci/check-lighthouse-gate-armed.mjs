@@ -58,7 +58,7 @@ const lines = src.split("\n");
 const violations = [];
 lines.forEach((line, i) => {
   // Only care about the lines that run lhci or carry a step-level opt-out near it.
-  if (/\|\|\s*(true|:)\b/.test(line)) {
+  if (/\|\|\s*(?:true|:)(?!\w)/.test(line)) {
     violations.push({ n: i + 1, line: line.trim(), why: "`|| true` swallows the gate's failure" });
   }
   if (/continue-on-error:\s*true/i.test(line)) {
