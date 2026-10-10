@@ -28,7 +28,7 @@ import {
   US_INFERENCE_PROVIDERS,
   withRetries,
 } from "../_shared/llm/port.ts";
-// Braintrust observability (ADR-0066): the single owner of "trace one LLM turn".
+// Braintrust observability (ADR-0073): the single owner of "trace one LLM turn".
 // Fail-open and a no-op when disabled, so this import adds no behaviour on its own.
 import {
   type FleetyTrace,
@@ -567,7 +567,7 @@ serve(
     const requestId = crypto.randomUUID().substring(0, 8);
     log.info("handler", `Chat request received [${requestId}]`, { requestId });
 
-    // Braintrust observability (ADR-0066). Declared out here so the handler's
+    // Braintrust observability (ADR-0073). Declared out here so the handler's
     // catch/finally can finalise the turn's trace on every exit. `trace` is created
     // only after the auth + validation + quota gauntlet (below), so a started trace
     // is always reachable by a flush point. `streamedHandoff` means the streamed
@@ -949,7 +949,7 @@ serve(
       // grounded answer. Runs in parallel with embed+router (no added latency).
       const exactHash = await sha256Hex(`${audience}|${lastUserMessage.trim().toLowerCase()}`);
 
-      // Open the Braintrust turn trace here (ADR-0066): after the auth/validation/quota
+      // Open the Braintrust turn trace here (ADR-0073): after the auth/validation/quota
       // gauntlet, before the router, so it wraps the router span and every exit. No-op
       // when disabled. See _shared/observability/braintrust.ts for what is recorded.
       trace = startFleetyTrace({
@@ -2109,7 +2109,7 @@ serve(
                 stream: !materialWasReadable,
                 // Braintrust: OpenRouter omits usage on a streamed call unless asked; request a
                 // final usage frame on streamed turns. It is captured and dropped in the transform
-                // below so the frontend SSE contract is unchanged. (ADR-0066)
+                // below so the frontend SSE contract is unchanged. (ADR-0073)
                 ...(!materialWasReadable ? { stream_options: { include_usage: true } } : {}),
                 max_tokens: maxTokensCap, // LLM10 + Cost Plan v2 §7
               }),
@@ -2268,7 +2268,7 @@ serve(
         }
         // Braintrust: buffered answer turn — record the answer span with real usage; the
         // handler's finally flushes the trace. Input is the conversation (NOT the system
-        // prompt, which embeds retrieved context/material — see ADR-0066).
+        // prompt, which embeds retrieved context/material — see ADR-0073).
         if (trace) {
           const span = trace.llmSpan("answer", sanitizedMessages, {
             model: usedFallbackModel ? FLEETY_LLM_FALLBACK_MODEL : FLEETY_LLM_MODEL,
@@ -2293,7 +2293,7 @@ serve(
 
       // Braintrust: open the streamed answer span now; it is finalised in the stream's flush
       // (the one point that runs at stream completion with the isolate still alive). Input is
-      // the conversation (NOT the KB/material-laden system prompt — ADR-0066).
+      // the conversation (NOT the KB/material-laden system prompt — ADR-0073).
       const answerSpan =
         trace?.llmSpan("answer", sanitizedMessages, {
           model: usedFallbackModel ? FLEETY_LLM_FALLBACK_MODEL : FLEETY_LLM_MODEL,

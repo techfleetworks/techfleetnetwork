@@ -83,7 +83,7 @@ export function scrub(text: string, allow: DlpAllowList = {}): string {
  * into a chat question) — while PRESERVING names, emails and free-text content.
  * A logging sink that sends raw content for eval fidelity needs that content
  * intact; the residual free-text PII is governed by short retention + access
- * controls + the processor DPA, not by redaction (see ADR-0066).
+ * controls + the processor DPA, not by redaction (see ADR-0073).
  *
  * This is deliberately NOT scrub(): scrub() also redacts emails/UUIDs/IPs,
  * which would defeat raw-content logging (and would turn a v4 user_id into

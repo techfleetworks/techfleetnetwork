@@ -74,7 +74,7 @@ async function extractImageText(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent?key=${key}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20_000);
-  // Braintrust observability (ADR-0066): self-contained around the one vision call.
+  // Braintrust observability (ADR-0073): self-contained around the one vision call.
   const trace = startFleetyTrace({
     fn: "fleety-extract",
     traceId: obs?.traceId,

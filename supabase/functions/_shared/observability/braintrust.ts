@@ -6,7 +6,7 @@
  * use _shared/llm/port.ts), so there is no one SDK seam to hook. This module is
  * that seam: every function that wants to stream a turn to Braintrust calls
  * startFleetyTrace()/llmSpan()/finish() and never imports the Braintrust SDK or
- * reads the key/flag itself. ADR-0066.
+ * reads the key/flag itself. ADR-0073.
  *
  * Three hard constraints shape the design:
  *
@@ -28,10 +28,10 @@
  *     that reason). EdgeRuntime.waitUntil is the right primitive for *best-effort
  *     telemetry* and is used here (feature-detected); a dropped span is acceptable
  *     for evals and is never allowed to affect the answer. If guaranteed capture
- *     is ever required, promote this to the durable-queue pattern (see ADR-0066).
+ *     is ever required, promote this to the durable-queue pattern (see ADR-0073).
  *
  * Secrets are stripped from logged content via _shared/dlp.ts scrubSecretsOnly()
- * even in full-raw mode; free-text PII is retained per ADR-0066 and governed by
+ * even in full-raw mode; free-text PII is retained per ADR-0073 and governed by
  * short Braintrust retention + access controls + the processor DPA.
  */
 

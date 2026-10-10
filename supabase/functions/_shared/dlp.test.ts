@@ -1,5 +1,5 @@
 // Unit tests for scrubSecretsOnly — the secrets-only DLP path used before sending
-// raw content to a third-party observability sink (Braintrust, ADR-0066).
+// raw content to a third-party observability sink (Braintrust, ADR-0073).
 //
 // CI: deno test supabase/functions/_shared/dlp.test.ts
 // (must be listed in the .github/workflows/ci.yml deno-test allowlist to run).

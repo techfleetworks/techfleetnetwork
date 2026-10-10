@@ -1,11 +1,11 @@
-# ADR 0066 — Fleety (TAL 9000) LLM-turn observability to Braintrust
+# ADR 0073 — Fleety (TAL 9000) LLM-turn observability to Braintrust
 
 - Status: Accepted
 - Date: 2026-10-08
 - Deciders: Morgan Denner
 - Epic: Observability / AI evals
 
-> Number note: at authoring time `origin/main`'s highest ADR is 0065, so 0066 is next. 0058/0059/0062/0063 are reserved on in-flight branches and 0066 may be contended by other open PRs — `scripts/ci/check-adr-number-collision.mjs` is the backstop; renumber if it fires.
+> Number note: originally authored as 0066, renumbered to 0073 after `main` advanced while this branch was open — `main` now holds 0066–0072 (0066 = undici/ip-address overrides), and 0068 is claimed by an open PR. 0073 is the next free number above `main`'s max. Caught by `scripts/ci/check-adr-number-collision.mjs` (and its vitest smoke test).
 
 ## Context
 

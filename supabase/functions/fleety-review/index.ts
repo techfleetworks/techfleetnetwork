@@ -104,7 +104,7 @@ serve(
     if (!v.ok) return json({ error: v.error }, 400);
     const { material, target } = v.input;
 
-    // Braintrust observability (ADR-0066); declared here so the finally can finalise it.
+    // Braintrust observability (ADR-0073); declared here so the finally can finalise it.
     let trace: FleetyTrace | null = null;
 
     try {
