@@ -8,7 +8,7 @@
     {
       "name": "UI must not access the database directly",
       "include": ["src/components/**", "src/pages/**", "src/app/**", "src/routes/**"],
-      "exclude": ["src/components/ui/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+      "exclude": ["src/components/ui/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/*.md"],
       "forbid": [
         "supabase\\.(from|rpc|storage|functions)\\b",
         "from ['\"]@/integrations/supabase/client['\"]"
@@ -73,9 +73,9 @@
     {
       "name": "Displayed stats must be live-derived, never read a stored counter table",
       "include": ["src/**"],
-      "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
-      "forbid": ["\\.from\\(\\s*['\"](course_completion_stats|network_stats_snapshots)['\"]"],
-      "message": "A displayed stat is being wired to a stored/denormalized counter table (course_completion_stats / network_stats_snapshots). Those freeze when their refresh job stops and drift when they have two writers (ADR-0050: Platform Signups sat at 768 for months because its snapshot's cron wasn't running). Read the LIVE count via the owning RPC — get_network_stats / get_course_completion_counts — which counts the source-of-truth rows (profiles / journey_progress / course_completions)."
+      "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**", "**/*.md"],
+      "forbid": ["\\.from\\(\\s*['\"](course_completion_stats|network_stats_snapshots|welcome_flow_stats)['\"]"],
+      "message": "A displayed stat is being wired to a stored/denormalized counter table (course_completion_stats / network_stats_snapshots / welcome_flow_stats). Those freeze when their refresh job stops and drift when they have two writers (ADR-0050: Platform Signups sat at 768 for months because its snapshot's cron wasn't running). Read the LIVE count via the owning RPC — get_network_stats / get_course_completion_counts / get_welcome_flow_completion_count (requirements §6.13) — which counts the source-of-truth rows (profiles / journey_progress / course_completions / profiles.welcome_flow_completed_at)."
     },
     {
       "name": "projects reads use explicit columns, never select('*')",
@@ -83,6 +83,27 @@
       "exclude": ["src/integrations/**", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**"],
       "forbid": ["\\.from\\(\\s*['\"]projects['\"]\\s*\\)\\s*\\.select\\(\\s*['\"]\\*"],
       "message": "A select('*') on public.projects from the authenticated client. projects is COLUMN-SCOPED for `authenticated` (ADR-0056): select('*') expands to the four operational columns this role cannot read and fails Postgres 42501 / HTTP 403 — which shipped as \"Project not found\" on the application-resume page (ADR-0065). List the explicit non-sensitive columns the surface renders; the four operational columns (discord_role_id, discord_role_name, notion_repository_url, client_intake_url) come only from the get_project_internal_links RPC or the service-role public-project-detail edge function."
+    },
+    {
+      "name": "Welcome Flow builds on the design system only (no shadcn ui, no lucide-react)",
+      "include": ["src/components/welcome/**", "src/pages/WelcomePage.tsx"],
+      "exclude": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/*.md"],
+      "forbid": ["from ['\"]@/components/ui", "from ['\"]lucide-react['\"]"],
+      "message": "The mandatory Welcome Flow must build on the TechFleet Design System (`@/design-system`) only — not shadcn `@/components/ui`, not `lucide-react` icons (ADR 20261009-welcome-flow-gate / requirements §13). Mixing the legacy shadcn stack into a greenfield feature drags a second component system and a data-access-in-component anti-pattern into new code. Use DS components + the DS `SvgIcon` atom / brand SVG assets. (No existing files match this glob — the welcome dir is greenfield — so this rule is proven by the fixtures in arch-gate.smoke.test.ts, not by any current violation.)"
+    },
+    {
+      "name": "welcome_flow_completed_at has exactly one writer",
+      "include": ["src/**", "supabase/functions/**"],
+      "exclude": ["src/integrations/**", "src/services/profile.service.ts", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "src/test/**", "**/*.md"],
+      "forbid": ["welcome_flow_completed_at\\s*:"],
+      "message": "An object-literal write to welcome_flow_completed_at outside its single owner. This column is set ONCE, server-side, by the mark_welcome_flow_complete() SECURITY DEFINER RPC, reached only through ProfileService.markWelcomeFlowComplete (ADR 20261009-welcome-flow-data-model, requirements §6.5). A second writer breaks set-once and is the ADR-0050 two-writer class. Reads (profile.welcome_flow_completed_at) are fine; only a `welcome_flow_completed_at:` assignment is forbidden. The generic updateFields allow-list must never include it."
+    },
+    {
+      "name": "Welcome Flow imports SVGs as URLs, never via SVGR",
+      "include": ["src/components/welcome/**", "src/pages/WelcomePage.tsx"],
+      "exclude": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/*.md"],
+      "forbid": ["ReactComponent\\b", "\\.svg\\?react"],
+      "message": "An SVGR-style SVG-as-component import in the Welcome Flow. This repo has no SVGR (adding it is a build dependency); import the unDraw-style Figma SVGs as a URL and render via `<img alt>` / the DS `SvgIcon` atom (requirements §13). Proven by a fixture in arch-gate.smoke.test.ts (greenfield dir)."
     }
   ]
 }
