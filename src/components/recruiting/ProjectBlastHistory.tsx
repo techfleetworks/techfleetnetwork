@@ -47,7 +47,7 @@ export default function ProjectBlastHistory({ projectId }: { projectId: string }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">Blast history</CardTitle>
+        <CardTitle>Blast history</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading && (

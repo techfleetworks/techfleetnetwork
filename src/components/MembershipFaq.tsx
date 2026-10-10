@@ -18,15 +18,11 @@ export function MembershipFaq({ className }: MembershipFaqProps) {
       <h3 id="membership-faq-heading" className="text-lg font-semibold text-foreground">
         Membership FAQ
       </h3>
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion>
         {MEMBERSHIP_FAQ.map((entry) => (
-          <AccordionItem key={entry.id} value={entry.id}>
-            <AccordionTrigger className="text-left text-sm font-medium">
-              {entry.question}
-            </AccordionTrigger>
-            <AccordionContent className="text-sm text-muted-foreground">
-              {entry.answer}
-            </AccordionContent>
+          <AccordionItem key={entry.id}>
+            <AccordionTrigger>{entry.question}</AccordionTrigger>
+            <AccordionContent>{entry.answer}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>

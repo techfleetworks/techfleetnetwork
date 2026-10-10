@@ -113,9 +113,7 @@ function CertCard({ row, profileName }: CertCardProps) {
             <GraduationCap className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-sm font-semibold leading-snug line-clamp-2">
-              {className || "Masterclass"}
-            </CardTitle>
+            <CardTitle>{className || "Masterclass"}</CardTitle>
             {monthYear && <p className="text-xs text-muted-foreground mt-1">{monthYear}</p>}
           </div>
         </div>
@@ -143,7 +141,12 @@ export function ClassCertificationsTab() {
     if (!user) return;
     setSyncing(true);
     try {
-      const data = await invokeEdge("fetch-class-certifications");
+      const data = await invokeEdge<{
+        success: boolean;
+        total_found: number;
+        upserted: number;
+        error?: string;
+      }>("fetch-class-certifications");
       if (data?.success) {
         setHasSearched(true);
         if (data.total_found === 0) {

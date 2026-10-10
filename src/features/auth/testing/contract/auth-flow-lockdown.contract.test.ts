@@ -86,7 +86,11 @@ describe("AUTH-LOCKDOWN-01 — sign-in (password)", () => {
   it("returns signed_in with the userId on success", async () => {
     vi.mocked(signInWithPasswordService).mockResolvedValue({ user: { id: "user-123" } } as never);
 
-    const result = await signInWithPassword({ email: "m@example.com", password: "x", captchaToken: "tok" });
+    const result = await signInWithPassword({
+      email: "m@example.com",
+      password: "x",
+      captchaToken: "tok",
+    });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -98,19 +102,31 @@ describe("AUTH-LOCKDOWN-01 — sign-in (password)", () => {
   it("maps a server invalid_credentials code to error invalid_credentials", async () => {
     vi.mocked(signInWithPasswordService).mockRejectedValue({ code: "invalid_credentials" });
 
-    const result = await signInWithPassword({ email: "m@example.com", password: "bad", captchaToken: "tok" });
+    const result = await signInWithPassword({
+      email: "m@example.com",
+      password: "bad",
+      captchaToken: "tok",
+    });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("invalid_credentials");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(
+        "invalid_credentials"
+      );
   });
 
   it("maps an HTTP 429 to error rate_limited (no credential punishment)", async () => {
     vi.mocked(signInWithPasswordService).mockRejectedValue({ status: 429 });
 
-    const result = await signInWithPassword({ email: "m@example.com", password: "x", captchaToken: "tok" });
+    const result = await signInWithPassword({
+      email: "m@example.com",
+      password: "x",
+      captchaToken: "tok",
+    });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("rate_limited");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("rate_limited");
   });
 
   // Each server/transport shape must map to its exact code — a misclassification
@@ -125,10 +141,15 @@ describe("AUTH-LOCKDOWN-01 — sign-in (password)", () => {
   ])("maps %s to error %s", async (_label, thrown, expectedCode) => {
     vi.mocked(signInWithPasswordService).mockRejectedValue(thrown);
 
-    const result = await signInWithPassword({ email: "m@example.com", password: "x", captchaToken: "tok" });
+    const result = await signInWithPassword({
+      email: "m@example.com",
+      password: "x",
+      captchaToken: "tok",
+    });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe(expectedCode);
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(expectedCode);
   });
 });
 
@@ -154,7 +175,8 @@ describe("AUTH-LOCKDOWN-02 — sign-up", () => {
     const result = await signUp({ email: "dupe@example.com", password: "StrongPass123!" });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("account_exists");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("account_exists");
   });
 
   it("on an indeterminate 5xx, probes and resolves to signed_in if the row was created", async () => {
@@ -178,7 +200,10 @@ describe("AUTH-LOCKDOWN-02 — sign-up", () => {
 
 describe("AUTH-LOCKDOWN-03 — request password reset", () => {
   it("returns password_reset_email_sent on success", async () => {
-    vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({ data: {}, error: null } as never);
+    vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({
+      data: {},
+      error: null,
+    } as never);
 
     const result = await requestPasswordReset({ email: "m@example.com" });
 
@@ -204,13 +229,19 @@ describe("AUTH-LOCKDOWN-03 — request password reset", () => {
     const result = await requestPasswordReset({ email: "m@example.com" });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("service_unavailable");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(
+        "service_unavailable"
+      );
   });
 });
 
 describe("AUTH-LOCKDOWN-04 — complete password reset", () => {
   it("returns password_updated on success", async () => {
-    vi.mocked(supabase.auth.updateUser).mockResolvedValue({ data: { user: { id: "u1" } }, error: null } as never);
+    vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+      data: { user: { id: "u1" } },
+      error: null,
+    } as never);
 
     const result = await completePasswordReset({ newPassword: "BrandNewPass123!" });
 
@@ -227,15 +258,21 @@ describe("AUTH-LOCKDOWN-04 — complete password reset", () => {
     const result = await completePasswordReset({ newPassword: "123" });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("weak_password");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("weak_password");
   });
 });
 
 describe("AUTH-LOCKDOWN-05 — consume recovery link", () => {
   it("establishes the recovery session from a ?code= link", async () => {
-    vi.mocked(supabase.auth.exchangeCodeForSession).mockResolvedValue({ data: {}, error: null } as never);
+    vi.mocked(supabase.auth.exchangeCodeForSession).mockResolvedValue({
+      data: {},
+      error: null,
+    } as never);
 
-    const result = await consumeRecoveryLink({ url: "https://app.test/reset-password?code=abc123" });
+    const result = await consumeRecoveryLink({
+      url: "https://app.test/reset-password?code=abc123",
+    });
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.kind).toBe("password_reset_email_sent");
@@ -248,7 +285,10 @@ describe("AUTH-LOCKDOWN-05 — consume recovery link", () => {
     });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("recovery_session_expired");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(
+        "recovery_session_expired"
+      );
     expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
   });
 
@@ -258,10 +298,15 @@ describe("AUTH-LOCKDOWN-05 — consume recovery link", () => {
       error: { message: "code already used" },
     } as never);
 
-    const result = await consumeRecoveryLink({ url: "https://app.test/reset-password?code=used123" });
+    const result = await consumeRecoveryLink({
+      url: "https://app.test/reset-password?code=used123",
+    });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("recovery_link_consumed");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(
+        "recovery_link_consumed"
+      );
   });
 
   it("accepts an implicit-flow hash recovery link when a session is present", async () => {

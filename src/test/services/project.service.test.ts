@@ -1,17 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ANALYSIS_CROSS_PROJECT_COLUMNS,
+  ANALYSIS_PROJECT_COLUMNS,
+  CLIENT_PROJECTS_COLUMNS,
   DASHBOARD_PROJECT_COLUMNS,
   HANDOFF_PROJECT_COLUMNS,
+  MEMBER_PROJECT_DETAIL_COLUMNS,
   MY_APPLICATIONS_PROJECT_COLUMNS,
   PROJECT_APPLICATION_COLUMNS,
   PROJECT_APP_STATUS_COLUMNS,
   RECRUITING_PROJECT_COLUMNS,
   ROSTER_PROJECT_COLUMNS,
+  SEARCH_PROJECT_COLUMNS,
   SUBMISSION_DETAIL_PROJECT_COLUMNS,
+  SUBMITTED_APPS_PROJECT_COLUMNS,
   getProjectDetailPublic,
+  getProjectForAnalysis,
   getProjectForApplication,
   getProjectForApplicationStatus,
   getProjectInternalLinks,
+  listApplyNowProjects,
+  listClientProjects,
   listRecruitingProjects,
 } from "@/services/project.service";
 import { supabase } from "@/integrations/supabase/client";
@@ -227,5 +236,89 @@ describe("projectService.getProjectInternalLinks", () => {
   it("throws on an RPC error (never silently drops it)", async () => {
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: new Error("denied") } as never);
     await expect(getProjectInternalLinks("p1")).rejects.toThrow("denied");
+  });
+});
+
+describe("projectService — read-component column contracts (ADR-0071 PR3)", () => {
+  const COMPONENT_COLUMNS: [string, string][] = [
+    ["CLIENT_PROJECTS_COLUMNS", CLIENT_PROJECTS_COLUMNS],
+    ["MEMBER_PROJECT_DETAIL_COLUMNS", MEMBER_PROJECT_DETAIL_COLUMNS],
+    ["SUBMITTED_APPS_PROJECT_COLUMNS", SUBMITTED_APPS_PROJECT_COLUMNS],
+    ["ANALYSIS_PROJECT_COLUMNS", ANALYSIS_PROJECT_COLUMNS],
+    ["ANALYSIS_CROSS_PROJECT_COLUMNS", ANALYSIS_CROSS_PROJECT_COLUMNS],
+    ["SEARCH_PROJECT_COLUMNS", SEARCH_PROJECT_COLUMNS],
+  ];
+  describe.each(COMPONENT_COLUMNS)("%s", (_name, cols) => {
+    it("never selects '*'", () => expect(cols).not.toContain("*"));
+    it.each(OPERATIONAL_COLUMNS)("excludes the operational column %s (ADR-0056)", (op) => {
+      expect(cols).not.toContain(op);
+    });
+  });
+});
+
+describe("projectService.listClientProjects", () => {
+  beforeEach(() => vi.clearAllMocks());
+  function mockOrder(result: { data: unknown; error: unknown }) {
+    const order = vi.fn().mockResolvedValue(result);
+    const select = vi.fn().mockReturnValue({ order });
+    vi.mocked(supabase.from).mockReturnValue({ select } as never);
+    return { select, order };
+  }
+  it("selects the pinned columns newest-first and returns the array", async () => {
+    const rows = [{ id: "a" }];
+    const { select, order } = mockOrder({ data: rows, error: null });
+    const result = await listClientProjects();
+    expect(select).toHaveBeenCalledWith(CLIENT_PROJECTS_COLUMNS);
+    expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(result).toEqual(rows);
+  });
+  it("throws on a read error", async () => {
+    mockOrder({ data: null, error: new Error("boom") });
+    await expect(listClientProjects()).rejects.toThrow("boom");
+  });
+});
+
+describe("projectService.listApplyNowProjects", () => {
+  beforeEach(() => vi.clearAllMocks());
+  function mockEq(result: { data: unknown; error: unknown }) {
+    const eq = vi.fn().mockResolvedValue(result);
+    const select = vi.fn().mockReturnValue({ eq });
+    vi.mocked(supabase.from).mockReturnValue({ select } as never);
+    return { select, eq };
+  }
+  it("selects ids of apply_now projects", async () => {
+    const rows = [{ id: "a" }, { id: "b" }];
+    const { select, eq } = mockEq({ data: rows, error: null });
+    const result = await listApplyNowProjects();
+    expect(select).toHaveBeenCalledWith("id");
+    expect(eq).toHaveBeenCalledWith("project_status", "apply_now");
+    expect(result).toEqual(rows);
+  });
+});
+
+describe("projectService.getProjectForAnalysis", () => {
+  beforeEach(() => vi.clearAllMocks());
+  function mockMaybeSingle(result: { data: unknown; error: unknown }) {
+    const maybeSingle = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    vi.mocked(supabase.from).mockReturnValue({ select } as never);
+    return { select, eq, maybeSingle };
+  }
+  it("selects the pinned columns by id", async () => {
+    const row = { id: "p1" };
+    const { select, eq } = mockMaybeSingle({ data: row, error: null });
+    const result = await getProjectForAnalysis("p1");
+    expect(select).toHaveBeenCalledWith(ANALYSIS_PROJECT_COLUMNS);
+    expect(eq).toHaveBeenCalledWith("id", "p1");
+    expect(result).toEqual(row);
+  });
+  it("returns null for a missing project (does NOT throw — the analysis panel renders nothing)", async () => {
+    mockMaybeSingle({ data: null, error: null });
+    expect(await getProjectForAnalysis("missing")).toBeNull();
+  });
+  it("throws on a read error", async () => {
+    mockMaybeSingle({ data: null, error: new Error("boom") });
+    await expect(getProjectForAnalysis("x")).rejects.toThrow("boom");
   });
 });

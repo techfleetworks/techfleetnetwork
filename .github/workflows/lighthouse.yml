@@ -31,12 +31,12 @@ jobs:
             --settings.preset=desktop \
             --settings.throttlingMethod=devtools \
             --settings.throttling.cpuSlowdownMultiplier=4 \
-            --settings.budgetPath=./lighthouse-budget.json || true
+            --settings.budgetPath=./lighthouse-budget.json
           lhci assert \
             --assertions.categories:performance=warn:0.8 \
             --assertions.categories:accessibility=error:0.9 \
             --assertions.categories:best-practices=warn:0.9 \
-            --assertions.categories:seo=warn:0.9 || true
+            --assertions.categories:seo=warn:0.9
       - name: Upload LHCI reports
         if: always()
         # actions/upload-artifact v4 — SHA-pinned (matches ci.yml)

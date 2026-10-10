@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useApplyNowProjects, useProjectsForSubmittedApps } from "@/hooks/use-project";
 import { format } from "date-fns";
 import {
   LayoutGrid,
@@ -166,21 +167,7 @@ export default function SubmittedApplicationsTab() {
   });
 
   const projectIds = useMemo(() => [...new Set((apps ?? []).map((a) => a.project_id))], [apps]);
-  const { data: projects } = useQuery({
-    queryKey: ["admin-projects-for-apps", projectIds],
-    queryFn: async () => {
-      if (projectIds.length === 0) return [];
-      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
-      // (ADR-0056/0065); select('*') fails 42501/403. List exactly the ProjectRow fields.
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, client_id, friendly_name")
-        .in("id", projectIds);
-      if (error) throw error;
-      return (data ?? []) as unknown as ProjectRow[];
-    },
-    enabled: projectIds.length > 0,
-  });
+  const { data: projects } = useProjectsForSubmittedApps(projectIds);
 
   const clientIds = useMemo(
     () => [...new Set((projects ?? []).map((p) => p.client_id))],
@@ -198,17 +185,7 @@ export default function SubmittedApplicationsTab() {
   });
 
   // Fetch total count of projects currently accepting applications
-  const { data: allApplyNowProjects } = useQuery({
-    queryKey: ["admin-all-apply-now-projects"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("project_status", "apply_now");
-      if (error) throw error;
-      return (data ?? []) as { id: string }[];
-    },
-  });
+  const { data: allApplyNowProjects } = useApplyNowProjects();
 
   const { data: profiles } = useQuery({
     queryKey: ["admin-profiles-for-apps-full", apps?.map((a) => a.user_id)],
