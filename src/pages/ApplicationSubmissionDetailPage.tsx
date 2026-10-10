@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjectForSubmissionDetail } from "@/hooks/use-project";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -55,21 +56,10 @@ export default function ApplicationSubmissionDetailPage() {
   });
 
   /* Fetch project */
-  const { data: project } = useQuery({
-    queryKey: ["admin-proj-detail-for-app", projApp?.project_id],
-    queryFn: async () => {
-      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
-      // (ADR-0056/0065); select('*') fails 42501/403. Operational columns are never needed here.
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, client_id, project_type, phase, project_status")
-        .eq("id", projApp!.project_id as string)
-        .single();
-      if (error) throw error;
-      return data as Record<string, unknown>;
-    },
-    enabled: !!projApp?.project_id,
-  });
+  const { data: project } = useProjectForSubmissionDetail(
+    projApp?.project_id as string | undefined,
+    { enabled: !!projApp?.project_id }
+  );
 
   /* Fetch client */
   const { data: client } = useQuery({

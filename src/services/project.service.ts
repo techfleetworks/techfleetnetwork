@@ -141,3 +141,190 @@ export async function getProjectDetailPublic(
   }
   return (await res.json()) as PublicProjectDetailResponse;
 }
+
+/* ── Read-page projections (ADR-0071, PR2) ─────────────────────────────────────────
+ * One method per authenticated read surface, each selecting exactly the columns that surface
+ * renders (never '*', never an operational column). List reads return an array (empty is valid);
+ * single-row reads use maybeSingle + NotFoundError, matching getProjectForApplication, so a missing
+ * row surfaces as an error exactly as the pre-refactor `.single()` did — never a silent null. All are
+ * wrapped in retryPostgrest for transient PGRST002/5xx resilience. Must be gated on a signed-in user
+ * by the caller (projects is column-scoped to `authenticated`; `anon` holds no SELECT).
+ */
+
+/** Dashboard project-application cards: name/type/phase lookup by the member's applied project ids. */
+export const DASHBOARD_PROJECT_COLUMNS =
+  "id, client_id, project_type, phase, project_status, friendly_name";
+export interface DashboardProject {
+  id: string;
+  client_id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  friendly_name?: string;
+}
+export async function getProjectsForDashboard(projectIds: string[]): Promise<DashboardProject[]> {
+  if (projectIds.length === 0) return [];
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(DASHBOARD_PROJECT_COLUMNS).in("id", projectIds)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as DashboardProject[];
+}
+
+/** "My Applications": the member's applied projects by id set. */
+export const MY_APPLICATIONS_PROJECT_COLUMNS =
+  "id, project_type, phase, project_status, client_id, team_hats, friendly_name";
+export interface MyApplicationProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  client_id: string;
+  team_hats: string[];
+  friendly_name?: string;
+}
+export async function getProjectsForMyApplications(
+  projectIds: string[]
+): Promise<MyApplicationProject[]> {
+  if (projectIds.length === 0) return [];
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(MY_APPLICATIONS_PROJECT_COLUMNS).in("id", projectIds)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as MyApplicationProject[];
+}
+
+/** The member's single application-status page: the one project the application is for. */
+export const PROJECT_APP_STATUS_COLUMNS =
+  "id, project_type, phase, project_status, team_hats, client_id, coordinator_id, requires_interview, friendly_name";
+export interface ProjectForApplicationStatus {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  team_hats: string[];
+  client_id: string;
+  coordinator_id?: string | null;
+  requires_interview?: boolean;
+  friendly_name?: string;
+}
+export async function getProjectForApplicationStatus(
+  projectId: string
+): Promise<ProjectForApplicationStatus> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(PROJECT_APP_STATUS_COLUMNS).eq("id", projectId).maybeSingle()
+  );
+  if (error) throw error;
+  if (!data) throw new NotFoundError("Project");
+  return data as unknown as ProjectForApplicationStatus;
+}
+
+/** Admin viewing one submitted application: the project it targets. */
+export const SUBMISSION_DETAIL_PROJECT_COLUMNS =
+  "id, client_id, project_type, phase, project_status";
+export interface SubmissionDetailProject {
+  id: string;
+  client_id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+}
+export async function getProjectForSubmissionDetail(
+  projectId: string
+): Promise<SubmissionDetailProject> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase
+      .from("projects")
+      .select(SUBMISSION_DETAIL_PROJECT_COLUMNS)
+      .eq("id", projectId)
+      .maybeSingle()
+  );
+  if (error) throw error;
+  if (!data) throw new NotFoundError("Project");
+  return data as unknown as SubmissionDetailProject;
+}
+
+/** Admin recruiting roster: every project with its client name (embedded join). */
+export const RECRUITING_PROJECT_COLUMNS =
+  "id, project_type, phase, project_status, team_hats, client_id, friendly_name, clients(name)";
+export interface RecruitingProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  team_hats: string[];
+  client_id: string;
+  friendly_name?: string;
+  clients: { name: string } | null;
+}
+export async function listRecruitingProjects(): Promise<RecruitingProject[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase
+      .from("projects")
+      .select(RECRUITING_PROJECT_COLUMNS)
+      .order("created_at", { ascending: false })
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as RecruitingProject[];
+}
+
+/** Admin hand-off project picker: minimal id/phase/status + client name. */
+export const HANDOFF_PROJECT_COLUMNS = "id, phase, project_status, clients(name)";
+export interface HandoffProject {
+  id: string;
+  phase: string;
+  project_status: string;
+  clients: { name: string } | null;
+}
+export async function listHandoffProjects(): Promise<HandoffProject[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase
+      .from("projects")
+      .select(HANDOFF_PROJECT_COLUMNS)
+      .order("created_at", { ascending: false })
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as HandoffProject[];
+}
+
+/** Admin roster applicant detail: the one project (with client name) the applicant applied to. */
+export const ROSTER_PROJECT_COLUMNS = "id, project_type, phase, project_status, clients(name)";
+export interface RosterProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  clients: { name: string } | null;
+}
+export async function getProjectForRoster(projectId: string): Promise<RosterProject> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(ROSTER_PROJECT_COLUMNS).eq("id", projectId).maybeSingle()
+  );
+  if (error) throw error;
+  if (!data) throw new NotFoundError("Project");
+  return data as unknown as RosterProject;
+}
+
+/**
+ * The four operational/internal columns (discord_role_id/name, notion_repository_url,
+ * client_intake_url) — fetched ONLY via the `get_project_internal_links` SECURITY DEFINER RPC, never a
+ * direct table read (they are column-scoped away from `authenticated`, ADR-0056). The RPC returns a
+ * single row (or none when not authorized / not found); returns null in that case rather than throwing,
+ * since callers render these links optionally.
+ */
+export interface ProjectInternalLinks {
+  discord_role_id: string | null;
+  discord_role_name: string | null;
+  notion_repository_url: string | null;
+  client_intake_url: string | null;
+}
+export async function getProjectInternalLinks(
+  projectId: string
+): Promise<ProjectInternalLinks | null> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.rpc("get_project_internal_links", { p_project_id: projectId })
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as ProjectInternalLinks | null;
+}

@@ -4,14 +4,31 @@ import { CommunityAgreementSheet } from "@/components/agreements/CommunityAgreem
 import { useAgreementStatus } from "@/hooks/use-agreement-status";
 import { useQuery, useMutation, useQueryClient } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjectForApplicationStatus } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
-  ArrowLeft, CheckCircle2, Clock, Calendar, UserCheck,
-  XCircle, Users, LogOut, Loader2, FolderKanban, PartyPopper,
-  Trophy, Star, Sparkles, Mail, User, Briefcase, GraduationCap,
-  Trash2, FileCheck2,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Calendar,
+  UserCheck,
+  XCircle,
+  Users,
+  LogOut,
+  Loader2,
+  FolderKanban,
+  PartyPopper,
+  Trophy,
+  Star,
+  Sparkles,
+  Mail,
+  User,
+  Briefcase,
+  GraduationCap,
+  Trash2,
+  FileCheck2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,17 +37,31 @@ import { Separator } from "@/components/ui/separator";
 import { ClientLogo } from "@/components/ClientLogo";
 import { ProjectOpeningHeading } from "@/components/projects/ProjectOpeningHeading";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { ReadOnlyField, ReadOnlyLinkField, ReadOnlyArrayField } from "@/components/ReadOnlyField";
@@ -38,35 +69,42 @@ import { sanitizeHtml } from "@/lib/security";
 
 /* ── status display config ─────────────────────────────────── */
 
-const STATUS_CONFIG: Record<string, {
-  label: string;
-  icon: typeof Clock;
-  variant: "default" | "success" | "warning" | "destructive" | "info";
-  description: string;
-}> = {
+const STATUS_CONFIG: Record<
+  string,
+  {
+    label: string;
+    icon: typeof Clock;
+    variant: "default" | "success" | "warning" | "destructive" | "info";
+    description: string;
+  }
+> = {
   pending_review: {
     label: "Pending Review",
     icon: Clock,
     variant: "warning",
-    description: "Your application is being reviewed by the project coordinator. You'll be notified when there's an update.",
+    description:
+      "Your application is being reviewed by the project coordinator. You'll be notified when there's an update.",
   },
   invited_to_interview: {
     label: "Invited to Interview",
     icon: Calendar,
     variant: "info",
-    description: "You've been invited to an interview! Please schedule your interview using the link provided in your notification, then accept this invitation below to confirm.",
+    description:
+      "You've been invited to an interview! Please schedule your interview using the link provided in your notification, then accept this invitation below to confirm.",
   },
   interview_scheduled: {
     label: "Interview Scheduled",
     icon: Calendar,
     variant: "info",
-    description: "You've indicated that your interview has been scheduled. The project coordinator has been notified.",
+    description:
+      "You've indicated that your interview has been scheduled. The project coordinator has been notified.",
   },
   not_selected: {
     label: "Not Selected",
     icon: XCircle,
     variant: "destructive",
-    description: "Unfortunately, you were not selected for this project at this time. We encourage you to apply to other project openings.",
+    description:
+      "Unfortunately, you were not selected for this project at this time. We encourage you to apply to other project openings.",
   },
   active_participant: {
     label: "Active Teammate",
@@ -88,11 +126,16 @@ const statusLabel = (v: string) => PROJECT_STATUSES.find((s) => s.value === v)?.
 
 function getStatusBadgeClasses(variant: string): string {
   switch (variant) {
-    case "success": return "bg-success/10 text-success border-success/30";
-    case "warning": return "bg-warning/10 text-warning border-warning/30";
-    case "destructive": return "bg-destructive/10 text-destructive border-destructive/30";
-    case "info": return "bg-primary/10 text-primary border-primary/30";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "success":
+      return "bg-success/10 text-success border-success/30";
+    case "warning":
+      return "bg-warning/10 text-warning border-warning/30";
+    case "destructive":
+      return "bg-destructive/10 text-destructive border-destructive/30";
+    case "info":
+      return "bg-primary/10 text-primary border-primary/30";
+    default:
+      return "bg-muted text-muted-foreground border-border";
   }
 }
 
@@ -127,7 +170,8 @@ function buildTimeline(applicantStatus: string, requiresInterview: boolean = tru
       label: "Not Selected",
       icon: XCircle,
       status: "failed",
-      description: "You were not selected for this project. We encourage you to apply to other openings.",
+      description:
+        "You were not selected for this project. We encourage you to apply to other openings.",
     });
     return steps;
   }
@@ -178,8 +222,8 @@ function buildTimeline(applicantStatus: string, requiresInterview: boolean = tru
     description: isScheduled
       ? "You've scheduled your interview. The coordinator has been notified."
       : interviewCompleted
-      ? "You were invited and completed the interview process."
-      : "Awaiting interview invitation from the coordinator.",
+        ? "You were invited and completed the interview process."
+        : "Awaiting interview invitation from the coordinator.",
   });
 
   const activeCompleted = currentOrder >= 2;
@@ -212,7 +256,13 @@ function buildTimeline(applicantStatus: string, requiresInterview: boolean = tru
 
 /* ── Active Teammate Celebration ──────────────────────────── */
 
-function ActiveTeammateCelebration({ clientName, friendlyName }: { clientName: string; friendlyName?: string | null }) {
+function ActiveTeammateCelebration({
+  clientName,
+  friendlyName,
+}: {
+  clientName: string;
+  friendlyName?: string | null;
+}) {
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
@@ -240,18 +290,18 @@ function ActiveTeammateCelebration({ clientName, friendlyName }: { clientName: s
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">Congratulations!
+        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+          Congratulations!
           <PartyPopper className="h-6 w-6 text-success" />
         </h2>
         <p className="text-lg font-medium text-foreground">
-          You're an Active Teammate on <span className="text-primary font-semibold">{clientName}</span>!
+          You're an Active Teammate on{" "}
+          <span className="text-primary font-semibold">{clientName}</span>!
         </p>
-        {friendlyName?.trim() && (
-          <p className="text-base text-muted-foreground">{friendlyName}</p>
-        )}
+        {friendlyName?.trim() && <p className="text-base text-muted-foreground">{friendlyName}</p>}
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          You've made it through the entire application process and are now contributing to your project team.
-          Keep up the amazing work — your dedication makes a difference!
+          You've made it through the entire application process and are now contributing to your
+          project team. Keep up the amazing work — your dedication makes a difference!
         </p>
       </div>
 
@@ -269,26 +319,52 @@ function ActiveTeammateCelebration({ clientName, friendlyName }: { clientName: s
 
 /* ── Timeline Component ───────────────────────────────────── */
 
-function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus }: { steps: TimelineStep[]; onViewInvite?: () => void; onMarkScheduled?: () => void; applicantStatus?: string }) {
+function StatusTimeline({
+  steps,
+  onViewInvite,
+  onMarkScheduled,
+  applicantStatus,
+}: {
+  steps: TimelineStep[];
+  onViewInvite?: () => void;
+  onMarkScheduled?: () => void;
+  applicantStatus?: string;
+}) {
   return (
-    <div className="relative pl-10 space-y-0" role="list" aria-label="Application progress timeline">
+    <div
+      className="relative pl-10 space-y-0"
+      role="list"
+      aria-label="Application progress timeline"
+    >
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1;
         const StepIcon = step.icon;
 
         const iconBg =
-          step.status === "completed" ? "bg-success text-success-foreground" :
-          step.status === "active" ? "bg-primary text-primary-foreground ring-4 ring-primary/20" :
-          step.status === "failed" ? "bg-destructive text-destructive-foreground" :
-          "bg-muted text-muted-foreground";
+          step.status === "completed"
+            ? "bg-success text-success-foreground"
+            : step.status === "active"
+              ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+              : step.status === "failed"
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-muted text-muted-foreground";
 
         const lineColor =
-          step.status === "completed" ? "bg-success/40" :
-          step.status === "failed" ? "bg-destructive/30" :
-          "bg-border";
+          step.status === "completed"
+            ? "bg-success/40"
+            : step.status === "failed"
+              ? "bg-destructive/30"
+              : "bg-border";
 
-        const showInviteButton = step.key === "interview" && step.status !== "upcoming" && onViewInvite;
-        const showScheduleButton = step.key === "interview" && step.status !== "upcoming" && onMarkScheduled && applicantStatus !== "interview_scheduled" && applicantStatus !== "active_participant" && applicantStatus !== "left_the_project";
+        const showInviteButton =
+          step.key === "interview" && step.status !== "upcoming" && onViewInvite;
+        const showScheduleButton =
+          step.key === "interview" &&
+          step.status !== "upcoming" &&
+          onMarkScheduled &&
+          applicantStatus !== "interview_scheduled" &&
+          applicantStatus !== "active_participant" &&
+          applicantStatus !== "left_the_project";
 
         return (
           <div key={step.key} className="relative pb-8 last:pb-0" role="listitem">
@@ -301,16 +377,20 @@ function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus 
             )}
 
             {/* Icon circle */}
-            <div className={`absolute left-[-28px] top-1 h-8 w-8 rounded-full flex items-center justify-center ${iconBg} transition-all duration-300`}>
+            <div
+              className={`absolute left-[-28px] top-1 h-8 w-8 rounded-full flex items-center justify-center ${iconBg} transition-all duration-300`}
+            >
               <StepIcon className="h-4 w-4" />
             </div>
 
             {/* Content */}
             <div className="space-y-1 ml-6">
               <div className="flex items-center gap-2">
-                <h4 className={`text-sm font-semibold ${
-                  step.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
-                }`}>
+                <h4
+                  className={`text-sm font-semibold ${
+                    step.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
+                  }`}
+                >
                   {step.label}
                 </h4>
                 {step.status === "active" && (
@@ -320,9 +400,13 @@ function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus 
                 )}
               </div>
               {step.description && (
-                <p className={`text-xs ${
-                  step.status === "upcoming" ? "text-muted-foreground/60" : "text-muted-foreground"
-                }`}>
+                <p
+                  className={`text-xs ${
+                    step.status === "upcoming"
+                      ? "text-muted-foreground/60"
+                      : "text-muted-foreground"
+                  }`}
+                >
                   {step.description}
                 </p>
               )}
@@ -346,8 +430,7 @@ function StatusTimeline({ steps, onViewInvite, onMarkScheduled, applicantStatus 
                       className="gap-1.5 text-xs"
                       onClick={onMarkScheduled}
                     >
-                      <Calendar className="h-3.5 w-3.5" />
-                      I have Scheduled
+                      <Calendar className="h-3.5 w-3.5" />I have Scheduled
                     </Button>
                   )}
                 </div>
@@ -403,17 +486,7 @@ export default function ProjectApplicationStatusPage() {
   });
 
   /* ── fetch project ──────────────────────────────────────── */
-  const { data: project } = useQuery({
-    queryKey: ["project-for-app-status", app?.project_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, team_hats, client_id, coordinator_id, requires_interview, friendly_name")
-        .eq("id", app!.project_id as string)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+  const { data: project } = useProjectForApplicationStatus(app?.project_id as string | undefined, {
     enabled: !!app?.project_id,
   });
 
@@ -433,7 +506,9 @@ export default function ProjectApplicationStatusPage() {
   });
 
   const coordinatorName = coordinatorProfile
-    ? (coordinatorProfile.display_name || [coordinatorProfile.first_name, coordinatorProfile.last_name].filter(Boolean).join(" ") || null)
+    ? coordinatorProfile.display_name ||
+      [coordinatorProfile.first_name, coordinatorProfile.last_name].filter(Boolean).join(" ") ||
+      null
     : null;
 
   /* ── fetch client ───────────────────────────────────────── */
@@ -513,7 +588,7 @@ export default function ProjectApplicationStatusPage() {
   const requiresInterview = (project as any)?.requires_interview !== false;
   const timelineSteps = useMemo(
     () => buildTimeline(applicantStatus, requiresInterview),
-    [applicantStatus, requiresInterview],
+    [applicantStatus, requiresInterview]
   );
 
   /* ── mark interview scheduled mutation ──────────────────── */
@@ -561,7 +636,9 @@ export default function ProjectApplicationStatusPage() {
       navigate("/applications/projects", { replace: true });
     },
     onError: (err: Error) => {
-      toast.error("We couldn't delete that application. Please try again.", { description: err.message });
+      toast.error("We couldn't delete that application. Please try again.", {
+        description: err.message,
+      });
     },
   });
 
@@ -569,7 +646,10 @@ export default function ProjectApplicationStatusPage() {
   if (appLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Loading application status" />
+        <Loader2
+          className="h-8 w-8 animate-spin text-primary"
+          aria-label="Loading application status"
+        />
       </div>
     );
   }
@@ -579,7 +659,11 @@ export default function ProjectApplicationStatusPage() {
       <div className="container-app py-12 text-center">
         <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-40 text-muted-foreground" />
         <p className="text-muted-foreground">Application not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/applications/projects")}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => navigate("/applications/projects")}
+        >
           Back to Project Applications
         </Button>
       </div>
@@ -611,7 +695,12 @@ export default function ProjectApplicationStatusPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/applications/projects")} aria-label="Back to Project Applications">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/applications/projects")}
+          aria-label="Back to Project Applications"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
@@ -637,19 +726,30 @@ export default function ProjectApplicationStatusPage() {
       </div>
 
       {/* Active Teammate Celebration */}
-      {isActiveTeammate && <ActiveTeammateCelebration clientName={clientName} friendlyName={(project as any)?.friendly_name} />}
+      {isActiveTeammate && (
+        <ActiveTeammateCelebration
+          clientName={clientName}
+          friendlyName={(project as any)?.friendly_name}
+        />
+      )}
 
       {/* Community Agreement callout */}
       {agreement.data?.status === "pending" && (
         <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/20">
           <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-semibold text-foreground">Sign your Community Contributor Terms</h3>
+              <h3 className="text-base font-semibold text-foreground">
+                Sign your Community Contributor Terms
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Before you start training on {clientName}, please review and agree to the Community Contributor Terms.
+                Before you start training on {clientName}, please review and agree to the Community
+                Contributor Terms.
               </p>
             </div>
-            <Button onClick={() => setAgreementOpen(true)} className="gap-2 self-start sm:self-auto">
+            <Button
+              onClick={() => setAgreementOpen(true)}
+              className="gap-2 self-start sm:self-auto"
+            >
               <FileCheck2 className="h-4 w-4" />
               Review and agree
             </Button>
@@ -658,7 +758,11 @@ export default function ProjectApplicationStatusPage() {
       )}
       {agreement.data?.status === "signed" && (
         <p className="text-xs text-muted-foreground">
-          Community Contributor Terms signed{agreement.data.signedAt ? ` on ${format(new Date(agreement.data.signedAt), "MMMM d, yyyy")}` : ""}.
+          Community Contributor Terms signed
+          {agreement.data.signedAt
+            ? ` on ${format(new Date(agreement.data.signedAt), "MMMM d, yyyy")}`
+            : ""}
+          .
         </p>
       )}
 
@@ -670,7 +774,6 @@ export default function ProjectApplicationStatusPage() {
         clientName={clientName}
       />
 
-
       {/* Timeline Card */}
       <Card>
         <CardHeader className="pb-4">
@@ -679,76 +782,97 @@ export default function ProjectApplicationStatusPage() {
         <CardContent>
           <StatusTimeline
             steps={timelineSteps}
-            onViewInvite={showInviteStatuses.includes(applicantStatus) ? () => setInvitePanelOpen(true) : undefined}
-            onMarkScheduled={showInviteStatuses.includes(applicantStatus) ? handleMarkScheduled : undefined}
+            onViewInvite={
+              showInviteStatuses.includes(applicantStatus)
+                ? () => setInvitePanelOpen(true)
+                : undefined
+            }
+            onMarkScheduled={
+              showInviteStatuses.includes(applicantStatus) ? handleMarkScheduled : undefined
+            }
             applicantStatus={applicantStatus}
           />
         </CardContent>
       </Card>
 
       {/* What to Expect Timeline — shown for early-stage applicants on interview projects only */}
-      {requiresInterview && ["pending_review", "invited_to_interview", "interview_scheduled"].includes(applicantStatus) && (
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">What to Expect
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-5">
-              Here's a general timeline of what happens after you submit your application:
-            </p>
-            <div className="relative pl-8 space-y-6">
-              {/* Vertical connector line */}
-              <div className="absolute left-[11px] top-1 bottom-1 w-0.5 bg-border" aria-hidden="true" />
+      {requiresInterview &&
+        ["pending_review", "invited_to_interview", "interview_scheduled"].includes(
+          applicantStatus
+        ) && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">What to Expect</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-5">
+                Here's a general timeline of what happens after you submit your application:
+              </p>
+              <div className="relative pl-8 space-y-6">
+                {/* Vertical connector line */}
+                <div
+                  className="absolute left-[11px] top-1 bottom-1 w-0.5 bg-border"
+                  aria-hidden="true"
+                />
 
-              {/* Week 1–2 */}
-              <div className="relative flex gap-4">
-                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
-                  <Mail className="h-3 w-3 text-primary" />
+                {/* Week 1–2 */}
+                <div className="relative flex gap-4">
+                  <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
+                    <Mail className="h-3 w-3 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Week 1–2: Interview Invitation
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      You'll hear back from a coordinator about scheduling an interview. Keep an eye
+                      on your notifications!
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-foreground">Week 1–2: Interview Invitation</p>
-                  <p className="text-sm text-muted-foreground">
-                    You'll hear back from a coordinator about scheduling an interview. Keep an eye on your notifications!
-                  </p>
+
+                {/* Week 3–4 */}
+                <div className="relative flex gap-4">
+                  <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
+                    <Briefcase className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Week 3–4: Recruitment & Interviews
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      The coordinator will conduct interviews and recruit trainees for the project
+                      team.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Week 5–6 */}
+                <div className="relative flex gap-4">
+                  <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
+                    <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Week 5–6: Team Selection & Onboarding
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      The team gets selected and starts onboarding together. You'll be notified if
+                      you're selected!
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              {/* Week 3–4 */}
-              <div className="relative flex gap-4">
-                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
-                  <Briefcase className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-foreground">Week 3–4: Recruitment & Interviews</p>
-                  <p className="text-sm text-muted-foreground">
-                    The coordinator will conduct interviews and recruit trainees for the project team.
-                  </p>
-                </div>
-              </div>
-
-              {/* Week 5–6 */}
-              <div className="relative flex gap-4">
-                <div className="absolute -left-8 top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 bg-muted">
-                  <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-foreground">Week 5–6: Team Selection & Onboarding</p>
-                  <p className="text-sm text-muted-foreground">
-                    The team gets selected and starts onboarding together. You'll be notified if you're selected!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Interview Invitation Side Panel */}
       <Sheet open={invitePanelOpen} onOpenChange={setInvitePanelOpen}>
         <SheetContent resizeKey="interview-invite" className="sm:max-w-lg">
           <SheetHeader className="pb-4">
-            <SheetTitle className="flex items-center gap-2 text-lg">{interviewNotification?.title ?? "Interview Invitation"}
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              {interviewNotification?.title ?? "Interview Invitation"}
             </SheetTitle>
             <SheetDescription>
               {interviewNotification
@@ -773,10 +897,12 @@ export default function ProjectApplicationStatusPage() {
               </p>
               <Button
                 className="w-full"
-                onClick={() => { handleMarkScheduled(); setInvitePanelOpen(false); }}
+                onClick={() => {
+                  handleMarkScheduled();
+                  setInvitePanelOpen(false);
+                }}
               >
-                <Calendar className="h-4 w-4 mr-2" />
-                I have Scheduled
+                <Calendar className="h-4 w-4 mr-2" />I have Scheduled
               </Button>
             </div>
           )}
@@ -792,7 +918,7 @@ export default function ProjectApplicationStatusPage() {
               You've been invited to interview!
             </h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Please schedule your interview using the scheduling link in your notification email, 
+              Please schedule your interview using the scheduling link in your notification email,
               then click the button below to let the coordinator know you've scheduled it.
             </p>
             <Button
@@ -830,7 +956,9 @@ export default function ProjectApplicationStatusPage() {
                 <p className="text-muted-foreground">Team Hats</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {((app.team_hats_interest as string[]) ?? []).map((h) => (
-                    <Badge key={h} variant="outline" className="text-xs">{h}</Badge>
+                    <Badge key={h} variant="outline" className="text-xs">
+                      {h}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -844,11 +972,19 @@ export default function ProjectApplicationStatusPage() {
                 <h3 className="text-sm font-semibold text-foreground">Project Details</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {(client as { kind?: string } | null)?.kind === "internal" && (
-                    <Badge className="bg-info/10 text-info border-info/30 text-xs">Volunteer Opening</Badge>
+                    <Badge className="bg-info/10 text-info border-info/30 text-xs">
+                      Volunteer Opening
+                    </Badge>
                   )}
-                  <Badge variant="secondary" className="text-xs">{typeLabel(project.project_type)}</Badge>
-                  <Badge variant="outline" className="text-xs">{phaseLabel(project.phase)}</Badge>
-                  <Badge variant="outline" className="text-xs">{statusLabel(project.project_status)}</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {typeLabel(project.project_type)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {phaseLabel(project.phase)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {statusLabel(project.project_status)}
+                  </Badge>
                 </div>
                 {coordinatorName && (
                   <div className="space-y-1">
@@ -869,11 +1005,17 @@ export default function ProjectApplicationStatusPage() {
       {profile && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">Your Profile
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">Your Profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReadOnlyField label="Name" value={`${(profile.first_name as string) ?? ""} ${(profile.last_name as string) ?? ""}`.trim() || (profile.display_name as string) || "—"} />
+            <ReadOnlyField
+              label="Name"
+              value={
+                `${(profile.first_name as string) ?? ""} ${(profile.last_name as string) ?? ""}`.trim() ||
+                (profile.display_name as string) ||
+                "—"
+              }
+            />
             <ReadOnlyField label="Email" value={(profile.email as string) ?? "—"} />
             <ReadOnlyField label="Country" value={(profile.country as string) || "—"} />
             <ReadOnlyField label="Timezone" value={(profile.timezone as string) || "—"} />
@@ -881,18 +1023,49 @@ export default function ProjectApplicationStatusPage() {
               <ReadOnlyField label="Discord" value={profile.discord_username as string} />
             )}
             {(profile.linkedin_url as string) && (
-              <ReadOnlyLinkField label="LinkedIn" href={profile.linkedin_url as string} linkText="Profile" />
+              <ReadOnlyLinkField
+                label="LinkedIn"
+                href={profile.linkedin_url as string}
+                linkText="Profile"
+              />
             )}
             {(profile.portfolio_url as string) && (
-              <ReadOnlyLinkField label="Portfolio" href={profile.portfolio_url as string} linkText="View" />
+              <ReadOnlyLinkField
+                label="Portfolio"
+                href={profile.portfolio_url as string}
+                linkText="View"
+              />
             )}
-            <ReadOnlyArrayField label="Experience Areas" items={(profile.experience_areas as string[]) ?? []} />
-            <ReadOnlyArrayField label="Education Background" items={(profile.education_background as string[]) ?? []} />
+            <ReadOnlyArrayField
+              label="Experience Areas"
+              items={(profile.experience_areas as string[]) ?? []}
+            />
+            <ReadOnlyArrayField
+              label="Education Background"
+              items={(profile.education_background as string[]) ?? []}
+            />
             <ReadOnlyArrayField label="Interests" items={(profile.interests as string[]) ?? []} />
-            <ReadOnlyField label="Professional Background" value={(profile.professional_background as string) ?? ""} entityTable="profiles" entityId={profile.id as string} columnName="professional_background" />
-            <ReadOnlyField label="Professional Goals" value={(profile.professional_goals as string) ?? ""} entityTable="profiles" entityId={profile.id as string} columnName="professional_goals" />
-            <ReadOnlyField label="Bio" value={(profile.bio as string) ?? ""} entityTable="profiles" entityId={profile.id as string} columnName="bio" />
-
+            <ReadOnlyField
+              label="Professional Background"
+              value={(profile.professional_background as string) ?? ""}
+              entityTable="profiles"
+              entityId={profile.id as string}
+              columnName="professional_background"
+            />
+            <ReadOnlyField
+              label="Professional Goals"
+              value={(profile.professional_goals as string) ?? ""}
+              entityTable="profiles"
+              entityId={profile.id as string}
+              columnName="professional_goals"
+            />
+            <ReadOnlyField
+              label="Bio"
+              value={(profile.bio as string) ?? ""}
+              entityTable="profiles"
+              entityId={profile.id as string}
+              columnName="bio"
+            />
           </CardContent>
         </Card>
       )}
@@ -901,8 +1074,7 @@ export default function ProjectApplicationStatusPage() {
       {genApp && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">General Application
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">General Application</CardTitle>
             {genApp.completed_at && (
               <p className="text-xs text-muted-foreground">
                 Completed {format(new Date(genApp.completed_at as string), "MMMM d, yyyy")}
@@ -910,27 +1082,69 @@ export default function ProjectApplicationStatusPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <ReadOnlyField label="Hours commitment" value={(genApp.hours_commitment as string) ?? ""} />
+            <ReadOnlyField
+              label="Hours commitment"
+              value={(genApp.hours_commitment as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Engagement History</p>
-            <ReadOnlyField label="Previous engagement with Tech Fleet" value={(genApp.previous_engagement as string) ?? ""} />
-            <ReadOnlyArrayField label="Previous engagement ways" items={(genApp.previous_engagement_ways as string[]) ?? []} />
-            <ReadOnlyField label="What have you learned from teammates?" value={(genApp.teammate_learnings as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Engagement History
+            </p>
+            <ReadOnlyField
+              label="Previous engagement with Tech Fleet"
+              value={(genApp.previous_engagement as string) ?? ""}
+            />
+            <ReadOnlyArrayField
+              label="Previous engagement ways"
+              items={(genApp.previous_engagement_ways as string[]) ?? []}
+            />
+            <ReadOnlyField
+              label="What have you learned from teammates?"
+              value={(genApp.teammate_learnings as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agile Mindset</p>
-            <ReadOnlyField label="Agile vs Waterfall" value={(genApp.agile_vs_waterfall as string) ?? ""} />
-            <ReadOnlyField label="Psychological Safety" value={(genApp.psychological_safety as string) ?? ""} />
-            <ReadOnlyField label="Agile Philosophies" value={(genApp.agile_philosophies as string) ?? ""} />
-            <ReadOnlyField label="Collaboration Challenges" value={(genApp.collaboration_challenges as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Agile Mindset
+            </p>
+            <ReadOnlyField
+              label="Agile vs Waterfall"
+              value={(genApp.agile_vs_waterfall as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Psychological Safety"
+              value={(genApp.psychological_safety as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Agile Philosophies"
+              value={(genApp.agile_philosophies as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Collaboration Challenges"
+              value={(genApp.collaboration_challenges as string) ?? ""}
+            />
 
             <Separator className="my-2" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service Leadership</p>
-            <ReadOnlyField label="Service Leadership Definition" value={(genApp.service_leadership_definition as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Actions" value={(genApp.service_leadership_actions as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Challenges" value={(genApp.service_leadership_challenges as string) ?? ""} />
-            <ReadOnlyField label="Service Leadership Situation" value={(genApp.service_leadership_situation as string) ?? ""} />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Service Leadership
+            </p>
+            <ReadOnlyField
+              label="Service Leadership Definition"
+              value={(genApp.service_leadership_definition as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Actions"
+              value={(genApp.service_leadership_actions as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Challenges"
+              value={(genApp.service_leadership_challenges as string) ?? ""}
+            />
+            <ReadOnlyField
+              label="Service Leadership Situation"
+              value={(genApp.service_leadership_situation as string) ?? ""}
+            />
           </CardContent>
         </Card>
       )}
@@ -938,22 +1152,37 @@ export default function ProjectApplicationStatusPage() {
       {/* ── Project Application Responses ─────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">Project Application — {clientName}
+          <CardTitle className="flex items-center gap-2 text-lg">
+            Project Application — {clientName}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ReadOnlyArrayField label="Team Hats of Interest" items={(app.team_hats_interest as string[]) ?? []} />
+          <ReadOnlyArrayField
+            label="Team Hats of Interest"
+            items={(app.team_hats_interest as string[]) ?? []}
+          />
 
           <Separator className="my-2" />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {(app.participated_previous_phase as boolean) ? "Previous Phase Experience" : "Prior Engagement"}
+            {(app.participated_previous_phase as boolean)
+              ? "Previous Phase Experience"
+              : "Prior Engagement"}
           </p>
 
           {(app.participated_previous_phase as boolean) ? (
             <>
-              <ReadOnlyField label="What team position did you join in the previous phase?" value={(app.previous_phase_position as string) ?? ""} />
-              <ReadOnlyField label="What did you learn in the previous phase?" value={(app.previous_phase_learnings as string) ?? ""} />
-              <ReadOnlyField label="How will you help your teammates succeed in this upcoming phase?" value={(app.previous_phase_help_teammates as string) ?? ""} />
+              <ReadOnlyField
+                label="What team position did you join in the previous phase?"
+                value={(app.previous_phase_position as string) ?? ""}
+              />
+              <ReadOnlyField
+                label="What did you learn in the previous phase?"
+                value={(app.previous_phase_learnings as string) ?? ""}
+              />
+              <ReadOnlyField
+                label="How will you help your teammates succeed in this upcoming phase?"
+                value={(app.previous_phase_help_teammates as string) ?? ""}
+              />
             </>
           ) : (
             <ReadOnlyField
@@ -963,24 +1192,47 @@ export default function ProjectApplicationStatusPage() {
           )}
 
           <Separator className="my-2" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Questions</p>
-          <ReadOnlyField label="Why are you passionate about being on this project?" value={(app.passion_for_project as string) ?? ""} />
-          <ReadOnlyField label="What do you know about the client and the project?" value={(app.client_project_knowledge as string) ?? ""} />
-          <ReadOnlyField label="How would you like to contribute to cross-functional teamwork?" value={(app.cross_functional_contribution as string) ?? ""} />
-          <ReadOnlyField label="How will you contribute to this project's successful outcomes?" value={(app.project_success_contribution as string) ?? ""} />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Client Questions
+          </p>
+          <ReadOnlyField
+            label="Why are you passionate about being on this project?"
+            value={(app.passion_for_project as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="What do you know about the client and the project?"
+            value={(app.client_project_knowledge as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="How would you like to contribute to cross-functional teamwork?"
+            value={(app.cross_functional_contribution as string) ?? ""}
+          />
+          <ReadOnlyField
+            label="How will you contribute to this project's successful outcomes?"
+            value={(app.project_success_contribution as string) ?? ""}
+          />
         </CardContent>
       </Card>
 
       {/* Bottom nav */}
       <div className="flex justify-between pb-8">
-        <Button variant="outline" onClick={() => navigate("/applications/projects")} className="gap-1.5">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/applications/projects")}
+          className="gap-1.5"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Project Applications
         </Button>
 
         {applicantStatus === "pending_review" && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="gap-1.5" disabled={deleteMutation.isPending}>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5"
+                disabled={deleteMutation.isPending}
+              >
                 <Trash2 className="h-4 w-4" />
                 {deleteMutation.isPending ? "Deleting…" : "Delete Application"}
               </Button>
@@ -989,7 +1241,8 @@ export default function ProjectApplicationStatusPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete project application?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Your application for <span className="font-semibold">{clientName}</span> and all of your responses will be permanently removed. You can't undo this.
+                  Your application for <span className="font-semibold">{clientName}</span> and all
+                  of your responses will be permanently removed. You can't undo this.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
