@@ -16,6 +16,14 @@ const ONBOARDING_CHANNELS = [
   { id: "1080931652697608306", name: "general" },
 ] as const;
 
+// Hard ceiling on the server's total invite-creation time. It MUST stay below the
+// client's invokeEdge budget for this function (src/lib/edge/edge-timeouts.ts:
+// "generate-discord-invite") so the server finishes (success OR clean failure)
+// before the browser aborts — otherwise the client shows "couldn't get an invite
+// link" while the bot keeps creating orphan invites. This budget is shared across
+// ALL channel attempts + their bounded retries via discordFetch({ totalBudgetMs }).
+const INVITE_TOTAL_BUDGET_MS = 12_000;
+
 function summarizeInviteErrors(inviteErrors: string[]) {
   return inviteErrors.slice(0, 12).join(" | ");
 }
@@ -122,8 +130,17 @@ Deno.serve(
 
       let inviteUrl = "";
       const inviteErrors: string[] = [];
+      const startedAt = Date.now();
 
       for (const channel of candidates) {
+        // Stop before starting a channel we have no budget left to finish. The
+        // remaining budget is also handed to discordFetch so its retries + backoff
+        // sleeps can never push the total past INVITE_TOTAL_BUDGET_MS.
+        const budgetLeft = INVITE_TOTAL_BUDGET_MS - (Date.now() - startedAt);
+        if (budgetLeft <= 0) {
+          inviteErrors.push(`${channel.name} [budget]: skipped — invite time budget exhausted`);
+          break;
+        }
         const { response: inviteRes, retries } = await discordFetch(
           `https://discord.com/api/v10/channels/${channel.id}/invites`,
           {
@@ -137,6 +154,7 @@ Deno.serve(
               max_uses: 1,
               unique: true,
             }),
+            totalBudgetMs: budgetLeft,
           }
         );
 

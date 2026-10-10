@@ -13,6 +13,10 @@ type BackfillResult = {
   repaired: number;
   skipped_unchanged: number;
   skipped_discord_dot_legit: number;
+  // Set when the server's time budget stopped the run before every candidate was processed —
+  // the admin must re-run to finish the `unprocessed` remainder (see ADR-0063).
+  stopped_early?: boolean;
+  unprocessed?: number;
   errors: Array<{ user_id: string; reason: string }>;
 };
 
@@ -30,10 +34,15 @@ export function DiscordRepairTab() {
     try {
       const data = await invokeEdge<BackfillResult>("backfill-discord-usernames", { body: {} });
       setResult(data ?? null);
+      const partial = data?.stopped_early
+        ? ` • ${data.unprocessed ?? 0} left (re-run to finish)`
+        : "";
       toast({
-        title: "Discord usernames repaired",
+        title: data?.stopped_early
+          ? "Discord repair partially complete"
+          : "Discord usernames repaired",
         description: data
-          ? `Scanned ${data.scanned} • Repaired ${data.repaired} • Skipped ${data.skipped_unchanged + data.skipped_discord_dot_legit}`
+          ? `Scanned ${data.scanned} • Repaired ${data.repaired} • Skipped ${data.skipped_unchanged + data.skipped_discord_dot_legit}${partial}`
           : "Repair complete",
         variant: "default",
       });
@@ -74,6 +83,9 @@ export function DiscordRepairTab() {
             <Badge variant="default">Repaired: {result.repaired}</Badge>
             <Badge variant="outline">Unchanged: {result.skipped_unchanged}</Badge>
             <Badge variant="outline">Legit dot-leading: {result.skipped_discord_dot_legit}</Badge>
+            {result.stopped_early && (
+              <Badge variant="destructive">Unprocessed: {result.unprocessed ?? 0} (re-run)</Badge>
+            )}
             {result.errors.length > 0 && (
               <Badge variant="destructive">Errors: {result.errors.length}</Badge>
             )}

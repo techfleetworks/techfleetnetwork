@@ -40,6 +40,32 @@ export const EDGE_FUNCTION_TIMEOUTS_MS: Readonly<Record<string, number>> = {
   "translate-bundle": 20_000,
   // Web search/crawl via the Firecrawl API (behind edgeFunctionBreaker; the raw invoke had no timeout).
   "firecrawl-search": 30_000,
+  // ── Live Discord bot operations ────────────────────────────────────────────
+  // Every function below makes live Discord API calls through `discordFetch`, whose
+  // retry backoff can sleep up to 15s PER retry on a 429 — so the 8s default aborts
+  // the client while the bot is still working (a false "it failed"). This is the
+  // failure that broke the Discord-connect invite. `check-edge-timeout-coverage.mjs`
+  // now REQUIRES every browser-invoked discordFetch function to be registered here,
+  // so this class cannot silently recur.
+  // Each function below is ALSO server-bounded via discordFetch({ totalBudgetMs }) at ~3s below its
+  // client budget here (ADR-0063), so the server always finishes — success or clean failure —
+  // before the browser aborts, even under sustained Discord 429s (backoff can sleep ~15s/retry).
+  // Server-bounded to 12s via INVITE_TOTAL_BUDGET_MS; client sits just above it.
+  "generate-discord-invite": 15_000,
+  // Single guild role assign/remove/list per request; server-bounded to 12s (ROLES_TOTAL_BUDGET_MS).
+  "manage-discord-roles": 15_000,
+  // Re-reads one member's handle from Discord; server-bounded to 12s (REPAIR_TOTAL_BUDGET_MS).
+  "repair-discord-username": 15_000,
+  // Admin bulk repair: reads many members in one pass; server-bounded overall to 57s + 8s/item
+  // (BACKFILL_TOTAL_BUDGET_MS / _PER_ITEM_BUDGET_MS), stops early and reports the unprocessed remainder.
+  "backfill-discord-usernames": 60_000,
+  // Fans out an applicant-status change to Discord + email; observed timing out at 8s. NOT yet
+  // server-bounded here: its inline Discord calls are being removed by the ADR-0058/0059 fan-out
+  // rework (notify becomes a write-only shim; Discord moves to process-applicant-workflow-events),
+  // so the server bound is deferred to that branch to avoid bounding code it deletes (ADR-0063).
+  "notify-applicant-status": 20_000,
+  // Grants the observer role (2 sequential grants share 12s, OBSERVER_TOTAL_BUDGET_MS).
+  "grant-observer-role": 15_000,
 };
 
 /**
@@ -49,7 +75,7 @@ export const EDGE_FUNCTION_TIMEOUTS_MS: Readonly<Record<string, number>> = {
 export function resolveEdgeTimeoutMs(
   fn: string,
   explicitTimeoutMs: number | undefined,
-  defaultTimeoutMs: number,
+  defaultTimeoutMs: number
 ): number {
   if (explicitTimeoutMs !== undefined) return explicitTimeoutMs;
   return EDGE_FUNCTION_TIMEOUTS_MS[fn] ?? defaultTimeoutMs;
