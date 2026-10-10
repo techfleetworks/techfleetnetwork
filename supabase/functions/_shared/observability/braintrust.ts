@@ -134,6 +134,7 @@ export function braintrustEnabled(): boolean {
     if (!complianceGateWarned) {
       complianceGateWarned = true;
       log.warn(
+        "compliance_gate",
         "BRAINTRUST_API_KEY present but BRAINTRUST_COMPLIANCE_READY not affirmed — member-PII " +
           "telemetry stays DISABLED until the DPA + ≤30d retention + deletion-cascade are live " +
           "(docs/runbooks/braintrust-prod-enable.md)."
