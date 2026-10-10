@@ -238,7 +238,7 @@ jobs:
 
   gate-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: setup
     permissions:
       contents: read
@@ -262,8 +262,59 @@ jobs:
       # Unit tests only, sharded across 4 runners. Intentionally NO
       # VITE_SUPABASE_URL: the suite must pass against jsdom + local fixtures,
       # never the live project (PRD G-03/P-05).
+      # --coverage + --reporter=blob: each shard measures its slice and writes a blob; the `coverage`
+      # job merges all four (`vitest run --merge-reports --coverage`) and enforces the floor (COVERAGE-FLOOR-001).
       - name: Unit tests (Vitest) — shard ${{ matrix.shard }}/4
-        run: npx vitest run --shard=${{ matrix.shard }}/4
+        run: npx vitest run --shard=${{ matrix.shard }}/4 --coverage --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json
+      - name: Upload coverage blob (shard ${{ matrix.shard }})
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: vitest-blob-${{ matrix.shard }}
+          path: .vitest-reports/blob-${{ matrix.shard }}.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # coverage — merge the 4 shards' coverage blobs and enforce the shrink-only floor
+  # (COVERAGE-FLOOR-001). Separate job so the sharded gate-test runners stay fast; it fails CLOSED
+  # if coverage never produced a summary (check-coverage-floor.mjs). Runs only when gate-test passed
+  # (a test failure already fails the gate), so a green run always has all four blobs to merge.
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: gate-test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - name: Restore node_modules
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: node-modules-${{ github.sha }}
+          path: /tmp
+      - run: tar --use-compress-program="zstd -d" -xf /tmp/node_modules.tar.zst
+      - name: Download coverage blobs (all shards)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: vitest-blob-*
+          path: .vitest-reports
+          merge-multiple: true
+      - name: Merge shard coverage
+        run: npx vitest run --merge-reports --coverage
+      - name: Enforce coverage floor (COVERAGE-FLOOR-001)
+        run: node scripts/ci/check-coverage-floor.mjs
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
   gate-build:
     runs-on: ubuntu-latest
@@ -360,6 +411,7 @@ jobs:
       [
         gate-verify,
         gate-test,
+        coverage,
         gate-build,
         guard-matrix,
         lint-arch-critical,
@@ -377,6 +429,7 @@ jobs:
         run: |
           verify='${{ needs.gate-verify.result }}'
           test='${{ needs.gate-test.result }}'
+          cov='${{ needs.coverage.result }}'
           build='${{ needs.gate-build.result }}'
           gm='${{ needs.guard-matrix.result }}'
           arch='${{ needs.lint-arch-critical.result }}'
@@ -385,10 +438,12 @@ jobs:
           migr='${{ needs.migration-smoke.result }}'
           schema='${{ needs.db-schema-gate.result }}'
           dchk='${{ needs.deno-check.result }}'
-          echo "gate-verify=$verify  gate-test=$test  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
+          echo "gate-verify=$verify  gate-test=$test  coverage=$cov  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
           fail=0
           [ "$verify" = "success" ] || fail=1
           [ "$test" = "success" ] || fail=1
+          # coverage merges the shard blobs and enforces the shrink-only floor; must succeed.
+          [ "$cov" = "success" ] || fail=1
           [ "$build" = "success" ] || fail=1
           # guard-matrix derives the lint-arch matrices; if it failed or was skipped the matrices are
           # untrustworthy (and lint-arch-critical would have been skipped), so it must succeed.
@@ -408,7 +463,7 @@ jobs:
           # otherwise it must succeed — this is what makes the edge-function unit tests block merge.
           if [ "$dchk" != "success" ] && [ "$dchk" != "skipped" ]; then fail=1; fi
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Gate failed (verify=$verify test=$test build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
+            echo "::error::Gate failed (verify=$verify test=$test coverage=$cov build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
             exit 1
           fi
           echo "All gate jobs passed."

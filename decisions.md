@@ -362,6 +362,25 @@ import { readJson } from './_json.mjs'   // scripts/ci/_json.mjs: JSON.parse tha
 Enforced by `scripts/ci/check-no-bom.mjs` (blocking, in the gate job): any tracked text file beginning with
 a BOM fails CI, so the class cannot enter the repo (**ADR-0035**).
 
+**Test coverage is measured and floored — "tests pass" is not enough.** The suite had 465+ test files but
+nothing measured or gated how much code they exercise (no coverage provider, no `--coverage` in CI), so
+coverage could silently rot (enterprise-readiness audit 2026-10, H2). Coverage is now measured (vitest v8,
+sharded → merged) and enforced against a **shrink-only** floor that may only rise.
+
+```
+❌ never — run the suite with no coverage measurement, or let the floor fall to pass
+run: npx vitest run                                  # green says nothing about untested code
+✅ always — measure, merge the shards, enforce the floor (fails CLOSED if coverage never ran)
+run: npx vitest run --merge-reports --coverage
+run: node scripts/ci/check-coverage-floor.mjs        # total.*.pct ≥ scripts/ci/coverage-floor.json
+```
+
+Enforced by `scripts/ci/check-coverage-floor.mjs` (blocking, `bespoke` lane — its own step in the `coverage`
+merge job): it fails if any metric drops below `scripts/ci/coverage-floor.json`, and fails **closed** (exit 2)
+if the coverage summary is missing/garbage (so "coverage never ran" is red, never a silent pass). Pinned +
+discriminated by `src/test/smoke/check-coverage-floor.smoke.test.ts`. The floor is bootstrapped at 0 and
+ratcheted up to the first measured value — it rises, never falls.
+
 **The type-check gate checks every project, never a bare `tsc`.** The root `tsconfig.json` is a
 references-only _solution_ file (`"files": []` + `references`). A bare `tsc --noEmit` does not follow
 project references, so against that root it type-checks **zero files** and always exits 0 — a green
@@ -442,6 +461,26 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name text;   -- expand + b
 Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract** — never in-place, never
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
+
+This was convention + reviewer only — nothing mechanical caught a slip, and migrations auto-apply on merge
+in parallel with the code deploy (enterprise-readiness audit 2026-10, C3). Now enforced: a destructive,
+in-place column change needs an explicit, reviewed contract marker, or CI is red.
+
+```sql
+-- ❌ never — an un-annotated in-place destructive change; breaks still-running old code the instant it applies
+ALTER TABLE public.classes ALTER COLUMN outcomes SET NOT NULL;
+-- ✅ always — split into expand (now) + contract (a later migration), OR, when it IS a reviewed contract,
+--            declare WHY no running code uses the old shape so a reviewer signs off:
+-- expand-contract-ok: dual-write shipped in #NNN; no reader references the old shape since v2
+ALTER TABLE public.t DROP COLUMN old_c;
+```
+
+Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane): any `DROP COLUMN`
+/ `RENAME COLUMN` / `ALTER COLUMN … TYPE` / `SET NOT NULL` in `supabase/migrations/*.sql` must carry a
+`-- expand-contract-ok: <reason>` line or sit on the **shrink-only** grandfather
+(`migration-expand-contract-grandfather.json`); it fails closed on a missing migrations dir / zero migrations
+and prunes stale grandfather entries. Pinned + discriminated by
+`src/test/smoke/check-migration-expand-contract.smoke.test.ts`.
 
 ---
 
