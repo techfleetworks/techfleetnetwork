@@ -11,7 +11,7 @@
 // abuse, and the body is fully validated before insert.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 
 const ALLOWED_REASONS = new Set([
@@ -109,10 +109,8 @@ Deno.serve(
         p_severity: kind === "auth_flap_detected" ? "info" : "warn",
       });
       if (error) {
-        return new Response(JSON.stringify({ ok: false, error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("record-auth-wedge:", error);
+        return errorResponse(error, "Failed to record auth event", 500);
       }
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
@@ -151,10 +149,8 @@ Deno.serve(
     });
 
     if (error) {
-      return new Response(JSON.stringify({ ok: false, error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("record-auth-wedge:", error);
+      return errorResponse(error, "Failed to record auth event", 500);
     }
 
     return new Response(JSON.stringify({ ok: true }), {

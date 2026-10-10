@@ -3,7 +3,7 @@
 // runs a lightweight QA pass, and writes results to ugc_translations.
 // Triggered by cron every 30 seconds.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -133,10 +133,7 @@ Deno.serve(
       .limit(BATCH);
     if (error) {
       console.error("queue_read", error);
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse(error, "Prewarm failed", 500);
     }
     if (!jobs?.length)
       return new Response(JSON.stringify({ processed: 0 }), {

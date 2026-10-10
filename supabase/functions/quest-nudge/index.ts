@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { escapeHtml } from "../_shared/escape-html.ts";
 import { wasDelivered } from "../_shared/nudge-delivery.ts";
+import { errorResponse } from "../_shared/http.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -53,10 +54,7 @@ Deno.serve(
 
       if (error) {
         console.error("get_nudgeable_quest_users failed:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(error, "Quest nudge failed", 500);
       }
 
       const rows = (candidates ?? []) as Candidate[];

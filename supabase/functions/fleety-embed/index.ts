@@ -26,7 +26,7 @@ import {
 } from "../_shared/gemini-embed.ts";
 import { buildSpfKbRow, groupSteps, SPF_EMBED_TYPES, type SpfRow } from "./spf-kb.ts";
 // CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 
 const BodySchema = z.object({}).passthrough();
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -377,13 +377,7 @@ serve(
       );
     } catch (e) {
       console.error("fleety-embed error", e);
-      return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(e, "Embedding failed", 500);
     }
   })
 );
