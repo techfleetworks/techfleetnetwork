@@ -10,6 +10,6 @@
   import { corsHeaders } from "../_shared/http.ts";
   ```
 
-- **No inline admin checks.** Never query `user_roles` directly for authz — use the shared `has_role`-backed helper, so the admin predicate has one definition.
+- **No inline admin checks.** Never query `user_roles` directly for authz — use the shared `has_role`-backed helper (`requireAdminRequest`), so the admin predicate has one definition. Enforced by `scripts/ci/check-no-inline-role-authz.mjs` (blocking, `critical` lane): a `.from("user_roles")…select(...)` READ in a handler fails CI; role-management WRITES (insert/update/delete) are allowed. Pre-existing reads sit on a shrink-only grandfather (`no-inline-role-authz-grandfather.json`) and burn down to `has_role` under the auth regression suite (enterprise-readiness audit 2026-10). Pinned by `src/test/smoke/check-no-inline-role-authz.smoke.test.ts`.
 - **Handler is thin.** Validate → call one unit of business logic → return. Keep the business logic separable/testable, not welded into `Deno.serve`.
 - **Errors are reported.** A failure the caller can't see must land in the audit/observability sink; pass `p_user_id: null` for service-role audit writes (a nil-UUID is rejected by `write_audit_log`).

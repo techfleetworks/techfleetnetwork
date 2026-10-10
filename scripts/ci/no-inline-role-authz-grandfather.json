@@ -1,0 +1,31 @@
+{
+  "_comment": "ROLE-AUTHZ-001 shrink-only grandfather: edge handlers that READ user_roles directly for authz, pre-existing at guard adoption. May ONLY shrink; migrate each to has_role/requireAdminRequest under the auth regression suite. New authz reads are blocked. See supabase/functions/CLAUDE.md.",
+  "grandfathered": [
+    "supabase/functions/admin-purge-auth-user/index.ts",
+    "supabase/functions/discord-project-update/index.ts",
+    "supabase/functions/fill-content-gaps/index.ts",
+    "supabase/functions/fleety-embed/index.ts",
+    "supabase/functions/fleety-learning-digest/index.ts",
+    "supabase/functions/fleety-weekly-digest/index.ts",
+    "supabase/functions/guide-ingest/index.ts",
+    "supabase/functions/gumroad-backfill-all/index.ts",
+    "supabase/functions/ingest-csv-knowledge/index.ts",
+    "supabase/functions/ingest-reference-csv/index.ts",
+    "supabase/functions/ingest-workshop-docs/index.ts",
+    "supabase/functions/manage-discord-roles/index.ts",
+    "supabase/functions/mark-interview-scheduled/index.ts",
+    "supabase/functions/notify-class-published/index.ts",
+    "supabase/functions/notify-critical-fix/index.ts",
+    "supabase/functions/process-notification-fanout/index.ts",
+    "supabase/functions/promote-to-admin/index.ts",
+    "supabase/functions/promote-to-teacher/index.ts",
+    "supabase/functions/register-fleety-command/index.ts",
+    "supabase/functions/register-support-command/index.ts",
+    "supabase/functions/replay-dlq-emails/index.ts",
+    "supabase/functions/revoke-user-sessions/index.ts",
+    "supabase/functions/scrape-figma-workshops/index.ts",
+    "supabase/functions/send-announcement-email/index.ts",
+    "supabase/functions/send-project-blast/index.ts",
+    "supabase/functions/techfleet-chat/index.ts"
+  ]
+}
