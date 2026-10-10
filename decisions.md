@@ -362,6 +362,25 @@ import { readJson } from './_json.mjs'   // scripts/ci/_json.mjs: JSON.parse tha
 Enforced by `scripts/ci/check-no-bom.mjs` (blocking, in the gate job): any tracked text file beginning with
 a BOM fails CI, so the class cannot enter the repo (**ADR-0035**).
 
+**Test coverage is measured and floored — "tests pass" is not enough.** The suite had 465+ test files but
+nothing measured or gated how much code they exercise (no coverage provider, no `--coverage` in CI), so
+coverage could silently rot (enterprise-readiness audit 2026-10, H2). Coverage is now measured (vitest v8,
+sharded → merged) and enforced against a **shrink-only** floor that may only rise.
+
+```
+❌ never — run the suite with no coverage measurement, or let the floor fall to pass
+run: npx vitest run                                  # green says nothing about untested code
+✅ always — measure, merge the shards, enforce the floor (fails CLOSED if coverage never ran)
+run: npx vitest run --merge-reports --coverage
+run: node scripts/ci/check-coverage-floor.mjs        # total.*.pct ≥ scripts/ci/coverage-floor.json
+```
+
+Enforced by `scripts/ci/check-coverage-floor.mjs` (blocking, `bespoke` lane — its own step in the `coverage`
+merge job): it fails if any metric drops below `scripts/ci/coverage-floor.json`, and fails **closed** (exit 2)
+if the coverage summary is missing/garbage (so "coverage never ran" is red, never a silent pass). Pinned +
+discriminated by `src/test/smoke/check-coverage-floor.smoke.test.ts`. The floor is bootstrapped at 0 and
+ratcheted up to the first measured value — it rises, never falls.
+
 **The type-check gate checks every project, never a bare `tsc`.** The root `tsconfig.json` is a
 references-only _solution_ file (`"files": []` + `references`). A bare `tsc --noEmit` does not follow
 project references, so against that root it type-checks **zero files** and always exits 0 — a green
@@ -403,6 +422,24 @@ Enforced by `scripts/ci/check-lighthouse-gate-armed.mjs` (blocking, `critical` l
 Lighthouse workflow neuters its lhci commands with `|| true`/`|| :`/`continue-on-error: true`, and fails
 closed (exit 2) if the workflow is missing or no longer references `lhci`. Pinned + discriminated by
 `src/test/smoke/check-lighthouse-gate-armed.smoke.test.ts`.
+
+**Every waiver expires — a permanent bypass is forbidden.** An `arch-gate.waivers.json` entry with an
+empty/missing `expires` never expires, so the architectural backlog has no burn-down pressure (it sat at
+305 waivers, 0 dated — enterprise-readiness audit 2026-10). A waiver is an *expiring* exception, not a
+standing exemption. Because the gate runs `--changed`, an expired waiver only blocks a PR that TOUCHES
+that file — so a dated backlog is a burn-down trigger, never an all-PRs cliff.
+
+```
+❌ never — a permanent waiver (no burn-down pressure)
+{ "rule": "...", "path": "src/x.tsx", "approvedBy": "baseline", "expires": "" }
+✅ always — a dated, expiring exception
+{ "rule": "...", "path": "src/x.tsx", "approvedBy": "baseline", "expires": "2027-04-30" }
+```
+
+Enforced by `arch-gate.mjs` itself: it fails **closed** (exit 2) if any waiver has no valid, parseable
+`expires` date, and `--baseline` emits a dated default (never `""`). Pinned + discriminated by AG-011/AG-012
+in `src/test/smoke/arch-gate.smoke.test.ts` (undated / unparseable → exit 2). The backlog of 305 baseline
+waivers is dated `2027-04-30`; shrink it (the file is the architectural backlog), and raise no new permanent ones.
 
 ---
 
