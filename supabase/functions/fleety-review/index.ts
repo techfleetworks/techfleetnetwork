@@ -7,6 +7,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import {
+  type FleetyTrace,
+  parseUsage,
+  startFleetyTrace,
+} from "../_shared/observability/braintrust.ts";
 import { fetchMaterialText } from "../_shared/material-fetch.ts";
 import { htmlToPlainText } from "../_shared/html-to-text.ts";
 import { US_INFERENCE_PROVIDERS } from "../_shared/llm/port.ts";
@@ -79,7 +84,7 @@ function sanitize(text: string): string {
 }
 
 serve(
-  withAuditWrapper("fleety-review", async (req) => {
+  withAuditWrapper("fleety-review", async (req, ctx) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -98,6 +103,9 @@ serve(
     const v = validateReviewInput(raw);
     if (!v.ok) return json({ error: v.error }, 400);
     const { material, target } = v.input;
+
+    // Braintrust observability (ADR-0073); declared here so the finally can finalise it.
+    let trace: FleetyTrace | null = null;
 
     try {
       const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -128,6 +136,15 @@ serve(
       const apiKey = Deno.env.get("LLM_API_KEY");
       if (!apiKey) return json({ error: "Review service is not configured" }, 500);
 
+      trace = startFleetyTrace({
+        fn: "fleety-review",
+        traceId: ctx.traceId,
+        userId: user.id,
+        question: userMsg,
+        metadata: { target_type: target.type, target_slug: target.slug },
+      });
+      const span = trace.llmSpan("answer", userMsg, { model: REVIEW_MODEL, streamed: false });
+
       const resp = await fetch(OPENROUTER_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -152,12 +169,17 @@ serve(
       const review = sanitize(String(data?.choices?.[0]?.message?.content ?? "").trim());
       if (!review) return json({ error: "Review service returned no content" }, 502);
 
+      span.log({ output: review, metrics: parseUsage(data?.usage) });
+      span.end();
+      trace.log({ output: review });
+
       return json({
         ok: true,
         target: { type: target.type, slug: target.slug, name: exp.name },
         review,
       });
     } catch (e) {
+      trace?.setError(e);
       // SSRF/validation and our own safe "figma:" guidance surface as 400 (both are user-facing and
       // leak no internals); everything else is generic so no internals escape.
       const msg = e instanceof Error ? e.message : "Review failed";
@@ -165,6 +187,9 @@ serve(
       const status = userFacing ? 400 : 500;
       console.error("fleety-review error");
       return json({ error: userFacing ? msg : "Review failed" }, status);
+    } finally {
+      // Finalise on every exit; no-op when disabled or never created.
+      if (trace) void trace.finish();
     }
   })
 );

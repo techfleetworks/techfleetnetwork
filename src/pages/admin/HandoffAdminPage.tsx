@@ -4,8 +4,7 @@
 // to the SAME team budget (1 production + 1 retry) — no cost bypass.
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useQuery } from "@/lib/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useHandoffProjects } from "@/hooks/use-project";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -15,13 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HandoffPanel } from "@/components/HandoffPanel";
-
-interface AdminProjectRow {
-  id: string;
-  phase: string;
-  project_status: string;
-  clients: { name: string } | null;
-}
 
 const PHASES: { value: string; label: string }[] = [
   { value: "phase_1", label: "Phase 1" },
@@ -40,17 +32,7 @@ const PROJECT_STATUS_LABEL: Record<string, string> = {
 };
 
 export default function HandoffAdminPage() {
-  const projects = useQuery({
-    queryKey: ["admin-handoff-projects"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, phase, project_status, clients(name)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as AdminProjectRow[];
-    },
-  });
+  const projects = useHandoffProjects();
 
   // Persist the selection so navigating away / a reload doesn't dump you back to the picker
   // mid-entry (you're filling 26 components — losing your place makes it unusable).

@@ -21,6 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { extractText, getDocumentProxy } from "npm:unpdf";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { parseUsage, startFleetyTrace } from "../_shared/observability/braintrust.ts";
 import { enforceEdgeRateLimit } from "../_shared/edge-rate-limit.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
 import {
@@ -65,13 +66,23 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
  *  failure (quota, provider error) so the handler can return safe guidance. */
 async function extractImageText(
   bytes: Uint8Array,
-  mime: "image/png" | "image/jpeg"
+  mime: "image/png" | "image/jpeg",
+  obs?: { traceId?: string; userId?: string }
 ): Promise<string> {
   const key = Deno.env.get("GEMINI_API_KEY") || "";
   if (!key) throw new Error("vision:not-configured");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent?key=${key}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20_000);
+  // Braintrust observability (ADR-0073): self-contained around the one vision call.
+  const trace = startFleetyTrace({
+    fn: "fleety-extract",
+    traceId: obs?.traceId,
+    userId: obs?.userId,
+    question: `[image OCR: ${mime}]`,
+    metadata: { route: "image" },
+  });
+  const span = trace.llmSpan("ocr", `[image OCR: ${mime}]`, { model: VISION_MODEL });
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -100,14 +111,28 @@ async function extractImageText(
           .join("")
           .trim()
       : "";
+    const um = data?.usageMetadata ?? {};
+    span.log({
+      output: text,
+      metrics: parseUsage({
+        prompt_tokens: um.promptTokenCount,
+        completion_tokens: um.candidatesTokenCount,
+        total_tokens: um.totalTokenCount,
+      }),
+    });
+    span.end();
     return text;
+  } catch (e) {
+    trace.setError(e);
+    throw e;
   } finally {
     clearTimeout(timer);
+    void trace.finish();
   }
 }
 
 serve(
-  withAuditWrapper("fleety-extract", async (req: Request) => {
+  withAuditWrapper("fleety-extract", async (req: Request, ctx) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -188,7 +213,10 @@ serve(
       } else {
         // vision (png/jpeg)
         try {
-          rawText = await extractImageText(bytes, category === "png" ? "image/png" : "image/jpeg");
+          rawText = await extractImageText(bytes, category === "png" ? "image/png" : "image/jpeg", {
+            traceId: ctx.traceId,
+            userId: user.id,
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
           const why = /^vision:quota/.test(msg)
