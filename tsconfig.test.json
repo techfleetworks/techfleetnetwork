@@ -1,0 +1,28 @@
+{
+  // Test + test-support project. Inherits the app compiler settings (paths, jsx, lib,
+  // skipLibCheck) but ADDS Node types — setup files, smoke-test support helpers, and the
+  // auto-generated smoke suite legitimately use `global`, `process`, and `node:*` modules.
+  // Kept as its OWN project so the app project (tsconfig.app.json) stays browser-pure and a
+  // test-only Node global can never silently leak into shipped UI code.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/test/**/*.ts",
+    "src/test/**/*.tsx",
+    // Ambient declarations (SVG/asset modules in vite-env.d.ts, MUI theme/variant augmentation)
+    // that the app project gets via its broad `include: ["src"]`. Tests pull in app modules that
+    // depend on these, so the test program needs them too or every `*.svg` import and custom
+    // `variant` reddens here only.
+    "src/**/*.d.ts"
+  ],
+  // Override the app project's `exclude` (inherited via `extends`), which excludes exactly the
+  // test files this project exists to check. Without this, the include above matches nothing.
+  "exclude": []
+}

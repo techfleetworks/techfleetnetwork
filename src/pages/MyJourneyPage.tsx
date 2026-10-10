@@ -41,7 +41,7 @@ export default function MyJourneyPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Quests</TabsTrigger>
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>

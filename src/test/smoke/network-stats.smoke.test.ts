@@ -44,6 +44,8 @@ const sampleStats: NetworkStats = {
     service_leadership_unique: 1101,
     masterclass_total: 1881,
     masterclass_minus_servlead: 780,
+    historical_beginner_courses: 0,
+    historical_advanced_courses: 0,
     last_synced_at: "2026-05-17T18:38:01.934238+00:00",
   },
 };

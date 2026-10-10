@@ -82,7 +82,7 @@ export function AuditPressureTab() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
           <div>
-            <CardTitle className="text-base">Audit log pressure</CardTitle>
+            <CardTitle>Audit log pressure</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Updates every 5 min via the email pipeline health cron. No new infrastructure.
             </p>
@@ -110,7 +110,7 @@ export function AuditPressureTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Top error fingerprints (24h)</CardTitle>
+          <CardTitle>Top error fingerprints (24h)</CardTitle>
           <p className="text-xs text-muted-foreground mt-1">
             What's currently consuming write budget. Investigate top items first.
           </p>

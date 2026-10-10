@@ -118,7 +118,11 @@ export const ClassService = {
     const payload: Record<string, unknown> = { ...values };
     if (values.hero_image_url === "") payload.hero_image_url = null;
     await retryTransient(async () => {
-      const result = await supabase.from("classes").update(payload).eq("id", id).select("id");
+      const result = await supabase
+        .from("classes")
+        .update(payload as never)
+        .eq("id", id)
+        .select("id");
       if (result.error) throw result.error;
       assertWritten(result, "class.update", { id });
     });
@@ -157,15 +161,17 @@ export const ClassService = {
     void sendClassStatusEmails(id, "archived", reason);
   },
 
-  async listAuditHistory(classId: string): Promise<Array<{
-    id: string;
-    action: string;
-    from_status: string | null;
-    to_status: string | null;
-    reason: string | null;
-    actor_user_id: string | null;
-    created_at: string;
-  }>> {
+  async listAuditHistory(classId: string): Promise<
+    Array<{
+      id: string;
+      action: string;
+      from_status: string | null;
+      to_status: string | null;
+      reason: string | null;
+      actor_user_id: string | null;
+      created_at: string;
+    }>
+  > {
     const { data, error } = await retryPostgrest(() =>
       supabase
         .from("class_audit")
@@ -179,23 +185,29 @@ export const ClassService = {
   },
 
   async follow(classId: string, userId: string): Promise<void> {
-    const { error } = await supabase.from("class_followers").insert({ class_id: classId, user_id: userId } as never);
+    const { error } = await supabase
+      .from("class_followers")
+      .insert({ class_id: classId, user_id: userId } as never);
     if (error && !String(error.message).includes("duplicate")) throw error;
   },
 
   async unfollow(classId: string, userId: string): Promise<void> {
-    const { error } = await supabase.from("class_followers").delete().eq("class_id", classId).eq("user_id", userId);
+    const { error } = await supabase
+      .from("class_followers")
+      .delete()
+      .eq("class_id", classId)
+      .eq("user_id", userId);
     if (error) throw error;
   },
 
   async isFollowing(classId: string, userId: string): Promise<boolean> {
-    const { count, error } = await retryPostgrest(() =>
+    const { count, error } = (await retryPostgrest(() =>
       supabase
         .from("class_followers")
         .select("id", { head: true, count: "exact" })
         .eq("class_id", classId)
         .eq("user_id", userId)
-    ) as unknown as { count: number | null; error: unknown };
+    )) as unknown as { count: number | null; error: unknown };
     if (error) throw error;
     return (count ?? 0) > 0;
   },

@@ -11,11 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { Project, type SourceFile } from "ts-morph";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error — plain .mjs codemod, no type declarations
 import { apply } from "../../../scripts/codemod/codemods/raw-invoke-to-invoke-edge.mjs";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error — plain .mjs harness, no type declarations
 import { PROJECT_OPTIONS } from "../../../scripts/codemod/run-codemod.mjs";
 
 // Build the in-memory file with the SAME ts-morph options the harness uses (shared PROJECT_OPTIONS),

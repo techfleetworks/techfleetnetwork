@@ -67,7 +67,7 @@ export function AutosaveCircuitBanner({ open, reason, onRetry, onReload }: Props
     <Alert variant="destructive" role="alert" aria-live="polite" className="mb-4">
       <AlertTriangle className="h-4 w-4" aria-hidden />
       <AlertTitle>{copy.title}</AlertTitle>
-      <AlertDescription className="space-y-3">
+      <AlertDescription>
         <p>{copy.body}</p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={onRetry}>

@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  isUsableDiscordUsername,
-  normalizeDiscordSearchInput,
-} from "@/lib/discord/username";
+import { isUsableDiscordUsername, normalizeDiscordSearchInput } from "@/lib/discord/username";
 
 describe("isUsableDiscordUsername", () => {
   it.each([
@@ -42,9 +39,7 @@ describe("normalizeDiscordSearchInput", () => {
   });
 
   it("handles non-string input safely", () => {
-    // @ts-expect-error guarded at runtime
-    expect(normalizeDiscordSearchInput(null)).toBe("");
-    // @ts-expect-error guarded at runtime
-    expect(normalizeDiscordSearchInput(undefined)).toBe("");
+    expect(normalizeDiscordSearchInput(null as unknown as string)).toBe("");
+    expect(normalizeDiscordSearchInput(undefined as unknown as string)).toBe("");
   });
 });

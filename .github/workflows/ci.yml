@@ -225,8 +225,12 @@ jobs:
       - name: Guard - every guard test discriminates (mutation gate)
         run: node scripts/ci/verify-guard-test-discrimination.mjs
 
+      # Runs a stateless `tsc --noEmit -p` for EVERY real project (app / node / test). A bare
+      # `npx tsc --noEmit` follows the root solution tsconfig (files:[] + references) and checks
+      # ZERO files — a silent no-op that let real type errors ship on green main. See ADR 20261009 and
+      # scripts/ci/typecheck.mjs. Fails closed on any error or any vacuous (zero-file) project.
       - name: Type-check
-        run: npx tsc --noEmit
+        run: npm run typecheck
       - name: Lint (ESLint)
         run: npm run lint
       - name: Lint CSS

@@ -11,10 +11,19 @@
 // so the server's `withIdempotency` helper can dedupe.
 
 import { useCallback, useRef } from "react";
-import { useMutation, type UseMutationOptions, type UseMutationResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  type MutationFunctionContext,
+  type UseMutationOptions,
+  type UseMutationResult,
+} from "@tanstack/react-query";
 
-export interface IdempotentMutationOptions<TData, TError, TVariables, TContext>
-  extends UseMutationOptions<TData, TError, TVariables, TContext> {
+export interface IdempotentMutationOptions<
+  TData,
+  TError,
+  TVariables,
+  TContext,
+> extends UseMutationOptions<TData, TError, TVariables, TContext> {
   /** Stable key per logical action. Function form lets you key on variables. */
   idempotencyKey: string | ((variables: TVariables) => string);
   /** Debounce window for repeat clicks. Default 250ms. */
@@ -24,12 +33,19 @@ export interface IdempotentMutationOptions<TData, TError, TVariables, TContext>
 function genRequestId(seed: string): string {
   // 16 random hex chars + short seed hash for traceability.
   const rand = crypto.getRandomValues(new Uint8Array(8));
-  const hex = Array.from(rand).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const hex = Array.from(rand)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return `${seed.slice(0, 32)}-${hex}`;
 }
 
-export function useIdempotentMutation<TData = unknown, TError = unknown, TVariables = void, TContext = unknown>(
-  options: IdempotentMutationOptions<TData, TError, TVariables, TContext>,
+export function useIdempotentMutation<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown,
+>(
+  options: IdempotentMutationOptions<TData, TError, TVariables, TContext>
 ): UseMutationResult<TData, TError, TVariables, TContext> & { getRequestId: () => string | null } {
   const { idempotencyKey, debounceMs = 250, mutationFn, ...rest } = options;
 
@@ -38,9 +54,10 @@ export function useIdempotentMutation<TData = unknown, TError = unknown, TVariab
   const lastRequestId = useRef<string | null>(null);
 
   const wrappedFn = useCallback(
-    async (variables: TVariables): Promise<TData> => {
+    async (variables: TVariables, context: MutationFunctionContext): Promise<TData> => {
       if (!mutationFn) throw new Error("useIdempotentMutation: mutationFn required");
-      const seed = typeof idempotencyKey === "function" ? idempotencyKey(variables) : idempotencyKey;
+      const seed =
+        typeof idempotencyKey === "function" ? idempotencyKey(variables) : idempotencyKey;
 
       // Debounce window
       const now = Date.now();
@@ -62,7 +79,7 @@ export function useIdempotentMutation<TData = unknown, TError = unknown, TVariab
       // it (e.g. via supabase.functions.invoke headers) read getRequestId().
       const p = (async () => {
         try {
-          return await mutationFn(variables);
+          return await mutationFn(variables, context);
         } finally {
           // Hold the in-flight slot briefly so trailing clicks coalesce.
           setTimeout(() => inFlight.current.delete(seed), debounceMs);
@@ -71,7 +88,7 @@ export function useIdempotentMutation<TData = unknown, TError = unknown, TVariab
       inFlight.current.set(seed, p);
       return p;
     },
-    [mutationFn, idempotencyKey, debounceMs],
+    [mutationFn, idempotencyKey, debounceMs]
   );
 
   const m = useMutation<TData, TError, TVariables, TContext>({ ...rest, mutationFn: wrappedFn });

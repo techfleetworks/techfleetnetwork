@@ -13,7 +13,10 @@ import {
   PERSISTER_KEY_PREFIX,
 } from "@/lib/query/persister";
 
-function makeQuery(meta: Record<string, unknown> | undefined, status: "success" | "pending" | "error") {
+function makeQuery(
+  meta: Record<string, unknown> | undefined,
+  status: "success" | "pending" | "error"
+) {
   return { meta, state: { status } } as Parameters<typeof shouldPersistQuery>[0];
 }
 
@@ -43,7 +46,10 @@ describe("persister storage lifecycle", () => {
 
     setActiveQueryPersisterUser("user-a");
     expect(getActiveQueryPersisterKey()).toBe(userAKey);
-    window.localStorage.setItem(userAKey, JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} }));
+    window.localStorage.setItem(
+      userAKey,
+      JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} })
+    );
 
     setActiveQueryPersisterUser("user-b");
     expect(getActiveQueryPersisterKey()).toBe(userBKey);
@@ -58,8 +64,14 @@ describe("persister storage lifecycle", () => {
     const userAKey = getPersisterKeyForUser("user-a");
     const userBKey = getPersisterKeyForUser("user-b");
     setActiveQueryPersisterUser("user-a");
-    window.localStorage.setItem(userAKey, JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} }));
-    window.localStorage.setItem(userBKey, JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} }));
+    window.localStorage.setItem(
+      userAKey,
+      JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} })
+    );
+    window.localStorage.setItem(
+      userBKey,
+      JSON.stringify({ buster: "x", timestamp: Date.now(), clientState: {} })
+    );
 
     await purgePersistedCache();
     expect(window.localStorage.getItem(userAKey)).toBeNull();
@@ -71,11 +83,19 @@ describe("persister storage lifecycle", () => {
     expect(persister).toBeDefined();
     setActiveQueryPersisterUser("user-b");
     const userBKey = getPersisterKeyForUser("user-b");
-    const snapshot = { buster: "x", timestamp: Date.now(), clientState: { queries: [{ queryKey: ["dashboard-overview", "user-b"] }] } };
+    const snapshot = {
+      buster: "x",
+      timestamp: Date.now(),
+      clientState: { queries: [{ queryKey: ["dashboard-overview", "user-b"] }] },
+    };
     window.localStorage.setItem(userBKey, JSON.stringify(snapshot));
 
     runWithoutPersistingQueryCache(() => {
-      void persister?.persistClient({ buster: "x", timestamp: Date.now(), clientState: { queries: [] } });
+      void persister?.persistClient({
+        buster: "x",
+        timestamp: Date.now(),
+        clientState: { queries: [], mutations: [] },
+      });
     });
 
     expect(JSON.parse(window.localStorage.getItem(userBKey) ?? "{}")).toEqual(snapshot);
