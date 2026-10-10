@@ -1,4 +1,4 @@
-// Guards the TYPE-CHECK GATE itself against silently going vacuous again (ADR-0068).
+// Guards the TYPE-CHECK GATE itself against silently going vacuous again (ADR 20261009).
 //
 // Background: the root tsconfig.json is a SOLUTION file — `"files": []` + `references`. A bare
 // `tsc --noEmit` ignores project references and type-checks ZERO files, always exiting 0. For most
@@ -36,7 +36,7 @@ function inputFilesOf(project: string): string[] {
     .filter((l) => l && !l.includes("node_modules") && !l.endsWith(".d.ts"));
 }
 
-describe("type-check gate is non-vacuous (ADR-0068)", () => {
+describe("type-check gate is non-vacuous (ADR 20261009)", () => {
   it("root tsconfig is a references-only solution file — a bare `tsc` here checks nothing", () => {
     const root = JSON.parse(read("tsconfig.json")) as {
       files?: unknown[];

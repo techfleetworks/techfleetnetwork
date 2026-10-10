@@ -365,7 +365,7 @@ a BOM fails CI, so the class cannot enter the repo (**ADR-0035**).
 **The type-check gate checks every project, never a bare `tsc`.** The root `tsconfig.json` is a
 references-only _solution_ file (`"files": []` + `references`). A bare `tsc --noEmit` does not follow
 project references, so against that root it type-checks **zero files** and always exits 0 — a green
-no-op that let a whole backlog of real type errors ship on `main` (the bug behind **ADR-0068**). The
+no-op that let a whole backlog of real type errors ship on `main` (the bug behind **ADR 20261009**). The
 build (`vite build`) strips types with esbuild and never checks them, so the gate is the _only_ thing
 standing between a type error and production.
 

@@ -6,7 +6,7 @@
 //   projects (app / node / test). A bare `tsc --noEmit` ignores project references entirely,
 //   so it type-checks ZERO files and ALWAYS exits 0. For ~the whole life of this repo the CI
 //   "Type-check" step ran exactly that and was a silent no-op: real type errors shipped on a
-//   green main (ADR-0068). `tsc -b` (build mode) DOES follow references, but it is INCREMENTAL
+//   green main (ADR 20261009). `tsc -b` (build mode) DOES follow references, but it is INCREMENTAL
 //   — it caches results in .tsbuildinfo and on a warm/again run reports "up to date" and exits
 //   0 WITHOUT re-reporting errors, which on a slow/OneDrive filesystem produced inconsistent
 //   red/green across back-to-back runs. A gate must be deterministic and fail closed

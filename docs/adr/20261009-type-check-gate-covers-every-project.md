@@ -1,14 +1,14 @@
-# ADR 0068 — The CI type-check gate checks every project (kill the vacuous `tsc` no-op)
+# ADR 20261009 — The CI type-check gate checks every project (kill the vacuous `tsc` no-op)
 
 - Status: Accepted
-- Date: 2026-10-08
+- Date: 2026-10-09
 - Deciders: Morgan Denner
 - Epic: CI/CD gate integrity
 
-> Numbering: main reached ADR-0067 (0066 = undici/ip-address overrides #404, 0067 = Class Admin IA
-> #395) while this branch was in flight, so it takes 0068. (0066 is also used by the in-flight
-> `refactor/projects-data-access-service-layer` branch — a separate pre-existing collision, not
-> introduced here.)
+> Numbering: the 4-digit ADR space is frozen — parallel branches kept colliding on it (this change
+> itself was bumped 0067→0068 and then collided again when `0068-dependency-advisories-delta-gate`
+> merged first). Per the now-merged date-ID convention, new ADRs use a `YYYYMMDD-slug` filename, so
+> this is `20261009-type-check-gate-covers-every-project`.
 
 ## Context
 
