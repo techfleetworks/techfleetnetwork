@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMemberProjectDetails, useProjectInternalLinks } from "@/hooks/use-project";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import {
@@ -232,21 +233,7 @@ function ActiveProjectDetail({
   // get_project_internal_links returns an empty rowset (instead of raising
   // 42501) when the caller isn't on the roster, so the client no longer needs
   // to swallow a permission-denied error.
-  const { data: links } = useQuery({
-    queryKey: ["project-internal-links", project.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_project_internal_links", {
-        p_project_id: project.id,
-      });
-      if (error) throw error;
-      return (data?.[0] ?? null) as {
-        client_intake_url: string | null;
-        notion_repository_url: string | null;
-      } | null;
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: links } = useProjectInternalLinks(project.id);
 
   const clientIntakeUrl = links?.client_intake_url ?? "";
   const notionRepoUrl = links?.notion_repository_url ?? "";
@@ -490,31 +477,17 @@ export function MyProjectsTab() {
   }, [myApps]);
 
   // Fetch full project details with client info
-  const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["my-project-details", projectIds],
-    queryFn: async () => {
-      if (!projectIds.length) return [];
-      const { data, error } = await supabase
-        .from("projects")
-        .select(
-          `
-          id, project_type, phase, project_status, team_hats,
-          current_phase_milestones, timezone_range,
-          anticipated_start_date, anticipated_end_date,
-          created_at,
-          friendly_name, description,
-          clients!projects_client_id_fkey ( name, website, mission, project_summary, primary_contact, kind )
-        `
-        )
-        .in("id", projectIds);
-      if (error) throw error;
-      return (data ?? []).map((p) => ({
+  const { data: baseProjects, isLoading: projectsLoading } = useMemberProjectDetails(projectIds);
+  // Merge each project's applicant_status (from the project_applications read) onto the service-owned
+  // project detail — the same shape the inline queryFn produced, now composed in the component.
+  const projects = useMemo(
+    () =>
+      (baseProjects ?? []).map((p) => ({
         ...p,
         applicant_status: statusMap[p.id] ?? "active_participant",
-      })) as unknown as ProjectWithStatus[];
-    },
-    enabled: projectIds.length > 0,
-  });
+      })) as unknown as ProjectWithStatus[],
+    [baseProjects, statusMap]
+  );
 
   const loading = isLoading || projectsLoading;
 

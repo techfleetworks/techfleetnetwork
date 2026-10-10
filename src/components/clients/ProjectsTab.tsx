@@ -20,24 +20,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { format } from "date-fns";
 import { PROJECT_TYPES, PROJECT_PHASES, PROJECT_STATUSES } from "@/data/project-constants";
 import { useMilestoneReference, computeMilestoneData } from "@/hooks/use-milestone-reference";
+import { useClientProjects } from "@/hooks/use-project";
+import type { ClientProject } from "@/services/project.service";
 import type { Client } from "@/components/clients/ClientsTab";
 import { ThemedAgGrid } from "@/components/AgGrid";
 import type { ColDef } from "ag-grid-community";
 
-interface Project {
-  id: string;
-  client_id: string;
-  project_type: string;
-  phase: string;
-  team_hats: string[];
-  project_status: string;
-  current_phase_milestones: string[];
-  friendly_name?: string;
-  description?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
+// Local alias to the service-owned shape (one column-contract owner, ADR-0071).
+type Project = ClientProject;
 
 export function ProjectsTab() {
   const navigate = useNavigate();
@@ -56,21 +46,7 @@ export function ProjectsTab() {
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`
-      // (ADR-0056/0065); select('*') fails 42501/403. List exactly the Project fields.
-      const { data, error } = await supabase
-        .from("projects")
-        .select(
-          "id, client_id, project_type, phase, team_hats, project_status, current_phase_milestones, friendly_name, description, created_by, created_at, updated_at"
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as unknown as Project[];
-    },
-  });
+  const { data: projects = [], isLoading } = useClientProjects();
 
   const { data: milestoneRefs = [] } = useMilestoneReference();
 

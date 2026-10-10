@@ -55,7 +55,6 @@
 //   supabase/functions/send-project-blast
 //   supabase/functions/support-monthly-report
 //   supabase/functions/support-provisioning-retry
-//   supabase/functions/sync-airtable-network-stats
 //   supabase/functions/translate-strings
 import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";

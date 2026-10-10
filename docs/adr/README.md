@@ -2,8 +2,31 @@
 
 Lightweight ADRs for significant, long-lived decisions (new bounded contexts, data-source
 changes, contracts other code depends on). Format: **Status / Context / Decision /
-Alternatives considered / Consequences**. Numbered, immutable — a superseded decision is
+Alternatives considered / Consequences**. Immutable — a superseded decision is
 marked `Superseded by ADR-XXXX`, never deleted or rewritten.
+
+## Naming new ADRs — use a date prefix, never a new sequential number
+
+A new ADR's filename is `<YYYYMMDD>-<slug>.md` (the day you write it), and its header is
+`# ADR <YYYYMMDD> — <title>`. **Do not mint a new 4-digit number.** The sequential space
+(`0001`…) is **frozen**: a shared counter allocated at author time cannot be made
+collision-free, so parallel branches each grabbed "the next number" and collided on merge —
+over and over (0009/0013/0014/0016 on `main`, the 0015→0018 renumber noted below, and every
+feature branch that sat open while others merged). The date prefix fixes this at the root, the
+same way DB migrations already do it (`YYYYMMDDHHMMSS_...`): two branches almost never share a
+day _and_ a slug, so filenames stay unique with zero coordination. `check-adr-number-collision.mjs`
+enforces both forms — legacy numbers stay unique (frozen), date ADRs may share a day.
+
+```
+# ❌ never — a new sequential number races every other open branch to "the next number"
+docs/adr/0071-gumroad-reconcile-clawback.md      →  collides the day another branch also picks 0071
+
+# ✅ always — a date prefix is unique without coordinating with any other branch
+docs/adr/20261009-gumroad-reconcile-clawback.md  →  header: "# ADR 20261009 — …"; cite as "ADR 20261009"
+```
+
+Legacy numbered ADRs keep their numbers and references (renumbering merged, cross-linked ADRs
+would break existing links). Reference a legacy ADR as `ADR-NNNN`, a date ADR as `ADR <YYYYMMDD>`.
 
 | ADR                                                               | Title                                                                              | Status             |
 | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------ |
